@@ -154,7 +154,7 @@ function buildExplanationPrompt(plan: PlanContent, language: string): string {
     .join("\n");
 
   if (language === "vi") {
-    return `B?n l� hu?n luy?n vi�n c� nh�n. H�y gi?i th�ch k? ho?ch t?p luy?n sau b?ng ti?ng Vi?t:
+    return `Bạn là huấn luyện viên cá nhân. Hãy giải thích kế hoạch tập luyện sau bằng tiếng Việt:
 
 Mục tiêu: ${plan.goal}
 Thời lượng: ${plan.durationWeeks} tuần, ${plan.daysPerWeek} buổi/tuần
@@ -162,7 +162,7 @@ Thời lượng: ${plan.durationWeeks} tuần, ${plan.daysPerWeek} buổi/tuần
 Lịch tập:
 ${schedule}
 
-H�y gi?i th�ch:
+Hãy giải thích:
 1. Tại sao kế hoạch này được thiết kế cho mục tiêu ${plan.goal}
 2. Nguyên tắc chọn bài tập
 3. Kết quả kỳ vọng và thời điểm đạt được
@@ -550,7 +550,7 @@ export const planController = {
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? gi?i th�ch",
+              "Kế hoạch này đã được ẩn và không thể giải thích",
             ),
           );
         return;
@@ -667,7 +667,7 @@ export const planController = {
         return;
       }
       if (plan.ptReviewStatus !== "PENDING_PT_REVIEW") {
-        res.status(409).json({ error: "Plan n�y d� du?c review r?i" });
+        res.status(409).json({ error: "Plan này đã được review rồi" });
         return;
       }
 
@@ -756,7 +756,7 @@ export const planController = {
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? di?u ch?nh",
+              "Kế hoạch này đã được ẩn và không thể điều chỉnh",
             ),
           );
         return;
@@ -908,7 +908,7 @@ export const planController = {
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? luu v�o l?ch t?p",
+              "Kế hoạch này đã được ẩn và không thể lưu vào lịch tập",
             ),
           );
         return;
@@ -1062,7 +1062,7 @@ export const planController = {
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? gi?i th�ch",
+              "Kế hoạch này đã được ẩn và không thể giải thích",
             ),
           );
         return;
@@ -1082,7 +1082,7 @@ export const planController = {
         })
         .join("\n");
 
-      const nutritionPrompt = `B?n l� chuy�n gia dinh du?ng. H�y gi?i th�ch k? ho?ch dinh du?ng sau b?ng ti?ng Vi?t:
+      const nutritionPrompt = `Bạn là chuyên gia dinh dưỡng. Hãy giải thích kế hoạch dinh dưỡng sau bằng tiếng Việt:
 
 Mục tiêu: ${plan.goal}
 Thời lượng: ${plan.durationWeeks} tuần, ${plan.mealsPerDay} bữa/ngày
@@ -1092,7 +1092,7 @@ Protein: ${planContent.proteinTargetGrams || 0}g | Carbs: ${planContent.carbTarg
 Thực đơn 7 ngày:
 ${schedule}
 
-H�y gi?i th�ch:
+Hãy giải thích:
 1. Vì sao lượng calories và macro này phù hợp với mục tiêu ${plan.goal}
 2. Nguyên tắc chọn thực phẩm trong kế hoạch
 3. Cách áp dụng thực đơn 7 ngày này
@@ -1180,7 +1180,7 @@ H�y gi?i th�ch:
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "Ch? c� th? di?u ch?nh k? ho?ch d� ho�n th�nh",
+              "Chỉ có thể điều chỉnh kế hoạch đã hoàn thành",
             ),
           );
         return;
@@ -1191,7 +1191,7 @@ H�y gi?i th�ch:
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? di?u ch?nh",
+              "Kế hoạch này đã được ẩn và không thể điều chỉnh",
             ),
           );
         return;
@@ -1339,7 +1339,7 @@ H�y gi?i th�ch:
           .json(
             formatErrorResponse(
               "VALIDATION_ERROR",
-              "K? ho?ch n�y d� du?c ?n v� kh�ng th? luu v�o l?ch dinh du?ng",
+              "Kế hoạch này đã được ẩn và không thể lưu vào lịch dinh dưỡng",
             ),
           );
         return;
@@ -1435,7 +1435,7 @@ H�y gi?i th�ch:
             alreadyExists: Boolean(fitnessPayload.alreadyExists),
             message:
               fitnessPayload.message ||
-              "�� luu k? ho?ch AI v�o l?ch dinh du?ng",
+              "Đã lưu kế hoạch AI vào lịch dinh dưỡng",
           }),
         );
     } catch (err) {

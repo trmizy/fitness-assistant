@@ -31,4 +31,15 @@ RUN mkdir -p /app/backend/services/user-service/uploads/pt-applications
 WORKDIR /app/backend/services/user-service
 EXPOSE 3004
 
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && pnpm run dev"]
+# Schema changes go through migrations, never `db push --accept-data-loss`.
+#
+# That flag does exactly what it says. When a schema edit is one Prisma cannot apply in
+# place, db push drops and recreates the table rather than refusing — and on 2026-08-11 it
+# emptied pt_applications and pt_training_locations and took contracts from 736 rows
+# (2.360.709.500đ) down to 61. Nothing warned anyone; the service just booted normally with
+# the data gone, and PT discovery silently returned zero results because it inner-joins
+# pt_applications.
+#
+# `migrate deploy` applies pending migrations and stops on anything it cannot apply. It has
+# no path that destroys a table. The other services already start this way.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]

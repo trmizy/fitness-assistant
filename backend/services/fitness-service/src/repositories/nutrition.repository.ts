@@ -9,6 +9,11 @@ type NutritionGoalRow = {
   carbs: number;
   fat: number;
   waterMl: number | null;
+  status?: string;
+  validFrom?: Date;
+  triggeredBy?: string | null;
+  reason?: string | null;
+  goalMode?: string;
 };
 
 export const nutritionRepository = {
@@ -58,6 +63,8 @@ export const nutritionRepository = {
       where: { userId, date: { gte: startDate } },
     }),
 
+  // Only the currently-ACTIVE prescription — callers wanting history should
+  // use findGoalHistoryByUserId instead.
   findGoalByUserId: async (
     userId: string,
   ): Promise<NutritionGoalRow | null> => {
@@ -69,14 +76,40 @@ export const nutritionRepository = {
         protein,
         carbs,
         fat,
-        water_ml AS "waterMl"
+        water_ml AS "waterMl",
+        status,
+        valid_from AS "validFrom",
+        triggered_by AS "triggeredBy",
+        reason,
+        goal_mode AS "goalMode"
       FROM nutrition_goals
-      WHERE user_id = ${userId}
+      WHERE user_id = ${userId} AND status = 'ACTIVE'
       LIMIT 1
     `;
     return rows[0] ?? null;
   },
 
+  /** Full version history, newest first — for an eventual "why did my
+   * calories change" audit view. Not currently surfaced by any route. */
+  findGoalHistoryByUserId: async (userId: string): Promise<NutritionGoalRow[]> =>
+    prisma.$queryRaw<NutritionGoalRow[]>`
+      SELECT
+        id, user_id AS "userId", calories, protein, carbs, fat,
+        water_ml AS "waterMl", status, valid_from AS "validFrom",
+        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode"
+      FROM nutrition_goals
+      WHERE user_id = ${userId}
+      ORDER BY valid_from DESC
+    `,
+
+  /**
+   * Creates a NEW active nutrition-goal version, superseding whatever was
+   * previously ACTIVE for this user rather than overwriting it in place —
+   * the old row (and every row before it) stays in the table forever,
+   * `status = 'SUPERSEDED'`, so "what was my calorie target 3 weeks ago and
+   * why did it change" stays answerable. Mirrors PersonalizedServicePlanVersion's
+   * DELIVERED/ACCEPTED/SUPERSEDED pattern (ai-service).
+   */
   upsertGoal: async (
     userId: string,
     data: {
@@ -85,47 +118,39 @@ export const nutritionRepository = {
       carbs: number;
       fat: number;
       waterMl?: number | null;
+      goalMode?: "RECOMMENDED" | "CUSTOM";
+    },
+    options?: {
+      reason?: string;
+      triggeredBy?: "ONBOARDING" | "MANUAL" | "AI_ADAPTIVE" | "PT";
     },
   ): Promise<NutritionGoalRow> => {
+    const newId = randomUUID();
+    await prisma.$transaction([
+      prisma.$executeRaw`
+        UPDATE nutrition_goals
+        SET status = 'SUPERSEDED', superseded_at = NOW()
+        WHERE user_id = ${userId} AND status = 'ACTIVE'
+      `,
+      prisma.$executeRaw`
+        INSERT INTO nutrition_goals (
+          id, user_id, calories, protein, carbs, fat, water_ml,
+          status, valid_from, reason, triggered_by, goal_mode, created_at, updated_at
+        )
+        VALUES (
+          ${newId}, ${userId}, ${data.calories}, ${data.protein}, ${data.carbs}, ${data.fat},
+          ${data.waterMl ?? null}, 'ACTIVE', NOW(), ${options?.reason ?? null},
+          ${options?.triggeredBy ?? "MANUAL"}, ${data.goalMode ?? "RECOMMENDED"}, NOW(), NOW()
+        )
+      `,
+    ]);
     const rows = await prisma.$queryRaw<NutritionGoalRow[]>`
-      INSERT INTO nutrition_goals (
-        id,
-        user_id,
-        calories,
-        protein,
-        carbs,
-        fat,
-        water_ml,
-        created_at,
-        updated_at
-      )
-      VALUES (
-        ${randomUUID()},
-        ${userId},
-        ${data.calories},
-        ${data.protein},
-        ${data.carbs},
-        ${data.fat},
-        ${data.waterMl ?? null},
-        NOW(),
-        NOW()
-      )
-      ON CONFLICT (user_id)
-      DO UPDATE SET
-        calories = EXCLUDED.calories,
-        protein = EXCLUDED.protein,
-        carbs = EXCLUDED.carbs,
-        fat = EXCLUDED.fat,
-        water_ml = EXCLUDED.water_ml,
-        updated_at = NOW()
-      RETURNING
-        id,
-        user_id AS "userId",
-        calories,
-        protein,
-        carbs,
-        fat,
-        water_ml AS "waterMl"
+      SELECT
+        id, user_id AS "userId", calories, protein, carbs, fat,
+        water_ml AS "waterMl", status, valid_from AS "validFrom",
+        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode"
+      FROM nutrition_goals
+      WHERE id = ${newId}
     `;
     return rows[0];
   },

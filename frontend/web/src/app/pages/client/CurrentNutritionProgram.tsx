@@ -73,6 +73,88 @@ function statusBadge(status: string) {
   };
 }
 
+const DEFAULT_GENERATE_FORM = {
+  goal: "Tăng cơ",
+  mealsPerDay: 3,
+  dailyCaloriesTarget: "" as string | number,
+  dietPreference: "Không",
+  budgetLevel: "normal",
+  weightKg: "" as string | number,
+  heightCm: "" as string | number,
+  age: "" as string | number,
+  gender: "",
+  bodyFatPct: "" as string | number,
+  activityLevel: "MODERATE",
+  trainingDaysPerWeek: "" as string | number,
+  trainingDurationMin: "" as string | number,
+  trainingType: "",
+  trainingPhase: "",
+  experienceLevel: "",
+  primaryPriority: "",
+  proteinTargetG: "" as string | number,
+  carbTargetG: "" as string | number,
+  fatTargetG: "" as string | number,
+  carbsAroundWorkout: false,
+  preworkoutMeal: false,
+  postworkoutMeal: false,
+  restrictions: [] as string[],
+  customRestriction: "",
+  notes: "",
+};
+
+function optionalNumber(value: unknown): number | undefined {
+  if (value === "" || value === null || value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function buildGenerateNutritionPayload(form: typeof DEFAULT_GENERATE_FORM) {
+  const payload: Record<string, unknown> = {
+    goal: form.goal,
+    durationWeeks: 1,
+    mealsPerDay: optionalNumber(form.mealsPerDay) ?? 3,
+    dietPreference: form.dietPreference,
+    budgetLevel: form.budgetLevel,
+    restrictions: [
+      ...form.restrictions,
+      ...(form.customRestriction.trim() ? [form.customRestriction.trim()] : []),
+    ].filter(Boolean),
+    notes: form.notes.trim() || undefined,
+    activityLevel: form.activityLevel,
+    carbsAroundWorkout: form.carbsAroundWorkout,
+    preworkoutMeal: form.preworkoutMeal,
+    postworkoutMeal: form.postworkoutMeal,
+  };
+
+  for (const key of [
+    "dailyCaloriesTarget",
+    "weightKg",
+    "heightCm",
+    "age",
+    "bodyFatPct",
+    "trainingDaysPerWeek",
+    "trainingDurationMin",
+    "proteinTargetG",
+    "carbTargetG",
+    "fatTargetG",
+  ] as const) {
+    const value = optionalNumber(form[key]);
+    if (value !== undefined) payload[key] = value;
+  }
+
+  for (const key of [
+    "gender",
+    "trainingType",
+    "trainingPhase",
+    "experienceLevel",
+    "primaryPriority",
+  ] as const) {
+    if (form[key]) payload[key] = form[key];
+  }
+
+  return payload;
+}
+
 // ── Day detail display ───────────────────────────────────────────────────────
 
 function NutritionDayView({
@@ -179,7 +261,7 @@ export function CurrentNutritionProgram() {
     // Core
     goal: "Giảm mỡ",
     mealsPerDay: 3,
-    dailyCaloriesTarget: 2000,
+    dailyCaloriesTarget: "" as string | number,
     dietPreference: "Không",
     budgetLevel: "normal",
     // Body stats
@@ -187,6 +269,7 @@ export function CurrentNutritionProgram() {
     heightCm: "" as string | number,
     age: "" as string | number,
     gender: "" as string,
+    bodyFatPct: "" as string | number,
     // Training
     activityLevel: "MODERATE",
     trainingDaysPerWeek: "" as string | number,
@@ -198,6 +281,8 @@ export function CurrentNutritionProgram() {
     primaryPriority: "",
     // Macro preferences
     proteinTargetG: "" as string | number,
+    carbTargetG: "" as string | number,
+    fatTargetG: "" as string | number,
     carbsAroundWorkout: false,
     preworkoutMeal: false,
     postworkoutMeal: false,
@@ -249,6 +334,40 @@ export function CurrentNutritionProgram() {
   const completedPlans = plans.filter((p: any) => p.status === "COMPLETED");
   const failedPlans = plans.filter((p: any) => p.status === "FAILED");
 
+  const closeGenerateModal = () => {
+    setShowGenerateModal(false);
+    setShowAdvancedForm(false);
+    setGenerateForm(DEFAULT_GENERATE_FORM);
+  };
+
+  const openGenerateModal = () => {
+    setGenerateForm(DEFAULT_GENERATE_FORM);
+    setShowAdvancedForm(false);
+    setShowGenerateModal(true);
+  };
+
+  const submitGenerateNutritionPlan = () => {
+    if (processingPlan || generateMutation.isPending) return;
+
+    const payload = buildGenerateNutritionPayload(generateForm);
+    const calories = optionalNumber(payload.dailyCaloriesTarget);
+    const protein = optionalNumber(payload.proteinTargetG);
+    const carbs = optionalNumber(payload.carbTargetG);
+    const fat = optionalNumber(payload.fatTargetG);
+
+    if (calories && protein !== undefined && carbs !== undefined && fat !== undefined) {
+      const macroKcal = protein * 4 + carbs * 4 + fat * 9;
+      if (Math.abs(macroKcal - calories) > Math.max(80, calories * 0.05)) {
+        toast.error(
+          `Macro hiện tại tạo ra khoảng ${Math.round(macroKcal)} kcal, chưa khớp ${Math.round(calories)} kcal. Hãy sửa calories hoặc macro trước khi tạo plan.`,
+        );
+        return;
+      }
+    }
+
+    generateMutation.mutate(payload);
+  };
+
   // Auto-open the most recent completed plan
   useEffect(() => {
     if (processingPlan) {
@@ -273,7 +392,7 @@ export function CurrentNutritionProgram() {
     mutationFn: (payload: any) => planService.generateNutritionPlan(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-ai-plans"] });
-      setShowGenerateModal(false);
+      closeGenerateModal();
       toast.success("Đã bắt đầu tạo kế hoạch (chạy ngầm).");
     },
     onError: (e: any) => {
@@ -603,7 +722,7 @@ export function CurrentNutritionProgram() {
           dưỡng
         </h3>
         <button
-          onClick={() => setShowGenerateModal(true)}
+          onClick={openGenerateModal}
           className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg"
         >
           <Sparkles className="w-4 h-4" /> Tạo kế hoạch mới
@@ -732,7 +851,7 @@ export function CurrentNutritionProgram() {
                 dinh dưỡng AI
               </h3>
               <button
-                onClick={() => setShowGenerateModal(false)}
+                onClick={closeGenerateModal}
                 className="text-zinc-500 hover:text-zinc-300"
               >
                 <X className="w-5 h-5" />
@@ -796,11 +915,12 @@ export function CurrentNutritionProgram() {
                       type="number"
                       min={1000}
                       max={6000}
+                      placeholder="AI tu tinh"
                       value={generateForm.dailyCaloriesTarget}
                       onChange={(e) =>
                         setGenerateForm({
                           ...generateForm,
-                          dailyCaloriesTarget: Number(e.target.value),
+                          dailyCaloriesTarget: e.target.value,
                         })
                       }
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50"
@@ -1185,48 +1305,14 @@ export function CurrentNutritionProgram() {
             </div>
             <div className="p-4 border-t border-zinc-800/60 flex gap-3 shrink-0">
               <button
-                onClick={() => setShowGenerateModal(false)}
+                onClick={closeGenerateModal}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800"
               >
                 Hủy
               </button>
               <button
-                onClick={() => {
-                  const payload: any = {
-                    ...generateForm,
-                    durationWeeks: 1,
-                    restrictions: [
-                      ...generateForm.restrictions,
-                      ...(generateForm.customRestriction.trim()
-                        ? [generateForm.customRestriction.trim()]
-                        : []),
-                    ].filter(Boolean),
-                  };
-                  // Clean up empty fields
-                  [
-                    "weightKg",
-                    "heightCm",
-                    "age",
-                    "trainingDaysPerWeek",
-                    "trainingDurationMin",
-                    "proteinTargetG",
-                  ].forEach((k) => {
-                    if (payload[k] === "" || payload[k] === undefined)
-                      delete payload[k];
-                    else payload[k] = Number(payload[k]);
-                  });
-                  [
-                    "gender",
-                    "trainingType",
-                    "trainingPhase",
-                    "experienceLevel",
-                    "primaryPriority",
-                  ].forEach((k) => {
-                    if (!payload[k]) delete payload[k];
-                  });
-                  generateMutation.mutate(payload);
-                }}
-                disabled={generateMutation.isPending}
+                onClick={submitGenerateNutritionPlan}
+                disabled={generateMutation.isPending || Boolean(processingPlan)}
                 className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-black text-sm font-bold rounded-lg disabled:opacity-50"
               >
                 {generateMutation.isPending ? (

@@ -76,3 +76,47 @@ export async function sendOtpEmail(
   logger.info({ to }, "OTP email sent");
   return { delivered: true as const };
 }
+
+/**
+ * Generic send, for the other services that need to notify a user by email but have no SMTP
+ * setup of their own (e.g. a contract confirmation after payment). Same fallback as
+ * sendOtpEmail: outside production, a missing SMTP config logs and no-ops rather than
+ * failing the caller's own flow over a notification.
+ */
+export async function sendPlainEmail(params: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}) {
+  const hasSmtpConfig = assertSmtpConfig();
+  if (!hasSmtpConfig) {
+    if (process.env.NODE_ENV === "production") {
+      throw { status: 500, message: "Email service not configured" };
+    }
+    logger.warn(
+      { to: params.to, subject: params.subject },
+      "SMTP not configured. Skipping email send.",
+    );
+    return { delivered: false as const };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth:
+      SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+  });
+
+  await transporter.sendMail({
+    from: SMTP_FROM,
+    to: params.to,
+    subject: params.subject,
+    text: params.text,
+    html: params.html,
+  });
+
+  logger.info({ to: params.to, subject: params.subject }, "Email sent");
+  return { delivered: true as const };
+}

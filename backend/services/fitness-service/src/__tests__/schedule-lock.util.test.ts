@@ -160,6 +160,7 @@ test("assertScheduleDateEditable: throws ScheduleLockedError (business error, no
       assert.ok(err instanceof ScheduleLockedError);
       assert.equal((err as ScheduleLockedError).status, 409);
       assert.equal((err as ScheduleLockedError).code, "SCHEDULE_DATE_LOCKED");
+      assert.equal((err as ScheduleLockedError).direction, "past");
       return true;
     },
   );
@@ -173,9 +174,32 @@ test("SECURITY: assertScheduleDateEditable throws for a future date — a sessio
       assert.ok(err instanceof ScheduleLockedError);
       assert.equal((err as ScheduleLockedError).status, 409);
       assert.equal((err as ScheduleLockedError).code, "SCHEDULE_DATE_LOCKED");
+      assert.equal((err as ScheduleLockedError).direction, "future");
       return true;
     },
   );
+});
+
+// Real bug found via direct user report: a future-dated schedule was
+// rejected with "Không thể chỉnh sửa buổi tập của ngày đã qua." — "cannot
+// edit a workout from a day that has ALREADY PASSED", which is false for a
+// day that hasn't happened yet. The message must actually distinguish the
+// two directions, not just the `direction` field existing unused.
+test("ScheduleLockedError: message text is direction-aware — a future lock never claims the day 'đã qua' (already passed)", () => {
+  const now = new Date("2026-07-29T12:00:00Z");
+  try {
+    assertScheduleDateEditable(sched(2026, 7, 28), now, "Asia/Ho_Chi_Minh");
+    assert.fail("expected past date to throw");
+  } catch (err: any) {
+    assert.match(err.message, /đã qua/);
+  }
+  try {
+    assertScheduleDateEditable(sched(2026, 7, 30), now, "Asia/Ho_Chi_Minh");
+    assert.fail("expected future date to throw");
+  } catch (err: any) {
+    assert.doesNotMatch(err.message, /đã qua/);
+    assert.match(err.message, /Chưa đến ngày/);
+  }
 });
 
 test("currentWeekRange: a Wednesday resolves to that week's Monday-Sunday boundaries", () => {

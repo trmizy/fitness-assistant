@@ -1,4 +1,6 @@
 import { io, Socket } from "socket.io-client";
+import { Preferences } from "@capacitor/preferences";
+import { gatewaySocketUrl } from "../config/serverUrl";
 
 // Empty string tells socket.io-client to connect to the CURRENT page origin
 // (its documented default-URL behavior) at the default "/socket.io" path —
@@ -6,20 +8,22 @@ import { io, Socket } from "socket.io-client";
 // Socket.IO server. This must NOT reuse API_URL's "/api" default: passing a
 // bare path like "/api" as socket.io-client's server-URL argument is not
 // the same thing as a same-origin connection and is not a supported input.
-// Set VITE_SOCKET_URL to an absolute URL to bypass the proxy entirely.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
+// Set VITE_SOCKET_URL to an absolute URL to bypass the proxy entirely. A stored
+// runtime override (in-app "Cấu hình máy chủ") takes precedence over both — see
+// config/serverUrl.ts for why the APK needs that.
+const SOCKET_URL = gatewaySocketUrl();
 
 let socket: Socket | null = null;
 
-function readAccessToken(): string | null {
-  const token = localStorage.getItem("accessToken");
+async function readAccessToken(): Promise<string | null> {
+  const { value: token } = await Preferences.get({ key: "accessToken" });
   return token && token !== "null" && token !== "undefined" ? token : null;
 }
 
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      auth: (cb) => cb({ token: readAccessToken() }),
+      auth: async (cb) => cb({ token: await readAccessToken() }),
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 8,
@@ -35,7 +39,6 @@ export function getSocket(): Socket {
 
 export function connectSocket(): Socket {
   const current = getSocket();
-  current.auth = { token: readAccessToken() };
   if (!current.connected && !current.active) {
     current.connect();
   }

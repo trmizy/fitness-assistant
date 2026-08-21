@@ -1,20 +1,153 @@
 import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
-import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
+import {
+  AuditEntityType,
+  ContractStatus,
+  ContractSource,
+  PackageType,
+  SessionMode,
+  Prisma,
+} from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
+import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { profileRepository } from "../repositories/profile.repository";
+import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
+import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
+import { availabilityService } from "./availability.service";
+import { auditService } from "./audit.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** The subset of a PTServicePackage a contract copies. */
+export interface SnapshotSource {
+  id: string;
+  name: string;
+  sessionCount: number;
+  price: Prisma.Decimal | number | string;
+  sessionMode: SessionMode;
+  sessionDurationMinutes: number;
+}
+
+export interface PackageSnapshot {
+  packageId: string;
+  packageName: string;
+  packageSourceName: string;
+  totalSessions: number;
+  price: number;
+  sessionMode: SessionMode;
+  sessionDurationMinutes: number;
+}
+
+/**
+ * Copy a package's commercial terms onto a contract.
+ *
+ * Takes ONLY the package. That is the security property, not a style choice: the client's
+ * request body is the one place these values must never come from, because a caller who can
+ * name their own `price` buys a ten-session package for a đồng. Keeping the request out of
+ * this function's signature means no future edit can quietly start trusting it.
+ *
+ * It is also a copy, not a reference. The PT may reprice or archive the package tomorrow;
+ * a contract already signed is unaffected — the same rule the revenue split follows
+ * (docs/money-flow.md §12).
+ *
+ * `price` is narrowed to a JS number because that is what the contract repository takes.
+ * Safe here rather than by luck: the column is Decimal(14,2), so the largest representable
+ * value is 10^12 with two decimals — 10^14 in minor units, well inside the 2^53 integers a
+ * double represents exactly. Arithmetic on money still belongs in payment-service, in
+ * Decimal; this is a verbatim carry-across, not a calculation.
+ */
+export function buildPackageSnapshot(pkg: SnapshotSource): PackageSnapshot {
+  return {
+    packageId: pkg.id,
+    packageName: pkg.name,
+    packageSourceName: pkg.name,
+    totalSessions: pkg.sessionCount,
+    price: Number(pkg.price),
+    sessionMode: pkg.sessionMode,
+    sessionDurationMinutes: pkg.sessionDurationMinutes,
+  };
+}
+
+/**
+ * Record a contract changing state, with the state it came from.
+ *
+ * The "from" half is what makes the row useful: "cancelled" alone leaves open whether the
+ * client walked away from an active contract they had paid for or declined one that was
+ * still awaiting signature — two very different arguments to settle.
+ */
+async function auditContractStatus(
+  actorUserId: string,
+  contractId: string,
+  from: ContractStatus,
+  to: ContractStatus,
+  extra?: Record<string, unknown>,
+): Promise<void> {
+  await auditService.record({
+    actorUserId,
+    action: `CONTRACT_${to}`,
+    entityType: AuditEntityType.CONTRACT,
+    entityId: contractId,
+    metadata: { from, to, ...extra },
+  });
+}
+
+/**
+ * The other party on each contract, keyed by userId, always nameable.
+ *
+ * Two gaps have to be closed or the UI ends up showing a raw UUID where a person belongs:
+ * a UserProfile row is created lazily (a client who never opened the profile screen has
+ * none), and even an existing row usually has null firstName/lastName/email because the
+ * identity of record lives in auth-service. So stub the missing rows, then enrich the lot.
+ */
+async function counterpartyProfiles(
+  userIds: string[],
+): Promise<Map<string, any>> {
+  const ids = [...new Set(userIds)];
+  const rows = await profileRepository.findByUserIds(ids);
+  const byId = new Map<string, any>(rows.map((p) => [p.userId, p as any]));
+  for (const id of ids) {
+    if (!byId.has(id)) {
+      byId.set(id, {
+        userId: id,
+        firstName: null,
+        lastName: null,
+        email: null,
+      });
+    }
+  }
+  await enrichProfilesWithAuthNames([...byId.values()]);
+  return byId;
+}
+
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || "";
+
+// Temporary bypass (requested to unblock testing where the Dropbox Sign webhook can't reach
+// this environment — see docs/money-flow.md's deviations log). Defaults to true, i.e. the
+// original required-e-sign behavior, so nothing changes unless this is explicitly set.
+// The Dropbox Sign integration itself is untouched — flip this back to re-require it.
+const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
+
+/** Fire-and-forget: a notification email must never fail the flow that triggered it. */
+async function sendConfirmationEmail(to: string, subject: string, text: string): Promise<void> {
+  try {
+    const { default: axios } = await import("axios");
+    await axios.post(
+      `${AUTH_SERVICE_URL}/auth/internal/send-email`,
+      { to, subject, text },
+      { headers: { "x-service-secret": INTERNAL_SERVICE_SECRET }, timeout: 5000 },
+    );
+  } catch (e: any) {
+    logger.error({ to, err: e?.message }, "Failed to send contract confirmation email");
+  }
+}
 
 async function getUserInfo(userId: string): Promise<{
   email: string;
@@ -84,88 +217,145 @@ async function isUserActive(userId: string): Promise<boolean> {
 
 export const contractService = {
   // ── Client requests a contract with a PT ─────────────────────────
+  //
+  // SECURITY: price and totalSessions are NOT accepted from the client.
+  // They are read from PTServicePackage and snapshotted into the contract.
+  // Accepting these from the client is a classic price-manipulation vulnerability.
   async requestContract(
     clientUserId: string,
     data: {
       ptUserId: string;
-      packageType?: string;
-      packageName: string;
-      description?: string;
-      packageQuantity?: number;
-      extraSessions?: number;
-      totalSessions?: number; // Ignored if calculations are performed
-      price?: number; // Ignored if calculations are performed
-      pricePerSession?: number;
-      sessionMode?: string;
-      startDate?: string;
-      endDate?: string;
-      message?: string;
-      terms?: string;
-      notes?: string;
+      /** ID of the PTServicePackage the client selected. Replaces the old price/totalSessions fields. */
+      packageId: string;
+      clientMessage?: string;
+      /** The gym the client picked on the "where do you train?" step, if any. */
+      gymId?: string;
+      /**
+       * When true, the client has seen and acknowledged the low-availability warning.
+       * Required when availableSlotsNext28Days < package.sessionCount.
+       */
+      acknowledgedLowAvailability?: boolean;
     },
   ) {
-    // 1. Fetch PT Application for pricing rules
-    const app = await profileRepository.findPTApplicationByUserId(
+    // 1. Load the package (source of truth for price/sessions/mode)
+    //
+    // Guard the id before it reaches Prisma: findUnique({ where: { id: undefined } }) is a
+    // validation error, not a miss, so a request that simply forgot packageId surfaced as a
+    // 500 with a raw Prisma stack instead of telling the caller what was wrong.
+    if (!data.packageId) throw err("Thiếu packageId — hãy chọn gói dịch vụ", 400);
+    const pkg = await ptServicePackageRepository.findById(data.packageId);
+    if (!pkg) throw err("Gói dịch vụ không tồn tại", 404);
+    if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
+    if (pkg.ptUserId !== data.ptUserId)
+      throw err("Gói dịch vụ không thuộc PT này", 400);
+
+    // 2. Check PT profile
+    const ptProfile = await profileRepository.findByUserId(data.ptUserId);
+    if (!ptProfile || !ptProfile.isPT)
+      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    if (ptProfile.ptSuspended)
+      throw err("PT đang bị tạm ngưng, không thể tạo hợp đồng", 422);
+    if (!(ptProfile as any).isAcceptingClients)
+      throw err("PT hiện đang tạm ngưng nhận khách mới", 422);
+
+    // 3. Slot availability warning (L3 from plan)
+    //    Count available slots; if fewer than package.sessionCount, require acknowledgement.
+    const availableSlots = await availabilityService.countAvailableSlotsForPT(
       data.ptUserId,
+      pkg.sessionDurationMinutes,
     );
-    if (!app) throw err("PT profile or pricing not found", 404);
-
-    let finalSessions = 0;
-    let finalPrice = 0;
-    let unitPrice = 0;
-
-    const packQty = Math.max(1, data.packageQuantity || 1);
-    const extra = Math.max(0, data.extraSessions || 0);
-
-    if (data.packageType === "PACKAGE") {
-      const sessPerPack = app.sessionsPerPackage || 10;
-      const basePrice = app.packagePrice || 0;
-
-      finalSessions = sessPerPack * packQty + extra;
-      unitPrice = sessPerPack > 0 ? basePrice / sessPerPack : 0;
-      finalPrice = basePrice * packQty + extra * unitPrice;
-    } else {
-      // PER_SESSION logic
-      finalSessions = Math.max(1, data.totalSessions || 1);
-      unitPrice = app.desiredSessionPrice || 0;
-      finalPrice = finalSessions * unitPrice;
-    }
-
-    // BR-27: no duplicate active/pending contract with same PT
-    const existing = await contractRepository.findActiveByPair(
-      data.ptUserId,
-      clientUserId,
-    );
-    if (existing) {
-      throw err(
-        "You already have an active or pending contract with this PT",
-        409,
+    if (availableSlots < pkg.sessionCount && !data.acknowledgedLowAvailability) {
+      // Nearest opening, so the warning has a next step instead of just a number. Only
+      // computed on this already-slow-path — the happy path above never pays for it.
+      const nearestAvailableSlot = await availabilityService.findEarliestAvailableSlot(
+        data.ptUserId,
+        pkg.sessionDurationMinutes,
+      );
+      // Return 409 with machine-readable code — NOT a successful contract creation.
+      // The client UI shows a warning dialog and re-submits with acknowledgedLowAvailability=true.
+      throw Object.assign(
+        new Error("LOW_AVAILABILITY"),
+        {
+          status: 409,
+          code: "LOW_AVAILABILITY",
+          availableSlots,
+          packageSessions: pkg.sessionCount,
+          nearestAvailableSlot,
+        },
       );
     }
 
+    // 4. Resolve revenue split BEFORE any DB write — money-flow plan §1.4/B1.
+    let rates: { platformRate: string; ptRate: string; gymRate: string };
+    let source: ContractSource = ContractSource.INDEPENDENT;
+    if (data.gymId) {
+      if (pkg.sessionMode === SessionMode.ONLINE) {
+        throw err(
+          "Buổi tập trực tuyến không thể gắn với phòng gym cụ thể — chọn hình thức Offline hoặc bỏ chọn phòng gym",
+          400,
+        );
+      }
+      let collab;
+      try {
+        collab = await gymClient.getActiveCollaboration(data.gymId, data.ptUserId);
+      } catch (e) {
+        if (e instanceof GymServiceUnavailableError) {
+          throw err(
+            "Không thể xác nhận thoả thuận hợp tác với phòng gym lúc này, vui lòng thử lại",
+            503,
+          );
+        }
+        throw e;
+      }
+      if (!collab) {
+        throw err(
+          "PT chưa có thoả thuận hợp tác với phòng gym này — không thể tạo hợp đồng qua phòng gym",
+          400,
+        );
+      }
+      rates = { platformRate: collab.platformRate, ptRate: collab.ptRate, gymRate: collab.gymRate };
+      source = ContractSource.GYM;
+    } else {
+      rates = { platformRate: "0.10", ptRate: "0.90", gymRate: "0" };
+    }
+
+    // 5. No duplicate active/pending contract with same PT (BR-27)
+    const existing = await contractRepository.findActiveByPair(data.ptUserId, clientUserId);
+    if (existing) {
+      throw err("You already have an active or pending contract with this PT", 409);
+    }
+
+    // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
+    //    the client request. This is the security-critical step.
+    const snapshot = buildPackageSnapshot(pkg);
     const contract = await contractRepository.create({
       ptUserId: data.ptUserId,
       clientUserId,
       status: ContractStatus.PENDING_REVIEW,
-      packageType: (data.packageType as PackageType) || PackageType.PACKAGE,
-      packageName: data.packageName,
-      description: data.description,
-      packageQuantity: data.packageType === "PACKAGE" ? packQty : 1,
-      extraSessions: data.packageType === "PACKAGE" ? extra : 0,
-      totalSessions: finalSessions,
-      price: finalPrice,
-      pricePerSession: unitPrice,
-      sessionMode: data.sessionMode
-        ? (data.sessionMode as SessionMode)
-        : undefined,
-      startDate: data.startDate ? new Date(data.startDate) : undefined,
-      endDate: data.endDate ? new Date(data.endDate) : undefined,
-      clientMessage: data.message,
-      terms: data.terms,
-      notes: data.notes,
+      packageType: PackageType.PACKAGE,
+      // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
+      // anything out of `data`. Price and session count come from the package alone.
+      packageName: snapshot.packageName,
+      totalSessions: snapshot.totalSessions,
+      price: snapshot.price,
+      sessionMode: snapshot.sessionMode,
+      clientMessage: data.clientMessage,
+      gymId: data.gymId,
+      source,
+      platformRate: rates.platformRate,
+      ptRate: rates.ptRate,
+      gymRate: rates.gymRate,
+      // Package audit trail + slot warning evidence
+      ...({
+        packageId: snapshot.packageId,
+        packageSourceName: snapshot.packageSourceName,
+        sessionDurationMinutes: snapshot.sessionDurationMinutes,
+        lowAvailabilityWarned: availableSlots < pkg.sessionCount,
+        slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
+      } as any),
     });
 
-    // Notify PT
+    // 7. Notify PT
     await notificationService
       .create({
         userId: data.ptUserId,
@@ -178,6 +368,43 @@ export const contractService = {
       .catch(() => {});
 
     return contract;
+  },
+
+  /**
+   * Internal-only — called by ai-service right after a Marketplace
+   * Personalized PT Service purchase is paid (wallet-transfer already
+   * succeeded there), NOT by any end-user-facing route. Unlike
+   * requestContract above, this skips PENDING_REVIEW/PENDING_SIGNATURE/
+   * PENDING_PAYMENT entirely and creates the Contract already ACTIVE —
+   * payment happened before this call, and a marketplace listing purchase
+   * is not a PT-negotiated session package that needs e-signature. This is
+   * the ONLY reason Contract.status===ACTIVE (the authorization condition
+   * every PT/coach endpoint already checks — coach.service.ts,
+   * computeChatEligibility, isActivePtClientRelationship) becomes true for
+   * a marketplace-originated relationship — no parallel authorization
+   * surface, see ContractSource.MARKETPLACE's schema comment.
+   */
+  async createMarketplaceContract(data: {
+    ptUserId: string;
+    clientUserId: string;
+    packageName: string;
+    description?: string;
+    price: number;
+    paymentTransactionId?: string;
+  }) {
+    return contractRepository.create({
+      ptUserId: data.ptUserId,
+      clientUserId: data.clientUserId,
+      status: ContractStatus.ACTIVE,
+      source: ContractSource.MARKETPLACE,
+      packageType: PackageType.PACKAGE,
+      packageName: data.packageName,
+      description: data.description,
+      totalSessions: 0, // marketplace personalized services are not session-count-based
+      price: data.price,
+      startDate: new Date(),
+      paymentTransactionId: data.paymentTransactionId,
+    });
   },
 
   // ── PT accepts a pending contract ─────────────────────────────────
@@ -202,16 +429,22 @@ export const contractService = {
     const ptName = fullName(ptInfo, "Personal Trainer");
     const clientName = fullName(clientInfo, "Client");
 
-    // 2. Atomic claim: PENDING_REVIEW → PENDING_SIGNATURE (BEFORE generating PDF)
+    // 2. Atomic claim: PENDING_REVIEW → PENDING_SIGNATURE (BEFORE generating PDF), or
+    // straight to PENDING_PAYMENT when e-sign is bypassed — same target as the webhook
+    // reaches once both parties actually sign (see dropboxSignWebhook.service.ts).
     // Prevents double PDF generation on concurrent requests. No startDate — not ACTIVE yet.
+    const claimTarget = REQUIRE_CONTRACT_ESIGN
+      ? ContractStatus.PENDING_SIGNATURE
+      : ContractStatus.PENDING_PAYMENT;
     const affected = await contractRepository.updateWhereStatus(
       contractId,
       ContractStatus.PENDING_REVIEW,
-      ContractStatus.PENDING_SIGNATURE,
+      claimTarget,
       {
         clientSignerEmail: clientInfo.email,
         ptSignerEmail: ptInfo.email,
         eSignTestMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
+        ...(REQUIRE_CONTRACT_ESIGN ? {} : { eSignStatus: "SKIPPED" }),
       },
     );
     if (affected.count === 0) {
@@ -225,8 +458,9 @@ export const contractService = {
         contractId,
         packageName: contract.packageName,
         totalSessions: contract.totalSessions,
-        price: contract.price ?? null,
-        pricePerSession: contract.pricePerSession ?? null,
+        // The PDF generator formats numbers; money is Decimal in the DB.
+        price: contract.price != null ? Number(contract.price) : null,
+        pricePerSession: contract.pricePerSession != null ? Number(contract.pricePerSession) : null,
         startDate: contract.startDate ?? null,
         endDate: contract.endDate ?? null,
         terms: contract.terms ?? null,
@@ -254,49 +488,57 @@ export const contractService = {
       throw err("Failed to generate contract PDF", 500);
     }
 
-    // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails)
-    try {
-      const result = await eSignService.send({
-        contractId,
-        title: `Coaching Contract - ${contract.packageName}`,
-        subject: "Please sign your coaching contract",
-        message:
-          "Your coaching contract is ready. Please review and sign to activate.",
-        testMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
-        signers: [
-          { name: ptName, email: ptInfo.email, role: "pt" },
-          { name: clientName, email: clientInfo.email, role: "client" },
-        ],
-        pdfPath: relativePdfPath,
-      });
-      await contractRepository.update(contractId, {
-        eSignProvider: result.provider,
-        eSignRequestId: result.requestId,
-        eSignStatus: "SENT",
-        eSignSentAt: new Date(),
-        eSignError: null,
-      });
-    } catch (e: any) {
-      const shortMsg = (e?.message || "unknown e-sign error")
-        .toString()
-        .slice(0, 240);
-      logger.error(
-        { contractId, message: shortMsg },
-        "e-sign send failed in acceptContract",
-      );
-      await contractRepository
-        .update(contractId, {
-          eSignStatus: "ERROR",
-          eSignError: shortMsg,
-        })
-        .catch(() => {});
+    // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails).
+    // Skipped entirely while REQUIRE_CONTRACT_ESIGN=false — the contract already claimed
+    // PENDING_PAYMENT in step 2, so there is nothing to wait on here.
+    if (REQUIRE_CONTRACT_ESIGN) {
+      try {
+        const result = await eSignService.send({
+          contractId,
+          title: `Coaching Contract - ${contract.packageName}`,
+          subject: "Please sign your coaching contract",
+          message:
+            "Your coaching contract is ready. Please review and sign to activate.",
+          testMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
+          signers: [
+            { name: ptName, email: ptInfo.email, role: "pt" },
+            { name: clientName, email: clientInfo.email, role: "client" },
+          ],
+          pdfPath: relativePdfPath,
+        });
+        await contractRepository.update(contractId, {
+          eSignProvider: result.provider,
+          eSignRequestId: result.requestId,
+          eSignStatus: "SENT",
+          eSignSentAt: new Date(),
+          eSignError: null,
+        });
+      } catch (e: any) {
+        const shortMsg = (e?.message || "unknown e-sign error")
+          .toString()
+          .slice(0, 240);
+        logger.error(
+          { contractId, message: shortMsg },
+          "e-sign send failed in acceptContract",
+        );
+        await contractRepository
+          .update(contractId, {
+            eSignStatus: "ERROR",
+            eSignError: shortMsg,
+          })
+          .catch(() => {});
+      }
     }
+
+    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget);
 
     // 5. Notify client
     await notificationService
       .create({
         userId: contract.clientUserId,
-        text: "Your coaching request was accepted! Please check your email to sign the contract.",
+        text: REQUIRE_CONTRACT_ESIGN
+          ? "Your coaching request was accepted! Please check your email to sign the contract."
+          : "Your coaching request was accepted! You can proceed to payment.",
         eventType: "CONTRACT_ACCEPTED",
         entityType: "CONTRACT",
         entityId: contractId,
@@ -325,6 +567,10 @@ export const contractService = {
         rejectionReason: reason.trim(),
       },
     );
+
+    await auditContractStatus(ptUserId, contractId, contract.status, ContractStatus.REJECTED, {
+      reason: reason.trim(),
+    });
 
     await notificationService
       .create({
@@ -365,6 +611,11 @@ export const contractService = {
         cancellationReason: reason.trim(),
       },
     );
+
+    await auditContractStatus(userId, contractId, contract.status, ContractStatus.CANCELLED, {
+      reason: reason.trim(),
+      cancelledBy: userId === contract.ptUserId ? "PT" : "CLIENT",
+    });
 
     // Notify the other party
     const otherUserId =
@@ -431,9 +682,9 @@ export const contractService = {
     const contracts = await contractRepository.findByPT(ptUserId, s);
     if (contracts.length === 0) return contracts;
 
-    const clientIds = [...new Set(contracts.map((c) => c.clientUserId))];
-    const profiles = await profileRepository.findByUserIds(clientIds);
-    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const profileMap = await counterpartyProfiles(
+      contracts.map((c) => c.clientUserId),
+    );
 
     return contracts.map((c) => ({
       ...c,
@@ -446,9 +697,9 @@ export const contractService = {
     const contracts = await contractRepository.findByClient(clientUserId, s);
     if (contracts.length === 0) return contracts;
 
-    const ptIds = [...new Set(contracts.map((c) => c.ptUserId))];
-    const profiles = await profileRepository.findByUserIds(ptIds);
-    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const profileMap = await counterpartyProfiles(
+      contracts.map((c) => c.ptUserId),
+    );
 
     return contracts.map((c) => ({
       ...c,
@@ -496,7 +747,11 @@ export const contractService = {
         },
         "Admin manually bypassed e-sign (contract moved to PENDING_PAYMENT, still requires payment)",
       );
-      return contractRepository.updateStatus(id, ContractStatus.PENDING_PAYMENT, {});
+      return contractRepository.updateStatus(
+        id,
+        ContractStatus.PENDING_PAYMENT,
+        {},
+      );
     }
 
     // PT accepts a PENDING_REVIEW contract → ACTIVE
@@ -647,13 +902,26 @@ export const contractService = {
     return count;
   },
 
-  // ── Check relationship (BR-29: chat/call only with contract) ─────────
+  // ── Check relationship (for call permission) ─────────────────────
   async checkRelationship(userAId: string, userBId: string) {
-    const contract = await contractRepository.findRelationshipByPair(
-      userAId,
-      userBId,
-    );
-    return { allowed: !!contract };
+    // Calls no longer require a contract — only block if either account is deactivated.
+    const [aActive, bActive] = await Promise.all([
+      isUserActive(userAId),
+      isUserActive(userBId),
+    ]);
+    const blocked = aActive === false || bActive === false;
+    return { blocked };
+  },
+
+  // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — INTERNAL, called
+  // by fitness-service to authorize every PT/coach client-data or
+  // plan-assignment request. Strictly ACTIVE + PT->client direction, unlike
+  // checkRelationship above (which is direction-agnostic and includes
+  // PENDING_SIGNATURE/COMPLETED — fine for chat eligibility, not fine for
+  // "can this PT write training data for this client").
+  async checkActivePtClientRelationship(ptUserId: string, clientUserId: string) {
+    const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
+    return { active: !!contract, contractId: contract?.id ?? null };
   },
 
   /**
@@ -716,8 +984,11 @@ export const contractService = {
     const active = contracts.filter((c) => c.status === "ACTIVE");
     const completed = contracts.filter((c) => c.status === "COMPLETED");
 
-    const totalEarned = completed.reduce((sum, c) => sum + (c.price || 0), 0);
-    const activeRevenue = active.reduce((sum, c) => sum + (c.price || 0), 0);
+    // Summed as Decimal — these are money totals shown to a PT, and floats drift.
+    const sumPrice = (list: typeof contracts) =>
+      list.reduce((sum, c) => sum.plus(c.price ?? 0), new Prisma.Decimal(0));
+    const totalEarned = Number(sumPrice(completed));
+    const activeRevenue = Number(sumPrice(active));
 
     return {
       totalContracts: contracts.length,
@@ -731,64 +1002,129 @@ export const contractService = {
   // ── Payment gate (Phase 4) ──────────────────────────────────────────
 
   /** Client pays a PENDING_PAYMENT contract via wallet-transfer (client -> PT wallet). */
-  async pay(contractId: string, clientUserId: string) {
+  /**
+   * Start payment for a contract at the payer's chosen gateway.
+   *
+   * Returns a redirect rather than a completed payment: the client settles with the gateway,
+   * and the contract only goes ACTIVE once payment-service receives the signed webhook and
+   * has split the price into escrow and the parties' pending buckets. Nothing here touches
+   * money — that would mean trusting the browser's word for it.
+   */
+  async pay(contractId: string, clientUserId: string, provider?: string) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err('Contract not found', 404);
-    if (contract.clientUserId !== clientUserId) throw err('Not authorized', 403);
-    if (contract.status === ContractStatus.ACTIVE || contract.paymentTransactionId) {
-      throw err('ALREADY_PAID', 409);
+    if (!contract) throw err("Contract not found", 404);
+    if (contract.clientUserId !== clientUserId)
+      throw err("Not authorized", 403);
+    if (
+      contract.status === ContractStatus.ACTIVE ||
+      contract.paymentTransactionId
+    ) {
+      throw err("ALREADY_PAID", 409);
     }
     if (contract.status !== ContractStatus.PENDING_PAYMENT) {
       throw err(`Cannot pay for contract in ${contract.status} status`, 400);
     }
-    if (!contract.price) throw err('Contract has no price set', 400);
+    if (!contract.price) throw err("Contract has no price set", 400);
 
+    // Each attempt gets its own key: an abandoned checkout must not block a fresh one, and
+    // the gateway itself dedupes a genuine double-submit by transaction id.
     const attemptId = randomUUID();
     const idempotencyKey = `pt-contract:${contract.id}:attempt:${attemptId}`;
 
-    const result = await paymentClient.walletTransfer({
-      payerOwnerId: clientUserId,
-      receiverPtId: contract.ptUserId,
-      amount: contract.price,
+    const result = await paymentClient.checkout({
       relatedEntityId: contract.id,
+      amount: Number(contract.price),
+      rates: {
+        platformRate: contract.platformRate.toString(),
+        ptRate: contract.ptRate.toString(),
+        gymRate: contract.gymRate.toString(),
+      },
+      parties: {
+        ptUserId: contract.ptUserId,
+        gymId: contract.gymId,
+        clientUserId,
+      },
       idempotencyKey,
       initiatedBy: clientUserId,
-      ptId: contract.ptUserId,
+      provider,
+      orderInfo: `Hop dong PT ${contract.packageName}`.slice(0, 100),
     });
 
-    if (result.status === 'PAID') {
-      const activated = await contractRepository.activateIfPending(contract.id, result.transactionId);
-      try {
-        await paymentClient.markActivated(result.transactionId);
-      } catch (e) {
-        logger.warn({ error: 'mark-activated callback failed, reconciliation will retry', contractId: contract.id, message: (e as Error).message });
-      }
-      return { contract: activated, payment: result };
-    }
-
-    return { contract: await contractRepository.findById(contract.id), payment: result };
+    return {
+      contract: await contractRepository.findById(contract.id),
+      payment: result,
+    };
   },
 
   /** Called by the internal /activate-after-payment endpoint — verifies the transaction first. */
   async activateAfterPayment(contractId: string, transactionId: string) {
     const txn = await paymentClient.getTransaction(transactionId);
-    if (!txn || txn.status !== 'PAID' || txn.relatedEntityType !== 'PT_CONTRACT' || txn.relatedEntityId !== contractId) {
-      throw err('Transaction verification failed', 400);
+    if (
+      !txn ||
+      txn.status !== "PAID" ||
+      txn.relatedEntityType !== "PT_CONTRACT" ||
+      txn.relatedEntityId !== contractId
+    ) {
+      throw err("Transaction verification failed", 400);
     }
-    return contractRepository.activateIfPending(contractId, transactionId);
+    const before = await contractRepository.findById(contractId);
+    const wasAlreadyActive = before?.status === ContractStatus.ACTIVE;
+    const activated = await contractRepository.activateIfPending(contractId, transactionId);
+
+    // Payment confirmation is where the two parties currently have the least confirmation
+    // they've actually got a deal — send the notice here rather than at signing, since
+    // signing may itself be bypassed (REQUIRE_CONTRACT_ESIGN). Only on the transition that
+    // actually just happened: activateIfPending is called again on webhook retries, and a
+    // retry must not re-email both parties.
+    if (activated && !wasAlreadyActive && activated.status === ContractStatus.ACTIVE) {
+      const [ptInfo, clientInfo] = await Promise.all([
+        getUserInfo(activated.ptUserId),
+        getUserInfo(activated.clientUserId),
+      ]);
+      const subject = `Hợp đồng "${activated.packageName}" đã được kích hoạt`;
+      const body = (name: string) =>
+        [
+          `Chào ${name},`,
+          "",
+          `Hợp đồng "${activated.packageName}" (${activated.totalSessions} buổi) đã thanh toán thành công và chính thức có hiệu lực.`,
+          `Số tiền: ${Number(activated.price).toLocaleString("vi-VN")}đ.`,
+          "",
+          "Hai bên có thể bắt đầu đặt lịch buổi tập.",
+        ].join("\n");
+      if (clientInfo?.email) {
+        await sendConfirmationEmail(clientInfo.email, subject, body(fullName(clientInfo, "bạn")));
+      }
+      if (ptInfo?.email) {
+        await sendConfirmationEmail(ptInfo.email, subject, body(fullName(ptInfo, "bạn")));
+      }
+    }
+
+    return activated;
   },
 
   /** Called by the internal /cancel-after-refund endpoint — verifies both transactions first. */
-  async cancelAfterRefund(contractId: string, originalTransactionId: string, refundTransactionId: string) {
+  async cancelAfterRefund(
+    contractId: string,
+    originalTransactionId: string,
+    refundTransactionId: string,
+  ) {
     const [original, refund] = await Promise.all([
       paymentClient.getTransaction(originalTransactionId),
       paymentClient.getTransaction(refundTransactionId),
     ]);
-    if (!original || original.status !== 'REFUNDED' || original.relatedEntityId !== contractId) {
-      throw err('Original transaction verification failed', 400);
+    if (
+      !original ||
+      original.status !== "REFUNDED" ||
+      original.relatedEntityId !== contractId
+    ) {
+      throw err("Original transaction verification failed", 400);
     }
-    if (!refund || refund.status !== 'PAID' || refund.refundOfTransactionId !== originalTransactionId) {
-      throw err('Refund transaction verification failed', 400);
+    if (
+      !refund ||
+      refund.status !== "PAID" ||
+      refund.refundOfTransactionId !== originalTransactionId
+    ) {
+      throw err("Refund transaction verification failed", 400);
     }
     return contractRepository.cancelAfterRefund(contractId);
   },

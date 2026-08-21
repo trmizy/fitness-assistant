@@ -129,20 +129,37 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   lastName: 'lastName',
   email: 'email',
   isPT: 'isPT',
+  ptSuspended: 'ptSuspended',
+  referralCode: 'referralCode',
+  dateOfBirth: 'dateOfBirth',
   age: 'age',
   gender: 'gender',
   heightCm: 'heightCm',
   goal: 'goal',
   activityLevel: 'activityLevel',
   experienceLevel: 'experienceLevel',
+  competesInSport: 'competesInSport',
   preferredTrainingDays: 'preferredTrainingDays',
   availableEquipment: 'availableEquipment',
   injuries: 'injuries',
+  preferredSplit: 'preferredSplit',
+  hasCompletedOnboarding: 'hasCompletedOnboarding',
   currentWeight: 'currentWeight',
   targetWeight: 'targetWeight',
+  startingWeight: 'startingWeight',
+  startingWeightSource: 'startingWeightSource',
   dietaryPreference: 'dietaryPreference',
   photoUrl: 'photoUrl',
   sessionDurationMinutes: 'sessionDurationMinutes',
+  isAcceptingClients: 'isAcceptingClients',
+  notAcceptingReason: 'notAcceptingReason',
+  firstNameNormalized: 'firstNameNormalized',
+  lastNameNormalized: 'lastNameNormalized',
+  searchCity: 'searchCity',
+  searchDistrict: 'searchDistrict',
+  searchWard: 'searchWard',
+  gymId: 'gymId',
+  specialties: 'specialties',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -265,6 +282,19 @@ exports.Prisma.ContractScalarFieldEnum = {
   gymId: 'gymId',
   source: 'source',
   paymentTransactionId: 'paymentTransactionId',
+  platformRate: 'platformRate',
+  ptRate: 'ptRate',
+  gymRate: 'gymRate',
+  terminationReason: 'terminationReason',
+  terminatedAt: 'terminatedAt',
+  releasedToPt: 'releasedToPt',
+  releasedToGym: 'releasedToGym',
+  releasedToPlatform: 'releasedToPlatform',
+  packageId: 'packageId',
+  packageSourceName: 'packageSourceName',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  lowAvailabilityWarned: 'lowAvailabilityWarned',
+  slotsAtPurchase: 'slotsAtPurchase',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -285,6 +315,13 @@ exports.Prisma.SessionScalarFieldEnum = {
   cancellationReason: 'cancellationReason',
   sessionDeducted: 'sessionDeducted',
   completedAt: 'completedAt',
+  clientConfirmDeadline: 'clientConfirmDeadline',
+  autoConfirmed: 'autoConfirmed',
+  disputeReason: 'disputeReason',
+  disputedAt: 'disputedAt',
+  resolvedBy: 'resolvedBy',
+  resolutionNote: 'resolutionNote',
+  resolvedAt: 'resolvedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -360,13 +397,46 @@ exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   provinceCode: 'provinceCode',
   wardCode: 'wardCode',
   gymName: 'gymName',
+  gymNameNormalized: 'gymNameNormalized',
   addressLine: 'addressLine',
   legacyDistrictName: 'legacyDistrictName',
+  gymId: 'gymId',
   isPrimary: 'isPrimary',
   isActive: 'isActive',
   note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTServicePackageScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  name: 'name',
+  description: 'description',
+  sessionCount: 'sessionCount',
+  price: 'price',
+  sessionMode: 'sessionMode',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  validityDays: 'validityDays',
+  isActive: 'isActive',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionRescheduleRequestScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  requestedBy: 'requestedBy',
+  originalStartAt: 'originalStartAt',
+  originalEndAt: 'originalEndAt',
+  proposedStartAt: 'proposedStartAt',
+  proposedEndAt: 'proposedEndAt',
+  reason: 'reason',
+  status: 'status',
+  respondedAt: 'respondedAt',
+  responseNote: 'responseNote',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.InBodyEntryScalarFieldEnum = {
@@ -396,6 +466,18 @@ exports.Prisma.InBodyEntryScalarFieldEnum = {
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AuditLogScalarFieldEnum = {
+  id: 'id',
+  actorUserId: 'actorUserId',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -495,12 +577,24 @@ exports.SessionMode = exports.$Enums.SessionMode = {
 
 exports.ContractSource = exports.$Enums.ContractSource = {
   INDEPENDENT: 'INDEPENDENT',
-  GYM: 'GYM'
+  GYM: 'GYM',
+  MARKETPLACE: 'MARKETPLACE'
+};
+
+exports.TerminationReason = exports.$Enums.TerminationReason = {
+  CLIENT_CANCELLED: 'CLIENT_CANCELLED',
+  PT_BANNED: 'PT_BANNED',
+  PT_CANCELLED: 'PT_CANCELLED',
+  MUTUAL: 'MUTUAL',
+  EXPIRED: 'EXPIRED',
+  COMPLETED: 'COMPLETED'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
+  PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
+  DISPUTED: 'DISPUTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
@@ -516,7 +610,11 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   SESSION_COMPLETED: 'SESSION_COMPLETED',
   SESSION_CANCELLED: 'SESSION_CANCELLED',
   SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
-  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT',
+  SESSION_RESCHEDULE_REQUESTED: 'SESSION_RESCHEDULE_REQUESTED',
+  SESSION_RESCHEDULE_ACCEPTED: 'SESSION_RESCHEDULE_ACCEPTED',
+  SESSION_RESCHEDULE_REJECTED: 'SESSION_RESCHEDULE_REJECTED',
+  SESSION_RESCHEDULE_EXPIRED: 'SESSION_RESCHEDULE_EXPIRED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -534,6 +632,26 @@ exports.DayOfWeek = exports.$Enums.DayOfWeek = {
   SUNDAY: 'SUNDAY'
 };
 
+exports.RescheduleRequestedBy = exports.$Enums.RescheduleRequestedBy = {
+  CLIENT: 'CLIENT',
+  PT: 'PT'
+};
+
+exports.RescheduleStatus = exports.$Enums.RescheduleStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.AuditEntityType = exports.$Enums.AuditEntityType = {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION',
+  SERVICE_PACKAGE: 'SERVICE_PACKAGE',
+  PT_PROFILE: 'PT_PROFILE'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -548,7 +666,10 @@ exports.Prisma.ModelName = {
   VietnamProvince: 'VietnamProvince',
   VietnamWard: 'VietnamWard',
   PTTrainingLocation: 'PTTrainingLocation',
-  InBodyEntry: 'InBodyEntry'
+  PTServicePackage: 'PTServicePackage',
+  SessionRescheduleRequest: 'SessionRescheduleRequest',
+  InBodyEntry: 'InBodyEntry',
+  AuditLog: 'AuditLog'
 };
 
 /**

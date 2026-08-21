@@ -1,6 +1,8 @@
 import { nutritionRepository } from "../repositories/nutrition.repository";
 import type { CreateNutritionDto } from "../models/fitness.models";
 import type { UpsertNutritionGoalDto } from "../models/fitness.models";
+import { checkNutritionGoalMacroConsistency } from "./nutrition-goal-macro-validator";
+import { nutritionGoalPlanConsistencyService } from "./nutrition-goal-plan-consistency.service";
 
 const DEFAULT_NUTRITION_GOAL = {
   calories: 2000,
@@ -8,6 +10,7 @@ const DEFAULT_NUTRITION_GOAL = {
   carbs: 200,
   fat: 65,
   waterMl: null as number | null,
+  goalMode: "RECOMMENDED" as const,
 };
 
 const PLAN_TO_LOG_MEAL_TYPE: Record<string, string> = {
@@ -125,7 +128,50 @@ export const nutritionService = {
   },
 
   async upsertGoal(userId: string, data: UpsertNutritionGoalDto) {
-    return nutritionRepository.upsertGoal(userId, data);
+    // Root-cause fix (AI-nutrition bug report): never persist a target
+    // whose own macros don't add up to its own calorie figure — this is
+    // the exact "3000 kcal next to 150P/200C/65F (=1985 kcal)" case. The
+    // client must reconcile before saving; we compute the actual number so
+    // the error message is directly actionable instead of a generic 400.
+    const check = checkNutritionGoalMacroConsistency(
+      data.calories,
+      data.protein,
+      data.carbs,
+      data.fat,
+    );
+    if (!check.consistent) {
+      throw {
+        status: 400,
+        message: `Mục tiêu không nhất quán: ${data.protein}g protein + ${data.carbs}g carb + ${data.fat}g fat = ${check.computedCalories} kcal, không khớp với ${data.calories} kcal đã nhập (chênh ${Math.abs(check.discrepancyKcal)} kcal). Vui lòng điều chỉnh calo hoặc macro cho khớp trước khi lưu.`,
+        code: "NUTRITION_GOAL_MACRO_MISMATCH",
+        computedCalories: check.computedCalories,
+      };
+    }
+    const goal = await nutritionRepository.upsertGoal(userId, data);
+
+    // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+    // câu 6): saving a new goal never touches the active program, so tell
+    // the caller right away whether the (now possibly-stale) active plan
+    // still matches — the UI can show a warning immediately instead of the
+    // user only finding out later. This call is read-only — it never
+    // archives/regenerates the plan itself.
+    const planConsistency = await nutritionGoalPlanConsistencyService.compute(userId);
+
+    return { goal, planConsistency };
+  },
+
+  // Phase 2 — minimal version-history view (spec: "Current/Previous/Changed
+  // date/Reason"). The repository query already existed (Phase 1) but was
+  // never surfaced by a route — this is that missing wiring, not new
+  // versioning logic.
+  async getGoalHistory(userId: string) {
+    return nutritionRepository.findGoalHistoryByUserId(userId);
+  },
+
+  // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+  // câu 6) — read-only.
+  async getGoalPlanConsistency(userId: string) {
+    return nutritionGoalPlanConsistencyService.compute(userId);
   },
 
   async getCurrentProgram(userId: string) {
@@ -975,6 +1021,14 @@ export const nutritionService = {
       }
     }
 
+    // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+    // câu 6): record which goal was active at import time, purely for
+    // traceability — nutrition-goal-plan-consistency.service.ts uses this
+    // to detect "this plan's association is stale" even when the numbers
+    // still coincidentally match. Never blocks import if there's no active
+    // goal (activeGoal stays null, sourceGoalId stays null on the program).
+    const activeGoal = await nutritionRepository.findGoalByUserId(userId);
+
     return await prisma.$transaction(async (tx) => {
       const existing = await tx.nutritionProgram.findFirst({
         where: { userId, sourcePlanId: payload.sourcePlanId },
@@ -1018,6 +1072,7 @@ export const nutritionService = {
           carbTargetGrams: payload.carbTargetGrams,
           fatTargetGrams: payload.fatTargetGrams,
           sourcePlanId: payload.sourcePlanId,
+          sourceGoalId: activeGoal?.id ?? null,
           sourceType: "AI_PLAN",
           status: "ACTIVE",
           startDate: payload.startDate

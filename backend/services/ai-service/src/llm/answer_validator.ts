@@ -5,27 +5,71 @@ import type {
   ValidationResult,
 } from "./types";
 
-function extractNumberNearKeyword(
-  text: string,
-  keyword: string,
-): number | null {
-  const regex = new RegExp(`${keyword}[^\\d]{0,20}(\\d{2,5})`, "i");
-  const match = text.match(regex);
-  if (!match) return null;
-  const value = Number(match[1]);
-  return Number.isFinite(value) ? value : null;
+// `(?:${keyword})` — a bare `${keyword}` before `[^\d]{0,20}(...)` mis-groups
+// any "a|b" keyword alternation (e.g. "carb|carbs") as
+// `(a)|(b[^\d]{0,20}(\d+))`, so a lone "carb" match with no number nearby
+// still "matches" but with capture group 1 undefined. The non-capturing
+// group makes the alternation apply to the keyword only, as intended.
+//
+// `\d{1,5}` (not `\d{2,5}`) — real bug found via E2E persona testing
+// (24-ai-nutrition-persona-b-c.spec.ts): a lazy/small local LLM answer that
+// literally writes "Đạm 0g" for a 125g target has a single-digit
+// placeholder. The old 2-5-digit-only regex could never capture "0" (or any
+// single digit).
+function buildNearKeywordRegex(keyword: string): RegExp {
+  return new RegExp(`(?:${keyword})[^\\d]{0,20}(\\d{1,5})`, "gi");
 }
 
-function validateCalories(text: string, expected: number): string[] {
+/**
+ * Returns every number found near `keyword` in `text`, not just the first.
+ *
+ * Real bug found via E2E persona testing: a "meal" answer can legitimately
+ * echo the correct deterministic target once (e.g. a pre-injected "Mục tiêu
+ * ngày: ... Đạm: 125g" header) and THEN have the LLM's own free-text body
+ * restate the same field wrong ("Đạm 0g" in its own table further down). A
+ * first-match-only extractor finds the correct echo and stops, silently
+ * missing the LLM's own later error. Scanning every occurrence and flagging
+ * on the worst one matches this validator's own stated philosophy
+ * elsewhere in this file ("the engine's number wins regardless of what the
+ * model chose to say") — erring toward catching too much is the safe
+ * direction here, since a false positive only costs a fallback to the
+ * already-correct deterministic answer, never a wrong answer reaching the
+ * user.
+ */
+function extractAllNumbersNearKeyword(text: string, keyword: string): number[] {
+  const regex = buildNearKeywordRegex(keyword);
+  const values: number[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const value = Number(match[1]);
+    if (Number.isFinite(value)) values.push(value);
+  }
+  return values;
+}
+
+function worstDiffRatio(found: number[], expected: number): number {
+  let worst = 0;
+  for (const value of found) {
+    const ratio = Math.abs(value - expected) / Math.max(1, expected);
+    if (ratio > worst) worst = ratio;
+  }
+  return worst;
+}
+
+function validateCalories(
+  text: string,
+  expected: number,
+  keyword: string = "calories|kcal",
+): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
-  const found = extractNumberNearKeyword(text, "calories|kcal");
-  if (found === null) return warnings;
+  const found = extractAllNumbersNearKeyword(text, keyword);
+  if (found.length === 0) return warnings;
 
-  const diffRatio = Math.abs(found - expected) / Math.max(1, expected);
+  const diffRatio = worstDiffRatio(found, expected);
   if (diffRatio > 0.12) {
     warnings.push(
-      `Calories in answer (${found}) differ significantly from deterministic target (${expected}).`,
+      `Calories in answer (${found.join(", ")}) differ significantly from deterministic target (${expected}).`,
     );
   }
 
@@ -39,13 +83,13 @@ function validateMacro(
 ): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
-  const found = extractNumberNearKeyword(text, label);
-  if (found === null) return warnings;
+  const found = extractAllNumbersNearKeyword(text, label);
+  if (found.length === 0) return warnings;
 
-  const diffRatio = Math.abs(found - expected) / Math.max(1, expected);
+  const diffRatio = worstDiffRatio(found, expected);
   if (diffRatio > 0.2) {
     warnings.push(
-      `${label} grams in answer (${found}) differ from deterministic target (${expected}).`,
+      `${label} grams in answer (${found.join(", ")}) differ from deterministic target (${expected}).`,
     );
   }
 
@@ -137,6 +181,53 @@ function validateRequiredSections(
     );
     if (/(bài tập|exercise|workout)/i.test(answer)) {
       warnings.push("Answer includes workout content for meal-only intent.");
+    }
+  }
+
+  if (intent === "nutrient_timing_request") {
+    // Deliberately NOT requiring a "nutrition"/"meal_examples"/"adjustment"
+    // section like meal_plan_request above — this intent is a short,
+    // direct answer to one timing question, not a full plan (see
+    // prompt_builder.ts's isTiming instructions).
+    //
+    // DOES require the answer to actually address pre- AND post-workout
+    // timing specifically — real gap found via E2E persona testing
+    // (24-ai-nutrition-persona-b-c.spec.ts, Persona B): even with a strong,
+    // header-based prompt instruction, the local LLM sometimes drifts into
+    // a generic or even off-topic answer instead of actually covering
+    // "trước tập"/"sau tập". Using requireSection here (not a bespoke
+    // warning string) means a miss is caught by
+    // hasCriticalStructureMismatch below and the orchestrator substitutes
+    // formatNutrientTiming()'s deterministic fallback — which always
+    // reliably covers both — the same "engine's answer wins over an
+    // unreliable small-LLM answer" belt-and-braces pattern already used
+    // for the calorie/macro mismatch case elsewhere in this file.
+    warnings.push(
+      ...requireSection(
+        answer,
+        [/trước.{0,15}tập|before.{0,15}training|pre.?workout/i],
+        "pre_workout_timing",
+      ),
+    );
+    warnings.push(
+      ...requireSection(
+        answer,
+        [/sau.{0,15}tập|after.{0,15}training|post.?workout/i],
+        "post_workout_timing",
+      ),
+    );
+
+    // Guard against the same failure modes meal_plan_request guards
+    // against: workout content leaking in, and the answer ballooning into
+    // a full multi-meal day-by-day table when only a quick timing tip was
+    // asked for.
+    if (/(bài tập|exercise|workout)/i.test(answer)) {
+      warnings.push("Answer includes workout content for timing-only intent.");
+    }
+    if (/(bữa sáng|bữa trưa|bữa tối|breakfast|lunch|dinner)/i.test(answer)) {
+      warnings.push(
+        "Answer expanded into a full multi-meal day plan for a timing-only question.",
+      );
     }
   }
 
@@ -325,7 +416,7 @@ export function hasCriticalNutritionMismatch(warnings: string[]): boolean {
 
 export function hasCriticalStructureMismatch(warnings: string[]): boolean {
   return warnings.some((w) =>
-    /Missing required section|Language lock violation|meal-only intent|Nutrition inconsistency|Personalization missing/i.test(
+    /Missing required section|Language lock violation|meal-only intent|timing-only intent|full multi-meal day plan|Nutrition inconsistency|Personalization missing/i.test(
       w,
     ),
   );
@@ -344,15 +435,36 @@ export const answerValidator = {
       recommendation.responseIntent === "general_fitness_knowledge";
 
     if (!isGeneralKnowledge) {
-      warnings.push(...validateCalories(answer, nutrition.targetCalories || 0));
+      // Real bug found via E2E persona testing (Persona B/C,
+      // 24-ai-nutrition-persona-b-c.spec.ts): these keyword patterns were
+      // English-only regardless of `language`, so for a Vietnamese answer
+      // (which writes "Đạm"/"Béo", never the literal word "protein"/"fat")
+      // extractNumberNearKeyword found nothing and validateMacro silently
+      // skipped the check entirely — the one case (Vietnamese output) this
+      // validator most needs to cover, since that's this app's primary
+      // response language. "carb"/"kcal" happened to still work because
+      // this codebase's Vietnamese prompts use those as loanwords
+      // ("Carb: 249g"), which is why only protein/fat silently went
+      // unchecked rather than all four fields.
+      const caloriesKeyword =
+        language === "vi" ? "calories|kcal|calo" : "calories|kcal";
+      const proteinKeyword = language === "vi" ? "protein|đạm" : "protein";
+      const carbKeyword =
+        language === "vi" ? "carb|carbs|tinh bột" : "carb|carbs";
+      const fatKeyword =
+        language === "vi" ? "fat|fats|béo|chất béo" : "fat|fats";
+
       warnings.push(
-        ...validateMacro(answer, "protein", nutrition.proteinGrams || 0),
+        ...validateCalories(answer, nutrition.targetCalories || 0, caloriesKeyword),
       );
       warnings.push(
-        ...validateMacro(answer, "carb|carbs", nutrition.carbsGrams || 0),
+        ...validateMacro(answer, proteinKeyword, nutrition.proteinGrams || 0),
       );
       warnings.push(
-        ...validateMacro(answer, "fat|fats", nutrition.fatGrams || 0),
+        ...validateMacro(answer, carbKeyword, nutrition.carbsGrams || 0),
+      );
+      warnings.push(
+        ...validateMacro(answer, fatKeyword, nutrition.fatGrams || 0),
       );
       warnings.push(...validateRequiredSections(answer, recommendation));
       warnings.push(...validateNutritionConsistency(recommendation));

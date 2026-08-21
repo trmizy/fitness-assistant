@@ -42,6 +42,10 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // The Capacitor Android wrapper lives in ./android and its Gradle build
+    // copies the web bundle into android/app/build/... — without this, every
+    // APK build retriggers a dev-server page reload for no reason.
+    watch: { ignored: ["**/android/**"] },
     // VS Code Dev Tunnels / port forwarding serves this app at a hostname
     // like <tunnel-id>-5173.<region>.devtunnels.ms — the tunnel id changes
     // per session, but the ".devtunnels.ms" suffix is the stable domain

@@ -1,0 +1,11 @@
+-- Rollback for 20260819040000_add_exercise_status.
+-- Safe: the column is NOT NULL with a default, so no data was ever left
+-- inconsistent; dropping it just returns to "no status concept" — but
+-- note this also removes the STAGING gate protecting any exercises
+-- imported with status != 'PUBLISHED' after this migration ran (they
+-- would become visible everywhere once the column disappears and the
+-- query-level filters in internal.controller.ts / exercise.service.ts
+-- start matching everything again since the column no longer exists).
+-- Only run this if those importer/query changes are ALSO being reverted
+-- in the same rollback.
+ALTER TABLE "exercises" DROP COLUMN IF EXISTS "status";

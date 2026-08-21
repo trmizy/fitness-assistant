@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
@@ -32,6 +33,7 @@ import {
 import {
   planService,
   workoutService,
+  equipmentService,
   type PlanContent,
   type PlanExplanationResponse,
   type PlanStatusBackend,
@@ -429,6 +431,7 @@ function countInvalidExerciseIds(
 
 export function AIPlansPage() {
   const { user } = useApp();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userScopeId = user?.id ?? "guest";
   const { tasks: pendingAiTasks } = usePendingAiTasks(userScopeId);
@@ -443,6 +446,17 @@ export function AIPlansPage() {
   const [equipmentPreference, setEquipmentPreference] = useState<
     "MACHINE_ONLY" | "MIXED_GYM"
   >("MIXED_GYM");
+  // Gym-onboarding project — when the user has already saved granular
+  // equipment (Profile → Thiết bị tập luyện), that is the canonical source
+  // of truth the generator actually filters against; the two coarse
+  // selectors below become an unused fallback in that case. Surfaced as an
+  // inline note rather than hidden, so the choice here still shows why it's
+  // greyed-out in intent rather than looking broken.
+  const myEquipmentCountQuery = useQuery({
+    queryKey: ["equipment", "mine"],
+    queryFn: () => equipmentService.getMyEquipment(),
+  });
+  const hasGranularEquipment = (myEquipmentCountQuery.data?.length ?? 0) > 0;
   const [activePlanTab, setActivePlanTab] = useState<AiPlanTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") || params.get("type");
@@ -645,6 +659,39 @@ export function AIPlansPage() {
     [weeklySchedule],
   );
   const hasMissingExerciseIds = missingExerciseIdCount > 0;
+
+  // Plan content only ever stores {exerciseId, order, name, sets, reps,
+  // restSeconds, note} — never muscle group/equipment. Resolve those by
+  // batch-fetching the referenced exercises from the catalog once per plan,
+  // rather than baking catalog fields into plan content (which would go
+  // stale the moment the catalog entry is edited).
+  const planExerciseIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const day of weeklySchedule ?? []) {
+      for (const exercise of day?.exercises ?? []) {
+        const id = exercise?.exerciseId;
+        if (typeof id === "string" && UUID_PATTERN.test(id.trim())) {
+          ids.add(id.trim());
+        }
+      }
+    }
+    return Array.from(ids);
+  }, [weeklySchedule]);
+
+  const { data: planExerciseCatalog } = useQuery({
+    queryKey: ["exercises-by-ids", planExerciseIds],
+    queryFn: () => workoutService.getExercisesByIds(planExerciseIds),
+    enabled: planExerciseIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const exerciseCatalogById = useMemo(() => {
+    const map = new Map<string, { muscleGroupsActivated?: string[]; typeOfEquipment?: string }>();
+    for (const ex of planExerciseCatalog ?? []) {
+      if (ex?.id) map.set(ex.id, ex);
+    }
+    return map;
+  }, [planExerciseCatalog]);
 
   useEffect(() => {
     setSaveOutcome(null);
@@ -1319,6 +1366,23 @@ export function AIPlansPage() {
                 />
               </div>
             </div>
+
+            {hasGranularEquipment ? (
+              <div className="rounded-lg border border-sky-700/30 bg-sky-950/20 px-3 py-2 text-[11px] text-sky-200/80">
+                Bạn đã thiết lập thiết bị chi tiết trong Hồ sơ → Thiết bị tập luyện — hệ thống sẽ ưu tiên dùng
+                danh sách đó thay vì lựa chọn chung bên dưới.
+              </div>
+            ) : (
+              !myEquipmentCountQuery.isLoading && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/client/training-equipment")}
+                  className="w-full text-left rounded-lg border border-amber-700/30 bg-amber-950/20 hover:bg-amber-950/30 px-3 py-2 text-[11px] text-amber-200/80 transition-all"
+                >
+                  Thiết lập thiết bị tập luyện chi tiết để kế hoạch AI chỉ chọn bài bạn thực sự tập được →
+                </button>
+              )
+            )}
 
             {/* Training location */}
             <div className="space-y-2">
@@ -2316,7 +2380,15 @@ export function AIPlansPage() {
                                   </div>
                                 ) : (
                                   <div className="space-y-2">
-                                    {exercises.map((exercise, index) => (
+                                    {exercises.map((exercise, index) => {
+                                      const catalogEntry = exercise.exerciseId
+                                        ? exerciseCatalogById.get(exercise.exerciseId)
+                                        : undefined;
+                                      const muscleGroup = catalogEntry?.muscleGroupsActivated?.length
+                                        ? catalogEntry.muscleGroupsActivated.join(", ")
+                                        : "--";
+                                      const equipment = catalogEntry?.typeOfEquipment ?? "--";
+                                      return (
                                       <div
                                         key={`${exercise.name ?? "ex"}-${index}`}
                                         className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5"
@@ -2342,16 +2414,10 @@ export function AIPlansPage() {
                                             s
                                           </div>
                                           <div>
-                                            Intensity:{" "}
-                                            {exercise.intensity ?? "--"}
+                                            Muscle: {muscleGroup}
                                           </div>
                                           <div>
-                                            Muscle:{" "}
-                                            {exercise.muscleGroup ?? "--"}
-                                          </div>
-                                          <div>
-                                            Equipment:{" "}
-                                            {exercise.equipment ?? "--"}
+                                            Equipment: {equipment}
                                           </div>
                                           <div className="md:col-span-2">
                                             Note:{" "}
@@ -2363,7 +2429,8 @@ export function AIPlansPage() {
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>

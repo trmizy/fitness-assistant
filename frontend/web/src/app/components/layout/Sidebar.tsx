@@ -22,6 +22,8 @@ import {
   Workflow,
   Wallet,
   Store,
+  Banknote,
+  GitCompare,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -50,24 +52,26 @@ const clientNavFull = [
   { label: "Kế hoạch AI", icon: Brain, to: "/client/plans" },
   { label: "Tập luyện", icon: Dumbbell, to: "/client/workout" },
   { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
-  { label: "PT & Đặt lịch", icon: Search, to: "/client/coaches" },
-  { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },
+  { label: "Dịch vụ", icon: Search, to: "/client/services" },
   { label: "Trò chuyện", icon: MessageSquare, to: "/client/chat" },
-  { label: "Phòng gym", icon: Store, to: "/client/gyms" },
   { label: "Ví", icon: Wallet, to: "/client/wallet" },
   { label: "Hồ sơ", icon: User, to: "/client/profile" },
 ];
 
 /** Gym owner / staff nav — wallet balance is shown per-gym inside GymManagePage */
 const gymOwnerNav = [
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    to: "/gym-owner/dashboard",
+    sourceLang: "en" as const,
+  },
   { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
 ];
 
-// Client nav for PT users — no "PT & Đặt lịch" (a PT doesn't need to find
-// another coach for themselves). "Trò chuyện" now also bundles AI Coach
-// (previously always visible to PT-as-client, unlike plain user-chat), so
-// it stays visible here rather than being excluded like the old "Chat" was.
-const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches");
+// PT accounts can still use the unified client service hub for their own
+// contracts, gym memberships and bookings without duplicating nav entries.
+const ptClientNav = clientNavFull;
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
@@ -102,6 +106,8 @@ const adminNav = [
   { label: "Người dùng", icon: Users, to: "/admin/users" },
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
   { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
+  { label: "Duyệt bài tập trùng lặp", icon: GitCompare, to: "/admin/exercise-review" },
+  { label: "Hoàn tiền dịch vụ PT", icon: Banknote, to: "/admin/pt-service-refunds" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
   {
     label: "Workflows",

@@ -8,6 +8,7 @@ import {
 } from "../services/call.policy";
 import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
+import { chatRepository } from "../repositories/chat.repository";
 
 // Track ring timeouts: callSessionId → timeout handle
 const ringTimeouts = new Map<string, NodeJS.Timeout>();
@@ -57,6 +58,36 @@ export function isCallParticipant(
   call: { callerId: string; calleeId: string },
 ): boolean {
   return userId === call.callerId || userId === call.calleeId;
+}
+
+async function emitCallLogMessage(io: Server, call: any, isMissed: boolean = false) {
+  if (!call.conversationId || call.origin !== CallOrigin.CHAT) return;
+  try {
+    let content = "";
+    if (isMissed) {
+      content = `📞 Missed ${call.callType === 'VIDEO' ? 'video' : 'voice'} call`;
+    } else {
+      const durationMs = call.startedAt && call.endedAt ? call.endedAt.getTime() - call.startedAt.getTime() : 0;
+      const durationMins = Math.floor(durationMs / 60000);
+      const durationSecs = Math.floor((durationMs % 60000) / 1000);
+      const timeStr = `${durationMins}:${durationSecs.toString().padStart(2, '0')}`;
+      content = `📞 ${call.callType === 'VIDEO' ? 'Video' : 'Voice'} call ended (${timeStr})`;
+    }
+    const msg = await chatRepository.createMessage(call.conversationId, "system", content);
+    
+    // Map senderId → authorId for frontend
+    const payload = {
+      id: msg.id,
+      authorId: msg.senderId,
+      content: msg.content,
+      createdAt: msg.createdAt,
+      conversationId: msg.conversationId,
+    };
+    io.to(`user:${call.callerId}`).emit("chat:message", payload);
+    io.to(`user:${call.calleeId}`).emit("chat:message", payload);
+  } catch (err) {
+    logger.error(err, "Failed to emit call log message");
+  }
 }
 
 export function registerCallHandlers(
@@ -218,6 +249,7 @@ export function registerCallHandlers(
             io.to(`user:${calleeId}`).emit("call:missed", {
               callSessionId: call.id,
             });
+            await emitCallLogMessage(io, missed, true);
           }
         }, 30_000);
         ringTimeouts.set(call.id, timeout);
@@ -292,6 +324,7 @@ export function registerCallHandlers(
         const call = result.call!;
 
         io.to(`user:${call.callerId}`).emit("call:rejected", { callSessionId });
+        await emitCallLogMessage(io, call, true);
 
         logger.info({ callSessionId, rejectedBy: user.id }, "Call rejected");
       } catch (error) {
@@ -419,6 +452,7 @@ export function registerCallHandlers(
           callSessionId,
           endReason: reason || "hangup",
         });
+        await emitCallLogMessage(io, call, false);
 
         logger.info({ callSessionId, endedBy: user.id, reason }, "Call ended");
       } catch (error) {

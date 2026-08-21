@@ -79,10 +79,25 @@ export type VietnamWard = $Result.DefaultSelection<Prisma.$VietnamWardPayload>
  */
 export type PTTrainingLocation = $Result.DefaultSelection<Prisma.$PTTrainingLocationPayload>
 /**
+ * Model PTServicePackage
+ * 
+ */
+export type PTServicePackage = $Result.DefaultSelection<Prisma.$PTServicePackagePayload>
+/**
+ * Model SessionRescheduleRequest
+ * 
+ */
+export type SessionRescheduleRequest = $Result.DefaultSelection<Prisma.$SessionRescheduleRequestPayload>
+/**
  * Model InBodyEntry
  * 
  */
 export type InBodyEntry = $Result.DefaultSelection<Prisma.$InBodyEntryPayload>
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
 
 /**
  * Enums
@@ -190,15 +205,30 @@ export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
 
 export const ContractSource: {
   INDEPENDENT: 'INDEPENDENT',
-  GYM: 'GYM'
+  GYM: 'GYM',
+  MARKETPLACE: 'MARKETPLACE'
 };
 
 export type ContractSource = (typeof ContractSource)[keyof typeof ContractSource]
 
 
+export const TerminationReason: {
+  CLIENT_CANCELLED: 'CLIENT_CANCELLED',
+  PT_BANNED: 'PT_BANNED',
+  PT_CANCELLED: 'PT_CANCELLED',
+  MUTUAL: 'MUTUAL',
+  EXPIRED: 'EXPIRED',
+  COMPLETED: 'COMPLETED'
+};
+
+export type TerminationReason = (typeof TerminationReason)[keyof typeof TerminationReason]
+
+
 export const SessionStatus: {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
+  PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
+  DISPUTED: 'DISPUTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
@@ -217,7 +247,11 @@ export const NotificationEventType: {
   SESSION_COMPLETED: 'SESSION_COMPLETED',
   SESSION_CANCELLED: 'SESSION_CANCELLED',
   SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
-  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT',
+  SESSION_RESCHEDULE_REQUESTED: 'SESSION_RESCHEDULE_REQUESTED',
+  SESSION_RESCHEDULE_ACCEPTED: 'SESSION_RESCHEDULE_ACCEPTED',
+  SESSION_RESCHEDULE_REJECTED: 'SESSION_RESCHEDULE_REJECTED',
+  SESSION_RESCHEDULE_EXPIRED: 'SESSION_RESCHEDULE_EXPIRED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -242,6 +276,35 @@ export const DayOfWeek: {
 };
 
 export type DayOfWeek = (typeof DayOfWeek)[keyof typeof DayOfWeek]
+
+
+export const RescheduleRequestedBy: {
+  CLIENT: 'CLIENT',
+  PT: 'PT'
+};
+
+export type RescheduleRequestedBy = (typeof RescheduleRequestedBy)[keyof typeof RescheduleRequestedBy]
+
+
+export const RescheduleStatus: {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type RescheduleStatus = (typeof RescheduleStatus)[keyof typeof RescheduleStatus]
+
+
+export const AuditEntityType: {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION',
+  SERVICE_PACKAGE: 'SERVICE_PACKAGE',
+  PT_PROFILE: 'PT_PROFILE'
+};
+
+export type AuditEntityType = (typeof AuditEntityType)[keyof typeof AuditEntityType]
 
 }
 
@@ -289,6 +352,10 @@ export type ContractSource = $Enums.ContractSource
 
 export const ContractSource: typeof $Enums.ContractSource
 
+export type TerminationReason = $Enums.TerminationReason
+
+export const TerminationReason: typeof $Enums.TerminationReason
+
 export type SessionStatus = $Enums.SessionStatus
 
 export const SessionStatus: typeof $Enums.SessionStatus
@@ -304,6 +371,18 @@ export const NotificationEntityType: typeof $Enums.NotificationEntityType
 export type DayOfWeek = $Enums.DayOfWeek
 
 export const DayOfWeek: typeof $Enums.DayOfWeek
+
+export type RescheduleRequestedBy = $Enums.RescheduleRequestedBy
+
+export const RescheduleRequestedBy: typeof $Enums.RescheduleRequestedBy
+
+export type RescheduleStatus = $Enums.RescheduleStatus
+
+export const RescheduleStatus: typeof $Enums.RescheduleStatus
+
+export type AuditEntityType = $Enums.AuditEntityType
+
+export const AuditEntityType: typeof $Enums.AuditEntityType
 
 /**
  * ##  Prisma Client ʲˢ
@@ -559,6 +638,26 @@ export class PrismaClient<
   get pTTrainingLocation(): Prisma.PTTrainingLocationDelegate<ExtArgs>;
 
   /**
+   * `prisma.pTServicePackage`: Exposes CRUD operations for the **PTServicePackage** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PTServicePackages
+    * const pTServicePackages = await prisma.pTServicePackage.findMany()
+    * ```
+    */
+  get pTServicePackage(): Prisma.PTServicePackageDelegate<ExtArgs>;
+
+  /**
+   * `prisma.sessionRescheduleRequest`: Exposes CRUD operations for the **SessionRescheduleRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SessionRescheduleRequests
+    * const sessionRescheduleRequests = await prisma.sessionRescheduleRequest.findMany()
+    * ```
+    */
+  get sessionRescheduleRequest(): Prisma.SessionRescheduleRequestDelegate<ExtArgs>;
+
+  /**
    * `prisma.inBodyEntry`: Exposes CRUD operations for the **InBodyEntry** model.
     * Example usage:
     * ```ts
@@ -567,6 +666,16 @@ export class PrismaClient<
     * ```
     */
   get inBodyEntry(): Prisma.InBodyEntryDelegate<ExtArgs>;
+
+  /**
+   * `prisma.auditLog`: Exposes CRUD operations for the **AuditLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AuditLogs
+    * const auditLogs = await prisma.auditLog.findMany()
+    * ```
+    */
+  get auditLog(): Prisma.AuditLogDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1021,7 +1130,10 @@ export namespace Prisma {
     VietnamProvince: 'VietnamProvince',
     VietnamWard: 'VietnamWard',
     PTTrainingLocation: 'PTTrainingLocation',
-    InBodyEntry: 'InBodyEntry'
+    PTServicePackage: 'PTServicePackage',
+    SessionRescheduleRequest: 'SessionRescheduleRequest',
+    InBodyEntry: 'InBodyEntry',
+    AuditLog: 'AuditLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1037,7 +1149,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "inBodyEntry"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1951,6 +2063,146 @@ export namespace Prisma {
           }
         }
       }
+      PTServicePackage: {
+        payload: Prisma.$PTServicePackagePayload<ExtArgs>
+        fields: Prisma.PTServicePackageFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PTServicePackageFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PTServicePackageFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          findFirst: {
+            args: Prisma.PTServicePackageFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PTServicePackageFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          findMany: {
+            args: Prisma.PTServicePackageFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>[]
+          }
+          create: {
+            args: Prisma.PTServicePackageCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          createMany: {
+            args: Prisma.PTServicePackageCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PTServicePackageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>[]
+          }
+          delete: {
+            args: Prisma.PTServicePackageDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          update: {
+            args: Prisma.PTServicePackageUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          deleteMany: {
+            args: Prisma.PTServicePackageDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PTServicePackageUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PTServicePackageUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTServicePackagePayload>
+          }
+          aggregate: {
+            args: Prisma.PTServicePackageAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePTServicePackage>
+          }
+          groupBy: {
+            args: Prisma.PTServicePackageGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PTServicePackageGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PTServicePackageCountArgs<ExtArgs>
+            result: $Utils.Optional<PTServicePackageCountAggregateOutputType> | number
+          }
+        }
+      }
+      SessionRescheduleRequest: {
+        payload: Prisma.$SessionRescheduleRequestPayload<ExtArgs>
+        fields: Prisma.SessionRescheduleRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SessionRescheduleRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SessionRescheduleRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.SessionRescheduleRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SessionRescheduleRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          findMany: {
+            args: Prisma.SessionRescheduleRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>[]
+          }
+          create: {
+            args: Prisma.SessionRescheduleRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          createMany: {
+            args: Prisma.SessionRescheduleRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SessionRescheduleRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.SessionRescheduleRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          update: {
+            args: Prisma.SessionRescheduleRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.SessionRescheduleRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SessionRescheduleRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SessionRescheduleRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionRescheduleRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.SessionRescheduleRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSessionRescheduleRequest>
+          }
+          groupBy: {
+            args: Prisma.SessionRescheduleRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SessionRescheduleRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SessionRescheduleRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<SessionRescheduleRequestCountAggregateOutputType> | number
+          }
+        }
+      }
       InBodyEntry: {
         payload: Prisma.$InBodyEntryPayload<ExtArgs>
         fields: Prisma.InBodyEntryFieldRefs
@@ -2018,6 +2270,76 @@ export namespace Prisma {
           count: {
             args: Prisma.InBodyEntryCountArgs<ExtArgs>
             result: $Utils.Optional<InBodyEntryCountAggregateOutputType> | number
+          }
+        }
+      }
+      AuditLog: {
+        payload: Prisma.$AuditLogPayload<ExtArgs>
+        fields: Prisma.AuditLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AuditLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AuditLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          findFirst: {
+            args: Prisma.AuditLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AuditLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          findMany: {
+            args: Prisma.AuditLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>[]
+          }
+          create: {
+            args: Prisma.AuditLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          createMany: {
+            args: Prisma.AuditLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AuditLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>[]
+          }
+          delete: {
+            args: Prisma.AuditLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          update: {
+            args: Prisma.AuditLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.AuditLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AuditLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AuditLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AuditLogPayload>
+          }
+          aggregate: {
+            args: Prisma.AuditLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAuditLog>
+          }
+          groupBy: {
+            args: Prisma.AuditLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AuditLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AuditLogCountArgs<ExtArgs>
+            result: $Utils.Optional<AuditLogCountAggregateOutputType> | number
           }
         }
       }
@@ -2183,10 +2505,12 @@ export namespace Prisma {
 
   export type UserProfileCountOutputType = {
     trainingLocations: number
+    servicePackages: number
   }
 
   export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     trainingLocations?: boolean | UserProfileCountOutputTypeCountTrainingLocationsArgs
+    servicePackages?: boolean | UserProfileCountOutputTypeCountServicePackagesArgs
   }
 
   // Custom InputTypes
@@ -2205,6 +2529,13 @@ export namespace Prisma {
    */
   export type UserProfileCountOutputTypeCountTrainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PTTrainingLocationWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountServicePackagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTServicePackageWhereInput
   }
 
 
@@ -2285,6 +2616,37 @@ export namespace Prisma {
    */
   export type ContractCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SessionReviewWhereInput
+  }
+
+
+  /**
+   * Count Type SessionCountOutputType
+   */
+
+  export type SessionCountOutputType = {
+    rescheduleRequests: number
+  }
+
+  export type SessionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    rescheduleRequests?: boolean | SessionCountOutputTypeCountRescheduleRequestsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * SessionCountOutputType without action
+   */
+  export type SessionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionCountOutputType
+     */
+    select?: SessionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * SessionCountOutputType without action
+   */
+  export type SessionCountOutputTypeCountRescheduleRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionRescheduleRequestWhereInput
   }
 
 
@@ -2381,6 +2743,7 @@ export namespace Prisma {
     preferredTrainingDays: number | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
     sessionDurationMinutes: number | null
   }
 
@@ -2390,6 +2753,7 @@ export namespace Prisma {
     preferredTrainingDays: number[]
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
     sessionDurationMinutes: number | null
   }
 
@@ -2400,17 +2764,33 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    ptSuspended: boolean | null
+    referralCode: string | null
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean | null
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number | null
+    isAcceptingClients: boolean | null
+    notAcceptingReason: string | null
+    firstNameNormalized: string | null
+    lastNameNormalized: string | null
+    searchCity: string | null
+    searchDistrict: string | null
+    searchWard: string | null
+    gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2422,17 +2802,33 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    ptSuspended: boolean | null
+    referralCode: string | null
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean | null
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number | null
+    isAcceptingClients: boolean | null
+    notAcceptingReason: string | null
+    firstNameNormalized: string | null
+    lastNameNormalized: string | null
+    searchCity: string | null
+    searchDistrict: string | null
+    searchWard: string | null
+    gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2444,20 +2840,37 @@ export namespace Prisma {
     lastName: number
     email: number
     isPT: number
+    ptSuspended: number
+    referralCode: number
+    dateOfBirth: number
     age: number
     gender: number
     heightCm: number
     goal: number
     activityLevel: number
     experienceLevel: number
+    competesInSport: number
     preferredTrainingDays: number
     availableEquipment: number
     injuries: number
+    preferredSplit: number
+    hasCompletedOnboarding: number
     currentWeight: number
     targetWeight: number
+    startingWeight: number
+    startingWeightSource: number
     dietaryPreference: number
     photoUrl: number
     sessionDurationMinutes: number
+    isAcceptingClients: number
+    notAcceptingReason: number
+    firstNameNormalized: number
+    lastNameNormalized: number
+    searchCity: number
+    searchDistrict: number
+    searchWard: number
+    gymId: number
+    specialties: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2470,6 +2883,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
     sessionDurationMinutes?: true
   }
 
@@ -2479,6 +2893,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
     sessionDurationMinutes?: true
   }
 
@@ -2489,17 +2904,33 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
+    referralCode?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
+    isAcceptingClients?: true
+    notAcceptingReason?: true
+    firstNameNormalized?: true
+    lastNameNormalized?: true
+    searchCity?: true
+    searchDistrict?: true
+    searchWard?: true
+    gymId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2511,17 +2942,33 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
+    referralCode?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
+    isAcceptingClients?: true
+    notAcceptingReason?: true
+    firstNameNormalized?: true
+    lastNameNormalized?: true
+    searchCity?: true
+    searchDistrict?: true
+    searchWard?: true
+    gymId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2533,20 +2980,37 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
+    referralCode?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
     preferredTrainingDays?: true
     availableEquipment?: true
     injuries?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
+    isAcceptingClients?: true
+    notAcceptingReason?: true
+    firstNameNormalized?: true
+    lastNameNormalized?: true
+    searchCity?: true
+    searchDistrict?: true
+    searchWard?: true
+    gymId?: true
+    specialties?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2645,20 +3109,37 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean
+    ptSuspended: boolean
+    referralCode: string | null
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean
     preferredTrainingDays: number[]
     availableEquipment: string[]
     injuries: string[]
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number
+    isAcceptingClients: boolean
+    notAcceptingReason: string | null
+    firstNameNormalized: string | null
+    lastNameNormalized: string | null
+    searchCity: string | null
+    searchDistrict: string | null
+    searchWard: string | null
+    gymId: string | null
+    specialties: string[]
     createdAt: Date
     updatedAt: Date
     _count: UserProfileCountAggregateOutputType | null
@@ -2689,24 +3170,42 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
+    isAcceptingClients?: boolean
+    notAcceptingReason?: boolean
+    firstNameNormalized?: boolean
+    lastNameNormalized?: boolean
+    searchCity?: boolean
+    searchDistrict?: boolean
+    searchWard?: boolean
+    gymId?: boolean
+    specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
+    servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["userProfile"]>
 
@@ -2717,20 +3216,37 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
+    isAcceptingClients?: boolean
+    notAcceptingReason?: boolean
+    firstNameNormalized?: boolean
+    lastNameNormalized?: boolean
+    searchCity?: boolean
+    searchDistrict?: boolean
+    searchWard?: boolean
+    gymId?: boolean
+    specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["userProfile"]>
@@ -2742,20 +3258,37 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
+    isAcceptingClients?: boolean
+    notAcceptingReason?: boolean
+    firstNameNormalized?: boolean
+    lastNameNormalized?: boolean
+    searchCity?: boolean
+    searchDistrict?: boolean
+    searchWard?: boolean
+    gymId?: boolean
+    specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -2763,6 +3296,7 @@ export namespace Prisma {
   export type UserProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
+    servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2772,6 +3306,7 @@ export namespace Prisma {
     objects: {
       ptApplication: Prisma.$PTApplicationPayload<ExtArgs> | null
       trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
+      servicePackages: Prisma.$PTServicePackagePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2780,20 +3315,37 @@ export namespace Prisma {
       lastName: string | null
       email: string | null
       isPT: boolean
+      ptSuspended: boolean
+      referralCode: string | null
+      dateOfBirth: Date | null
       age: number | null
       gender: $Enums.Gender | null
       heightCm: number | null
       goal: $Enums.Goal | null
       activityLevel: $Enums.ActivityLevel | null
       experienceLevel: $Enums.ExperienceLevel | null
+      competesInSport: boolean
       preferredTrainingDays: number[]
       availableEquipment: string[]
       injuries: string[]
+      preferredSplit: string | null
+      hasCompletedOnboarding: boolean
       currentWeight: number | null
       targetWeight: number | null
+      startingWeight: number | null
+      startingWeightSource: string | null
       dietaryPreference: string | null
       photoUrl: string | null
       sessionDurationMinutes: number
+      isAcceptingClients: boolean
+      notAcceptingReason: string | null
+      firstNameNormalized: string | null
+      lastNameNormalized: string | null
+      searchCity: string | null
+      searchDistrict: string | null
+      searchWard: string | null
+      gymId: string | null
+      specialties: string[]
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["userProfile"]>
@@ -3162,6 +3714,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     ptApplication<T extends UserProfile$ptApplicationArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$ptApplicationArgs<ExtArgs>>): Prisma__PTApplicationClient<$Result.GetResult<Prisma.$PTApplicationPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     trainingLocations<T extends UserProfile$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
+    servicePackages<T extends UserProfile$servicePackagesArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$servicePackagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3197,20 +3750,37 @@ export namespace Prisma {
     readonly lastName: FieldRef<"UserProfile", 'String'>
     readonly email: FieldRef<"UserProfile", 'String'>
     readonly isPT: FieldRef<"UserProfile", 'Boolean'>
+    readonly ptSuspended: FieldRef<"UserProfile", 'Boolean'>
+    readonly referralCode: FieldRef<"UserProfile", 'String'>
+    readonly dateOfBirth: FieldRef<"UserProfile", 'DateTime'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
     readonly heightCm: FieldRef<"UserProfile", 'Float'>
     readonly goal: FieldRef<"UserProfile", 'Goal'>
     readonly activityLevel: FieldRef<"UserProfile", 'ActivityLevel'>
     readonly experienceLevel: FieldRef<"UserProfile", 'ExperienceLevel'>
+    readonly competesInSport: FieldRef<"UserProfile", 'Boolean'>
     readonly preferredTrainingDays: FieldRef<"UserProfile", 'Int[]'>
     readonly availableEquipment: FieldRef<"UserProfile", 'String[]'>
     readonly injuries: FieldRef<"UserProfile", 'String[]'>
+    readonly preferredSplit: FieldRef<"UserProfile", 'String'>
+    readonly hasCompletedOnboarding: FieldRef<"UserProfile", 'Boolean'>
     readonly currentWeight: FieldRef<"UserProfile", 'Float'>
     readonly targetWeight: FieldRef<"UserProfile", 'Float'>
+    readonly startingWeight: FieldRef<"UserProfile", 'Float'>
+    readonly startingWeightSource: FieldRef<"UserProfile", 'String'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
     readonly photoUrl: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
+    readonly isAcceptingClients: FieldRef<"UserProfile", 'Boolean'>
+    readonly notAcceptingReason: FieldRef<"UserProfile", 'String'>
+    readonly firstNameNormalized: FieldRef<"UserProfile", 'String'>
+    readonly lastNameNormalized: FieldRef<"UserProfile", 'String'>
+    readonly searchCity: FieldRef<"UserProfile", 'String'>
+    readonly searchDistrict: FieldRef<"UserProfile", 'String'>
+    readonly searchWard: FieldRef<"UserProfile", 'String'>
+    readonly gymId: FieldRef<"UserProfile", 'String'>
+    readonly specialties: FieldRef<"UserProfile", 'String[]'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
   }
@@ -3559,6 +4129,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.servicePackages
+   */
+  export type UserProfile$servicePackagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    where?: PTServicePackageWhereInput
+    orderBy?: PTServicePackageOrderByWithRelationInput | PTServicePackageOrderByWithRelationInput[]
+    cursor?: PTServicePackageWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PTServicePackageScalarFieldEnum | PTServicePackageScalarFieldEnum[]
   }
 
   /**
@@ -7128,8 +7718,16 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
+    sessionDurationMinutes: number | null
+    slotsAtPurchase: number | null
   }
 
   export type ContractSumAggregateOutputType = {
@@ -7137,8 +7735,16 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
+    sessionDurationMinutes: number | null
+    slotsAtPurchase: number | null
   }
 
   export type ContractMinAggregateOutputType = {
@@ -7154,8 +7760,8 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7181,6 +7787,19 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
+    packageId: string | null
+    packageSourceName: string | null
+    sessionDurationMinutes: number | null
+    lowAvailabilityWarned: boolean | null
+    slotsAtPurchase: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7198,8 +7817,8 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7225,6 +7844,19 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
+    packageId: string | null
+    packageSourceName: string | null
+    sessionDurationMinutes: number | null
+    lowAvailabilityWarned: boolean | null
+    slotsAtPurchase: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7269,6 +7901,19 @@ export namespace Prisma {
     gymId: number
     source: number
     paymentTransactionId: number
+    platformRate: number
+    ptRate: number
+    gymRate: number
+    terminationReason: number
+    terminatedAt: number
+    releasedToPt: number
+    releasedToGym: number
+    releasedToPlatform: number
+    packageId: number
+    packageSourceName: number
+    sessionDurationMinutes: number
+    lowAvailabilityWarned: number
+    slotsAtPurchase: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7282,6 +7927,14 @@ export namespace Prisma {
     usedSessions?: true
     price?: true
     pricePerSession?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
+    sessionDurationMinutes?: true
+    slotsAtPurchase?: true
   }
 
   export type ContractSumAggregateInputType = {
@@ -7291,6 +7944,14 @@ export namespace Prisma {
     usedSessions?: true
     price?: true
     pricePerSession?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
+    sessionDurationMinutes?: true
+    slotsAtPurchase?: true
   }
 
   export type ContractMinAggregateInputType = {
@@ -7333,6 +7994,19 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
+    packageId?: true
+    packageSourceName?: true
+    sessionDurationMinutes?: true
+    lowAvailabilityWarned?: true
+    slotsAtPurchase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7377,6 +8051,19 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
+    packageId?: true
+    packageSourceName?: true
+    sessionDurationMinutes?: true
+    lowAvailabilityWarned?: true
+    slotsAtPurchase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7421,6 +8108,19 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
+    packageId?: true
+    packageSourceName?: true
+    sessionDurationMinutes?: true
+    lowAvailabilityWarned?: true
+    slotsAtPurchase?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7525,8 +8225,8 @@ export namespace Prisma {
     extraSessions: number
     totalSessions: number
     usedSessions: number
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7552,6 +8252,19 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource
     paymentTransactionId: string | null
+    platformRate: Decimal
+    ptRate: Decimal
+    gymRate: Decimal
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal
+    releasedToGym: Decimal
+    releasedToPlatform: Decimal
+    packageId: string | null
+    packageSourceName: string | null
+    sessionDurationMinutes: number | null
+    lowAvailabilityWarned: boolean
+    slotsAtPurchase: number | null
     createdAt: Date
     updatedAt: Date
     _count: ContractCountAggregateOutputType | null
@@ -7615,6 +8328,19 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
+    packageId?: boolean
+    packageSourceName?: boolean
+    sessionDurationMinutes?: boolean
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
@@ -7662,6 +8388,19 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
+    packageId?: boolean
+    packageSourceName?: boolean
+    sessionDurationMinutes?: boolean
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["contract"]>
@@ -7706,6 +8445,19 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
+    packageId?: boolean
+    packageSourceName?: boolean
+    sessionDurationMinutes?: boolean
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -7736,8 +8488,8 @@ export namespace Prisma {
       extraSessions: number
       totalSessions: number
       usedSessions: number
-      price: number | null
-      pricePerSession: number | null
+      price: Prisma.Decimal | null
+      pricePerSession: Prisma.Decimal | null
       startDate: Date | null
       endDate: Date | null
       completedAt: Date | null
@@ -7763,6 +8515,24 @@ export namespace Prisma {
       gymId: string | null
       source: $Enums.ContractSource
       paymentTransactionId: string | null
+      platformRate: Prisma.Decimal
+      ptRate: Prisma.Decimal
+      gymRate: Prisma.Decimal
+      terminationReason: $Enums.TerminationReason | null
+      terminatedAt: Date | null
+      /**
+       * Money already moved out of the pending buckets for this contract, per party. Lets
+       * termination top each party up to their final entitlement instead of double-paying the
+       * part already released session by session.
+       */
+      releasedToPt: Prisma.Decimal
+      releasedToGym: Prisma.Decimal
+      releasedToPlatform: Prisma.Decimal
+      packageId: string | null
+      packageSourceName: string | null
+      sessionDurationMinutes: number | null
+      lowAvailabilityWarned: boolean
+      slotsAtPurchase: number | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["contract"]>
@@ -8172,8 +8942,8 @@ export namespace Prisma {
     readonly extraSessions: FieldRef<"Contract", 'Int'>
     readonly totalSessions: FieldRef<"Contract", 'Int'>
     readonly usedSessions: FieldRef<"Contract", 'Int'>
-    readonly price: FieldRef<"Contract", 'Float'>
-    readonly pricePerSession: FieldRef<"Contract", 'Float'>
+    readonly price: FieldRef<"Contract", 'Decimal'>
+    readonly pricePerSession: FieldRef<"Contract", 'Decimal'>
     readonly startDate: FieldRef<"Contract", 'DateTime'>
     readonly endDate: FieldRef<"Contract", 'DateTime'>
     readonly completedAt: FieldRef<"Contract", 'DateTime'>
@@ -8199,6 +8969,19 @@ export namespace Prisma {
     readonly gymId: FieldRef<"Contract", 'String'>
     readonly source: FieldRef<"Contract", 'ContractSource'>
     readonly paymentTransactionId: FieldRef<"Contract", 'String'>
+    readonly platformRate: FieldRef<"Contract", 'Decimal'>
+    readonly ptRate: FieldRef<"Contract", 'Decimal'>
+    readonly gymRate: FieldRef<"Contract", 'Decimal'>
+    readonly terminationReason: FieldRef<"Contract", 'TerminationReason'>
+    readonly terminatedAt: FieldRef<"Contract", 'DateTime'>
+    readonly releasedToPt: FieldRef<"Contract", 'Decimal'>
+    readonly releasedToGym: FieldRef<"Contract", 'Decimal'>
+    readonly releasedToPlatform: FieldRef<"Contract", 'Decimal'>
+    readonly packageId: FieldRef<"Contract", 'String'>
+    readonly packageSourceName: FieldRef<"Contract", 'String'>
+    readonly sessionDurationMinutes: FieldRef<"Contract", 'Int'>
+    readonly lowAvailabilityWarned: FieldRef<"Contract", 'Boolean'>
+    readonly slotsAtPurchase: FieldRef<"Contract", 'Int'>
     readonly createdAt: FieldRef<"Contract", 'DateTime'>
     readonly updatedAt: FieldRef<"Contract", 'DateTime'>
   }
@@ -8595,6 +9378,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8615,6 +9405,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8635,6 +9432,13 @@ export namespace Prisma {
     cancellationReason: number
     sessionDeducted: number
     completedAt: number
+    clientConfirmDeadline: number
+    autoConfirmed: number
+    disputeReason: number
+    disputedAt: number
+    resolvedBy: number
+    resolutionNote: number
+    resolvedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -8657,6 +9461,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8677,6 +9488,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8697,6 +9515,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -8790,6 +9615,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: SessionCountAggregateOutputType | null
@@ -8827,10 +9659,19 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     contract?: boolean | ContractDefaultArgs<ExtArgs>
     review?: boolean | Session$reviewArgs<ExtArgs>
+    rescheduleRequests?: boolean | Session$rescheduleRequestsArgs<ExtArgs>
+    _count?: boolean | SessionCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["session"]>
 
   export type SessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -8849,6 +9690,13 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     contract?: boolean | ContractDefaultArgs<ExtArgs>
@@ -8870,6 +9718,13 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -8877,6 +9732,8 @@ export namespace Prisma {
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     contract?: boolean | ContractDefaultArgs<ExtArgs>
     review?: boolean | Session$reviewArgs<ExtArgs>
+    rescheduleRequests?: boolean | Session$rescheduleRequestsArgs<ExtArgs>
+    _count?: boolean | SessionCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type SessionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     contract?: boolean | ContractDefaultArgs<ExtArgs>
@@ -8887,6 +9744,7 @@ export namespace Prisma {
     objects: {
       contract: Prisma.$ContractPayload<ExtArgs>
       review: Prisma.$SessionReviewPayload<ExtArgs> | null
+      rescheduleRequests: Prisma.$SessionRescheduleRequestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8904,6 +9762,13 @@ export namespace Prisma {
       cancellationReason: string | null
       sessionDeducted: boolean
       completedAt: Date | null
+      clientConfirmDeadline: Date | null
+      autoConfirmed: boolean
+      disputeReason: string | null
+      disputedAt: Date | null
+      resolvedBy: string | null
+      resolutionNote: string | null
+      resolvedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["session"]>
@@ -9272,6 +10137,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     contract<T extends ContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractDefaultArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     review<T extends Session$reviewArgs<ExtArgs> = {}>(args?: Subset<T, Session$reviewArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    rescheduleRequests<T extends Session$rescheduleRequestsArgs<ExtArgs> = {}>(args?: Subset<T, Session$rescheduleRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9316,6 +10182,13 @@ export namespace Prisma {
     readonly cancellationReason: FieldRef<"Session", 'String'>
     readonly sessionDeducted: FieldRef<"Session", 'Boolean'>
     readonly completedAt: FieldRef<"Session", 'DateTime'>
+    readonly clientConfirmDeadline: FieldRef<"Session", 'DateTime'>
+    readonly autoConfirmed: FieldRef<"Session", 'Boolean'>
+    readonly disputeReason: FieldRef<"Session", 'String'>
+    readonly disputedAt: FieldRef<"Session", 'DateTime'>
+    readonly resolvedBy: FieldRef<"Session", 'String'>
+    readonly resolutionNote: FieldRef<"Session", 'String'>
+    readonly resolvedAt: FieldRef<"Session", 'DateTime'>
     readonly createdAt: FieldRef<"Session", 'DateTime'>
     readonly updatedAt: FieldRef<"Session", 'DateTime'>
   }
@@ -9648,6 +10521,26 @@ export namespace Prisma {
      */
     include?: SessionReviewInclude<ExtArgs> | null
     where?: SessionReviewWhereInput
+  }
+
+  /**
+   * Session.rescheduleRequests
+   */
+  export type Session$rescheduleRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    where?: SessionRescheduleRequestWhereInput
+    orderBy?: SessionRescheduleRequestOrderByWithRelationInput | SessionRescheduleRequestOrderByWithRelationInput[]
+    cursor?: SessionRescheduleRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SessionRescheduleRequestScalarFieldEnum | SessionRescheduleRequestScalarFieldEnum[]
   }
 
   /**
@@ -15511,8 +16404,10 @@ export namespace Prisma {
     provinceCode: number | null
     wardCode: number | null
     gymName: string | null
+    gymNameNormalized: string | null
     addressLine: string | null
     legacyDistrictName: string | null
+    gymId: string | null
     isPrimary: boolean | null
     isActive: boolean | null
     note: string | null
@@ -15526,8 +16421,10 @@ export namespace Prisma {
     provinceCode: number | null
     wardCode: number | null
     gymName: string | null
+    gymNameNormalized: string | null
     addressLine: string | null
     legacyDistrictName: string | null
+    gymId: string | null
     isPrimary: boolean | null
     isActive: boolean | null
     note: string | null
@@ -15541,8 +16438,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode: number
     gymName: number
+    gymNameNormalized: number
     addressLine: number
     legacyDistrictName: number
+    gymId: number
     isPrimary: number
     isActive: number
     note: number
@@ -15568,8 +16467,10 @@ export namespace Prisma {
     provinceCode?: true
     wardCode?: true
     gymName?: true
+    gymNameNormalized?: true
     addressLine?: true
     legacyDistrictName?: true
+    gymId?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -15583,8 +16484,10 @@ export namespace Prisma {
     provinceCode?: true
     wardCode?: true
     gymName?: true
+    gymNameNormalized?: true
     addressLine?: true
     legacyDistrictName?: true
+    gymId?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -15598,8 +16501,10 @@ export namespace Prisma {
     provinceCode?: true
     wardCode?: true
     gymName?: true
+    gymNameNormalized?: true
     addressLine?: true
     legacyDistrictName?: true
+    gymId?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -15700,8 +16605,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode: number | null
     gymName: string | null
+    gymNameNormalized: string | null
     addressLine: string | null
     legacyDistrictName: string | null
+    gymId: string | null
     isPrimary: boolean
     isActive: boolean
     note: string | null
@@ -15734,8 +16641,10 @@ export namespace Prisma {
     provinceCode?: boolean
     wardCode?: boolean
     gymName?: boolean
+    gymNameNormalized?: boolean
     addressLine?: boolean
     legacyDistrictName?: boolean
+    gymId?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -15752,8 +16661,10 @@ export namespace Prisma {
     provinceCode?: boolean
     wardCode?: boolean
     gymName?: boolean
+    gymNameNormalized?: boolean
     addressLine?: boolean
     legacyDistrictName?: boolean
+    gymId?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -15770,8 +16681,10 @@ export namespace Prisma {
     provinceCode?: boolean
     wardCode?: boolean
     gymName?: boolean
+    gymNameNormalized?: boolean
     addressLine?: boolean
     legacyDistrictName?: boolean
+    gymId?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -15803,8 +16716,10 @@ export namespace Prisma {
       provinceCode: number
       wardCode: number | null
       gymName: string | null
+      gymNameNormalized: string | null
       addressLine: string | null
       legacyDistrictName: string | null
+      gymId: string | null
       isPrimary: boolean
       isActive: boolean
       note: string | null
@@ -16211,8 +17126,10 @@ export namespace Prisma {
     readonly provinceCode: FieldRef<"PTTrainingLocation", 'Int'>
     readonly wardCode: FieldRef<"PTTrainingLocation", 'Int'>
     readonly gymName: FieldRef<"PTTrainingLocation", 'String'>
+    readonly gymNameNormalized: FieldRef<"PTTrainingLocation", 'String'>
     readonly addressLine: FieldRef<"PTTrainingLocation", 'String'>
     readonly legacyDistrictName: FieldRef<"PTTrainingLocation", 'String'>
+    readonly gymId: FieldRef<"PTTrainingLocation", 'String'>
     readonly isPrimary: FieldRef<"PTTrainingLocation", 'Boolean'>
     readonly isActive: FieldRef<"PTTrainingLocation", 'Boolean'>
     readonly note: FieldRef<"PTTrainingLocation", 'String'>
@@ -16562,6 +17479,2098 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PTTrainingLocationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PTServicePackage
+   */
+
+  export type AggregatePTServicePackage = {
+    _count: PTServicePackageCountAggregateOutputType | null
+    _avg: PTServicePackageAvgAggregateOutputType | null
+    _sum: PTServicePackageSumAggregateOutputType | null
+    _min: PTServicePackageMinAggregateOutputType | null
+    _max: PTServicePackageMaxAggregateOutputType | null
+  }
+
+  export type PTServicePackageAvgAggregateOutputType = {
+    sessionCount: number | null
+    price: Decimal | null
+    sessionDurationMinutes: number | null
+    validityDays: number | null
+  }
+
+  export type PTServicePackageSumAggregateOutputType = {
+    sessionCount: number | null
+    price: Decimal | null
+    sessionDurationMinutes: number | null
+    validityDays: number | null
+  }
+
+  export type PTServicePackageMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    name: string | null
+    description: string | null
+    sessionCount: number | null
+    price: Decimal | null
+    sessionMode: $Enums.SessionMode | null
+    sessionDurationMinutes: number | null
+    validityDays: number | null
+    isActive: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTServicePackageMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    name: string | null
+    description: string | null
+    sessionCount: number | null
+    price: Decimal | null
+    sessionMode: $Enums.SessionMode | null
+    sessionDurationMinutes: number | null
+    validityDays: number | null
+    isActive: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTServicePackageCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    name: number
+    description: number
+    sessionCount: number
+    price: number
+    sessionMode: number
+    sessionDurationMinutes: number
+    validityDays: number
+    isActive: number
+    archivedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PTServicePackageAvgAggregateInputType = {
+    sessionCount?: true
+    price?: true
+    sessionDurationMinutes?: true
+    validityDays?: true
+  }
+
+  export type PTServicePackageSumAggregateInputType = {
+    sessionCount?: true
+    price?: true
+    sessionDurationMinutes?: true
+    validityDays?: true
+  }
+
+  export type PTServicePackageMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    name?: true
+    description?: true
+    sessionCount?: true
+    price?: true
+    sessionMode?: true
+    sessionDurationMinutes?: true
+    validityDays?: true
+    isActive?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTServicePackageMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    name?: true
+    description?: true
+    sessionCount?: true
+    price?: true
+    sessionMode?: true
+    sessionDurationMinutes?: true
+    validityDays?: true
+    isActive?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTServicePackageCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    name?: true
+    description?: true
+    sessionCount?: true
+    price?: true
+    sessionMode?: true
+    sessionDurationMinutes?: true
+    validityDays?: true
+    isActive?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PTServicePackageAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTServicePackage to aggregate.
+     */
+    where?: PTServicePackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTServicePackages to fetch.
+     */
+    orderBy?: PTServicePackageOrderByWithRelationInput | PTServicePackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PTServicePackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTServicePackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTServicePackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PTServicePackages
+    **/
+    _count?: true | PTServicePackageCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PTServicePackageAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PTServicePackageSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PTServicePackageMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PTServicePackageMaxAggregateInputType
+  }
+
+  export type GetPTServicePackageAggregateType<T extends PTServicePackageAggregateArgs> = {
+        [P in keyof T & keyof AggregatePTServicePackage]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePTServicePackage[P]>
+      : GetScalarType<T[P], AggregatePTServicePackage[P]>
+  }
+
+
+
+
+  export type PTServicePackageGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTServicePackageWhereInput
+    orderBy?: PTServicePackageOrderByWithAggregationInput | PTServicePackageOrderByWithAggregationInput[]
+    by: PTServicePackageScalarFieldEnum[] | PTServicePackageScalarFieldEnum
+    having?: PTServicePackageScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PTServicePackageCountAggregateInputType | true
+    _avg?: PTServicePackageAvgAggregateInputType
+    _sum?: PTServicePackageSumAggregateInputType
+    _min?: PTServicePackageMinAggregateInputType
+    _max?: PTServicePackageMaxAggregateInputType
+  }
+
+  export type PTServicePackageGroupByOutputType = {
+    id: string
+    ptUserId: string
+    name: string
+    description: string | null
+    sessionCount: number
+    price: Decimal
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes: number
+    validityDays: number | null
+    isActive: boolean
+    archivedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PTServicePackageCountAggregateOutputType | null
+    _avg: PTServicePackageAvgAggregateOutputType | null
+    _sum: PTServicePackageSumAggregateOutputType | null
+    _min: PTServicePackageMinAggregateOutputType | null
+    _max: PTServicePackageMaxAggregateOutputType | null
+  }
+
+  type GetPTServicePackageGroupByPayload<T extends PTServicePackageGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PTServicePackageGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PTServicePackageGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PTServicePackageGroupByOutputType[P]>
+            : GetScalarType<T[P], PTServicePackageGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PTServicePackageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    name?: boolean
+    description?: boolean
+    sessionCount?: boolean
+    price?: boolean
+    sessionMode?: boolean
+    sessionDurationMinutes?: boolean
+    validityDays?: boolean
+    isActive?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pTServicePackage"]>
+
+  export type PTServicePackageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    name?: boolean
+    description?: boolean
+    sessionCount?: boolean
+    price?: boolean
+    sessionMode?: boolean
+    sessionDurationMinutes?: boolean
+    validityDays?: boolean
+    isActive?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pTServicePackage"]>
+
+  export type PTServicePackageSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    name?: boolean
+    description?: boolean
+    sessionCount?: boolean
+    price?: boolean
+    sessionMode?: boolean
+    sessionDurationMinutes?: boolean
+    validityDays?: boolean
+    isActive?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PTServicePackageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type PTServicePackageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $PTServicePackagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PTServicePackage"
+    objects: {
+      ptProfile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      name: string
+      description: string | null
+      sessionCount: number
+      price: Prisma.Decimal
+      sessionMode: $Enums.SessionMode
+      sessionDurationMinutes: number
+      validityDays: number | null
+      isActive: boolean
+      archivedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["pTServicePackage"]>
+    composites: {}
+  }
+
+  type PTServicePackageGetPayload<S extends boolean | null | undefined | PTServicePackageDefaultArgs> = $Result.GetResult<Prisma.$PTServicePackagePayload, S>
+
+  type PTServicePackageCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PTServicePackageFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PTServicePackageCountAggregateInputType | true
+    }
+
+  export interface PTServicePackageDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PTServicePackage'], meta: { name: 'PTServicePackage' } }
+    /**
+     * Find zero or one PTServicePackage that matches the filter.
+     * @param {PTServicePackageFindUniqueArgs} args - Arguments to find a PTServicePackage
+     * @example
+     * // Get one PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PTServicePackageFindUniqueArgs>(args: SelectSubset<T, PTServicePackageFindUniqueArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PTServicePackage that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PTServicePackageFindUniqueOrThrowArgs} args - Arguments to find a PTServicePackage
+     * @example
+     * // Get one PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PTServicePackageFindUniqueOrThrowArgs>(args: SelectSubset<T, PTServicePackageFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PTServicePackage that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageFindFirstArgs} args - Arguments to find a PTServicePackage
+     * @example
+     * // Get one PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PTServicePackageFindFirstArgs>(args?: SelectSubset<T, PTServicePackageFindFirstArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PTServicePackage that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageFindFirstOrThrowArgs} args - Arguments to find a PTServicePackage
+     * @example
+     * // Get one PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PTServicePackageFindFirstOrThrowArgs>(args?: SelectSubset<T, PTServicePackageFindFirstOrThrowArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PTServicePackages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PTServicePackages
+     * const pTServicePackages = await prisma.pTServicePackage.findMany()
+     * 
+     * // Get first 10 PTServicePackages
+     * const pTServicePackages = await prisma.pTServicePackage.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pTServicePackageWithIdOnly = await prisma.pTServicePackage.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PTServicePackageFindManyArgs>(args?: SelectSubset<T, PTServicePackageFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PTServicePackage.
+     * @param {PTServicePackageCreateArgs} args - Arguments to create a PTServicePackage.
+     * @example
+     * // Create one PTServicePackage
+     * const PTServicePackage = await prisma.pTServicePackage.create({
+     *   data: {
+     *     // ... data to create a PTServicePackage
+     *   }
+     * })
+     * 
+     */
+    create<T extends PTServicePackageCreateArgs>(args: SelectSubset<T, PTServicePackageCreateArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PTServicePackages.
+     * @param {PTServicePackageCreateManyArgs} args - Arguments to create many PTServicePackages.
+     * @example
+     * // Create many PTServicePackages
+     * const pTServicePackage = await prisma.pTServicePackage.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PTServicePackageCreateManyArgs>(args?: SelectSubset<T, PTServicePackageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PTServicePackages and returns the data saved in the database.
+     * @param {PTServicePackageCreateManyAndReturnArgs} args - Arguments to create many PTServicePackages.
+     * @example
+     * // Create many PTServicePackages
+     * const pTServicePackage = await prisma.pTServicePackage.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PTServicePackages and only return the `id`
+     * const pTServicePackageWithIdOnly = await prisma.pTServicePackage.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PTServicePackageCreateManyAndReturnArgs>(args?: SelectSubset<T, PTServicePackageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PTServicePackage.
+     * @param {PTServicePackageDeleteArgs} args - Arguments to delete one PTServicePackage.
+     * @example
+     * // Delete one PTServicePackage
+     * const PTServicePackage = await prisma.pTServicePackage.delete({
+     *   where: {
+     *     // ... filter to delete one PTServicePackage
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PTServicePackageDeleteArgs>(args: SelectSubset<T, PTServicePackageDeleteArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PTServicePackage.
+     * @param {PTServicePackageUpdateArgs} args - Arguments to update one PTServicePackage.
+     * @example
+     * // Update one PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PTServicePackageUpdateArgs>(args: SelectSubset<T, PTServicePackageUpdateArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PTServicePackages.
+     * @param {PTServicePackageDeleteManyArgs} args - Arguments to filter PTServicePackages to delete.
+     * @example
+     * // Delete a few PTServicePackages
+     * const { count } = await prisma.pTServicePackage.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PTServicePackageDeleteManyArgs>(args?: SelectSubset<T, PTServicePackageDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PTServicePackages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PTServicePackages
+     * const pTServicePackage = await prisma.pTServicePackage.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PTServicePackageUpdateManyArgs>(args: SelectSubset<T, PTServicePackageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PTServicePackage.
+     * @param {PTServicePackageUpsertArgs} args - Arguments to update or create a PTServicePackage.
+     * @example
+     * // Update or create a PTServicePackage
+     * const pTServicePackage = await prisma.pTServicePackage.upsert({
+     *   create: {
+     *     // ... data to create a PTServicePackage
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PTServicePackage we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PTServicePackageUpsertArgs>(args: SelectSubset<T, PTServicePackageUpsertArgs<ExtArgs>>): Prisma__PTServicePackageClient<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PTServicePackages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageCountArgs} args - Arguments to filter PTServicePackages to count.
+     * @example
+     * // Count the number of PTServicePackages
+     * const count = await prisma.pTServicePackage.count({
+     *   where: {
+     *     // ... the filter for the PTServicePackages we want to count
+     *   }
+     * })
+    **/
+    count<T extends PTServicePackageCountArgs>(
+      args?: Subset<T, PTServicePackageCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PTServicePackageCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PTServicePackage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PTServicePackageAggregateArgs>(args: Subset<T, PTServicePackageAggregateArgs>): Prisma.PrismaPromise<GetPTServicePackageAggregateType<T>>
+
+    /**
+     * Group by PTServicePackage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTServicePackageGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PTServicePackageGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PTServicePackageGroupByArgs['orderBy'] }
+        : { orderBy?: PTServicePackageGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PTServicePackageGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPTServicePackageGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PTServicePackage model
+   */
+  readonly fields: PTServicePackageFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PTServicePackage.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PTServicePackageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    ptProfile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PTServicePackage model
+   */ 
+  interface PTServicePackageFieldRefs {
+    readonly id: FieldRef<"PTServicePackage", 'String'>
+    readonly ptUserId: FieldRef<"PTServicePackage", 'String'>
+    readonly name: FieldRef<"PTServicePackage", 'String'>
+    readonly description: FieldRef<"PTServicePackage", 'String'>
+    readonly sessionCount: FieldRef<"PTServicePackage", 'Int'>
+    readonly price: FieldRef<"PTServicePackage", 'Decimal'>
+    readonly sessionMode: FieldRef<"PTServicePackage", 'SessionMode'>
+    readonly sessionDurationMinutes: FieldRef<"PTServicePackage", 'Int'>
+    readonly validityDays: FieldRef<"PTServicePackage", 'Int'>
+    readonly isActive: FieldRef<"PTServicePackage", 'Boolean'>
+    readonly archivedAt: FieldRef<"PTServicePackage", 'DateTime'>
+    readonly createdAt: FieldRef<"PTServicePackage", 'DateTime'>
+    readonly updatedAt: FieldRef<"PTServicePackage", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PTServicePackage findUnique
+   */
+  export type PTServicePackageFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter, which PTServicePackage to fetch.
+     */
+    where: PTServicePackageWhereUniqueInput
+  }
+
+  /**
+   * PTServicePackage findUniqueOrThrow
+   */
+  export type PTServicePackageFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter, which PTServicePackage to fetch.
+     */
+    where: PTServicePackageWhereUniqueInput
+  }
+
+  /**
+   * PTServicePackage findFirst
+   */
+  export type PTServicePackageFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter, which PTServicePackage to fetch.
+     */
+    where?: PTServicePackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTServicePackages to fetch.
+     */
+    orderBy?: PTServicePackageOrderByWithRelationInput | PTServicePackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTServicePackages.
+     */
+    cursor?: PTServicePackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTServicePackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTServicePackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTServicePackages.
+     */
+    distinct?: PTServicePackageScalarFieldEnum | PTServicePackageScalarFieldEnum[]
+  }
+
+  /**
+   * PTServicePackage findFirstOrThrow
+   */
+  export type PTServicePackageFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter, which PTServicePackage to fetch.
+     */
+    where?: PTServicePackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTServicePackages to fetch.
+     */
+    orderBy?: PTServicePackageOrderByWithRelationInput | PTServicePackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTServicePackages.
+     */
+    cursor?: PTServicePackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTServicePackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTServicePackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTServicePackages.
+     */
+    distinct?: PTServicePackageScalarFieldEnum | PTServicePackageScalarFieldEnum[]
+  }
+
+  /**
+   * PTServicePackage findMany
+   */
+  export type PTServicePackageFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter, which PTServicePackages to fetch.
+     */
+    where?: PTServicePackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTServicePackages to fetch.
+     */
+    orderBy?: PTServicePackageOrderByWithRelationInput | PTServicePackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PTServicePackages.
+     */
+    cursor?: PTServicePackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTServicePackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTServicePackages.
+     */
+    skip?: number
+    distinct?: PTServicePackageScalarFieldEnum | PTServicePackageScalarFieldEnum[]
+  }
+
+  /**
+   * PTServicePackage create
+   */
+  export type PTServicePackageCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PTServicePackage.
+     */
+    data: XOR<PTServicePackageCreateInput, PTServicePackageUncheckedCreateInput>
+  }
+
+  /**
+   * PTServicePackage createMany
+   */
+  export type PTServicePackageCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PTServicePackages.
+     */
+    data: PTServicePackageCreateManyInput | PTServicePackageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTServicePackage createManyAndReturn
+   */
+  export type PTServicePackageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PTServicePackages.
+     */
+    data: PTServicePackageCreateManyInput | PTServicePackageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PTServicePackage update
+   */
+  export type PTServicePackageUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PTServicePackage.
+     */
+    data: XOR<PTServicePackageUpdateInput, PTServicePackageUncheckedUpdateInput>
+    /**
+     * Choose, which PTServicePackage to update.
+     */
+    where: PTServicePackageWhereUniqueInput
+  }
+
+  /**
+   * PTServicePackage updateMany
+   */
+  export type PTServicePackageUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PTServicePackages.
+     */
+    data: XOR<PTServicePackageUpdateManyMutationInput, PTServicePackageUncheckedUpdateManyInput>
+    /**
+     * Filter which PTServicePackages to update
+     */
+    where?: PTServicePackageWhereInput
+  }
+
+  /**
+   * PTServicePackage upsert
+   */
+  export type PTServicePackageUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PTServicePackage to update in case it exists.
+     */
+    where: PTServicePackageWhereUniqueInput
+    /**
+     * In case the PTServicePackage found by the `where` argument doesn't exist, create a new PTServicePackage with this data.
+     */
+    create: XOR<PTServicePackageCreateInput, PTServicePackageUncheckedCreateInput>
+    /**
+     * In case the PTServicePackage was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PTServicePackageUpdateInput, PTServicePackageUncheckedUpdateInput>
+  }
+
+  /**
+   * PTServicePackage delete
+   */
+  export type PTServicePackageDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+    /**
+     * Filter which PTServicePackage to delete.
+     */
+    where: PTServicePackageWhereUniqueInput
+  }
+
+  /**
+   * PTServicePackage deleteMany
+   */
+  export type PTServicePackageDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTServicePackages to delete
+     */
+    where?: PTServicePackageWhereInput
+  }
+
+  /**
+   * PTServicePackage without action
+   */
+  export type PTServicePackageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTServicePackage
+     */
+    select?: PTServicePackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTServicePackageInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SessionRescheduleRequest
+   */
+
+  export type AggregateSessionRescheduleRequest = {
+    _count: SessionRescheduleRequestCountAggregateOutputType | null
+    _min: SessionRescheduleRequestMinAggregateOutputType | null
+    _max: SessionRescheduleRequestMaxAggregateOutputType | null
+  }
+
+  export type SessionRescheduleRequestMinAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    requestedBy: $Enums.RescheduleRequestedBy | null
+    originalStartAt: Date | null
+    originalEndAt: Date | null
+    proposedStartAt: Date | null
+    proposedEndAt: Date | null
+    reason: string | null
+    status: $Enums.RescheduleStatus | null
+    respondedAt: Date | null
+    responseNote: string | null
+    createdAt: Date | null
+  }
+
+  export type SessionRescheduleRequestMaxAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    requestedBy: $Enums.RescheduleRequestedBy | null
+    originalStartAt: Date | null
+    originalEndAt: Date | null
+    proposedStartAt: Date | null
+    proposedEndAt: Date | null
+    reason: string | null
+    status: $Enums.RescheduleStatus | null
+    respondedAt: Date | null
+    responseNote: string | null
+    createdAt: Date | null
+  }
+
+  export type SessionRescheduleRequestCountAggregateOutputType = {
+    id: number
+    sessionId: number
+    requestedBy: number
+    originalStartAt: number
+    originalEndAt: number
+    proposedStartAt: number
+    proposedEndAt: number
+    reason: number
+    status: number
+    respondedAt: number
+    responseNote: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type SessionRescheduleRequestMinAggregateInputType = {
+    id?: true
+    sessionId?: true
+    requestedBy?: true
+    originalStartAt?: true
+    originalEndAt?: true
+    proposedStartAt?: true
+    proposedEndAt?: true
+    reason?: true
+    status?: true
+    respondedAt?: true
+    responseNote?: true
+    createdAt?: true
+  }
+
+  export type SessionRescheduleRequestMaxAggregateInputType = {
+    id?: true
+    sessionId?: true
+    requestedBy?: true
+    originalStartAt?: true
+    originalEndAt?: true
+    proposedStartAt?: true
+    proposedEndAt?: true
+    reason?: true
+    status?: true
+    respondedAt?: true
+    responseNote?: true
+    createdAt?: true
+  }
+
+  export type SessionRescheduleRequestCountAggregateInputType = {
+    id?: true
+    sessionId?: true
+    requestedBy?: true
+    originalStartAt?: true
+    originalEndAt?: true
+    proposedStartAt?: true
+    proposedEndAt?: true
+    reason?: true
+    status?: true
+    respondedAt?: true
+    responseNote?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type SessionRescheduleRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionRescheduleRequest to aggregate.
+     */
+    where?: SessionRescheduleRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionRescheduleRequests to fetch.
+     */
+    orderBy?: SessionRescheduleRequestOrderByWithRelationInput | SessionRescheduleRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SessionRescheduleRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionRescheduleRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionRescheduleRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SessionRescheduleRequests
+    **/
+    _count?: true | SessionRescheduleRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SessionRescheduleRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SessionRescheduleRequestMaxAggregateInputType
+  }
+
+  export type GetSessionRescheduleRequestAggregateType<T extends SessionRescheduleRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateSessionRescheduleRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSessionRescheduleRequest[P]>
+      : GetScalarType<T[P], AggregateSessionRescheduleRequest[P]>
+  }
+
+
+
+
+  export type SessionRescheduleRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionRescheduleRequestWhereInput
+    orderBy?: SessionRescheduleRequestOrderByWithAggregationInput | SessionRescheduleRequestOrderByWithAggregationInput[]
+    by: SessionRescheduleRequestScalarFieldEnum[] | SessionRescheduleRequestScalarFieldEnum
+    having?: SessionRescheduleRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SessionRescheduleRequestCountAggregateInputType | true
+    _min?: SessionRescheduleRequestMinAggregateInputType
+    _max?: SessionRescheduleRequestMaxAggregateInputType
+  }
+
+  export type SessionRescheduleRequestGroupByOutputType = {
+    id: string
+    sessionId: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date
+    originalEndAt: Date
+    proposedStartAt: Date
+    proposedEndAt: Date
+    reason: string
+    status: $Enums.RescheduleStatus
+    respondedAt: Date | null
+    responseNote: string | null
+    createdAt: Date
+    _count: SessionRescheduleRequestCountAggregateOutputType | null
+    _min: SessionRescheduleRequestMinAggregateOutputType | null
+    _max: SessionRescheduleRequestMaxAggregateOutputType | null
+  }
+
+  type GetSessionRescheduleRequestGroupByPayload<T extends SessionRescheduleRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SessionRescheduleRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SessionRescheduleRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SessionRescheduleRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], SessionRescheduleRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SessionRescheduleRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    requestedBy?: boolean
+    originalStartAt?: boolean
+    originalEndAt?: boolean
+    proposedStartAt?: boolean
+    proposedEndAt?: boolean
+    reason?: boolean
+    status?: boolean
+    respondedAt?: boolean
+    responseNote?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["sessionRescheduleRequest"]>
+
+  export type SessionRescheduleRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    requestedBy?: boolean
+    originalStartAt?: boolean
+    originalEndAt?: boolean
+    proposedStartAt?: boolean
+    proposedEndAt?: boolean
+    reason?: boolean
+    status?: boolean
+    respondedAt?: boolean
+    responseNote?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["sessionRescheduleRequest"]>
+
+  export type SessionRescheduleRequestSelectScalar = {
+    id?: boolean
+    sessionId?: boolean
+    requestedBy?: boolean
+    originalStartAt?: boolean
+    originalEndAt?: boolean
+    proposedStartAt?: boolean
+    proposedEndAt?: boolean
+    reason?: boolean
+    status?: boolean
+    respondedAt?: boolean
+    responseNote?: boolean
+    createdAt?: boolean
+  }
+
+  export type SessionRescheduleRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+  }
+  export type SessionRescheduleRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+  }
+
+  export type $SessionRescheduleRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SessionRescheduleRequest"
+    objects: {
+      session: Prisma.$SessionPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sessionId: string
+      requestedBy: $Enums.RescheduleRequestedBy
+      originalStartAt: Date
+      originalEndAt: Date
+      proposedStartAt: Date
+      proposedEndAt: Date
+      reason: string
+      status: $Enums.RescheduleStatus
+      respondedAt: Date | null
+      responseNote: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["sessionRescheduleRequest"]>
+    composites: {}
+  }
+
+  type SessionRescheduleRequestGetPayload<S extends boolean | null | undefined | SessionRescheduleRequestDefaultArgs> = $Result.GetResult<Prisma.$SessionRescheduleRequestPayload, S>
+
+  type SessionRescheduleRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SessionRescheduleRequestFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SessionRescheduleRequestCountAggregateInputType | true
+    }
+
+  export interface SessionRescheduleRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SessionRescheduleRequest'], meta: { name: 'SessionRescheduleRequest' } }
+    /**
+     * Find zero or one SessionRescheduleRequest that matches the filter.
+     * @param {SessionRescheduleRequestFindUniqueArgs} args - Arguments to find a SessionRescheduleRequest
+     * @example
+     * // Get one SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SessionRescheduleRequestFindUniqueArgs>(args: SelectSubset<T, SessionRescheduleRequestFindUniqueArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one SessionRescheduleRequest that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SessionRescheduleRequestFindUniqueOrThrowArgs} args - Arguments to find a SessionRescheduleRequest
+     * @example
+     * // Get one SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SessionRescheduleRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, SessionRescheduleRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first SessionRescheduleRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestFindFirstArgs} args - Arguments to find a SessionRescheduleRequest
+     * @example
+     * // Get one SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SessionRescheduleRequestFindFirstArgs>(args?: SelectSubset<T, SessionRescheduleRequestFindFirstArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first SessionRescheduleRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestFindFirstOrThrowArgs} args - Arguments to find a SessionRescheduleRequest
+     * @example
+     * // Get one SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SessionRescheduleRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, SessionRescheduleRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more SessionRescheduleRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SessionRescheduleRequests
+     * const sessionRescheduleRequests = await prisma.sessionRescheduleRequest.findMany()
+     * 
+     * // Get first 10 SessionRescheduleRequests
+     * const sessionRescheduleRequests = await prisma.sessionRescheduleRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const sessionRescheduleRequestWithIdOnly = await prisma.sessionRescheduleRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SessionRescheduleRequestFindManyArgs>(args?: SelectSubset<T, SessionRescheduleRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a SessionRescheduleRequest.
+     * @param {SessionRescheduleRequestCreateArgs} args - Arguments to create a SessionRescheduleRequest.
+     * @example
+     * // Create one SessionRescheduleRequest
+     * const SessionRescheduleRequest = await prisma.sessionRescheduleRequest.create({
+     *   data: {
+     *     // ... data to create a SessionRescheduleRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends SessionRescheduleRequestCreateArgs>(args: SelectSubset<T, SessionRescheduleRequestCreateArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many SessionRescheduleRequests.
+     * @param {SessionRescheduleRequestCreateManyArgs} args - Arguments to create many SessionRescheduleRequests.
+     * @example
+     * // Create many SessionRescheduleRequests
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SessionRescheduleRequestCreateManyArgs>(args?: SelectSubset<T, SessionRescheduleRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SessionRescheduleRequests and returns the data saved in the database.
+     * @param {SessionRescheduleRequestCreateManyAndReturnArgs} args - Arguments to create many SessionRescheduleRequests.
+     * @example
+     * // Create many SessionRescheduleRequests
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SessionRescheduleRequests and only return the `id`
+     * const sessionRescheduleRequestWithIdOnly = await prisma.sessionRescheduleRequest.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SessionRescheduleRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, SessionRescheduleRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a SessionRescheduleRequest.
+     * @param {SessionRescheduleRequestDeleteArgs} args - Arguments to delete one SessionRescheduleRequest.
+     * @example
+     * // Delete one SessionRescheduleRequest
+     * const SessionRescheduleRequest = await prisma.sessionRescheduleRequest.delete({
+     *   where: {
+     *     // ... filter to delete one SessionRescheduleRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SessionRescheduleRequestDeleteArgs>(args: SelectSubset<T, SessionRescheduleRequestDeleteArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one SessionRescheduleRequest.
+     * @param {SessionRescheduleRequestUpdateArgs} args - Arguments to update one SessionRescheduleRequest.
+     * @example
+     * // Update one SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SessionRescheduleRequestUpdateArgs>(args: SelectSubset<T, SessionRescheduleRequestUpdateArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more SessionRescheduleRequests.
+     * @param {SessionRescheduleRequestDeleteManyArgs} args - Arguments to filter SessionRescheduleRequests to delete.
+     * @example
+     * // Delete a few SessionRescheduleRequests
+     * const { count } = await prisma.sessionRescheduleRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SessionRescheduleRequestDeleteManyArgs>(args?: SelectSubset<T, SessionRescheduleRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SessionRescheduleRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SessionRescheduleRequests
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SessionRescheduleRequestUpdateManyArgs>(args: SelectSubset<T, SessionRescheduleRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one SessionRescheduleRequest.
+     * @param {SessionRescheduleRequestUpsertArgs} args - Arguments to update or create a SessionRescheduleRequest.
+     * @example
+     * // Update or create a SessionRescheduleRequest
+     * const sessionRescheduleRequest = await prisma.sessionRescheduleRequest.upsert({
+     *   create: {
+     *     // ... data to create a SessionRescheduleRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SessionRescheduleRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SessionRescheduleRequestUpsertArgs>(args: SelectSubset<T, SessionRescheduleRequestUpsertArgs<ExtArgs>>): Prisma__SessionRescheduleRequestClient<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of SessionRescheduleRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestCountArgs} args - Arguments to filter SessionRescheduleRequests to count.
+     * @example
+     * // Count the number of SessionRescheduleRequests
+     * const count = await prisma.sessionRescheduleRequest.count({
+     *   where: {
+     *     // ... the filter for the SessionRescheduleRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends SessionRescheduleRequestCountArgs>(
+      args?: Subset<T, SessionRescheduleRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SessionRescheduleRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SessionRescheduleRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SessionRescheduleRequestAggregateArgs>(args: Subset<T, SessionRescheduleRequestAggregateArgs>): Prisma.PrismaPromise<GetSessionRescheduleRequestAggregateType<T>>
+
+    /**
+     * Group by SessionRescheduleRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionRescheduleRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SessionRescheduleRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SessionRescheduleRequestGroupByArgs['orderBy'] }
+        : { orderBy?: SessionRescheduleRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SessionRescheduleRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSessionRescheduleRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SessionRescheduleRequest model
+   */
+  readonly fields: SessionRescheduleRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SessionRescheduleRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SessionRescheduleRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    session<T extends SessionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SessionDefaultArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SessionRescheduleRequest model
+   */ 
+  interface SessionRescheduleRequestFieldRefs {
+    readonly id: FieldRef<"SessionRescheduleRequest", 'String'>
+    readonly sessionId: FieldRef<"SessionRescheduleRequest", 'String'>
+    readonly requestedBy: FieldRef<"SessionRescheduleRequest", 'RescheduleRequestedBy'>
+    readonly originalStartAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+    readonly originalEndAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+    readonly proposedStartAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+    readonly proposedEndAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+    readonly reason: FieldRef<"SessionRescheduleRequest", 'String'>
+    readonly status: FieldRef<"SessionRescheduleRequest", 'RescheduleStatus'>
+    readonly respondedAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+    readonly responseNote: FieldRef<"SessionRescheduleRequest", 'String'>
+    readonly createdAt: FieldRef<"SessionRescheduleRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SessionRescheduleRequest findUnique
+   */
+  export type SessionRescheduleRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionRescheduleRequest to fetch.
+     */
+    where: SessionRescheduleRequestWhereUniqueInput
+  }
+
+  /**
+   * SessionRescheduleRequest findUniqueOrThrow
+   */
+  export type SessionRescheduleRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionRescheduleRequest to fetch.
+     */
+    where: SessionRescheduleRequestWhereUniqueInput
+  }
+
+  /**
+   * SessionRescheduleRequest findFirst
+   */
+  export type SessionRescheduleRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionRescheduleRequest to fetch.
+     */
+    where?: SessionRescheduleRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionRescheduleRequests to fetch.
+     */
+    orderBy?: SessionRescheduleRequestOrderByWithRelationInput | SessionRescheduleRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionRescheduleRequests.
+     */
+    cursor?: SessionRescheduleRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionRescheduleRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionRescheduleRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionRescheduleRequests.
+     */
+    distinct?: SessionRescheduleRequestScalarFieldEnum | SessionRescheduleRequestScalarFieldEnum[]
+  }
+
+  /**
+   * SessionRescheduleRequest findFirstOrThrow
+   */
+  export type SessionRescheduleRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionRescheduleRequest to fetch.
+     */
+    where?: SessionRescheduleRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionRescheduleRequests to fetch.
+     */
+    orderBy?: SessionRescheduleRequestOrderByWithRelationInput | SessionRescheduleRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionRescheduleRequests.
+     */
+    cursor?: SessionRescheduleRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionRescheduleRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionRescheduleRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionRescheduleRequests.
+     */
+    distinct?: SessionRescheduleRequestScalarFieldEnum | SessionRescheduleRequestScalarFieldEnum[]
+  }
+
+  /**
+   * SessionRescheduleRequest findMany
+   */
+  export type SessionRescheduleRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionRescheduleRequests to fetch.
+     */
+    where?: SessionRescheduleRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionRescheduleRequests to fetch.
+     */
+    orderBy?: SessionRescheduleRequestOrderByWithRelationInput | SessionRescheduleRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SessionRescheduleRequests.
+     */
+    cursor?: SessionRescheduleRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionRescheduleRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionRescheduleRequests.
+     */
+    skip?: number
+    distinct?: SessionRescheduleRequestScalarFieldEnum | SessionRescheduleRequestScalarFieldEnum[]
+  }
+
+  /**
+   * SessionRescheduleRequest create
+   */
+  export type SessionRescheduleRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a SessionRescheduleRequest.
+     */
+    data: XOR<SessionRescheduleRequestCreateInput, SessionRescheduleRequestUncheckedCreateInput>
+  }
+
+  /**
+   * SessionRescheduleRequest createMany
+   */
+  export type SessionRescheduleRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SessionRescheduleRequests.
+     */
+    data: SessionRescheduleRequestCreateManyInput | SessionRescheduleRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SessionRescheduleRequest createManyAndReturn
+   */
+  export type SessionRescheduleRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many SessionRescheduleRequests.
+     */
+    data: SessionRescheduleRequestCreateManyInput | SessionRescheduleRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SessionRescheduleRequest update
+   */
+  export type SessionRescheduleRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a SessionRescheduleRequest.
+     */
+    data: XOR<SessionRescheduleRequestUpdateInput, SessionRescheduleRequestUncheckedUpdateInput>
+    /**
+     * Choose, which SessionRescheduleRequest to update.
+     */
+    where: SessionRescheduleRequestWhereUniqueInput
+  }
+
+  /**
+   * SessionRescheduleRequest updateMany
+   */
+  export type SessionRescheduleRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SessionRescheduleRequests.
+     */
+    data: XOR<SessionRescheduleRequestUpdateManyMutationInput, SessionRescheduleRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which SessionRescheduleRequests to update
+     */
+    where?: SessionRescheduleRequestWhereInput
+  }
+
+  /**
+   * SessionRescheduleRequest upsert
+   */
+  export type SessionRescheduleRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the SessionRescheduleRequest to update in case it exists.
+     */
+    where: SessionRescheduleRequestWhereUniqueInput
+    /**
+     * In case the SessionRescheduleRequest found by the `where` argument doesn't exist, create a new SessionRescheduleRequest with this data.
+     */
+    create: XOR<SessionRescheduleRequestCreateInput, SessionRescheduleRequestUncheckedCreateInput>
+    /**
+     * In case the SessionRescheduleRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SessionRescheduleRequestUpdateInput, SessionRescheduleRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * SessionRescheduleRequest delete
+   */
+  export type SessionRescheduleRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
+    /**
+     * Filter which SessionRescheduleRequest to delete.
+     */
+    where: SessionRescheduleRequestWhereUniqueInput
+  }
+
+  /**
+   * SessionRescheduleRequest deleteMany
+   */
+  export type SessionRescheduleRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionRescheduleRequests to delete
+     */
+    where?: SessionRescheduleRequestWhereInput
+  }
+
+  /**
+   * SessionRescheduleRequest without action
+   */
+  export type SessionRescheduleRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionRescheduleRequest
+     */
+    select?: SessionRescheduleRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionRescheduleRequestInclude<ExtArgs> | null
   }
 
 
@@ -17798,6 +20807,937 @@ export namespace Prisma {
 
 
   /**
+   * Model AuditLog
+   */
+
+  export type AggregateAuditLog = {
+    _count: AuditLogCountAggregateOutputType | null
+    _min: AuditLogMinAggregateOutputType | null
+    _max: AuditLogMaxAggregateOutputType | null
+  }
+
+  export type AuditLogMinAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    action: string | null
+    entityType: $Enums.AuditEntityType | null
+    entityId: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type AuditLogMaxAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    action: string | null
+    entityType: $Enums.AuditEntityType | null
+    entityId: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type AuditLogCountAggregateOutputType = {
+    id: number
+    actorUserId: number
+    action: number
+    entityType: number
+    entityId: number
+    metadata: number
+    ipAddress: number
+    userAgent: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AuditLogMinAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type AuditLogMaxAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type AuditLogCountAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    metadata?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AuditLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AuditLog to aggregate.
+     */
+    where?: AuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AuditLogs to fetch.
+     */
+    orderBy?: AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AuditLogs
+    **/
+    _count?: true | AuditLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AuditLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AuditLogMaxAggregateInputType
+  }
+
+  export type GetAuditLogAggregateType<T extends AuditLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateAuditLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAuditLog[P]>
+      : GetScalarType<T[P], AggregateAuditLog[P]>
+  }
+
+
+
+
+  export type AuditLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AuditLogWhereInput
+    orderBy?: AuditLogOrderByWithAggregationInput | AuditLogOrderByWithAggregationInput[]
+    by: AuditLogScalarFieldEnum[] | AuditLogScalarFieldEnum
+    having?: AuditLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AuditLogCountAggregateInputType | true
+    _min?: AuditLogMinAggregateInputType
+    _max?: AuditLogMaxAggregateInputType
+  }
+
+  export type AuditLogGroupByOutputType = {
+    id: string
+    actorUserId: string
+    action: string
+    entityType: $Enums.AuditEntityType
+    entityId: string
+    metadata: JsonValue | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date
+    _count: AuditLogCountAggregateOutputType | null
+    _min: AuditLogMinAggregateOutputType | null
+    _max: AuditLogMaxAggregateOutputType | null
+  }
+
+  type GetAuditLogGroupByPayload<T extends AuditLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AuditLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AuditLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AuditLogGroupByOutputType[P]>
+            : GetScalarType<T[P], AuditLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AuditLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    metadata?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["auditLog"]>
+
+  export type AuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    metadata?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["auditLog"]>
+
+  export type AuditLogSelectScalar = {
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    metadata?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $AuditLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AuditLog"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * Who performed the action. Not an FK — see the note above.
+       */
+      actorUserId: string
+      /**
+       * Verb in SCREAMING_SNAKE, e.g. CONTRACT_ACCEPTED, SESSION_RESCHEDULE_ACCEPTED.
+       */
+      action: string
+      entityType: $Enums.AuditEntityType
+      entityId: string
+      /**
+       * Before/after values and any context worth keeping. Shape varies by action.
+       */
+      metadata: Prisma.JsonValue | null
+      ipAddress: string | null
+      userAgent: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["auditLog"]>
+    composites: {}
+  }
+
+  type AuditLogGetPayload<S extends boolean | null | undefined | AuditLogDefaultArgs> = $Result.GetResult<Prisma.$AuditLogPayload, S>
+
+  type AuditLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AuditLogFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AuditLogCountAggregateInputType | true
+    }
+
+  export interface AuditLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AuditLog'], meta: { name: 'AuditLog' } }
+    /**
+     * Find zero or one AuditLog that matches the filter.
+     * @param {AuditLogFindUniqueArgs} args - Arguments to find a AuditLog
+     * @example
+     * // Get one AuditLog
+     * const auditLog = await prisma.auditLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AuditLogFindUniqueArgs>(args: SelectSubset<T, AuditLogFindUniqueArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AuditLog that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AuditLogFindUniqueOrThrowArgs} args - Arguments to find a AuditLog
+     * @example
+     * // Get one AuditLog
+     * const auditLog = await prisma.auditLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AuditLogFindUniqueOrThrowArgs>(args: SelectSubset<T, AuditLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AuditLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogFindFirstArgs} args - Arguments to find a AuditLog
+     * @example
+     * // Get one AuditLog
+     * const auditLog = await prisma.auditLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AuditLogFindFirstArgs>(args?: SelectSubset<T, AuditLogFindFirstArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AuditLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogFindFirstOrThrowArgs} args - Arguments to find a AuditLog
+     * @example
+     * // Get one AuditLog
+     * const auditLog = await prisma.auditLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AuditLogFindFirstOrThrowArgs>(args?: SelectSubset<T, AuditLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AuditLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AuditLogs
+     * const auditLogs = await prisma.auditLog.findMany()
+     * 
+     * // Get first 10 AuditLogs
+     * const auditLogs = await prisma.auditLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const auditLogWithIdOnly = await prisma.auditLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AuditLogFindManyArgs>(args?: SelectSubset<T, AuditLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AuditLog.
+     * @param {AuditLogCreateArgs} args - Arguments to create a AuditLog.
+     * @example
+     * // Create one AuditLog
+     * const AuditLog = await prisma.auditLog.create({
+     *   data: {
+     *     // ... data to create a AuditLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends AuditLogCreateArgs>(args: SelectSubset<T, AuditLogCreateArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AuditLogs.
+     * @param {AuditLogCreateManyArgs} args - Arguments to create many AuditLogs.
+     * @example
+     * // Create many AuditLogs
+     * const auditLog = await prisma.auditLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AuditLogCreateManyArgs>(args?: SelectSubset<T, AuditLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AuditLogs and returns the data saved in the database.
+     * @param {AuditLogCreateManyAndReturnArgs} args - Arguments to create many AuditLogs.
+     * @example
+     * // Create many AuditLogs
+     * const auditLog = await prisma.auditLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AuditLogs and only return the `id`
+     * const auditLogWithIdOnly = await prisma.auditLog.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AuditLogCreateManyAndReturnArgs>(args?: SelectSubset<T, AuditLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AuditLog.
+     * @param {AuditLogDeleteArgs} args - Arguments to delete one AuditLog.
+     * @example
+     * // Delete one AuditLog
+     * const AuditLog = await prisma.auditLog.delete({
+     *   where: {
+     *     // ... filter to delete one AuditLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AuditLogDeleteArgs>(args: SelectSubset<T, AuditLogDeleteArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AuditLog.
+     * @param {AuditLogUpdateArgs} args - Arguments to update one AuditLog.
+     * @example
+     * // Update one AuditLog
+     * const auditLog = await prisma.auditLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AuditLogUpdateArgs>(args: SelectSubset<T, AuditLogUpdateArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AuditLogs.
+     * @param {AuditLogDeleteManyArgs} args - Arguments to filter AuditLogs to delete.
+     * @example
+     * // Delete a few AuditLogs
+     * const { count } = await prisma.auditLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AuditLogDeleteManyArgs>(args?: SelectSubset<T, AuditLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AuditLogs
+     * const auditLog = await prisma.auditLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AuditLogUpdateManyArgs>(args: SelectSubset<T, AuditLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AuditLog.
+     * @param {AuditLogUpsertArgs} args - Arguments to update or create a AuditLog.
+     * @example
+     * // Update or create a AuditLog
+     * const auditLog = await prisma.auditLog.upsert({
+     *   create: {
+     *     // ... data to create a AuditLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AuditLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AuditLogUpsertArgs>(args: SelectSubset<T, AuditLogUpsertArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogCountArgs} args - Arguments to filter AuditLogs to count.
+     * @example
+     * // Count the number of AuditLogs
+     * const count = await prisma.auditLog.count({
+     *   where: {
+     *     // ... the filter for the AuditLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends AuditLogCountArgs>(
+      args?: Subset<T, AuditLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AuditLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AuditLogAggregateArgs>(args: Subset<T, AuditLogAggregateArgs>): Prisma.PrismaPromise<GetAuditLogAggregateType<T>>
+
+    /**
+     * Group by AuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AuditLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AuditLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AuditLogGroupByArgs['orderBy'] }
+        : { orderBy?: AuditLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AuditLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAuditLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AuditLog model
+   */
+  readonly fields: AuditLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AuditLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AuditLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AuditLog model
+   */ 
+  interface AuditLogFieldRefs {
+    readonly id: FieldRef<"AuditLog", 'String'>
+    readonly actorUserId: FieldRef<"AuditLog", 'String'>
+    readonly action: FieldRef<"AuditLog", 'String'>
+    readonly entityType: FieldRef<"AuditLog", 'AuditEntityType'>
+    readonly entityId: FieldRef<"AuditLog", 'String'>
+    readonly metadata: FieldRef<"AuditLog", 'Json'>
+    readonly ipAddress: FieldRef<"AuditLog", 'String'>
+    readonly userAgent: FieldRef<"AuditLog", 'String'>
+    readonly createdAt: FieldRef<"AuditLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AuditLog findUnique
+   */
+  export type AuditLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AuditLog to fetch.
+     */
+    where: AuditLogWhereUniqueInput
+  }
+
+  /**
+   * AuditLog findUniqueOrThrow
+   */
+  export type AuditLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AuditLog to fetch.
+     */
+    where: AuditLogWhereUniqueInput
+  }
+
+  /**
+   * AuditLog findFirst
+   */
+  export type AuditLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AuditLog to fetch.
+     */
+    where?: AuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AuditLogs to fetch.
+     */
+    orderBy?: AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AuditLogs.
+     */
+    cursor?: AuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AuditLogs.
+     */
+    distinct?: AuditLogScalarFieldEnum | AuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AuditLog findFirstOrThrow
+   */
+  export type AuditLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AuditLog to fetch.
+     */
+    where?: AuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AuditLogs to fetch.
+     */
+    orderBy?: AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AuditLogs.
+     */
+    cursor?: AuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AuditLogs.
+     */
+    distinct?: AuditLogScalarFieldEnum | AuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AuditLog findMany
+   */
+  export type AuditLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AuditLogs to fetch.
+     */
+    where?: AuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AuditLogs to fetch.
+     */
+    orderBy?: AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AuditLogs.
+     */
+    cursor?: AuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AuditLogs.
+     */
+    skip?: number
+    distinct?: AuditLogScalarFieldEnum | AuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AuditLog create
+   */
+  export type AuditLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AuditLog.
+     */
+    data: XOR<AuditLogCreateInput, AuditLogUncheckedCreateInput>
+  }
+
+  /**
+   * AuditLog createMany
+   */
+  export type AuditLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AuditLogs.
+     */
+    data: AuditLogCreateManyInput | AuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AuditLog createManyAndReturn
+   */
+  export type AuditLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AuditLogs.
+     */
+    data: AuditLogCreateManyInput | AuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AuditLog update
+   */
+  export type AuditLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AuditLog.
+     */
+    data: XOR<AuditLogUpdateInput, AuditLogUncheckedUpdateInput>
+    /**
+     * Choose, which AuditLog to update.
+     */
+    where: AuditLogWhereUniqueInput
+  }
+
+  /**
+   * AuditLog updateMany
+   */
+  export type AuditLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AuditLogs.
+     */
+    data: XOR<AuditLogUpdateManyMutationInput, AuditLogUncheckedUpdateManyInput>
+    /**
+     * Filter which AuditLogs to update
+     */
+    where?: AuditLogWhereInput
+  }
+
+  /**
+   * AuditLog upsert
+   */
+  export type AuditLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AuditLog to update in case it exists.
+     */
+    where: AuditLogWhereUniqueInput
+    /**
+     * In case the AuditLog found by the `where` argument doesn't exist, create a new AuditLog with this data.
+     */
+    create: XOR<AuditLogCreateInput, AuditLogUncheckedCreateInput>
+    /**
+     * In case the AuditLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AuditLogUpdateInput, AuditLogUncheckedUpdateInput>
+  }
+
+  /**
+   * AuditLog delete
+   */
+  export type AuditLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+    /**
+     * Filter which AuditLog to delete.
+     */
+    where: AuditLogWhereUniqueInput
+  }
+
+  /**
+   * AuditLog deleteMany
+   */
+  export type AuditLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AuditLogs to delete
+     */
+    where?: AuditLogWhereInput
+  }
+
+  /**
+   * AuditLog without action
+   */
+  export type AuditLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLog
+     */
+    select?: AuditLogSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -17818,20 +21758,37 @@ export namespace Prisma {
     lastName: 'lastName',
     email: 'email',
     isPT: 'isPT',
+    ptSuspended: 'ptSuspended',
+    referralCode: 'referralCode',
+    dateOfBirth: 'dateOfBirth',
     age: 'age',
     gender: 'gender',
     heightCm: 'heightCm',
     goal: 'goal',
     activityLevel: 'activityLevel',
     experienceLevel: 'experienceLevel',
+    competesInSport: 'competesInSport',
     preferredTrainingDays: 'preferredTrainingDays',
     availableEquipment: 'availableEquipment',
     injuries: 'injuries',
+    preferredSplit: 'preferredSplit',
+    hasCompletedOnboarding: 'hasCompletedOnboarding',
     currentWeight: 'currentWeight',
     targetWeight: 'targetWeight',
+    startingWeight: 'startingWeight',
+    startingWeightSource: 'startingWeightSource',
     dietaryPreference: 'dietaryPreference',
     photoUrl: 'photoUrl',
     sessionDurationMinutes: 'sessionDurationMinutes',
+    isAcceptingClients: 'isAcceptingClients',
+    notAcceptingReason: 'notAcceptingReason',
+    firstNameNormalized: 'firstNameNormalized',
+    lastNameNormalized: 'lastNameNormalized',
+    searchCity: 'searchCity',
+    searchDistrict: 'searchDistrict',
+    searchWard: 'searchWard',
+    gymId: 'gymId',
+    specialties: 'specialties',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -17966,6 +21923,19 @@ export namespace Prisma {
     gymId: 'gymId',
     source: 'source',
     paymentTransactionId: 'paymentTransactionId',
+    platformRate: 'platformRate',
+    ptRate: 'ptRate',
+    gymRate: 'gymRate',
+    terminationReason: 'terminationReason',
+    terminatedAt: 'terminatedAt',
+    releasedToPt: 'releasedToPt',
+    releasedToGym: 'releasedToGym',
+    releasedToPlatform: 'releasedToPlatform',
+    packageId: 'packageId',
+    packageSourceName: 'packageSourceName',
+    sessionDurationMinutes: 'sessionDurationMinutes',
+    lowAvailabilityWarned: 'lowAvailabilityWarned',
+    slotsAtPurchase: 'slotsAtPurchase',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -17989,6 +21959,13 @@ export namespace Prisma {
     cancellationReason: 'cancellationReason',
     sessionDeducted: 'sessionDeducted',
     completedAt: 'completedAt',
+    clientConfirmDeadline: 'clientConfirmDeadline',
+    autoConfirmed: 'autoConfirmed',
+    disputeReason: 'disputeReason',
+    disputedAt: 'disputedAt',
+    resolvedBy: 'resolvedBy',
+    resolutionNote: 'resolutionNote',
+    resolvedAt: 'resolvedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -18085,8 +22062,10 @@ export namespace Prisma {
     provinceCode: 'provinceCode',
     wardCode: 'wardCode',
     gymName: 'gymName',
+    gymNameNormalized: 'gymNameNormalized',
     addressLine: 'addressLine',
     legacyDistrictName: 'legacyDistrictName',
+    gymId: 'gymId',
     isPrimary: 'isPrimary',
     isActive: 'isActive',
     note: 'note',
@@ -18095,6 +22074,43 @@ export namespace Prisma {
   };
 
   export type PTTrainingLocationScalarFieldEnum = (typeof PTTrainingLocationScalarFieldEnum)[keyof typeof PTTrainingLocationScalarFieldEnum]
+
+
+  export const PTServicePackageScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    name: 'name',
+    description: 'description',
+    sessionCount: 'sessionCount',
+    price: 'price',
+    sessionMode: 'sessionMode',
+    sessionDurationMinutes: 'sessionDurationMinutes',
+    validityDays: 'validityDays',
+    isActive: 'isActive',
+    archivedAt: 'archivedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PTServicePackageScalarFieldEnum = (typeof PTServicePackageScalarFieldEnum)[keyof typeof PTServicePackageScalarFieldEnum]
+
+
+  export const SessionRescheduleRequestScalarFieldEnum: {
+    id: 'id',
+    sessionId: 'sessionId',
+    requestedBy: 'requestedBy',
+    originalStartAt: 'originalStartAt',
+    originalEndAt: 'originalEndAt',
+    proposedStartAt: 'proposedStartAt',
+    proposedEndAt: 'proposedEndAt',
+    reason: 'reason',
+    status: 'status',
+    respondedAt: 'respondedAt',
+    responseNote: 'responseNote',
+    createdAt: 'createdAt'
+  };
+
+  export type SessionRescheduleRequestScalarFieldEnum = (typeof SessionRescheduleRequestScalarFieldEnum)[keyof typeof SessionRescheduleRequestScalarFieldEnum]
 
 
   export const InBodyEntryScalarFieldEnum: {
@@ -18127,6 +22143,21 @@ export namespace Prisma {
   };
 
   export type InBodyEntryScalarFieldEnum = (typeof InBodyEntryScalarFieldEnum)[keyof typeof InBodyEntryScalarFieldEnum]
+
+
+  export const AuditLogScalarFieldEnum: {
+    id: 'id',
+    actorUserId: 'actorUserId',
+    action: 'action',
+    entityType: 'entityType',
+    entityId: 'entityId',
+    metadata: 'metadata',
+    ipAddress: 'ipAddress',
+    userAgent: 'userAgent',
+    createdAt: 'createdAt'
+  };
+
+  export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -18193,6 +22224,20 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'DateTime'
+   */
+  export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+  /**
+   * Reference to a field of type 'DateTime[]'
+   */
+  export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -18277,20 +22322,6 @@ export namespace Prisma {
    * Reference to a field of type 'ExperienceLevel[]'
    */
   export type ListEnumExperienceLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExperienceLevel[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'DateTime'
-   */
-  export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-  /**
-   * Reference to a field of type 'DateTime[]'
-   */
-  export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -18386,6 +22417,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Decimal'
+   */
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal[]'
+   */
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
    * Reference to a field of type 'ContractSource'
    */
   export type EnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource'>
@@ -18396,6 +22441,20 @@ export namespace Prisma {
    * Reference to a field of type 'ContractSource[]'
    */
   export type ListEnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TerminationReason'
+   */
+  export type EnumTerminationReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TerminationReason'>
+    
+
+
+  /**
+   * Reference to a field of type 'TerminationReason[]'
+   */
+  export type ListEnumTerminationReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TerminationReason[]'>
     
 
 
@@ -18453,6 +22512,48 @@ export namespace Prisma {
    */
   export type ListEnumDayOfWeekFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DayOfWeek[]'>
     
+
+
+  /**
+   * Reference to a field of type 'RescheduleRequestedBy'
+   */
+  export type EnumRescheduleRequestedByFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RescheduleRequestedBy'>
+    
+
+
+  /**
+   * Reference to a field of type 'RescheduleRequestedBy[]'
+   */
+  export type ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RescheduleRequestedBy[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RescheduleStatus'
+   */
+  export type EnumRescheduleStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RescheduleStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'RescheduleStatus[]'
+   */
+  export type ListEnumRescheduleStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RescheduleStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AuditEntityType'
+   */
+  export type EnumAuditEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditEntityType'>
+    
+
+
+  /**
+   * Reference to a field of type 'AuditEntityType[]'
+   */
+  export type ListEnumAuditEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditEntityType[]'>
+    
   /**
    * Deep Input Types
    */
@@ -18468,24 +22569,42 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    referralCode?: StringNullableFilter<"UserProfile"> | string | null
+    dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
     goal?: EnumGoalNullableFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
+    isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
+    notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
+    firstNameNormalized?: StringNullableFilter<"UserProfile"> | string | null
+    lastNameNormalized?: StringNullableFilter<"UserProfile"> | string | null
+    searchCity?: StringNullableFilter<"UserProfile"> | string | null
+    searchDistrict?: StringNullableFilter<"UserProfile"> | string | null
+    searchWard?: StringNullableFilter<"UserProfile"> | string | null
+    gymId?: StringNullableFilter<"UserProfile"> | string | null
+    specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
+    servicePackages?: PTServicePackageListRelationFilter
   }
 
   export type UserProfileOrderByWithRelationInput = {
@@ -18495,29 +22614,48 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
+    referralCode?: SortOrderInput | SortOrder
+    dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
     goal?: SortOrderInput | SortOrder
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrderInput | SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    startingWeight?: SortOrderInput | SortOrder
+    startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
+    isAcceptingClients?: SortOrder
+    notAcceptingReason?: SortOrderInput | SortOrder
+    firstNameNormalized?: SortOrderInput | SortOrder
+    lastNameNormalized?: SortOrderInput | SortOrder
+    searchCity?: SortOrderInput | SortOrder
+    searchDistrict?: SortOrderInput | SortOrder
+    searchWard?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     ptApplication?: PTApplicationOrderByWithRelationInput
     trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
+    servicePackages?: PTServicePackageOrderByRelationAggregateInput
   }
 
   export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     userId?: string
+    referralCode?: string
     AND?: UserProfileWhereInput | UserProfileWhereInput[]
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
@@ -18525,25 +22663,42 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
     goal?: EnumGoalNullableFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
+    isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
+    notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
+    firstNameNormalized?: StringNullableFilter<"UserProfile"> | string | null
+    lastNameNormalized?: StringNullableFilter<"UserProfile"> | string | null
+    searchCity?: StringNullableFilter<"UserProfile"> | string | null
+    searchDistrict?: StringNullableFilter<"UserProfile"> | string | null
+    searchWard?: StringNullableFilter<"UserProfile"> | string | null
+    gymId?: StringNullableFilter<"UserProfile"> | string | null
+    specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
-  }, "id" | "userId">
+    servicePackages?: PTServicePackageListRelationFilter
+  }, "id" | "userId" | "referralCode">
 
   export type UserProfileOrderByWithAggregationInput = {
     id?: SortOrder
@@ -18552,20 +22707,37 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
+    referralCode?: SortOrderInput | SortOrder
+    dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
     goal?: SortOrderInput | SortOrder
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrderInput | SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    startingWeight?: SortOrderInput | SortOrder
+    startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
+    isAcceptingClients?: SortOrder
+    notAcceptingReason?: SortOrderInput | SortOrder
+    firstNameNormalized?: SortOrderInput | SortOrder
+    lastNameNormalized?: SortOrderInput | SortOrder
+    searchCity?: SortOrderInput | SortOrder
+    searchDistrict?: SortOrderInput | SortOrder
+    searchWard?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserProfileCountOrderByAggregateInput
@@ -18585,20 +22757,37 @@ export namespace Prisma {
     lastName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    referralCode?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    dateOfBirth?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     goal?: EnumGoalNullableWithAggregatesFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
+    isAcceptingClients?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    notAcceptingReason?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    firstNameNormalized?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    lastNameNormalized?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    searchCity?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    searchDistrict?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    searchWard?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    gymId?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
   }
@@ -19062,8 +23251,8 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
-    price?: FloatNullableFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -19089,6 +23278,19 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    packageId?: StringNullableFilter<"Contract"> | string | null
+    packageSourceName?: StringNullableFilter<"Contract"> | string | null
+    sessionDurationMinutes?: IntNullableFilter<"Contract"> | number | null
+    lowAvailabilityWarned?: BoolFilter<"Contract"> | boolean
+    slotsAtPurchase?: IntNullableFilter<"Contract"> | number | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19135,6 +23337,19 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    packageId?: SortOrderInput | SortOrder
+    packageSourceName?: SortOrderInput | SortOrder
+    sessionDurationMinutes?: SortOrderInput | SortOrder
+    lowAvailabilityWarned?: SortOrder
+    slotsAtPurchase?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
@@ -19157,8 +23372,8 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
-    price?: FloatNullableFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -19184,6 +23399,19 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    packageId?: StringNullableFilter<"Contract"> | string | null
+    packageSourceName?: StringNullableFilter<"Contract"> | string | null
+    sessionDurationMinutes?: IntNullableFilter<"Contract"> | number | null
+    lowAvailabilityWarned?: BoolFilter<"Contract"> | boolean
+    slotsAtPurchase?: IntNullableFilter<"Contract"> | number | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19230,6 +23458,19 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    packageId?: SortOrderInput | SortOrder
+    packageSourceName?: SortOrderInput | SortOrder
+    sessionDurationMinutes?: SortOrderInput | SortOrder
+    lowAvailabilityWarned?: SortOrder
+    slotsAtPurchase?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ContractCountOrderByAggregateInput
@@ -19255,8 +23496,8 @@ export namespace Prisma {
     extraSessions?: IntWithAggregatesFilter<"Contract"> | number
     totalSessions?: IntWithAggregatesFilter<"Contract"> | number
     usedSessions?: IntWithAggregatesFilter<"Contract"> | number
-    price?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
+    price?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
@@ -19282,6 +23523,19 @@ export namespace Prisma {
     gymId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     source?: EnumContractSourceWithAggregatesFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    platformRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableWithAggregatesFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    packageId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    packageSourceName?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    sessionDurationMinutes?: IntNullableWithAggregatesFilter<"Contract"> | number | null
+    lowAvailabilityWarned?: BoolWithAggregatesFilter<"Contract"> | boolean
+    slotsAtPurchase?: IntNullableWithAggregatesFilter<"Contract"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
   }
@@ -19305,10 +23559,18 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
     review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+    rescheduleRequests?: SessionRescheduleRequestListRelationFilter
   }
 
   export type SessionOrderByWithRelationInput = {
@@ -19327,10 +23589,18 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    clientConfirmDeadline?: SortOrderInput | SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     contract?: ContractOrderByWithRelationInput
     review?: SessionReviewOrderByWithRelationInput
+    rescheduleRequests?: SessionRescheduleRequestOrderByRelationAggregateInput
   }
 
   export type SessionWhereUniqueInput = Prisma.AtLeast<{
@@ -19352,10 +23622,18 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
     review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+    rescheduleRequests?: SessionRescheduleRequestListRelationFilter
   }, "id">
 
   export type SessionOrderByWithAggregationInput = {
@@ -19374,6 +23652,13 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    clientConfirmDeadline?: SortOrderInput | SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: SessionCountOrderByAggregateInput
@@ -19400,6 +23685,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
     sessionDeducted?: BoolWithAggregatesFilter<"Session"> | boolean
     completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolWithAggregatesFilter<"Session"> | boolean
+    disputeReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    resolutionNote?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
   }
@@ -19834,8 +24126,10 @@ export namespace Prisma {
     provinceCode?: IntFilter<"PTTrainingLocation"> | number
     wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
     gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymNameNormalized?: StringNullableFilter<"PTTrainingLocation"> | string | null
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
@@ -19852,8 +24146,10 @@ export namespace Prisma {
     provinceCode?: SortOrder
     wardCode?: SortOrderInput | SortOrder
     gymName?: SortOrderInput | SortOrder
+    gymNameNormalized?: SortOrderInput | SortOrder
     addressLine?: SortOrderInput | SortOrder
     legacyDistrictName?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrderInput | SortOrder
@@ -19873,8 +24169,10 @@ export namespace Prisma {
     provinceCode?: IntFilter<"PTTrainingLocation"> | number
     wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
     gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymNameNormalized?: StringNullableFilter<"PTTrainingLocation"> | string | null
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
@@ -19891,8 +24189,10 @@ export namespace Prisma {
     provinceCode?: SortOrder
     wardCode?: SortOrderInput | SortOrder
     gymName?: SortOrderInput | SortOrder
+    gymNameNormalized?: SortOrderInput | SortOrder
     addressLine?: SortOrderInput | SortOrder
     legacyDistrictName?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrderInput | SortOrder
@@ -19914,13 +24214,202 @@ export namespace Prisma {
     provinceCode?: IntWithAggregatesFilter<"PTTrainingLocation"> | number
     wardCode?: IntNullableWithAggregatesFilter<"PTTrainingLocation"> | number | null
     gymName?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    gymNameNormalized?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     addressLine?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    gymId?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     isPrimary?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PTTrainingLocation"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PTTrainingLocation"> | Date | string
+  }
+
+  export type PTServicePackageWhereInput = {
+    AND?: PTServicePackageWhereInput | PTServicePackageWhereInput[]
+    OR?: PTServicePackageWhereInput[]
+    NOT?: PTServicePackageWhereInput | PTServicePackageWhereInput[]
+    id?: StringFilter<"PTServicePackage"> | string
+    ptUserId?: StringFilter<"PTServicePackage"> | string
+    name?: StringFilter<"PTServicePackage"> | string
+    description?: StringNullableFilter<"PTServicePackage"> | string | null
+    sessionCount?: IntFilter<"PTServicePackage"> | number
+    price?: DecimalFilter<"PTServicePackage"> | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFilter<"PTServicePackage"> | $Enums.SessionMode
+    sessionDurationMinutes?: IntFilter<"PTServicePackage"> | number
+    validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
+    isActive?: BoolFilter<"PTServicePackage"> | boolean
+    archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+    updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type PTServicePackageOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionMode?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    ptProfile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type PTServicePackageWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PTServicePackageWhereInput | PTServicePackageWhereInput[]
+    OR?: PTServicePackageWhereInput[]
+    NOT?: PTServicePackageWhereInput | PTServicePackageWhereInput[]
+    ptUserId?: StringFilter<"PTServicePackage"> | string
+    name?: StringFilter<"PTServicePackage"> | string
+    description?: StringNullableFilter<"PTServicePackage"> | string | null
+    sessionCount?: IntFilter<"PTServicePackage"> | number
+    price?: DecimalFilter<"PTServicePackage"> | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFilter<"PTServicePackage"> | $Enums.SessionMode
+    sessionDurationMinutes?: IntFilter<"PTServicePackage"> | number
+    validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
+    isActive?: BoolFilter<"PTServicePackage"> | boolean
+    archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+    updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type PTServicePackageOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionMode?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PTServicePackageCountOrderByAggregateInput
+    _avg?: PTServicePackageAvgOrderByAggregateInput
+    _max?: PTServicePackageMaxOrderByAggregateInput
+    _min?: PTServicePackageMinOrderByAggregateInput
+    _sum?: PTServicePackageSumOrderByAggregateInput
+  }
+
+  export type PTServicePackageScalarWhereWithAggregatesInput = {
+    AND?: PTServicePackageScalarWhereWithAggregatesInput | PTServicePackageScalarWhereWithAggregatesInput[]
+    OR?: PTServicePackageScalarWhereWithAggregatesInput[]
+    NOT?: PTServicePackageScalarWhereWithAggregatesInput | PTServicePackageScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PTServicePackage"> | string
+    ptUserId?: StringWithAggregatesFilter<"PTServicePackage"> | string
+    name?: StringWithAggregatesFilter<"PTServicePackage"> | string
+    description?: StringNullableWithAggregatesFilter<"PTServicePackage"> | string | null
+    sessionCount?: IntWithAggregatesFilter<"PTServicePackage"> | number
+    price?: DecimalWithAggregatesFilter<"PTServicePackage"> | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeWithAggregatesFilter<"PTServicePackage"> | $Enums.SessionMode
+    sessionDurationMinutes?: IntWithAggregatesFilter<"PTServicePackage"> | number
+    validityDays?: IntNullableWithAggregatesFilter<"PTServicePackage"> | number | null
+    isActive?: BoolWithAggregatesFilter<"PTServicePackage"> | boolean
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"PTServicePackage"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PTServicePackage"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PTServicePackage"> | Date | string
+  }
+
+  export type SessionRescheduleRequestWhereInput = {
+    AND?: SessionRescheduleRequestWhereInput | SessionRescheduleRequestWhereInput[]
+    OR?: SessionRescheduleRequestWhereInput[]
+    NOT?: SessionRescheduleRequestWhereInput | SessionRescheduleRequestWhereInput[]
+    id?: StringFilter<"SessionRescheduleRequest"> | string
+    sessionId?: StringFilter<"SessionRescheduleRequest"> | string
+    requestedBy?: EnumRescheduleRequestedByFilter<"SessionRescheduleRequest"> | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    originalEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    reason?: StringFilter<"SessionRescheduleRequest"> | string
+    status?: EnumRescheduleStatusFilter<"SessionRescheduleRequest"> | $Enums.RescheduleStatus
+    respondedAt?: DateTimeNullableFilter<"SessionRescheduleRequest"> | Date | string | null
+    responseNote?: StringNullableFilter<"SessionRescheduleRequest"> | string | null
+    createdAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+  }
+
+  export type SessionRescheduleRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    requestedBy?: SortOrder
+    originalStartAt?: SortOrder
+    originalEndAt?: SortOrder
+    proposedStartAt?: SortOrder
+    proposedEndAt?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    respondedAt?: SortOrderInput | SortOrder
+    responseNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    session?: SessionOrderByWithRelationInput
+  }
+
+  export type SessionRescheduleRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SessionRescheduleRequestWhereInput | SessionRescheduleRequestWhereInput[]
+    OR?: SessionRescheduleRequestWhereInput[]
+    NOT?: SessionRescheduleRequestWhereInput | SessionRescheduleRequestWhereInput[]
+    sessionId?: StringFilter<"SessionRescheduleRequest"> | string
+    requestedBy?: EnumRescheduleRequestedByFilter<"SessionRescheduleRequest"> | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    originalEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    reason?: StringFilter<"SessionRescheduleRequest"> | string
+    status?: EnumRescheduleStatusFilter<"SessionRescheduleRequest"> | $Enums.RescheduleStatus
+    respondedAt?: DateTimeNullableFilter<"SessionRescheduleRequest"> | Date | string | null
+    responseNote?: StringNullableFilter<"SessionRescheduleRequest"> | string | null
+    createdAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+  }, "id">
+
+  export type SessionRescheduleRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    requestedBy?: SortOrder
+    originalStartAt?: SortOrder
+    originalEndAt?: SortOrder
+    proposedStartAt?: SortOrder
+    proposedEndAt?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    respondedAt?: SortOrderInput | SortOrder
+    responseNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: SessionRescheduleRequestCountOrderByAggregateInput
+    _max?: SessionRescheduleRequestMaxOrderByAggregateInput
+    _min?: SessionRescheduleRequestMinOrderByAggregateInput
+  }
+
+  export type SessionRescheduleRequestScalarWhereWithAggregatesInput = {
+    AND?: SessionRescheduleRequestScalarWhereWithAggregatesInput | SessionRescheduleRequestScalarWhereWithAggregatesInput[]
+    OR?: SessionRescheduleRequestScalarWhereWithAggregatesInput[]
+    NOT?: SessionRescheduleRequestScalarWhereWithAggregatesInput | SessionRescheduleRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SessionRescheduleRequest"> | string
+    sessionId?: StringWithAggregatesFilter<"SessionRescheduleRequest"> | string
+    requestedBy?: EnumRescheduleRequestedByWithAggregatesFilter<"SessionRescheduleRequest"> | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string
+    originalEndAt?: DateTimeWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string
+    proposedStartAt?: DateTimeWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string
+    proposedEndAt?: DateTimeWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string
+    reason?: StringWithAggregatesFilter<"SessionRescheduleRequest"> | string
+    status?: EnumRescheduleStatusWithAggregatesFilter<"SessionRescheduleRequest"> | $Enums.RescheduleStatus
+    respondedAt?: DateTimeNullableWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string | null
+    responseNote?: StringNullableWithAggregatesFilter<"SessionRescheduleRequest"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SessionRescheduleRequest"> | Date | string
   }
 
   export type InBodyEntryWhereInput = {
@@ -20083,6 +24572,78 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
   }
 
+  export type AuditLogWhereInput = {
+    AND?: AuditLogWhereInput | AuditLogWhereInput[]
+    OR?: AuditLogWhereInput[]
+    NOT?: AuditLogWhereInput | AuditLogWhereInput[]
+    id?: StringFilter<"AuditLog"> | string
+    actorUserId?: StringFilter<"AuditLog"> | string
+    action?: StringFilter<"AuditLog"> | string
+    entityType?: EnumAuditEntityTypeFilter<"AuditLog"> | $Enums.AuditEntityType
+    entityId?: StringFilter<"AuditLog"> | string
+    metadata?: JsonNullableFilter<"AuditLog">
+    ipAddress?: StringNullableFilter<"AuditLog"> | string | null
+    userAgent?: StringNullableFilter<"AuditLog"> | string | null
+    createdAt?: DateTimeFilter<"AuditLog"> | Date | string
+  }
+
+  export type AuditLogOrderByWithRelationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AuditLogWhereInput | AuditLogWhereInput[]
+    OR?: AuditLogWhereInput[]
+    NOT?: AuditLogWhereInput | AuditLogWhereInput[]
+    actorUserId?: StringFilter<"AuditLog"> | string
+    action?: StringFilter<"AuditLog"> | string
+    entityType?: EnumAuditEntityTypeFilter<"AuditLog"> | $Enums.AuditEntityType
+    entityId?: StringFilter<"AuditLog"> | string
+    metadata?: JsonNullableFilter<"AuditLog">
+    ipAddress?: StringNullableFilter<"AuditLog"> | string | null
+    userAgent?: StringNullableFilter<"AuditLog"> | string | null
+    createdAt?: DateTimeFilter<"AuditLog"> | Date | string
+  }, "id">
+
+  export type AuditLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: AuditLogCountOrderByAggregateInput
+    _max?: AuditLogMaxOrderByAggregateInput
+    _min?: AuditLogMinOrderByAggregateInput
+  }
+
+  export type AuditLogScalarWhereWithAggregatesInput = {
+    AND?: AuditLogScalarWhereWithAggregatesInput | AuditLogScalarWhereWithAggregatesInput[]
+    OR?: AuditLogScalarWhereWithAggregatesInput[]
+    NOT?: AuditLogScalarWhereWithAggregatesInput | AuditLogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AuditLog"> | string
+    actorUserId?: StringWithAggregatesFilter<"AuditLog"> | string
+    action?: StringWithAggregatesFilter<"AuditLog"> | string
+    entityType?: EnumAuditEntityTypeWithAggregatesFilter<"AuditLog"> | $Enums.AuditEntityType
+    entityId?: StringWithAggregatesFilter<"AuditLog"> | string
+    metadata?: JsonNullableWithAggregatesFilter<"AuditLog">
+    ipAddress?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
+    userAgent?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -20090,24 +24651,42 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateInput = {
@@ -20117,24 +24696,42 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUpdateInput = {
@@ -20144,24 +24741,42 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateInput = {
@@ -20171,24 +24786,42 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateManyInput = {
@@ -20198,20 +24831,37 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20223,20 +24873,37 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20248,20 +24915,37 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20830,8 +25514,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -20857,6 +25541,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -20876,8 +25573,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -20903,6 +25600,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -20922,8 +25632,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20949,6 +25659,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -20968,8 +25691,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20995,6 +25718,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -21014,8 +25750,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -21041,6 +25777,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -21058,8 +25807,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21085,6 +25834,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21102,8 +25864,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21129,6 +25891,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21148,10 +25923,18 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
     review?: SessionReviewCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
   export type SessionUncheckedCreateInput = {
@@ -21170,9 +25953,17 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
   export type SessionUpdateInput = {
@@ -21190,10 +25981,18 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
   export type SessionUncheckedUpdateInput = {
@@ -21212,9 +26011,17 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
   export type SessionCreateManyInput = {
@@ -21233,6 +26040,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -21252,6 +26066,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21272,6 +26093,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21743,8 +26571,10 @@ export namespace Prisma {
   export type PTTrainingLocationCreateInput = {
     id?: string
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -21761,8 +26591,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -21773,8 +26605,10 @@ export namespace Prisma {
   export type PTTrainingLocationUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21791,8 +26625,10 @@ export namespace Prisma {
     provinceCode?: IntFieldUpdateOperationsInput | number
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21806,8 +26642,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -21818,8 +26656,10 @@ export namespace Prisma {
   export type PTTrainingLocationUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21833,13 +26673,230 @@ export namespace Prisma {
     provinceCode?: IntFieldUpdateOperationsInput | number
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptProfile: UserProfileCreateNestedOneWithoutServicePackagesInput
+  }
+
+  export type PTServicePackageUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTServicePackageUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptProfile?: UserProfileUpdateOneRequiredWithoutServicePackagesNestedInput
+  }
+
+  export type PTServicePackageUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageCreateManyInput = {
+    id?: string
+    ptUserId: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTServicePackageUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionRescheduleRequestCreateInput = {
+    id?: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+    session: SessionCreateNestedOneWithoutRescheduleRequestsInput
+  }
+
+  export type SessionRescheduleRequestUncheckedCreateInput = {
+    id?: string
+    sessionId: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionRescheduleRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    session?: SessionUpdateOneRequiredWithoutRescheduleRequestsNestedInput
+  }
+
+  export type SessionRescheduleRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionRescheduleRequestCreateManyInput = {
+    id?: string
+    sessionId: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionRescheduleRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionRescheduleRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type InBodyEntryCreateInput = {
@@ -22045,6 +27102,90 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type AuditLogCreateInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    entityType: $Enums.AuditEntityType
+    entityId: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AuditLogUncheckedCreateInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    entityType: $Enums.AuditEntityType
+    entityId: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AuditLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumAuditEntityTypeFieldUpdateOperationsInput | $Enums.AuditEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AuditLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumAuditEntityTypeFieldUpdateOperationsInput | $Enums.AuditEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AuditLogCreateManyInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    entityType: $Enums.AuditEntityType
+    entityId: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AuditLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumAuditEntityTypeFieldUpdateOperationsInput | $Enums.AuditEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AuditLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumAuditEntityTypeFieldUpdateOperationsInput | $Enums.AuditEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -22078,6 +27219,17 @@ export namespace Prisma {
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -22179,12 +27331,22 @@ export namespace Prisma {
     none?: PTTrainingLocationWhereInput
   }
 
+  export type PTServicePackageListRelationFilter = {
+    every?: PTServicePackageWhereInput
+    some?: PTServicePackageWhereInput
+    none?: PTServicePackageWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
   }
 
   export type PTTrainingLocationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PTServicePackageOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -22195,20 +27357,37 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
+    referralCode?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
+    isAcceptingClients?: SortOrder
+    notAcceptingReason?: SortOrder
+    firstNameNormalized?: SortOrder
+    lastNameNormalized?: SortOrder
+    searchCity?: SortOrder
+    searchDistrict?: SortOrder
+    searchWard?: SortOrder
+    gymId?: SortOrder
+    specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22219,6 +27398,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
   }
 
@@ -22229,17 +27409,33 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
+    referralCode?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
+    isAcceptingClients?: SortOrder
+    notAcceptingReason?: SortOrder
+    firstNameNormalized?: SortOrder
+    lastNameNormalized?: SortOrder
+    searchCity?: SortOrder
+    searchDistrict?: SortOrder
+    searchWard?: SortOrder
+    gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22251,17 +27447,33 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
+    referralCode?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
+    isAcceptingClients?: SortOrder
+    notAcceptingReason?: SortOrder
+    firstNameNormalized?: SortOrder
+    lastNameNormalized?: SortOrder
+    searchCity?: SortOrder
+    searchDistrict?: SortOrder
+    searchWard?: SortOrder
+    gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22272,6 +27484,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
   }
 
@@ -22317,6 +27530,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -22455,17 +27682,6 @@ export namespace Prisma {
     in?: $Enums.ServiceMode[] | ListEnumServiceModeFieldRefInput<$PrismaModel> | null
     notIn?: $Enums.ServiceMode[] | ListEnumServiceModeFieldRefInput<$PrismaModel> | null
     not?: NestedEnumServiceModeNullableFilter<$PrismaModel> | $Enums.ServiceMode | null
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type PTApplicationCertificateListRelationFilter = {
@@ -22716,20 +27932,6 @@ export namespace Prisma {
     _max?: NestedEnumServiceModeNullableFilter<$PrismaModel>
   }
 
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
   export type PTApplicationRelationFilter = {
     is?: PTApplicationWhereInput
     isNot?: PTApplicationWhereInput
@@ -22839,11 +28041,40 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type EnumContractSourceFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type EnumTerminationReasonNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableFilter<$PrismaModel> | $Enums.TerminationReason | null
   }
 
   export type SessionListRelationFilter = {
@@ -22906,6 +28137,19 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    packageId?: SortOrder
+    packageSourceName?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    lowAvailabilityWarned?: SortOrder
+    slotsAtPurchase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22917,6 +28161,14 @@ export namespace Prisma {
     usedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    slotsAtPurchase?: SortOrder
   }
 
   export type ContractMaxOrderByAggregateInput = {
@@ -22959,6 +28211,19 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    packageId?: SortOrder
+    packageSourceName?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    lowAvailabilityWarned?: SortOrder
+    slotsAtPurchase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23003,6 +28268,19 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    packageId?: SortOrder
+    packageSourceName?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    lowAvailabilityWarned?: SortOrder
+    slotsAtPurchase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23014,6 +28292,14 @@ export namespace Prisma {
     usedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    slotsAtPurchase?: SortOrder
   }
 
   export type EnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -23046,6 +28332,22 @@ export namespace Prisma {
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type EnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
@@ -23054,6 +28356,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractSourceFilter<$PrismaModel>
     _max?: NestedEnumContractSourceFilter<$PrismaModel>
+  }
+
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type EnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.TerminationReason | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
+    _max?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
   }
 
   export type EnumSessionStatusFilter<$PrismaModel = never> = {
@@ -23080,6 +28408,16 @@ export namespace Prisma {
     isNot?: SessionReviewWhereInput | null
   }
 
+  export type SessionRescheduleRequestListRelationFilter = {
+    every?: SessionRescheduleRequestWhereInput
+    some?: SessionRescheduleRequestWhereInput
+    none?: SessionRescheduleRequestWhereInput
+  }
+
+  export type SessionRescheduleRequestOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type SessionCountOrderByAggregateInput = {
     id?: SortOrder
     contractId?: SortOrder
@@ -23096,6 +28434,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23116,6 +28461,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23136,6 +28488,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23465,8 +28824,10 @@ export namespace Prisma {
     provinceCode?: SortOrder
     wardCode?: SortOrder
     gymName?: SortOrder
+    gymNameNormalized?: SortOrder
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
+    gymId?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -23485,8 +28846,10 @@ export namespace Prisma {
     provinceCode?: SortOrder
     wardCode?: SortOrder
     gymName?: SortOrder
+    gymNameNormalized?: SortOrder
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
+    gymId?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -23500,8 +28863,10 @@ export namespace Prisma {
     provinceCode?: SortOrder
     wardCode?: SortOrder
     gymName?: SortOrder
+    gymNameNormalized?: SortOrder
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
+    gymId?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -23512,6 +28877,147 @@ export namespace Prisma {
   export type PTTrainingLocationSumOrderByAggregateInput = {
     provinceCode?: SortOrder
     wardCode?: SortOrder
+  }
+
+  export type PTServicePackageCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionMode?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrder
+    isActive?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTServicePackageAvgOrderByAggregateInput = {
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrder
+  }
+
+  export type PTServicePackageMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionMode?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrder
+    isActive?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTServicePackageMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionMode?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrder
+    isActive?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTServicePackageSumOrderByAggregateInput = {
+    sessionCount?: SortOrder
+    price?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    validityDays?: SortOrder
+  }
+
+  export type EnumRescheduleRequestedByFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleRequestedBy | EnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleRequestedByFilter<$PrismaModel> | $Enums.RescheduleRequestedBy
+  }
+
+  export type EnumRescheduleStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleStatus | EnumRescheduleStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleStatusFilter<$PrismaModel> | $Enums.RescheduleStatus
+  }
+
+  export type SessionRescheduleRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    requestedBy?: SortOrder
+    originalStartAt?: SortOrder
+    originalEndAt?: SortOrder
+    proposedStartAt?: SortOrder
+    proposedEndAt?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    respondedAt?: SortOrder
+    responseNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SessionRescheduleRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    requestedBy?: SortOrder
+    originalStartAt?: SortOrder
+    originalEndAt?: SortOrder
+    proposedStartAt?: SortOrder
+    proposedEndAt?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    respondedAt?: SortOrder
+    responseNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SessionRescheduleRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    requestedBy?: SortOrder
+    originalStartAt?: SortOrder
+    originalEndAt?: SortOrder
+    proposedStartAt?: SortOrder
+    proposedEndAt?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    respondedAt?: SortOrder
+    responseNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumRescheduleRequestedByWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleRequestedBy | EnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleRequestedByWithAggregatesFilter<$PrismaModel> | $Enums.RescheduleRequestedBy
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRescheduleRequestedByFilter<$PrismaModel>
+    _max?: NestedEnumRescheduleRequestedByFilter<$PrismaModel>
+  }
+
+  export type EnumRescheduleStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleStatus | EnumRescheduleStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleStatusWithAggregatesFilter<$PrismaModel> | $Enums.RescheduleStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRescheduleStatusFilter<$PrismaModel>
+    _max?: NestedEnumRescheduleStatusFilter<$PrismaModel>
   }
 
   export type FloatFilter<$PrismaModel = never> = {
@@ -23675,6 +29181,57 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type EnumAuditEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditEntityType | EnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditEntityTypeFilter<$PrismaModel> | $Enums.AuditEntityType
+  }
+
+  export type AuditLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    metadata?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AuditLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AuditLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumAuditEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditEntityType | EnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.AuditEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
+  }
+
   export type UserProfileCreatepreferredTrainingDaysInput = {
     set: number[]
   }
@@ -23684,6 +29241,10 @@ export namespace Prisma {
   }
 
   export type UserProfileCreateinjuriesInput = {
+    set: string[]
+  }
+
+  export type UserProfileCreatespecialtiesInput = {
     set: string[]
   }
 
@@ -23700,6 +29261,13 @@ export namespace Prisma {
     connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
   }
 
+  export type PTServicePackageCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput> | PTServicePackageCreateWithoutPtProfileInput[] | PTServicePackageUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTServicePackageCreateOrConnectWithoutPtProfileInput | PTServicePackageCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PTServicePackageCreateManyPtProfileInputEnvelope
+    connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+  }
+
   export type PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
@@ -23713,6 +29281,13 @@ export namespace Prisma {
     connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
   }
 
+  export type PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput> | PTServicePackageCreateWithoutPtProfileInput[] | PTServicePackageUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTServicePackageCreateOrConnectWithoutPtProfileInput | PTServicePackageCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PTServicePackageCreateManyPtProfileInputEnvelope
+    connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -23723,6 +29298,10 @@ export namespace Prisma {
 
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -23780,6 +29359,11 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type UserProfileUpdatespecialtiesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -23808,6 +29392,20 @@ export namespace Prisma {
     deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
   }
 
+  export type PTServicePackageUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput> | PTServicePackageCreateWithoutPtProfileInput[] | PTServicePackageUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTServicePackageCreateOrConnectWithoutPtProfileInput | PTServicePackageCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PTServicePackageUpsertWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PTServicePackageCreateManyPtProfileInputEnvelope
+    set?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    disconnect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    delete?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    update?: PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PTServicePackageUpdateManyWithWhereWithoutPtProfileInput | PTServicePackageUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
+  }
+
   export type PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
@@ -23830,6 +29428,20 @@ export namespace Prisma {
     update?: PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput | PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput[]
     updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput | PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput[]
     deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput> | PTServicePackageCreateWithoutPtProfileInput[] | PTServicePackageUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTServicePackageCreateOrConnectWithoutPtProfileInput | PTServicePackageCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PTServicePackageUpsertWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PTServicePackageCreateManyPtProfileInputEnvelope
+    set?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    disconnect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    delete?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+    update?: PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PTServicePackageUpdateManyWithWhereWithoutPtProfileInput | PTServicePackageUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
   }
 
   export type PTApplicationCreatemainSpecialtiesInput = {
@@ -23917,10 +29529,6 @@ export namespace Prisma {
   export type PTApplicationUpdateavailableDaysInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type PTApplicationCertificateUpdateManyWithoutApplicationNestedInput = {
@@ -24059,8 +29667,28 @@ export namespace Prisma {
     set?: $Enums.SessionMode | null
   }
 
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
   export type EnumContractSourceFieldUpdateOperationsInput = {
     set?: $Enums.ContractSource
+  }
+
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type NullableEnumTerminationReasonFieldUpdateOperationsInput = {
+    set?: $Enums.TerminationReason | null
   }
 
   export type SessionUpdateManyWithoutContractNestedInput = {
@@ -24131,10 +29759,24 @@ export namespace Prisma {
     connect?: SessionReviewWhereUniqueInput
   }
 
+  export type SessionRescheduleRequestCreateNestedManyWithoutSessionInput = {
+    create?: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput> | SessionRescheduleRequestCreateWithoutSessionInput[] | SessionRescheduleRequestUncheckedCreateWithoutSessionInput[]
+    connectOrCreate?: SessionRescheduleRequestCreateOrConnectWithoutSessionInput | SessionRescheduleRequestCreateOrConnectWithoutSessionInput[]
+    createMany?: SessionRescheduleRequestCreateManySessionInputEnvelope
+    connect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+  }
+
   export type SessionReviewUncheckedCreateNestedOneWithoutSessionInput = {
     create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
     connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
     connect?: SessionReviewWhereUniqueInput
+  }
+
+  export type SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput = {
+    create?: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput> | SessionRescheduleRequestCreateWithoutSessionInput[] | SessionRescheduleRequestUncheckedCreateWithoutSessionInput[]
+    connectOrCreate?: SessionRescheduleRequestCreateOrConnectWithoutSessionInput | SessionRescheduleRequestCreateOrConnectWithoutSessionInput[]
+    createMany?: SessionRescheduleRequestCreateManySessionInputEnvelope
+    connect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
   }
 
   export type EnumSessionStatusFieldUpdateOperationsInput = {
@@ -24163,6 +29805,20 @@ export namespace Prisma {
     update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
   }
 
+  export type SessionRescheduleRequestUpdateManyWithoutSessionNestedInput = {
+    create?: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput> | SessionRescheduleRequestCreateWithoutSessionInput[] | SessionRescheduleRequestUncheckedCreateWithoutSessionInput[]
+    connectOrCreate?: SessionRescheduleRequestCreateOrConnectWithoutSessionInput | SessionRescheduleRequestCreateOrConnectWithoutSessionInput[]
+    upsert?: SessionRescheduleRequestUpsertWithWhereUniqueWithoutSessionInput | SessionRescheduleRequestUpsertWithWhereUniqueWithoutSessionInput[]
+    createMany?: SessionRescheduleRequestCreateManySessionInputEnvelope
+    set?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    disconnect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    delete?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    connect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    update?: SessionRescheduleRequestUpdateWithWhereUniqueWithoutSessionInput | SessionRescheduleRequestUpdateWithWhereUniqueWithoutSessionInput[]
+    updateMany?: SessionRescheduleRequestUpdateManyWithWhereWithoutSessionInput | SessionRescheduleRequestUpdateManyWithWhereWithoutSessionInput[]
+    deleteMany?: SessionRescheduleRequestScalarWhereInput | SessionRescheduleRequestScalarWhereInput[]
+  }
+
   export type SessionReviewUncheckedUpdateOneWithoutSessionNestedInput = {
     create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
     connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
@@ -24171,6 +29827,20 @@ export namespace Prisma {
     delete?: SessionReviewWhereInput | boolean
     connect?: SessionReviewWhereUniqueInput
     update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput = {
+    create?: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput> | SessionRescheduleRequestCreateWithoutSessionInput[] | SessionRescheduleRequestUncheckedCreateWithoutSessionInput[]
+    connectOrCreate?: SessionRescheduleRequestCreateOrConnectWithoutSessionInput | SessionRescheduleRequestCreateOrConnectWithoutSessionInput[]
+    upsert?: SessionRescheduleRequestUpsertWithWhereUniqueWithoutSessionInput | SessionRescheduleRequestUpsertWithWhereUniqueWithoutSessionInput[]
+    createMany?: SessionRescheduleRequestCreateManySessionInputEnvelope
+    set?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    disconnect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    delete?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    connect?: SessionRescheduleRequestWhereUniqueInput | SessionRescheduleRequestWhereUniqueInput[]
+    update?: SessionRescheduleRequestUpdateWithWhereUniqueWithoutSessionInput | SessionRescheduleRequestUpdateWithWhereUniqueWithoutSessionInput[]
+    updateMany?: SessionRescheduleRequestUpdateManyWithWhereWithoutSessionInput | SessionRescheduleRequestUpdateManyWithWhereWithoutSessionInput[]
+    deleteMany?: SessionRescheduleRequestScalarWhereInput | SessionRescheduleRequestScalarWhereInput[]
   }
 
   export type SessionCreateNestedOneWithoutReviewInput = {
@@ -24397,12 +30067,52 @@ export namespace Prisma {
     update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutTrainingLocationsInput, UserProfileUpdateWithoutTrainingLocationsInput>, UserProfileUncheckedUpdateWithoutTrainingLocationsInput>
   }
 
+  export type UserProfileCreateNestedOneWithoutServicePackagesInput = {
+    create?: XOR<UserProfileCreateWithoutServicePackagesInput, UserProfileUncheckedCreateWithoutServicePackagesInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutServicePackagesInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutServicePackagesNestedInput = {
+    create?: XOR<UserProfileCreateWithoutServicePackagesInput, UserProfileUncheckedCreateWithoutServicePackagesInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutServicePackagesInput
+    upsert?: UserProfileUpsertWithoutServicePackagesInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutServicePackagesInput, UserProfileUpdateWithoutServicePackagesInput>, UserProfileUncheckedUpdateWithoutServicePackagesInput>
+  }
+
+  export type SessionCreateNestedOneWithoutRescheduleRequestsInput = {
+    create?: XOR<SessionCreateWithoutRescheduleRequestsInput, SessionUncheckedCreateWithoutRescheduleRequestsInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutRescheduleRequestsInput
+    connect?: SessionWhereUniqueInput
+  }
+
+  export type EnumRescheduleRequestedByFieldUpdateOperationsInput = {
+    set?: $Enums.RescheduleRequestedBy
+  }
+
+  export type EnumRescheduleStatusFieldUpdateOperationsInput = {
+    set?: $Enums.RescheduleStatus
+  }
+
+  export type SessionUpdateOneRequiredWithoutRescheduleRequestsNestedInput = {
+    create?: XOR<SessionCreateWithoutRescheduleRequestsInput, SessionUncheckedCreateWithoutRescheduleRequestsInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutRescheduleRequestsInput
+    upsert?: SessionUpsertWithoutRescheduleRequestsInput
+    connect?: SessionWhereUniqueInput
+    update?: XOR<XOR<SessionUpdateToOneWithWhereWithoutRescheduleRequestsInput, SessionUpdateWithoutRescheduleRequestsInput>, SessionUncheckedUpdateWithoutRescheduleRequestsInput>
+  }
+
   export type FloatFieldUpdateOperationsInput = {
     set?: number
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type EnumAuditEntityTypeFieldUpdateOperationsInput = {
+    set?: $Enums.AuditEntityType
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -24436,6 +30146,17 @@ export namespace Prisma {
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -24550,6 +30271,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -24679,17 +30414,6 @@ export namespace Prisma {
     not?: NestedEnumServiceModeNullableFilter<$PrismaModel> | $Enums.ServiceMode | null
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type NestedEnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.PTApplicationStatus | EnumPTApplicationStatusFieldRefInput<$PrismaModel>
     in?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
@@ -24732,20 +30456,6 @@ export namespace Prisma {
     _max?: NestedEnumServiceModeNullableFilter<$PrismaModel>
   }
 
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
   export type NestedEnumMediaGroupTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.MediaGroupType | EnumMediaGroupTypeFieldRefInput<$PrismaModel>
     in?: $Enums.MediaGroupType[] | ListEnumMediaGroupTypeFieldRefInput<$PrismaModel>
@@ -24784,11 +30494,40 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type NestedEnumContractSourceFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type NestedEnumTerminationReasonNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableFilter<$PrismaModel> | $Enums.TerminationReason | null
   }
 
   export type NestedEnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -24821,6 +30560,22 @@ export namespace Prisma {
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
@@ -24829,6 +30584,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractSourceFilter<$PrismaModel>
     _max?: NestedEnumContractSourceFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.TerminationReason | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
+    _max?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
@@ -24916,6 +30697,40 @@ export namespace Prisma {
     _max?: NestedEnumDayOfWeekFilter<$PrismaModel>
   }
 
+  export type NestedEnumRescheduleRequestedByFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleRequestedBy | EnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleRequestedByFilter<$PrismaModel> | $Enums.RescheduleRequestedBy
+  }
+
+  export type NestedEnumRescheduleStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleStatus | EnumRescheduleStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleStatusFilter<$PrismaModel> | $Enums.RescheduleStatus
+  }
+
+  export type NestedEnumRescheduleRequestedByWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleRequestedBy | EnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleRequestedByWithAggregatesFilter<$PrismaModel> | $Enums.RescheduleRequestedBy
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRescheduleRequestedByFilter<$PrismaModel>
+    _max?: NestedEnumRescheduleRequestedByFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRescheduleStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RescheduleStatus | EnumRescheduleStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RescheduleStatus[] | ListEnumRescheduleStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRescheduleStatusWithAggregatesFilter<$PrismaModel> | $Enums.RescheduleStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRescheduleStatusFilter<$PrismaModel>
+    _max?: NestedEnumRescheduleStatusFilter<$PrismaModel>
+  }
+
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -24930,6 +30745,23 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAuditEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditEntityType | EnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditEntityTypeFilter<$PrismaModel> | $Enums.AuditEntityType
+  }
+
+  export type NestedEnumAuditEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditEntityType | EnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditEntityType[] | ListEnumAuditEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.AuditEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
   }
 
   export type PTApplicationCreateWithoutUserProfileInput = {
@@ -25054,8 +30886,10 @@ export namespace Prisma {
   export type PTTrainingLocationCreateWithoutPtProfileInput = {
     id?: string
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -25070,8 +30904,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -25086,6 +30922,46 @@ export namespace Prisma {
 
   export type PTTrainingLocationCreateManyPtProfileInputEnvelope = {
     data: PTTrainingLocationCreateManyPtProfileInput | PTTrainingLocationCreateManyPtProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PTServicePackageCreateWithoutPtProfileInput = {
+    id?: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTServicePackageUncheckedCreateWithoutPtProfileInput = {
+    id?: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTServicePackageCreateOrConnectWithoutPtProfileInput = {
+    where: PTServicePackageWhereUniqueInput
+    create: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PTServicePackageCreateManyPtProfileInputEnvelope = {
+    data: PTServicePackageCreateManyPtProfileInput | PTServicePackageCreateManyPtProfileInput[]
     skipDuplicates?: boolean
   }
 
@@ -25239,13 +31115,50 @@ export namespace Prisma {
     provinceCode?: IntFilter<"PTTrainingLocation"> | number
     wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
     gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymNameNormalized?: StringNullableFilter<"PTTrainingLocation"> | string | null
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
     createdAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
     updatedAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+  }
+
+  export type PTServicePackageUpsertWithWhereUniqueWithoutPtProfileInput = {
+    where: PTServicePackageWhereUniqueInput
+    update: XOR<PTServicePackageUpdateWithoutPtProfileInput, PTServicePackageUncheckedUpdateWithoutPtProfileInput>
+    create: XOR<PTServicePackageCreateWithoutPtProfileInput, PTServicePackageUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput = {
+    where: PTServicePackageWhereUniqueInput
+    data: XOR<PTServicePackageUpdateWithoutPtProfileInput, PTServicePackageUncheckedUpdateWithoutPtProfileInput>
+  }
+
+  export type PTServicePackageUpdateManyWithWhereWithoutPtProfileInput = {
+    where: PTServicePackageScalarWhereInput
+    data: XOR<PTServicePackageUpdateManyMutationInput, PTServicePackageUncheckedUpdateManyWithoutPtProfileInput>
+  }
+
+  export type PTServicePackageScalarWhereInput = {
+    AND?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
+    OR?: PTServicePackageScalarWhereInput[]
+    NOT?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
+    id?: StringFilter<"PTServicePackage"> | string
+    ptUserId?: StringFilter<"PTServicePackage"> | string
+    name?: StringFilter<"PTServicePackage"> | string
+    description?: StringNullableFilter<"PTServicePackage"> | string | null
+    sessionCount?: IntFilter<"PTServicePackage"> | number
+    price?: DecimalFilter<"PTServicePackage"> | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFilter<"PTServicePackage"> | $Enums.SessionMode
+    sessionDurationMinutes?: IntFilter<"PTServicePackage"> | number
+    validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
+    isActive?: BoolFilter<"PTServicePackage"> | boolean
+    archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+    updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
   }
 
   export type PTApplicationCertificateCreateWithoutApplicationInput = {
@@ -25315,23 +31228,41 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutPtApplicationInput = {
@@ -25341,23 +31272,41 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutPtApplicationInput = {
@@ -25443,23 +31392,41 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutPtApplicationInput = {
@@ -25469,23 +31436,41 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type PTApplicationCreateWithoutCertificatesInput = {
@@ -25991,9 +31976,17 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
   export type SessionUncheckedCreateWithoutContractInput = {
@@ -26011,9 +32004,17 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
   export type SessionCreateOrConnectWithoutContractInput = {
@@ -26089,6 +32090,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
   }
@@ -26135,8 +32143,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26162,6 +32170,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
@@ -26180,8 +32201,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26207,6 +32228,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
@@ -26240,6 +32274,44 @@ export namespace Prisma {
     create: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
   }
 
+  export type SessionRescheduleRequestCreateWithoutSessionInput = {
+    id?: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionRescheduleRequestUncheckedCreateWithoutSessionInput = {
+    id?: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionRescheduleRequestCreateOrConnectWithoutSessionInput = {
+    where: SessionRescheduleRequestWhereUniqueInput
+    create: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput>
+  }
+
+  export type SessionRescheduleRequestCreateManySessionInputEnvelope = {
+    data: SessionRescheduleRequestCreateManySessionInput | SessionRescheduleRequestCreateManySessionInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ContractUpsertWithoutSessionsInput = {
     update: XOR<ContractUpdateWithoutSessionsInput, ContractUncheckedUpdateWithoutSessionsInput>
     create: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
@@ -26264,8 +32336,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26291,6 +32363,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
@@ -26309,8 +32394,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26336,6 +32421,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
@@ -26370,6 +32468,40 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SessionRescheduleRequestUpsertWithWhereUniqueWithoutSessionInput = {
+    where: SessionRescheduleRequestWhereUniqueInput
+    update: XOR<SessionRescheduleRequestUpdateWithoutSessionInput, SessionRescheduleRequestUncheckedUpdateWithoutSessionInput>
+    create: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput>
+  }
+
+  export type SessionRescheduleRequestUpdateWithWhereUniqueWithoutSessionInput = {
+    where: SessionRescheduleRequestWhereUniqueInput
+    data: XOR<SessionRescheduleRequestUpdateWithoutSessionInput, SessionRescheduleRequestUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type SessionRescheduleRequestUpdateManyWithWhereWithoutSessionInput = {
+    where: SessionRescheduleRequestScalarWhereInput
+    data: XOR<SessionRescheduleRequestUpdateManyMutationInput, SessionRescheduleRequestUncheckedUpdateManyWithoutSessionInput>
+  }
+
+  export type SessionRescheduleRequestScalarWhereInput = {
+    AND?: SessionRescheduleRequestScalarWhereInput | SessionRescheduleRequestScalarWhereInput[]
+    OR?: SessionRescheduleRequestScalarWhereInput[]
+    NOT?: SessionRescheduleRequestScalarWhereInput | SessionRescheduleRequestScalarWhereInput[]
+    id?: StringFilter<"SessionRescheduleRequest"> | string
+    sessionId?: StringFilter<"SessionRescheduleRequest"> | string
+    requestedBy?: EnumRescheduleRequestedByFilter<"SessionRescheduleRequest"> | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    originalEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedStartAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    proposedEndAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+    reason?: StringFilter<"SessionRescheduleRequest"> | string
+    status?: EnumRescheduleStatusFilter<"SessionRescheduleRequest"> | $Enums.RescheduleStatus
+    respondedAt?: DateTimeNullableFilter<"SessionRescheduleRequest"> | Date | string | null
+    responseNote?: StringNullableFilter<"SessionRescheduleRequest"> | string | null
+    createdAt?: DateTimeFilter<"SessionRescheduleRequest"> | Date | string
+  }
+
   export type SessionCreateWithoutReviewInput = {
     id?: string
     clientUserId: string
@@ -26385,9 +32517,17 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
+    rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
   export type SessionUncheckedCreateWithoutReviewInput = {
@@ -26406,8 +32546,16 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
   export type SessionCreateOrConnectWithoutReviewInput = {
@@ -26428,8 +32576,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26455,6 +32603,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -26473,8 +32634,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26500,6 +32661,19 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -26536,9 +32710,17 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
   export type SessionUncheckedUpdateWithoutReviewInput = {
@@ -26557,8 +32739,16 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
   export type ContractUpsertWithoutReviewsInput = {
@@ -26585,8 +32775,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26612,6 +32802,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -26630,8 +32833,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26657,6 +32860,19 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -26699,8 +32915,10 @@ export namespace Prisma {
   export type PTTrainingLocationCreateWithoutProvinceInput = {
     id?: string
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -26715,8 +32933,10 @@ export namespace Prisma {
     ptUserId: string
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -26813,8 +33033,10 @@ export namespace Prisma {
   export type PTTrainingLocationCreateWithoutWardInput = {
     id?: string
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -26829,8 +33051,10 @@ export namespace Prisma {
     ptUserId: string
     provinceCode: number
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -26964,23 +33188,41 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutTrainingLocationsInput = {
@@ -26990,23 +33232,41 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutTrainingLocationsInput = {
@@ -27102,23 +33362,41 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutTrainingLocationsInput = {
@@ -27128,23 +33406,361 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileCreateWithoutServicePackagesInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutServicePackagesInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutServicePackagesInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutServicePackagesInput, UserProfileUncheckedCreateWithoutServicePackagesInput>
+  }
+
+  export type UserProfileUpsertWithoutServicePackagesInput = {
+    update: XOR<UserProfileUpdateWithoutServicePackagesInput, UserProfileUncheckedUpdateWithoutServicePackagesInput>
+    create: XOR<UserProfileCreateWithoutServicePackagesInput, UserProfileUncheckedCreateWithoutServicePackagesInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutServicePackagesInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutServicePackagesInput, UserProfileUncheckedUpdateWithoutServicePackagesInput>
+  }
+
+  export type UserProfileUpdateWithoutServicePackagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutServicePackagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type SessionCreateWithoutRescheduleRequestsInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    contract: ContractCreateNestedOneWithoutSessionsInput
+    review?: SessionReviewCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionUncheckedCreateWithoutRescheduleRequestsInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionCreateOrConnectWithoutRescheduleRequestsInput = {
+    where: SessionWhereUniqueInput
+    create: XOR<SessionCreateWithoutRescheduleRequestsInput, SessionUncheckedCreateWithoutRescheduleRequestsInput>
+  }
+
+  export type SessionUpsertWithoutRescheduleRequestsInput = {
+    update: XOR<SessionUpdateWithoutRescheduleRequestsInput, SessionUncheckedUpdateWithoutRescheduleRequestsInput>
+    create: XOR<SessionCreateWithoutRescheduleRequestsInput, SessionUncheckedCreateWithoutRescheduleRequestsInput>
+    where?: SessionWhereInput
+  }
+
+  export type SessionUpdateToOneWithWhereWithoutRescheduleRequestsInput = {
+    where?: SessionWhereInput
+    data: XOR<SessionUpdateWithoutRescheduleRequestsInput, SessionUncheckedUpdateWithoutRescheduleRequestsInput>
+  }
+
+  export type SessionUpdateWithoutRescheduleRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+    review?: SessionReviewUpdateOneWithoutSessionNestedInput
+  }
+
+  export type SessionUncheckedUpdateWithoutRescheduleRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
   }
 
   export type PTTrainingLocationCreateManyPtProfileInput = {
@@ -27152,8 +33768,10 @@ export namespace Prisma {
     provinceCode: number
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -27161,11 +33779,28 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type PTServicePackageCreateManyPtProfileInput = {
+    id?: string
+    name: string
+    description?: string | null
+    sessionCount: number
+    price: Decimal | DecimalJsLike | number | string
+    sessionMode: $Enums.SessionMode
+    sessionDurationMinutes?: number
+    validityDays?: number | null
+    isActive?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type PTTrainingLocationUpdateWithoutPtProfileInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27180,8 +33815,10 @@ export namespace Prisma {
     provinceCode?: IntFieldUpdateOperationsInput | number
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27194,11 +33831,58 @@ export namespace Prisma {
     provinceCode?: IntFieldUpdateOperationsInput | number
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageUncheckedUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTServicePackageUncheckedUpdateManyWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionCount?: IntFieldUpdateOperationsInput | number
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27298,6 +33982,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -27326,9 +34017,17 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
   export type SessionUncheckedUpdateWithoutContractInput = {
@@ -27346,9 +34045,17 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
   export type SessionUncheckedUpdateManyWithoutContractInput = {
@@ -27366,6 +34073,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27397,6 +34111,62 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SessionRescheduleRequestCreateManySessionInput = {
+    id?: string
+    requestedBy: $Enums.RescheduleRequestedBy
+    originalStartAt: Date | string
+    originalEndAt: Date | string
+    proposedStartAt: Date | string
+    proposedEndAt: Date | string
+    reason: string
+    status?: $Enums.RescheduleStatus
+    respondedAt?: Date | string | null
+    responseNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionRescheduleRequestUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionRescheduleRequestUncheckedUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionRescheduleRequestUncheckedUpdateManyWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    requestedBy?: EnumRescheduleRequestedByFieldUpdateOperationsInput | $Enums.RescheduleRequestedBy
+    originalStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    originalEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumRescheduleStatusFieldUpdateOperationsInput | $Enums.RescheduleStatus
+    respondedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    responseNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type VietnamWardCreateManyProvinceInput = {
     code: number
     name: string
@@ -27413,8 +34183,10 @@ export namespace Prisma {
     ptUserId: string
     wardCode?: number | null
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -27460,8 +34232,10 @@ export namespace Prisma {
   export type PTTrainingLocationUpdateWithoutProvinceInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27476,8 +34250,10 @@ export namespace Prisma {
     ptUserId?: StringFieldUpdateOperationsInput | string
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27490,8 +34266,10 @@ export namespace Prisma {
     ptUserId?: StringFieldUpdateOperationsInput | string
     wardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27504,8 +34282,10 @@ export namespace Prisma {
     ptUserId: string
     provinceCode: number
     gymName?: string | null
+    gymNameNormalized?: string | null
     addressLine?: string | null
     legacyDistrictName?: string | null
+    gymId?: string | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -27516,8 +34296,10 @@ export namespace Prisma {
   export type PTTrainingLocationUpdateWithoutWardInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27532,8 +34314,10 @@ export namespace Prisma {
     ptUserId?: StringFieldUpdateOperationsInput | string
     provinceCode?: IntFieldUpdateOperationsInput | number
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27546,8 +34330,10 @@ export namespace Prisma {
     ptUserId?: StringFieldUpdateOperationsInput | string
     provinceCode?: IntFieldUpdateOperationsInput | number
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27572,6 +34358,10 @@ export namespace Prisma {
      * @deprecated Use ContractCountOutputTypeDefaultArgs instead
      */
     export type ContractCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SessionCountOutputTypeDefaultArgs instead
+     */
+    export type SessionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use VietnamProvinceCountOutputTypeDefaultArgs instead
      */
@@ -27633,9 +34423,21 @@ export namespace Prisma {
      */
     export type PTTrainingLocationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTTrainingLocationDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use PTServicePackageDefaultArgs instead
+     */
+    export type PTServicePackageArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTServicePackageDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SessionRescheduleRequestDefaultArgs instead
+     */
+    export type SessionRescheduleRequestArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionRescheduleRequestDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use InBodyEntryDefaultArgs instead
      */
     export type InBodyEntryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = InBodyEntryDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AuditLogDefaultArgs instead
+     */
+    export type AuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AuditLogDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

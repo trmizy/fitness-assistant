@@ -47,6 +47,7 @@ enum PurposeType {
   WALLET_TOPUP
   REFUND
   TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
 }
 
 enum WalletOwnerType {
@@ -67,11 +68,20 @@ enum LedgerEntryType {
   CREDIT
 }
 
+/// Which of a wallet's two balances an entry moved. Releasing money from PENDING to
+/// AVAILABLE is written as two entries sharing one transactionId: a PENDING debit and an
+/// AVAILABLE credit, so the ledger stays double-entry and the release is auditable.
+enum LedgerBucket {
+  PENDING
+  AVAILABLE
+}
+
 enum RelatedEntityType {
   GYM_MEMBERSHIP
   PT_CONTRACT
   WALLET_TOPUP
   TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
 }
 
 enum ActivationStatus {
@@ -81,11 +91,23 @@ enum ActivationStatus {
   ACTIVATION_FAILED
 }
 
+/// Two-bucket wallet.
+///
+/// `pendingBalance` is money already attributed to the owner but not yet earned — it backs
+/// the sessions of a contract that have not happened yet, and is exactly the pot a refund
+/// draws from. `availableBalance` is money the owner may withdraw.
+///
+/// Two PLATFORM wallets exist, distinguished by ownerId (see PLATFORM_ESCROW_ID /
+/// PLATFORM_REVENUE_ID): ESCROW holds every đồng the platform is custodian of, REVENUE
+/// holds commission the platform has actually earned. Keeping them apart is what makes the
+/// reconciliation invariant checkable — a single mixed wallet has no interpretable balance
+/// once several contracts run at once.
 model Wallet {
   id               String          @id @default(uuid())
   ownerType        WalletOwnerType @map("owner_type")
   ownerId          String          @map("owner_id")
   availableBalance Decimal         @default(0) @map("available_balance") @db.Decimal(14, 2)
+  pendingBalance   Decimal         @default(0) @map("pending_balance") @db.Decimal(14, 2)
   lockedBalance    Decimal         @default(0) @map("locked_balance") @db.Decimal(14, 2)
   status           WalletStatus    @default(ACTIVE)
   createdAt        DateTime        @default(now()) @map("created_at")
@@ -102,6 +124,9 @@ model WalletLedgerEntry {
   walletId      String          @map("wallet_id")
   transactionId String          @map("transaction_id")
   entryType     LedgerEntryType @map("entry_type")
+  /// Which balance moved. balanceBefore/balanceAfter are that bucket's running total, so a
+  /// wallet's two buckets each form their own unbroken chain.
+  bucket        LedgerBucket    @default(AVAILABLE)
   amount        Decimal         @db.Decimal(14, 2)
   balanceBefore Decimal         @map("balance_before") @db.Decimal(14, 2)
   balanceAfter  Decimal         @map("balance_after") @db.Decimal(14, 2)
@@ -112,6 +137,7 @@ model WalletLedgerEntry {
   transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
 
   @@index([walletId, createdAt])
+  @@index([walletId, bucket, createdAt])
   @@index([transactionId])
   @@map("wallet_ledger_entries")
 }
@@ -183,6 +209,31 @@ model PlatformCommission {
   @@index([partnerType, partnerId, status])
   @@index([paymentTransactionId])
   @@map("platform_commissions")
+}
+
+/// Money a partner owes back to the platform.
+///
+/// Raised when a client had to be made whole but the partner's buckets could not cover their
+/// share — a PT who missed enough sessions to exhaust their pending balance, typically. The
+/// platform fronts the cash so the client is never short-changed, and books the difference
+/// here. Without this row the shortfall would either push a wallet negative or silently break
+/// the reconciliation invariant; instead it stays visible and recoverable.
+model PartnerReceivable {
+  id            String      @id @default(uuid())
+  partnerType   PartnerType @map("partner_type")
+  partnerId     String      @map("partner_id")
+  amount        Decimal     @db.Decimal(14, 2)
+  /// Recovered so far, by withholding from the partner's later credits.
+  recovered     Decimal     @default(0) @db.Decimal(14, 2)
+  reason        String
+  contractId    String?     @map("contract_id")
+  transactionId String?     @map("transaction_id")
+  settledAt     DateTime?   @map("settled_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([partnerType, partnerId, settledAt])
+  @@map("partner_receivables")
 }
 
 model PaymentWebhookEvent {

@@ -1,5 +1,9 @@
 # RunPod Launch Runbook — QLoRA Fine-Tune
 
+> Legacy experimental path for Qwen3-30B-A3B on an A40. The current default is
+> the local low-VRAM Qwen2.5 workflow in `training/README.md`. Pricing and image
+> availability are time-sensitive; verify them before creating a paid pod.
+
 Step-by-step process to actually run `train_qlora.py` and
 `export_adapter_to_ollama.py` on a real GPU. This repo has no GPU access and
 no RunPod credentials — every command below must be run by a human, not by

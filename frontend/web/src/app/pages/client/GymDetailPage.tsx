@@ -5,6 +5,8 @@ import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
+import { Stars } from "../../components/gym/Stars";
+import { GymReviewsSection } from "../../components/gym/GymReviewsSection";
 
 export function GymDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -81,6 +83,11 @@ export function GymDetailPage() {
             <div className="flex items-center gap-1 text-xs text-zinc-500">
               <MapPin className="w-3 h-3" /> {gym.address}{gym.city ? `, ${gym.city}` : ""}
             </div>
+            {typeof gym.reviewCount === "number" && gym.reviewCount > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
+                <Stars value={gym.averageRating ?? 0} /> {(gym.averageRating ?? 0).toFixed(1)} ({gym.reviewCount})
+              </div>
+            )}
           </div>
         </div>
         {gym.description && <p className="text-sm text-zinc-400 mt-3">{gym.description}</p>}
@@ -120,6 +127,8 @@ export function GymDetailPage() {
           </div>
         )}
       </div>
+
+      <GymReviewsSection gymId={id!} />
     </div>
   );
 }

@@ -62,6 +62,12 @@ const SESSION_STATUS: Record<
   },
 };
 
+function partyName(c: Contract) {
+  const p = c.clientProfile;
+  const name = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
+  return name || p?.email || `${c.clientUserId.slice(0, 8)}…`;
+}
+
 function formatSessionTime(iso: string) {
   const d = new Date(iso);
   return (
@@ -415,8 +421,7 @@ export function PTContractsPage() {
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
                         <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />{" "}
-                          {c.clientUserId.slice(0, 8)}...
+                          <User className="w-3 h-3" /> {partyName(c)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Dumbbell className="w-3 h-3" /> {c.usedSessions}/
@@ -472,6 +477,40 @@ export function PTContractsPage() {
 
                 {isExpanded && (
                   <div className="border-t border-zinc-800/60 p-4 space-y-4">
+                    {/* Identity of the agreement — the reference a dispute is filed against. */}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 bg-zinc-800/40 rounded-lg px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-xs text-zinc-600 mb-0.5">
+                          Contract ID
+                        </div>
+                        <code className="text-[11px] font-mono text-zinc-300 break-all select-all">
+                          {c.id}
+                        </code>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-zinc-600 mb-0.5">
+                          Client
+                        </div>
+                        <div className="text-xs text-zinc-300 truncate">
+                          {partyName(c)}
+                          {c.clientProfile?.email ? (
+                            <span className="text-zinc-600">
+                              {" "}
+                              · {c.clientProfile.email}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-600 mb-0.5">
+                          Created
+                        </div>
+                        <div className="text-xs text-zinc-300">
+                          {formatDate(c.createdAt)}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">

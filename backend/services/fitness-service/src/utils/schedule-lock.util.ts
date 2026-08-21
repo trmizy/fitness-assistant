@@ -122,12 +122,29 @@ export function todayAsScheduleDate(
   return new Date(Date.UTC(y, m - 1, d));
 }
 
+/** Real bug found via direct user report: a FUTURE-dated schedule (e.g.
+ * viewing tomorrow's plan and clicking "Bắt đầu tập") was rejected with
+ * "Không thể chỉnh sửa buổi tập của ngày đã qua." — literally "cannot edit
+ * a workout from a day that has already passed", which is false for a day
+ * that hasn't happened yet. The lock direction was always available
+ * (isScheduleDateLocked's own comparison already distinguishes past vs
+ * future) but the error message was a single hardcoded string regardless
+ * of which direction triggered it. `direction` lets callers (and the
+ * frontend, via the JSON error body) react correctly instead of guessing
+ * from message text. */
 export class ScheduleLockedError extends Error {
   status = 409;
   code = "SCHEDULE_DATE_LOCKED";
-  constructor(message = "Không thể chỉnh sửa buổi tập của ngày đã qua.") {
-    super(message);
+  direction: "past" | "future";
+  constructor(direction: "past" | "future", message?: string) {
+    super(
+      message ??
+        (direction === "past"
+          ? "Không thể chỉnh sửa buổi tập của ngày đã qua."
+          : "Chưa đến ngày tập này — chỉ có thể bắt đầu/chỉnh sửa vào đúng ngày."),
+    );
     this.name = "ScheduleLockedError";
+    this.direction = direction;
   }
 }
 
@@ -139,7 +156,8 @@ export function assertScheduleDateEditable(
   now: Date = new Date(),
   userTimeZone: string = APP_SCHEDULE_TIME_ZONE,
 ): void {
-  if (isScheduleDateLocked(scheduledDate, now, userTimeZone)) {
-    throw new ScheduleLockedError();
+  const comparison = compareScheduleDate(scheduledDate, now, userTimeZone);
+  if (comparison === "past" || comparison === "future") {
+    throw new ScheduleLockedError(comparison);
   }
 }

@@ -21,9 +21,13 @@ import {
   chatService,
   contractService,
   locationService,
+  ptServicePackageService,
+  collaborationService,
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
+import { QUICK_FILTERS } from "../../constants/specialties";
+import { Stars } from "../../components/gym/Stars";
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -76,24 +80,10 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-const filters = [
-  "Tất cả",
-  "Fat Loss",
-  "Muscle Gain",
-  "Strength",
-  "Yoga",
-  "HIIT",
-  "Powerlifting",
-];
-const filterValues = [
-  "All",
-  "Fat Loss",
-  "Muscle Gain",
-  "Strength",
-  "Yoga",
-  "HIIT",
-  "Powerlifting",
-];
+// Chips and their filter values are the same strings now — the two arrays used to be kept
+// in step by hand, which is how "Strength" ended up in one and not the other.
+const filters = ["Tất cả", ...QUICK_FILTERS];
+const filterValues = ["All", ...QUICK_FILTERS];
 
 export function PTDiscoveryPage() {
   const navigate = useNavigate();
@@ -113,16 +103,17 @@ export function PTDiscoveryPage() {
 
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestType, setRequestType] = useState<"PER_SESSION" | "PACKAGE">(
-    "PER_SESSION",
-  );
-  const [selectedSessionMode, setSelectedSessionMode] = useState<
-    "ONLINE" | "OFFLINE" | null
-  >(null);
-  const [requestSessions, setRequestSessions] = useState(1);
-  const [packageQuantity, setPackageQuantity] = useState(1);
-  const [extraSessions, setExtraSessions] = useState(0);
+  const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState("");
+  // Which partner gym the sessions run at. "" means independent — the PT keeps the gym's
+  // share. This choice sets the contract's revenue split, so it is asked explicitly rather
+  // than guessed from the trainer's listed locations.
+  const [selectedGymId, setSelectedGymId] = useState("");
+  const [lowAvailabilityData, setLowAvailabilityData] = useState<{
+    availableSlots: number;
+    packageSessions: number;
+    nearestAvailableSlot: { date: string; startTime: string } | null;
+  } | null>(null);
 
   useEffect(() => {
     locationService
@@ -161,10 +152,28 @@ export function PTDiscoveryPage() {
       setMessagingPT(true);
       const data = await chatService.createDirectConversation(ptUserId);
       const conversationId = data?.id || data?.conversation?.id;
-      if (conversationId)
+      if (conversationId) {
         navigate(`/client/chat?conversationId=${conversationId}`);
-    } catch {
-      toast.error("Không thể bắt đầu cuộc hội thoại");
+      } else {
+        // 2xx but no id: previously this silently did nothing, leaving the button
+        // looking broken with no clue why.
+        toast.error("Máy chủ không trả về mã cuộc hội thoại");
+      }
+    } catch (err: any) {
+      // Surface the real reason — a bare "không thể" gives nothing to act on, and on a
+      // phone there is no console to check. Covers all three failure shapes: an HTTP
+      // error from the server, a transport failure (offline/timeout/wrong server
+      // address), and anything else.
+      const status = err?.response?.status;
+      const serverMsg =
+        err?.response?.data?.error?.message ??
+        err?.response?.data?.error ??
+        err?.response?.data?.message;
+      toast.error(
+        status
+          ? `Không thể bắt đầu cuộc hội thoại (${status}${serverMsg ? `: ${serverMsg}` : ""})`
+          : `Không thể kết nối máy chủ: ${err?.message ?? "lỗi không rõ"}`,
+      );
     } finally {
       setMessagingPT(false);
     }
@@ -178,46 +187,68 @@ export function PTDiscoveryPage() {
       );
       setShowRequestModal(false);
       setRequestMessage("");
-      setRequestSessions(1);
-      setPackageQuantity(1);
-      setExtraSessions(0);
+      setSelectedPackage(null);
+      setSelectedGymId("");
+      setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu");
+      if (
+        err?.response?.status === 409 &&
+        err?.response?.data?.code === "LOW_AVAILABILITY"
+      ) {
+        setLowAvailabilityData({
+          availableSlots: err.response.data.availableSlots,
+          packageSessions: err.response.data.packageSessions,
+          nearestAvailableSlot: err.response.data.nearestAvailableSlot ?? null,
+        });
+      } else {
+        toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu");
+      }
     },
   });
 
-  const handleRequestCoaching = (
-    type: "PER_SESSION" | "PACKAGE",
-    mode: "ONLINE" | "OFFLINE" | null,
-  ) => {
-    setRequestType(type);
-    setSelectedSessionMode(mode);
-    if (type === "PER_SESSION") setRequestSessions(1);
-    else {
-      setPackageQuantity(1);
-      setExtraSessions(0);
-    }
+  const handleRequestCoaching = (pkg: any) => {
+    setSelectedPackage(pkg);
+    setLowAvailabilityData(null);
     setShowRequestModal(true);
   };
 
-  const submitRequest = () => {
-    if (!selectedPT) return;
+  const submitRequest = (acknowledgedLowAvailability = false) => {
+    if (!selectedPT || !selectedPackage) return;
+    
+    // Only an offline package can run at a gym; an online one never carries a gym share.
+    const gymId =
+      selectedPackage.sessionMode === "OFFLINE" && selectedGymId ? selectedGymId : undefined;
+
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
-      packageType: requestType,
-      packageName:
-        requestType === "PER_SESSION" ? "Per Session" : "Coaching Package",
-      packageQuantity: requestType === "PACKAGE" ? packageQuantity : 1,
-      extraSessions: requestType === "PACKAGE" ? extraSessions : 0,
-      totalSessions: requestType === "PER_SESSION" ? requestSessions : 0,
-      message: requestMessage || undefined,
-      sessionMode: selectedSessionMode ?? undefined,
+      packageId: selectedPackage.id,
+      clientMessage: requestMessage || undefined,
+      gymId,
+      acknowledgedLowAvailability,
     });
   };
 
+  /**
+   * Gyms this trainer has an ACCEPTED partnership with. Only these may be picked: the split
+   * has to come from terms both sides agreed to, and the server refuses a gymId with no
+   * accepted collaboration rather than quietly falling back to the independent rate.
+   */
+  const { data: partnerGyms = [] } = useQuery<any[]>({
+    queryKey: ["pt-partner-gyms", selectedId],
+    queryFn: () => collaborationService.listGymsForPt(selectedId!),
+    enabled: !!selectedId && showRequestModal,
+  });
+
+  const { data: packagesData, isLoading: packagesLoading } = useQuery({
+    queryKey: ["pt-packages", selectedId],
+    queryFn: () => ptServicePackageService.getPackagesForPT(selectedId!),
+    enabled: !!selectedId,
+  });
+
   const { data: ptsData, isLoading } = useQuery({
+
     queryKey: ["pts-list", activeFilters],
     queryFn: () =>
       profileService.listPTs({
@@ -312,9 +343,9 @@ export function PTDiscoveryPage() {
 
       {/* Filter panel */}
       {filterOpen && (
-        <div className="bg-zinc-900 border border-zinc-700/60 rounded-xl p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-zinc-200">Bộ lọc</span>
+        <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.37)] rounded-xl p-4 space-y-4 transition-all">
+          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <span className="text-sm font-bold text-zinc-100 tracking-tight">Bộ lọc tìm kiếm</span>
             <button
               onClick={() => setFilterOpen(false)}
               className="text-zinc-500 hover:text-zinc-300"
@@ -421,16 +452,16 @@ export function PTDiscoveryPage() {
               </div>
             )}
           </div>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-3 border-t border-white/10 mt-2">
             <button
               onClick={clearFilters}
-              className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors"
+              className="flex-1 py-2 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
             >
               Xóa bộ lọc
             </button>
             <button
               onClick={applyFilters}
-              className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              className="flex-1 py-2 bg-green-500 hover:bg-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)] text-black text-sm font-bold rounded-lg transition-all"
             >
               Áp dụng
             </button>
@@ -498,6 +529,23 @@ export function PTDiscoveryPage() {
                             </span>
                             <Award className="w-3.5 h-3.5 text-green-400" />
                           </div>
+                          {/* A PT with no reviews shows "Chưa có đánh giá", never 0 stars —
+                              an unrated trainer is unknown, not badly rated. */}
+                          <div className="flex items-center gap-1.5 text-xs mt-1">
+                            {pt.avgRating != null ? (
+                              <>
+                                <Stars value={pt.avgRating} size={13} />
+                                <span className="text-zinc-400 font-medium">
+                                  {pt.avgRating.toFixed(1)}
+                                </span>
+                                <span className="text-zinc-600">
+                                  ({pt.ratingCount})
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-zinc-600">Chưa có đánh giá</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-zinc-600 mt-0.5">
                             {locationText && (
                               <>
@@ -557,134 +605,6 @@ export function PTDiscoveryPage() {
               app?.certificates?.filter((c: any) => c.isCurrentlyValid) || [];
             const socialLinks = safeParseSocialLinks(app?.socialLinks);
 
-            // Per-session pricing options
-            const perSessionOptions: {
-              label: string;
-              price: number;
-              mode: "ONLINE" | "OFFLINE" | null;
-            }[] = [];
-            if (
-              (ptMode === "ONLINE" || ptMode === "HYBRID") &&
-              isValidPrice(app?.onlinePricePerSession)
-            )
-              perSessionOptions.push({
-                label: "Online qua video call",
-                price: app.onlinePricePerSession,
-                mode: "ONLINE",
-              });
-            if (
-              (ptMode === "OFFLINE" || ptMode === "HYBRID") &&
-              isValidPrice(app?.offlinePricePerSession)
-            )
-              perSessionOptions.push({
-                label: "Offline tại phòng gym",
-                price: app.offlinePricePerSession,
-                mode: "OFFLINE",
-              });
-            if (
-              !isValidPrice(app?.onlinePricePerSession) &&
-              !isValidPrice(app?.offlinePricePerSession) &&
-              isValidPrice(app?.desiredSessionPrice)
-            ) {
-              if (ptMode === "HYBRID") {
-                perSessionOptions.push(
-                  {
-                    label: "Online qua video call",
-                    price: app.desiredSessionPrice,
-                    mode: "ONLINE",
-                  },
-                  {
-                    label: "Offline tại phòng gym",
-                    price: app.desiredSessionPrice,
-                    mode: "OFFLINE",
-                  },
-                );
-              } else {
-                const inferredMode: "ONLINE" | "OFFLINE" | null =
-                  ptMode === "ONLINE"
-                    ? "ONLINE"
-                    : ptMode === "OFFLINE"
-                      ? "OFFLINE"
-                      : null;
-                perSessionOptions.push({
-                  label: "Theo buổi",
-                  price: app.desiredSessionPrice,
-                  mode: inferredMode,
-                });
-              }
-            }
-
-            // Package pricing options
-            const packageOptions: {
-              label: string;
-              price: number;
-              pricePerSess: number;
-              mode: "ONLINE" | "OFFLINE" | null;
-            }[] = [];
-            if (
-              (ptMode === "ONLINE" || ptMode === "HYBRID") &&
-              isValidPrice(app?.onlinePackagePrice)
-            )
-              packageOptions.push({
-                label: `Online Gói (${spk} buổi)`,
-                price: app.onlinePackagePrice,
-                pricePerSess: app.onlinePackagePrice / spk,
-                mode: "ONLINE",
-              });
-            if (
-              (ptMode === "OFFLINE" || ptMode === "HYBRID") &&
-              isValidPrice(app?.offlinePackagePrice)
-            )
-              packageOptions.push({
-                label: `Offline Gói (${spk} buổi)`,
-                price: app.offlinePackagePrice,
-                pricePerSess: app.offlinePackagePrice / spk,
-                mode: "OFFLINE",
-              });
-            if (
-              !isValidPrice(app?.onlinePackagePrice) &&
-              !isValidPrice(app?.offlinePackagePrice) &&
-              isValidPrice(app?.packagePrice)
-            ) {
-              if (ptMode === "HYBRID") {
-                packageOptions.push(
-                  {
-                    label: `Online Gói (${spk} buổi)`,
-                    price: app.packagePrice,
-                    pricePerSess: app.packagePrice / spk,
-                    mode: "ONLINE",
-                  },
-                  {
-                    label: `Offline Gói (${spk} buổi)`,
-                    price: app.packagePrice,
-                    pricePerSess: app.packagePrice / spk,
-                    mode: "OFFLINE",
-                  },
-                );
-              } else {
-                const inferredMode: "ONLINE" | "OFFLINE" | null =
-                  ptMode === "ONLINE"
-                    ? "ONLINE"
-                    : ptMode === "OFFLINE"
-                      ? "OFFLINE"
-                      : null;
-                packageOptions.push({
-                  label: `Gói (${spk} buổi)`,
-                  price: app.packagePrice,
-                  pricePerSess: app.packagePrice / spk,
-                  mode: inferredMode,
-                });
-              }
-            }
-
-            const lowestPerSess =
-              perSessionOptions.length > 0
-                ? Math.min(...perSessionOptions.map((o) => o.price))
-                : null;
-            const bestPkgRate =
-              packageOptions.length > 0
-                ? Math.min(...packageOptions.map((o) => o.pricePerSess))
-                : null;
 
             return (
               <div className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden self-start">
@@ -704,6 +624,19 @@ export function PTDiscoveryPage() {
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
+                          {selectedPT.avgRating != null ? (
+                            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+                              <Stars value={selectedPT.avgRating} size={13} />
+                              {selectedPT.avgRating.toFixed(1)}
+                              <span className="text-zinc-600">
+                                ({selectedPT.ratingCount} đánh giá)
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-600">
+                              Chưa có đánh giá
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -949,126 +882,84 @@ export function PTDiscoveryPage() {
                       Bảng giá
                     </h4>
                     <div className="space-y-3">
-                      {/* Per-session options */}
-                      {perSessionOptions.map((opt, idx) => {
-                        const isBest = opt.price === lowestPerSess;
-                        return (
-                          <div
-                            key={idx}
-                            className={`border-2 rounded-xl p-4 transition-all ${isBest ? "border-green-500 bg-green-500/5" : "border-zinc-700/60"}`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-bold text-zinc-200">
-                                    {opt.label}
-                                  </span>
-                                  {isBest && (
-                                    <span className="text-xs bg-green-500 text-black px-2 py-0.5 rounded-full font-bold">
-                                      Giá tốt nhất
+                      {packagesLoading ? (
+                        <div className="flex justify-center p-4">
+                          <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+                        </div>
+                      ) : packagesData?.length > 0 ? (
+                        packagesData.map((pkg: any) => {
+                          const isPerSession = pkg.sessionCount === 1;
+                          return (
+                            <div
+                              key={pkg.id}
+                              className={`border rounded-xl p-4 transition-all ${
+                                isPerSession
+                                  ? "border-green-500/50 bg-green-500/5"
+                                  : "border-zinc-700/60"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-bold text-zinc-200">
+                                      {pkg.name}
                                     </span>
-                                  )}
+                                    {isPerSession && (
+                                      <span className="text-xs bg-green-500 text-black px-2 py-0.5 rounded-full font-bold">
+                                        Phổ biến
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-zinc-500">
+                                    {isPerSession
+                                      ? "Theo buổi"
+                                      : `${pkg.sessionCount} buổi · ${formatVND(
+                                          Number(pkg.price) / pkg.sessionCount,
+                                        )}/buổi`}
+                                    {" · "}
+                                    {pkg.sessionMode === "ONLINE"
+                                      ? "Online"
+                                      : "Offline"}
+                                  </div>
                                 </div>
-                                <div className="text-xs text-zinc-500">
-                                  Đặt lịch theo từng buổi
-                                </div>
+                                <span className="text-base font-bold text-green-400">
+                                  {formatVND(Number(pkg.price))}
+                                </span>
                               </div>
-                              <span className="text-base font-bold text-green-400">
-                                {formatVND(opt.price)}
-                              </span>
-                            </div>
-                            <ul className="space-y-1 mb-3">
-                              <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <Check className="w-3.5 h-3.5 text-green-500" />{" "}
-                                Kế hoạch tập luyện từ AI cá nhân hóa
-                              </li>
-                              <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <Check className="w-3.5 h-3.5 text-green-500" />{" "}
-                                Hỗ trợ chat trực tiếp
-                              </li>
-                            </ul>
-                            {opt.mode !== null ? (
+                              <ul className="space-y-1 mb-3 mt-2">
+                                <li className="flex items-center gap-1.5 text-xs text-zinc-400">
+                                  <Check className="w-3.5 h-3.5 text-green-500" />{" "}
+                                  Kế hoạch tập luyện từ AI cá nhân hóa
+                                </li>
+                                <li className="flex items-center gap-1.5 text-xs text-zinc-400">
+                                  <Check className="w-3.5 h-3.5 text-green-500" />{" "}
+                                  Hỗ trợ chat trực tiếp
+                                </li>
+                                {pkg.description && (
+                                  <li className="flex items-center gap-1.5 text-xs text-zinc-400 mt-2 italic">
+                                    {pkg.description}
+                                  </li>
+                                )}
+                              </ul>
                               <button
-                                onClick={() =>
-                                  handleRequestCoaching(
-                                    "PER_SESSION",
-                                    opt.mode!,
-                                  )
-                                }
-                                className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
+                                onClick={() => handleRequestCoaching(pkg)}
+                                className={`w-full py-2.5 text-sm font-bold rounded-lg transition-all ${
+                                  isPerSession
+                                    ? "bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20"
+                                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60"
+                                }`}
                               >
                                 Yêu cầu huấn luyện
                               </button>
-                            ) : (
-                              <p className="text-center text-xs text-zinc-600 italic">
-                                PT cần cập nhật hình thức dịch vụ
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {/* Package options */}
-                      {packageOptions.map((opt, idx) => {
-                        const isBest = opt.pricePerSess === bestPkgRate;
-                        return (
-                          <div
-                            key={idx}
-                            className={`border rounded-xl p-4 transition-all ${isBest ? "border-green-500/50 bg-green-500/5" : "border-zinc-700/60"}`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-bold text-zinc-200">
-                                    {opt.label}
-                                  </span>
-                                  {isBest && (
-                                    <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">
-                                      Tiết kiệm nhất
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-zinc-500">
-                                  {formatVND(opt.pricePerSess)}/buổi · Gói nhiều
-                                  buổi
-                                </div>
-                              </div>
-                              <span className="text-base font-bold text-green-400">
-                                {formatVND(opt.price)}
-                              </span>
                             </div>
-                            {opt.mode !== null ? (
-                              <button
-                                onClick={() =>
-                                  handleRequestCoaching("PACKAGE", opt.mode!)
-                                }
-                                className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-lg transition-all border border-zinc-700/60"
-                              >
-                                Yêu cầu huấn luyện
-                              </button>
-                            ) : (
-                              <p className="text-center text-xs text-zinc-600 italic">
-                                PT cần cập nhật hình thức dịch vụ
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {/* Fallback if no prices */}
-                      {perSessionOptions.length === 0 &&
-                        packageOptions.length === 0 && (
-                          <div className="border rounded-xl p-4 border-zinc-700/60 text-center">
-                            <p className="text-sm text-zinc-500">
-                              Liên hệ huấn luyện viên để biết chi tiết giá.
-                            </p>
-                          </div>
-                        )}
-
-                      {app?.additionalPricingNotes && (
-                        <p className="text-xs text-zinc-600 italic px-1">
-                          {app.additionalPricingNotes}
-                        </p>
+                          );
+                        })
+                      ) : (
+                        <div className="border rounded-xl p-4 border-zinc-700/60 text-center">
+                          <p className="text-sm text-zinc-500">
+                            Liên hệ huấn luyện viên để biết chi tiết giá.
+                          </p>
+                        </div>
                       )}
                     </div>
 
@@ -1112,131 +1003,124 @@ export function PTDiscoveryPage() {
                     {selectedPT.firstName} {selectedPT.lastName}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    {requestType === "PER_SESSION"
+                    {/* `requestType` was referenced here with no declaration anywhere in this
+                        component — an orphaned leftover that threw "requestType is not defined"
+                        and crashed this modal outright the instant it opened, for every package.
+                        Real bug found live while testing the PT-hiring flow. Fixed to match the
+                        same isPerSession check (`sessionCount === 1`) used elsewhere in this file. */}
+                    {selectedPackage?.sessionCount === 1
                       ? "Theo buổi"
                       : "Gói dịch vụ"}
-                    {selectedSessionMode
-                      ? ` · ${selectedSessionMode === "ONLINE" ? "Online" : "Offline"}`
-                      : ""}
+                    {" · "}
+                    {selectedPackage?.sessionMode === "ONLINE" ? "Online" : "Offline"}
                   </div>
                 </div>
               </div>
 
-              {requestType === "PER_SESSION" ? (
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                    Số buổi tập
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={requestSessions}
-                    onChange={(e) =>
-                      setRequestSessions(
-                        Math.max(1, parseInt(e.target.value) || 1),
-                      )
-                    }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  />
+              {lowAvailabilityData && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-amber-500">
+                  <h4 className="font-bold text-sm mb-1">
+                    Cảnh báo lịch trống
+                  </h4>
+                  <p className="text-xs mb-3">
+                    Lịch của huấn luyện viên hiện tại có khá ít slot trống (
+                    {lowAvailabilityData.availableSlots} slot) so với số buổi
+                    của gói tập ({lowAvailabilityData.packageSessions} buổi).
+                    Bạn có chắc chắn muốn mua gói này?
+                  </p>
+                  {lowAvailabilityData.nearestAvailableSlot ? (
+                    <p className="text-xs mb-3">
+                      Lịch trống gần nhất:{" "}
+                      <span className="font-semibold">
+                        {/* Built from the "YYYY-MM-DD"+"HH:MM" pair as local wall-clock values
+                            (not parsed as a UTC instant) — the same reasoning as
+                            localDateKey() server-side: this date already IS the local day the
+                            slot falls on, so re-interpreting it through a UTC-then-shift-back
+                            round trip risks landing on the wrong day for the reader. */}
+                        {(() => {
+                          const [y, m, d] = lowAvailabilityData.nearestAvailableSlot.date
+                            .split("-")
+                            .map(Number);
+                          return new Date(y, m - 1, d).toLocaleDateString("vi-VN", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          });
+                        })()}{" "}
+                        lúc {lowAvailabilityData.nearestAvailableSlot.startTime}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-xs mb-3">
+                      Không tìm thấy lịch trống nào trong 60 ngày tới.
+                    </p>
+                  )}
+                  <button
+                    onClick={() => submitRequest(true)}
+                    disabled={requestMutation.isPending}
+                    className="w-full py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-xs font-bold rounded-lg transition-all"
+                  >
+                    {requestMutation.isPending ? "Đang gửi…" : "Vẫn tiếp tục mua"}
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                        Số lượng gói
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={packageQuantity}
-                        onChange={(e) =>
-                          setPackageQuantity(
-                            Math.max(1, parseInt(e.target.value) || 1),
-                          )
-                        }
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                        Buổi thêm
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={extraSessions}
-                        onChange={(e) =>
-                          setExtraSessions(
-                            Math.max(0, parseInt(e.target.value) || 0),
-                          )
-                        }
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                      />
-                    </div>
+              )}
+
+              {!lowAvailabilityData && (
+                <div className="space-y-1 bg-zinc-800/50 rounded-lg px-3 py-3 border border-zinc-700/40">
+                  <div className="flex justify-between text-xs text-zinc-500">
+                    <span>Tổng buổi tập</span>
+                    <span className="font-semibold text-zinc-300">
+                      {selectedPackage?.sessionCount} buổi
+                    </span>
                   </div>
-                  <div className="text-[10px] text-zinc-500 italic bg-zinc-800/30 p-2 rounded-lg border border-zinc-700/30">
-                    * Mỗi gói gồm{" "}
-                    <span className="text-zinc-300 font-bold">
-                      {selectedPT.ptApplication?.sessionsPerPackage || 10}
-                    </span>{" "}
-                    buổi. Buổi thêm tính theo giá mỗi buổi của gói.
+                  <div className="flex justify-between text-sm pt-1 border-t border-zinc-700/30 mt-1">
+                    <span className="text-zinc-400 font-medium">
+                      Dự kiến tổng
+                    </span>
+                    <span className="font-bold text-green-400">
+                      {formatVND(Number(selectedPackage?.price || 0))}
+                    </span>
                   </div>
                 </div>
               )}
 
-              {(() => {
-                const app = selectedPT.ptApplication;
-                const priceForCalc =
-                  requestType === "PER_SESSION"
-                    ? selectedSessionMode === "ONLINE"
-                      ? (app?.onlinePricePerSession ?? app?.desiredSessionPrice)
-                      : selectedSessionMode === "OFFLINE"
-                        ? (app?.offlinePricePerSession ??
-                          app?.desiredSessionPrice)
-                        : app?.desiredSessionPrice
-                    : selectedSessionMode === "ONLINE"
-                      ? (app?.onlinePackagePrice ?? app?.packagePrice)
-                      : selectedSessionMode === "OFFLINE"
-                        ? (app?.offlinePackagePrice ?? app?.packagePrice)
-                        : app?.packagePrice;
-
-                let totalPrice = 0;
-                let totalSess = 0;
-
-                if (requestType === "PER_SESSION") {
-                  totalSess = requestSessions;
-                  totalPrice = (priceForCalc || 0) * requestSessions;
-                } else {
-                  const sessPerPack = app?.sessionsPerPackage || 10;
-                  totalSess = sessPerPack * packageQuantity + extraSessions;
-                  const unitPrice =
-                    sessPerPack > 0 ? (priceForCalc || 0) / sessPerPack : 0;
-                  totalPrice =
-                    (priceForCalc || 0) * packageQuantity +
-                    extraSessions * unitPrice;
-                }
-
-                return totalPrice > 0 ? (
-                  <div className="space-y-1 bg-zinc-800/50 rounded-lg px-3 py-3 border border-zinc-700/40">
-                    <div className="flex justify-between text-xs text-zinc-500">
-                      <span>Tổng buổi tập</span>
-                      <span className="font-semibold text-zinc-300">
-                        {totalSess} buổi
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm pt-1 border-t border-zinc-700/30 mt-1">
-                      <span className="text-zinc-400 font-medium">
-                        Dự kiến tổng
-                      </span>
-                      <span className="font-bold text-green-400">
-                        {formatVND(totalPrice)}
-                      </span>
-                    </div>
-                  </div>
-                ) : null;
-              })()}
+              {selectedPackage?.sessionMode === "OFFLINE" && (
+                <div>
+                  <label
+                    htmlFor="contract-gym"
+                    className="text-xs font-semibold text-zinc-400 mb-1.5 block"
+                  >
+                    Tập tại phòng gym nào?
+                  </label>
+                  <select
+                    id="contract-gym"
+                    value={selectedGymId}
+                    onChange={(e) => setSelectedGymId(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                  >
+                    <option value="">Không qua phòng gym</option>
+                    {partnerGyms.map((g: any) => (
+                      <option key={g.gym.id} value={g.gym.id}>
+                        {g.gym.name}
+                        {g.gym.city ? ` — ${g.gym.city}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-zinc-600 mt-1.5 leading-snug">
+                    {selectedGymId
+                      ? (() => {
+                          const g = partnerGyms.find((x: any) => x.gym.id === selectedGymId);
+                          return g
+                            ? `Chia doanh thu: PT ${Math.round(Number(g.ptRate) * 100)}% · phòng gym ${Math.round(Number(g.gymRate) * 100)}% · nền tảng ${Math.round(Number(g.platformRate) * 100)}%.`
+                            : "";
+                        })()
+                      : partnerGyms.length > 0
+                        ? "Chọn phòng gym nếu bạn tập tại đó — phòng gym sẽ được chia một phần doanh thu."
+                        : "Huấn luyện viên này chưa hợp tác với phòng gym nào."}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
@@ -1258,16 +1142,18 @@ export function PTDiscoveryPage() {
               >
                 Hủy
               </button>
-              <button
-                onClick={submitRequest}
-                disabled={requestMutation.isPending}
-                className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-              >
-                {requestMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : null}
-                {requestMutation.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
-              </button>
+              {!lowAvailabilityData && (
+                <button
+                  onClick={() => submitRequest()}
+                  disabled={requestMutation.isPending}
+                  className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                >
+                  {requestMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  {requestMutation.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,39 +1,47 @@
 import { z } from "zod";
 import { safeParseJsonCandidate } from "../utils/json";
 
+const emptyStringToUndefined = (value: unknown) =>
+  value === "" ? undefined : value;
+
+const optionalCoercedNumber = (schema: z.ZodNumber) =>
+  z.preprocess(emptyStringToUndefined, z.coerce.number().pipe(schema).optional());
+
 // ── Request schemas ──────────────────────────────────────────────────────────
 
 export const GenerateNutritionPlanRequestSchema = z.object({
   // ── Core ──────────────────────────────────────────────────────────────────
   goal: z.string().min(1).max(200),
   durationWeeks: z
-    .number()
+    .coerce.number()
     .int()
     .min(1)
     .max(1, {
       message: "Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.",
     })
     .default(1),
-  mealsPerDay: z.number().int().min(2).max(6).default(3),
-  dailyCaloriesTarget: z.number().int().min(500).max(10000).optional(),
+  mealsPerDay: z.coerce.number().int().min(2).max(6).default(3),
+  dailyCaloriesTarget: optionalCoercedNumber(
+    z.number().int().min(500).max(10000),
+  ),
   dietPreference: z.string().max(100).optional(),
   budgetLevel: z.string().max(50).optional(),
   restrictions: z.array(z.string().max(200)).max(20).optional(),
   notes: z.string().max(1000).optional(),
 
   // ── Body stats ────────────────────────────────────────────────────────────
-  weightKg: z.number().min(30).max(300).optional(),
-  heightCm: z.number().min(100).max(250).optional(),
-  age: z.number().int().min(10).max(100).optional(),
+  weightKg: optionalCoercedNumber(z.number().min(30).max(300)),
+  heightCm: optionalCoercedNumber(z.number().min(100).max(250)),
+  age: optionalCoercedNumber(z.number().int().min(10).max(100)),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  bodyFatPct: z.number().min(1).max(60).optional(),
+  bodyFatPct: optionalCoercedNumber(z.number().min(1).max(60)),
 
   // ── Activity & training ───────────────────────────────────────────────────
   activityLevel: z
     .enum(["SEDENTARY", "LIGHT", "MODERATE", "HIGH", "VERY_HIGH"])
     .optional(),
-  trainingDaysPerWeek: z.number().int().min(0).max(7).optional(),
-  trainingDurationMin: z.number().int().min(10).max(300).optional(),
+  trainingDaysPerWeek: optionalCoercedNumber(z.number().int().min(0).max(7)),
+  trainingDurationMin: optionalCoercedNumber(z.number().int().min(10).max(300)),
   trainingType: z.string().max(100).optional(),
 
   // ── Advanced phase ────────────────────────────────────────────────────────
@@ -42,12 +50,14 @@ export const GenerateNutritionPlanRequestSchema = z.object({
     .enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "ATHLETE"])
     .optional(),
   primaryPriority: z.string().max(200).optional(),
-  weightChangeRateKgPerWeek: z.number().min(-2).max(2).optional(),
+  weightChangeRateKgPerWeek: optionalCoercedNumber(
+    z.number().min(-2).max(2),
+  ),
 
   // ── Macro preferences ─────────────────────────────────────────────────────
-  proteinTargetG: z.number().min(50).max(500).optional(),
-  carbTargetG: z.number().min(0).max(1000).optional(),
-  fatTargetG: z.number().min(20).max(300).optional(),
+  proteinTargetG: optionalCoercedNumber(z.number().min(50).max(500)),
+  carbTargetG: optionalCoercedNumber(z.number().min(0).max(1000)),
+  fatTargetG: optionalCoercedNumber(z.number().min(20).max(300)),
   carbsAroundWorkout: z.boolean().optional(),
   preworkoutMeal: z.boolean().optional(),
   postworkoutMeal: z.boolean().optional(),

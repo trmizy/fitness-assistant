@@ -7,9 +7,10 @@ import { RegisterPage } from "./pages/auth/RegisterPage";
 // Client pages
 import { ClientDashboard } from "./pages/client/ClientDashboard";
 import { InBodyModule } from "./pages/client/InBodyModule";
-import { ContractPage } from "./pages/client/ContractPage";
 import { NutritionPage } from "./pages/client/NutritionPage";
 import { ProfilePage } from "./pages/client/ProfilePage";
+import { OnboardingWizardPage } from "./pages/client/OnboardingWizardPage";
+import { TrainingEquipmentSettingsPage } from "./pages/client/TrainingEquipmentSettingsPage";
 import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { WalletPage } from "./pages/client/WalletPage";
 import { PaymentResultPage } from "./pages/client/PaymentResultPage";
@@ -19,9 +20,9 @@ import { ChatPage } from "./pages/client/ChatPage"; // reused directly by /pt/ch
 // under one sidebar item (see TabbedPage) to shorten the nav for mobile.
 import { PlansPage } from "./pages/client/PlansPage";
 import { TrainingPage } from "./pages/client/TrainingPage";
-import { CoachingPage } from "./pages/client/CoachingPage";
-import { GymPage } from "./pages/client/GymPage";
+import { ServicesPage } from "./pages/client/ServicesPage";
 import { ChatCoachPage } from "./pages/client/ChatCoachPage";
+import { PersonalizedServiceOrderPage } from "./pages/client/PersonalizedServiceOrderPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -32,8 +33,10 @@ import { PlanReviewPage } from "./pages/pt/PlanReviewPage";
 import { PTSchedulePage } from "./pages/pt/PTSchedulePage";
 import { PTProfilePage } from "./pages/pt/PTProfilePage";
 import { PTWalletPage } from "./pages/pt/PTWalletPage";
+import { PTServiceOrderPage } from "./pages/pt/PTServiceOrderPage";
 
 // Gym owner pages
+import { GymOwnerDashboard } from "./pages/gym-owner/GymOwnerDashboard";
 import { MyGymsPage } from "./pages/gym-owner/MyGymsPage";
 import { GymManagePage } from "./pages/gym-owner/GymManagePage";
 
@@ -42,6 +45,8 @@ import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { MarketplaceModeration } from "./pages/admin/MarketplaceModeration";
+import { AdminExerciseReview } from "./pages/admin/AdminExerciseReview";
+import { PTServiceRefunds } from "./pages/admin/PTServiceRefunds";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 import { AdminAIObservability } from "./pages/admin/AdminAIObservability";
@@ -50,6 +55,7 @@ import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { RequireRole } from "./components/RequireRole";
+import { RequireOnboarding } from "./components/RequireOnboarding";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
 
@@ -100,26 +106,34 @@ export const router = createBrowserRouter([
       // ── Client workspace ────────────────────────────────────────────────
       {
         path: "client",
-        Component: AppShell,
+        element: (
+          <RequireOnboarding>
+            <AppShell />
+          </RequireOnboarding>
+        ),
         children: [
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
+          { path: "onboarding", Component: OnboardingWizardPage },
+          { path: "training-equipment", Component: TrainingEquipmentSettingsPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },
-          { path: "contracts", Component: ContractPage },
+          { path: "marketplace-orders/:id", Component: PersonalizedServiceOrderPage },
+          { path: "services", Component: ServicesPage },
+          { path: "contracts", Component: ServicesPage },
           { path: "chat", Component: ChatCoachPage },
-          { path: "booking", Component: CoachingPage },
+          { path: "booking", Component: ServicesPage },
           { path: "workout", Component: TrainingPage },
           { path: "nutrition", Component: NutritionPage },
-          { path: "coaches", Component: CoachingPage },
+          { path: "coaches", Component: ServicesPage },
           { path: "ai-coach", Component: ChatCoachPage },
           { path: "profile", Component: ProfilePage },
           { path: "pt-application", Component: PTApplicationPage },
           { path: "wallet", Component: WalletPage },
           { path: "payments/result", Component: PaymentResultPage },
-          { path: "gyms", Component: GymPage },
+          { path: "gyms", Component: ServicesPage },
           { path: "gyms/:id", Component: GymDetailPage },
-          { path: "gym-memberships", Component: GymPage },
+          { path: "gym-memberships", Component: ServicesPage },
         ],
       },
 
@@ -138,6 +152,7 @@ export const router = createBrowserRouter([
           { path: "clients/:id", Component: PTClientDetail },
           { path: "contracts", Component: PTContractsPage },
           { path: "plans", Component: PlanReviewPage },
+          { path: "service-orders/:id", Component: PTServiceOrderPage },
           { path: "schedule", Component: PTSchedulePage },
           { path: "profile", Component: PTProfilePage },
           { path: "chat", Component: ChatPage },
@@ -154,7 +169,8 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
-          { index: true, element: <Navigate to="/gym-owner/gyms" replace /> },
+          { index: true, element: <Navigate to="/gym-owner/dashboard" replace /> },
+          { path: "dashboard", Component: GymOwnerDashboard },
           { path: "gyms", Component: MyGymsPage },
           { path: "gyms/:id", Component: GymManagePage },
         ],
@@ -174,6 +190,8 @@ export const router = createBrowserRouter([
           { path: "users", Component: UserManagement },
           { path: "pts", Component: PTManagement },
           { path: "marketplace", Component: MarketplaceModeration },
+          { path: "exercise-review", Component: AdminExerciseReview },
+          { path: "pt-service-refunds", Component: PTServiceRefunds },
           { path: "system", Component: SystemMonitoring },
           { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },

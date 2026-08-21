@@ -122,9 +122,19 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.GymBrandScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.GymScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
+  brandId: 'brandId',
   name: 'name',
   description: 'description',
   address: 'address',
@@ -145,6 +155,8 @@ exports.Prisma.GymMembershipPlanScalarFieldEnum = {
   durationDays: 'durationDays',
   visitLimit: 'visitLimit',
   status: 'status',
+  saleStartAt: 'saleStartAt',
+  saleEndAt: 'saleEndAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -162,6 +174,8 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   durationDaysSnapshot: 'durationDaysSnapshot',
   totalVisits: 'totalVisits',
   usedVisits: 'usedVisits',
+  payoutReleasedAt: 'payoutReleasedAt',
+  multiGymWarned: 'multiGymWarned',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -176,6 +190,58 @@ exports.Prisma.GymTrainerAffiliationScalarFieldEnum = {
   commissionRate: 'commissionRate',
   invitedBy: 'invitedBy',
   joinedAt: 'joinedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymCheckInScalarFieldEnum = {
+  id: 'id',
+  membershipId: 'membershipId',
+  gymId: 'gymId',
+  clientId: 'clientId',
+  checkedInBy: 'checkedInBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymReviewScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  clientId: 'clientId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPtCollaborationScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  ptUserId: 'ptUserId',
+  proposedPtRate: 'proposedPtRate',
+  proposedGymRate: 'proposedGymRate',
+  platformRate: 'platformRate',
+  status: 'status',
+  proposedBy: 'proposedBy',
+  round: 'round',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  terminatedAt: 'terminatedAt',
+  terminatedBy: 'terminatedBy',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymMembershipReferralScalarFieldEnum = {
+  id: 'id',
+  membershipContractId: 'membershipContractId',
+  gymId: 'gymId',
+  referrerPtUserId: 'referrerPtUserId',
+  rate: 'rate',
+  amount: 'amount',
+  clawedBack: 'clawedBack',
+  status: 'status',
+  releasedAt: 'releasedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -231,11 +297,30 @@ exports.GymTrainerVisibility = exports.$Enums.GymTrainerVisibility = {
   INTERNAL_ONLY: 'INTERNAL_ONLY'
 };
 
+exports.CollaborationStatus = exports.$Enums.CollaborationStatus = {
+  PENDING: 'PENDING',
+  COUNTERED: 'COUNTERED',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  TERMINATED: 'TERMINATED'
+};
+
+exports.CollaborationParty = exports.$Enums.CollaborationParty = {
+  PT: 'PT',
+  GYM: 'GYM'
+};
+
 exports.Prisma.ModelName = {
+  GymBrand: 'GymBrand',
   Gym: 'Gym',
   GymMembershipPlan: 'GymMembershipPlan',
   GymMembershipContract: 'GymMembershipContract',
-  GymTrainerAffiliation: 'GymTrainerAffiliation'
+  GymTrainerAffiliation: 'GymTrainerAffiliation',
+  GymCheckIn: 'GymCheckIn',
+  GymReview: 'GymReview',
+  GymPtCollaboration: 'GymPtCollaboration',
+  GymMembershipReferral: 'GymMembershipReferral'
 };
 
 /**

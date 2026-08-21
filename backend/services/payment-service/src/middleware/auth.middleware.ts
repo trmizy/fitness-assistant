@@ -28,9 +28,9 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001'
  * headers directly off the incoming request. Those are ordinary HTTP
  * headers any caller can set, and payment-service's port is published
  * directly on the host in docker-compose.dev.yml — combined with the
- * wallet top-up endpoint's MOCK provider, bypassing the gateway and setting
- * x-user-id by hand would previously have let anyone credit ANY wallet with
- * fake money. Verifying the JWT independently means an attacker needs a
+ * wallet top-up endpoint's since-removed MOCK provider, bypassing the gateway
+ * and setting x-user-id by hand would previously have let anyone credit ANY
+ * wallet with fake money. Verifying the JWT independently means an attacker needs a
  * real, valid token for the specific identity they want to act as — not
  * just knowledge of a header name — regardless of how the request reached
  * this service.

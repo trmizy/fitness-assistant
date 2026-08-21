@@ -29,7 +29,7 @@ export function RegisterPage() {
   const [otp, setOtp] = useState("");
 
   const [profile, setProfile] = useState({
-    age: "",
+    dateOfBirth: "",
     gender: "MALE",
     heightCm: "",
     currentWeight: "",
@@ -99,12 +99,11 @@ export function RegisterPage() {
   };
 
   const handleSaveProfile = async () => {
-    const ageVal = parseInt(profile.age);
     const heightVal = parseFloat(profile.heightCm);
     const weightVal = parseFloat(profile.currentWeight);
 
     if (
-      !profile.age ||
+      !profile.dateOfBirth ||
       !profile.heightCm ||
       !profile.currentWeight ||
       !profile.gender ||
@@ -114,8 +113,11 @@ export function RegisterPage() {
       return;
     }
 
-    if (isNaN(ageVal) || ageVal < 13 || ageVal > 120) {
-      toast.error("Vui lòng nhập tuổi hợp lệ (13–120)");
+    const dob = new Date(profile.dateOfBirth);
+    const ageDiff = Date.now() - dob.getTime();
+    const ageYears = new Date(ageDiff).getUTCFullYear() - 1970;
+    if (isNaN(dob.getTime()) || ageYears < 13 || ageYears > 120) {
+      toast.error("Ngày sinh không hợp lệ (phải từ 13 tuổi trở lên)");
       return;
     }
 
@@ -125,7 +127,7 @@ export function RegisterPage() {
         gender: profile.gender,
         activityLevel: profile.activityLevel,
         goal: profile.goal,
-        age: ageVal,
+        dateOfBirth: profile.dateOfBirth,
         heightCm: heightVal,
         currentWeight: weightVal,
       };
@@ -276,15 +278,16 @@ export function RegisterPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
-                    Tuổi
+                    Ngày sinh
                   </label>
                   <input
-                    value={profile.age}
+                    type="date"
+                    value={profile.dateOfBirth}
+                    max={new Date().toISOString().slice(0, 10)}
                     onChange={(e) =>
-                      setProfile({ ...profile, age: e.target.value })
+                      setProfile({ ...profile, dateOfBirth: e.target.value })
                     }
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
-                    placeholder=""
                   />
                 </div>
                 <div>
@@ -419,7 +422,7 @@ export function RegisterPage() {
                 disabled={
                   loading ||
                   (step === 2 &&
-                    (!profile.age ||
+                    (!profile.dateOfBirth ||
                       !profile.gender ||
                       !profile.heightCm ||
                       !profile.currentWeight)) ||

@@ -41,4 +41,9 @@ COPY --from=builder /app/backend/services/user-service/prisma ./backend/services
 WORKDIR /app/backend/services/user-service
 RUN mkdir -p uploads/pt-applications
 EXPOSE 3004
-CMD ["node", "dist/server.js"]
+# Every sibling service's production Dockerfile runs `prisma migrate deploy`
+# before starting (auth/fitness/chat/payment/gym) — this one didn't, which
+# means a fresh production database would have no user-service tables at
+# all. `exec` (not a plain `node dist/server.js` fork) so SIGTERM reaches
+# the app's shutdown handler instead of being swallowed by the shell.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node dist/server.js"]

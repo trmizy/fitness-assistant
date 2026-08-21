@@ -1,5 +1,8 @@
 # n8n Integration - Detailed Current State (fitness-assistant)
 
+> Point-in-time integration report. For current startup commands and Compose
+> profiles, use `docs/setup/README.md`; use this file for n8n design details.
+
 ## 1. Purpose and scope
 
 This document is the detailed operational reference for n8n integration in this repository.

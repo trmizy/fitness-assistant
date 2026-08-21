@@ -10,12 +10,25 @@ node_modules/
 # ------------------------------
 dist/
 build/
+**/.build/
 coverage/
 .turbo/
 .cache/
 *.tsbuildinfo
 *.tmp
 *.temp
+
+# ------------------------------
+# Terraform local state/plugins — provider binaries alone can exceed 1GB
+# and must never be committed (blocked a real push to master on
+# 2026-08-20: two .exe provider plugins over GitHub's 100MB limit).
+# ------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
 
 # ------------------------------
 # Logs
@@ -50,6 +63,7 @@ Thumbs.db
 .idea/
 .vscode/
 .claude/
+.playwright-cli/
 
 # ------------------------------
 # Runtime / local data artifacts
@@ -113,3 +127,17 @@ training/llama.cpp/
 backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf
+
+# ── Capacitor Android wrapper (frontend/web) ────────────────────────────────
+# Build outputs + machine-specific SDK path + signing keys are never committed.
+# The generated `android/` project itself IS committed (it carries the manifest
+# permissions and gradle config the APK build depends on).
+frontend/web/android/app/build/
+frontend/web/android/local.properties
+*.keystore
+*.jks
+# LAN-specific API endpoints for the APK build — differs per machine/network.
+frontend/web/.env.capacitor
+
+# Standalone browser QA project may contain authentication state.
+fitnessassistant-playwright-e2e/

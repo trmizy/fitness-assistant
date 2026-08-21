@@ -5,7 +5,9 @@ export interface PlanExplanationResponse {
   warnings: string[];
 }
 import axios from "axios";
+import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
+import { apiBaseUrl } from "../config/serverUrl";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -15,8 +17,10 @@ import { makeRefreshOnce } from "./refresh-once";
 // request. Set VITE_API_URL to an absolute URL only when the frontend must
 // reach a backend that ISN'T proxied same-origin (e.g. a production static
 // build served without an API-proxying reverse proxy in front of it).
-// @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || "/api";
+// Resolved once at module load: a stored override (in-app "Cấu hình máy chủ", used by
+// the Capacitor APK behind a tunnel) wins over VITE_API_URL, which wins over the
+// same-origin "/api" default. Saving a new address reloads the app so this re-runs.
+export const API_URL = apiBaseUrl();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -86,10 +90,10 @@ function hasUsableToken(token: string | null): token is string {
   return !!token && token !== "null" && token !== "undefined";
 }
 
-function clearSessionAndRedirectToLogin() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+async function clearSessionAndRedirectToLogin() {
+  await Preferences.remove({ key: "accessToken" });
+  await Preferences.remove({ key: "refreshToken" });
+  await Preferences.remove({ key: "user" });
   if (
     window.location.pathname !== "/login" &&
     window.location.pathname !== "/register"
@@ -99,7 +103,7 @@ function clearSessionAndRedirectToLogin() {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = localStorage.getItem("refreshToken");
+  const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
   if (!hasUsableToken(refreshToken)) return null;
 
   try {
@@ -107,9 +111,9 @@ async function refreshAccessToken(): Promise<string | null> {
       refreshToken,
     });
     if (hasUsableToken(data?.accessToken)) {
-      localStorage.setItem("accessToken", data.accessToken);
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
       if (hasUsableToken(data?.refreshToken)) {
-        localStorage.setItem("refreshToken", data.refreshToken);
+        await Preferences.set({ key: "refreshToken", value: data.refreshToken });
       }
       return data.accessToken;
     }
@@ -119,8 +123,8 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: "accessToken" });
   if (hasUsableToken(token)) {
     config.headers.Authorization = `Bearer ${token}`;
   } else if (config.headers?.Authorization) {
@@ -175,8 +179,8 @@ export const authService = {
     const { data } = await api.post("/auth/login", { email, password });
     // Store tokens directly from auth service response
     if (data.accessToken) {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
+      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
       return { success: true, user: data.user };
     }
     return { success: false };
@@ -200,16 +204,19 @@ export const authService = {
   verifyRegistration: async (email: string, otp: string) => {
     const { data } = await api.post("/auth/register/verify", { email, otp });
     if (data.accessToken) {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
+      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
+      await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
       return { success: true, user: data.user };
     }
     return { success: false };
   },
 
-  logout: () => {
-    localStorage.clear();
+  logout: async () => {
+    // Only clear session keys — keep theme, language and other non-session preferences.
+    await Preferences.remove({ key: "accessToken" });
+    await Preferences.remove({ key: "refreshToken" });
+    await Preferences.remove({ key: "user" });
     window.location.href = "/login";
   },
 };
@@ -254,9 +261,66 @@ export const profileService = {
     return data;
   },
 
-  listPTs: async () => {
-    const { data } = await api.get("/profile/pts");
+  listPTs: async (params?: Record<string, any>) => {
+    const { data } = await api.get("/profile/pts", { params });
     return data;
+  },
+};
+
+// Gym-onboarding project — normalized equipment catalog + per-user
+// equipment (fitness-service, proxied through the gateway at /equipment).
+export interface EquipmentCatalogItem {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  aliases: string[];
+  description: string | null;
+}
+
+export const equipmentService = {
+  getCatalog: async (): Promise<EquipmentCatalogItem[]> => {
+    const { data } = await api.get("/equipment");
+    return data.equipment;
+  },
+
+  getMyEquipment: async (): Promise<string[]> => {
+    const { data } = await api.get("/equipment/me");
+    return data.equipmentIds;
+  },
+
+  setMyEquipment: async (equipmentIds: string[]): Promise<string[]> => {
+    const { data } = await api.put("/equipment/me", { equipmentIds });
+    return data.equipmentIds;
+  },
+};
+
+// Gym-onboarding project follow-up — "Swap exercise" (session-only, never
+// rewrites the underlying plan). Ranked by movementPattern/muscle overlap/
+// mechanics/equipment availability — see exercise-substitution.service.ts.
+export interface ExerciseSubstitute {
+  id: string;
+  exerciseName: string;
+  bodyPart: string;
+  movementPattern: string | null;
+  mechanics: string | null;
+  muscleGroupsActivated: string[];
+  score: number;
+  reason: string;
+}
+
+export const exerciseService = {
+  getSubstitutes: async (
+    exerciseId: string,
+    options?: { excludeExerciseIds?: string[]; limit?: number },
+  ): Promise<ExerciseSubstitute[]> => {
+    const params = new URLSearchParams();
+    if (options?.excludeExerciseIds?.length) params.set("exclude", options.excludeExerciseIds.join(","));
+    if (options?.limit) params.set("limit", String(options.limit));
+    const { data } = await api.get(
+      `/exercises/${exerciseId}/substitute${params.toString() ? `?${params.toString()}` : ""}`,
+    );
+    return data.substitutes ?? [];
   },
 };
 
@@ -313,6 +377,24 @@ export const inbodyService = {
   },
 };
 
+export interface WorkoutSessionPr {
+  exerciseId: string;
+  exerciseName: string;
+  weightKg: number;
+  reps: number | null;
+  estimated1RmKg: number;
+  previousBestWeightKg: number;
+  previousBestEstimated1RmKg: number;
+}
+
+export interface WorkoutSessionSummary {
+  workoutId: string;
+  exerciseCount: number;
+  totalSets: number;
+  totalVolumeKg: number;
+  prs: WorkoutSessionPr[];
+}
+
 export const workoutService = {
   logWorkout: async (workout: any) => {
     const { data } = await api.post("/workouts", workout);
@@ -363,6 +445,42 @@ export const workoutService = {
     return data;
   },
 
+  // Batch lookup by id — used to resolve muscle/equipment metadata for
+  // exercises referenced (by exerciseId) from AI-generated plan content,
+  // which only ever stores {exerciseId, order, name, sets, reps,
+  // restSeconds, note} and never the catalog's own descriptive fields.
+  getExercisesByIds: async (ids: string[]) => {
+    if (ids.length === 0) return [];
+    const { data } = await api.get(`/exercises?ids=${ids.map(encodeURIComponent).join(",")}`);
+    return data?.data?.exercises ?? (Array.isArray(data) ? data : []);
+  },
+
+  // Gate 6 (exercise/anatomy data-expansion roadmap) — canonical muscle
+  // taxonomy (29 entries) for the muscle-map legend, and the real
+  // per-exercise primary/secondary mapping. Both unwrapped, matching
+  // getExercise's existing single-resource convention (list endpoints
+  // wrap in {success,data}, single-resource ones don't — an existing,
+  // real inconsistency in the backend, not introduced here).
+  getMuscleTaxonomy: async (): Promise<
+    Array<{ code: string; nameVi: string; nameEn: string | null; anatomyRegion: string | null }>
+  > => {
+    const { data } = await api.get("/exercises/muscles");
+    return data?.muscles ?? [];
+  },
+
+  getExerciseMuscleMap: async (
+    exerciseId: string,
+  ): Promise<{
+    exerciseId: string;
+    exerciseName: string;
+    mapped: boolean;
+    primary: Array<{ code: string; nameVi: string; nameEn: string | null; anatomyRegion: string | null }>;
+    secondary: Array<{ code: string; nameVi: string; nameEn: string | null; anatomyRegion: string | null }>;
+  }> => {
+    const { data } = await api.get(`/exercises/${exerciseId}/muscle-map`);
+    return data;
+  },
+
   getStats: async () => {
     const { data } = await api.get("/stats/workouts");
     return data;
@@ -384,6 +502,11 @@ export const workoutService = {
       ? `/workouts/prs?exerciseId=${exerciseId}`
       : "/workouts/prs";
     const { data } = await api.get(url);
+    return data;
+  },
+
+  getSessionSummary: async (workoutId: string): Promise<WorkoutSessionSummary> => {
+    const { data } = await api.get(`/workouts/${workoutId}/summary`);
     return data;
   },
 
@@ -439,6 +562,16 @@ export const workoutService = {
     return data;
   },
 
+  skipSchedule: async (id: string, notes?: string) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/skip`, notes ? { notes } : {});
+    return data?.data ?? data;
+  },
+
+  cancelSchedule: async (id: string, reason: string) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/cancel`, { reason });
+    return data?.data ?? data;
+  },
+
   createSchedule: async (input: {
     date: string;
     programDayId: string;
@@ -460,9 +593,22 @@ export const workoutService = {
   completeScheduleExercise: async (
     scheduleId: string,
     programExerciseId: string,
+    // Hardening pass §3 — what was ACTUALLY performed (weight/reps/RPE/RIR,
+    // and a session-only exercise swap's replacement id + note). Optional
+    // and backward compatible: omitting it falls back to the plan's
+    // prescribed values, matching the old no-body behavior exactly.
+    performed?: {
+      exerciseId?: string;
+      weight?: number;
+      reps?: number;
+      rpe?: number;
+      rir?: number;
+      notes?: string;
+    },
   ): Promise<WorkoutExerciseCompletionResponse> => {
     const { data } = await api.post(
       `/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/complete`,
+      performed ?? {},
     );
     return data?.data ?? data;
   },
@@ -519,7 +665,12 @@ export const workoutService = {
   },
 };
 
-export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA";
+// Widened (Phase 7 unification) — completeCycle() now writes the same
+// 6-state decision as evaluate() for any cycle with sufficient data (only
+// the INSUFFICIENT_DATA / legacy NEW_PLAN values are exclusively-legacy
+// today). PROGRESS/DELOAD/REBUILD/ADJUST/KEEP overlap with AdaptiveCycleDecision
+// below by design — same underlying CycleDecision engine enum.
+export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA" | "PROGRESS" | "DELOAD" | "REBUILD";
 export type OverallTrend = "PROGRESSING" | "PLATEAU" | "DECLINING";
 
 export interface CycleAlert {
@@ -760,6 +911,21 @@ export interface CycleAssessment {
   userDecision: "PENDING" | "ACCEPTED" | "REJECTED";
   reviewedAt: string | null;
   createdAt: string;
+  // Phase 2 — Adaptive Nutrition Decision Engine, an independent decision
+  // space/lifecycle evaluated at the same touchpoint (see
+  // docs/body-state-and-adaptive-planning.md).
+  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
+  nutritionConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
+  nutritionSignals: Record<string, unknown> | null;
+  nutritionProposedChanges: { calories?: number; protein?: number; carbs?: number; fat?: number } | null;
+  nutritionReasonCodes: string[] | null;
+  nutritionEvidenceIds: string[] | null;
+  nutritionRequiresConfirmation: boolean;
+  nutritionUserDecision: "PENDING" | "ACCEPTED" | "REJECTED";
+  nutritionReviewedAt: string | null;
+  appliedNutritionGoalId: string | null;
+  nutritionAiHeadline: string | null;
+  nutritionAiExplanation: string | null;
 }
 
 export const trainingCycleService = {
@@ -780,9 +946,16 @@ export const trainingCycleService = {
   },
 
   complete: async (id: string, endInbodyId?: string) => {
+    // Closing a cycle now runs the same synchronous Adaptive Decision
+    // Engine + LLM explanation call as evaluate() below (Phase 7
+    // unification — completeCycle() no longer fires the old analysis
+    // off in the background). Needs the same 120s override for the same
+    // reason: the shared `api` instance's flat 10s default would abort
+    // this call client-side before the server-side LLM round-trip finishes.
     const { data } = await api.post<TrainingCycle>(
       `/training-cycles/${id}/complete`,
       endInbodyId ? { endInbodyId } : {},
+      { timeout: 120000 },
     );
     return data;
   },
@@ -875,6 +1048,23 @@ export const trainingCycleService = {
     return data;
   },
 
+  // Phase 2 — independent from the training accept/reject above.
+  acceptNutritionRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/nutrition-recommendation/accept`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
+  rejectNutritionRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/nutrition-recommendation/reject`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
   linkInBodyEntry: async (id: string, inbodyEntryId: string) => {
     const { data } = await api.post(`/training-cycles/${id}/inbody-links`, { inbodyEntryId });
     return data;
@@ -900,6 +1090,152 @@ export const trainingCycleService = {
     const { data } = await api.post(`/training-cycles/${cycleId}/sessions/${scheduleId}/feedback`, input);
     return data;
   },
+
+  // Phase 3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — deterministic
+  // (no-AI) aggregate stats over every session-feedback row in the cycle.
+  getSessionFeedbackSummary: async (id: string) => {
+    const { data } = await api.get<CycleFeedbackSummary>(`/training-cycles/${id}/session-feedback-summary`);
+    return data;
+  },
+};
+
+// ── Phase 2/3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md ────────────────
+// Richer session feedback addressed directly by workoutScheduleId (works for
+// sessions outside a cycle too), plus the deterministic cycle-level summary.
+
+export type SessionFeedbackDifficulty = "too_easy" | "just_right" | "too_hard";
+export type SessionFeedbackEnjoyment = "low" | "medium" | "high";
+export type SessionFeedbackWouldRepeat = "yes" | "no" | "unsure";
+export type SessionFeedbackPerceivedProgress = "better_than_last_time" | "same" | "worse" | "unsure";
+export type ExerciseFeedbackIssueType =
+  | "too_heavy"
+  | "too_light"
+  | "too_many_sets"
+  | "too_few_sets"
+  | "uncomfortable"
+  | "pain"
+  | "boring"
+  | "liked"
+  | "confusing"
+  | "equipment_unavailable";
+export type SessionSkipReason =
+  | "fatigue"
+  | "pain"
+  | "schedule_conflict"
+  | "motivation"
+  | "illness"
+  | "equipment_unavailable"
+  | "too_hard_previous_session"
+  | "other";
+
+export interface ExerciseFeedbackItemInput {
+  exerciseId: string;
+  rating?: number;
+  issueType?: ExerciseFeedbackIssueType;
+  note?: string;
+}
+
+export interface CompletionFeedbackInput {
+  readinessScore?: number;
+  sessionRpe?: number;
+  painScore?: number;
+  notes?: string;
+  sessionRating?: number;
+  difficulty?: SessionFeedbackDifficulty;
+  enjoyment?: SessionFeedbackEnjoyment;
+  fatigueAfterSession?: number;
+  painLocation?: string;
+  wouldRepeatSession?: SessionFeedbackWouldRepeat;
+  perceivedProgress?: SessionFeedbackPerceivedProgress;
+  exerciseFeedback?: ExerciseFeedbackItemInput[];
+}
+
+export interface SkipCancelFeedbackInput {
+  skipReason: SessionSkipReason;
+  notes?: string;
+  shouldAdjustPlan?: boolean;
+  userAvailableMakeupDay?: string;
+}
+
+export interface SessionFeedbackRecord {
+  id: string;
+  workoutScheduleId: string;
+  cycleId: string | null;
+  feedbackMissing: boolean;
+  readinessScore: number | null;
+  sessionRpe: number | null;
+  painScore: number | null;
+  notes: string | null;
+  sessionRating: number | null;
+  difficulty: SessionFeedbackDifficulty | null;
+  enjoyment: SessionFeedbackEnjoyment | null;
+  fatigueAfterSession: number | null;
+  painLocation: string | null;
+  wouldRepeatSession: SessionFeedbackWouldRepeat | null;
+  perceivedProgress: SessionFeedbackPerceivedProgress | null;
+  skipReason: SessionSkipReason | null;
+  shouldAdjustPlan: boolean | null;
+  userAvailableMakeupDay: string | null;
+  exerciseFeedback: Array<{ exerciseId: string; rating: number | null; issueType: string | null; note: string | null }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CycleFeedbackSummary {
+  cycleId: string;
+  totalSessions: number;
+  completedSessions: number;
+  partialSessions: number;
+  skippedSessions: number;
+  cancelledSessions: number;
+  feedbackSubmittedCount: number;
+  feedbackMissingCount: number;
+  feedbackCompletionRate: number;
+  averageSessionRating: number | null;
+  averageDifficultyScore: number | null;
+  averageEnjoymentScore: number | null;
+  averageFatigue: number | null;
+  averagePain: number | null;
+  mostCommonIssues: Array<{ issueType: string; count: number }>;
+  mostLikedExercises: string[];
+  mostDislikedExercises: string[];
+  exercisesWithPainReports: string[];
+  sessionsMarkedTooHard: number;
+  sessionsMarkedTooEasy: number;
+  sessionsUserWouldNotRepeat: number;
+  positiveFeedbackCount: number;
+  negativeFeedbackCount: number;
+  neutralFeedbackCount: number;
+  mixedFeedbackCount: number;
+  feedbackSentimentByRules: "positive" | "negative" | "neutral" | "mixed" | "insufficient_feedback";
+  dataQualityScore: number;
+  safetyFlags: string[];
+  equipmentMismatchFlags: string[];
+  adherenceRelatedComplaintFlags: string[];
+  motivationOrBoredomFlags: string[];
+  computedAt: string;
+  updatedAt: string;
+}
+
+export const sessionFeedbackService = {
+  get: async (scheduleId: string) => {
+    const { data } = await api.get<{ feedback: SessionFeedbackRecord | null; feedbackMissing: boolean; sessionStatus: string }>(
+      `/workouts/schedules/${scheduleId}/feedback`,
+    );
+    return data;
+  },
+  submit: async (scheduleId: string, input: CompletionFeedbackInput | SkipCancelFeedbackInput) => {
+    const { data } = await api.post<SessionFeedbackRecord>(`/workouts/schedules/${scheduleId}/feedback`, input);
+    return data;
+  },
+  update: async (scheduleId: string, input: CompletionFeedbackInput | SkipCancelFeedbackInput) => {
+    const { data } = await api.patch<SessionFeedbackRecord>(`/workouts/schedules/${scheduleId}/feedback`, input);
+    return data;
+  },
+  dismiss: async (scheduleId: string) => {
+    const { data } = await api.post<SessionFeedbackRecord>(`/workouts/schedules/${scheduleId}/feedback/dismiss`, {});
+    return data;
+  },
 };
 
 export interface PublishedPlanListing {
@@ -916,6 +1252,19 @@ export interface PublishedPlanListing {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — additive.
+  version?: number;
+  previousVersionId?: string | null;
+  changelog?: string | null;
+  improvementReason?: string | null;
+  approvedBy?: string | null;
+  qualityScore?: number | null;
+  qualityScoreComputedAt?: string | null;
+  // Phase 9 — publisher-qualification gate: true only when the publisher's
+  // role (forwarded from the gateway's x-user-role header) was PT at the
+  // time this version was published/republished.
+  publisherIsVerifiedPt?: boolean;
+  packages?: Array<{ id: string; name: string; price: number }>;
 }
 
 export interface PlanReview {
@@ -925,18 +1274,33 @@ export interface PlanReview {
   rating: number;
   comment: string | null;
   createdAt: string;
+  // Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — additive.
+  goalFit?: number | null;
+  difficultyFit?: "too_easy" | "just_right" | "too_hard" | null;
+  enjoyment?: number | null;
+  clarity?: number | null;
+  equipmentFit?: number | null;
+  timeFit?: number | null;
+  resultsPerception?: "better_than_expected" | "as_expected" | "worse_than_expected" | "too_early_to_tell" | null;
+  wouldUseAgain?: boolean | null;
+  complaintTags?: string[] | null;
+  freeText?: string | null;
 }
 
 export const marketplaceService = {
   browse: async (params?: {
     goal?: string;
-    sort?: "rating" | "recent";
+    sort?: "rating" | "recent" | "quality" | "recommended";
+    daysPerWeek?: number;
+    durationWeeksMax?: number;
     page?: number;
     limit?: number;
   }) => {
     const qs = new URLSearchParams();
     if (params?.goal) qs.set("goal", params.goal);
     if (params?.sort) qs.set("sort", params.sort);
+    if (params?.daysPerWeek) qs.set("daysPerWeek", String(params.daysPerWeek));
+    if (params?.durationWeeksMax) qs.set("durationWeeksMax", String(params.durationWeeksMax));
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
     const { data } = await api.get<{
@@ -954,16 +1318,97 @@ export const marketplaceService = {
   getDetail: async (id: string) => {
     const { data } = await api.get<{
       success: boolean;
-      data: PublishedPlanListing & { reviews: PlanReview[] };
+      data: PublishedPlanListing & {
+        reviews: PlanReview[];
+        packages: Array<{ id: string; name: string; price: number }>;
+        sourcePlan: {
+          duration: number;
+          daysPerWeek: number;
+          plan: {
+            weeklySchedule?: Array<{
+              day: string;
+              goal?: string;
+              exercises: Array<{ exerciseId: string; name: string; sets: number; reps: string; restSeconds?: number; note?: string }>;
+              cardio?: string;
+            }>;
+          };
+        };
+      };
     }>(`/marketplace/plans/${id}`);
     return data.data;
   },
 
-  submitReview: async (id: string, rating: number, comment?: string) => {
+  submitReview: async (
+    id: string,
+    rating: number,
+    comment?: string,
+    // Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — all optional.
+    dimensions?: {
+      goalFit?: number;
+      difficultyFit?: "too_easy" | "just_right" | "too_hard";
+      enjoyment?: number;
+      clarity?: number;
+      equipmentFit?: number;
+      timeFit?: number;
+      resultsPerception?: "better_than_expected" | "as_expected" | "worse_than_expected" | "too_early_to_tell";
+      wouldUseAgain?: boolean;
+      complaintTags?: string[];
+      freeText?: string;
+    },
+  ) => {
     const { data } = await api.post<{ success: boolean; data: PlanReview }>(
       `/marketplace/plans/${id}/reviews`,
-      { rating, comment },
+      { rating, comment, ...dimensions },
     );
+    return data.data;
+  },
+
+  // Phase 8 — versioning
+  republish: async (id: string, input: { sourcePlanId?: string; title?: string; description?: string; changelog: string; improvementReason?: string }) => {
+    const { data } = await api.post<{ success: boolean; data: PublishedPlanListing }>(`/marketplace/plans/${id}/republish`, input);
+    return data.data;
+  },
+  getVersionHistory: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: Array<{ id: string; version: number; title: string; moderation_status: string; changelog: string | null; improvement_reason: string | null; created_at: string }> }>(
+      `/marketplace/plans/${id}/versions`,
+    );
+    return data.data;
+  },
+
+  // Phase 8 — adopt (closes the "no adopt action" gap)
+  adoptPlan: async (
+    id: string,
+    input: {
+      startDate: string;
+      repeatWeeks?: number;
+      selectedWeekdays: number[];
+      replaceExisting?: boolean;
+      // Phase 9 — trim/adjust exercises before import instead of always
+      // getting a rigid, unchangeable copy. Same day-count as the listing;
+      // exerciseIds must already exist in it (trim/adjust only).
+      customizedWeeklySchedule?: Array<{
+        day: string;
+        exercises: Array<{ exerciseId: string; name: string; sets: number; reps: string; restSeconds?: number }>;
+      }>;
+    },
+  ) => {
+    const { data } = await api.post(`/marketplace/plans/${id}/adopt`, input);
+    return data;
+  },
+
+  // Phase 8 — AI improvement suggestions (advisory only, publisher-only)
+  generateImprovementSuggestions: async (id: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: { id: string; suggestions: string[]; commonComplaints: Array<{ tag: string; count: number }>; summary: string; basedOnReviewCount: number; qualityScoreSnapshot: number | null };
+    }>(`/marketplace/plans/${id}/improvement-suggestions`, {}, { timeout: 90000 });
+    return data.data;
+  },
+  listImprovementSuggestions: async (id: string) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: Array<{ id: string; suggestions: string[]; commonComplaints: Array<{ tag: string; count: number }>; summary: string; generatedAt: string }>;
+    }>(`/marketplace/plans/${id}/improvement-suggestions`);
     return data.data;
   },
 
@@ -991,7 +1436,33 @@ export const marketplaceService = {
   adminListForModeration: async (status?: string) => {
     const { data } = await api.get<{
       success: boolean;
-      data: PublishedPlanListing[];
+      data: Array<
+        PublishedPlanListing & {
+          sourcePlan: {
+            duration: number;
+            daysPerWeek: number;
+            plan: {
+              weeklySchedule?: Array<{
+                day: string;
+                goal?: string;
+                exercises: Array<{ name: string; sets: number; reps: string }>;
+                cardio?: string;
+              }>;
+            };
+          };
+          moderationAnalyses: Array<{
+            id: string;
+            computedStats: Record<string, unknown>;
+            ruleFlags: string[];
+            similarListings: Array<{ publishedPlanId: string; title: string; similarityScore: number }>;
+            aiConcerns: string[];
+            aiConfidenceScore: number;
+            aiRecommendation: "likely_safe" | "needs_review" | "likely_unsafe";
+            explanationForAdmin: string;
+            usedFallback: boolean;
+          }>;
+        }
+      >;
     }>(`/admin/ai/marketplace/plans${status ? `?status=${status}` : ""}`);
     return data.data;
   },
@@ -1094,6 +1565,327 @@ export const trainingPackageService = {
   },
 };
 
+// ── Marketplace rework — Personalized PT Service ─────────────────────────
+// A different PRODUCT from TrainingPackage above (which sells a fixed plan
+// unchanged to every buyer): the PT sells personalization capacity, and the
+// actual plan is created per-buyer after Intake, via Draft/Revision/Accept.
+export type PersonalizedServiceType =
+  | "PERSONALIZED_WORKOUT"
+  | "PERSONALIZED_NUTRITION"
+  | "WORKOUT_AND_NUTRITION"
+  | "ONLINE_COACHING";
+
+export type PersonalizedServiceOrderStatus =
+  | "PURCHASED"
+  | "INTAKE_PENDING"
+  | "INTAKE_SUBMITTED"
+  | "PT_REVIEWING"
+  | "IN_PROGRESS"
+  | "DRAFT_DELIVERED"
+  | "REVISION_REQUESTED"
+  | "REVISION_IN_PROGRESS"
+  | "ACCEPTED"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "REFUND_REQUESTED"
+  | "REFUNDED"
+  | "DISPUTED";
+
+export interface PersonalizedServiceSeller {
+  userId: string;
+  isApprovedPt: boolean;
+  isPT: boolean;
+  ptApplicationStatus: string | null;
+  displayName?: string | null;
+  mainSpecialties?: string[];
+  yearsOfExperience?: string | null;
+  professionalBio?: string | null;
+}
+
+export interface PersonalizedService {
+  id: string;
+  sellerId: string;
+  serviceType: PersonalizedServiceType;
+  title: string;
+  description?: string | null;
+  price: number;
+  deliverables: string[];
+  revisionLimit: number | null;
+  initialDeliveryDays: number;
+  supportWeeks: number | null;
+  targetGoal?: string | null;
+  targetLevel?: string | null;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  seller?: PersonalizedServiceSeller | null;
+}
+
+export interface DraftDay {
+  dayNumber: number;
+  title: string;
+  description?: string | null;
+  exercises: Array<{ exerciseId: string; order?: number; sets: number; reps: number; restSeconds: number; notes?: string | null }>;
+}
+export interface DraftContent {
+  name: string;
+  goal?: string | null;
+  durationWeeks: number;
+  daysPerWeek: number;
+  startDate: string;
+  repeatWeeks?: number;
+  selectedWeekdays: number[];
+  replaceExisting?: boolean;
+  days: DraftDay[];
+}
+
+export interface PersonalizedServiceOrder {
+  id: string;
+  serviceId: string;
+  sellerId: string;
+  buyerId: string;
+  status: PersonalizedServiceOrderStatus;
+  titleSnapshot: string;
+  descriptionSnapshot?: string | null;
+  serviceTypeSnapshot: PersonalizedServiceType;
+  deliverablesSnapshot: string[];
+  revisionLimitSnapshot: number | null;
+  initialDeliveryDaysSnapshot: number;
+  supportWeeksSnapshot: number | null;
+  priceAtPurchase: number;
+  purchasedAt: string;
+  intakeData?: Record<string, unknown> | null;
+  consentCategories?: string[] | null;
+  intakeSubmittedAt?: string | null;
+  contractId?: string | null;
+  initialDeliveryDeadline?: string | null;
+  draftContent?: DraftContent | null;
+  draftVersion: number;
+  revisionCount: number;
+  acceptedAt?: string | null;
+  committedProgramId?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  refundRequestedAt?: string | null;
+  disputeReason?: string | null;
+  cumulativeRefundedAmount?: number;
+  refundDecision?: string | null;
+  refundResolutionNote?: string | null;
+  revisionRequests?: Array<{ id: string; category: string; comment: string; createdAt: string }>;
+}
+
+export interface PersonalizedServicePlanVersion {
+  id: string;
+  orderId: string;
+  version: number;
+  content: DraftContent;
+  status: "DELIVERED" | "ACCEPTED" | "SUPERSEDED";
+  createdBy: string;
+  changeReason?: string | null;
+  createdAt: string;
+}
+
+export interface PersonalizedServiceCheckIn {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  weekNumber?: number | null;
+  weight?: number | null;
+  energyLevel?: number | null;
+  sleepQuality?: number | null;
+  stressLevel?: number | null;
+  overallRpe?: number | null;
+  workoutAdherence?: number | null;
+  nutritionAdherence?: number | null;
+  painOrDiscomfort?: number | null;
+  notes?: string | null;
+  requiresAttention: boolean;
+  createdAt: string;
+}
+
+export interface PersonalizedServiceReview {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  overallRating: number;
+  communicationRating?: number | null;
+  personalizationRating?: number | null;
+  planQualityRating?: number | null;
+  comment?: string | null;
+  createdAt: string;
+}
+
+export interface RefundCalculation {
+  orderId: string;
+  status: string;
+  totalPaid: number;
+  alreadyRefunded: number;
+  refundableCeiling: number;
+  milestones: { intakeSubmitted: boolean; draftDelivered: boolean; latestVersionStatus: string | null; accepted: boolean };
+  disputeReason?: string | null;
+}
+
+export const CONSENT_CATEGORY_LABELS: Record<string, string> = {
+  basic_info: "Thông tin cơ bản",
+  training_goals: "Mục tiêu tập luyện",
+  experience: "Trình độ",
+  equipment: "Thiết bị",
+  injuries_limitations: "Chấn thương/hạn chế",
+  workout_history: "Lịch sử tập luyện",
+  inbody: "InBody",
+  training_cycle: "Chu kỳ tập luyện",
+  session_feedback: "Phản hồi buổi tập",
+  nutrition_preferences: "Sở thích dinh dưỡng",
+};
+
+export const personalizedServiceApi = {
+  create: async (input: {
+    serviceType: PersonalizedServiceType;
+    title: string;
+    description?: string;
+    price: number;
+    deliverables: string[];
+    revisionLimit?: number | null;
+    initialDeliveryDays: number;
+    supportWeeks?: number | null;
+    targetGoal?: string;
+    targetLevel?: string;
+  }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedService }>("/marketplace/services", input);
+    return data.data;
+  },
+  listMine: async () => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedService[] }>("/marketplace/services/mine");
+    return data.data;
+  },
+  archive: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedService }>(`/marketplace/services/${id}/archive`);
+    return data.data;
+  },
+  browse: async (params?: { serviceType?: string; goal?: string; level?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.serviceType) qs.set("serviceType", params.serviceType);
+    if (params?.goal) qs.set("goal", params.goal);
+    if (params?.level) qs.set("level", params.level);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get<{
+      success: boolean;
+      data: { items: PersonalizedService[]; total: number; page: number; limit: number };
+    }>(`/marketplace/services?${qs.toString()}`);
+    return data.data;
+  },
+  getDetail: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedService }>(`/marketplace/services/${id}`);
+    return data.data;
+  },
+  purchase: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/services/${id}/purchase`);
+    return data.data;
+  },
+  listMyOrders: async () => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServiceOrder[] }>("/marketplace/orders/mine");
+    return data.data;
+  },
+  listOrdersForSeller: async () => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServiceOrder[] }>("/marketplace/orders/selling");
+    return data.data;
+  },
+  getOrder: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}`);
+    return data.data;
+  },
+  submitIntake: async (id: string, input: { intakeData: Record<string, unknown>; consentCategories: string[] }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/intake`, input);
+    return data.data;
+  },
+  startReview: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/start-review`);
+    return data.data;
+  },
+  deliverDraft: async (id: string, draft: DraftContent) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/draft`, draft);
+    return data.data;
+  },
+  requestRevision: async (id: string, input: { category: string; comment: string }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/revision`, input);
+    return data.data;
+  },
+  startRevisionWork: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/start-revision`);
+    return data.data;
+  },
+  accept: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/accept`);
+    return data.data;
+  },
+  complete: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/complete`);
+    return data.data;
+  },
+  cancel: async (id: string, reason?: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/cancel`, { reason });
+    return data.data;
+  },
+  requestRefund: async (id: string, reason: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/refund-request`, { reason });
+    return data.data;
+  },
+  openDispute: async (id: string, reason: string) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/dispute`, { reason });
+    return data.data;
+  },
+
+  // ── Plan version history ─────────────────────────────────────────────────
+  listVersions: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServicePlanVersion[] }>(`/marketplace/orders/${id}/versions`);
+    return data.data;
+  },
+
+  // ── Weekly check-in ───────────────────────────────────────────────────────
+  submitCheckIn: async (id: string, input: {
+    weekNumber?: number; weight?: number; energyLevel?: number; sleepQuality?: number; stressLevel?: number;
+    overallRpe?: number; workoutAdherence?: number; nutritionAdherence?: number; painOrDiscomfort?: number; notes?: string;
+  }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceCheckIn }>(`/marketplace/orders/${id}/checkin`, input);
+    return data.data;
+  },
+  listCheckIns: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServiceCheckIn[] }>(`/marketplace/orders/${id}/checkins`);
+    return data.data;
+  },
+
+  // ── Review ────────────────────────────────────────────────────────────────
+  submitReview: async (id: string, input: {
+    overallRating: number; communicationRating?: number; personalizationRating?: number; planQualityRating?: number; comment?: string;
+  }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceReview }>(`/marketplace/orders/${id}/review`, input);
+    return data.data;
+  },
+  getSellerReviewSummary: async (sellerId: string) => {
+    const { data } = await api.get<{ success: boolean; data: { averageRating: number; reviewCount: number; recentReviews: PersonalizedServiceReview[] } }>(
+      `/marketplace/services/seller/${sellerId}/reviews`,
+    );
+    return data.data;
+  },
+
+  // ── Admin refund resolution ──────────────────────────────────────────────
+  listRefundRequests: async () => {
+    const { data } = await api.get<{ success: boolean; data: PersonalizedServiceOrder[] }>("/marketplace/orders/refund-requests");
+    return data.data;
+  },
+  getRefundCalculation: async (id: string) => {
+    const { data } = await api.get<{ success: boolean; data: RefundCalculation }>(`/marketplace/orders/${id}/refund-calculation`);
+    return data.data;
+  },
+  adminResolveRefund: async (id: string, input: { decision: "APPROVE" | "DENY"; refundAmount?: number; note: string }) => {
+    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/orders/${id}/refund-resolve`, input);
+    return data.data;
+  },
+};
+
 export type PlanStatusBackend =
   | "QUEUED"
   | "PROCESSING"
@@ -1191,7 +1983,7 @@ export interface WorkoutScheduleRecord {
   notes?: string | null;
   workoutId?: string | null;
   workoutLogId?: string | null;
-  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_COMPLETED" | "COMPLETED" | "SKIPPED" | "CANCELLED";
   progressPercent?: number;
   completedAt?: string | null;
   canStart?: boolean;
@@ -1596,6 +2388,26 @@ export const planService = {
     dietPreference?: string;
     budgetLevel?: string;
     restrictions?: string[];
+    notes?: string;
+    weightKg?: number;
+    heightCm?: number;
+    age?: number;
+    gender?: string;
+    bodyFatPct?: number;
+    activityLevel?: string;
+    trainingDaysPerWeek?: number;
+    trainingDurationMin?: number;
+    trainingType?: string;
+    trainingPhase?: string;
+    experienceLevel?: string;
+    primaryPriority?: string;
+    weightChangeRateKgPerWeek?: number;
+    proteinTargetG?: number;
+    carbTargetG?: number;
+    fatTargetG?: number;
+    carbsAroundWorkout?: boolean;
+    preworkoutMeal?: boolean;
+    postworkoutMeal?: boolean;
   }): Promise<PlanJobResponse> => {
     const { data } = await api.post("/plans/nutrition/generate", input);
     return extractPlanJobResponse(data);
@@ -1771,9 +2583,8 @@ export const coachService = {
             signal: controller.signal,
           });
 
-        let response = await sendStreamRequest(
-          localStorage.getItem("accessToken"),
-        );
+        const { value: accessToken } = await Preferences.get({ key: "accessToken" });
+        let response = await sendStreamRequest(accessToken);
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
@@ -2086,6 +2897,42 @@ export const foodService = {
   },
 };
 
+// Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+// câu 6) — mirrors backend's GoalPlanConsistencyResult
+// (nutrition-goal-plan-consistency.service.ts).
+export interface NutritionGoalPlanConsistency {
+  status:
+    | "NO_ACTIVE_GOAL"
+    | "NO_ACTIVE_PROGRAM"
+    | "MATCHED"
+    | "STALE_GOAL_CHANGED"
+    | "MACRO_MISMATCH"
+    | "LOW_CONFIDENCE";
+  activeGoal: {
+    id: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    goalMode: string;
+  } | null;
+  activeProgram: {
+    id: string;
+    name: string;
+    dailyCaloriesTarget: number | null;
+    proteinTargetGrams: number | null;
+    carbTargetGrams: number | null;
+    fatTargetGrams: number | null;
+  } | null;
+  mismatches: Array<{
+    field: "calories" | "protein" | "carbs" | "fat";
+    planValue: number;
+    goalValue: number;
+    diff: number;
+  }>;
+  recommendedAction: string;
+}
+
 export const nutritionService = {
   getLogs: async (startDate?: string, endDate?: string, mealType?: string) => {
     const params = new URLSearchParams();
@@ -2197,6 +3044,7 @@ export const nutritionService = {
       carbs: number;
       fat: number;
       waterMl: number | null;
+      goalMode?: "RECOMMENDED" | "CUSTOM";
     };
   },
   upsertGoal: async (goal: {
@@ -2205,9 +3053,36 @@ export const nutritionService = {
     carbs: number;
     fat: number;
     waterMl?: number;
+    goalMode?: "RECOMMENDED" | "CUSTOM";
   }) => {
+    // Response shape changed to { goal, planConsistency } — planConsistency
+    // lets the UI immediately show a "your plan may no longer match" banner
+    // right after saving, instead of only finding out on next page load.
     const { data } = await api.put("/nutrition/goals", goal);
-    return data;
+    return data as { goal: any; planConsistency: NutritionGoalPlanConsistency };
+  },
+  // Phase 2 — minimal version-history view (Current/Previous/Changed
+  // date/Reason). newest-first; the ACTIVE row is history[0].
+  getGoalHistory: async () => {
+    const { data } = await api.get("/nutrition/goals/history");
+    return (data?.history ?? []) as Array<{
+      id: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      status: "ACTIVE" | "SUPERSEDED";
+      validFrom: string;
+      triggeredBy: string | null;
+      reason: string | null;
+      goalMode?: "RECOMMENDED" | "CUSTOM";
+    }>;
+  },
+  // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+  // câu 6) — read-only, never archives/regenerates anything.
+  getActiveState: async () => {
+    const { data } = await api.get("/nutrition/active-state");
+    return data as NutritionGoalPlanConsistency;
   },
   updateProgram: async (
     programId: string,
@@ -2280,22 +3155,26 @@ export const nutritionService = {
   },
 };
 
+export const ptServicePackageService = {
+  getPackagesForPT: async (ptUserId: string) => {
+    // Backend responds { packages: [...] } — the caller (PTDiscoveryPage) has always
+    // expected a bare array (`packagesData?.length`, `packagesData.map(...)`), so every
+    // PT's package list silently rendered as empty ("Liên hệ huấn luyện viên để biết chi
+    // tiết giá.") regardless of how many real packages existed. Real bug, found live
+    // while testing the PT-hiring flow — unwrap here to match what callers actually use.
+    const { data } = await api.get(`/profile/pts/${ptUserId}/service-packages`);
+    return data.packages ?? [];
+  },
+};
+
 export const contractService = {
   // New contract request flow
   requestContract: async (requestData: {
     ptUserId: string;
-    packageType: string;
-    packageName: string;
-    description?: string;
-    totalSessions?: number;
-    packageQuantity?: number;
-    extraSessions?: number;
-    price?: number;
-    pricePerSession?: number;
-    sessionMode?: "ONLINE" | "OFFLINE";
-    startDate?: string;
-    endDate?: string;
-    message?: string;
+    packageId: string;
+    clientMessage?: string;
+    gymId?: string;
+    acknowledgedLowAvailability?: boolean;
   }) => {
     const { data } = await api.post("/contracts/request", requestData);
     return data;
@@ -2360,8 +3239,69 @@ export const contractService = {
   },
   getPdfUrl: (contractId: string) => `${API_URL}/contracts/${contractId}/pdf`,
   // Phase 4 — pay a PENDING_PAYMENT contract via wallet
-  pay: async (contractId: string) => {
-    const { data } = await api.post(`/contracts/${contractId}/pay`);
+  // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
+  pay: async (contractId: string, provider?: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
+    return data;
+  },
+};
+
+// Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — PT/coach access to
+// a client's fitness data + plan assignment, built on the existing Contract
+// relationship (routed through the gateway's /coach -> fitness-service).
+export interface CoachClientSummary {
+  activeCycle: TrainingCycle | null;
+  cycleSummary: CycleSummary | null;
+  feedbackSummary: CycleFeedbackSummary | null;
+  priorDecisions: CycleDecision[];
+}
+
+// Named ptCoachService (not coachService) — that name is already taken by
+// the unrelated AI Coach chat service above.
+export const ptCoachService = {
+  getClientSummary: async (clientId: string) => {
+    const { data } = await api.get<CoachClientSummary>(`/coach/clients/${clientId}/summary`);
+    return data;
+  },
+  createAndAssignPlan: async (
+    clientId: string,
+    input: {
+      name: string;
+      goal?: string | null;
+      durationWeeks: number;
+      daysPerWeek: number;
+      startDate: string;
+      repeatWeeks?: number;
+      selectedWeekdays: number[];
+      replaceExisting?: boolean;
+      days: Array<{
+        dayNumber: number;
+        title: string;
+        description?: string | null;
+        exercises: Array<{ exerciseId: string; order?: number; sets?: number; reps?: number; restSeconds?: number; notes?: string | null }>;
+      }>;
+    },
+  ) => {
+    const { data } = await api.post(`/coach/clients/${clientId}/plans`, input);
+    return data;
+  },
+  // Phase 7 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — AI draft only;
+  // never assigns anything. The PT reviews/edits the returned days before
+  // (optionally) submitting them via createAndAssignPlan above.
+  generatePlanDraft: async (
+    clientId: string,
+    input: { ptNotes?: string; daysPerWeek: number; durationWeeks: number },
+  ) => {
+    const { data } = await api.post<{
+      days: Array<{
+        dayNumber: number;
+        title: string;
+        exercises: Array<{ exerciseId: string; exerciseName: string; order: number; sets: number; reps: number; note?: string }>;
+      }>;
+      dataGaps: string[];
+      warnings: string[];
+      summaryForPt: string;
+    }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
     return data;
   },
 };
@@ -2412,6 +3352,21 @@ export const sessionService = {
     const { data } = await api.post(`/sessions/${id}/review`, {
       rating,
       comment,
+    });
+    return data;
+  },
+  requestReschedule: async (id: string, proposedStartAt: string, proposedEndAt: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/reschedule`, {
+      proposedStartAt,
+      proposedEndAt,
+      reason,
+    });
+    return data;
+  },
+  respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
+    const { data } = await api.post(`/sessions/reschedules/${requestId}/respond`, {
+      action,
+      responseNote,
     });
     return data;
   },
@@ -2563,6 +3518,17 @@ export const trainingLocationService = {
 };
 
 // ── Wallet (Phase 4) ─────────────────────────────────────────────────
+export const paymentService = {
+  /**
+   * Which gateways this deployment can actually take money through. Server-decided: the set
+   * depends on which credentials are configured, so the UI must not carry its own list.
+   */
+  getMethods: async () => {
+    const { data } = await api.get('/me/payments/methods');
+    return data?.data ?? data;
+  },
+};
+
 export const walletService = {
   // Always the CLIENT (buyer) wallet, regardless of the user's other roles.
   getWallet: async () => {
@@ -2577,7 +3543,7 @@ export const walletService = {
     const { data } = await api.post('/me/wallet/topup', {
       amount,
       clientRequestId,
-      ...(provider && provider !== 'MOCK' ? { provider } : {}),
+      ...(provider ? { provider } : {}),
     });
     return data?.data ?? data;
   },
@@ -2599,6 +3565,57 @@ export const walletService = {
 };
 
 // ── Gym marketplace (Phase 4) ────────────────────────────────────────
+/**
+ * PT ↔ gym revenue-share partnerships.
+ *
+ * The two sides hit different paths for the same actions — gym-service mounts the owner
+ * router under /owner — because the actor is derived from the route rather than taken from
+ * the request body. Taking it from the body would let a caller claim to be the other party.
+ */
+export const collaborationService = {
+  /** Gyms this PT has an accepted partnership with — the client's gym picker reads this. */
+  listGymsForPt: async (ptUserId: string) => {
+    const { data } = await api.get(`/pt/${ptUserId}/gyms`);
+    return data?.data ?? data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get('/me/collaborations');
+    return data?.data ?? data;
+  },
+
+  listForOwner: async () => {
+    const { data } = await api.get('/owner/collaborations');
+    return data?.data ?? data;
+  },
+
+  proposeAsPt: async (gymId: string, body: { ptRate: string; gymRate: string; platformRate?: string; note?: string }) => {
+    const { data } = await api.post(`/gyms/${gymId}/collaborations`, body);
+    return data?.data ?? data;
+  },
+
+  proposeAsGym: async (gymId: string, body: { ptUserId: string; ptRate: string; gymRate: string; platformRate?: string; note?: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/collaborations`, body);
+    return data?.data ?? data;
+  },
+
+  respond: async (
+    id: string,
+    as: 'PT' | 'GYM',
+    body: { action: 'ACCEPT' | 'REJECT' | 'COUNTER'; ptRate?: string; gymRate?: string; platformRate?: string; note?: string },
+  ) => {
+    const path = as === 'GYM' ? `/owner/collaborations/${id}` : `/collaborations/${id}`;
+    const { data } = await api.patch(path, body);
+    return data?.data ?? data;
+  },
+
+  terminate: async (id: string, as: 'PT' | 'GYM') => {
+    const path = as === 'GYM' ? `/owner/collaborations/${id}` : `/collaborations/${id}`;
+    const { data } = await api.delete(path);
+    return data?.data ?? data;
+  },
+};
+
 export const gymService = {
   // Public
   listGyms: async () => {
@@ -2618,16 +3635,28 @@ export const gymService = {
     return data?.data ?? data;
   },
   // Client
-  buyMembership: async (gymId: string, planId: string) => {
-    const { data } = await api.post(`/gyms/${gymId}/memberships`, { planId });
+  buyMembership: async (gymId: string, planId: string, provider?: string) => {
+    const { data } = await api.post(`/gyms/${gymId}/memberships`, {
+      planId,
+      ...(provider ? { provider } : {}),
+    });
     return data;
   },
-  payMembership: async (membershipId: string) => {
-    const { data } = await api.post(`/me/gym-memberships/${membershipId}/pay`);
+  // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
+  payMembership: async (membershipId: string, provider?: string) => {
+    const { data } = await api.post(
+      `/me/gym-memberships/${membershipId}/pay`,
+      provider ? { provider } : {},
+    );
     return data?.data ?? data;
   },
   cancelMembership: async (membershipId: string) => {
     const { data } = await api.post(`/me/gym-memberships/${membershipId}/cancel`);
+    return data?.data ?? data;
+  },
+  // Cancel an ACTIVE membership → prorated refund (unused days) to the client wallet.
+  refundMembership: async (membershipId: string) => {
+    const { data } = await api.post(`/me/gym-memberships/${membershipId}/refund`);
     return data?.data ?? data;
   },
   listMyMemberships: async () => {
@@ -2639,7 +3668,7 @@ export const gymService = {
     const { data } = await api.get('/owner/gyms');
     return data?.data ?? data;
   },
-  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) => {
+  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string; brandId?: string }) => {
     const { data } = await api.post('/owner/gyms', payload);
     return data?.data ?? data;
   },
@@ -2651,17 +3680,175 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/wallet`);
     return data?.data ?? data;
   },
-  createPlan: async (gymId: string, payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number }) => {
+  createPlan: async (
+    gymId: string,
+    payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number; saleStartAt?: string; saleEndAt?: string },
+  ) => {
     const { data } = await api.post(`/owner/gyms/${gymId}/plans`, payload);
+    return data?.data ?? data;
+  },
+  updatePlan: async (
+    gymId: string,
+    planId: string,
+    payload: Partial<{ name: string; description: string; price: number; durationDays: number; visitLimit: number; status: 'ACTIVE' | 'INACTIVE'; saleStartAt: string | null; saleEndAt: string | null }>,
+  ) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/plans/${planId}`, payload);
     return data?.data ?? data;
   },
   listOwnedPlans: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/plans`);
     return data?.data ?? data;
   },
+
+  // ── Brands (chains) ──────────────────────────────────────────────────
+  createBrand: async (payload: { name: string; description?: string }) => {
+    const { data } = await api.post('/owner/brands', payload);
+    return data?.data ?? data;
+  },
+  listOwnedBrands: async () => {
+    const { data } = await api.get('/owner/brands');
+    return data?.data ?? data;
+  },
+  getOwnedBrand: async (brandId: string) => {
+    const { data } = await api.get(`/owner/brands/${brandId}`);
+    return data?.data ?? data;
+  },
+  updateBrand: async (brandId: string, payload: Partial<{ name: string; description: string }>) => {
+    const { data } = await api.patch(`/owner/brands/${brandId}`, payload);
+    return data?.data ?? data;
+  },
   listOwnedMemberships: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`);
     return data?.data ?? data;
+  },
+
+  // ── Check-in (Phase 4) ──────────────────────────────────────────────
+  // Gym owner: the QR to display at the front desk for members to scan.
+  getGymCheckinQr: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/checkin-qr`);
+    return data?.data ?? data;
+  },
+  // Member: scanned the gym's QR — records the visit and returns what the desk verifies.
+  checkInByScan: async (token: string) => {
+    const { data } = await api.post(`/me/gym-checkins`, { token });
+    return data?.data ?? data;
+  },
+  listCheckins: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/checkins`);
+    return data?.data ?? data;
+  },
+  listMyCheckins: async () => {
+    const { data } = await api.get(`/me/gym-checkins`);
+    return data?.data ?? data;
+  },
+
+  // ── Reviews (Phase 4) ───────────────────────────────────────────────
+  getGymReviews: async (gymId: string) => {
+    const { data } = await api.get(`/gyms/${gymId}/reviews`);
+    return data?.data ?? data;
+  },
+  submitGymReview: async (gymId: string, payload: { rating: number; comment?: string }) => {
+    const { data } = await api.post(`/gyms/${gymId}/reviews`, payload);
+    return data?.data ?? data;
+  },
+  deleteGymReview: async (gymId: string) => {
+    const { data } = await api.delete(`/gyms/${gymId}/reviews`);
+    return data?.data ?? data;
+  },
+};
+
+// Gate 7 (exercise/anatomy data-expansion roadmap) — human review queue
+// for LIKELY_DUPLICATE/MANUAL_REVIEW exercise candidates. Admin-only;
+// mounted under /exercises (already publicly proxied at the gateway) —
+// each route itself enforces the admin role server-side.
+export interface ExerciseReviewCandidate {
+  externalRef: string;
+  nameEn: string;
+  nameVi: string;
+  movementPattern: string;
+  equipment: string[];
+  primaryMuscles: string[];
+  duplicateDecision: "EXACT_SAME_SOURCE" | "EXACT_CROSS_SOURCE" | "LIKELY_DUPLICATE" | "POSSIBLE_VARIANT" | "DISTINCT" | "MANUAL_REVIEW";
+  confidence: number;
+  matchedFields: string[];
+  conflictingFields: string[];
+  proposedAction: string;
+  bestMatchExercise: { id: string; name: string; referenceCount: number } | null;
+  reviewStatus: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+}
+
+export interface ExerciseReviewCandidateDetail extends ExerciseReviewCandidate {
+  catalogRow: {
+    externalId: string;
+    nameVi: string;
+    nameEn: string;
+    category: string;
+    movementPattern: string;
+    primaryMuscles: string[];
+    equipment: string[];
+    difficulty: string;
+    isCompound: boolean;
+    isUnilateral: boolean;
+    forceType: string;
+    setup: string;
+    executionSteps: string;
+    commonErrors: string;
+    contraindications: string;
+  };
+  bestMatchExerciseDetail: {
+    id: string;
+    exerciseName: string;
+    typeOfEquipment: string;
+    bodyPart: string;
+    muscleGroupsActivated: string[];
+    instructions: string;
+    videoUrl: string | null;
+    status: string;
+  } | null;
+  reviewHistory: Array<{ decision: string; note: string | null; createdAt: string; updatedAt: string }>;
+}
+
+export const exerciseReviewService = {
+  getSummary: async (): Promise<{ summary: Record<string, number> }> => {
+    const { data } = await api.get("/exercises/admin/review/summary");
+    return data;
+  },
+
+  list: async (params?: {
+    status?: "PENDING" | "REVIEWED" | "ALL";
+    decisionTier?: string;
+    search?: string;
+  }): Promise<{ candidates: ExerciseReviewCandidate[]; summary: Record<string, number> }> => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.decisionTier) qs.set("decisionTier", params.decisionTier);
+    if (params?.search) qs.set("search", params.search);
+    const { data } = await api.get(`/exercises/admin/review?${qs.toString()}`);
+    return data;
+  },
+
+  getDetail: async (externalRef: string): Promise<ExerciseReviewCandidateDetail> => {
+    const { data } = await api.get(`/exercises/admin/review/${encodeURIComponent(externalRef)}`);
+    return data;
+  },
+
+  getHistory: async (externalRef: string): Promise<{ externalRef: string; history: Array<{ decision: string; note: string | null; reviewerId: string | null; createdAt: string }> }> => {
+    const { data } = await api.get(`/exercises/admin/review/${encodeURIComponent(externalRef)}/history`);
+    return data;
+  },
+
+  submitDecision: async (
+    externalRef: string,
+    input: {
+      decision: "APPROVE_AS_NEW_STAGING" | "LINK_AS_ALIAS_OF_EXISTING" | "MARK_AS_DUPLICATE_SKIP" | "NEEDS_MORE_INFO" | "REJECT_RECORD";
+      targetExerciseId?: string;
+      note?: string;
+    },
+  ): Promise<{ externalRef: string; decision: string; createdExerciseId: string | null; targetExerciseId: string | null; alreadyDecided: boolean }> => {
+    const { data } = await api.post(`/exercises/admin/review/${encodeURIComponent(externalRef)}/decision`, input);
+    return data;
   },
 };
 

@@ -1,5 +1,8 @@
 # Checkpoint: Production-Hardening Pass — Chức năng Tập luyện
 
+> Point-in-time hardening checkpoint retained for traceability. Re-run current
+> tests before relying on its pass counts.
+
 Trạng thái tại thời điểm này: **chưa hoàn tất toàn bộ** yêu cầu gốc (rất lớn,
 nhiều phase). Tài liệu này là điểm checkpoint để phiên làm việc sau tiếp tục
 đúng chỗ, không làm lại từ đầu.

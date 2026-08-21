@@ -44,6 +44,38 @@ router.delete(
   authMiddleware,
   workoutController.deleteSchedule as any,
 );
+router.post(
+  "/schedules/:id/skip",
+  authMiddleware,
+  workoutController.skipSchedule as any,
+);
+router.post(
+  "/schedules/:id/cancel",
+  authMiddleware,
+  workoutController.cancelSchedule as any,
+);
+
+// Phase 2 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md
+router.get(
+  "/schedules/:id/feedback",
+  authMiddleware,
+  workoutController.getSessionFeedback as any,
+);
+router.post(
+  "/schedules/:id/feedback",
+  authMiddleware,
+  workoutController.submitSessionFeedback as any,
+);
+router.patch(
+  "/schedules/:id/feedback",
+  authMiddleware,
+  workoutController.updateSessionFeedback as any,
+);
+router.post(
+  "/schedules/:id/feedback/dismiss",
+  authMiddleware,
+  workoutController.dismissSessionFeedback as any,
+);
 
 router.get(
   "/programs/current",
@@ -100,5 +132,11 @@ router.put("/:id", authMiddleware, workoutController.updateWorkout as any);
 router.delete("/:id", authMiddleware, workoutController.deleteWorkout as any);
 // Append a single set to an existing workout (BUG-007 / BR-WK-02).
 router.post("/:id/sets", authMiddleware, workoutController.addSet as any);
+// End-of-session PR/volume summary — see workout.service.ts getSessionSummary.
+router.get(
+  "/:id/summary",
+  authMiddleware,
+  workoutController.getSessionSummary as any,
+);
 
 export default router;

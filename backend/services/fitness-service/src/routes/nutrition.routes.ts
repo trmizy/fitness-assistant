@@ -81,7 +81,15 @@ router.delete(
 );
 
 router.get("/goals", authMiddleware, nutritionController.getGoal as any);
+// Must be registered before /goals/:something-else would ever exist, but
+// since there's no such param route, ordering relative to GET/PUT /goals
+// above doesn't matter here — kept adjacent for readability.
+router.get("/goals/history", authMiddleware, nutritionController.getGoalHistory as any);
 router.put("/goals", authMiddleware, nutritionController.upsertGoal as any);
+// Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+// câu 6): read-only consistency check between the active goal and active
+// program. Never mutates anything.
+router.get("/active-state", authMiddleware, nutritionController.getActiveState as any);
 router.get("/", authMiddleware, nutritionController.listLogs as any);
 router.post("/", authMiddleware, nutritionController.createLog as any);
 // PATCH /nutrition/:id — owner-only partial update (BUG-008 / TC-NUT-05).

@@ -83,6 +83,13 @@ export interface AssessCycleResult {
   safetyNotice: string | null;
   requiresConfirmation: boolean;
   citations: Array<Record<string, unknown>>;
+  /** Phase 2 — present only when the request included a `nutrition` block;
+   * see ai-service's cycle-assessment.schemas.ts. */
+  nutritionSummary: {
+    nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE";
+    headline: string;
+    explanation: string;
+  } | null;
 }
 
 /** Calls ai-service's new POST /ai/assess-cycle — additive alongside
@@ -113,6 +120,99 @@ export async function assessCycleSafe(
     logger.error(
       { err: (error as Error).message, userId },
       "[training-cycle] assess-cycle call failed",
+    );
+    return null;
+  }
+}
+
+export interface AnalyzeFeedbackResult {
+  feedbackInterpretation: string;
+  sentiment: "positive" | "negative" | "neutral" | "mixed" | "insufficient_feedback";
+  complaintValidity: "supported_by_data" | "partially_supported" | "not_supported" | "insufficient_data";
+  complaintCategories: string[];
+  suggestedImprovementAreas: string[];
+  riskFlags: string[];
+  recommendedDecisionInfluence: "none" | "minor_adjust" | "adjust" | "deload" | "rebuild_consideration";
+  explanationForUser: string;
+  explanationForCoach: string;
+  citations: Array<Record<string, unknown>>;
+  usedFallback: boolean;
+}
+
+/** Calls ai-service's POST /ai/analyze-feedback — Phase 4 of
+ * docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md. Advisory-only: the caller
+ * (feedback-analysis.service.ts) persists this as an audit row and Phase 5
+ * feeds `recommendedDecisionInfluence` into the Decision Engine as one
+ * signal among several — it never decides anything by itself. */
+export async function analyzeFeedback(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<AnalyzeFeedbackResult> {
+  const res = await axios.post(
+    `${AI_SERVICE_URL}/ai/analyze-feedback`,
+    payload,
+    {
+      headers: internalHeaders(userId),
+      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
+    },
+  );
+  return res.data.data as AnalyzeFeedbackResult;
+}
+
+export async function analyzeFeedbackSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<AnalyzeFeedbackResult | null> {
+  try {
+    return await analyzeFeedback(userId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[training-cycle] analyze-feedback call failed",
+    );
+    return null;
+  }
+}
+
+export interface GenerateClientPlanDraftResult {
+  days: Array<{
+    dayNumber: number;
+    title: string;
+    exercises: Array<{ exerciseId: string; order: number; sets: number; reps: number; note?: string }>;
+  }>;
+  dataGaps: string[];
+  warnings: string[];
+  summaryForPt: string;
+}
+
+/** Calls ai-service's POST /ai/generate-client-plan-draft — Phase 7 of
+ * docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md. Draft-only: never assigns
+ * anything by itself, see coach.service.ts's generatePlanDraft. */
+export async function generateClientPlanDraft(
+  ptUserId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateClientPlanDraftResult> {
+  const res = await axios.post(
+    `${AI_SERVICE_URL}/ai/generate-client-plan-draft`,
+    payload,
+    {
+      headers: internalHeaders(ptUserId),
+      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
+    },
+  );
+  return res.data.data as GenerateClientPlanDraftResult;
+}
+
+export async function generateClientPlanDraftSafe(
+  ptUserId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateClientPlanDraftResult | null> {
+  try {
+    return await generateClientPlanDraft(ptUserId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, ptUserId },
+      "[coach] generate-client-plan-draft call failed",
     );
     return null;
   }

@@ -150,6 +150,50 @@ export const aiPlanGenerationsTotal = new Counter({
   registers: [register],
 });
 
+// ── Business Metrics: AI Nutrition (Part 12 observability) ─────────────────
+// Added during the AI-nutrition-overhaul pass to answer exactly the
+// questions Part 12 asks for: what fraction of nutrition answers fall back
+// to a deterministic template, how often a user-quoted macro/calorie claim
+// turns out to be inconsistent, how often safety escalation fires (and for
+// which reason), and — critically — which layer actually produced a given
+// answer (saved-data lookup / deterministic calculator / LLM), so a
+// support engineer can trace a bad answer to its real source instead of
+// guessing.
+
+export const nutritionResponseSourceTotal = new Counter({
+  name: "nutrition_response_source_total",
+  help: "Nutrition chat answers by which layer actually produced them",
+  labelNames: ["source"], // "saved_data_lookup" | "deterministic_fallback" | "llm"
+  registers: [register],
+});
+
+export const nutritionMacroValidationTotal = new Counter({
+  name: "nutrition_macro_validation_total",
+  help: "Macro/calorie consistency checks by context and result",
+  labelNames: ["context", "result"], // context: "saved_goal" | "user_claim" | "goal_save"; result: "consistent" | "inconsistent"
+  registers: [register],
+});
+
+export const nutritionSafetyEscalationTotal = new Counter({
+  name: "nutrition_safety_escalation_total",
+  help: "Nutrition-related safety triage escalations by type",
+  labelNames: ["type"], // e.g. "medical_nutrition_condition" | "minor_age" | "pregnancy" | "eating_disorder" | ...
+  registers: [register],
+});
+
+export const nutritionWeightConflictTotal = new Counter({
+  name: "nutrition_weight_conflict_total",
+  help: "Occurrences of a user-stated weight conflicting with the latest measurement on file",
+  registers: [register],
+});
+
+export const nutritionLlmInstructionOverrideTotal = new Counter({
+  name: "nutrition_llm_instruction_override_total",
+  help: "Times the deterministic layer had to append/override an LLM answer because the model did not reliably follow an injected ground-truth instruction",
+  labelNames: ["reason"], // e.g. "macro_discrepancy_not_cited" | "validation_mismatch"
+  registers: [register],
+});
+
 // ── Business Metrics: Chat / WebSocket ──────────────────────────────────────
 
 export const websocketConnectionsActive = new Gauge({

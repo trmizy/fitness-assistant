@@ -8,6 +8,7 @@ import {
   computeBodyCompositionTrends,
   computeDataCompletenessScore,
   computeFatigueRecoveryMetrics,
+  computeVolumeProgressionSlope,
 } from "../services/cycle-metrics.engine";
 import type { E1rmTrendPoint, VolumeWeek, AdherenceMetric, RpeTrend } from "../services/training-cycle-metrics.service";
 import type { InBodyTrendPoint } from "../services/inbody-quality.evaluator";
@@ -101,6 +102,18 @@ test("computeGoalProgressScore: WEIGHT_LOSS goal with fat gain (positive PBF del
 
 test("computeGoalProgressScore: MAINTENANCE goal has no single composition signal, returns null", () => {
   assert.equal(computeGoalProgressScore("MAINTENANCE", 0.5, -0.5), null);
+});
+
+test("computeGoalProgressScore: ATHLETIC_PERFORMANCE uses strengthProgressScore, not body composition", () => {
+  // A performance athlete can show flat/negative body composition change
+  // during a genuinely successful strength cycle — deltaSMM/deltaPBF must
+  // not drive this goal's score at all.
+  assert.equal(computeGoalProgressScore("ATHLETIC_PERFORMANCE", -0.5, 2, 0.85), 0.85);
+});
+
+test("computeGoalProgressScore: ATHLETIC_PERFORMANCE with no strengthProgressScore available returns null, not 0", () => {
+  assert.equal(computeGoalProgressScore("ATHLETIC_PERFORMANCE", null, null, null), null);
+  assert.equal(computeGoalProgressScore("ATHLETIC_PERFORMANCE", null, null), null);
 });
 
 // ── computeBodyCompositionTrends ────────────────────────────────────────────
@@ -219,4 +232,49 @@ test("computeFatigueRecoveryMetrics: rising pain score trend increases fatigueSc
   );
   assert.equal(result.painTrend?.direction, "up");
   assert.ok(result.fatigueScore! > 0.5);
+});
+
+// ── computeVolumeProgressionSlope ───────────────────────────────────────────
+
+test("computeVolumeProgressionSlope: fewer than 2 weeks returns null", () => {
+  const weeks: VolumeWeek[] = [{ week: 0, totalVolumeKg: 1000, byMuscleGroup: {} }];
+  assert.equal(computeVolumeProgressionSlope(weeks), null);
+});
+
+test("computeVolumeProgressionSlope: steady weekly increase returns a positive % slope", () => {
+  const weeks: VolumeWeek[] = [
+    { week: 0, totalVolumeKg: 1000, byMuscleGroup: {} },
+    { week: 1, totalVolumeKg: 1050, byMuscleGroup: {} },
+    { week: 2, totalVolumeKg: 1100, byMuscleGroup: {} },
+    { week: 3, totalVolumeKg: 1150, byMuscleGroup: {} },
+  ];
+  const slope = computeVolumeProgressionSlope(weeks);
+  assert.ok(slope !== null && slope > 0, `expected a positive slope, got ${slope}`);
+});
+
+test("computeVolumeProgressionSlope: a single noisy final week doesn't flip the sign the way a naive first-vs-last comparison would", () => {
+  // Weeks 0-2 climb strongly; week 3 craters (a bad/deload week) to below
+  // even the starting volume. A naive first-vs-last comparison (like
+  // volumeChangePct) reads this as a straight decline: (950-1000)/1000 = -5%.
+  // The regression across all 4 points instead reflects the dominant
+  // upward trend across the cycle and stays net-positive.
+  const weeks: VolumeWeek[] = [
+    { week: 0, totalVolumeKg: 1000, byMuscleGroup: {} },
+    { week: 1, totalVolumeKg: 1300, byMuscleGroup: {} },
+    { week: 2, totalVolumeKg: 1500, byMuscleGroup: {} },
+    { week: 3, totalVolumeKg: 950, byMuscleGroup: {} },
+  ];
+  const naiveFirstVsLastPct = ((950 - 1000) / 1000) * 100;
+  assert.ok(naiveFirstVsLastPct < 0, "sanity check: the naive 2-point comparison is indeed negative here");
+
+  const slope = computeVolumeProgressionSlope(weeks);
+  assert.ok(slope !== null && slope > 0, `expected the regression to still read as net-positive, got ${slope}`);
+});
+
+test("computeVolumeProgressionSlope: zero baseline volume returns null (can't express a % change against it)", () => {
+  const weeks: VolumeWeek[] = [
+    { week: 0, totalVolumeKg: 0, byMuscleGroup: {} },
+    { week: 1, totalVolumeKg: 500, byMuscleGroup: {} },
+  ];
+  assert.equal(computeVolumeProgressionSlope(weeks), null);
 });

@@ -1637,6 +1637,21 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (PT/coach client data + plan assignment —
+// Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md). authMiddleware
+// only identifies the caller; coach.service.ts does the real per-request
+// authorization check against Contract.status===ACTIVE — no role gate here
+// since PT-ness is relationship-scoped (this PT + this client), not a
+// blanket role permission.
+router.use(
+  "/coach",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (nutrition)
 router.use(
   "/nutrition",
@@ -1660,6 +1675,19 @@ router.use(
 // Public — Exercises (no auth needed to browse)
 router.use(
   "/exercises",
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
+// Equipment catalog + per-user equipment (gym-onboarding project). Every
+// real caller (onboarding wizard, Profile → Training Setup) is already
+// authenticated, so — unlike /exercises — the whole prefix is gated here
+// rather than leaving the catalog GET publicly reachable for no benefit.
+router.use(
+  "/equipment",
+  authMiddleware,
   createProxyMiddleware({
     target: FITNESS_SERVICE_URL,
     changeOrigin: true,
@@ -1997,16 +2025,51 @@ router.use(
   }),
 );
 
-// Protected — Chat Service (REST only; Socket.IO connects directly to :3005)
+// Protected — Chat Service (REST). Socket.IO has its own mount below.
 router.use(
   "/chat",
   authMiddleware,
   createProxyMiddleware({
     target: CHAT_SERVICE_URL,
     changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      const userId = req.headers["x-user-id"];
+      const userEmail = req.headers["x-user-email"];
+      const userRole = req.headers["x-user-role"];
+      const authorization = req.headers.authorization;
+
+      if (typeof userId === "string") proxyReq.setHeader("x-user-id", userId);
+      if (typeof userEmail === "string")
+        proxyReq.setHeader("x-user-email", userEmail);
+      if (typeof userRole === "string")
+        proxyReq.setHeader("x-user-role", userRole);
+      if (typeof authorization === "string") {
+        proxyReq.setHeader("Authorization", authorization);
+      }
+      proxyReq.setHeader("x-internal-token", INTERNAL_SERVICE_SECRET);
+    },
     onError: serviceUnavailable("Chat service"),
   }),
 );
+
+// Chat Socket.IO over the gateway — mirrors the "/chat-socket.io" proxy in
+// frontend/web/vite.config.ts. chat-service runs a SEPARATE Socket.IO server from
+// the gateway's own, and both default to the same "/socket.io" path, so chat gets a
+// distinct prefix here that is rewritten back to the real path upstream.
+//
+// Why this exists: a client that can only reach ONE origin (the Capacitor APK behind
+// a single tunnel — see frontend/web/CAPACITOR-NOTES.md) cannot also open a direct
+// connection to chat-service on :3005. Routing chat's websocket through the gateway
+// keeps that setup down to one public URL. No authMiddleware: Socket.IO carries its
+// own token in the connection handshake, which chat-service verifies itself.
+export const chatSocketProxy = createProxyMiddleware({
+  target: CHAT_SERVICE_URL,
+  changeOrigin: true,
+  ws: true,
+  pathRewrite: { "^/chat-socket.io": "/socket.io" },
+  onError: serviceUnavailable("Chat service (socket)"),
+});
+router.use("/chat-socket.io", chatSocketProxy);
 
 // Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly)
 router.post(
@@ -2048,6 +2111,18 @@ router.use(
     target: USER_SERVICE_URL,
     changeOrigin: true,
     onError: serviceUnavailable("User service"),
+  }),
+);
+
+// Admin — disputed sessions (User Service). user-service re-checks the ADMIN role itself.
+router.use(
+  "/admin/sessions",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (admin)"),
   }),
 );
 
@@ -2129,6 +2204,21 @@ router.use(
   }),
 );
 
+// Protected — PT's own training-location CRUD (Phase 2 discovery/scheduling).
+// Same gap as above: user-service mounts this at the top level
+// (app.use("/pt/training-locations", ...)), so it needs its own explicit proxy
+// route. PTProfilePage.tsx already calls it — it was 404ing in the running app.
+router.use(
+  "/pt/training-locations",
+  authMiddleware,
+  requireRoles("PT"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
 // ── Payment Service proxy routes ─────────────────────────────────────────────
 
 // Payment: client history (auth required)
@@ -2198,6 +2288,7 @@ router.get('/gyms', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigi
 router.get('/gyms/:id', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/plans', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/trainers', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/:gymId/reviews', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 
 // Client — first purchase + retry/cancel/list (CUSTOMER or PT acting as buyer)
 router.post(
@@ -2206,8 +2297,35 @@ router.post(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// A4: checked before the purchase-confirmation dialog (money-flow plan §2.6).
+router.get(
+  '/gyms/:gymId/membership-warnings',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Gym review write/delete — only a logged-in buyer (gym-service verifies they actually purchased).
+router.post(
+  '/gyms/:gymId/reviews',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.delete(
+  '/gyms/:gymId/reviews',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 router.use(
   '/me/gym-memberships',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Member scans the gym's front-desk QR to record their own visit.
+router.use(
+  '/me/gym-checkins',
   authMiddleware,
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
@@ -2227,9 +2345,59 @@ router.use(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
+// PT ↔ gym revenue-share negotiation (money-flow plan §1.3/F3). PT-initiated side.
+router.post(
+  '/gyms/:gymId/collaborations',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.patch(
+  '/collaborations/:id',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.delete(
+  '/collaborations/:id',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Shared by PT and GYM_OWNER — gym-service dispatches on the caller's own role.
+router.get(
+  '/me/collaborations',
+  authMiddleware,
+  requireRoles('PT', 'GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Public — which gyms a trainer has an accepted partnership with.
+router.get(
+  '/pt/:ptUserId/gyms',
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
 // Owner — gym/plan/membership/wallet management (gym-service verifies per-row ownership)
 router.use(
   '/owner/gyms',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Owner — brand (chain) CRUD. Sibling path outside the /owner/gyms prefix above, so — same
+// gotcha as /owner/collaborations below — it needs its own explicit declaration or it 404s
+// at the gateway despite working fine directly against gym-service.
+router.use(
+  '/owner/brands',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// `/owner/gyms/:gymId/collaborations` (invite a PT) is already covered by the blanket
+// `/owner/gyms` proxy above. `/owner/collaborations/:id` (respond/terminate) is a sibling
+// path outside that prefix and needs its own declaration (money-flow plan §1.3/F3).
+router.use(
+  '/owner/collaborations',
   authMiddleware,
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
@@ -2238,6 +2406,15 @@ router.use(
 // Admin — gym approval
 router.use(
   '/admin/gyms',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// Admin — exceptional membership refund (money-flow plan §2.4). Separate prefix from
+// /admin/gyms above, needs its own declaration.
+router.use(
+  '/admin/gym-memberships',
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),

@@ -66,6 +66,10 @@ export interface WorkerUserContext {
     experienceLevel?: string;
     currentWeight?: number;
     targetWeight?: number;
+    // Immutable "journey start" weight — see UserProfile.startingWeight
+    // (user-service). Passed through as-is from the profile response; may
+    // be absent for accounts predating this field.
+    startingWeight?: number;
     injuries?: string[];
   } | null;
   /** Recent workout logs (last 10, with exercise details) */

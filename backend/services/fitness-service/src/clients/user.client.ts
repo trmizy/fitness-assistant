@@ -30,6 +30,17 @@ export interface UserProfileSnapshot {
    * literal "UNKNOWN" the AI-service prompt gates advanced-technique
    * suggestions on). */
   experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
+  /** Distinguishes a competing/professional athlete from a recreational
+   * ADVANCED lifter — only meaningful combined with experienceLevel ===
+   * "ADVANCED" (see docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0). Defaults to
+   * false server-side, so this is never null/undefined in practice, but
+   * still coalesced defensively here since it crosses a service boundary. */
+  competesInSport?: boolean;
+  /** Phase 7 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — reported
+   * injury/pain areas (e.g. ["lower back", "left knee"]). AI plan-draft
+   * generation must never propose exercises that load a reported injury
+   * area — see client-plan-draft.service.ts (ai-service). */
+  injuries?: string[];
 }
 
 export interface InBodyEntrySnapshot {
@@ -61,6 +72,8 @@ export async function fetchUserProfile(
       targetWeight: profile.targetWeight ?? null,
       currentWeight: profile.currentWeight ?? null,
       experienceLevel: profile.experienceLevel ?? null,
+      competesInSport: profile.competesInSport === true,
+      injuries: Array.isArray(profile.injuries) ? profile.injuries : [],
     };
   } catch (error) {
     logger.warn(
@@ -68,6 +81,33 @@ export async function fetchUserProfile(
       "[training-cycle] user profile fetch failed",
     );
     return null;
+  }
+}
+
+/**
+ * Gym-onboarding project — keeps user-service's legacy
+ * UserProfile.availableEquipment (free-text, still read by the AI coach
+ * chat's advisory prompt/regex-based routine builder) in sync whenever this
+ * service's canonical UserEquipment table changes, so the frontend never
+ * has to remember to write both. Best-effort: a sync failure never blocks
+ * the caller's own UserEquipment write from succeeding, since UserEquipment
+ * — not this legacy copy — is what workout generation actually reads.
+ */
+export async function syncAvailableEquipmentToUserProfile(
+  userId: string,
+  equipmentNames: string[],
+): Promise<void> {
+  try {
+    await axios.put(
+      `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}/available-equipment`,
+      { availableEquipment: equipmentNames },
+      { headers: userServiceHeaders(), timeout: 5000 },
+    );
+  } catch (error) {
+    logger.warn(
+      { err: (error as Error).message, userId },
+      "[equipment] legacy availableEquipment sync to user-service failed (non-blocking)",
+    );
   }
 }
 
@@ -133,4 +173,31 @@ export async function fetchLatestInBodyOnOrBefore(
     .filter((e) => new Date(e.date).getTime() <= cutoff.getTime())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   return eligible[0] ?? null;
+}
+
+/** Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — the ONLY
+ * authorization check every PT/coach client-data or plan-assignment
+ * endpoint may rely on. Called fresh per request, NEVER cached (a contract
+ * can be cancelled between two requests) — see coach.service.ts's
+ * assertActivePtClientRelationship, the single call site that should ever
+ * invoke this. Fails closed: any error/timeout is treated as "not active."
+ */
+export async function isActivePtClientRelationship(
+  ptUserId: string,
+  clientUserId: string,
+): Promise<boolean> {
+  try {
+    const res = await axios.get(`${USER_SERVICE_URL}/internal/contracts/active-relationship`, {
+      headers: userServiceHeaders(),
+      params: { ptUserId, clientUserId },
+      timeout: 5000,
+    });
+    return res.data?.active === true;
+  } catch (error) {
+    logger.warn(
+      { err: (error as Error).message, ptUserId, clientUserId },
+      "[coach] active PT-client relationship check failed — failing closed (denied)",
+    );
+    return false;
+  }
 }

@@ -14,6 +14,8 @@ import {
   compareScheduleDate,
   isScheduleDateLocked,
   isScheduleDateApiValueLocked,
+  isScheduleDateApiValuePast,
+  scheduleLockDirection,
   APP_SCHEDULE_TIME_ZONE,
 } from "../schedule-lock.utils";
 
@@ -78,11 +80,19 @@ describe("schedule-lock.utils", () => {
     assert.equal(compareScheduleDate(sched(2026, 7, 29), now, "Asia/Ho_Chi_Minh"), "past");
   });
 
-  it("isScheduleDateLocked: true only for past dates, defaults to APP_SCHEDULE_TIME_ZONE", () => {
+  // Real bug found via direct user report: this used to be past-only
+  // ("true only for past dates" — see git history), diverging from the
+  // BACKEND's assertScheduleDateEditable, which locks a day that is
+  // EITHER past OR future (only today is ever editable). That divergence
+  // let a future day's "Bắt đầu tập" button render enabled — clicking it
+  // reached the real API, which correctly rejected it, but only after the
+  // button had already promised it would work. Locked both directions now.
+  it("isScheduleDateLocked: true for BOTH past and future dates, false only for today — defaults to APP_SCHEDULE_TIME_ZONE", () => {
     assert.equal(APP_SCHEDULE_TIME_ZONE, "Asia/Ho_Chi_Minh");
     const now = new Date("2026-07-29T18:00:00Z"); // already 2026-07-30 in Asia/Ho_Chi_Minh
-    assert.equal(isScheduleDateLocked(sched(2026, 7, 29), now), true);
-    assert.equal(isScheduleDateLocked(sched(2026, 7, 30), now), false);
+    assert.equal(isScheduleDateLocked(sched(2026, 7, 29), now), true, "yesterday (past) must be locked");
+    assert.equal(isScheduleDateLocked(sched(2026, 7, 30), now), false, "today must NOT be locked");
+    assert.equal(isScheduleDateLocked(sched(2026, 7, 31), now), true, "tomorrow (future) must be locked");
   });
 
   it("scheduledDateLabelFromApi: reads the Y-M-D digits directly out of an ISO wire string", () => {
@@ -90,7 +100,7 @@ describe("schedule-lock.utils", () => {
     assert.equal(scheduledDateLabelFromApi("2026-07-29"), "2026-07-29");
   });
 
-  it("isScheduleDateApiValueLocked: safe to call directly on a raw API date string, unlike the Date-based helpers", () => {
+  it("isScheduleDateApiValueLocked: safe to call directly on a raw API date string, unlike the Date-based helpers — locked for past AND future, not just past", () => {
     // Regression guard: parseApiDateOnly (elsewhere in WorkoutLogPage.tsx)
     // re-materializes a Y-M-D label at *local* midnight for calendar-grid
     // arithmetic. Round-tripping that local Date back through
@@ -99,8 +109,29 @@ describe("schedule-lock.utils", () => {
     // called on the raw API string/Date instead, before any such
     // reparsing, which is what the calendar's schedulesByDay builder does.
     const now = new Date("2026-07-29T12:00:00Z");
-    assert.equal(isScheduleDateApiValueLocked("2026-07-28T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), true);
-    assert.equal(isScheduleDateApiValueLocked("2026-07-29T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), false);
-    assert.equal(isScheduleDateApiValueLocked("2026-07-30T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), false);
+    assert.equal(isScheduleDateApiValueLocked("2026-07-28T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), true, "yesterday");
+    assert.equal(isScheduleDateApiValueLocked("2026-07-29T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), false, "today");
+    assert.equal(isScheduleDateApiValueLocked("2026-07-30T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), true, "tomorrow — was wrongly `false` before this fix");
+  });
+
+  // isScheduleDateApiValuePast keeps the OLD past-only semantic on
+  // purpose, for the one real caller that legitimately needs it: the
+  // "upcoming workouts" list must include today AND future days, so it
+  // filters on "has this date already gone by", not "is today the only
+  // editable day". Using the (now bidirectional) locked-check there would
+  // wrongly hide every future session — the exact regression caught while
+  // fixing isScheduleDateApiValueLocked above.
+  it("isScheduleDateApiValuePast: true only for genuinely past dates — today and future are both false", () => {
+    const now = new Date("2026-07-29T12:00:00Z");
+    assert.equal(isScheduleDateApiValuePast("2026-07-28T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), true);
+    assert.equal(isScheduleDateApiValuePast("2026-07-29T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), false);
+    assert.equal(isScheduleDateApiValuePast("2026-07-30T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), false);
+  });
+
+  it("scheduleLockDirection: reports which way a locked day is locked, undefined when not locked at all", () => {
+    const now = new Date("2026-07-29T12:00:00Z");
+    assert.equal(scheduleLockDirection("2026-07-28T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), "past");
+    assert.equal(scheduleLockDirection("2026-07-29T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), undefined);
+    assert.equal(scheduleLockDirection("2026-07-30T00:00:00.000Z", now, "Asia/Ho_Chi_Minh"), "future");
   });
 });

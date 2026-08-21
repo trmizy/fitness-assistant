@@ -26,6 +26,22 @@ app.use(
     credentials: true,
   }),
 );
+// Identity headers are gateway-authority ONLY. Strip any client-supplied x-user-*/x-gateway-secret
+// on every incoming request so a caller can never inject their own identity/role — authMiddleware
+// sets x-user-* from the verified JWT. We also stamp a shared x-gateway-secret so downstream
+// services can prove a request actually came through the gateway (defense in depth even if an
+// internal port is exposed). Closing the internal ports entirely remains a deployment requirement.
+const GATEWAY_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || "dev_internal_service_secret_change_in_production";
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  delete req.headers["x-user-id"];
+  delete req.headers["x-user-email"];
+  delete req.headers["x-user-role"];
+  delete req.headers["x-gateway-secret"];
+  req.headers["x-gateway-secret"] = GATEWAY_SECRET;
+  next();
+});
+
 app.use(rateLimiter);
 app.use(metricsMiddleware());
 

@@ -37,7 +37,10 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
   const patch: Record<string, unknown> = {};
   if (typeof latest.weight === "number") patch.currentWeight = latest.weight;
   if (Object.keys(patch).length > 0) {
-    await profileRepository.upsert(userId, patch);
+    // source: "INBODY" — only takes effect if this happens to be the very
+    // first weight this profile has ever had (see profileRepository.upsert);
+    // on every subsequent sync it's a no-op since startingWeight is already set.
+    await profileRepository.upsert(userId, patch, { source: "INBODY" });
   }
 }
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fitness Assistant</string>
+    <string name="title_activity_main">Fitness Assistant</string>
+    <string name="package_name">vn.fitnessassistant.app</string>
+    <string name="custom_url_scheme">vn.fitnessassistant.app</string>
+</resources>

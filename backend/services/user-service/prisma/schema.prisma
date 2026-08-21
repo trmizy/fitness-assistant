@@ -51,25 +51,74 @@ model UserProfile {
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
   isPT      Boolean  @default(false)
+  // Set when an admin disables the account (auth-service drives it via /internal). Kept
+  // separate from `isPT` so the trainer identity, application and reviews survive a
+  // suspension and can be restored by simply re-enabling the account. While true the PT
+  // is hidden from discovery and cannot take new bookings.
+  ptSuspended Boolean @default(false) @map("pt_suspended")
+  // Short human-typeable code a client enters when buying a gym membership to credit this
+  // PT with the referral commission (money-flow plan §2.1). Assigned once, at PT approval —
+  // never regenerated, so a code a PT has already shared never goes stale.
+  referralCode String? @unique @map("referral_code")
 
   // Demographics
-  age       Int?
-  gender    Gender?
-  heightCm  Float?
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  age         Int?      // derived from dateOfBirth; kept for AI-service compatibility
+  gender      Gender?
+  heightCm    Float?
   
   // Goals & Preferences
   goal              Goal?
   activityLevel     ActivityLevel?
   experienceLevel   ExperienceLevel?
+  // Distinguishes a competing/professional athlete from an ADVANCED
+  // recreational lifter — deliberately NOT a 5th experienceLevel enum value,
+  // since ACSM's progression-model guidance (the evidence backing this
+  // enum) only distinguishes 3 levels; the real difference for "pro" users
+  // is stricter data-sufficiency gating and no simplified fallback advice,
+  // not a different training-load formula. See
+  // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0.
+  competesInSport   Boolean @default(false) @map("competes_in_sport")
   
   // Training preferences
   preferredTrainingDays Int[]  // [1, 3, 5] = Mon, Wed, Fri
   availableEquipment    String[] // ["barbell", "dumbbells", "machines"]
   injuries              String[] // ["lower back", "left knee"]
-  
+  // Free-text template name (e.g. "Full Body", "Upper/Lower", "Push/Pull/Legs",
+  // "Bro Split") — deliberately not an enum: the catalog of real split names
+  // (data/catalog/plans/gym_workout_plans.csv) is bigger and looser than a
+  // fixed set, and this is advisory/UI-only (never read by the Decision
+  // Engine, which reasons about actual logged sessions, not a stated intent).
+  preferredSplit        String? @map("preferred_split")
+
+  // Onboarding wizard (frontend/web/src/app/pages/client/OnboardingWizardPage.tsx)
+  // completion flag. Distinct from "has any profile fields set at all" —
+  // a user can partially fill the profile via ProfilePage without ever
+  // finishing the guided wizard; this flag is only ever set true by the
+  // wizard's own final submit step.
+  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
+
   // Calculated fields (can be denormalized from InBody service)
   currentWeight Float?
   targetWeight  Float?
+
+  // Immutable "journey start" weight — set exactly ONCE, the first time any
+  // weight is ever recorded for this user (onboarding self-report or their
+  // first InBody scan, whichever happens first), and never touched again by
+  // any later measurement/sync. This is deliberately distinct from
+  // `currentWeight` (which IS overwritten on every InBody sync — see
+  // profileRepository.upsert) and from a per-cycle baseline (see
+  // TrainingCycle.baselineMetrics in fitness-service): this field answers
+  // "where did the user's whole journey begin", not "where did the current
+  // training cycle begin". See docs/body-state-and-adaptive-planning.md.
+  startingWeight       Float?
+  // "ONBOARDING" (set at first-ever profile weight write) | "INBODY" (set at
+  // first-ever InBody sync, if that happened before any profile write) |
+  // "LEGACY_BACKFILL" (this user already had weight data before this field
+  // existed — best-effort backfilled from their earliest InBody entry, or
+  // their currentWeight if they have no InBody history at all; NOT
+  // guaranteed to be their true original starting weight).
+  startingWeightSource String?
 
   // User preferences
   dietaryPreference String? @map("dietary_preference")
@@ -77,11 +126,29 @@ model UserProfile {
 
   sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
 
+  // ── PT Acceptance status ────────────────────────────────────────────────
+  // PT tự bật/tắt nhận khách mới. Khi false: ẩn nút mua gói, xếp cuối danh sách.
+  // Không ảnh hưởng hợp đồng đang chạy.
+  isAcceptingClients  Boolean  @default(true) @map("is_accepting_clients")
+  notAcceptingReason  String?  @map("not_accepting_reason")
+
+  // ── Normalized search columns (dùng cho tìm kiếm không dấu) ──────────
+  // Cập nhật song song mỗi khi ghi firstName/lastName/mainSpecialties ở PTApplication.
+  // Có tiền lệ trong repo: FoodAlias.aliasNormalized.
+  firstNameNormalized        String?  @map("first_name_normalized")
+  lastNameNormalized         String?  @map("last_name_normalized")
+  searchCity                 String?  @map("search_city")
+  searchDistrict             String?  @map("search_district")
+  searchWard                 String?  @map("search_ward")
+  gymId                      String?  @map("gym_id")
+  specialties                String[] @map("specialties")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ptApplication     PTApplication?
-  trainingLocations PTTrainingLocation[]
+  ptApplication      PTApplication?
+  trainingLocations  PTTrainingLocation[]
+  servicePackages    PTServicePackage[]
 
   @@map("user_profiles")
 }
@@ -232,8 +299,28 @@ enum ContractStatus {
 }
 
 enum ContractSource {
-  INDEPENDENT // PT hired directly, no gym involved
-  GYM         // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
+  INDEPENDENT  // PT hired directly, no gym involved
+  GYM          // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
+  MARKETPLACE  // Created from a Marketplace Personalized PT Service purchase (ai-service
+               // PersonalizedServiceOrder) — payment already happened via wallet-transfer
+               // before this Contract exists, so it's created directly ACTIVE (no
+               // PENDING_REVIEW/PENDING_SIGNATURE/PENDING_PAYMENT negotiation stages).
+               // Exists purely so the PT-client authorization surface already built on
+               // Contract.status===ACTIVE (coach.service.ts, computeChatEligibility,
+               // isActivePtClientRelationship) works unchanged for marketplace-originated
+               // relationships too — no second authorization source of truth.
+}
+
+/// Why a contract stopped. Each value selects one refund formula — see computeTermination.
+/// Fault matters: a client who walks away forfeits a slice of the unused value, a client
+/// whose trainer was banned or who cancelled on them does not.
+enum TerminationReason {
+  CLIENT_CANCELLED // client walked away — forfeits (1 − CLIENT_CANCEL_REFUND_RATE) of the unused value
+  PT_BANNED        // trainer suspended by an admin — client refunded in full, no fee
+  PT_CANCELLED     // trainer pulled out — client refunded in full, the same slice fined to the PT side
+  MUTUAL           // both sides agreed — full refund of the unused value, nobody penalised
+  EXPIRED          // ran past its end date with sessions unused — nothing refunded
+  COMPLETED        // quota fully used — nothing to refund
 }
 
 enum PackageType {
@@ -244,7 +331,13 @@ enum PackageType {
 enum SessionStatus {
   REQUESTED // Client booked, awaiting PT confirmation
   CONFIRMED // PT confirmed
-  COMPLETED // PT marked complete
+  // PT says the session happened (or that the client didn't show). The client's quota is
+  // NOT touched yet: the PT alone used to be able to both declare the session delivered
+  // and charge the client for it, with no way to object. The client now confirms, disputes,
+  // or lets it auto-confirm after SESSION_AUTO_CONFIRM_DAYS.
+  PENDING_CLIENT_CONFIRMATION
+  DISPUTED  // Client objected; quota stays untouched until an admin rules on it
+  COMPLETED // Session delivered and settled — the only state that consumes quota
   CANCELLED // Either party cancelled
   NO_SHOW   // Client or PT did not attend
 }
@@ -276,11 +369,28 @@ enum NotificationEventType {
   SESSION_CANCELLED
   SESSION_NO_SHOW_CLIENT
   SESSION_NO_SHOW_PT
+  SESSION_RESCHEDULE_REQUESTED
+  SESSION_RESCHEDULE_ACCEPTED
+  SESSION_RESCHEDULE_REJECTED
+  SESSION_RESCHEDULE_EXPIRED
 }
 
 enum NotificationEntityType {
   CONTRACT
   SESSION
+}
+
+enum RescheduleStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum RescheduleRequestedBy {
+  CLIENT
+  PT
 }
 
 // ─── Contract ─────────────────────────────────────────────────────
@@ -301,8 +411,10 @@ model Contract {
   extraSessions      Int            @default(0) @map("extra_sessions")
   totalSessions      Int            @map("total_sessions")
   usedSessions       Int            @default(0) @map("used_sessions")
-  price              Float?
-  pricePerSession    Float?         @map("price_per_session")
+  // Money is Decimal(14,2), never a float: these figures are split three ways and the split
+  // has to reconcile to the đồng. Binary floating point cannot promise that.
+  price              Decimal?       @db.Decimal(14, 2)
+  pricePerSession    Decimal?       @db.Decimal(14, 2) @map("price_per_session")
 
   // Timeline
   startDate          DateTime?      @map("start_date")
@@ -340,6 +452,40 @@ model Contract {
   source             ContractSource @default(INDEPENDENT)
   paymentTransactionId String?      @map("payment_transaction_id")
 
+  // ── Revenue split, frozen at signing ──────────────────────────────────────
+  // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,
+  // compensating a no-show — reads these three columns and never re-queries the current
+  // PT↔gym collaboration. If the two sides renegotiate tomorrow, contracts already signed
+  // keep the terms their parties agreed to. The three must sum to exactly 1 and
+  // platformRate may not fall below MIN_PLATFORM_RATE; both are enforced in
+  // contract-money.ts before a contract is written.
+  platformRate       Decimal        @default("0.10") @db.Decimal(6, 4) @map("platform_rate")
+  ptRate             Decimal        @default("0.90") @db.Decimal(6, 4) @map("pt_rate")
+  gymRate            Decimal        @default("0")    @db.Decimal(6, 4) @map("gym_rate")
+
+  // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
+  terminationReason  TerminationReason? @map("termination_reason")
+  terminatedAt       DateTime?          @map("terminated_at")
+  /// Money already moved out of the pending buckets for this contract, per party. Lets
+  /// termination top each party up to their final entitlement instead of double-paying the
+  /// part already released session by session.
+  releasedToPt       Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_pt")
+  releasedToGym      Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_gym")
+  releasedToPlatform Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_platform")
+
+  // ── PT Service Package snapshot (Phase 1) ────────────────────────────────
+  // Snapshot at signing time — same principle as revenue split above.
+  // packageId is for audit trail only; price/totalSessions/sessionMode are the truth.
+  packageId              String?  @map("package_id")
+  packageSourceName      String?  @map("package_source_name")        // ảnh chụp tên gói
+  sessionDurationMinutes Int?     @map("session_duration_minutes")   // ảnh chụp thời lượng buổi
+
+  // ── Slot availability warning (Phase 1) ─────────────────────────────────
+  // Evidence that the client was warned about low availability before purchasing.
+  // Used for dispute resolution if the client later complains they cannot book sessions.
+  lowAvailabilityWarned  Boolean  @default(false) @map("low_availability_warned")
+  slotsAtPurchase        Int?     @map("slots_at_purchase")
+
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
@@ -371,19 +517,34 @@ model Session {
   ptNotes            String?       @map("pt_notes")
   cancelledBy        String?       @map("cancelled_by")
   cancellationReason String?       @map("cancellation_reason")
+  // The single source of truth for "this session has already consumed one of the
+  // contract's sessions". Every quota deduction flips it inside a guarded update, so a
+  // double confirm / retry can never charge the client twice.
   sessionDeducted    Boolean       @default(false) @map("session_deducted")
   completedAt        DateTime?     @map("completed_at")
+
+  // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
+  clientConfirmDeadline DateTime? @map("client_confirm_deadline")
+  autoConfirmed         Boolean   @default(false) @map("auto_confirmed")
+  disputeReason         String?   @map("dispute_reason")
+  disputedAt            DateTime? @map("disputed_at")
+  resolvedBy            String?   @map("resolved_by")
+  resolutionNote        String?   @map("resolution_note")
+  resolvedAt            DateTime? @map("resolved_at")
 
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
 
-  contract           Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  review             SessionReview?
+  contract              Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  review                SessionReview?
+  rescheduleRequests    SessionRescheduleRequest[]
 
   @@index([contractId])
   @@index([clientUserId])
   @@index([ptUserId])
   @@index([scheduledStartAt])
+  // Drives the auto-confirm sweep, which repeatedly asks for exactly this pair.
+  @@index([status, clientConfirmDeadline])
   @@map("sessions")
 }
 
@@ -503,8 +664,14 @@ model PTTrainingLocation {
   provinceCode       Int      @map("province_code")
   wardCode           Int?     @map("ward_code")
   gymName            String?  @map("gym_name")
+  // Normalized (no diacritics) version of gymName for accent-insensitive search.
+  // Updated whenever gymName is written.
+  gymNameNormalized  String?  @map("gym_name_normalized")
   addressLine        String?  @map("address_line")
   legacyDistrictName String?  @map("legacy_district_name")
+  // FK to gym-service Gym.id — nullable because many gyms are not on the platform yet.
+  // When present, used to prioritise PTs who work at the same gym as the client.
+  gymId              String?  @map("gym_id")
   isPrimary          Boolean  @default(false) @map("is_primary")
   isActive           Boolean  @default(true) @map("is_active")
   note               String?
@@ -519,7 +686,66 @@ model PTTrainingLocation {
   @@index([provinceCode])
   @@index([wardCode])
   @@index([isActive])
+  @@index([gymId])
   @@map("pt_training_locations")
+}
+
+// ─── PT Service Package ───────────────────────────────────────────
+// A coaching service sold by a PT: a fixed number of PT-supervised sessions.
+// This is DIFFERENT from TrainingPackage in ai-service (which sells workout plans/content).
+// When a client purchases a PTServicePackage, the contract SNAPSHOTS the key fields
+// (price, sessionCount, sessionMode, sessionDurationMinutes) — same principle as
+// the revenue-split snapshot on Contract. PT can change or archive the package later
+// without affecting existing contracts.
+
+model PTServicePackage {
+  id                     String      @id @default(uuid())
+  ptUserId               String      @map("pt_user_id")
+  name                   String
+  description            String?
+  sessionCount           Int         @map("session_count")            // >= 1
+  price                  Decimal     @db.Decimal(14, 2)               // > 0
+  sessionMode            SessionMode @map("session_mode")             // ONLINE or OFFLINE (not HYBRID)
+  sessionDurationMinutes Int         @default(60) @map("session_duration_minutes")
+  validityDays           Int?        @map("validity_days")            // null = no expiry
+  isActive               Boolean     @default(true) @map("is_active")
+  // Soft-delete: never hard-delete because existing contracts reference this package id.
+  // archivedAt non-null means the package is no longer sold but historical data is intact.
+  archivedAt             DateTime?   @map("archived_at")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+
+  ptProfile              UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId, isActive])
+  @@map("pt_service_packages")
+}
+
+// ─── Session Reschedule Request ───────────────────────────────────
+// Either party (PT or client) can propose a new time for a CONFIRMED session.
+// The other party must accept or reject. A session can be rescheduled at most twice.
+// See docs/pt-scheduling-and-discovery.md for the full state machine and business rules.
+
+model SessionRescheduleRequest {
+  id              String                @id @default(uuid())
+  sessionId       String                @map("session_id")
+  requestedBy     RescheduleRequestedBy @map("requested_by")
+  // Snapshot of the original schedule, for audit purposes.
+  originalStartAt DateTime              @map("original_start_at")
+  originalEndAt   DateTime              @map("original_end_at")
+  // The proposed new time window.
+  proposedStartAt DateTime              @map("proposed_start_at")
+  proposedEndAt   DateTime              @map("proposed_end_at")
+  reason          String                // required, max 500 chars
+  status          RescheduleStatus      @default(PENDING)
+  respondedAt     DateTime?             @map("responded_at")
+  responseNote    String?               @map("response_note")
+  createdAt       DateTime              @default(now()) @map("created_at")
+
+  session         Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status])
+  @@map("session_reschedule_requests")
 }
 
 model InBodyEntry {
@@ -562,4 +788,47 @@ model InBodyEntry {
   @@unique([userId, dateOnly], name: "inbody_entries_user_id_date_only_key")
   @@index([userId, date])
   @@map("inbody_entries")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────
+// An append-only record of who changed what, kept for dispute resolution: a client who
+// says "I never agreed to that time" and a PT who says "she cancelled, not me" are both
+// answered from here rather than from whoever shouts loudest.
+//
+// Two deliberate differences from auth-service's AuditLog, which this follows otherwise:
+//
+//  · No foreign key to UserProfile. auth-service relates its log to User with
+//    onDelete: Cascade, which is right for login history but wrong here — deleting a
+//    profile would erase exactly the evidence a dispute about that profile needs. The
+//    actor is a plain id, resolved for display only when someone reads the log.
+//  · An entity pair (type + id) instead of a bare userId, because what is being audited
+//    is a contract, a session or a package, not a person.
+//
+// Writes must never break the operation being audited: see auditService.record.
+
+enum AuditEntityType {
+  CONTRACT
+  SESSION
+  SERVICE_PACKAGE
+  PT_PROFILE
+}
+
+model AuditLog {
+  id           String          @id @default(uuid())
+  /// Who performed the action. Not an FK — see the note above.
+  actorUserId  String          @map("actor_user_id")
+  /// Verb in SCREAMING_SNAKE, e.g. CONTRACT_ACCEPTED, SESSION_RESCHEDULE_ACCEPTED.
+  action       String
+  entityType   AuditEntityType @map("entity_type")
+  entityId     String          @map("entity_id")
+  /// Before/after values and any context worth keeping. Shape varies by action.
+  metadata     Json?
+  ipAddress    String?         @map("ip_address")
+  userAgent    String?         @map("user_agent")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  // Reading the history of one contract or session is the query this table exists for.
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
 }

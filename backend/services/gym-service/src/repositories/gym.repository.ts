@@ -14,17 +14,26 @@ export const gymRepository = {
     return prisma.gym.update({ where: { id }, data });
   },
 
-  /** Public listing — approved gyms only. */
+  /** Public listing — approved gyms only. Includes the brand (if any) so the client can
+   * group same-brand branches into one card without a second round-trip. */
   async findApproved() {
-    return prisma.gym.findMany({ where: { status: 'APPROVED' }, orderBy: { createdAt: 'desc' } });
+    return prisma.gym.findMany({
+      where: { status: 'APPROVED' },
+      include: { brand: true },
+      orderBy: { createdAt: 'desc' },
+    });
   },
 
   async findApprovedById(id: string) {
-    return prisma.gym.findFirst({ where: { id, status: 'APPROVED' } });
+    return prisma.gym.findFirst({ where: { id, status: 'APPROVED' }, include: { brand: true } });
   },
 
   async findByOwner(ownerId: string) {
-    return prisma.gym.findMany({ where: { ownerId }, orderBy: { createdAt: 'desc' } });
+    return prisma.gym.findMany({
+      where: { ownerId },
+      include: { brand: true },
+      orderBy: { createdAt: 'desc' },
+    });
   },
 
   async updateStatus(id: string, status: GymStatus) {

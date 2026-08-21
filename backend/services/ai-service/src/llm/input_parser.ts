@@ -13,6 +13,7 @@ function mapRouteCategory(
 ): InputIntent["routeCategory"] {
   const q = question.toLowerCase();
   if (routeIntent === "combined_plan_request") return "combined_plan_request";
+  if (routeIntent === "nutrient_timing_request") return "nutrition_macro_request";
   if (routeIntent === "meal_plan_request") {
     if (
       /macro|protein|carb|fat|calo|calories|kcal/i.test(q) &&
@@ -41,7 +42,7 @@ function inferIntent(question: string): InputIntent["intent"] {
   const workoutSignals =
     /(workout|lich tap|chuong trinh tap|split|hypertrophy|strength|plan tap)/i;
   const mealSignals =
-    /(meal|dinh duong|thuc don|calories|macro|protein|fat|carb|an gi|meal plan)/i;
+    /(meal|dinh duong|thuc don|calo\b|calories|macro|protein|fat|carb|an gi|meal plan)/i;
   const personalSignals =
     /(inbody|body fat|bmr|chieu cao|can nang|ho so|profile|history|lich su tap|nutrition history|injury|chan thuong)/i;
 

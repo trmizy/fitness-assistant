@@ -299,6 +299,105 @@ describe("B. answerValidator detects drifted macros", () => {
     );
     assert.equal(hasMacroMismatch, false);
   });
+
+  // Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+  // Persona B/C): a real local-LLM answer echoed the correct deterministic
+  // target once in a header line ("Đạm: 125g") and then separately restated
+  // the SAME field wrong later in its own free-text table ("Đạm 0g"). The
+  // old validator (a) only searched for the literal English word "protein"/
+  // "fat", which never appears in a Vietnamese answer ("Đạm"/"Béo" are used
+  // instead), and (b) only inspected the FIRST number found near the
+  // keyword. Either bug alone was enough to let an obviously-wrong 0g
+  // answer through the safety net whose entire purpose is to catch this.
+  it("catches a Vietnamese answer that echoes the correct target once, then restates it as 0g later (real E2E bug)", () => {
+    const rec = minimalRecommendation(); // protein=150g, carbs=220g, fat=65g, calories=2000
+    const answer = [
+      "📊 Mục tiêu ngày: 2000 kcal | Đạm: 150g | Carb: 220g | Béo: 65g",
+      "",
+      "## 🥗 Dinh Dưỡng",
+      "| Chỉ số | Giá trị |",
+      "|--------|---------|",
+      "| Calo | 2000 kcal |",
+      "| Đạm | 0g |",
+      "| Carb | 0g |",
+      "| Béo | 0g |",
+    ].join("\n");
+    const result = answerValidator.validate(answer, rec, "vi");
+    assert.equal(
+      hasCriticalNutritionMismatch(result.warnings),
+      true,
+      `Expected a critical nutrition mismatch for the 0g restatement but got: ${JSON.stringify(result.warnings)}`,
+    );
+  });
+
+  it("Vietnamese macro keywords (Đạm/Béo) are actually checked, not silently skipped", () => {
+    const rec = minimalRecommendation(); // protein target = 150g
+    // No English "protein" word anywhere — old English-only keyword search
+    // would find nothing and silently skip validation for this field.
+    const answer = "Đạm hôm nay của bạn là 400g, Carb 220g, Béo 65g, tổng 2000 kcal.";
+    const result = answerValidator.validate(answer, rec, "vi");
+    assert.equal(
+      hasCriticalNutritionMismatch(result.warnings),
+      true,
+      `Expected the Vietnamese "Đạm 400g" (vs 150g target) to be flagged but got: ${JSON.stringify(result.warnings)}`,
+    );
+  });
+});
+
+// ─── B2. answerValidator — nutrient_timing_request must actually cover both
+// pre AND post-workout timing, else fall back to the deterministic answer ──
+// Real gap found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+// Persona B): even with a strong header-based prompt instruction, the local
+// LLM sometimes drifts into a generic or off-topic answer instead of
+// actually covering "trước tập"/"sau tập". This is the safety net that
+// makes the final answer reliable regardless of LLM output quality.
+
+describe("B2. answerValidator — nutrient_timing_request requires pre+post coverage", () => {
+  function timingRecommendation(): RecommendationResult {
+    return {
+      ...minimalRecommendation(),
+      responseIntent: "nutrient_timing_request",
+    };
+  }
+
+  it("flags a critical structure mismatch when the answer covers neither pre nor post workout timing (real E2E failure case)", () => {
+    const rec = timingRecommendation();
+    // The actual off-topic answer observed live in E2E testing — talks
+    // about fat intake and pain tolerance, never mentions workout timing.
+    const answer =
+      "Nên ăn nhiều chất béo dễ tiêu để hỗ trợ tăng cơ và giảm mỡ, rồi giảm dần qua 2-3 tuần.";
+    const result = answerValidator.validate(answer, rec, "vi");
+    assert.equal(
+      hasCriticalStructureMismatch(result.warnings),
+      true,
+      `Expected a critical structure mismatch but got: ${JSON.stringify(result.warnings)}`,
+    );
+  });
+
+  it("does NOT flag a mismatch when the answer properly covers both Trước Tập and Sau Tập", () => {
+    const rec = timingRecommendation();
+    const answer = [
+      "## Trước Tập",
+      "Ưu tiên carb dễ tiêu như chuối hoặc cơm, kèm một ít protein.",
+      "",
+      "## Sau Tập",
+      "Ăn protein + carb trong bữa kế tiếp, ví dụ ức gà với cơm.",
+    ].join("\n");
+    const result = answerValidator.validate(answer, rec, "vi");
+    assert.equal(
+      hasCriticalStructureMismatch(result.warnings),
+      false,
+      `Expected no structure mismatch but got: ${JSON.stringify(result.warnings)}`,
+    );
+  });
+
+  it("flags when the answer expands into a full multi-meal day plan instead of a focused timing tip", () => {
+    const rec = timingRecommendation();
+    const answer =
+      "Trước tập nên ăn nhẹ. Sau tập nên ăn protein. Bữa sáng: trứng. Bữa trưa: cơm gà. Bữa tối: cá hồi.";
+    const result = answerValidator.validate(answer, rec, "vi");
+    assert.equal(hasCriticalStructureMismatch(result.warnings), true);
+  });
 });
 
 // ─── C. meal_plan_request — deterministic formatter has no workout table ──────
@@ -343,6 +442,54 @@ describe("C. meal_plan deterministic formatter — no workout table headings", (
         `Meal plan follow-up must not mention workout: "${q}"`,
       );
     }
+  });
+
+  // Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+  // Persona B/C — profile missing age/height, exactly minimalProfile()'s
+  // shape). Root cause: nutritionCalculator.calculate() legitimately
+  // returns targetCalories/proteinGrams/carbsGrams/fatGrams as `undefined`
+  // when bmr/weight can't be computed (nutrition_calculator.ts's own
+  // documented low-confidence branch) — but buildMealPlanTemplate()
+  // resolves ITS OWN local nutrition target with sensible fallback
+  // defaults (2100/150/220/65-ish), while the deterministic renderer's
+  // "🥗 Dinh Dưỡng" table and "Hành Động Tuần Này" step used to read
+  // `rec.nutrition.targetCalories ?? 0` directly — a real, distinct
+  // (undefined-is-not-zero) field, producing a literal "Calo 0 kcal | Đạm
+  // 0g | Carb 0g | Béo 0g" directly beneath a correct non-zero
+  // "📊 Mục tiêu ngày" line built from `rec.mealPlan` in the SAME answer.
+  it("formatMealPlan never shows 0 kcal/0g when the profile lacks age/height (low-confidence nutrition)", () => {
+    const profile = minimalProfile(); // no age, no heightCm, no currentWeightKg
+    const intent = minimalIntent("meal_plan_request");
+    const rec = recommendationEngine.recommend(profile, intent, "vi");
+
+    assert.equal(
+      rec.nutrition.confidence,
+      "low",
+      "sanity check: this profile should trigger nutritionCalculator's low-confidence branch",
+    );
+    assert.ok(rec.mealPlan, "mealPlan should still be built with fallback defaults");
+
+    const answer = responseFormatter.format(rec, "vi");
+    assert.doesNotMatch(
+      answer,
+      /Calo\s*\|?\s*0\s*kcal|Đạm\s*\|?\s*0g|Carb\s*\|?\s*0g|Béo\s*\|?\s*0g/,
+      `Deterministic meal-plan answer must never show a literal 0 kcal/0g nutrition value. Got:\n${answer}`,
+    );
+    // The "🥗 Dinh Dưỡng" table's calorie figure must agree with the
+    // "📊 Mục tiêu ngày" header figure (both now derived from the same
+    // resolved mealPlan numbers) — extracted from each section
+    // specifically rather than scanning the whole answer, since the
+    // "Cách Điều Chỉnh Theo Thời Gian" section legitimately mentions a
+    // different number (a kcal *delta*, e.g. "giảm thêm 100-150 kcal/ngày").
+    const targetLineMatch = answer.match(/Mục tiêu ngày:\*?\*?\s*(\d{2,5})\s*kcal/);
+    const tableMatch = answer.match(/Calo\s*\|\s*(\d{2,5})\s*kcal/);
+    assert.ok(targetLineMatch, `Expected a "Mục tiêu ngày" kcal figure. Got: ${answer}`);
+    assert.ok(tableMatch, `Expected a "Calo | X kcal" table row. Got: ${answer}`);
+    assert.equal(
+      tableMatch![1],
+      targetLineMatch![1],
+      `The 🥗 Dinh Dưỡng table's kcal must match the 📊 Mục tiêu ngày header's kcal. Got table=${tableMatch![1]}, header=${targetLineMatch![1]}`,
+    );
   });
 });
 
@@ -1260,6 +1407,88 @@ describe("M. intentRouter — supplement/recovery/deload/progress → general kn
       "Tại sao sau 3 tháng tập tôi vẫn không tăng cơ?",
     );
     assert.equal(intent, "general_fitness_knowledge");
+  });
+});
+
+// ─── M2. intentRouter — pre/post-workout timing questions ─────────────────────
+// Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+// Persona B): "trước/sau tập nên ăn gì?" used to fall into meal_plan_request's
+// bare "ăn gì" catch-all, always triggering a full meal-plan generation
+// instead of a direct answer to the timing question actually asked.
+
+describe("M2. intentRouter — pre/post-workout timing → nutrient_timing_request", () => {
+  it('"Trước và sau buổi tập tôi nên ăn gì?" (Persona B\'s exact question) → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route(
+      "Tôi tập gym được 1.5 năm rồi, đang lean bulk. Trước và sau buổi tập tôi nên ăn gì?",
+    );
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"trước tập nên ăn gì?" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Trước tập nên ăn gì?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"sau tập nên ăn gì?" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Sau tập nên ăn gì?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"ăn trước/sau khi tập như thế nào?" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Ăn trước và sau khi tập như thế nào cho hợp lý?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"pre workout meal" (English phrasing) → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("What should I eat for my pre workout meal?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"post workout nên ăn gì" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Post workout tôi nên ăn gì?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"ăn carb quanh buổi tập thế nào?" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Tôi nên ăn carb quanh buổi tập thế nào cho hiệu quả?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('"tập lúc 6h tối thì ăn sao?" → nutrient_timing_request', () => {
+    const { intent } = intentRouter.route("Tôi tập lúc 6h tối thì nên ăn sao?");
+    assert.equal(intent, "nutrient_timing_request");
+  });
+
+  it('a full meal-plan request ("lên thực đơn tăng cơ 1 tuần") is still meal_plan_request, not swallowed by the timing check', () => {
+    const { intent } = intentRouter.route(
+      "Lên thực đơn tăng cơ 1 tuần cho người mới.",
+    );
+    assert.equal(intent, "meal_plan_request");
+  });
+
+  it('a generic "nên ăn gì" with no workout-timing anchor is still meal_plan_request', () => {
+    const { intent } = intentRouter.route("Tôi nên ăn gì để tăng cơ?");
+    assert.equal(intent, "meal_plan_request");
+  });
+
+  // Real bug found via E2E persona testing (Persona C, run after the
+  // nutrient_timing_request fix above went live): "an" inside the
+  // completely unrelated word "an toàn" (safe) was matched by a too-loose
+  // `mentionsEating` check, wrongly routing a supplement-safety question
+  // ("...trước buổi tập... liều lượng bao nhiêu là an toàn?") into
+  // nutrient_timing_request instead of general_fitness_knowledge.
+  it('a supplement-timing/safety question ("creatine/caffeine trước buổi tập... an toàn?") is NOT misrouted into nutrient_timing_request', () => {
+    const { intent } = intentRouter.route(
+      "Tôi có nên dùng creatine và caffeine trước buổi tập không? Liều lượng bao nhiêu là an toàn?",
+    );
+    assert.notEqual(intent, "nutrient_timing_request");
+  });
+
+  it('"quan trọng" / other unrelated words containing "an" do not falsely trigger the eating signal', () => {
+    const { intent } = intentRouter.route(
+      "Trước buổi tập, điều gì quan trọng nhất tôi cần chuẩn bị?",
+    );
+    assert.notEqual(intent, "nutrient_timing_request");
   });
 });
 

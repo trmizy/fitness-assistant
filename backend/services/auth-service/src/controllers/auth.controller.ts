@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { authService } from "../services/auth.service";
 import { authRepository } from "../repositories/auth.repository";
+import { sendPlainEmail } from "../services/email.service";
 import {
   registerStartSchema,
   registerVerifySchema,
@@ -283,6 +284,40 @@ export const authController = {
       res.json({ users });
     } catch (error: any) {
       logger.error(error, "Batch get users internal error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /**
+   * Generic email send for other services — used where a flow needs to notify a user but
+   * has no SMTP setup of its own (e.g. contract-payment confirmation). Same
+   * x-service-secret gate as the other /internal/* routes.
+   */
+  async sendEmailInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret)
+        ? serviceSecret[0]
+        : serviceSecret;
+      if (!INTERNAL_SERVICE_SECRET) {
+        res.status(503).json({ error: "Internal endpoint disabled" });
+        return;
+      }
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(401).json({ error: "Invalid service secret" });
+        return;
+      }
+
+      const { to, subject, text, html } = req.body ?? {};
+      if (!to || !subject || !text) {
+        res.status(400).json({ error: "to, subject, and text are required" });
+        return;
+      }
+
+      const result = await sendPlainEmail({ to, subject, text, html });
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "Send email internal error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

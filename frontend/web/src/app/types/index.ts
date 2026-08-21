@@ -125,6 +125,15 @@ export type ContractStatus =
   | "REJECTED";
 export type PackageType = "PER_SESSION" | "PACKAGE";
 
+/** The other party on a contract, as attached by user-service (`ptProfile`/`clientProfile`). */
+export interface ContractPartyProfile {
+  userId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  photoUrl?: string | null;
+}
+
 export interface Contract {
   id: string;
   ptUserId: string;
@@ -150,6 +159,10 @@ export interface Contract {
   createdAt: string;
   updatedAt: string;
   sessions?: Session[];
+  /** Attached on `/contracts/client` — who the trainer is. */
+  ptProfile?: ContractPartyProfile | null;
+  /** Attached on `/contracts/pt` — who the client is. */
+  clientProfile?: ContractPartyProfile | null;
 }
 
 // ── Session types ────────────────────────────────────────────────
@@ -158,8 +171,24 @@ export type SessionStatus =
   | "CONFIRMED"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "RESCHEDULE_PENDING";
 export type SessionMode = "ONLINE" | "OFFLINE" | "HYBRID";
+
+export interface SessionRescheduleRequest {
+  id: string;
+  sessionId: string;
+  requestedBy: "CLIENT" | "PT";
+  originalStartAt: string;
+  originalEndAt: string;
+  proposedStartAt: string;
+  proposedEndAt: string;
+  reason: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  respondedAt: string | null;
+  responseNote: string | null;
+  createdAt: string;
+}
 
 export interface Session {
   id: string;
@@ -180,6 +209,7 @@ export interface Session {
   createdAt: string;
   updatedAt: string;
   review?: SessionReview;
+  rescheduleRequests?: SessionRescheduleRequest[];
 }
 
 export interface SessionReview {
@@ -291,11 +321,11 @@ export interface CallState {
 // ── Wallet types (Phase 4) ──────────────────────────────────────────
 export interface Wallet {
   id: string;
-  ownerType: 'CLIENT' | 'PT' | 'GYM' | 'PLATFORM';
+  ownerType: "CLIENT" | "PT" | "GYM" | "PLATFORM";
   ownerId: string;
   availableBalance: string;
   lockedBalance: string;
-  status: 'ACTIVE' | 'FROZEN' | 'CLOSED';
+  status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;
   updatedAt: string;
 }
@@ -304,7 +334,7 @@ export interface WalletLedgerEntry {
   id: string;
   walletId: string;
   transactionId: string;
-  entryType: 'DEBIT' | 'CREDIT';
+  entryType: "DEBIT" | "CREDIT";
   amount: string;
   balanceBefore: string;
   balanceAfter: string;
@@ -313,13 +343,35 @@ export interface WalletLedgerEntry {
 }
 
 // ── Gym marketplace types (Phase 4) ─────────────────────────────────
-export type GymStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-export type GymMembershipPlanStatus = 'ACTIVE' | 'INACTIVE';
-export type GymMembershipContractStatus = 'PENDING_PAYMENT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+export type GymStatus =
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "SUSPENDED";
+export type GymMembershipPlanStatus = "ACTIVE" | "INACTIVE";
+export type GymMembershipContractStatus =
+  | "PENDING_PAYMENT"
+  | "ACTIVE"
+  | "EXPIRED"
+  | "CANCELLED";
+
+/** A chain: one owner, one name, many physical locations (branches, below). */
+export interface GymBrand {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Present only on GET /owner/brands/:id — the branch-management view. */
+  branches?: Gym[];
+}
 
 export interface Gym {
   id: string;
   ownerId: string;
+  /** Which brand this location belongs to, if any — most gyms have none. */
+  brandId?: string | null;
   name: string;
   description?: string;
   address: string;
@@ -329,6 +381,10 @@ export interface Gym {
   status: GymStatus;
   createdAt: string;
   updatedAt: string;
+  averageRating?: number; // public DTO only
+  reviewCount?: number; // public DTO only
+  /** Included on public/owner listings so the client can group branches without a second call. */
+  brand?: { id: string; name: string } | null;
 }
 
 export interface GymMembershipPlan {
@@ -340,6 +396,10 @@ export interface GymMembershipPlan {
   durationDays: number;
   visitLimit?: number;
   status: GymMembershipPlanStatus;
+  /** Marketing window: the plan can only be bought while now is inside this range. Both
+   * unset means always on sale while status is ACTIVE. */
+  saleStartAt?: string | null;
+  saleEndAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -359,4 +419,45 @@ export interface GymMembershipContract {
   usedVisits: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Phase 4: check-in + reviews ─────────────────────────────────────
+export interface CheckinToken {
+  token: string;
+  expiresAt: number; // epoch ms
+  gymId: string;
+}
+
+export interface CheckinResult {
+  ok: boolean;
+  checkinId: string;
+  clientId: string;
+  usedVisits: number;
+  totalVisits: number | null;
+  checkedInAt: string;
+}
+
+export interface GymCheckIn {
+  id: string;
+  membershipId: string;
+  gymId: string;
+  clientId: string;
+  checkedInBy: string;
+  createdAt: string;
+}
+
+export interface GymReview {
+  id: string;
+  gymId: string;
+  clientId: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GymReviewsResponse {
+  averageRating: number;
+  count: number;
+  reviews: GymReview[];
 }

@@ -4,8 +4,10 @@ import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
-import { assertScheduleDateEditable } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { estimate1RM } from "../utils/estimated-1rm.util";
 import type {
+  CompleteScheduleExerciseDto,
   CreateManualProgramDto,
   CreateWorkoutDto,
   UpdateWorkoutSetDto,
@@ -160,6 +162,15 @@ async function createStartedWorkoutForSchedule(
           (programExercise: any, index: number) => ({
             exerciseId: programExercise.exerciseId,
             programExerciseId: programExercise.id,
+            // History-protection snapshot (Gate 4, exerciseNameSnapshot's
+            // own schema doc comment) — populated at creation time so a
+            // later exercise rename/reclassification never retroactively
+            // changes what this logged set displays. Previously only ever
+            // backfilled once by the migration for pre-existing rows; every
+            // NEW WorkoutExercise since then was silently leaving this
+            // null (found via postMigrationIntegrityCheck.ts's snapshot
+            // backfill count still growing post-migration).
+            exerciseNameSnapshot: programExercise.exercise?.exerciseName ?? null,
             sets: Number(programExercise.sets) || 1,
             reps: programExercise.reps ?? null,
             duration: programExercise.duration ?? null,
@@ -204,7 +215,7 @@ async function recomputeScheduleProgress(
       programDay: {
         include: {
           program: { select: { id: true } },
-          exercises: { orderBy: { order: "asc" } },
+          exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
         },
       },
     },
@@ -261,11 +272,20 @@ async function recomputeScheduleProgress(
   );
   const percent = progressPercent(completedExercises, totalExercises);
   const completed = totalExercises > 0 && completedExercises === totalExercises;
+  // PARTIALLY_COMPLETED distinguishes "some exercises actually logged" from
+  // "session started but nothing done yet" — previously both read as
+  // IN_PROGRESS, so a session 1-of-4 exercises in was indistinguishable
+  // from one just opened. See docs/CLOUDCODE_IMPLEMENTATION_AUDIT.md G2 /
+  // docs/workout-log-audit.md's Known Gaps. The external API contract
+  // (sessionStatus/dayStatus below) still maps this to "in_progress" —
+  // only the persisted WorkoutSchedule.status gains the finer distinction.
   const status = completed
     ? "COMPLETED"
-    : schedule.workoutId || schedule.startedAt || completedExercises > 0
-      ? "IN_PROGRESS"
-      : "NOT_STARTED";
+    : completedExercises > 0
+      ? "PARTIALLY_COMPLETED"
+      : schedule.workoutId || schedule.startedAt
+        ? "IN_PROGRESS"
+        : "NOT_STARTED";
   const completedAt = completed ? schedule.completedAt || new Date() : null;
 
   await tx.workoutSchedule.update({
@@ -303,12 +323,12 @@ async function recomputeScheduleProgress(
     progressPercent: percent,
     sessionStatus: completed
       ? "completed"
-      : status === "IN_PROGRESS"
+      : status === "IN_PROGRESS" || status === "PARTIALLY_COMPLETED"
         ? "in_progress"
         : "not_started",
     dayStatus: completed
       ? "completed"
-      : status === "IN_PROGRESS"
+      : status === "IN_PROGRESS" || status === "PARTIALLY_COMPLETED"
         ? "in_progress"
         : "not_started",
     completedAt,
@@ -327,14 +347,31 @@ const WEEKDAY_LABELS: Record<number, string> = {
   6: "Thu 7",
 };
 
+// Real bug found via a Gate-6 E2E test (fitnessassistant-playwright-e2e/
+// tests/25-exercise-muscle-map.spec.ts): this function (and parseDateOnly/
+// formatDateOnly below) used LOCAL Date getters/setters
+// (getDate/getDay/setDate), which only produce the documented "UTC-
+// midnight calendar label" storage convention (see
+// src/utils/schedule-lock.util.ts's own module doc comment, and
+// __tests__/schedule-lock.util.test.ts's explicit "stored ... as a
+// UTC-midnight instant" assumption) when the RUNNING PROCESS's own
+// timezone happens to be UTC. Confirmed live against the real dev
+// service that it is NOT: requesting startDate "2026-08-20" was stored
+// as "2026-08-19T17:00:00.000Z" (Ho_Chi_Minh midnight, not UTC midnight)
+// — one full calendar day off from what every reader of this column
+// (schedule-lock.util.ts, its frontend mirror, this file's own
+// formatDateOnly) assumes, so a schedule created for "today" was locked
+// as already-passed. Switched to UTC getters/setters throughout so the
+// stored value actually matches the documented contract regardless of
+// the server process's own ambient timezone.
 function nextDateForWeekday(
   startDate: Date,
   weekday: number,
   weekOffset: number,
 ) {
   const plannedDate = new Date(startDate);
-  const daysAhead = (weekday - plannedDate.getDay() + 7) % 7;
-  plannedDate.setDate(plannedDate.getDate() + daysAhead + weekOffset * 7);
+  const daysAhead = (weekday - plannedDate.getUTCDay() + 7) % 7;
+  plannedDate.setUTCDate(plannedDate.getUTCDate() + daysAhead + weekOffset * 7);
   return plannedDate;
 }
 
@@ -466,6 +503,104 @@ export const workoutService = {
       exerciseId,
     );
     return exercises;
+  },
+
+  // "Kết thúc buổi tập → hiển thị PR và tiến độ": end-of-session summary
+  // shown once on the WorkoutLogPage completion screen. A PR here means
+  // this session's best set for an exercise beat that exercise's prior
+  // best (by estimated 1RM, so "same weight, more reps" correctly counts
+  // as an improvement, not just a heavier absolute weight) — a user's
+  // very first time doing an exercise is deliberately NOT flagged as a
+  // PR, since there is nothing yet to have beaten.
+  async getSessionSummary(userId: string, workoutId: string) {
+    const workout = await workoutRepository.findOne(workoutId, userId);
+    if (!workout) throw { status: 404, message: "Workout not found" };
+
+    const weightedExercises = workout.exercises.filter(
+      (ex: any) => ex.weight != null && ex.weight > 0,
+    );
+    const exerciseIds = [...new Set(weightedExercises.map((ex: any) => ex.exerciseId))] as string[];
+    const priorSets = await workoutRepository.findPriorSetsForExercises(
+      userId,
+      exerciseIds,
+      workoutId,
+    );
+
+    const priorBestByExercise = new Map<
+      string,
+      { weight: number; reps: number | null; e1rm: number }
+    >();
+    for (const s of priorSets as any[]) {
+      if (s.weight == null) continue;
+      const e1rm = estimate1RM(s.weight, s.reps ?? 0);
+      const current = priorBestByExercise.get(s.exerciseId);
+      if (!current || e1rm > current.e1rm) {
+        priorBestByExercise.set(s.exerciseId, {
+          weight: s.weight,
+          reps: s.reps ?? null,
+          e1rm,
+        });
+      }
+    }
+
+    const sessionBestByExercise = new Map<
+      string,
+      { weight: number; reps: number | null; e1rm: number; exerciseName: string }
+    >();
+    for (const ex of weightedExercises as any[]) {
+      const e1rm = estimate1RM(ex.weight, ex.reps ?? 0);
+      const current = sessionBestByExercise.get(ex.exerciseId);
+      if (!current || e1rm > current.e1rm) {
+        sessionBestByExercise.set(ex.exerciseId, {
+          weight: ex.weight,
+          reps: ex.reps ?? null,
+          e1rm,
+          exerciseName:
+            ex.exerciseNameSnapshot || ex.exercise?.exerciseName || "Bài tập",
+        });
+      }
+    }
+
+    const prs: Array<{
+      exerciseId: string;
+      exerciseName: string;
+      weightKg: number;
+      reps: number | null;
+      estimated1RmKg: number;
+      previousBestWeightKg: number;
+      previousBestEstimated1RmKg: number;
+    }> = [];
+    for (const [exerciseId, best] of sessionBestByExercise) {
+      const prior = priorBestByExercise.get(exerciseId);
+      if (prior && best.e1rm > prior.e1rm) {
+        prs.push({
+          exerciseId,
+          exerciseName: best.exerciseName,
+          weightKg: best.weight,
+          reps: best.reps,
+          estimated1RmKg: Math.round(best.e1rm * 10) / 10,
+          previousBestWeightKg: prior.weight,
+          previousBestEstimated1RmKg: Math.round(prior.e1rm * 10) / 10,
+        });
+      }
+    }
+
+    const totalVolumeKg = workout.exercises.reduce((sum: number, ex: any) => {
+      if (ex.weight == null) return sum;
+      return sum + ex.weight * (ex.reps ?? 1) * (ex.sets ?? 1);
+    }, 0);
+    const totalSets = workout.exercises.reduce(
+      (sum: number, ex: any) => sum + (ex.sets ?? 0),
+      0,
+    );
+
+    return {
+      workoutId,
+      exerciseCount: workout.exercises.length,
+      totalSets,
+      totalVolumeKg: Math.round(totalVolumeKg * 10) / 10,
+      prs,
+    };
   },
 
   async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
@@ -695,7 +830,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" } },
+              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
             },
           },
         },
@@ -746,7 +881,18 @@ export const workoutService = {
     userId: string,
     scheduleId: string,
     programExerciseId: string,
+    performed?: CompleteScheduleExerciseDto,
   ) {
+    // performed carries what the user ACTUALLY logged in WorkoutLogPage's
+    // "Ghi chép" card (weight/reps/RPE/RIR) and/or a session-only exercise
+    // swap (SwapExerciseModal) — falls back to the plan's prescribed values
+    // when omitted, exactly matching the old (no-body) behavior. Only the
+    // WorkoutExercise/WorkoutSet LOG rows are affected; plannedExercise
+    // (the WorkoutProgramExercise row) is never written to, so the
+    // underlying program/plan and any other schedule stay untouched.
+    if (performed?.exerciseId) {
+      await validateExerciseIds([performed.exerciseId]);
+    }
     return prisma.$transaction(async (tx) => {
       const schedule = await tx.workoutSchedule.findFirst({
         where: { id: scheduleId, userId },
@@ -757,7 +903,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" } },
+              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
             },
           },
         },
@@ -798,26 +944,46 @@ export const workoutService = {
         where: { workoutId, programExerciseId },
         include: { workoutSets: true },
       });
+      let finalExerciseId: string;
 
       if (!workoutExercise) {
+        // First time this exercise is being logged — fall back to the
+        // PLAN's prescribed values (there's nothing else to fall back to).
+        const actualExerciseId = performed?.exerciseId ?? plannedExercise.exerciseId;
+        const actualWeight = performed?.weight ?? plannedExercise.weight ?? null;
+        const actualReps = performed?.reps ?? plannedExercise.reps ?? null;
+        const actualNotes = performed?.notes ?? plannedExercise.notes ?? null;
+        finalExerciseId = actualExerciseId;
+        // History-protection snapshot (see createStartedWorkoutForSchedule's
+        // matching comment above) — the ACTUALLY performed exercise's name
+        // (a session-only swap counts as "actually performed", not the
+        // originally-planned one) at the moment it was logged.
+        const actualExerciseName =
+          actualExerciseId === plannedExercise.exerciseId
+            ? plannedExercise.exercise?.exerciseName ?? null
+            : (await tx.exercise.findUnique({ where: { id: actualExerciseId }, select: { exerciseName: true } }))
+                ?.exerciseName ?? null;
         workoutExercise = await tx.workoutExercise.create({
           data: {
             workoutId,
-            exerciseId: plannedExercise.exerciseId,
+            exerciseId: actualExerciseId,
             programExerciseId: plannedExercise.id,
+            exerciseNameSnapshot: actualExerciseName,
             sets: Number(plannedExercise.sets) || 1,
-            reps: plannedExercise.reps ?? null,
+            reps: actualReps,
             duration: plannedExercise.duration ?? null,
-            weight: plannedExercise.weight ?? null,
-            notes: plannedExercise.notes ?? null,
+            weight: actualWeight,
+            notes: actualNotes,
             order: plannedExercise.order ?? 0,
             workoutSets: {
               create: Array.from(
                 { length: Number(plannedExercise.sets) || 1 },
                 (_unused, index) => ({
                   setNumber: index + 1,
-                  reps: plannedExercise.reps ?? null,
-                  weight: plannedExercise.weight ?? null,
+                  reps: actualReps,
+                  weight: actualWeight,
+                  rpe: performed?.rpe ?? null,
+                  rir: performed?.rir ?? null,
                   completed: false,
                 }),
               ),
@@ -825,6 +991,49 @@ export const workoutService = {
           },
           include: { workoutSets: true },
         });
+      } else if (performed) {
+        // Re-completing an already-logged WorkoutExercise (e.g. the user
+        // navigated back and re-submitted, or `startSchedule` pre-created
+        // this row before any completion happened — the common case in
+        // practice) — fall back to what's ALREADY on the row, not the
+        // plan's original defaults. Falling back to the plan here would
+        // silently revert a session-only swap (or a previously-logged
+        // weight/RPE/RIR) the moment any LATER completion call for this
+        // exercise omits that one field.
+        const actualExerciseId = performed.exerciseId ?? workoutExercise.exerciseId;
+        const actualWeight = performed.weight ?? workoutExercise.weight ?? null;
+        const actualReps = performed.reps ?? workoutExercise.reps ?? null;
+        const actualNotes = performed.notes ?? workoutExercise.notes ?? null;
+        const existingSet = workoutExercise.workoutSets[0];
+        const actualRpe = performed.rpe ?? existingSet?.rpe ?? null;
+        const actualRir = performed.rir ?? existingSet?.rir ?? null;
+        finalExerciseId = actualExerciseId;
+        // Only re-resolve the snapshot when the exercise itself actually
+        // changed on this re-submit (a late swap) — avoids a needless
+        // lookup on every ordinary re-completion (weight/RPE correction).
+        const exerciseNameSnapshotUpdate =
+          actualExerciseId === workoutExercise.exerciseId
+            ? undefined
+            : (await tx.exercise.findUnique({ where: { id: actualExerciseId }, select: { exerciseName: true } }))
+                ?.exerciseName ?? null;
+        await tx.workoutExercise.update({
+          where: { id: workoutExercise.id },
+          data: {
+            exerciseId: actualExerciseId,
+            reps: actualReps,
+            weight: actualWeight,
+            notes: actualNotes,
+            ...(exerciseNameSnapshotUpdate !== undefined ? { exerciseNameSnapshot: exerciseNameSnapshotUpdate } : {}),
+          },
+        });
+        await tx.workoutSet.updateMany({
+          where: { workoutExerciseId: workoutExercise.id },
+          data: { weight: actualWeight, reps: actualReps, rpe: actualRpe, rir: actualRir },
+        });
+      } else {
+        // Row already existed and no `performed` override was sent (the old
+        // no-body call shape) — nothing to change, just report what's there.
+        finalExerciseId = workoutExercise.exerciseId;
       }
 
       await tx.workoutSet.updateMany({
@@ -835,7 +1044,7 @@ export const workoutService = {
       return recomputeScheduleProgress(tx, schedule.id, userId, {
         sessionId: workoutId,
         workoutId,
-        exerciseId: plannedExercise.exerciseId,
+        exerciseId: finalExerciseId,
         programExerciseId,
         exerciseCompleted: true,
       });
@@ -1191,12 +1400,60 @@ export const workoutService = {
     return prisma.workoutSchedule.delete({ where: { id } });
   },
 
+  /**
+   * Explicit "I'm not doing this session" — writes SKIPPED, a status value
+   * that has existed in the schema/comment all along but that no code path
+   * ever set (see docs/workout-log-audit.md's Known Gaps / G1 in
+   * docs/CLOUDCODE_IMPLEMENTATION_AUDIT.md). Before this, a due session
+   * that was never started just stayed NOT_STARTED forever, with "missed"
+   * only ever inferred ad hoc per call site (e.g. cycle adherence treating
+   * any past non-COMPLETED schedule as missed) rather than being a
+   * first-class, directly queryable state.
+   *
+   * assertScheduleDateEditable already restricts this to "today" under the
+   * current lock policy (past is locked — already effectively missed with
+   * no action needed; future is locked — nothing to skip yet).
+   */
+  async skipSchedule(id: string, userId: string, notes?: string) {
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    if (existing.workoutId) {
+      throw { status: 409, message: "Cannot skip a schedule that already has a logged workout" };
+    }
+    assertScheduleDateEditable(existing.date);
+    return prisma.workoutSchedule.update({
+      where: { id },
+      data: { status: "SKIPPED", notes: notes ?? existing.notes },
+    });
+  },
+
+  /**
+   * Explicit cancellation with a mandatory reason — distinct from SKIPPED
+   * (a normal "didn't do it today") in that it represents an operator-level
+   * decision to void the session entirely (e.g. plan changed, injury). No
+   * coach/admin role exists yet for workout schedules (see
+   * docs/workout-log-audit.md Known Gaps), so this is currently
+   * self-service only — the "audit log when coach/admin overrides"
+   * requirement doesn't yet apply since there is no such override actor.
+   */
+  async cancelSchedule(id: string, userId: string, reason: string) {
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    if (existing.workoutId) {
+      throw { status: 409, message: "Cannot cancel a schedule that already has a logged workout" };
+    }
+    assertScheduleDateEditable(existing.date);
+    return prisma.workoutSchedule.update({
+      where: { id },
+      data: { status: "CANCELLED", notes: reason },
+    });
+  },
+
   async importAiPlanToSchedule(userId: string, input: ImportAiPlanDto) {
     const existingProgram = await (prisma.workoutProgram as any).findFirst({
       where: {
         userId,
         sourcePlanId: input.sourcePlanId,
-        aiPlanVersion: input.sourcePlanVersion ?? null,
       },
       include: {
         days: {
@@ -1280,7 +1537,11 @@ export const workoutService = {
 
         const program = await (tx.workoutProgram as any).update({
           where: { id: existingProgram.id },
-          data: { status: "ACTIVE", archivedAt: null },
+          data: {
+            status: "ACTIVE",
+            archivedAt: null,
+            aiPlanVersion: input.sourcePlanVersion ?? existingProgram.aiPlanVersion ?? null,
+          },
           include: {
             days: {
               include: {
@@ -1333,8 +1594,9 @@ export const workoutService = {
           for (let weekIndex = 0; weekIndex < repeatWeeks; weekIndex += 1) {
             for (const day of programDays) {
               const plannedDate = new Date(startDate);
-              plannedDate.setDate(
-                plannedDate.getDate() + weekIndex * 7 + (day.dayNumber - 1),
+              // UTC — see nextDateForWeekday's doc comment above for why.
+              plannedDate.setUTCDate(
+                plannedDate.getUTCDate() + weekIndex * 7 + (day.dayNumber - 1),
               );
               scheduleRows.push({
                 userId,
@@ -1636,8 +1898,9 @@ export const workoutService = {
         for (let weekIndex = 0; weekIndex < repeatWeeks; weekIndex += 1) {
           for (const day of programDays) {
             const plannedDate = new Date(startDate);
-            plannedDate.setDate(
-              plannedDate.getDate() + weekIndex * 7 + (day.dayNumber - 1),
+            // UTC — see nextDateForWeekday's doc comment above for why.
+            plannedDate.setUTCDate(
+              plannedDate.getUTCDate() + weekIndex * 7 + (day.dayNumber - 1),
             );
             scheduleRows.push({
               userId,
@@ -1688,6 +1951,53 @@ export const workoutService = {
       schedulePreview: result.schedulePreview,
       program: result.createdProgram,
     };
+  },
+
+  /**
+   * Batch, read-only check: for each given weeklySchedule, do ALL its exercises resolve
+   * to a real catalog entry (by exerciseId or name match)? Mirrors the exact same
+   * exercise-mapping logic importAiPlanToSchedule enforces at apply-time — reuses
+   * findExerciseMatch/normalizeExerciseName below as the single source of truth, just
+   * without building the mapped program structure or writing anything.
+   *
+   * Exists so ai-service's marketplace browse() can filter out listings (often leftover
+   * E2E-fixture data — "Fixture Exercise 1", "Full body" as an exercise name, etc.) that
+   * would otherwise 400 with "Unable to map AI exercises to exercise master" the moment
+   * a real user tries to apply them — found live while testing the marketplace flow.
+   */
+  async validateMarketplaceSchedules(
+    schedules: Array<{ listingId: string; weeklySchedule: unknown }>,
+  ): Promise<Array<{ listingId: string; mappable: boolean; unmatchedExercises: string[] }>> {
+    const exerciseCatalog = await exerciseRepository.findMany({});
+    const catalog: NormalizedExerciseCatalogItem[] = (
+      exerciseCatalog.data as Array<{ id: string; exerciseName: string }>
+    ).map((exercise) => ({
+      id: exercise.id,
+      rawName: exercise.exerciseName,
+      name: normalizeExerciseName(exercise.exerciseName),
+    }));
+
+    return schedules.map(({ listingId, weeklySchedule }) => {
+      const unmatched = new Set<string>();
+      const days = Array.isArray(weeklySchedule) ? (weeklySchedule as any[]) : [];
+      for (const day of days) {
+        const exercises = Array.isArray(day?.exercises) ? day.exercises : [];
+        if (exercises.length === 0) {
+          unmatched.add(day?.goal || day?.focus || String(day?.day ?? "day"));
+          continue;
+        }
+        for (const exercise of exercises) {
+          const byId =
+            exercise?.exerciseId && typeof exercise.exerciseId === "string"
+              ? catalog.find((c) => c.id === exercise.exerciseId)
+              : undefined;
+          if (byId) continue;
+          const byName = exercise?.name ? findExerciseMatch(catalog, exercise.name) : undefined;
+          if (!byName) unmatched.add(exercise?.name || "unknown exercise");
+        }
+      }
+      return { listingId, mappable: unmatched.size === 0, unmatchedExercises: Array.from(unmatched) };
+    });
   },
 };
 
@@ -1781,23 +2091,33 @@ function findExerciseMatch(
 }
 
 function parseDateOnly(dateValue?: string) {
+  // No date given -> "today", computed the SAME way
+  // schedule-lock.util.ts's own lock check computes "today" (Ho_Chi_Minh
+  // calendar day, not the server process's ambient timezone) — using a
+  // DIFFERENT "today" here than the one the lock check compares against
+  // would silently recreate this exact class of bug for the no-date-given
+  // path even after fixing the explicit-date-string path below.
   if (!dateValue) {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return todayAsScheduleDate();
   }
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
   if (!match) {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return todayAsScheduleDate();
   }
 
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  // UTC — see nextDateForWeekday's doc comment for why: a WorkoutSchedule
+  // .date must be stored as an actual UTC-midnight instant to match what
+  // every reader of this column (schedule-lock.util.ts, its frontend
+  // mirror, formatDateOnly below) already assumes.
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
 }
 
 function formatDateOnly(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  // UTC — must match parseDateOnly's storage convention above, or a
+  // round-trip through parse -> format silently shifts by a day again.
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }

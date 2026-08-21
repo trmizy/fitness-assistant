@@ -46,6 +46,7 @@ services:
     ports:
       - "5173:5173" # Vite dev server (not nginx)
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       # VITE_API_URL / VITE_SOCKET_URL / VITE_CHAT_WS_URL are intentionally
       # left unset — the frontend defaults to same-origin relative requests,
       # which vite.config.ts proxies to the targets below over the Docker
@@ -83,6 +84,17 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3000
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
@@ -134,6 +146,17 @@ services:
       - "3001:3001"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
@@ -171,6 +194,17 @@ services:
       - "3004:3004"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -178,10 +212,20 @@ services:
       # Without this the client falls back to localhost:3007 → ECONNREFUSED inside Docker
       # → "Pay Now" on a PENDING_PAYMENT contract fails with 500 (BUG-USERSVC-PAYMENT-URL).
       PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §1.4: requestContract asks gym-service for the frozen rate table of
+      # an accepted PT↔gym collaboration when a contract names a gymId. Without this,
+      # gym.client.ts would fall back to localhost:3006 → ECONNREFUSED inside Docker on
+      # every gym-affiliated PT contract request.
+      GYM_SERVICE_URL: http://gym-service:3006
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      # TEMPORARY (requested to unblock local testing): this dev environment has no public
+      # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
+      # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
+      # integration itself is untouched. Flip to "true" (or remove) to re-require e-sign.
+      REQUIRE_CONTRACT_ESIGN: "false"
     env_file:
       - ../../.env
     volumes:
@@ -212,6 +256,17 @@ services:
       - "3002:3002"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness
       REDIS_HOST: redis
@@ -259,6 +314,17 @@ services:
       - "3003:3003"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3003
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
       REDIS_HOST: redis
@@ -307,6 +373,7 @@ services:
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
       - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
       - ../../data:/app/data
     depends_on:
       postgres:
@@ -343,6 +410,17 @@ services:
     command: pnpm run knowledge:worker
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -369,6 +447,7 @@ services:
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
       - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
       - ../../data:/app/data
     depends_on:
       ai-service:
@@ -392,6 +471,17 @@ services:
       - "3005:3005"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3005
       CHAT_SERVICE_PORT: 3005
       CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
@@ -424,6 +514,7 @@ services:
     image: postgres:15-alpine
     container_name: gymcoach-postgres
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
       POSTGRES_DB: ${POSTGRES_DB:-gymcoach}
@@ -463,6 +554,7 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
+      - TZ=Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__ENABLE_UI=true
 
@@ -476,6 +568,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       NVIDIA_VISIBLE_DEVICES: void
       CUDA_VISIBLE_DEVICES: ""
       OLLAMA_HOST: 0.0.0.0:11434
@@ -513,6 +606,7 @@ services:
     ports:
       - "5678:5678"
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: 5678
       N8N_PROTOCOL: http
@@ -562,6 +656,7 @@ services:
     ports:
       - "3100:3000"
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_AUTH_ANONYMOUS_ENABLED: "true"
@@ -583,6 +678,7 @@ services:
     profiles:
       - observability
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth?sslmode=disable"
     depends_on:
       postgres:
@@ -597,6 +693,7 @@ services:
     profiles:
       - observability
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       REDIS_ADDR: "redis://redis:6379"
     depends_on:
       redis:
@@ -625,6 +722,7 @@ services:
       - ../../scripts:/app/scripts
       - seeder_modules:/app/node_modules
     environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
@@ -654,6 +752,17 @@ services:
       - "3007:3007"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3007
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -661,13 +770,16 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
       TOPUP_STALE_MINUTES: ${TOPUP_STALE_MINUTES:-60}
-      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
+      # Sandbox gateways only — the MOCK provider was removed. This is just the fallback
+      # when the top-up request does not name one; the UI always sends an explicit choice.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-VNPAY}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
-      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
-      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
-      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      # MOMO_PARTNER_CODE / ACCESS_KEY / SECRET_KEY / IPN_URL come from the untracked
+      # ../../.env via env_file below. Declaring them here as ${VAR:-} would set them to the
+      # EMPTY STRING and override env_file, because compose interpolates against
+      # infra/compose/.env — not the repo-root .env the env_file directive loads. That is how
+      # they silently ended up unset. Same reason VNPAY_*/ZALOPAY_* are absent from this block.
       MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn/v2/gateway/api/create}
-      MOMO_IPN_URL: ${MOMO_IPN_URL:-}
       MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-http://localhost:5173/client/payments/result}
       # VNPay sandbox — VNPAY_TMN_CODE + VNPAY_HASH_SECRET are injected from the untracked
       # ../../.env via env_file below (NOT declared here: an empty ${VAR:-} in this block
@@ -707,10 +819,25 @@ services:
       - "3006:3006"
     environment:
       NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
       PORT: 3006
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym
       AUTH_SERVICE_URL: http://auth-service:3001
       PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §2.5: resolving a client's typed referral code to a PT userId is
+      # user-service's job (it owns UserProfile.referralCode). Without this gym-service falls
+      # back to localhost:3004 → ECONNREFUSED inside Docker on every referral-code purchase.
+      USER_SERVICE_URL: http://user-service:3004
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env

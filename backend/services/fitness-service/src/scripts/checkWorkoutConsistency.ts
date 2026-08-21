@@ -87,9 +87,11 @@ async function main() {
     const expectedStatus =
       totalExercises > 0 && completedExercises === totalExercises
         ? "COMPLETED"
-        : schedule.workoutId || completedExercises > 0
-          ? "IN_PROGRESS"
-          : "NOT_STARTED";
+        : completedExercises > 0
+          ? "PARTIALLY_COMPLETED"
+          : schedule.workoutId
+            ? "IN_PROGRESS"
+            : "NOT_STARTED";
 
     const expected = {
       progressPercent,

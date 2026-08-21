@@ -20,6 +20,7 @@ import {
   Dumbbell,
   Flag,
   Loader2,
+  MessageSquare,
   RotateCw,
   ShieldAlert,
   Sparkles,
@@ -66,7 +67,12 @@ const TREND_CONFIG: Record<string, { label: string; className: string; Icon: typ
   },
 };
 
-const DECISION_CONFIG: Record<CycleDecision, { label: string; className: string; buttonClassName: string }> = {
+// Partial (not a full Record) — this map only covers the 4 legacy-era
+// values. Since Phase 7's unification, TrainingCycle.decision can also hold
+// PROGRESS/DELOAD/REBUILD (the same 6-state CycleDecision engine now backs
+// both /complete and /evaluate) — those render via ADAPTIVE_DECISION_CONFIG
+// below instead, never by adding fake entries here.
+const DECISION_CONFIG: Partial<Record<CycleDecision, { label: string; className: string; buttonClassName: string }>> = {
   KEEP: {
     label: "Giữ nguyên lịch tập",
     className: "border-green-500/30 bg-green-500/5",
@@ -137,7 +143,10 @@ function ActiveCycleCard() {
     onMutate: () => setCompleting(true),
     onSettled: () => setCompleting(false),
     onSuccess: () => {
-      toast.success("Đã đóng chu kỳ — AI đang phân tích kết quả");
+      // Closing now runs the full Decision Engine + AI explanation
+      // synchronously (Phase 7 unification) — the result is already ready
+      // by the time this resolves, not still "in analysis".
+      toast.success("Đã đóng chu kỳ và có kết quả đánh giá");
       queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
     },
     onError: (error: any) => {
@@ -377,10 +386,21 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
     );
   }
 
+  // Since Phase 7's unification, an ANALYZED cycle almost always already
+  // has a real, versioned CycleAssessment (both /complete and /evaluate
+  // route through the same engine now) — AdaptiveAssessmentCard (6-state,
+  // safety flags, versioned) is strictly more capable than this legacy
+  // card, so defer to it instead of showing a second, redundant summary.
+  if (current.status === "ANALYZED" && latestAssessmentQuery.data) return null;
+
   if (current.status !== "ANALYZED" || !current.decision) return null;
 
   const decision = current.decision;
   const cfg = DECISION_CONFIG[decision];
+  // Belt-and-braces: a decision value outside the legacy 4 (PROGRESS/
+  // DELOAD/REBUILD) with no assessment fetched yet (race/fetch failure) —
+  // never crash, just defer silently rather than render with an undefined config.
+  if (!cfg) return null;
   const review = current.aiAnalysis?.cycleReview;
 
   return (
@@ -641,6 +661,134 @@ function CycleProgressSection({ cycleId }: { cycleId: string }) {
   );
 }
 
+// ── Phase 3 (docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md) — deterministic
+// cycle feedback summary card. Every number here comes from
+// cycle-feedback-aggregator.ts (pure, rule-based) — nothing on this card is
+// AI-generated, matching "Không để AI tự bịa metric."
+
+const FEEDBACK_SENTIMENT_LABEL: Record<string, { label: string; className: string }> = {
+  positive: { label: "Tích cực", className: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
+  negative: { label: "Tiêu cực", className: "border-red-500/30 bg-red-500/5 text-red-400" },
+  neutral: { label: "Trung tính", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
+  mixed: { label: "Lẫn lộn", className: "border-amber-500/30 bg-amber-500/5 text-amber-400" },
+  insufficient_feedback: { label: "Chưa đủ dữ liệu", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
+};
+
+const FEEDBACK_FLAG_LABEL: Record<string, string> = {
+  HIGH_PAIN_REPORTED: "Có báo cáo đau nhiều (≥7/10)",
+  EXERCISE_SPECIFIC_PAIN_REPORTS: "Có bài tập gây đau cụ thể",
+  REPEATED_EQUIPMENT_UNAVAILABLE: "Thiếu dụng cụ lặp lại nhiều lần",
+  REPEATED_SCHEDULE_CONFLICT: "Bỏ buổi do lịch bận nhiều lần",
+  SKIPPING_DUE_TO_DIFFICULTY: "Bỏ buổi vì bài tập quá khó",
+  REPEATED_BOREDOM_REPORTS: "Phản hồi nhàm chán lặp lại",
+  REPEATED_MOTIVATION_SKIPS: "Bỏ buổi do thiếu động lực nhiều lần",
+};
+
+function CycleFeedbackSummaryCard({ cycleId }: { cycleId: string }) {
+  const summaryQuery = useQuery({
+    queryKey: ["training-cycle", "session-feedback-summary", cycleId],
+    queryFn: () => trainingCycleService.getSessionFeedbackSummary(cycleId),
+  });
+
+  if (summaryQuery.isLoading) {
+    return (
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+      </div>
+    );
+  }
+  const s = summaryQuery.data;
+  if (!s) return null;
+  if (s.totalSessions === 0) return null;
+
+  const sentiment = FEEDBACK_SENTIMENT_LABEL[s.feedbackSentimentByRules] ?? FEEDBACK_SENTIMENT_LABEL.insufficient_feedback;
+  const allFlags = [
+    ...s.safetyFlags,
+    ...s.equipmentMismatchFlags,
+    ...s.adherenceRelatedComplaintFlags,
+    ...s.motivationOrBoredomFlags,
+  ];
+
+  return (
+    <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-green-400" /> Cảm nhận buổi tập
+        </h3>
+        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${sentiment.className}`}>
+          {sentiment.label}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <StatTile
+          label="Đã phản hồi"
+          value={`${s.feedbackSubmittedCount}/${s.totalSessions}`}
+          sub={`${Math.round(s.feedbackCompletionRate * 100)}% buổi`}
+          formula="Số buổi có bản ghi phản hồi thật (không tính buổi bị bỏ qua đánh dấu 'không phản hồi') ÷ tổng số buổi đã hoàn thành/bỏ qua/hủy trong chu kỳ."
+        />
+        <StatTile
+          label="Đánh giá TB"
+          value={s.averageSessionRating != null ? s.averageSessionRating.toFixed(1) : "—"}
+          sub="/5 sao"
+          formula="Trung bình cộng sessionRating (1-5) của các buổi có phản hồi."
+        />
+        <StatTile
+          label="Đau TB"
+          value={s.averagePain != null ? s.averagePain.toFixed(1) : "—"}
+          sub="/10"
+          formula="Trung bình cộng painScore (0-10) của các buổi có phản hồi."
+        />
+        <StatTile
+          label="Chất lượng dữ liệu"
+          value={`${Math.round(s.dataQualityScore * 100)}%`}
+          formula="feedbackCompletionRate × min(1, số buổi phản hồi ÷ 3). Thấp nghĩa là các kết luận dựa trên phản hồi này còn ít tin cậy."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs text-zinc-400">
+        <div>Quá nặng: {s.sessionsMarkedTooHard} buổi</div>
+        <div>Quá nhẹ: {s.sessionsMarkedTooEasy} buổi</div>
+        <div>Không muốn lặp lại: {s.sessionsUserWouldNotRepeat} buổi</div>
+      </div>
+
+      {(s.mostLikedExercises.length > 0 || s.mostDislikedExercises.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          {s.mostLikedExercises.length > 0 && (
+            <div>
+              <p className="text-zinc-500 mb-1">Bài tập được thích</p>
+              <p className="text-zinc-300">{s.mostLikedExercises.join(", ")}</p>
+            </div>
+          )}
+          {s.mostDislikedExercises.length > 0 && (
+            <div>
+              <p className="text-zinc-500 mb-1">Bài tập ít được thích</p>
+              <p className="text-zinc-300">{s.mostDislikedExercises.join(", ")}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {allFlags.length > 0 && (
+        <div className="space-y-1.5">
+          {allFlags.map((flag) => (
+            <div key={flag} className="flex items-start gap-2 rounded-lg border border-amber-700/30 bg-amber-950/20 p-2.5">
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-amber-500/70 mt-0.5" />
+              <p className="text-[11px] text-amber-200/80">{FEEDBACK_FLAG_LABEL[flag] ?? flag}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {s.feedbackSentimentByRules === "insufficient_feedback" && (
+        <p className="text-[11px] text-zinc-600 italic">
+          Chưa đủ phản hồi để đưa ra nhận định đáng tin cậy — hãy điền cảm nhận sau mỗi buổi tập.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Adaptive Training Cycle Evaluation — End-of-cycle assessment card ──────
 // Additive alongside the legacy DecisionCard above (still wired to the old
 // 3-state /complete flow, unchanged). This is the new 6-state flow: the
@@ -656,6 +804,16 @@ const ADAPTIVE_DECISION_CONFIG: Record<AdaptiveCycleDecision, { label: string; c
   DELOAD: { label: "Giảm tải (deload)", className: "border-orange-500/30 bg-orange-500/5 text-orange-400" },
   REBUILD: { label: "Xây lại chương trình", className: "border-red-500/30 bg-red-500/5 text-red-400" },
   INSUFFICIENT_DATA: { label: "Chưa đủ dữ liệu", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
+};
+
+// Phase 2 — Adaptive Nutrition Decision Engine display config.
+type AdaptiveNutritionDecision = "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE";
+const NUTRITION_DECISION_CONFIG: Record<AdaptiveNutritionDecision, { label: string; className: string }> = {
+  KEEP_PLAN: { label: "Giữ nguyên dinh dưỡng", className: "border-green-500/30 bg-green-500/5 text-green-400" },
+  PROPOSE_ADJUSTMENT: { label: "Đề xuất điều chỉnh", className: "border-amber-500/30 bg-amber-500/5 text-amber-400" },
+  REQUEST_MORE_DATA: { label: "Cần thêm dữ liệu", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
+  EARLY_REVIEW: { label: "Cần xem xét sớm", className: "border-orange-500/30 bg-orange-500/5 text-orange-400" },
+  ESCALATE: { label: "Cần chuyên gia xem xét", className: "border-red-500/30 bg-red-500/5 text-red-400" },
 };
 
 function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
@@ -690,6 +848,23 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.error ?? "Không thể lưu lựa chọn");
+    },
+  });
+
+  // Phase 2 — independent accept/reject for the nutrition recommendation.
+  const nutritionReviewMutation = useMutation({
+    mutationFn: (decision: "accept" | "reject") =>
+      decision === "accept"
+        ? trainingCycleService.acceptNutritionRecommendation(cycleId)
+        : trainingCycleService.rejectNutritionRecommendation(cycleId),
+    onSuccess: (_data, decision) => {
+      toast.success(decision === "accept" ? "Đã áp dụng đề xuất dinh dưỡng — tạo phiên bản mục tiêu calo/macro mới" : "Đã giữ mục tiêu dinh dưỡng hiện tại");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle", "assessment", "latest", cycleId] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-goal"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-goal-history"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể lưu lựa chọn dinh dưỡng");
     },
   });
 
@@ -728,8 +903,10 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
   const decision = assessment.decision ?? "INSUFFICIENT_DATA";
   const cfg = ADAPTIVE_DECISION_CONFIG[decision];
   const criticalFlag = assessment.safetyFlags?.find((f) => f.severity === "critical");
+  const nutritionCfg = assessment.nutritionDecision ? NUTRITION_DECISION_CONFIG[assessment.nutritionDecision] : null;
 
   return (
+    <>
     <div className={`rounded-2xl border p-6 space-y-4 ${cfg.className.replace("text-", "border-").split(" ")[0]} bg-zinc-900`}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
@@ -831,6 +1008,99 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
         </p>
       )}
     </div>
+
+    {/* Phase 2 — Adaptive Nutrition Decision Engine card. Independent from
+        the training card above: its own decision, its own confirm/reject
+        lifecycle, its own explanation. Never rendered as part of the same
+        card — spec §3 treats training and nutrition as separate decision
+        spaces, and conflating them visually would misrepresent that. */}
+    {nutritionCfg && (
+      <div className={`rounded-2xl border p-6 space-y-4 ${nutritionCfg.className.replace("text-", "border-").split(" ")[0]} bg-zinc-900`}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${nutritionCfg.className}`}>
+              {nutritionCfg.label}
+            </span>
+            {assessment.nutritionConfidence && (
+              <span className="text-xs text-zinc-500">Độ tin cậy: {assessment.nutritionConfidence}</span>
+            )}
+          </div>
+          <span className="text-[11px] text-zinc-600">Đề xuất dinh dưỡng</span>
+        </div>
+
+        {(assessment.nutritionDecision === "ESCALATE" || assessment.nutritionDecision === "EARLY_REVIEW") && (
+          <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+            <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-400 mt-0.5" />
+            <p className="text-xs text-red-200">
+              Có dấu hiệu cần chú ý (đau/khó chịu). Vui lòng tham khảo chuyên gia y tế/PT trước khi tiếp tục — hệ thống không tự động giảm calo hay tăng cường độ trong tình huống này.
+            </p>
+          </div>
+        )}
+
+        {assessment.nutritionAiExplanation ? (
+          <p className="text-sm text-zinc-300">{assessment.nutritionAiExplanation}</p>
+        ) : (
+          assessment.nutritionReasonCodes &&
+          assessment.nutritionReasonCodes.length > 0 && (
+            <p className="text-xs text-zinc-500">Lý do: {assessment.nutritionReasonCodes.join(", ")}</p>
+          )
+        )}
+
+        {assessment.nutritionProposedChanges && (
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
+            <p className="text-xs font-semibold text-zinc-400 mb-2">Mục tiêu dinh dưỡng đề xuất</p>
+            <div className="flex flex-wrap gap-3 text-sm text-zinc-200">
+              {assessment.nutritionProposedChanges.calories != null && <span>{assessment.nutritionProposedChanges.calories} kcal</span>}
+              {assessment.nutritionProposedChanges.protein != null && <span className="text-zinc-400">P {assessment.nutritionProposedChanges.protein}g</span>}
+              {assessment.nutritionProposedChanges.carbs != null && <span className="text-zinc-400">C {assessment.nutritionProposedChanges.carbs}g</span>}
+              {assessment.nutritionProposedChanges.fat != null && <span className="text-zinc-400">F {assessment.nutritionProposedChanges.fat}g</span>}
+            </div>
+            <p className="text-[11px] text-zinc-600 mt-2">Chưa áp dụng — cần bạn xác nhận bên dưới trước khi mục tiêu dinh dưỡng thay đổi.</p>
+          </div>
+        )}
+
+        {assessment.nutritionUserDecision === "PENDING" ? (
+          assessment.nutritionDecision === "PROPOSE_ADJUSTMENT" ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => nutritionReviewMutation.mutate("accept")}
+                disabled={nutritionReviewMutation.isPending}
+                className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> Áp dụng mục tiêu mới
+              </button>
+              <button
+                type="button"
+                onClick={() => nutritionReviewMutation.mutate("reject")}
+                disabled={nutritionReviewMutation.isPending}
+                className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-60 text-zinc-200 px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+              >
+                <Ban className="w-3.5 h-3.5" /> Giữ mục tiêu hiện tại
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => nutritionReviewMutation.mutate("accept")}
+              disabled={nutritionReviewMutation.isPending}
+              className="flex items-center gap-1.5 bg-transparent hover:bg-zinc-800 border border-zinc-700 disabled:opacity-60 text-zinc-400 px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+            >
+              Đã hiểu
+            </button>
+          )
+        ) : (
+          <p className="text-xs text-zinc-500">
+            {assessment.nutritionUserDecision === "ACCEPTED"
+              ? assessment.appliedNutritionGoalId
+                ? "✓ Đã áp dụng mục tiêu dinh dưỡng mới."
+                : "✓ Đã xác nhận."
+              : "Bạn đã chọn giữ mục tiêu dinh dưỡng hiện tại."}
+          </p>
+        )}
+      </div>
+    )}
+    </>
   );
 }
 
@@ -1058,8 +1328,8 @@ function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
             </span>
             {cycle.decision && (
               <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
-                {cycle.decision === "KEEP" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
-                {DECISION_CONFIG[cycle.decision].label}
+                {cycle.decision === "KEEP" || cycle.decision === "PROGRESS" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" || cycle.decision === "REBUILD" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
+                {DECISION_CONFIG[cycle.decision]?.label ?? (ADAPTIVE_DECISION_CONFIG as Record<string, { label: string }>)[cycle.decision]?.label ?? cycle.decision}
               </span>
             )}
           </div>
@@ -1121,6 +1391,7 @@ export function TrainingCyclePage() {
       {!activeCycle && activeOrRecentCycle && <DecisionCard cycle={activeOrRecentCycle} />}
 
       {relevantCycleId && <CycleProgressSection cycleId={relevantCycleId} />}
+      {relevantCycleId && <CycleFeedbackSummaryCard cycleId={relevantCycleId} />}
 
       {relevantCycleId && <AdaptiveAssessmentCard cycleId={relevantCycleId} />}
 

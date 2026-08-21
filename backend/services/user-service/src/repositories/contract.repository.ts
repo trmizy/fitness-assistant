@@ -1,4 +1,4 @@
-import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
+import { ContractStatus, ContractSource, PackageType, SessionMode, Prisma } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
 export const contractRepository = {
@@ -6,6 +6,7 @@ export const contractRepository = {
     ptUserId: string;
     clientUserId: string;
     status?: ContractStatus;
+    source?: ContractSource;
     packageType?: PackageType;
     packageName: string;
     description?: string;
@@ -20,6 +21,14 @@ export const contractRepository = {
     clientMessage?: string;
     terms?: string;
     notes?: string;
+    // Revenue split, frozen at signing (money-flow plan §1.4) — see docs/money-flow.md §12
+    // for why this is a snapshot rather than a lookup. Omitted → schema defaults
+    // (0.10/0.90/0, source INDEPENDENT) apply, which is correct for a PT hired directly.
+    gymId?: string;
+    platformRate?: Prisma.Decimal | string;
+    ptRate?: Prisma.Decimal | string;
+    gymRate?: Prisma.Decimal | string;
+    paymentTransactionId?: string;
   }) => prisma.contract.create({ data }),
 
   findById: (id: string) => prisma.contract.findUnique({ where: { id } }),
@@ -37,6 +46,18 @@ export const contractRepository = {
     prisma.contract.findMany({
       where: { ptUserId, ...(status && { status }) },
       orderBy: { createdAt: "desc" },
+    }),
+
+  /** Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — strict,
+   * direction-specific (PT -> client, not either direction) ACTIVE-only
+   * check, deliberately narrower than findActiveByPair/findRelationshipByPair
+   * above (which also match PENDING_SIGNATURE/COMPLETED/etc.) — every new
+   * PT client-data/plan-assignment endpoint must re-check this exact
+   * condition per request, never cache it. */
+  findActivePtClientPair: (ptUserId: string, clientUserId: string) =>
+    prisma.contract.findFirst({
+      where: { ptUserId, clientUserId, status: ContractStatus.ACTIVE },
+      select: { id: true },
     }),
 
   findByClient: (clientUserId: string, status?: ContractStatus) =>

@@ -23,6 +23,7 @@ import {
   Zap,
   Calendar,
   Sparkles,
+  History,
 } from "lucide-react";
 import {
   PieChart,
@@ -38,6 +39,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { nutritionService, foodService } from "../../services/api";
+import type { NutritionGoalPlanConsistency } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
 
@@ -95,6 +97,11 @@ interface NutritionGoal {
   carbs: number;
   fat: number;
   waterMl: number | null;
+  // "RECOMMENDED" (app-calculated) | "CUSTOM" (hand-entered) — added for
+  // Part 4 of the nutrition audit follow-up (recommended vs custom goal).
+  // Optional so older cached goal objects (before this field existed)
+  // don't break the type.
+  goalMode?: "RECOMMENDED" | "CUSTOM";
 }
 
 interface EditForm {
@@ -220,6 +227,33 @@ export function NutritionPage() {
     carbs: 200,
     fat: 65,
   });
+  // Part 4 (Recommended vs Custom goal) — defaults to RECOMMENDED; synced
+  // from the loaded goal's own goalMode when the modal opens (see the
+  // useEffect near the modal's open-handler below).
+  const [goalMode, setGoalMode] = useState<"RECOMMENDED" | "CUSTOM">(
+    "RECOMMENDED",
+  );
+
+  // Part 3 (Beginner Mode) — defaults ON so a first-time user isn't shown
+  // carb/fat right away (spec's own explicit fallback: "Nếu không có
+  // experienceLevel, có thể mặc định simple mode trong nutrition page đầu
+  // tiên"). Persisted so the choice sticks across visits instead of
+  // resetting every page load.
+  const [simpleMode, setSimpleMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("nutrition-simple-mode");
+      return saved === null ? true : saved === "true";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("nutrition-simple-mode", String(simpleMode));
+    } catch {
+      // ignore — localStorage unavailable (private mode, etc.), not worth surfacing
+    }
+  }, [simpleMode]);
 
   // Expanded meals (all open by default)
   const [expandedMeals, setExpandedMeals] = useState<Set<MealType>>(
@@ -471,6 +505,16 @@ export function NutritionPage() {
   });
   const goal = goalRaw as NutritionGoal | undefined;
 
+  // Phase 2 — minimal version-history view (spec: "Current/Previous/
+  // Changed date/Reason"). Lazy: only fetched once the goal-edit modal is
+  // actually opened, not on every NutritionPage load.
+  const [showGoalHistory, setShowGoalHistory] = useState(false);
+  const { data: goalHistory = [] } = useQuery({
+    queryKey: ["nutrition-goal-history"],
+    queryFn: () => nutritionService.getGoalHistory(),
+    enabled: showGoalModal,
+  });
+
   const { data: weeklyRaw } = useQuery({
     queryKey: ["nutrition-weekly"],
     queryFn: () => nutritionService.getLogs(weekStartStr, todayStr),
@@ -503,6 +547,7 @@ export function NutritionPage() {
         carbs: goal.carbs,
         fat: goal.fat,
       });
+      setGoalMode(goal.goalMode === "CUSTOM" ? "CUSTOM" : "RECOMMENDED");
     }
   }, [goal]);
 
@@ -690,14 +735,24 @@ export function NutritionPage() {
       protein: number;
       carbs: number;
       fat: number;
+      goalMode?: "RECOMMENDED" | "CUSTOM";
     }) => nutritionService.upsertGoal(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-goal"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-goal-history"] });
+      queryClient.setQueryData(["nutrition-active-state"], result.planConsistency);
       toast.success("Mục tiêu đã lưu");
       setShowGoalModal(false);
     },
     onError: (e: { response?: { data?: { error?: string } } }) =>
       toast.error(e.response?.data?.error ?? "Không thể lưu mục tiêu"),
+  });
+
+  // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+  // câu 6) — read-only check, never auto-archives/regenerates anything.
+  const { data: goalPlanConsistency } = useQuery({
+    queryKey: ["nutrition-active-state"],
+    queryFn: () => nutritionService.getActiveState(),
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -813,8 +868,19 @@ export function NutritionPage() {
       toast.error("Mục tiêu phải lớn hơn 0");
       return;
     }
-    goalMutation.mutate({ calories, protein, carbs, fat });
+    goalMutation.mutate({ calories, protein, carbs, fat, goalMode });
   }
+
+  // Part 4 (Recommended vs Custom goal) — live client-side preview of the
+  // same Atwater check the backend enforces
+  // (nutrition-goal-macro-validator.ts), so a Custom-mode user sees a
+  // mismatch warning immediately while typing instead of only on save-error.
+  const customMacroKcal =
+    goalForm.protein * 4 + goalForm.carbs * 4 + goalForm.fat * 9;
+  const customMacroMismatchKcal = Math.round(
+    customMacroKcal - goalForm.calories,
+  );
+  const customMacroMismatches = Math.abs(customMacroMismatchKcal) > 50;
 
   function toggleMeal(meal: MealType) {
     setExpandedMeals((prev) => {
@@ -880,6 +946,65 @@ export function NutritionPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Goal <-> Plan mismatch warning (docs/audit/nutrition-ai-current-flow-audit.md, câu 6) ── */}
+      {(goalPlanConsistency?.status === "MACRO_MISMATCH" ||
+        goalPlanConsistency?.status === "STALE_GOAL_CHANGED") && (
+        <div
+          data-testid="goal-plan-mismatch-banner"
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-300">
+                {goalPlanConsistency.status === "MACRO_MISMATCH"
+                  ? "Bạn đã đổi mục tiêu dinh dưỡng. Thực đơn hiện tại có thể vẫn theo mục tiêu cũ."
+                  : "Mục tiêu dinh dưỡng đã đổi kể từ khi thực đơn này được tạo."}
+              </p>
+              {goalPlanConsistency.mismatches.length > 0 && (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  {goalPlanConsistency.mismatches.map((m) => (
+                    <div
+                      key={m.field}
+                      className="rounded-lg bg-zinc-900/40 border border-zinc-800/60 px-2 py-1.5"
+                    >
+                      <p className="text-zinc-500 capitalize">{m.field}</p>
+                      <p className="text-zinc-200 font-semibold">
+                        {m.planValue} <span className="text-zinc-600">→</span>{" "}
+                        {m.goalValue}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-testid="goal-plan-mismatch-regenerate"
+                  onClick={() => navigate("/client/ai-coach")}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                >
+                  Tạo lại thực đơn theo mục tiêu mới
+                </button>
+                <button
+                  type="button"
+                  data-testid="goal-plan-mismatch-dismiss"
+                  onClick={() =>
+                    queryClient.setQueryData(["nutrition-active-state"], {
+                      ...goalPlanConsistency,
+                      status: "MATCHED",
+                    } as NutritionGoalPlanConsistency)
+                  }
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-700/60 text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Vẫn giữ thực đơn này
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Nutrition Calendar ── */}
       <NutritionCalendarGrid
@@ -1616,8 +1741,75 @@ export function NutritionPage() {
           );
         })()}
 
+      {/* ── Beginner Mode header (Part 3, nutrition audit follow-up) ── */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-zinc-500">
+          {simpleMode
+            ? "Chế độ đơn giản — chỉ hiện calo và protein trước."
+            : "Đang xem đầy đủ chỉ số."}
+        </p>
+        <button
+          type="button"
+          data-testid="nutrition-simple-mode-toggle"
+          onClick={() => setSimpleMode((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+        >
+          {simpleMode ? (
+            <>
+              <ChevronDown className="w-3.5 h-3.5" /> Xem chi tiết macro
+            </>
+          ) : (
+            <>
+              <ChevronUp className="w-3.5 h-3.5" /> Chế độ đơn giản
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Missing-profile-data notice — Part 3's explicit requirement:
+          "Đây là ước tính ban đầu..." shown whenever the user has no real
+          saved goal yet (still on the DEFAULT_NUTRITION_GOAL fallback). */}
+      {!goal?.id && (
+        <div
+          data-testid="nutrition-low-confidence-notice"
+          className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm border bg-blue-500/10 border-blue-500/20 text-blue-300"
+        >
+          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>
+            Đây là ước tính ban đầu. Thêm tuổi/chiều cao/tần suất tập vào hồ sơ để app tính sát hơn.
+          </span>
+        </div>
+      )}
+
+      {/* Beginner explainer — Part 3's 4 short bullets, only shown in simple mode so it doesn't clutter the page for people who already understand macros. */}
+      {simpleMode && (
+        <div
+          data-testid="nutrition-beginner-explainer"
+          className="grid grid-cols-2 gap-2 text-xs text-zinc-400"
+        >
+          <p>
+            <span className="font-semibold text-orange-400">Calo</span> = ngân sách năng lượng của bạn.
+          </p>
+          <p>
+            <span className="font-semibold text-green-400">Protein</span> = giúp phục hồi và xây cơ.
+          </p>
+          <p>
+            <span className="font-semibold text-blue-400">Carb</span> = giúp bạn tập khỏe.
+          </p>
+          <p>
+            <span className="font-semibold text-amber-400">Fat</span> = cần cho sức khỏe và hormone.
+          </p>
+          <p className="col-span-2 text-zinc-500">
+            Cân nặng dao động từng ngày — hãy nhìn trung bình cả tuần, đừng lo nếu 1 ngày lệch mục tiêu.
+          </p>
+        </div>
+      )}
+
       {/* ── Macro summary cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div
+        data-testid="nutrition-macro-summary-cards"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+      >
         {[
           {
             label: "Calories",
@@ -1661,7 +1853,12 @@ export function NutritionPage() {
             color: "#f59e0b",
             textColor: "text-amber-400",
           },
-        ].map((m) => (
+        ]
+          // Part 3 (Beginner Mode) — show only Calo/Protein first; Carb/Fat
+          // stay one tap away via "Xem chi tiết macro" instead of hitting a
+          // brand-new user with all 4 numbers at once.
+          .filter((m) => simpleMode ? m.label === "Calories" || m.label === "Protein" : true)
+          .map((m) => (
           <div
             key={m.label}
             className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60"
@@ -2850,7 +3047,10 @@ export function NutritionPage() {
             if (e.target === e.currentTarget) setShowGoalModal(false);
           }}
         >
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
+          <div
+            data-testid="nutrition-goal-modal"
+            className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl"
+          >
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold flex items-center gap-2">
                 <Target className="w-4 h-4 text-green-400" /> Mục tiêu dinh
@@ -2862,6 +3062,52 @@ export function NutritionPage() {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            <div className="px-5 pt-4">
+              {/* Part 4 — Recommended vs Custom goal. Recommended keeps
+                  inputs read-only (values come from the app's own
+                  calculation); Custom unlocks manual editing with a live
+                  Atwater-consistency preview. */}
+              <div
+                role="tablist"
+                aria-label="Chế độ mục tiêu dinh dưỡng"
+                className="flex rounded-lg border border-zinc-700/60 bg-zinc-800/60 p-1 text-xs font-semibold"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={goalMode === "RECOMMENDED"}
+                  data-testid="goal-mode-recommended"
+                  onClick={() => setGoalMode("RECOMMENDED")}
+                  className={`flex-1 rounded-md py-1.5 transition-colors ${
+                    goalMode === "RECOMMENDED"
+                      ? "bg-green-500 text-black"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Được đề xuất
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={goalMode === "CUSTOM"}
+                  data-testid="goal-mode-custom"
+                  onClick={() => setGoalMode("CUSTOM")}
+                  className={`flex-1 rounded-md py-1.5 transition-colors ${
+                    goalMode === "CUSTOM"
+                      ? "bg-green-500 text-black"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Tự nhập
+                </button>
+              </div>
+              {goalMode === "RECOMMENDED" && (
+                <p className="mt-2 text-[11px] text-zinc-500">
+                  Đây là mục tiêu do hệ thống tính toán. Chuyển sang "Tự nhập" nếu bạn muốn tự chỉnh số liệu.
+                </p>
+              )}
             </div>
 
             <div className="p-5 space-y-3">
@@ -2901,6 +3147,7 @@ export function NutritionPage() {
                     <input
                       type="number"
                       min={1}
+                      disabled={goalMode === "RECOMMENDED"}
                       value={goalForm[key as keyof typeof goalForm]}
                       onChange={(e) =>
                         setGoalForm((f) => ({
@@ -2908,7 +3155,7 @@ export function NutritionPage() {
                           [key]: parseFloat(e.target.value) || 0,
                         }))
                       }
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50 pr-10"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50 pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
                       {unit}
@@ -2916,6 +3163,66 @@ export function NutritionPage() {
                   </div>
                 </div>
               ))}
+              {goalMode === "CUSTOM" && customMacroMismatches && (
+                <div
+                  data-testid="custom-goal-macro-mismatch-warning"
+                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"
+                >
+                  Macro bạn nhập tương đương khoảng {Math.round(customMacroKcal)} kcal, khác mục tiêu {goalForm.calories} kcal bạn đã nêu (chênh {Math.abs(customMacroMismatchKcal)} kcal). Hãy điều chỉnh lại cho khớp trước khi lưu.
+                </div>
+              )}
+            </div>
+
+            {/* Phase 2 — minimal, accessible version-history view. Not a
+                full audit UI (out of scope), just Current/Previous +
+                changed date + reason, so "why did my calories change" is
+                answerable without a DB query. */}
+            <div className="px-5 pb-4">
+              <button
+                type="button"
+                onClick={() => setShowGoalHistory((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <History className="w-3.5 h-3.5" />
+                Lịch sử thay đổi mục tiêu
+                {showGoalHistory ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {showGoalHistory && (
+                <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                  {goalHistory.length === 0 ? (
+                    <p className="text-[11px] text-zinc-600">Chưa có lịch sử thay đổi.</p>
+                  ) : (
+                    goalHistory.map((g, i) => (
+                      <div
+                        key={g.id}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2 text-[11px]"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`shrink-0 rounded-full px-1.5 py-0.5 font-bold ${
+                              i === 0
+                                ? "bg-green-500/15 text-green-400"
+                                : "bg-zinc-800 text-zinc-500"
+                            }`}
+                          >
+                            {i === 0 ? "Hiện tại" : "Trước đó"}
+                          </span>
+                          <span className="text-zinc-300 truncate">
+                            {g.calories} kcal · P{g.protein} C{g.carbs} F{g.fat}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-zinc-600">
+                          {new Date(g.validFrom).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">

@@ -35,6 +35,12 @@ COPY --from=builder /app/backend/services/ai-service/dist ./backend/services/ai-
 COPY --from=builder /app/backend/services/ai-service/src/generated ./backend/services/ai-service/dist/generated
 COPY --from=builder /app/backend/services/ai-service/package.json ./backend/services/ai-service/package.json
 COPY --from=builder /app/backend/services/ai-service/prisma ./backend/services/ai-service/prisma
+# Local seed datasets (e.g. free-exercise-db/exercises.json) are read at
+# runtime via process.cwd()-relative paths (datasetConfig.ts) — without this,
+# the runner stage silently drops them since only dist/ was copied above,
+# and the free-exercise-db provider degrades to 0 results without crashing
+# (by design), masking the gap in production.
+COPY --from=builder /app/backend/services/ai-service/data ./backend/services/ai-service/data
 WORKDIR /app/backend/services/ai-service
 EXPOSE 3003
 # `exec` replaces the shell with the node process instead of forking it as a

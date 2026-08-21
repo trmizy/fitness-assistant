@@ -228,8 +228,16 @@ export function PTSchedulePage() {
     mutationFn: (
       slots: Array<{ dayOfWeek: string; startTime: string; endTime: string }>,
     ) => availabilityService.setAvailability(slots),
-    onSuccess: () => {
-      toast.success("Availability saved");
+    onSuccess: (data: any) => {
+      const affected = data?.affectedSessions?.length || 0;
+      if (affected > 0) {
+        toast.warning(
+          `Đã lưu lịch. Bạn có ${affected} buổi tập đã được đặt ngoài khung giờ mới. Bạn cần tự thoả thuận dời lịch với khách hàng.`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success("Availability saved");
+      }
       setIsEditingAvail(false);
       queryClient.invalidateQueries({ queryKey: ["pt-availability"] });
     },

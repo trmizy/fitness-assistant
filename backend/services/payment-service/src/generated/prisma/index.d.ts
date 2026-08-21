@@ -15,7 +15,17 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 /**
  * Model Wallet
+ * Two-bucket wallet.
  * 
+ * `pendingBalance` is money already attributed to the owner but not yet earned — it backs
+ * the sessions of a contract that have not happened yet, and is exactly the pot a refund
+ * draws from. `availableBalance` is money the owner may withdraw.
+ * 
+ * Two PLATFORM wallets exist, distinguished by ownerId (see PLATFORM_ESCROW_ID /
+ * PLATFORM_REVENUE_ID): ESCROW holds every đồng the platform is custodian of, REVENUE
+ * holds commission the platform has actually earned. Keeping them apart is what makes the
+ * reconciliation invariant checkable — a single mixed wallet has no interpretable balance
+ * once several contracts run at once.
  */
 export type Wallet = $Result.DefaultSelection<Prisma.$WalletPayload>
 /**
@@ -33,6 +43,17 @@ export type PaymentTransaction = $Result.DefaultSelection<Prisma.$PaymentTransac
  * 
  */
 export type PlatformCommission = $Result.DefaultSelection<Prisma.$PlatformCommissionPayload>
+/**
+ * Model PartnerReceivable
+ * Money a partner owes back to the platform.
+ * 
+ * Raised when a client had to be made whole but the partner's buckets could not cover their
+ * share — a PT who missed enough sessions to exhaust their pending balance, typically. The
+ * platform fronts the cash so the client is never short-changed, and books the difference
+ * here. Without this row the shortfall would either push a wallet negative or silently break
+ * the reconciliation invariant; instead it stays visible and recoverable.
+ */
+export type PartnerReceivable = $Result.DefaultSelection<Prisma.$PartnerReceivablePayload>
 /**
  * Model PaymentWebhookEvent
  * 
@@ -70,13 +91,22 @@ export const LedgerEntryType: {
 export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryType]
 
 
+export const LedgerBucket: {
+  PENDING: 'PENDING',
+  AVAILABLE: 'AVAILABLE'
+};
+
+export type LedgerBucket = (typeof LedgerBucket)[keyof typeof LedgerBucket]
+
+
 export const PurposeType: {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
   GYM_PT_COMBO: 'GYM_PT_COMBO',
   WALLET_TOPUP: 'WALLET_TOPUP',
   REFUND: 'REFUND',
-  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
+  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE'
 };
 
 export type PurposeType = (typeof PurposeType)[keyof typeof PurposeType]
@@ -111,7 +141,8 @@ export const RelatedEntityType: {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
   WALLET_TOPUP: 'WALLET_TOPUP',
-  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
+  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE'
 };
 
 export type RelatedEntityType = (typeof RelatedEntityType)[keyof typeof RelatedEntityType]
@@ -157,6 +188,10 @@ export const WalletStatus: typeof $Enums.WalletStatus
 export type LedgerEntryType = $Enums.LedgerEntryType
 
 export const LedgerEntryType: typeof $Enums.LedgerEntryType
+
+export type LedgerBucket = $Enums.LedgerBucket
+
+export const LedgerBucket: typeof $Enums.LedgerBucket
 
 export type PurposeType = $Enums.PurposeType
 
@@ -348,6 +383,16 @@ export class PrismaClient<
     * ```
     */
   get platformCommission(): Prisma.PlatformCommissionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.partnerReceivable`: Exposes CRUD operations for the **PartnerReceivable** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PartnerReceivables
+    * const partnerReceivables = await prisma.partnerReceivable.findMany()
+    * ```
+    */
+  get partnerReceivable(): Prisma.PartnerReceivableDelegate<ExtArgs>;
 
   /**
    * `prisma.paymentWebhookEvent`: Exposes CRUD operations for the **PaymentWebhookEvent** model.
@@ -803,6 +848,7 @@ export namespace Prisma {
     WalletLedgerEntry: 'WalletLedgerEntry',
     PaymentTransaction: 'PaymentTransaction',
     PlatformCommission: 'PlatformCommission',
+    PartnerReceivable: 'PartnerReceivable',
     PaymentWebhookEvent: 'PaymentWebhookEvent'
   };
 
@@ -819,7 +865,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "wallet" | "walletLedgerEntry" | "paymentTransaction" | "platformCommission" | "paymentWebhookEvent"
+      modelProps: "wallet" | "walletLedgerEntry" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "paymentWebhookEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1100,6 +1146,76 @@ export namespace Prisma {
           count: {
             args: Prisma.PlatformCommissionCountArgs<ExtArgs>
             result: $Utils.Optional<PlatformCommissionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PartnerReceivable: {
+        payload: Prisma.$PartnerReceivablePayload<ExtArgs>
+        fields: Prisma.PartnerReceivableFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PartnerReceivableFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PartnerReceivableFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          findFirst: {
+            args: Prisma.PartnerReceivableFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PartnerReceivableFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          findMany: {
+            args: Prisma.PartnerReceivableFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>[]
+          }
+          create: {
+            args: Prisma.PartnerReceivableCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          createMany: {
+            args: Prisma.PartnerReceivableCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PartnerReceivableCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>[]
+          }
+          delete: {
+            args: Prisma.PartnerReceivableDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          update: {
+            args: Prisma.PartnerReceivableUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          deleteMany: {
+            args: Prisma.PartnerReceivableDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PartnerReceivableUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PartnerReceivableUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerReceivablePayload>
+          }
+          aggregate: {
+            args: Prisma.PartnerReceivableAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePartnerReceivable>
+          }
+          groupBy: {
+            args: Prisma.PartnerReceivableGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PartnerReceivableGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PartnerReceivableCountArgs<ExtArgs>
+            result: $Utils.Optional<PartnerReceivableCountAggregateOutputType> | number
           }
         }
       }
@@ -1418,11 +1534,13 @@ export namespace Prisma {
 
   export type WalletAvgAggregateOutputType = {
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
   }
 
   export type WalletSumAggregateOutputType = {
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
   }
 
@@ -1431,6 +1549,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType | null
     ownerId: string | null
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
@@ -1442,6 +1561,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType | null
     ownerId: string | null
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
@@ -1453,6 +1573,7 @@ export namespace Prisma {
     ownerType: number
     ownerId: number
     availableBalance: number
+    pendingBalance: number
     lockedBalance: number
     status: number
     createdAt: number
@@ -1463,11 +1584,13 @@ export namespace Prisma {
 
   export type WalletAvgAggregateInputType = {
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
   }
 
   export type WalletSumAggregateInputType = {
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
   }
 
@@ -1476,6 +1599,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1487,6 +1611,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1498,6 +1623,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1596,6 +1722,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance: Decimal
+    pendingBalance: Decimal
     lockedBalance: Decimal
     status: $Enums.WalletStatus
     createdAt: Date
@@ -1626,6 +1753,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1639,6 +1767,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1650,6 +1779,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1672,6 +1802,7 @@ export namespace Prisma {
       ownerType: $Enums.WalletOwnerType
       ownerId: string
       availableBalance: Prisma.Decimal
+      pendingBalance: Prisma.Decimal
       lockedBalance: Prisma.Decimal
       status: $Enums.WalletStatus
       createdAt: Date
@@ -2074,6 +2205,7 @@ export namespace Prisma {
     readonly ownerType: FieldRef<"Wallet", 'WalletOwnerType'>
     readonly ownerId: FieldRef<"Wallet", 'String'>
     readonly availableBalance: FieldRef<"Wallet", 'Decimal'>
+    readonly pendingBalance: FieldRef<"Wallet", 'Decimal'>
     readonly lockedBalance: FieldRef<"Wallet", 'Decimal'>
     readonly status: FieldRef<"Wallet", 'WalletStatus'>
     readonly createdAt: FieldRef<"Wallet", 'DateTime'>
@@ -2455,6 +2587,7 @@ export namespace Prisma {
     walletId: string | null
     transactionId: string | null
     entryType: $Enums.LedgerEntryType | null
+    bucket: $Enums.LedgerBucket | null
     amount: Decimal | null
     balanceBefore: Decimal | null
     balanceAfter: Decimal | null
@@ -2467,6 +2600,7 @@ export namespace Prisma {
     walletId: string | null
     transactionId: string | null
     entryType: $Enums.LedgerEntryType | null
+    bucket: $Enums.LedgerBucket | null
     amount: Decimal | null
     balanceBefore: Decimal | null
     balanceAfter: Decimal | null
@@ -2479,6 +2613,7 @@ export namespace Prisma {
     walletId: number
     transactionId: number
     entryType: number
+    bucket: number
     amount: number
     balanceBefore: number
     balanceAfter: number
@@ -2505,6 +2640,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2517,6 +2653,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2529,6 +2666,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2628,6 +2766,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket: $Enums.LedgerBucket
     amount: Decimal
     balanceBefore: Decimal
     balanceAfter: Decimal
@@ -2659,6 +2798,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2673,6 +2813,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2687,6 +2828,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2714,6 +2856,11 @@ export namespace Prisma {
       walletId: string
       transactionId: string
       entryType: $Enums.LedgerEntryType
+      /**
+       * Which balance moved. balanceBefore/balanceAfter are that bucket's running total, so a
+       * wallet's two buckets each form their own unbroken chain.
+       */
+      bucket: $Enums.LedgerBucket
       amount: Prisma.Decimal
       balanceBefore: Prisma.Decimal
       balanceAfter: Prisma.Decimal
@@ -3118,6 +3265,7 @@ export namespace Prisma {
     readonly walletId: FieldRef<"WalletLedgerEntry", 'String'>
     readonly transactionId: FieldRef<"WalletLedgerEntry", 'String'>
     readonly entryType: FieldRef<"WalletLedgerEntry", 'LedgerEntryType'>
+    readonly bucket: FieldRef<"WalletLedgerEntry", 'LedgerBucket'>
     readonly amount: FieldRef<"WalletLedgerEntry", 'Decimal'>
     readonly balanceBefore: FieldRef<"WalletLedgerEntry", 'Decimal'>
     readonly balanceAfter: FieldRef<"WalletLedgerEntry", 'Decimal'>
@@ -5837,6 +5985,997 @@ export namespace Prisma {
 
 
   /**
+   * Model PartnerReceivable
+   */
+
+  export type AggregatePartnerReceivable = {
+    _count: PartnerReceivableCountAggregateOutputType | null
+    _avg: PartnerReceivableAvgAggregateOutputType | null
+    _sum: PartnerReceivableSumAggregateOutputType | null
+    _min: PartnerReceivableMinAggregateOutputType | null
+    _max: PartnerReceivableMaxAggregateOutputType | null
+  }
+
+  export type PartnerReceivableAvgAggregateOutputType = {
+    amount: Decimal | null
+    recovered: Decimal | null
+  }
+
+  export type PartnerReceivableSumAggregateOutputType = {
+    amount: Decimal | null
+    recovered: Decimal | null
+  }
+
+  export type PartnerReceivableMinAggregateOutputType = {
+    id: string | null
+    partnerType: $Enums.PartnerType | null
+    partnerId: string | null
+    amount: Decimal | null
+    recovered: Decimal | null
+    reason: string | null
+    contractId: string | null
+    transactionId: string | null
+    settledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PartnerReceivableMaxAggregateOutputType = {
+    id: string | null
+    partnerType: $Enums.PartnerType | null
+    partnerId: string | null
+    amount: Decimal | null
+    recovered: Decimal | null
+    reason: string | null
+    contractId: string | null
+    transactionId: string | null
+    settledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PartnerReceivableCountAggregateOutputType = {
+    id: number
+    partnerType: number
+    partnerId: number
+    amount: number
+    recovered: number
+    reason: number
+    contractId: number
+    transactionId: number
+    settledAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PartnerReceivableAvgAggregateInputType = {
+    amount?: true
+    recovered?: true
+  }
+
+  export type PartnerReceivableSumAggregateInputType = {
+    amount?: true
+    recovered?: true
+  }
+
+  export type PartnerReceivableMinAggregateInputType = {
+    id?: true
+    partnerType?: true
+    partnerId?: true
+    amount?: true
+    recovered?: true
+    reason?: true
+    contractId?: true
+    transactionId?: true
+    settledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PartnerReceivableMaxAggregateInputType = {
+    id?: true
+    partnerType?: true
+    partnerId?: true
+    amount?: true
+    recovered?: true
+    reason?: true
+    contractId?: true
+    transactionId?: true
+    settledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PartnerReceivableCountAggregateInputType = {
+    id?: true
+    partnerType?: true
+    partnerId?: true
+    amount?: true
+    recovered?: true
+    reason?: true
+    contractId?: true
+    transactionId?: true
+    settledAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PartnerReceivableAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerReceivable to aggregate.
+     */
+    where?: PartnerReceivableWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerReceivables to fetch.
+     */
+    orderBy?: PartnerReceivableOrderByWithRelationInput | PartnerReceivableOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PartnerReceivableWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerReceivables from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerReceivables.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PartnerReceivables
+    **/
+    _count?: true | PartnerReceivableCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PartnerReceivableAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PartnerReceivableSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PartnerReceivableMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PartnerReceivableMaxAggregateInputType
+  }
+
+  export type GetPartnerReceivableAggregateType<T extends PartnerReceivableAggregateArgs> = {
+        [P in keyof T & keyof AggregatePartnerReceivable]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePartnerReceivable[P]>
+      : GetScalarType<T[P], AggregatePartnerReceivable[P]>
+  }
+
+
+
+
+  export type PartnerReceivableGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartnerReceivableWhereInput
+    orderBy?: PartnerReceivableOrderByWithAggregationInput | PartnerReceivableOrderByWithAggregationInput[]
+    by: PartnerReceivableScalarFieldEnum[] | PartnerReceivableScalarFieldEnum
+    having?: PartnerReceivableScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PartnerReceivableCountAggregateInputType | true
+    _avg?: PartnerReceivableAvgAggregateInputType
+    _sum?: PartnerReceivableSumAggregateInputType
+    _min?: PartnerReceivableMinAggregateInputType
+    _max?: PartnerReceivableMaxAggregateInputType
+  }
+
+  export type PartnerReceivableGroupByOutputType = {
+    id: string
+    partnerType: $Enums.PartnerType
+    partnerId: string
+    amount: Decimal
+    recovered: Decimal
+    reason: string
+    contractId: string | null
+    transactionId: string | null
+    settledAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PartnerReceivableCountAggregateOutputType | null
+    _avg: PartnerReceivableAvgAggregateOutputType | null
+    _sum: PartnerReceivableSumAggregateOutputType | null
+    _min: PartnerReceivableMinAggregateOutputType | null
+    _max: PartnerReceivableMaxAggregateOutputType | null
+  }
+
+  type GetPartnerReceivableGroupByPayload<T extends PartnerReceivableGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PartnerReceivableGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PartnerReceivableGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PartnerReceivableGroupByOutputType[P]>
+            : GetScalarType<T[P], PartnerReceivableGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PartnerReceivableSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerType?: boolean
+    partnerId?: boolean
+    amount?: boolean
+    recovered?: boolean
+    reason?: boolean
+    contractId?: boolean
+    transactionId?: boolean
+    settledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["partnerReceivable"]>
+
+  export type PartnerReceivableSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerType?: boolean
+    partnerId?: boolean
+    amount?: boolean
+    recovered?: boolean
+    reason?: boolean
+    contractId?: boolean
+    transactionId?: boolean
+    settledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["partnerReceivable"]>
+
+  export type PartnerReceivableSelectScalar = {
+    id?: boolean
+    partnerType?: boolean
+    partnerId?: boolean
+    amount?: boolean
+    recovered?: boolean
+    reason?: boolean
+    contractId?: boolean
+    transactionId?: boolean
+    settledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $PartnerReceivablePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PartnerReceivable"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      partnerType: $Enums.PartnerType
+      partnerId: string
+      amount: Prisma.Decimal
+      /**
+       * Recovered so far, by withholding from the partner's later credits.
+       */
+      recovered: Prisma.Decimal
+      reason: string
+      contractId: string | null
+      transactionId: string | null
+      settledAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["partnerReceivable"]>
+    composites: {}
+  }
+
+  type PartnerReceivableGetPayload<S extends boolean | null | undefined | PartnerReceivableDefaultArgs> = $Result.GetResult<Prisma.$PartnerReceivablePayload, S>
+
+  type PartnerReceivableCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PartnerReceivableFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PartnerReceivableCountAggregateInputType | true
+    }
+
+  export interface PartnerReceivableDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PartnerReceivable'], meta: { name: 'PartnerReceivable' } }
+    /**
+     * Find zero or one PartnerReceivable that matches the filter.
+     * @param {PartnerReceivableFindUniqueArgs} args - Arguments to find a PartnerReceivable
+     * @example
+     * // Get one PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PartnerReceivableFindUniqueArgs>(args: SelectSubset<T, PartnerReceivableFindUniqueArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PartnerReceivable that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PartnerReceivableFindUniqueOrThrowArgs} args - Arguments to find a PartnerReceivable
+     * @example
+     * // Get one PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PartnerReceivableFindUniqueOrThrowArgs>(args: SelectSubset<T, PartnerReceivableFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PartnerReceivable that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableFindFirstArgs} args - Arguments to find a PartnerReceivable
+     * @example
+     * // Get one PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PartnerReceivableFindFirstArgs>(args?: SelectSubset<T, PartnerReceivableFindFirstArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PartnerReceivable that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableFindFirstOrThrowArgs} args - Arguments to find a PartnerReceivable
+     * @example
+     * // Get one PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PartnerReceivableFindFirstOrThrowArgs>(args?: SelectSubset<T, PartnerReceivableFindFirstOrThrowArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PartnerReceivables that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PartnerReceivables
+     * const partnerReceivables = await prisma.partnerReceivable.findMany()
+     * 
+     * // Get first 10 PartnerReceivables
+     * const partnerReceivables = await prisma.partnerReceivable.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const partnerReceivableWithIdOnly = await prisma.partnerReceivable.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PartnerReceivableFindManyArgs>(args?: SelectSubset<T, PartnerReceivableFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PartnerReceivable.
+     * @param {PartnerReceivableCreateArgs} args - Arguments to create a PartnerReceivable.
+     * @example
+     * // Create one PartnerReceivable
+     * const PartnerReceivable = await prisma.partnerReceivable.create({
+     *   data: {
+     *     // ... data to create a PartnerReceivable
+     *   }
+     * })
+     * 
+     */
+    create<T extends PartnerReceivableCreateArgs>(args: SelectSubset<T, PartnerReceivableCreateArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PartnerReceivables.
+     * @param {PartnerReceivableCreateManyArgs} args - Arguments to create many PartnerReceivables.
+     * @example
+     * // Create many PartnerReceivables
+     * const partnerReceivable = await prisma.partnerReceivable.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PartnerReceivableCreateManyArgs>(args?: SelectSubset<T, PartnerReceivableCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PartnerReceivables and returns the data saved in the database.
+     * @param {PartnerReceivableCreateManyAndReturnArgs} args - Arguments to create many PartnerReceivables.
+     * @example
+     * // Create many PartnerReceivables
+     * const partnerReceivable = await prisma.partnerReceivable.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PartnerReceivables and only return the `id`
+     * const partnerReceivableWithIdOnly = await prisma.partnerReceivable.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PartnerReceivableCreateManyAndReturnArgs>(args?: SelectSubset<T, PartnerReceivableCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PartnerReceivable.
+     * @param {PartnerReceivableDeleteArgs} args - Arguments to delete one PartnerReceivable.
+     * @example
+     * // Delete one PartnerReceivable
+     * const PartnerReceivable = await prisma.partnerReceivable.delete({
+     *   where: {
+     *     // ... filter to delete one PartnerReceivable
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PartnerReceivableDeleteArgs>(args: SelectSubset<T, PartnerReceivableDeleteArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PartnerReceivable.
+     * @param {PartnerReceivableUpdateArgs} args - Arguments to update one PartnerReceivable.
+     * @example
+     * // Update one PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PartnerReceivableUpdateArgs>(args: SelectSubset<T, PartnerReceivableUpdateArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PartnerReceivables.
+     * @param {PartnerReceivableDeleteManyArgs} args - Arguments to filter PartnerReceivables to delete.
+     * @example
+     * // Delete a few PartnerReceivables
+     * const { count } = await prisma.partnerReceivable.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PartnerReceivableDeleteManyArgs>(args?: SelectSubset<T, PartnerReceivableDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PartnerReceivables.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PartnerReceivables
+     * const partnerReceivable = await prisma.partnerReceivable.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PartnerReceivableUpdateManyArgs>(args: SelectSubset<T, PartnerReceivableUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PartnerReceivable.
+     * @param {PartnerReceivableUpsertArgs} args - Arguments to update or create a PartnerReceivable.
+     * @example
+     * // Update or create a PartnerReceivable
+     * const partnerReceivable = await prisma.partnerReceivable.upsert({
+     *   create: {
+     *     // ... data to create a PartnerReceivable
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PartnerReceivable we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PartnerReceivableUpsertArgs>(args: SelectSubset<T, PartnerReceivableUpsertArgs<ExtArgs>>): Prisma__PartnerReceivableClient<$Result.GetResult<Prisma.$PartnerReceivablePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PartnerReceivables.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableCountArgs} args - Arguments to filter PartnerReceivables to count.
+     * @example
+     * // Count the number of PartnerReceivables
+     * const count = await prisma.partnerReceivable.count({
+     *   where: {
+     *     // ... the filter for the PartnerReceivables we want to count
+     *   }
+     * })
+    **/
+    count<T extends PartnerReceivableCountArgs>(
+      args?: Subset<T, PartnerReceivableCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PartnerReceivableCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PartnerReceivable.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PartnerReceivableAggregateArgs>(args: Subset<T, PartnerReceivableAggregateArgs>): Prisma.PrismaPromise<GetPartnerReceivableAggregateType<T>>
+
+    /**
+     * Group by PartnerReceivable.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerReceivableGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PartnerReceivableGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PartnerReceivableGroupByArgs['orderBy'] }
+        : { orderBy?: PartnerReceivableGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PartnerReceivableGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPartnerReceivableGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PartnerReceivable model
+   */
+  readonly fields: PartnerReceivableFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PartnerReceivable.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PartnerReceivableClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PartnerReceivable model
+   */ 
+  interface PartnerReceivableFieldRefs {
+    readonly id: FieldRef<"PartnerReceivable", 'String'>
+    readonly partnerType: FieldRef<"PartnerReceivable", 'PartnerType'>
+    readonly partnerId: FieldRef<"PartnerReceivable", 'String'>
+    readonly amount: FieldRef<"PartnerReceivable", 'Decimal'>
+    readonly recovered: FieldRef<"PartnerReceivable", 'Decimal'>
+    readonly reason: FieldRef<"PartnerReceivable", 'String'>
+    readonly contractId: FieldRef<"PartnerReceivable", 'String'>
+    readonly transactionId: FieldRef<"PartnerReceivable", 'String'>
+    readonly settledAt: FieldRef<"PartnerReceivable", 'DateTime'>
+    readonly createdAt: FieldRef<"PartnerReceivable", 'DateTime'>
+    readonly updatedAt: FieldRef<"PartnerReceivable", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PartnerReceivable findUnique
+   */
+  export type PartnerReceivableFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerReceivable to fetch.
+     */
+    where: PartnerReceivableWhereUniqueInput
+  }
+
+  /**
+   * PartnerReceivable findUniqueOrThrow
+   */
+  export type PartnerReceivableFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerReceivable to fetch.
+     */
+    where: PartnerReceivableWhereUniqueInput
+  }
+
+  /**
+   * PartnerReceivable findFirst
+   */
+  export type PartnerReceivableFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerReceivable to fetch.
+     */
+    where?: PartnerReceivableWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerReceivables to fetch.
+     */
+    orderBy?: PartnerReceivableOrderByWithRelationInput | PartnerReceivableOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerReceivables.
+     */
+    cursor?: PartnerReceivableWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerReceivables from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerReceivables.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerReceivables.
+     */
+    distinct?: PartnerReceivableScalarFieldEnum | PartnerReceivableScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerReceivable findFirstOrThrow
+   */
+  export type PartnerReceivableFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerReceivable to fetch.
+     */
+    where?: PartnerReceivableWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerReceivables to fetch.
+     */
+    orderBy?: PartnerReceivableOrderByWithRelationInput | PartnerReceivableOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerReceivables.
+     */
+    cursor?: PartnerReceivableWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerReceivables from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerReceivables.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerReceivables.
+     */
+    distinct?: PartnerReceivableScalarFieldEnum | PartnerReceivableScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerReceivable findMany
+   */
+  export type PartnerReceivableFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerReceivables to fetch.
+     */
+    where?: PartnerReceivableWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerReceivables to fetch.
+     */
+    orderBy?: PartnerReceivableOrderByWithRelationInput | PartnerReceivableOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PartnerReceivables.
+     */
+    cursor?: PartnerReceivableWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerReceivables from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerReceivables.
+     */
+    skip?: number
+    distinct?: PartnerReceivableScalarFieldEnum | PartnerReceivableScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerReceivable create
+   */
+  export type PartnerReceivableCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PartnerReceivable.
+     */
+    data: XOR<PartnerReceivableCreateInput, PartnerReceivableUncheckedCreateInput>
+  }
+
+  /**
+   * PartnerReceivable createMany
+   */
+  export type PartnerReceivableCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PartnerReceivables.
+     */
+    data: PartnerReceivableCreateManyInput | PartnerReceivableCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartnerReceivable createManyAndReturn
+   */
+  export type PartnerReceivableCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PartnerReceivables.
+     */
+    data: PartnerReceivableCreateManyInput | PartnerReceivableCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartnerReceivable update
+   */
+  export type PartnerReceivableUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PartnerReceivable.
+     */
+    data: XOR<PartnerReceivableUpdateInput, PartnerReceivableUncheckedUpdateInput>
+    /**
+     * Choose, which PartnerReceivable to update.
+     */
+    where: PartnerReceivableWhereUniqueInput
+  }
+
+  /**
+   * PartnerReceivable updateMany
+   */
+  export type PartnerReceivableUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PartnerReceivables.
+     */
+    data: XOR<PartnerReceivableUpdateManyMutationInput, PartnerReceivableUncheckedUpdateManyInput>
+    /**
+     * Filter which PartnerReceivables to update
+     */
+    where?: PartnerReceivableWhereInput
+  }
+
+  /**
+   * PartnerReceivable upsert
+   */
+  export type PartnerReceivableUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PartnerReceivable to update in case it exists.
+     */
+    where: PartnerReceivableWhereUniqueInput
+    /**
+     * In case the PartnerReceivable found by the `where` argument doesn't exist, create a new PartnerReceivable with this data.
+     */
+    create: XOR<PartnerReceivableCreateInput, PartnerReceivableUncheckedCreateInput>
+    /**
+     * In case the PartnerReceivable was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PartnerReceivableUpdateInput, PartnerReceivableUncheckedUpdateInput>
+  }
+
+  /**
+   * PartnerReceivable delete
+   */
+  export type PartnerReceivableDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+    /**
+     * Filter which PartnerReceivable to delete.
+     */
+    where: PartnerReceivableWhereUniqueInput
+  }
+
+  /**
+   * PartnerReceivable deleteMany
+   */
+  export type PartnerReceivableDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerReceivables to delete
+     */
+    where?: PartnerReceivableWhereInput
+  }
+
+  /**
+   * PartnerReceivable without action
+   */
+  export type PartnerReceivableDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerReceivable
+     */
+    select?: PartnerReceivableSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model PaymentWebhookEvent
    */
 
@@ -6811,6 +7950,7 @@ export namespace Prisma {
     ownerType: 'ownerType',
     ownerId: 'ownerId',
     availableBalance: 'availableBalance',
+    pendingBalance: 'pendingBalance',
     lockedBalance: 'lockedBalance',
     status: 'status',
     createdAt: 'createdAt',
@@ -6825,6 +7965,7 @@ export namespace Prisma {
     walletId: 'walletId',
     transactionId: 'transactionId',
     entryType: 'entryType',
+    bucket: 'bucket',
     amount: 'amount',
     balanceBefore: 'balanceBefore',
     balanceAfter: 'balanceAfter',
@@ -6888,6 +8029,23 @@ export namespace Prisma {
   };
 
   export type PlatformCommissionScalarFieldEnum = (typeof PlatformCommissionScalarFieldEnum)[keyof typeof PlatformCommissionScalarFieldEnum]
+
+
+  export const PartnerReceivableScalarFieldEnum: {
+    id: 'id',
+    partnerType: 'partnerType',
+    partnerId: 'partnerId',
+    amount: 'amount',
+    recovered: 'recovered',
+    reason: 'reason',
+    contractId: 'contractId',
+    transactionId: 'transactionId',
+    settledAt: 'settledAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PartnerReceivableScalarFieldEnum = (typeof PartnerReceivableScalarFieldEnum)[keyof typeof PartnerReceivableScalarFieldEnum]
 
 
   export const PaymentWebhookEventScalarFieldEnum: {
@@ -7043,6 +8201,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'LedgerBucket'
+   */
+  export type EnumLedgerBucketFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerBucket'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerBucket[]'
+   */
+  export type ListEnumLedgerBucketFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerBucket[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PurposeType'
    */
   export type EnumPurposeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PurposeType'>
@@ -7186,6 +8358,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringFilter<"Wallet"> | string
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -7198,6 +8371,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -7214,6 +8388,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringFilter<"Wallet"> | string
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -7226,6 +8401,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -7245,6 +8421,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeWithAggregatesFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringWithAggregatesFilter<"Wallet"> | string
     availableBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusWithAggregatesFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
@@ -7259,6 +8436,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7273,6 +8451,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -7290,6 +8469,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7304,6 +8484,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -7324,6 +8505,7 @@ export namespace Prisma {
     walletId?: StringWithAggregatesFilter<"WalletLedgerEntry"> | string
     transactionId?: StringWithAggregatesFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeWithAggregatesFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketWithAggregatesFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7613,6 +8795,90 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"PlatformCommission"> | Date | string
   }
 
+  export type PartnerReceivableWhereInput = {
+    AND?: PartnerReceivableWhereInput | PartnerReceivableWhereInput[]
+    OR?: PartnerReceivableWhereInput[]
+    NOT?: PartnerReceivableWhereInput | PartnerReceivableWhereInput[]
+    id?: StringFilter<"PartnerReceivable"> | string
+    partnerType?: EnumPartnerTypeFilter<"PartnerReceivable"> | $Enums.PartnerType
+    partnerId?: StringFilter<"PartnerReceivable"> | string
+    amount?: DecimalFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    reason?: StringFilter<"PartnerReceivable"> | string
+    contractId?: StringNullableFilter<"PartnerReceivable"> | string | null
+    transactionId?: StringNullableFilter<"PartnerReceivable"> | string | null
+    settledAt?: DateTimeNullableFilter<"PartnerReceivable"> | Date | string | null
+    createdAt?: DateTimeFilter<"PartnerReceivable"> | Date | string
+    updatedAt?: DateTimeFilter<"PartnerReceivable"> | Date | string
+  }
+
+  export type PartnerReceivableOrderByWithRelationInput = {
+    id?: SortOrder
+    partnerType?: SortOrder
+    partnerId?: SortOrder
+    amount?: SortOrder
+    recovered?: SortOrder
+    reason?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    transactionId?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PartnerReceivableWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PartnerReceivableWhereInput | PartnerReceivableWhereInput[]
+    OR?: PartnerReceivableWhereInput[]
+    NOT?: PartnerReceivableWhereInput | PartnerReceivableWhereInput[]
+    partnerType?: EnumPartnerTypeFilter<"PartnerReceivable"> | $Enums.PartnerType
+    partnerId?: StringFilter<"PartnerReceivable"> | string
+    amount?: DecimalFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    reason?: StringFilter<"PartnerReceivable"> | string
+    contractId?: StringNullableFilter<"PartnerReceivable"> | string | null
+    transactionId?: StringNullableFilter<"PartnerReceivable"> | string | null
+    settledAt?: DateTimeNullableFilter<"PartnerReceivable"> | Date | string | null
+    createdAt?: DateTimeFilter<"PartnerReceivable"> | Date | string
+    updatedAt?: DateTimeFilter<"PartnerReceivable"> | Date | string
+  }, "id">
+
+  export type PartnerReceivableOrderByWithAggregationInput = {
+    id?: SortOrder
+    partnerType?: SortOrder
+    partnerId?: SortOrder
+    amount?: SortOrder
+    recovered?: SortOrder
+    reason?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    transactionId?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PartnerReceivableCountOrderByAggregateInput
+    _avg?: PartnerReceivableAvgOrderByAggregateInput
+    _max?: PartnerReceivableMaxOrderByAggregateInput
+    _min?: PartnerReceivableMinOrderByAggregateInput
+    _sum?: PartnerReceivableSumOrderByAggregateInput
+  }
+
+  export type PartnerReceivableScalarWhereWithAggregatesInput = {
+    AND?: PartnerReceivableScalarWhereWithAggregatesInput | PartnerReceivableScalarWhereWithAggregatesInput[]
+    OR?: PartnerReceivableScalarWhereWithAggregatesInput[]
+    NOT?: PartnerReceivableScalarWhereWithAggregatesInput | PartnerReceivableScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PartnerReceivable"> | string
+    partnerType?: EnumPartnerTypeWithAggregatesFilter<"PartnerReceivable"> | $Enums.PartnerType
+    partnerId?: StringWithAggregatesFilter<"PartnerReceivable"> | string
+    amount?: DecimalWithAggregatesFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalWithAggregatesFilter<"PartnerReceivable"> | Decimal | DecimalJsLike | number | string
+    reason?: StringWithAggregatesFilter<"PartnerReceivable"> | string
+    contractId?: StringNullableWithAggregatesFilter<"PartnerReceivable"> | string | null
+    transactionId?: StringNullableWithAggregatesFilter<"PartnerReceivable"> | string | null
+    settledAt?: DateTimeNullableWithAggregatesFilter<"PartnerReceivable"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PartnerReceivable"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PartnerReceivable"> | Date | string
+  }
+
   export type PaymentWebhookEventWhereInput = {
     AND?: PaymentWebhookEventWhereInput | PaymentWebhookEventWhereInput[]
     OR?: PaymentWebhookEventWhereInput[]
@@ -7693,6 +8959,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7705,6 +8972,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7717,6 +8985,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7729,6 +8998,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7741,6 +9011,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7752,6 +9023,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7763,6 +9035,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7772,6 +9045,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7786,6 +9060,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7796,6 +9071,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7810,6 +9086,7 @@ export namespace Prisma {
     walletId?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7822,6 +9099,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7832,6 +9110,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7844,6 +9123,7 @@ export namespace Prisma {
     walletId?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -8201,6 +9481,104 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PartnerReceivableCreateInput = {
+    id?: string
+    partnerType: $Enums.PartnerType
+    partnerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    recovered?: Decimal | DecimalJsLike | number | string
+    reason: string
+    contractId?: string | null
+    transactionId?: string | null
+    settledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PartnerReceivableUncheckedCreateInput = {
+    id?: string
+    partnerType: $Enums.PartnerType
+    partnerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    recovered?: Decimal | DecimalJsLike | number | string
+    reason: string
+    contractId?: string | null
+    transactionId?: string | null
+    settledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PartnerReceivableUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerType?: EnumPartnerTypeFieldUpdateOperationsInput | $Enums.PartnerType
+    partnerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    transactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerReceivableUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerType?: EnumPartnerTypeFieldUpdateOperationsInput | $Enums.PartnerType
+    partnerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    transactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerReceivableCreateManyInput = {
+    id?: string
+    partnerType: $Enums.PartnerType
+    partnerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    recovered?: Decimal | DecimalJsLike | number | string
+    reason: string
+    contractId?: string | null
+    transactionId?: string | null
+    settledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PartnerReceivableUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerType?: EnumPartnerTypeFieldUpdateOperationsInput | $Enums.PartnerType
+    partnerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    transactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerReceivableUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerType?: EnumPartnerTypeFieldUpdateOperationsInput | $Enums.PartnerType
+    partnerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    recovered?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    transactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PaymentWebhookEventCreateInput = {
     id?: string
     provider: $Enums.PaymentProviderType
@@ -8356,6 +9734,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8364,6 +9743,7 @@ export namespace Prisma {
 
   export type WalletAvgOrderByAggregateInput = {
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
   }
 
@@ -8372,6 +9752,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8383,6 +9764,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8391,6 +9773,7 @@ export namespace Prisma {
 
   export type WalletSumOrderByAggregateInput = {
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
   }
 
@@ -8469,6 +9852,13 @@ export namespace Prisma {
     not?: NestedEnumLedgerEntryTypeFilter<$PrismaModel> | $Enums.LedgerEntryType
   }
 
+  export type EnumLedgerBucketFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketFilter<$PrismaModel> | $Enums.LedgerBucket
+  }
+
   export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -8504,6 +9894,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8522,6 +9913,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8534,6 +9926,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8555,6 +9948,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
     _max?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
+  }
+
+  export type EnumLedgerBucketWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel> | $Enums.LedgerBucket
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerBucketFilter<$PrismaModel>
+    _max?: NestedEnumLedgerBucketFilter<$PrismaModel>
   }
 
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -8971,6 +10374,58 @@ export namespace Prisma {
     _min?: NestedEnumCommissionStatusFilter<$PrismaModel>
     _max?: NestedEnumCommissionStatusFilter<$PrismaModel>
   }
+
+  export type PartnerReceivableCountOrderByAggregateInput = {
+    id?: SortOrder
+    partnerType?: SortOrder
+    partnerId?: SortOrder
+    amount?: SortOrder
+    recovered?: SortOrder
+    reason?: SortOrder
+    contractId?: SortOrder
+    transactionId?: SortOrder
+    settledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PartnerReceivableAvgOrderByAggregateInput = {
+    amount?: SortOrder
+    recovered?: SortOrder
+  }
+
+  export type PartnerReceivableMaxOrderByAggregateInput = {
+    id?: SortOrder
+    partnerType?: SortOrder
+    partnerId?: SortOrder
+    amount?: SortOrder
+    recovered?: SortOrder
+    reason?: SortOrder
+    contractId?: SortOrder
+    transactionId?: SortOrder
+    settledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PartnerReceivableMinOrderByAggregateInput = {
+    id?: SortOrder
+    partnerType?: SortOrder
+    partnerId?: SortOrder
+    amount?: SortOrder
+    recovered?: SortOrder
+    reason?: SortOrder
+    contractId?: SortOrder
+    transactionId?: SortOrder
+    settledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PartnerReceivableSumOrderByAggregateInput = {
+    amount?: SortOrder
+    recovered?: SortOrder
+  }
   export type JsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -9146,6 +10601,10 @@ export namespace Prisma {
 
   export type EnumLedgerEntryTypeFieldUpdateOperationsInput = {
     set?: $Enums.LedgerEntryType
+  }
+
+  export type EnumLedgerBucketFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerBucket
   }
 
   export type NullableStringFieldUpdateOperationsInput = {
@@ -9441,6 +10900,13 @@ export namespace Prisma {
     not?: NestedEnumLedgerEntryTypeFilter<$PrismaModel> | $Enums.LedgerEntryType
   }
 
+  export type NestedEnumLedgerBucketFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketFilter<$PrismaModel> | $Enums.LedgerBucket
+  }
+
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -9463,6 +10929,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
     _max?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel> | $Enums.LedgerBucket
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerBucketFilter<$PrismaModel>
+    _max?: NestedEnumLedgerBucketFilter<$PrismaModel>
   }
 
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9711,6 +11187,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateWithoutWalletInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -9723,6 +11200,7 @@ export namespace Prisma {
     id?: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -9764,6 +11242,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -9776,6 +11255,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -9787,6 +11267,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -9891,6 +11372,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -9902,6 +11384,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10030,6 +11513,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateWithoutTransactionInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10042,6 +11526,7 @@ export namespace Prisma {
     id?: string
     walletId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10272,6 +11757,7 @@ export namespace Prisma {
     id?: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10282,6 +11768,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateWithoutWalletInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10294,6 +11781,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10305,6 +11793,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10329,6 +11818,7 @@ export namespace Prisma {
     id?: string
     walletId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10378,6 +11868,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateWithoutTransactionInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10390,6 +11881,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     walletId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10401,6 +11893,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     walletId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10437,6 +11930,10 @@ export namespace Prisma {
      * @deprecated Use PlatformCommissionDefaultArgs instead
      */
     export type PlatformCommissionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlatformCommissionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PartnerReceivableDefaultArgs instead
+     */
+    export type PartnerReceivableArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PartnerReceivableDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PaymentWebhookEventDefaultArgs instead
      */

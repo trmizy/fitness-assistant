@@ -107,14 +107,19 @@ const SESSION_STATUS_CONFIG: Record<
     bg: "bg-blue-500/10 border-blue-500/20",
   },
   CANCELLED: {
-    label: "Đã hủy",
+    label: "Đã huỷ",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
   NO_SHOW: {
-    label: "Vắng mặt",
-    color: "text-zinc-400",
-    bg: "bg-zinc-700/50 border-zinc-700",
+    label: "Khách vắng mặt",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  RESCHEDULE_PENDING: {
+    label: "Chờ dời lịch",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
   },
 };
 
@@ -226,6 +231,19 @@ export function BookingPage() {
     enabled: !!selectedContractId,
   });
 
+  // Days that already hold a session, so the calendar can mark them instead of looking
+  // identical to a free day — you could otherwise only discover an existing booking by
+  // clicking each date or switching tabs. Keyed by local Y-M-D because the timestamps are
+  // UTC and the calendar is drawn in the viewer's own timezone.
+  const bookedDays = new Set<string>(
+    ([...(upcomingSessions as Session[]), ...(contractSessions as Session[])] || [])
+      .filter((s) => s.status !== "CANCELLED")
+      .map((s) => {
+        const d = new Date(s.scheduledStartAt);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      }),
+  );
+
   const pastSessions = (contractSessions as Session[]).filter(
     (s) =>
       s.status === "COMPLETED" ||
@@ -310,22 +328,55 @@ export function BookingPage() {
   // Review mutation
   const reviewMutation = useMutation({
     mutationFn: () => {
-      if (!reviewId) throw new Error("Missing session");
+      if (!reviewId || !reviewRating) throw new Error("Missing data");
       return sessionService.reviewSession(
         reviewId,
         reviewRating,
-        reviewComment || undefined,
+        reviewComment,
       );
     },
     onSuccess: () => {
-      toast.success("Đánh giá đã được gửi!");
+      toast.success("Cảm ơn bạn đã đánh giá!");
       setReviewId(null);
-      setReviewRating(5);
       setReviewComment("");
+      setReviewRating(5);
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
     },
     onError: (err: any) =>
       toast.error(err?.response?.data?.error || "Không thể gửi đánh giá"),
+  });
+
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState<string>("");
+  const [rescheduleTime, setRescheduleTime] = useState<string>("");
+  const [rescheduleReason, setRescheduleReason] = useState<string>("");
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({
+      id,
+      proposedStartAt,
+      proposedEndAt,
+      reason,
+    }: {
+      id: string;
+      proposedStartAt: string;
+      proposedEndAt: string;
+      reason: string;
+    }) =>
+      sessionService.requestReschedule(
+        id,
+        proposedStartAt,
+        proposedEndAt,
+        reason
+      ),
+    onSuccess: () => {
+      toast.success("Đã gửi yêu cầu dời lịch!");
+      setRescheduleId(null);
+      setRescheduleReason("");
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error || "Không thể yêu cầu dời lịch"),
   });
 
   const daysInMonth = getDaysInMonth(year, month);
@@ -548,6 +599,9 @@ export function BookingPage() {
                         selectedContract?.endDate &&
                         dateObj > new Date(selectedContract.endDate);
                       const disabled = isPast || !!isPastEndDate;
+                      const hasSession = bookedDays.has(
+                        `${year}-${month}-${day}`,
+                      );
                       return (
                         <button
                           key={day}
@@ -556,21 +610,38 @@ export function BookingPage() {
                             setSelectedDate(day);
                             setSelectedSlot(null);
                           }}
-                          className={`aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
+                          title={hasSession ? "Đã có buổi tập trong ngày này" : undefined}
+                          className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
                             selectedDate === day
                               ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
-                              : isToday(day)
-                                ? "bg-green-500/15 text-green-400 border border-green-500/30"
-                                : disabled
-                                  ? "text-zinc-700 cursor-not-allowed"
-                                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                              : hasSession
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                                : isToday(day)
+                                  ? "bg-green-500/15 text-green-400 border border-green-500/30"
+                                  : disabled
+                                    ? "text-zinc-700 cursor-not-allowed"
+                                    : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                           }`}
                         >
                           {day}
+                          {/* Dot survives the selected state, where the fill colour is taken. */}
+                          {hasSession && (
+                            <span
+                              className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
+                                selectedDate === day ? "bg-black/70" : "bg-emerald-400"
+                              }`}
+                            />
+                          )}
                         </button>
                       );
                     })}
                   </div>
+                  {bookedDays.size > 0 && (
+                    <div className="flex items-center gap-1.5 mt-3 text-[11px] text-zinc-500">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Ngày đã có buổi tập
+                    </div>
+                  )}
                 </div>
 
                 {/* Time slots + booking form */}
@@ -835,17 +906,52 @@ export function BookingPage() {
                             </div>
                           );
                         })()}
-                        <button
-                          onClick={() => setCancelId(s.id)}
-                          className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> Hủy
-                        </button>
+                        <div className="flex gap-1.5">
+                          {hoursUntil >= 12 && (
+                            <button
+                              onClick={() => setRescheduleId(s.id)}
+                              className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              <Calendar className="w-3.5 h-3.5" /> Dời lịch
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setCancelId(s.id)}
+                            className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Hủy
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {hoursUntil < 24 && hoursUntil > 0 && (
                       <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
                         Hủy lúc này sẽ tính là 1 buổi đã dùng (còn dưới 24 giờ)
+                      </div>
+                    )}
+                    {s.status === "RESCHEDULE_PENDING" && s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
+                      <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                        {s.rescheduleRequests[0].requestedBy === "CLIENT" ? (
+                          <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">PT yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}</div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => sessionService.respondToReschedule(s.rescheduleRequests![0].id, "ACCEPT").then(() => queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] }))}
+                                className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Đồng ý
+                              </button>
+                              <button
+                                onClick={() => sessionService.respondToReschedule(s.rescheduleRequests![0].id, "REJECT").then(() => queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] }))}
+                                className="px-3 py-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1052,6 +1158,85 @@ export function BookingPage() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
                 Gửi đánh giá
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DỜI LỊCH ─── */}
+      {rescheduleId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
+            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
+              <h3 className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</h3>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Ngày đề xuất</label>
+                <input
+                  type="date"
+                  value={rescheduleDate}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Giờ đề xuất</label>
+                <select
+                  value={rescheduleTime}
+                  onChange={(e) => setRescheduleTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                >
+                  <option value="">Chọn giờ</option>
+                  {FALLBACK_SLOTS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
+                <textarea
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                  rows={2}
+                  placeholder="Lý do..."
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
+              <button
+                onClick={() => {
+                  setRescheduleId(null);
+                  setRescheduleDate("");
+                  setRescheduleTime("");
+                  setRescheduleReason("");
+                }}
+                className="flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  if (!rescheduleId || !rescheduleDate || !rescheduleTime) return;
+                  const start = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
+                  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour
+                  rescheduleMutation.mutate({
+                    id: rescheduleId,
+                    proposedStartAt: start.toISOString(),
+                    proposedEndAt: end.toISOString(),
+                    reason: rescheduleReason,
+                  });
+                }}
+                disabled={!rescheduleDate || !rescheduleTime || rescheduleMutation.isPending}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                {rescheduleMutation.isPending && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                Gửi yêu cầu
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dumbbell,
   ChevronLeft,
@@ -33,6 +33,7 @@ import {
   Search,
   SlidersHorizontal,
   Loader2,
+  Repeat,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -62,16 +63,30 @@ import {
 } from "./workout-analytics.utils";
 import {
   isScheduleDateApiValueLocked,
+  isScheduleDateApiValuePast,
   scheduledDateLabelFromApi,
   calendarDateLabel,
+  scheduleLockDirection,
   APP_SCHEDULE_TIME_ZONE,
 } from "./schedule-lock.utils";
 import {
   workoutService,
   inbodyService,
-  trainingCycleService,
+  sessionFeedbackService,
+  exerciseService,
   type WorkoutScheduleRecord,
+  type SessionFeedbackDifficulty,
+  type SessionFeedbackEnjoyment,
+  type SessionFeedbackWouldRepeat,
+  type SessionFeedbackPerceivedProgress,
+  type ExerciseFeedbackIssueType,
+  type ExerciseFeedbackItemInput,
+  type SessionSkipReason,
+  type ExerciseSubstitute,
+  type WorkoutSessionSummary,
 } from "../../services/api";
+import { StarRating } from "../../components/StarRating";
+import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
 
 // Format helper
 const formatVideoUrlToImg = (
@@ -480,7 +495,6 @@ function metricDomain(
   return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
 }
 
-type Tab = "overview" | "plan";
 type TimeFilter = "last" | "week" | "month" | "all";
 type PlanView = "main" | "dayDetail" | "activeExercise";
 
@@ -539,6 +553,27 @@ function buildManualDays(
   });
 }
 
+// Real bug found via direct user report: every locked-day message in this
+// file used to say "đã qua" (already passed) unconditionally, including
+// for FUTURE days (only today is ever editable — see schedule-lock.utils
+// .ts). Centralizes the correct, direction-aware wording so every call
+// site shows the right reason instead of guessing/hardcoding "past".
+function lockedDayMessage(
+  apiDateValue: string | Date | undefined | null,
+  action: string = "chỉnh sửa",
+): string {
+  const direction = apiDateValue ? scheduleLockDirection(apiDateValue) : "past";
+  return direction === "future"
+    ? `Chưa đến ngày tập này nên chưa thể ${action}.`
+    : `Ngày này đã qua nên không thể ${action}.`;
+}
+
+function lockedDayBadgeLabel(apiDateValue: string | Date | undefined | null): string {
+  if (!apiDateValue) return "Ngày đã qua";
+  const direction = scheduleLockDirection(apiDateValue);
+  return direction === "future" ? "Chưa đến ngày" : "Ngày đã qua";
+}
+
 function exerciseUsesExternalWeight(exercise: any) {
   if (exercise?.type === "cardio") return false;
   const equipment = String(exercise?.equipment || "").toUpperCase();
@@ -574,28 +609,102 @@ const G = {
   ringDark: "#064e3b",
 };
 
+/** Small pill-toggle group — used for difficulty/enjoyment/wouldRepeat, which
+ * read far more clearly as three tap targets than as a select on mobile. */
+function FeedbackToggleGroup<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ value: T; label: string }>;
+  value: T | undefined;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-1.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-lg py-2 text-[11px] font-semibold border transition-all ${
+            value === opt.value
+              ? "bg-emerald-500 border-emerald-500 text-black"
+              : "bg-zinc-800/50 border-zinc-700/50 text-zinc-400 hover:bg-zinc-800"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const EXERCISE_ISSUE_TAGS: Array<{ value: ExerciseFeedbackIssueType; label: string }> = [
+  { value: "liked", label: "Thích bài này" },
+  { value: "too_heavy", label: "Quá nặng" },
+  { value: "too_light", label: "Quá nhẹ" },
+  { value: "too_many_sets", label: "Nhiều set quá" },
+  { value: "too_few_sets", label: "Ít set quá" },
+  { value: "uncomfortable", label: "Khó chịu" },
+  { value: "pain", label: "Bị đau" },
+  { value: "boring", label: "Nhàm chán" },
+  { value: "confusing", label: "Khó hiểu cách tập" },
+  { value: "equipment_unavailable", label: "Thiếu dụng cụ" },
+];
+
+/** Post-session feedback — completion form. Phase 2 of
+ * docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md. Every field is optional except
+ * nothing (low-friction by design: a user can submit just a star rating and
+ * close it), submitted via the schedule-addressable endpoint so it works
+ * for sessions outside a training cycle too. */
 function SessionFeedbackModal({
-  cycleId,
   scheduleId,
+  exercises,
   onClose,
 }: {
-  cycleId: string;
   scheduleId: string;
+  exercises: Array<{ exerciseId: string; name: string }>;
   onClose: () => void;
 }) {
   const [readinessScore, setReadinessScore] = useState(6);
   const [sessionRpe, setSessionRpe] = useState(6);
   const [painScore, setPainScore] = useState(0);
+  const [fatigueAfterSession, setFatigueAfterSession] = useState(5);
+  const [painLocation, setPainLocation] = useState("");
+  const [sessionRating, setSessionRating] = useState(0);
+  const [difficulty, setDifficulty] = useState<SessionFeedbackDifficulty | undefined>();
+  const [enjoyment, setEnjoyment] = useState<SessionFeedbackEnjoyment | undefined>();
+  const [wouldRepeatSession, setWouldRepeatSession] = useState<SessionFeedbackWouldRepeat | undefined>();
+  const [perceivedProgress, setPerceivedProgress] = useState<SessionFeedbackPerceivedProgress | undefined>();
   const [notes, setNotes] = useState("");
+  const [showExerciseDetail, setShowExerciseDetail] = useState(false);
+  const [exerciseTags, setExerciseTags] = useState<Record<string, ExerciseFeedbackIssueType | undefined>>({});
+
+  const toggleExerciseTag = (exerciseId: string, tag: ExerciseFeedbackIssueType) => {
+    setExerciseTags((prev) => ({ ...prev, [exerciseId]: prev[exerciseId] === tag ? undefined : tag }));
+  };
 
   const submitMutation = useMutation({
-    mutationFn: () =>
-      trainingCycleService.submitSessionFeedback(cycleId, scheduleId, {
+    mutationFn: () => {
+      const exerciseFeedback: ExerciseFeedbackItemInput[] = Object.entries(exerciseTags)
+        .filter(([, issueType]) => Boolean(issueType))
+        .map(([exerciseId, issueType]) => ({ exerciseId, issueType }));
+      return sessionFeedbackService.submit(scheduleId, {
         readinessScore,
         sessionRpe,
         painScore,
+        fatigueAfterSession,
+        painLocation: painScore > 0 ? painLocation.trim() || undefined : undefined,
+        sessionRating: sessionRating > 0 ? sessionRating : undefined,
+        difficulty,
+        enjoyment,
+        wouldRepeatSession,
+        perceivedProgress,
         notes: notes.trim() || undefined,
-      }),
+        exerciseFeedback: exerciseFeedback.length ? exerciseFeedback : undefined,
+      });
+    },
     onSuccess: () => {
       toast.success("Đã ghi nhận cảm nhận buổi tập");
       onClose();
@@ -618,6 +727,7 @@ function SessionFeedbackModal({
     { label: "Chất lượng buổi tập", hint: "1 = rất tệ, 10 = xuất sắc", value: readinessScore, setValue: setReadinessScore, min: 1, max: 10, step: 1 },
     { label: "Mức độ gắng sức (RPE)", hint: "1 = rất nhẹ, 10 = tối đa", value: sessionRpe, setValue: setSessionRpe, min: 1, max: 10, step: 0.5, formatValue: (v) => `RPE ${v}` },
     { label: "Mức độ đau/khó chịu", hint: "0 = không đau, 10 = đau dữ dội", value: painScore, setValue: setPainScore, min: 0, max: 10, step: 1 },
+    { label: "Mệt mỏi sau buổi tập", hint: "1 = còn khỏe, 10 = kiệt sức", value: fatigueAfterSession, setValue: setFatigueAfterSession, min: 1, max: 10, step: 1 },
   ];
 
   return (
@@ -627,8 +737,8 @@ function SessionFeedbackModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60 sticky top-0 bg-zinc-900 z-10">
           <h3 className="text-zinc-100 font-bold text-sm">Cảm nhận buổi tập này thế nào?</h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
             <X className="w-5 h-5" />
@@ -636,6 +746,37 @@ function SessionFeedbackModal({
         </div>
 
         <div className="p-5 space-y-4">
+          <div className="flex flex-col items-center gap-1.5 pb-1">
+            <StarRating value={sessionRating} onChange={setSessionRating} size={28} />
+            <p className="text-[10px] text-zinc-600">Đánh giá tổng thể (không bắt buộc)</p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-300 font-semibold mb-1.5">Độ khó buổi tập</p>
+            <FeedbackToggleGroup
+              options={[
+                { value: "too_easy" as const, label: "Quá dễ" },
+                { value: "just_right" as const, label: "Vừa sức" },
+                { value: "too_hard" as const, label: "Quá nặng" },
+              ]}
+              value={difficulty}
+              onChange={setDifficulty}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-300 font-semibold mb-1.5">Bạn có thích buổi tập này không?</p>
+            <FeedbackToggleGroup
+              options={[
+                { value: "low" as const, label: "Không thích" },
+                { value: "medium" as const, label: "Bình thường" },
+                { value: "high" as const, label: "Rất thích" },
+              ]}
+              value={enjoyment}
+              onChange={setEnjoyment}
+            />
+          </div>
+
           {sliders.map((s) => (
             <div key={s.label}>
               <RulerSlider
@@ -651,6 +792,82 @@ function SessionFeedbackModal({
             </div>
           ))}
 
+          {painScore > 0 && (
+            <input
+              type="text"
+              value={painLocation}
+              onChange={(e) => setPainLocation(e.target.value)}
+              placeholder="Vị trí đau (vd: vai trái, đầu gối phải)"
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+            />
+          )}
+
+          <div>
+            <p className="text-xs text-zinc-300 font-semibold mb-1.5">Bạn có muốn tập lại buổi này không?</p>
+            <FeedbackToggleGroup
+              options={[
+                { value: "yes" as const, label: "Có" },
+                { value: "unsure" as const, label: "Chưa chắc" },
+                { value: "no" as const, label: "Không" },
+              ]}
+              value={wouldRepeatSession}
+              onChange={setWouldRepeatSession}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-300 font-semibold mb-1.5">So với buổi trước</p>
+            <select
+              value={perceivedProgress ?? ""}
+              onChange={(e) => setPerceivedProgress((e.target.value || undefined) as SessionFeedbackPerceivedProgress | undefined)}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50"
+            >
+              <option value="">Chưa chọn</option>
+              <option value="better_than_last_time">Tốt hơn lần trước</option>
+              <option value="same">Như cũ</option>
+              <option value="worse">Kém hơn</option>
+              <option value="unsure">Chưa chắc</option>
+            </select>
+          </div>
+
+          {exercises.length > 0 && (
+            <div className="border-t border-zinc-800/60 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowExerciseDetail((v) => !v)}
+                className="w-full flex items-center justify-between text-xs text-zinc-400 hover:text-zinc-300"
+              >
+                <span>Chi tiết từng bài tập (không bắt buộc)</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExerciseDetail ? "rotate-180" : ""}`} />
+              </button>
+              {showExerciseDetail && (
+                <div className="mt-3 space-y-3">
+                  {exercises.map((ex) => (
+                    <div key={ex.exerciseId}>
+                      <p className="text-[11px] text-zinc-300 mb-1">{ex.name}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {EXERCISE_ISSUE_TAGS.map((tag) => (
+                          <button
+                            key={tag.value}
+                            type="button"
+                            onClick={() => toggleExerciseTag(ex.exerciseId, tag.value)}
+                            className={`px-2 py-1 rounded-full text-[10px] border transition-all ${
+                              exerciseTags[ex.exerciseId] === tag.value
+                                ? "bg-emerald-500/90 border-emerald-500 text-black font-semibold"
+                                : "bg-zinc-800/50 border-zinc-700/40 text-zinc-500 hover:bg-zinc-800"
+                            }`}
+                          >
+                            {tag.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -659,7 +876,7 @@ function SessionFeedbackModal({
             className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
           />
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 sticky bottom-0 bg-zinc-900 pb-1">
             <button
               type="button"
               onClick={onClose}
@@ -683,6 +900,291 @@ function SessionFeedbackModal({
   );
 }
 
+const MOVEMENT_PATTERN_LABEL: Record<string, string> = {
+  HORIZONTAL_PUSH: "Đẩy ngang",
+  VERTICAL_PUSH: "Đẩy dọc",
+  HORIZONTAL_PULL: "Kéo ngang",
+  VERTICAL_PULL: "Kéo dọc",
+  SQUAT: "Squat",
+  HINGE: "Hinge (gập hông)",
+  LUNGE: "Lunge",
+  HIP_EXTENSION: "Duỗi hông",
+  HIP_ABDUCTION_ADDUCTION: "Dạng/khép hông",
+  KNEE_EXTENSION: "Duỗi gối",
+  KNEE_FLEXION: "Gập gối",
+  ELBOW_FLEXION: "Gập khuỷu tay",
+  ELBOW_EXTENSION: "Duỗi khuỷu tay",
+  SHOULDER_ISOLATION: "Cô lập vai",
+  CALF_RAISE: "Nhón bắp chân",
+  CORE_FLEXION: "Gập bụng",
+  CORE_ROTATION: "Xoay thân",
+  CORE_ANTI_EXTENSION: "Giữ vững core",
+  CARRY: "Mang vác",
+  LOCOMOTION: "Di chuyển",
+  CARDIO: "Cardio",
+  MOBILITY: "Vận động linh hoạt",
+  OTHER: "Khác",
+};
+
+/** Gym-onboarding project follow-up §9 — "Can't do this exercise? Swap
+ * exercise." Session-only: replaces what gets LOGGED for this specific
+ * slot (dayExercises[activeExIdx].dbId/name) without touching the
+ * underlying WorkoutProgramExercise/plan — future sessions/weeks still see
+ * the originally-planned exercise. The swap is recorded into that
+ * exercise's own log note (existing WorkoutExercise.notes field) rather
+ * than a new table, so it's visible in history without a schema change. */
+function SwapExerciseModal({
+  currentExerciseId,
+  currentExerciseName,
+  otherExerciseIdsToday,
+  onSelect,
+  onClose,
+}: {
+  currentExerciseId: string;
+  currentExerciseName: string;
+  otherExerciseIdsToday: string[];
+  onSelect: (substitute: ExerciseSubstitute) => void;
+  onClose: () => void;
+}) {
+  const substitutesQuery = useQuery({
+    queryKey: ["exercise-substitutes", currentExerciseId, otherExerciseIdsToday],
+    queryFn: () =>
+      exerciseService.getSubstitutes(currentExerciseId, {
+        excludeExerciseIds: otherExerciseIdsToday,
+        limit: 6,
+      }),
+  });
+
+  return (
+    <div
+      data-testid="swap-exercise-modal"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+              <Repeat className="w-4 h-4 text-emerald-400" /> Đổi bài tập
+            </h3>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Không thể tập "{currentExerciseName}"? Chọn bài thay thế phù hợp với thiết bị và nhóm cơ.
+            </p>
+          </div>
+          <button
+            data-testid="swap-exercise-modal-close"
+            onClick={onClose}
+            className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {substitutesQuery.isLoading && (
+          <div data-testid="swap-exercise-loading" className="flex items-center justify-center py-10">
+            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+          </div>
+        )}
+
+        {substitutesQuery.isError && (
+          <p data-testid="swap-exercise-error" className="text-xs text-zinc-500 py-6 text-center">Không thể tải danh sách bài thay thế. Vui lòng thử lại.</p>
+        )}
+
+        {substitutesQuery.data && substitutesQuery.data.length === 0 && (
+          <p data-testid="swap-exercise-empty" className="text-xs text-zinc-500 py-6 text-center">
+            Không tìm thấy bài thay thế phù hợp với thiết bị bạn đã lưu. Hãy cập nhật thiết bị trong Hồ sơ → Thiết bị tập luyện.
+          </p>
+        )}
+
+        <div data-testid="swap-exercise-candidates" className="space-y-2">
+          {substitutesQuery.data?.map((sub) => (
+            <button
+              key={sub.id}
+              type="button"
+              data-testid={`swap-exercise-candidate-${sub.id}`}
+              onClick={() => onSelect(sub)}
+              className="w-full text-left flex items-center justify-between gap-3 rounded-xl border border-zinc-700/60 hover:border-emerald-500/50 bg-zinc-800/40 hover:bg-emerald-500/5 p-3 transition-all"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-zinc-200 truncate">{sub.exerciseName}</p>
+                <p className="mt-0.5 text-[11px] text-emerald-400/90">{sub.reason}</p>
+                <p className="mt-0.5 text-[11px] text-zinc-500">
+                  {MOVEMENT_PATTERN_LABEL[sub.movementPattern ?? ""] ?? sub.movementPattern ?? "—"}
+                  {sub.muscleGroupsActivated.length > 0 ? ` · ${sub.muscleGroupsActivated.join(", ")}` : ""}
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Short feedback form for SKIPPED / CANCELLED sessions — deliberately a
+ * different, shorter shape than the completion form per Phase 2 spec:
+ * skipReason is the only required field. */
+function SkipCancelFeedbackModal({
+  scheduleId,
+  onClose,
+}: {
+  scheduleId: string;
+  onClose: () => void;
+}) {
+  const [skipReason, setSkipReason] = useState<SessionSkipReason | "">("");
+  const [notes, setNotes] = useState("");
+  const [shouldAdjustPlan, setShouldAdjustPlan] = useState(false);
+  const [makeupDay, setMakeupDay] = useState("");
+
+  const reasonOptions: Array<{ value: SessionSkipReason; label: string }> = [
+    { value: "fatigue", label: "Quá mệt" },
+    { value: "pain", label: "Đau/chấn thương" },
+    { value: "schedule_conflict", label: "Bận việc khác" },
+    { value: "motivation", label: "Không có động lực" },
+    { value: "illness", label: "Bị ốm" },
+    { value: "equipment_unavailable", label: "Thiếu dụng cụ" },
+    { value: "too_hard_previous_session", label: "Buổi trước quá nặng" },
+    { value: "other", label: "Lý do khác" },
+  ];
+
+  const submitMutation = useMutation({
+    mutationFn: () => {
+      if (!skipReason) throw new Error("skipReason required");
+      return sessionFeedbackService.submit(scheduleId, {
+        skipReason,
+        notes: notes.trim() || undefined,
+        shouldAdjustPlan,
+        userAvailableMakeupDay: makeupDay || undefined,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đã ghi nhận lý do bỏ buổi tập");
+      onClose();
+    },
+    onError: () => {
+      toast.error("Không thể ghi nhận. Vui lòng chọn lý do.");
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Vì sao bạn bỏ buổi tập này?</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-1.5">
+            {reasonOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSkipReason(opt.value)}
+                className={`rounded-lg py-2 px-2 text-[11px] font-semibold border transition-all text-left ${
+                  skipReason === opt.value
+                    ? "bg-emerald-500 border-emerald-500 text-black"
+                    : "bg-zinc-800/50 border-zinc-700/50 text-zinc-400 hover:bg-zinc-800"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-zinc-300">
+            <input
+              type="checkbox"
+              checked={shouldAdjustPlan}
+              onChange={(e) => setShouldAdjustPlan(e.target.checked)}
+              className="rounded border-zinc-700 bg-zinc-800 accent-emerald-500"
+            />
+            Tôi muốn điều chỉnh lại kế hoạch tập
+          </label>
+
+          <div>
+            <p className="text-[11px] text-zinc-500 mb-1">Ngày bạn có thể tập bù (không bắt buộc)</p>
+            <input
+              type="date"
+              value={makeupDay}
+              onChange={(e) => setMakeupDay(e.target.value)}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50"
+            />
+          </div>
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Ghi chú thêm (không bắt buộc)"
+            rows={2}
+            className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+          />
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+            >
+              Bỏ qua
+            </button>
+            <button
+              type="button"
+              onClick={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending || !skipReason}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+            >
+              {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Lưu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Feedback status indicator for the day-detail view of a completed/partial
+ * session — Phase 2 spec: "feedback status in history." Lets the user open
+ * the same completion form again to add or edit their feedback. */
+function SessionFeedbackStatusRow({
+  scheduleId,
+  onOpenFeedback,
+}: {
+  scheduleId: string;
+  onOpenFeedback: () => void;
+}) {
+  const statusQuery = useQuery({
+    queryKey: ["session-feedback", scheduleId],
+    queryFn: () => sessionFeedbackService.get(scheduleId),
+  });
+
+  if (statusQuery.isLoading) return null;
+  const hasFeedback = Boolean(statusQuery.data?.feedback) && !statusQuery.data?.feedbackMissing;
+
+  return (
+    <button
+      onClick={onOpenFeedback}
+      className={`w-full mt-2 py-2 rounded-xl border text-[11px] transition-all flex items-center justify-center gap-1.5 ${
+        hasFeedback
+          ? "border-emerald-800/40 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10"
+          : "border-amber-800/40 bg-amber-500/5 text-amber-300/90 hover:bg-amber-500/10"
+      }`}
+    >
+      <MessageSquare className="w-3 h-3" />
+      {hasFeedback ? "Đã ghi cảm nhận · Xem/sửa" : "Chưa ghi cảm nhận · Thêm ngay"}
+    </button>
+  );
+}
+
 export function WorkoutLogPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -698,12 +1200,16 @@ export function WorkoutLogPage() {
   const initialWorkoutLogState = parseInitialWorkoutLogState(searchParams);
   const initialExerciseIdFromUrl = initialWorkoutLogState.exerciseId;
 
-  const [tab, setTab] = useState<Tab>(initialWorkoutLogState.tab);
   const [muscleFilter, setMuscleFilter] = useState<TimeFilter>("week");
   const [exerciseFilter, setExerciseFilter] = useState<TimeFilter>("week");
   const [planView, setPlanView] = useState<PlanView>(initialWorkoutLogState.planView);
   const [selectedDay, setSelectedDay] = useState(initialWorkoutLogState.day);
   const [dayExercises, setDayExercises] = useState<any[]>([]);
+  // Gym-onboarding project follow-up §9 — session-only exercise swap. Notes
+  // keyed by dayExercises index so the log note only applies to the
+  // specific slot that was swapped, not every exercise in the session.
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [swapNotes, setSwapNotes] = useState<Record<number, string>>({});
   const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
@@ -734,7 +1240,12 @@ export function WorkoutLogPage() {
   const isBeginnerProfile =
     userProfile?.experienceLevel !== "INTERMEDIATE" &&
     userProfile?.experienceLevel !== "ADVANCED";
-  const [showRpeRirHint, setShowRpeRirHint] = useState(true);
+  // Auto-shown for a detected/unknown-level (beginner-default) profile;
+  // intermediate/advanced users start with it collapsed but can always
+  // reopen it via the "RPE/RIR là gì?" button rendered whenever this is
+  // false — the explanation is never permanently unreachable for anyone,
+  // it just doesn't interrupt an experienced user unprompted.
+  const [showRpeRirHint, setShowRpeRirHint] = useState(isBeginnerProfile);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
   const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
@@ -760,6 +1271,17 @@ export function WorkoutLogPage() {
       new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1),
     );
   };
+
+  const queryClient = useQueryClient();
+  // Same query key as InBodyModule.tsx's own history query — sharing this
+  // key (rather than this page's previous private useState+manual-refetch
+  // pair) means an InBody entry created/edited on ANY screen (Profile,
+  // Dashboard, InBodyModule, or here) invalidates one cache entry that all
+  // of them read from, so this page reflects it too without a manual F5.
+  const inbodyHistoryQuery = useQuery({
+    queryKey: ["inbody-history"],
+    queryFn: inbodyService.getHistory,
+  });
 
   const applyInBodyHistory = useCallback((value: any) => {
     const sorted = Array.isArray(value)
@@ -793,23 +1315,34 @@ export function WorkoutLogPage() {
     setDaysSinceInBody(diff);
   }, []);
 
+  // Derive latestInBody/inbodyHistory/daysSinceInBody from the SHARED
+  // ["inbody-history"] query above, instead of only the page's own
+  // one-shot fetch below — this is what actually makes an InBody update
+  // made elsewhere (e.g. InBodyModule) show up here after a cache
+  // invalidation, without waiting for this effect's own fetch.
+  useEffect(() => {
+    if (inbodyHistoryQuery.data !== undefined) {
+      applyInBodyHistory(inbodyHistoryQuery.data);
+    }
+  }, [inbodyHistoryQuery.data, applyInBodyHistory]);
+
   // Fetch initial workout and stats from DB
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const { inbodyService, profileService } =
-          await import("../../services/api");
+        const { profileService } = await import("../../services/api");
+        // InBody history is no longer fetched here — it comes from the
+        // shared ["inbody-history"] query (inbodyHistoryQuery) above, so
+        // this page reflects updates made on other screens too.
         const [
           historyResult,
-          inbodyHistoryResult,
           statsResult,
           schedulesResult,
           programResult,
           profileResult,
         ] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
-          inbodyService.getHistory(),
           workoutService.getStats(),
           workoutService.getSchedules(100, getMonthRange(calendarMonth)),
           workoutService.getCurrentProgram(),
@@ -863,12 +1396,6 @@ export function WorkoutLogPage() {
           setDayExercises([]);
         }
 
-        // 3. InBody Stats
-        applyInBodyHistory(
-          inbodyHistoryResult.status === "fulfilled"
-            ? inbodyHistoryResult.value
-            : [],
-        );
         setWorkoutStats(
           statsResult.status === "fulfilled" ? statsResult.value : null,
         );
@@ -1037,7 +1564,7 @@ export function WorkoutLogPage() {
   const upcomingSchedules = (() => {
     const seenDates = new Set<string>();
     return (aiSchedules || [])
-      .filter((s) => !isScheduleDateApiValueLocked(s.date))
+      .filter((s) => !isScheduleDateApiValuePast(s.date))
       .filter((s) => {
         const label = scheduledDateLabelFromApi(s.date);
         if (seenDates.has(label)) return false;
@@ -1420,7 +1947,6 @@ export function WorkoutLogPage() {
     if (planView === "activeExercise" && !appliedPendingExerciseRef.current) return;
 
     const next = computeWorkoutLogSearchParams({
-      tab,
       planView,
       selectedDay,
       selectedDateLabel: planView === "main" ? null : toDateInputValue(selectedDate),
@@ -1431,7 +1957,7 @@ export function WorkoutLogPage() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, planView, selectedDay, selectedDate, activeExIdx, dayExercises]);
+  }, [planView, selectedDay, selectedDate, activeExIdx, dayExercises]);
 
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(
     new Set(),
@@ -1448,7 +1974,13 @@ export function WorkoutLogPage() {
   const [restTimerRunning, setRestTimerRunning] = useState(false);
   const [restSeconds, setRestSeconds] = useState(90);
   const [showCompletion, setShowCompletion] = useState(false);
-  const [feedbackPrompt, setFeedbackPrompt] = useState<{ cycleId: string; scheduleId: string } | null>(null);
+  // PR/volume for the just-finished session — fetched once the workout is
+  // saved (see loadCompletionSummary), shown on the completion screen.
+  // Non-critical: if this fails to load the completion screen still works,
+  // it just skips the PR/volume block (see loadCompletionSummary's catch).
+  const [completionSummary, setCompletionSummary] = useState<WorkoutSessionSummary | null>(null);
+  const [feedbackPrompt, setFeedbackPrompt] = useState<{ scheduleId: string } | null>(null);
+  const [skipCancelPrompt, setSkipCancelPrompt] = useState<{ scheduleId: string } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -1798,6 +2330,16 @@ export function WorkoutLogPage() {
     frame();
   }, []);
 
+  const loadCompletionSummary = async (workoutId: string) => {
+    try {
+      const summary = await workoutService.getSessionSummary(workoutId);
+      setCompletionSummary(summary);
+    } catch (err) {
+      // Non-critical: the completion screen already shows without it.
+      console.warn("[WorkoutLogPage] Could not load session summary", err);
+    }
+  };
+
   const persistCompletedWorkout = async () => {
     const scheduleForSave = selectedSchedule();
     const saveDate = scheduleForSave?.date
@@ -1814,6 +2356,14 @@ export function WorkoutLogPage() {
       exercises: dayExercises.map((exercise, index) => {
         const log = activeExerciseLogs[index];
         const weight = log?.noWeight ? undefined : Number(log?.weightKg);
+        // exercise.dbId already reflects any session-only swap (see
+        // handleSelectSwap) — logging the substitute's real id here is the
+        // ACCURATE record of what was actually performed, not a corruption
+        // of history. swapNotes carries the "swapped from X" note through.
+        const notesParts = [
+          log?.noWeight ? "Không dùng tạ" : undefined,
+          swapNotes[index],
+        ].filter(Boolean);
         return {
           exerciseId: exercise.dbId,
           sets: Number(exercise.sets) || 1,
@@ -1825,7 +2375,7 @@ export function WorkoutLogPage() {
           weight: Number.isFinite(weight) ? weight : undefined,
           rpe: log?.rpe,
           rir: log?.rir,
-          notes: log?.noWeight ? "Không dùng tạ" : undefined,
+          notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
         };
       }),
     };
@@ -1837,11 +2387,14 @@ export function WorkoutLogPage() {
     if (scheduleId) setSelectedScheduleId(scheduleId);
     if (saved?.id) setCurrentWorkoutId(saved.id);
     await refetchProgramAndSchedules();
+    return saved?.id as string | undefined;
   };
 
   const handleCompleteExercise = async () => {
     if (isSelectedDayLocked) {
-      toast.error("Ngày này đã qua nên không thể chỉnh sửa.");
+      toast.error(
+        lockedDayMessage(selectedSchedule()?.date ?? toApiDateTime(selectedDate)),
+      );
       return;
     }
     const currentLog = activeExerciseLogs[activeExIdx];
@@ -1861,12 +2414,60 @@ export function WorkoutLogPage() {
     const previousCompleted = completedExercises;
     const newCompleted = new Set(completedExercises);
 
+    // `dayExercises` is built from `currentProgram` (the LATEST program), but
+    // a schedule that was created before the program got edited/regenerated
+    // is still permanently linked to its OWN (possibly now-archived)
+    // programDay — its exercises keep their original ids even though
+    // `currentProgram`'s same-numbered day now has different ones. If the
+    // user started this session before that edit, `currentExercise
+    // .programExerciseId` is a stale id the schedule's real programDay never
+    // had, and the backend correctly rejects it ("Planned exercise not
+    // found in this schedule"). Self-heal by resolving against the
+    // schedule's own authoritative programDay.exercises (already returned
+    // by GET /workouts/schedules) before ever trusting the stale id.
+    const scheduleProgramExercises = (scheduleForCompletion as any)?.programDay?.exercises as
+      | Array<{ id: string; exercise?: { id: string } }>
+      | undefined;
+    let resolvedProgramExerciseId = currentExercise?.programExerciseId;
+    if (scheduleProgramExercises && scheduleProgramExercises.length > 0 && resolvedProgramExerciseId) {
+      const stillValid = scheduleProgramExercises.some((e) => e.id === resolvedProgramExerciseId);
+      if (!stillValid) {
+        const byCatalogId = scheduleProgramExercises.find((e) => e.exercise?.id === currentExercise?.dbId);
+        const fallback = byCatalogId?.id ?? scheduleProgramExercises[activeExIdx]?.id;
+        if (fallback) {
+          console.warn(
+            "[WorkoutLogPage] programExerciseId stale for this schedule (program was edited after this session started) — self-healed via schedule.programDay",
+            { stale: resolvedProgramExerciseId, resolved: fallback },
+          );
+          resolvedProgramExerciseId = fallback;
+        }
+      }
+    }
+
     setIsCompletingWorkout(true);
     try {
-      if (scheduleForCompletion?.id && currentExercise?.programExerciseId) {
+      if (scheduleForCompletion?.id && resolvedProgramExerciseId) {
+        // What was ACTUALLY performed — currentExercise.dbId already
+        // reflects any session-only swap (handleSelectSwap), and this is
+        // the ONLY call site that persists it; without sending it here the
+        // swap only ever existed in this tab's local state. Same shape as
+        // persistCompletedWorkout's ad-hoc-workout payload below, kept
+        // consistent so both logging paths record the same thing.
+        const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
+        const notesParts = [
+          currentLog?.noWeight ? "Không dùng tạ" : undefined,
+          swapNotes[activeExIdx],
+        ].filter(Boolean);
         const result = await workoutService.completeScheduleExercise(
           scheduleForCompletion.id,
-          currentExercise.programExerciseId,
+          resolvedProgramExerciseId,
+          {
+            exerciseId: currentExercise.dbId || undefined,
+            weight: Number.isFinite(weight) ? weight : undefined,
+            rpe: currentLog?.rpe,
+            rir: currentLog?.rir,
+            notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
+          },
         );
         applyScheduleProgress(scheduleForCompletion.id, result);
         if (result.workoutId) setCurrentWorkoutId(result.workoutId);
@@ -1881,8 +2482,9 @@ export function WorkoutLogPage() {
           setTimerRunning(false);
           setTimerSeconds(0);
           setShowCompletion(true);
+          if (result.workoutId) void loadCompletionSummary(result.workoutId);
           if (result.trainingCycleId) {
-            setFeedbackPrompt({ cycleId: result.trainingCycleId, scheduleId: scheduleForCompletion.id });
+            setFeedbackPrompt({ scheduleId: scheduleForCompletion.id });
           }
           setTimeout(() => fireConfetti(), 300);
           toast.success("Da luu hoan thanh buoi tap.");
@@ -1893,8 +2495,9 @@ export function WorkoutLogPage() {
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
         if (newCompleted.size === dayExercises.length) {
-          await persistCompletedWorkout();
+          const savedWorkoutId = await persistCompletedWorkout();
           setShowCompletion(true);
+          if (savedWorkoutId) void loadCompletionSummary(savedWorkoutId);
           setTimeout(() => fireConfetti(), 300);
           toast.success("Da luu hoan thanh buoi tap.");
           return;
@@ -1937,6 +2540,7 @@ export function WorkoutLogPage() {
       setTimerSeconds(0);
       setRestTimerRunning(false);
       setShowCompletion(false);
+      setCompletionSummary(null);
       setActiveExerciseLogs({});
       setIsCompletingWorkout(false);
     }
@@ -2064,8 +2668,10 @@ export function WorkoutLogPage() {
           bodyFatPct === null ? undefined : Math.round(bodyFatPct * 10) / 10,
         status: "manual",
       });
-      const refreshed = await inbodyService.getHistory();
-      applyInBodyHistory(refreshed);
+      // Invalidate the SHARED cache key (not just this page's own state) so
+      // every screen reading ["inbody-history"] — including this one —
+      // picks up the new entry without a manual reload.
+      await queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
       const next = new Set(activeCharts);
       next.add(logMetric);
       setActiveCharts(next);
@@ -2146,27 +2752,7 @@ export function WorkoutLogPage() {
         </div>
       </div>
 
-      {/* ─── Tabs ─── */}
-      <div className="flex gap-1 bg-zinc-900/50 border border-zinc-800/40 p-1 rounded-2xl w-fit">
-        {(["overview", "plan"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTab(t);
-              setPlanView("main");
-            }}
-            className={`px-8 py-2.5 rounded-xl text-sm transition-all ${
-              tab === t
-                ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30"
-            }`}
-          >
-            {t === "overview" ? "Tổng quan" : "Kế hoạch tập"}
-          </button>
-        ))}
-      </div>
-
-      {/* ═══════════════ OVERVIEW ═══════════════ */}
+      {/* ═══════════════ WORKOUT LOG — MAIN ═══════════════ */}
       {hasGoalMismatch && (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
@@ -2199,8 +2785,8 @@ export function WorkoutLogPage() {
         </div>
       )}
 
-      {tab === "overview" && (
-        <div className="space-y-6">
+      {planView === "main" && (
+        <div className="space-y-7">
           {/* Reminder - Only show if > 7 days or no data */}
           {(daysSinceInBody === null || daysSinceInBody > 7) && (
             <div className="relative overflow-hidden rounded-2xl border border-emerald-500/12 bg-gradient-to-r from-emerald-950/30 via-emerald-950/15 to-transparent p-5">
@@ -2229,249 +2815,441 @@ export function WorkoutLogPage() {
             </div>
           )}
 
-          {/* Hero + Upcoming */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 group relative rounded-2xl overflow-hidden border border-zinc-700/25 h-64">
-              <img
-                src={heroImg}
-                alt="Training"
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/25" />
-              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/20 via-transparent to-transparent" />
-              <div className="absolute top-4 right-4 flex gap-2">
-                <span className="px-3 py-1.5 rounded-xl bg-amber-500/12 border border-amber-500/20 text-[11px] text-amber-300 backdrop-blur-md flex items-center gap-1.5">
-                  <Star className="w-3 h-3" /> 4.8
-                </span>
-                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/12 border border-emerald-500/20 text-[11px] text-emerald-300 backdrop-blur-md">
-                  At Gym
-                </span>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">
-                  Chương trình hiện tại
-                </span>
-                <h2 className="text-2xl text-white mb-2 tracking-tight">
-                  {currentProgram
-                    ? currentProgram.name
-                    : "Chưa có chương trình"}
-                </h2>
-                {hasGoalMismatch && (
-                  <div className="mb-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 inline-block">
-                    <p className="text-[11px] text-amber-400 flex items-center gap-1.5">
-                      <AlertCircle className="w-3 h-3" />
-                      Mục tiêu trong Hồ sơ ({goalLabel(userProfile.goal)}) khác
-                      với Chương trình hiện tại (
-                      {goalLabel(currentProgram.goal)})
-                    </p>
-                  </div>
-                )}
-                {currentProgram && (
-                  <div className="flex items-center gap-4 text-xs text-zinc-400">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3 h-3 text-zinc-600" />{" "}
-                      {currentProgram.durationWeeks || 4} tuần
-                    </span>
-                    <span className="text-zinc-700">·</span>
-                    <span>
-                      {currentProgram.daysPerWeek ||
-                        workoutStats?.workoutsPerWeek ||
-                        3}{" "}
-                      buổi/tuần
-                    </span>
-                    <span className="text-zinc-700">·</span>
-                    {currentProgram.sourceType === "AI_PLAN" && (
-                      <>
-                        <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">
-                          AI
-                        </span>
-                        <span className="text-zinc-700">·</span>
-                      </>
-                    )}
-                    {currentProgram.goal && (
-                      <>
-                        <span>{goalLabel(currentProgram.goal)}</span>
-                        <span className="text-zinc-700">·</span>
-                      </>
-                    )}
-                    <span>
-                      Đã hoàn thành:{" "}
-                      <span className="text-emerald-400">
-                        {workoutStats?.totalWorkouts || 0}
-                      </span>
-                    </span>
-                  </div>
-                )}
-                <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
+          {/* Cinematic Hero */}
+          <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
+            <img
+              src={heroImg}
+              alt="Training"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
+
+            <button className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
+              <Share2 className="w-4 h-4 text-white/50" />
+            </button>
+
+            <div className="absolute top-4 right-4 flex gap-2">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-[11px] text-amber-300 backdrop-blur-md">
+                <Star className="w-3 h-3" /> 4.8
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-[11px] text-emerald-300 backdrop-blur-md">
+                At Gym
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-zinc-500/10 border border-zinc-500/15 text-[11px] text-zinc-300 backdrop-blur-md">
+                Intermediate
+              </span>
             </div>
 
-            <GlassPanel
-              title="Buổi tập sắp tới"
-              icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}
-            >
-              <div className="space-y-2.5">
-                {upcomingSchedules.length > 0 ? (
-                  upcomingSchedules.slice(0, 5).map((schedule) => {
-                    const programDay = schedule.programDay;
-                    const programName = programDay?.program?.name || "AI Plan";
-                    const dayTitle =
-                      programDay?.title || `Day ${programDay?.dayNumber || 1}`;
-                    const exerciseCount = programDay?.exercises?.length || 0;
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">
+                Chương trình
+              </span>
+              <h2 className="text-2xl text-white mb-2 tracking-tight">
+                {currentProgram ? currentProgram.name : "Chưa có chương trình"}
+              </h2>
+              {currentProgram && (
+                <button
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        "Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.",
+                      )
+                    )
+                      return;
+                    await workoutService.archiveProgram(currentProgram.id);
+                    await refetchProgramAndSchedules();
+                  }}
+                  className="mb-2 px-3 py-1.5 rounded-lg border border-red-500/25 bg-red-500/10 text-[11px] text-red-300 hover:bg-red-500/15"
+                >
+                  Ẩn chương trình
+                </button>
+              )}
+              {currentProgram && (
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5">
+                    <Dumbbell className="w-3 h-3 text-emerald-500/50" />{" "}
+                    {currentProgram.durationWeeks || 4} tuần
+                  </span>
+                  <span className="text-zinc-700">·</span>
+                  <span>
+                    {currentProgram.daysPerWeek ||
+                      workoutStats?.workoutsPerWeek ||
+                      3}{" "}
+                    buổi/tuần
+                  </span>
+                  <span className="text-zinc-700">·</span>
+                  {currentProgram.sourceType === "AI_PLAN" && (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">
+                        AI
+                      </span>
+                      <span className="text-zinc-700">·</span>
+                    </>
+                  )}
+                  {currentProgram.goal && (
+                    <>
+                      <span>{goalLabel(currentProgram.goal)}</span>
+                      <span className="text-zinc-700">·</span>
+                    </>
+                  )}
+                  <span>
+                    Đã hoàn thành:{" "}
+                    <span className="text-emerald-400">
+                      {workoutStats?.totalWorkouts || 0}
+                    </span>
+                  </span>
+                </div>
+              )}
+              <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000"
+                  style={{
+                    width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Training Days + Upcoming Sessions — the actionable core: what's the
+              program's structure (left) and which real calendar dates it's
+              actually scheduled onto (right). */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Training Days */}
+            <div className="xl:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <SectionTitle title="Ngày tập" />
+                <button
+                  onClick={openManualBuilder}
+                  className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15"
+                >
+                  Tạo thủ công
+                </button>
+              </div>
+              <div className="space-y-3">
+                {currentProgram?.days?.length ? (
+                  currentProgram.days.map((w: any) => {
+                    const schedules = [
+                      ...aiSchedules.filter(
+                        (schedule) => schedule.programDay?.id === w.id,
+                      ),
+                      ...(Array.isArray(w.schedules) ? w.schedules : []),
+                    ];
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const nextSchedule =
+                      schedules.find(
+                        (schedule: any) =>
+                          !schedule.workoutId &&
+                          new Date(schedule.date) >= todayStart,
+                      ) ||
+                      schedules.find((schedule: any) => !schedule.workoutId) ||
+                      schedules[0] ||
+                      aiSchedules.find(
+                        (schedule) => schedule.programDay?.id === w.id,
+                      );
+                    const dayProgress = scheduleProgressPercent(nextSchedule);
                     return (
-                      <div
-                        key={schedule.id}
-                        className="group/item rounded-xl border p-3.5 transition-all bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40"
+                      <button
+                        key={`td-${w.day || w.dayNumber}`}
+                        data-testid={`training-day-card-${w.day || w.dayNumber}`}
+                        onClick={() => {
+                          if (!w.locked) {
+                            setSelectedDay(w.day || w.dayNumber);
+                            setSelectedDate(
+                              nextSchedule?.date
+                                ? new Date(nextSchedule.date)
+                                : new Date(),
+                            );
+                            setSelectedScheduleId(nextSchedule?.id || null);
+                            setCurrentWorkoutId(
+                              nextSchedule?.workoutId ||
+                                nextSchedule?.workout?.id ||
+                                null,
+                            );
+                            setPlanView("dayDetail");
+                          }
+                        }}
+                        disabled={w.locked}
+                        className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
+                          w.locked
+                            ? "bg-zinc-900/20 border-zinc-800/25 opacity-40 cursor-not-allowed"
+                            : "bg-zinc-900/50 border-zinc-800/30 hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.04)] active:scale-[0.99]"
+                        }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/8 border border-emerald-500/15">
-                            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                        {!w.locked && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover/card:from-emerald-500/[0.02] group-hover/card:to-transparent transition-all duration-300" />
+                        )}
+
+                        <div className="relative flex items-center gap-4">
+                          {/* Ring */}
+                          <div className="relative shrink-0">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                              <circle
+                                cx="26"
+                                cy="26"
+                                r="22"
+                                fill="none"
+                                stroke={w.locked ? "#18181b" : "#064e3b"}
+                                strokeWidth="3"
+                              />
+                              {!w.locked && dayProgress > 0 && (
+                                <circle
+                                  cx="26"
+                                  cy="26"
+                                  r="22"
+                                  fill="none"
+                                  stroke="#10b981"
+                                  strokeWidth="3"
+                                  strokeDasharray={`${(dayProgress / 100) * 138} 138`}
+                                  strokeLinecap="round"
+                                  transform="rotate(-90 26 26)"
+                                />
+                              )}
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              {w.locked ? (
+                                <Lock className="w-4 h-4 text-zinc-700" />
+                              ) : (
+                                <span className="text-[11px] text-emerald-400">
+                                  {dayProgress}%
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm text-zinc-200 truncate">
-                              {dayTitle}
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-zinc-100">
+                              Ngày {w.day || w.dayNumber}
                             </p>
-                            <p className="text-[11px] text-zinc-500 truncate">
-                              {new Date(schedule.date).toLocaleDateString(
-                                "vi-VN",
-                              )}{" "}
-                              · {exerciseCount} bài · {programName}
+                            <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                              {w.title}
                             </p>
+                            {!w.locked && (
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-[10px] text-zinc-600 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />{" "}
+                                  {w.duration || "1h"}
+                                </span>
+                                <span className="text-[10px] text-zinc-600">
+                                  {w.exercises?.length || w.exercises || 0} bài
+                                  tập
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/20 text-emerald-300">
-                            AI
-                          </span>
-                          <button
-                            onClick={() => {
-                              setTab("plan");
-                              setSelectedDay(programDay?.dayNumber || 1);
-                              setSelectedDate(new Date(schedule.date));
-                              setSelectedScheduleId(schedule.id);
-                              setCurrentWorkoutId(
-                                schedule.workoutId ||
-                                  schedule.workout?.id ||
-                                  null,
-                              );
-                              setPlanView("dayDetail");
-                            }}
-                            className="text-[10px] px-2 py-1 rounded-full border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (
-                                !window.confirm(
-                                  "Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.",
-                                )
-                              )
-                                return;
-                              await workoutService.deleteSchedule(schedule.id);
-                              await refetchProgramAndSchedules();
-                            }}
-                            className="text-[10px] px-2 py-1 rounded-full border border-red-500/25 text-red-300 hover:bg-red-500/10"
-                          >
-                            Ẩn
-                          </button>
+
+                          {!w.locked && (
+                            <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />
+                          )}
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 ) : (
-                  <div className="rounded-xl border border-dashed border-zinc-700/30 bg-zinc-900/25 p-4 text-center">
+                  <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
                     <p className="text-sm text-zinc-400">
-                      Bạn chưa có lịch tập sắp tới
+                      Bạn chưa có lịch tập hiện tại
                     </p>
-                    <button
-                      onClick={() => navigate("/client/plans")}
-                      className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
-                    >
-                      Tạo bằng AI
-                    </button>
+                    <div className="mt-4 flex justify-center gap-2">
+                      <button
+                        onClick={openManualBuilder}
+                        className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800"
+                      >
+                        Tạo thủ công
+                      </button>
+                      <button
+                        onClick={() => navigate("/client/plans")}
+                        className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                      >
+                        Tạo bằng AI
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            </GlassPanel>
+            </div>
+
+            {/* Upcoming Sessions */}
+            <div className="xl:col-span-3">
+              <GlassPanel
+                title="Buổi tập sắp tới"
+                icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}
+              >
+                <div className="space-y-2.5">
+                  {upcomingSchedules.length > 0 ? (
+                    upcomingSchedules.slice(0, 5).map((schedule) => {
+                      const programDay = schedule.programDay;
+                      const programName = programDay?.program?.name || "AI Plan";
+                      const dayTitle =
+                        programDay?.title || `Day ${programDay?.dayNumber || 1}`;
+                      const exerciseCount = programDay?.exercises?.length || 0;
+                      return (
+                        <div
+                          key={schedule.id}
+                          className="group/item rounded-xl border p-3.5 transition-all bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/8 border border-emerald-500/15">
+                              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-zinc-200 truncate">
+                                {dayTitle}
+                              </p>
+                              <p className="text-[11px] text-zinc-500 truncate">
+                                {new Date(schedule.date).toLocaleDateString(
+                                  "vi-VN",
+                                )}{" "}
+                                · {exerciseCount} bài · {programName}
+                              </p>
+                            </div>
+                            <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/20 text-emerald-300">
+                              AI
+                            </span>
+                            <button
+                              onClick={() => {
+                                setSelectedDay(programDay?.dayNumber || 1);
+                                setSelectedDate(new Date(schedule.date));
+                                setSelectedScheduleId(schedule.id);
+                                setCurrentWorkoutId(
+                                  schedule.workoutId ||
+                                    schedule.workout?.id ||
+                                    null,
+                                );
+                                setPlanView("dayDetail");
+                              }}
+                              className="text-[10px] px-2 py-1 rounded-full border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (
+                                  !window.confirm(
+                                    "Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.",
+                                  )
+                                )
+                                  return;
+                                await workoutService.deleteSchedule(schedule.id);
+                                await refetchProgramAndSchedules();
+                              }}
+                              className="text-[10px] px-2 py-1 rounded-full border border-red-500/25 text-red-300 hover:bg-red-500/10"
+                            >
+                              Ẩn
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-zinc-700/30 bg-zinc-900/25 p-4 text-center">
+                      <p className="text-sm text-zinc-400">
+                        Bạn chưa có lịch tập sắp tới
+                      </p>
+                      <button
+                        onClick={() => navigate("/client/plans")}
+                        className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
+                      >
+                        Tạo bằng AI
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </GlassPanel>
+            </div>
           </div>
 
           {/* Calendar + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <button
-              onClick={openManualBuilder}
-              className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15"
-            >
-              Tạo thủ công
-            </button>
-            <GlassPanel
-              title="Lịch tập"
-              icon={<Calendar className="w-4 h-4 text-emerald-400" />}
-              actionLabel="Thêm"
-              onAction={() => setShowCalendarAdd(true)}
-            >
-              <CalendarGrid
-                schedulesByDay={schedulesByDay}
-                markers={calendarMarkers}
-                month={calendarMonth}
-                onPrevMonth={handlePrevMonth}
-                onNextMonth={handleNextMonth}
-                onDayClick={(day) => {
-                  const clickedDate = new Date(
-                    calendarMonth.getFullYear(),
-                    calendarMonth.getMonth(),
-                    day,
-                  );
-                  const dStr = clickedDate.toDateString();
-                  setSelectedDate(clickedDate);
-                  const scheduleForDay = findScheduleForDate(clickedDate);
-                  setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
-                  setSelectedScheduleId(scheduleForDay?.id || null);
-                  setCurrentWorkoutId(
-                    scheduleForDay?.workoutId ||
-                      scheduleForDay?.workout?.id ||
-                      null,
-                  );
+            <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-5">
+                  <SectionTitle title="Lịch tập" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowCalendarAdd(true)}
+                      className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20"
+                    >
+                      <Plus className="w-3 h-3" /> Thêm
+                    </button>
+                    <button
+                      onClick={() => setCalendarExpanded(!calendarExpanded)}
+                      className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
+                    >
+                      {calendarExpanded ? "Thu gọn" : "Mở rộng"}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                {calendarExpanded && (
+                  <CalendarGrid
+                    schedulesByDay={schedulesByDay}
+                    markers={calendarMarkers}
+                    month={calendarMonth}
+                    onPrevMonth={handlePrevMonth}
+                    onNextMonth={handleNextMonth}
+                    onDayClick={(day) => {
+                      const clickedDate = new Date(
+                        calendarMonth.getFullYear(),
+                        calendarMonth.getMonth(),
+                        day,
+                      );
+                      const dStr = clickedDate.toDateString();
+                      setSelectedDate(clickedDate);
+                      const scheduleForDay = findScheduleForDate(clickedDate);
+                      setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
+                      setSelectedScheduleId(scheduleForDay?.id || null);
+                      setCurrentWorkoutId(
+                        scheduleForDay?.workoutId ||
+                          scheduleForDay?.workout?.id ||
+                          null,
+                      );
 
-                  // Prefer the persisted schedule. Workout history can contain legacy
-                  // date-shifted rows, so it is only a fallback for unscheduled days.
-                  if (scheduleForDay?.programDay?.dayNumber) {
-                    setSelectedDay(scheduleForDay.programDay.dayNumber);
-                    setTab("plan");
-                    setPlanView("dayDetail");
-                  } else if (workoutCache[dStr]) {
-                    const w = workoutCache[dStr];
-                    setCurrentWorkoutId(w.id);
-                    const mapped = w.exercises.map((we: any) => ({
-                      id: we.id,
-                      dbId: we.exerciseId,
-                      name: we.exercise.exerciseName,
-                      prescription: `${we.sets}×${we.reps || 10}${we.weight ? "×" + we.weight + " kg" : ""}`,
-                      img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
-                      img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
-                      type: (we.exercise.typeOfActivity === "CARDIO"
-                        ? "cardio"
-                        : "strength") as "cardio" | "strength",
-                      description: we.exercise.instructions,
-                      muscles: we.exercise.muscleGroupsActivated || [],
-                      tips: [],
-                    }));
-                    setDayExercises(mapped);
-                    setTab("plan");
-                    setPlanView("dayDetail");
-                  } else if (isScheduleDateApiValueLocked(toApiDateTime(clickedDate))) {
-                    toast.error("Ngày này đã qua nên không thể tạo lịch tập mới.");
-                  } else {
-                    openScheduleModal(clickedDate);
-                  }
-                }}
-              />
-            </GlassPanel>
+                      // Prefer the persisted schedule. Workout history can contain legacy
+                      // date-shifted rows, so it is only a fallback for unscheduled days.
+                      if (scheduleForDay?.programDay?.dayNumber) {
+                        setSelectedDay(scheduleForDay.programDay.dayNumber);
+                        setPlanView("dayDetail");
+                      } else if (workoutCache[dStr]) {
+                        const w = workoutCache[dStr];
+                        setCurrentWorkoutId(w.id);
+                        const mapped = w.exercises.map((we: any) => ({
+                          id: we.id,
+                          dbId: we.exerciseId,
+                          name: we.exercise.exerciseName,
+                          prescription: `${we.sets}×${we.reps || 10}${we.weight ? "×" + we.weight + " kg" : ""}`,
+                          img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
+                          img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
+                          type: (we.exercise.typeOfActivity === "CARDIO"
+                            ? "cardio"
+                            : "strength") as "cardio" | "strength",
+                          description: we.exercise.instructions,
+                          muscles: we.exercise.muscleGroupsActivated || [],
+                          tips: [],
+                        }));
+                        setDayExercises(mapped);
+                        setPlanView("dayDetail");
+                      } else if (isScheduleDateApiValuePast(toApiDateTime(clickedDate))) {
+                        // Only PAST is blocked here, not future: creating a
+                        // brand-new schedule for a future day is exactly
+                        // what planning ahead means, and the backend
+                        // (createSchedule) never locks it — unlike editing/
+                        // completing an EXISTING logged workout, which is
+                        // locked to today only.
+                        toast.error("Ngày này đã qua nên không thể tạo lịch tập mới.");
+                      } else {
+                        openScheduleModal(clickedDate);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </div>
 
             <GlassPanel
               title="Chỉ số cơ thể"
@@ -2479,6 +3257,60 @@ export function WorkoutLogPage() {
               actionLabel="+ Log"
               onAction={() => setShowLogModal(true)}
             >
+              {/* Weight journey — starting/current/target/remaining. Spec
+                  §27: startingWeight is the IMMUTABLE journey-start
+                  snapshot, never overwritten by later InBody syncs. */}
+              {(() => {
+                const startingWeight = userProfile?.startingWeight;
+                const currentWeight = latestInBody?.weight ?? userProfile?.currentWeight;
+                const targetWeight = userProfile?.targetWeight;
+                if (startingWeight == null || currentWeight == null) return null;
+                const changed = Math.round((startingWeight - currentWeight) * 10) / 10;
+                const remaining =
+                  targetWeight != null
+                    ? Math.round((currentWeight - targetWeight) * 10) / 10
+                    : null;
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 pb-4 border-b border-zinc-800/40">
+                    <div>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                        Bắt đầu
+                      </p>
+                      <p className="text-sm text-zinc-200">{startingWeight} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                        Hiện tại
+                      </p>
+                      <p className="text-sm text-zinc-200">{currentWeight} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                        Đã thay đổi
+                      </p>
+                      <p
+                        className={`text-sm ${changed > 0 ? "text-emerald-400" : changed < 0 ? "text-amber-400" : "text-zinc-400"}`}
+                      >
+                        {changed > 0 ? "−" : changed < 0 ? "+" : ""}
+                        {Math.abs(changed)} kg
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                        Còn lại
+                      </p>
+                      <p className="text-sm text-zinc-200">
+                        {remaining == null
+                          ? "Chưa đặt mục tiêu"
+                          : remaining === 0
+                            ? "Đã đạt mục tiêu"
+                            : `${Math.abs(remaining)} kg`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Active metric chips */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {metricOptions.map((m) => {
@@ -2839,324 +3671,8 @@ export function WorkoutLogPage() {
         </div>
       )}
 
-      {/* ═══════════════ WORKOUT PLAN — MAIN ═══════════════ */}
-      {tab === "plan" && planView === "main" && (
-        <div className="space-y-7">
-          {/* Cinematic Hero */}
-          <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
-            <img
-              src={heroImg}
-              alt="Training"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
-
-            <button className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
-              <Share2 className="w-4 h-4 text-white/50" />
-            </button>
-
-            <div className="absolute top-4 right-4 flex gap-2">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-[11px] text-amber-300 backdrop-blur-md">
-                <Star className="w-3 h-3" /> 4.8
-              </span>
-              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-[11px] text-emerald-300 backdrop-blur-md">
-                At Gym
-              </span>
-              <span className="px-3 py-1.5 rounded-xl bg-zinc-500/10 border border-zinc-500/15 text-[11px] text-zinc-300 backdrop-blur-md">
-                Intermediate
-              </span>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-6">
-              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">
-                Chương trình
-              </span>
-              <h2 className="text-2xl text-white mb-2 tracking-tight">
-                {currentProgram ? currentProgram.name : "Chưa có chương trình"}
-              </h2>
-              {currentProgram && (
-                <button
-                  onClick={async () => {
-                    if (
-                      !window.confirm(
-                        "Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.",
-                      )
-                    )
-                      return;
-                    await workoutService.archiveProgram(currentProgram.id);
-                    await refetchProgramAndSchedules();
-                  }}
-                  className="mb-2 px-3 py-1.5 rounded-lg border border-red-500/25 bg-red-500/10 text-[11px] text-red-300 hover:bg-red-500/15"
-                >
-                  Ẩn chương trình
-                </button>
-              )}
-              {currentProgram && (
-                <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5">
-                    <Dumbbell className="w-3 h-3 text-emerald-500/50" />{" "}
-                    {currentProgram.durationWeeks || 4} tuần
-                  </span>
-                  <span className="text-zinc-700">·</span>
-                  <span>
-                    {currentProgram.daysPerWeek ||
-                      workoutStats?.workoutsPerWeek ||
-                      3}{" "}
-                    buổi/tuần
-                  </span>
-                  <span className="text-zinc-700">·</span>
-                  {currentProgram.sourceType === "AI_PLAN" && (
-                    <>
-                      <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">
-                        AI
-                      </span>
-                      <span className="text-zinc-700">·</span>
-                    </>
-                  )}
-                  {currentProgram.goal && (
-                    <>
-                      <span>{goalLabel(currentProgram.goal)}</span>
-                      <span className="text-zinc-700">·</span>
-                    </>
-                  )}
-                  <span>
-                    Đã hoàn thành:{" "}
-                    <span className="text-emerald-400">
-                      {workoutStats?.totalWorkouts || 0}
-                    </span>
-                  </span>
-                </div>
-              )}
-              <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000"
-                  style={{
-                    width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Training Days + Calendar/Schedule */}
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-            {/* Training Days */}
-            <div className="xl:col-span-2">
-              <SectionTitle title="Ngày tập" />
-              <div className="space-y-3 mt-4">
-                {currentProgram?.days?.length ? (
-                  currentProgram.days.map((w: any) => {
-                    const schedules = [
-                      ...aiSchedules.filter(
-                        (schedule) => schedule.programDay?.id === w.id,
-                      ),
-                      ...(Array.isArray(w.schedules) ? w.schedules : []),
-                    ];
-                    const todayStart = new Date();
-                    todayStart.setHours(0, 0, 0, 0);
-                    const nextSchedule =
-                      schedules.find(
-                        (schedule: any) =>
-                          !schedule.workoutId &&
-                          new Date(schedule.date) >= todayStart,
-                      ) ||
-                      schedules.find((schedule: any) => !schedule.workoutId) ||
-                      schedules[0] ||
-                      aiSchedules.find(
-                        (schedule) => schedule.programDay?.id === w.id,
-                      );
-                    const dayProgress = scheduleProgressPercent(nextSchedule);
-                    return (
-                      <button
-                        key={`td-${w.day || w.dayNumber}`}
-                        onClick={() => {
-                          if (!w.locked) {
-                            setSelectedDay(w.day || w.dayNumber);
-                            setSelectedDate(
-                              nextSchedule?.date
-                                ? new Date(nextSchedule.date)
-                                : new Date(),
-                            );
-                            setSelectedScheduleId(nextSchedule?.id || null);
-                            setCurrentWorkoutId(
-                              nextSchedule?.workoutId ||
-                                nextSchedule?.workout?.id ||
-                                null,
-                            );
-                            setPlanView("dayDetail");
-                          }
-                        }}
-                        disabled={w.locked}
-                        className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
-                          w.locked
-                            ? "bg-zinc-900/20 border-zinc-800/25 opacity-40 cursor-not-allowed"
-                            : "bg-zinc-900/50 border-zinc-800/30 hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.04)] active:scale-[0.99]"
-                        }`}
-                      >
-                        {!w.locked && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover/card:from-emerald-500/[0.02] group-hover/card:to-transparent transition-all duration-300" />
-                        )}
-
-                        <div className="relative flex items-center gap-4">
-                          {/* Ring */}
-                          <div className="relative shrink-0">
-                            <svg width="52" height="52" viewBox="0 0 52 52">
-                              <circle
-                                cx="26"
-                                cy="26"
-                                r="22"
-                                fill="none"
-                                stroke={w.locked ? "#18181b" : "#064e3b"}
-                                strokeWidth="3"
-                              />
-                              {!w.locked && dayProgress > 0 && (
-                                <circle
-                                  cx="26"
-                                  cy="26"
-                                  r="22"
-                                  fill="none"
-                                  stroke="#10b981"
-                                  strokeWidth="3"
-                                  strokeDasharray={`${(dayProgress / 100) * 138} 138`}
-                                  strokeLinecap="round"
-                                  transform="rotate(-90 26 26)"
-                                />
-                              )}
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              {w.locked ? (
-                                <Lock className="w-4 h-4 text-zinc-700" />
-                              ) : (
-                                <span className="text-[11px] text-emerald-400">
-                                  {dayProgress}%
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-zinc-100">
-                              Ngày {w.day || w.dayNumber}
-                            </p>
-                            <p className="text-xs text-zinc-500 mt-0.5 truncate">
-                              {w.title}
-                            </p>
-                            {!w.locked && (
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="text-[10px] text-zinc-600 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />{" "}
-                                  {w.duration || "1h"}
-                                </span>
-                                <span className="text-[10px] text-zinc-600">
-                                  {w.exercises?.length || w.exercises || 0} bài
-                                  tập
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {!w.locked && (
-                            <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
-                    <p className="text-sm text-zinc-400">
-                      Bạn chưa có lịch tập hiện tại
-                    </p>
-                    <div className="mt-4 flex justify-center gap-2">
-                      <button
-                        onClick={openManualBuilder}
-                        className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800"
-                      >
-                        Tạo thủ công
-                      </button>
-                      <button
-                        onClick={() => navigate("/client/plans")}
-                        className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
-                      >
-                        Tạo bằng AI
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right: Calendar + Schedule */}
-            <div className="xl:col-span-3 space-y-6">
-              {/* Calendar */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-5">
-                    <button
-                      onClick={openManualBuilder}
-                      className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15"
-                    >
-                      Tạo thủ công
-                    </button>
-                    <SectionTitle title="Lịch tập" />
-                    <button
-                      onClick={() => setCalendarExpanded(!calendarExpanded)}
-                      className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
-                    >
-                      {calendarExpanded ? "Thu gọn" : "Mở rộng"}
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                  </div>
-                  {calendarExpanded && (
-                    <CalendarGrid
-                      schedulesByDay={schedulesByDay}
-                      markers={calendarMarkers}
-                      month={calendarMonth}
-                      onPrevMonth={handlePrevMonth}
-                      onNextMonth={handleNextMonth}
-                      onDayClick={(day) => {
-                        const clickedDate = new Date(
-                          calendarMonth.getFullYear(),
-                          calendarMonth.getMonth(),
-                          day,
-                        );
-                        setSelectedDate(clickedDate);
-                        const scheduleForDay = findScheduleForDate(clickedDate);
-                        setSelectedDay(
-                          scheduleForDay?.programDay?.dayNumber || day,
-                        );
-                        setSelectedScheduleId(scheduleForDay?.id || null);
-                        setCurrentWorkoutId(
-                          scheduleForDay?.workoutId ||
-                            scheduleForDay?.workout?.id ||
-                            null,
-                        );
-
-                        if (scheduleForDay?.programDay?.dayNumber) {
-                          setSelectedDay(scheduleForDay.programDay.dayNumber);
-                          setPlanView("dayDetail");
-                        } else if (isScheduleDateApiValueLocked(toApiDateTime(clickedDate))) {
-                          toast.error("Ngày này đã qua nên không thể tạo lịch tập mới.");
-                        } else {
-                          openScheduleModal(clickedDate);
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ═══════════════ DAY DETAIL ═══════════════ */}
-      {tab === "plan" &&
-        planView === "dayDetail" &&
+      {planView === "dayDetail" &&
         (() => {
           const programDays = currentProgram?.days || [];
           const wd =
@@ -3208,7 +3724,7 @@ export function WorkoutLogPage() {
                 </div>
                 {isSelectedDayLocked ? (
                   <span className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/8 text-xs text-amber-300/80">
-                    <Lock className="w-3 h-3" /> Ngày đã qua — chỉ xem
+                    <Lock className="w-3 h-3" /> {lockedDayBadgeLabel(detailSchedule?.date ?? toApiDateTime(selectedDate))} — chỉ xem
                   </span>
                 ) : (
                   <button
@@ -3306,9 +3822,15 @@ export function WorkoutLogPage() {
                       const blockedByLock = isSelectedDayLocked && !hasExistingSession;
                       return (
                     <button
+                      data-testid="start-workout-button"
                       onClick={async () => {
                         if (blockedByLock) {
-                          toast.error("Ngày này đã qua nên không thể tạo buổi tập mới.");
+                          toast.error(
+                            lockedDayMessage(
+                              detailSchedule?.date ?? toApiDateTime(selectedDate),
+                              "tạo buổi tập mới",
+                            ),
+                          );
                           return;
                         }
                         if (detailSchedule?.id) {
@@ -3345,13 +3867,61 @@ export function WorkoutLogPage() {
                     >
                       <Play className="w-4 h-4" />{" "}
                       {blockedByLock
-                        ? "NGÀY ĐÃ QUA — KHÔNG THỂ TẠO"
+                        ? scheduleLockDirection(detailSchedule?.date ?? toApiDateTime(selectedDate)) === "future"
+                          ? "CHƯA ĐẾN NGÀY — KHÔNG THỂ TẠO"
+                          : "NGÀY ĐÃ QUA — KHÔNG THỂ TẠO"
                         : isSelectedDayLocked
                           ? "XEM LẠI (CHỈ XEM)"
                           : "BẮT ĐẦU TẬP"}
                     </button>
                       );
                     })()}
+
+                    {/* Skip/cancel — only offered before any session was
+                     * started for this day (backend rejects skip/cancel once
+                     * a workout is logged) and never on a locked past day. */}
+                    {(() => {
+                      const hasExistingSession = Boolean(
+                        detailSchedule?.workoutId || detailSchedule?.workout?.id,
+                      );
+                      if (!detailSchedule?.id || hasExistingSession || isSelectedDayLocked) return null;
+                      if (detailSchedule.status === "SKIPPED" || detailSchedule.status === "CANCELLED") {
+                        return (
+                          <button
+                            onClick={() => setSkipCancelPrompt({ scheduleId: detailSchedule.id })}
+                            className="w-full mt-2 py-2 rounded-xl border border-zinc-700/40 text-[11px] text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40 transition-all flex items-center justify-center gap-1.5"
+                          >
+                            {detailSchedule.status === "SKIPPED" ? "Đã bỏ qua buổi này" : "Đã hủy buổi này"} · Ghi lý do
+                          </button>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await workoutService.skipSchedule(detailSchedule.id);
+                              await refetchProgramAndSchedules();
+                              setSkipCancelPrompt({ scheduleId: detailSchedule.id });
+                            } catch (error: any) {
+                              toast.error(
+                                error?.response?.data?.error || "Không thể bỏ qua buổi tập này.",
+                              );
+                            }
+                          }}
+                          className="w-full mt-2 py-2 rounded-xl border border-zinc-700/40 text-[11px] text-zinc-500 hover:text-amber-300 hover:bg-zinc-800/40 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <SkipForward className="w-3 h-3" /> Bỏ qua buổi tập này
+                        </button>
+                      );
+                    })()}
+
+                    {detailSchedule?.id &&
+                      (detailSchedule.status === "COMPLETED" || detailSchedule.status === "PARTIALLY_COMPLETED") && (
+                        <SessionFeedbackStatusRow
+                          scheduleId={detailSchedule.id}
+                          onOpenFeedback={() => setFeedbackPrompt({ scheduleId: detailSchedule.id })}
+                        />
+                      )}
                   </div>
                 </div>
 
@@ -3602,8 +4172,7 @@ export function WorkoutLogPage() {
         })()}
 
       {/* ═══════════════ ACTIVE EXERCISE ═══════════════ */}
-      {tab === "plan" &&
-        planView === "activeExercise" &&
+      {planView === "activeExercise" &&
         !showCompletion &&
         (() => {
           if (isLoading) {
@@ -3658,8 +4227,49 @@ export function WorkoutLogPage() {
               },
             }));
           };
+          // Gym-onboarding project follow-up §9 — session-only swap: only
+          // dayExercises[activeExIdx] changes (local state), never the
+          // underlying WorkoutProgramExercise — future weeks still show the
+          // originally-planned exercise. sets/reps/restSeconds/prescription
+          // are kept from the original slot (a substitute inherits the same
+          // prescription intent); only identity fields change.
+          const handleSelectSwap = (substitute: ExerciseSubstitute) => {
+            const originalName = curEx.name;
+            setDayExercises((prev) =>
+              prev.map((ex, i) =>
+                i === activeExIdx
+                  ? {
+                      ...ex,
+                      dbId: substitute.id,
+                      name: substitute.exerciseName,
+                      bodyPart: substitute.bodyPart,
+                      img: null,
+                      img2: null,
+                    }
+                  : ex,
+              ),
+            );
+            setSwapNotes((prev) => ({
+              ...prev,
+              [activeExIdx]: `Đã đổi từ "${originalName}" sang "${substitute.exerciseName}"`,
+            }));
+            setShowSwapModal(false);
+            toast.success(`Đã đổi sang "${substitute.exerciseName}" cho buổi tập này`);
+          };
           return (
             <div className="space-y-6">
+              {showSwapModal && (
+                <SwapExerciseModal
+                  currentExerciseId={curEx.dbId}
+                  currentExerciseName={curEx.name}
+                  otherExerciseIdsToday={dayExercises
+                    .filter((_, i) => i !== activeExIdx)
+                    .map((ex) => ex.dbId)
+                    .filter(Boolean)}
+                  onSelect={handleSelectSwap}
+                  onClose={() => setShowSwapModal(false)}
+                />
+              )}
               {/* Header */}
               <div className="flex items-center gap-4">
                 <button
@@ -3679,7 +4289,19 @@ export function WorkoutLogPage() {
                       {curEx.name}
                     </span>
                   </h2>
-                  <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+                    {!isSelectedDayLocked && !isCompleted && (
+                      <button
+                        type="button"
+                        data-testid="swap-exercise-trigger"
+                        onClick={() => setShowSwapModal(true)}
+                        className="inline-flex items-center gap-1 text-[11px] text-emerald-400/90 hover:text-emerald-300"
+                      >
+                        <Repeat className="w-3 h-3" /> Không tập được? Đổi bài
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {/* Timer button — no historical per-exercise duration is
                     stored anywhere (only WorkoutSchedule.durationSeconds for
@@ -3769,6 +4391,7 @@ export function WorkoutLogPage() {
 
                   {/* Exercise flip animation demo */}
                   <div
+                    data-testid="active-exercise-demo-open-detail"
                     onClick={() => setShowExerciseDetail(curEx)}
                     className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
                   >
@@ -3939,7 +4562,7 @@ export function WorkoutLogPage() {
                       >
                         <Lock className="w-4 h-4 text-amber-400 shrink-0" />
                         <p className="text-xs text-amber-200/90">
-                          Ngày này đã qua nên không thể chỉnh sửa. Dữ liệu bên dưới chỉ hiển thị để xem lại.
+                          {lockedDayMessage(selectedSchedule()?.date ?? toApiDateTime(selectedDate))} Dữ liệu bên dưới chỉ hiển thị để xem lại.
                         </p>
                       </div>
                     )}
@@ -3969,6 +4592,7 @@ export function WorkoutLogPage() {
                           text and the top of the track — see git history). */}
                       <button
                         type="button"
+                        data-testid="no-weight-toggle"
                         onClick={() =>
                           updateActiveLog({
                             noWeight: !activeLog.noWeight,
@@ -3991,20 +4615,25 @@ export function WorkoutLogPage() {
                       </p>
                     )}
 
-                    {isBeginnerProfile && showRpeRirHint && (
+                    {showRpeRirHint && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
                         <MessageSquare className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                        <div className="flex-1 space-y-1">
+                        <div className="flex-1 space-y-1.5">
                           <p className="text-[11px] text-sky-100/90">
-                            <strong>RPE</strong> (mức độ gắng sức): tự đánh giá bài tập vừa rồi
-                            khó đến đâu, từ 1 (rất nhẹ) đến 10 (dùng hết sức). <strong>RIR</strong>{" "}
-                            (số reps còn có thể làm): nếu dừng lại còn làm thêm được bao nhiêu
-                            reps nữa thì mới thật sự kiệt sức — ví dụ RIR = 2 nghĩa là bạn có
-                            thể làm thêm 2 reps trước khi thất bại.
+                            <strong>RPE</strong> (mức độ gắng sức): set vừa rồi khó đến đâu, từ 1
+                            (rất nhẹ) đến 10 (dùng hết sức). Cách ước lượng dễ nhất: đếm xem nếu
+                            cố thêm, bạn còn làm được <strong>mấy reps nữa</strong> thì mới thật sự
+                            kiệt sức (thất bại) — đó chính là <strong>RIR</strong>.
                           </p>
+                          <ul className="text-[10px] text-sky-200/80 space-y-0.5 pl-3.5 list-disc">
+                            <li>Còn làm thêm được ≥4 reps → RPE 6 (còn dư sức nhiều)</li>
+                            <li>Còn làm thêm được 2 reps → RPE 8</li>
+                            <li>Còn làm thêm được 1 rep → RPE 9</li>
+                            <li>Không thể làm thêm rep nào → RPE 10 (RIR = 0, hết sức)</li>
+                          </ul>
                           <p className="text-[10px] text-sky-300/70">
-                            Đây chỉ là tự đánh giá, không có câu trả lời "đúng/sai" — cứ ước
-                            lượng theo cảm nhận của bạn.
+                            Không có câu trả lời "đúng/sai" — cứ ước lượng theo cảm nhận thật của
+                            bạn, sẽ chính xác dần sau vài buổi tập.
                           </p>
                         </div>
                         <button
@@ -4016,6 +4645,20 @@ export function WorkoutLogPage() {
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                    )}
+                    {/* The auto-shown hint above only appears once per session for
+                        a detected-beginner profile and can be dismissed — this
+                        button stays available to EVERYONE, always, so "what do
+                        RPE/RIR mean" is never more than one tap away regardless
+                        of profile or whether the hint was already closed. */}
+                    {!showRpeRirHint && (
+                      <button
+                        type="button"
+                        onClick={() => setShowRpeRirHint(true)}
+                        className="flex items-center gap-1.5 text-[11px] text-sky-400/80 hover:text-sky-300 transition-colors -mb-1"
+                      >
+                        <MessageSquare className="w-3 h-3" /> RPE/RIR là gì?
+                      </button>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                       <RulerSlider
@@ -4066,6 +4709,7 @@ export function WorkoutLogPage() {
                       <span className="truncate">Trước</span>
                     </button>
                     <button
+                      data-testid="complete-exercise-button"
                       onClick={handleCompleteExercise}
                       disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout}
                       className={`min-w-0 py-3.5 px-1 rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
@@ -4144,7 +4788,7 @@ export function WorkoutLogPage() {
         })()}
 
       {/* ═══════════════ WORKOUT COMPLETION ═══════════════ */}
-      {tab === "plan" && planView === "activeExercise" && showCompletion && (
+      {planView === "activeExercise" && showCompletion && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-8 max-w-lg mx-auto">
             {/* Trophy */}
@@ -4193,6 +4837,56 @@ export function WorkoutLogPage() {
               ))}
             </div>
 
+            {/* PR / volume summary — spec: "kết thúc workout → hiển thị PR
+                và tiến độ". Loaded async right after the workout is saved
+                (see loadCompletionSummary); simply absent while loading or
+                if it failed to load, never a broken/empty-looking block. */}
+            {completionSummary && (
+              <div
+                className="space-y-3 max-w-md mx-auto text-left"
+                data-testid="workout-completion-summary"
+              >
+                {completionSummary.prs.length > 0 && (
+                  <div
+                    className="rounded-2xl bg-emerald-500/10 border border-emerald-500/25 p-4"
+                    data-testid="workout-completion-prs"
+                  >
+                    <p className="text-xs text-emerald-300 flex items-center gap-1.5 mb-2">
+                      <Trophy className="w-3.5 h-3.5" /> Kỷ lục cá nhân mới
+                    </p>
+                    <div className="space-y-1.5">
+                      {completionSummary.prs.map((pr) => (
+                        <div
+                          key={pr.exerciseId}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-zinc-300 truncate pr-2">{pr.exerciseName}</span>
+                          <span className="text-emerald-400 shrink-0">
+                            {pr.weightKg}kg{pr.reps ? ` × ${pr.reps}` : ""}
+                            <span className="text-zinc-500 text-xs">
+                              {" "}
+                              (trước: {pr.previousBestWeightKg}kg)
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div
+                  className="rounded-2xl bg-zinc-900/50 border border-zinc-800/30 p-4 flex items-center justify-between"
+                  data-testid="workout-completion-volume"
+                >
+                  <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500/60" /> Tổng khối lượng buổi tập
+                  </span>
+                  <span className="text-sm text-emerald-300">
+                    {completionSummary.totalVolumeKg.toLocaleString("vi-VN")} kg
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex items-center justify-center gap-4">
               <button
@@ -4218,9 +4912,16 @@ export function WorkoutLogPage() {
 
       {feedbackPrompt && (
         <SessionFeedbackModal
-          cycleId={feedbackPrompt.cycleId}
           scheduleId={feedbackPrompt.scheduleId}
+          exercises={dayExercises.map((ex: any) => ({ exerciseId: ex.dbId, name: ex.name }))}
           onClose={() => setFeedbackPrompt(null)}
+        />
+      )}
+
+      {skipCancelPrompt && (
+        <SkipCancelFeedbackModal
+          scheduleId={skipCancelPrompt.scheduleId}
+          onClose={() => setSkipCancelPrompt(null)}
         />
       )}
 
@@ -4325,6 +5026,25 @@ export function WorkoutLogPage() {
                   </ul>
                 </div>
               </div>
+
+              {/* Gate 6 — real muscle-map SVG (ExerciseMuscle data, never
+                  guessed), separate from the plain-text tag list above
+                  (that reads the legacy free-text muscleGroupsActivated
+                  column; this reads the new canonical Muscle taxonomy with
+                  a real primary/secondary split). Only rendered when a
+                  real DB exercise id is known — a manually-typed custom
+                  exercise (no dbId) has nothing to look up. */}
+              {showExerciseDetail.dbId && (
+                <div
+                  data-testid="exercise-muscle-map"
+                  className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4"
+                >
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                    Sơ đồ nhóm cơ
+                  </p>
+                  <ExerciseMuscleMap exerciseId={showExerciseDetail.dbId} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -5411,9 +6131,19 @@ function CalendarGrid({
           // with nothing logged at all; collapsing them into one state
           // would lose real information the calendar needs to show.
           const cellDateLabel = `${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          // Locked in EITHER direction (only today is editable — see
+          // schedule-lock.utils.ts); the "< todayLabel" past-only fallback
+          // here previously diverged from that rule the same way the
+          // now-fixed isScheduleDateApiValueLocked used to.
           const isLocked = hasSchedules
             ? dayInfos.some((info) => info.isLocked)
-            : cellDateLabel < todayLabel;
+            : cellDateLabel !== todayLabel;
+          const lockDirection: "past" | "future" | undefined = !isLocked
+            ? undefined
+            : cellDateLabel < todayLabel
+              ? "past"
+              : "future";
+          const lockedReasonLabel = lockDirection === "future" ? "chưa đến ngày" : "ngày đã qua";
           const isCompleted = dayInfos.some((info) => info.status === "COMPLETED");
 
           return (
@@ -5430,14 +6160,14 @@ function CalendarGrid({
               tabIndex={0}
               title={
                 firstInfo
-                  ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ""}${firstInfo.programName ? `\n${firstInfo.programName}` : ""}${isLocked ? "\n(Đã khóa — ngày đã qua, chỉ xem)" : ""}`
+                  ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ""}${firstInfo.programName ? `\n${firstInfo.programName}` : ""}${isLocked ? `\n(Đã khóa — ${lockedReasonLabel}, chỉ xem)` : ""}`
                   : isLocked
-                    ? "Ngày đã qua — chỉ xem"
+                    ? `${lockedReasonLabel === "chưa đến ngày" ? "Chưa đến ngày" : "Ngày đã qua"} — chỉ xem`
                     : undefined
               }
               aria-label={
                 isTraining
-                  ? `${firstInfo?.title ?? "Buổi tập"}, ngày ${day}${isLocked ? ", đã khóa vì ngày đã qua" : ""}${isCompleted ? ", đã hoàn thành" : ""}`
+                  ? `${firstInfo?.title ?? "Buổi tập"}, ngày ${day}${isLocked ? `, đã khóa vì ${lockedReasonLabel}` : ""}${isCompleted ? ", đã hoàn thành" : ""}`
                   : isToday
                     ? `Hôm nay, ngày ${day}`
                     : `Ngày ${day}`

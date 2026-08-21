@@ -7,6 +7,7 @@ import type {
   WebhookVerifyResult,
   MoMoIpnPayload,
   RefundResult,
+  ProviderTxnStatus,
 } from './payment-provider.interface';
 
 const ENDPOINT   = process.env.MOMO_ENDPOINT   ?? 'https://test-payment.momo.vn/v2/gateway/api/create';
@@ -118,6 +119,44 @@ export class MoMoProvider implements PaymentProvider {
     }
 
     return { valid, payload: valid ? payload : undefined };
+  }
+
+  /**
+   * Active status poll via MoMo's /query API.
+   *
+   * Without this, MoMo was the one gateway with no way to confirm a payment on a local
+   * deployment: its IPN cannot reach a machine behind NAT, and unlike VNPay there was no
+   * signed return-URL handler either — so a client could pay and the contract would sit
+   * PENDING_PAYMENT forever. VNPay and ZaloPay both already answer this way.
+   *
+   * resultCode 0 means captured. 1000 means the user has confirmed but MoMo has not settled
+   * yet, and anything else is a terminal failure.
+   */
+  async queryTransactionStatus(txn: {
+    id: string;
+    providerTransactionId: string | null;
+    amount: number;
+    createdAt: Date;
+    metadata?: unknown;
+  }): Promise<ProviderTxnStatus> {
+    const orderId = txn.providerTransactionId ?? txn.id;
+    const requestId = `query_${txn.id}`;
+    const rawSignature = [
+      `accessKey=${ACCESS_KEY}`,
+      `orderId=${orderId}`,
+      `partnerCode=${PARTNER}`,
+      `requestId=${requestId}`,
+    ].join('&');
+
+    const { data } = await axios.post<{ resultCode: number; message?: string }>(
+      ENDPOINT.replace('/create', '/query'),
+      { partnerCode: PARTNER, requestId, orderId, lang: 'vi', signature: hmac(rawSignature) },
+      { timeout: 15_000 },
+    );
+
+    if (data.resultCode === 0) return 'PAID';
+    if (data.resultCode === 1000) return 'PENDING';
+    return 'FAILED';
   }
 
   async refund(params: {

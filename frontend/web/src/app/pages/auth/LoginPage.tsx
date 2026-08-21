@@ -11,7 +11,11 @@ import {
   ArrowRight,
   Activity,
   Brain,
+  ServerCog,
 } from "lucide-react";
+
+import { getServerOverride, setServerOverride } from "../../config/serverUrl";
+import { Preferences } from "@capacitor/preferences";
 
 const features = [
   { icon: Activity, text: "Phân tích thành phần cơ thể InBody" },
@@ -28,6 +32,11 @@ export function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "Cấu hình máy chủ": the APK reaches the backend through a tunnel whose URL changes on
+  // every restart, so the address is pasted here at runtime instead of baked into the build
+  // (see config/serverUrl.ts + CAPACITOR-NOTES.md). Saving reloads so every module re-reads it.
+  const [showServer, setShowServer] = useState(false);
+  const [serverInput, setServerInput] = useState(getServerOverride());
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +46,8 @@ export function LoginPage() {
     try {
       const success = await login(email, password);
       if (success) {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const { value: userStr } = await Preferences.get({ key: "user" });
+        const storedUser = JSON.parse(userStr || "{}");
         // Normalize casing — role may be stored in different cases.
         const rawRole = String(storedUser.role || "").toUpperCase();
 
@@ -45,7 +55,7 @@ export function LoginPage() {
           rawRole === "ADMIN"
             ? "/admin/dashboard"
             : rawRole === "GYM_OWNER" || rawRole === "GYM_STAFF"
-              ? "/gym-owner/gyms"
+              ? "/gym-owner/dashboard"
               : storedUser.isPT
                 ? "/pt/dashboard"
                 : "/client/dashboard",
@@ -222,6 +232,48 @@ export function LoginPage() {
               Tạo tài khoản
             </Link>
           </p>
+
+          <div className="mt-5 pt-4 border-t border-zinc-800/60">
+            <button
+              type="button"
+              onClick={() => setShowServer((v) => !v)}
+              className="mx-auto flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              <ServerCog className="w-3.5 h-3.5" /> Cấu hình máy chủ
+            </button>
+
+            {showServer && (
+              <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-3">
+                <label
+                  htmlFor="server-url"
+                  className="block text-[11px] font-semibold text-zinc-400 mb-1.5"
+                >
+                  Địa chỉ máy chủ
+                </label>
+                <input
+                  id="server-url"
+                  value={serverInput}
+                  onChange={(e) => setServerInput(e.target.value)}
+                  placeholder="https://vi-du.trycloudflare.com"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+                />
+                <p className="text-[11px] text-zinc-600 mt-2 leading-relaxed">
+                  Dán địa chỉ đường hầm (Cloudflare) rồi bấm Lưu. Để trống rồi Lưu để quay về
+                  địa chỉ mặc định của bản build.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServerOverride(serverInput);
+                    window.location.reload();
+                  }}
+                  className="mt-2 w-full py-2 rounded-lg bg-green-500 hover:bg-green-400 text-black text-sm font-bold transition-colors"
+                >
+                  Lưu và tải lại
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

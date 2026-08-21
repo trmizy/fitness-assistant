@@ -49,4 +49,19 @@ export const availabilityRepository = {
     prisma.pTScheduleException.deleteMany({
       where: { id, ptUserId },
     }),
+
+  /** Batch: weekly availability for multiple PTs at once */
+  findByPTs: (ptUserIds: string[]) =>
+    prisma.pTAvailability.findMany({
+      where: { ptUserId: { in: ptUserIds }, isActive: true },
+    }),
+
+  /** Batch: schedule exceptions for multiple PTs within a date range */
+  findExceptionsByPTsAndRange: (ptUserIds: string[], from: Date, to: Date) =>
+    prisma.pTScheduleException.findMany({
+      where: {
+        ptUserId: { in: ptUserIds },
+        date: { gte: from, lte: to },
+      },
+    }),
 };

@@ -41,6 +41,7 @@ import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarClock, Flag } from "lucide-react";
 import { inbodyService, trainingCycleService } from "../../services/api";
+import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
@@ -174,6 +175,7 @@ const inp =
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════ */
 export function InBodyModule() {
+  const { user } = useApp();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
   const [uploadStep, setUploadStep] = useState<UploadStep>("drop");
@@ -240,6 +242,10 @@ export function InBodyModule() {
     mutationFn: inbodyService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
+      // Sync profile.currentWeight: backend already updated it, we just bust the cache
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      }
       setManualStep("done");
     },
   });

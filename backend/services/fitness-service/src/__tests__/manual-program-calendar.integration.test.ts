@@ -96,16 +96,34 @@ async function visibleDaysOfMonth(
   const endDate = `${year}-${pad(monthIndex + 1)}-${pad(new Date(year, monthIndex + 1, 0).getDate())}`;
   const schedules = await service.listSchedules(userId, { startDate, endDate, limit: 200 });
   // Calling the service directly (not through HTTP/JSON) returns raw Date
-  // objects, not ISO strings — read the day via the same local-calendar
-  // convention parseDateOnly/nextDateForWeekday use when writing them.
+  // objects, not ISO strings — read the day via UTC getters, matching
+  // parseDateOnly/nextDateForWeekday/formatDateOnly's real storage
+  // convention (a WorkoutSchedule.date is a UTC-midnight instant — see
+  // schedule-lock.util.ts's module doc comment). A real bug was found and
+  // fixed via a Gate-6 E2E test: these date-construction functions used
+  // to use LOCAL getters/setters instead, which only matched this UTC
+  // convention when the server process's own timezone happened to be
+  // UTC — this test previously used `.getDate()` here too, silently
+  // matching that same bug rather than catching it, since both sides of
+  // the comparison were consistently wrong in the same way.
   return (schedules as any[])
-    .map((s) => new Date(s.date).getDate())
+    .map((s) => new Date(s.date).getUTCDate())
     .sort((a, b) => a - b);
 }
 
-async function deleteSeed(db: PrismaClientLike, userId: string) {
+async function deleteSeed(db: PrismaClientLike, userId: string, exerciseId?: string) {
   await db.workoutSchedule.deleteMany({ where: { userId } });
   await db.workoutProgram.deleteMany({ where: { userId } });
+  // seedExercise's row was never cleaned up here before — found via a
+  // full-suite run where "every exercise has a movementPattern set" /
+  // "every exercise has at least one equipment link" kept failing on
+  // stray leftover "Integration Exercise calendar-it-..." rows (336 of
+  // them, accumulated across this file's many past runs). Real,
+  // previously-latent test-hygiene gap, not a product bug.
+  if (exerciseId) {
+    await db.workoutProgramExercise.deleteMany({ where: { exerciseId } }).catch(() => {});
+    await db.exercise.deleteMany({ where: { id: exerciseId } }).catch(() => {});
+  }
 }
 
 const skip = canUseIntegrationDb
@@ -119,8 +137,11 @@ test(
     const { prisma: db, workoutService: service } = await loadModules();
     const userId = `calendar-it-${Date.now()}-a`;
     const exerciseId = `${userId}-exercise-1`;
-    await seedExercise(db, exerciseId);
+    // Pre-clean by userId only — exerciseId was JUST created above by
+    // seedExercise and must survive into the test body below; the
+    // exercise-row cleanup happens once, in the finally block.
     await deleteSeed(db, userId);
+    await seedExercise(db, exerciseId);
 
     try {
       await service.createManualProgram(userId, {
@@ -141,7 +162,7 @@ test(
       assert.ok(visible.includes(16), "day 16 must be visible");
       assert.ok(visible.includes(17), "day 17 must be visible");
     } finally {
-      await deleteSeed(db, userId);
+      await deleteSeed(db, userId, exerciseId);
     }
   },
 );
@@ -153,8 +174,11 @@ test(
     const { prisma: db, workoutService: service } = await loadModules();
     const userId = `calendar-it-${Date.now()}-b`;
     const exerciseId = `${userId}-exercise-1`;
-    await seedExercise(db, exerciseId);
+    // Pre-clean by userId only — exerciseId was JUST created above by
+    // seedExercise and must survive into the test body below; the
+    // exercise-row cleanup happens once, in the finally block.
     await deleteSeed(db, userId);
+    await seedExercise(db, exerciseId);
 
     try {
       // Plan A: covers the first half of the month (includes 14/16/17).
@@ -187,8 +211,13 @@ test(
       // The critical regression guard: every row the API can see must be
       // ALL the rows that actually exist for this user this month — no
       // orphaned-but-present-in-DB rows hiding behind an archived program.
+      // UTC — WorkoutSchedule.date is stored as a real UTC-midnight
+      // instant (see workout.service.ts's parseDateOnly/nextDateForWeekday
+      // doc comments); a LOCAL new Date(y,m,d) boundary here would drift
+      // by a day whenever this process's own timezone isn't UTC, exactly
+      // the bug class this whole file exists to guard against.
       const allDbRows = await db.workoutSchedule.findMany({
-        where: { userId, date: { gte: new Date(2026, 6, 1), lte: new Date(2026, 6, 31) } },
+        where: { userId, date: { gte: new Date(Date.UTC(2026, 6, 1)), lte: new Date(Date.UTC(2026, 6, 31)) } },
       });
       assert.equal(
         allDbRows.length,
@@ -199,11 +228,11 @@ test(
       // And the old dates must be genuinely gone (not zombied), so they can
       // be scheduled again in the future without silently colliding.
       const oldDates = await db.workoutSchedule.findMany({
-        where: { userId, date: { gte: new Date(2026, 6, 1), lte: new Date(2026, 6, 17) } },
+        where: { userId, date: { gte: new Date(Date.UTC(2026, 6, 1)), lte: new Date(Date.UTC(2026, 6, 17)) } },
       });
       assert.equal(oldDates.length, 0, "Plan A's superseded rows must be fully deleted, not orphaned");
     } finally {
-      await deleteSeed(db, userId);
+      await deleteSeed(db, userId, exerciseId);
     }
   },
 );
@@ -215,8 +244,11 @@ test(
     const { prisma: db, workoutService: service } = await loadModules();
     const userId = `calendar-it-${Date.now()}-c`;
     const exerciseId = `${userId}-exercise-1`;
-    await seedExercise(db, exerciseId);
+    // Pre-clean by userId only — exerciseId was JUST created above by
+    // seedExercise and must survive into the test body below; the
+    // exercise-row cleanup happens once, in the finally block.
     await deleteSeed(db, userId);
+    await seedExercise(db, exerciseId);
 
     try {
       await service.createManualProgram(userId, {
@@ -245,7 +277,7 @@ test(
       assert.deepEqual(visible, expected);
       assert.ok(visible.includes(14) && visible.includes(16) && visible.includes(17));
     } finally {
-      await deleteSeed(db, userId);
+      await deleteSeed(db, userId, exerciseId);
     }
   },
 );
@@ -257,8 +289,11 @@ test(
     const { prisma: db, workoutService: service } = await loadModules();
     const userId = `calendar-it-${Date.now()}-d`;
     const exerciseId = `${userId}-exercise-1`;
-    await seedExercise(db, exerciseId);
+    // Pre-clean by userId only — exerciseId was JUST created above by
+    // seedExercise and must survive into the test body below; the
+    // exercise-row cleanup happens once, in the finally block.
     await deleteSeed(db, userId);
+    await seedExercise(db, exerciseId);
 
     try {
       // July 2026 has 31 days; selecting every weekday guarantees July 31
@@ -282,7 +317,7 @@ test(
       assert.ok(visible.includes(31), "July 31 (end of range) must not be dropped");
       assert.deepEqual(visible, [27, 28, 29, 30, 31]);
     } finally {
-      await deleteSeed(db, userId);
+      await deleteSeed(db, userId, exerciseId);
     }
   },
 );
@@ -294,8 +329,11 @@ test(
     const { prisma: db, workoutService: service } = await loadModules();
     const userId = `calendar-it-${Date.now()}-e`;
     const exerciseId = `${userId}-exercise-1`;
-    await seedExercise(db, exerciseId);
+    // Pre-clean by userId only — exerciseId was JUST created above by
+    // seedExercise and must survive into the test body below; the
+    // exercise-row cleanup happens once, in the finally block.
     await deleteSeed(db, userId);
+    await seedExercise(db, exerciseId);
 
     try {
       await service.createManualProgram(userId, {
@@ -310,8 +348,9 @@ test(
 
       // Simulate the user actually completing the July 14 (Tue) session —
       // a real Workout log gets attached to that schedule row.
+      // UTC — see the comment above allDbRows for why.
       const july14Schedule = await db.workoutSchedule.findFirstOrThrow({
-        where: { userId, date: new Date(2026, 6, 14) },
+        where: { userId, date: new Date(Date.UTC(2026, 6, 14)) },
       });
       const loggedWorkout = await db.workout.create({
         data: { userId, name: "Completed session", date: new Date(2026, 6, 14) },
@@ -341,7 +380,7 @@ test(
       );
     } finally {
       await db.workout.deleteMany({ where: { userId } });
-      await deleteSeed(db, userId);
+      await deleteSeed(db, userId, exerciseId);
     }
   },
 );

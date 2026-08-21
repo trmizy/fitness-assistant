@@ -3,11 +3,13 @@ import { useNavigate } from "react-router";
 import {
   Users,
   Calendar,
-  FileText,
+  Wallet as WalletIcon,
   TrendingUp,
   AlertCircle,
   Clock,
   Brain,
+  CalendarX2,
+  CalendarCheck2,
 } from "lucide-react";
 import {
   BarChart,
@@ -28,9 +30,17 @@ import {
   contractService,
   sessionService,
   ptPlanReviewService,
+  walletService,
 } from "../../services/api";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { formatVND } from "../../utils/currency";
+import { KpiCard } from "../../components/ui/KpiCard";
+import {
+  SkeletonRow,
+  SkeletonChart,
+  EmptyState,
+  ErrorState,
+} from "../../components/dashboard/DashboardStates";
 
 // clientProfile (from testai-v4 service) or clientName string (legacy compat)
 type ClientRef = {
@@ -98,6 +108,23 @@ function formatSessionTime(dateStr: string) {
   });
 }
 
+/** Fixed, literal delay classes — Tailwind's JIT scanner needs the full class string in
+ * source, so this can't be built from a template literal with a runtime index. */
+const STAGGER_DELAYS = ["", "delay-75", "delay-150", "delay-200"] as const;
+
+const chartTooltipStyle = {
+  fontSize: 12,
+  borderRadius: 8,
+  border: "1px solid #27272a",
+  backgroundColor: "#111111",
+  color: "#f4f4f5",
+} as const;
+
+const statusLabel: Record<string, string> = {
+  CONFIRMED: "Đã xác nhận",
+  REQUESTED: "Chờ xác nhận",
+};
+
 export function PTDashboard() {
   const navigate = useNavigate();
   const { user } = useApp();
@@ -107,7 +134,16 @@ export function PTDashboard() {
     day: "numeric",
   });
 
-  const { data: earnings, isLoading: earningsLoading } = useQuery({
+  const { data: wallet, isLoading: walletLoading } = useQuery({
+    queryKey: ["pt-wallet"],
+    queryFn: () => walletService.getPtWallet(),
+  });
+
+  const {
+    data: earnings,
+    isLoading: earningsLoading,
+    isError: earningsError,
+  } = useQuery({
     queryKey: ["pt-earnings"],
     queryFn: () => contractService.getEarnings(),
   });
@@ -117,7 +153,11 @@ export function PTDashboard() {
     queryFn: () => contractService.getByPT(),
   });
 
-  const { data: upcomingSessions = [], isLoading: sessionsLoading } = useQuery({
+  const {
+    data: upcomingSessions = [],
+    isLoading: sessionsLoading,
+    isError: sessionsError,
+  } = useQuery({
     queryKey: ["sessions-upcoming"],
     queryFn: () => sessionService.getMyUpcoming(),
   });
@@ -126,8 +166,6 @@ export function PTDashboard() {
     queryKey: ["pt-pending-plans-count"],
     queryFn: () => ptPlanReviewService.getPendingReviews(),
   });
-
-  const isLoading = earningsLoading || contractsLoading || sessionsLoading;
 
   const { joinCoachingSession } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
@@ -149,6 +187,7 @@ export function PTDashboard() {
     }
   };
 
+  const availableBalance = Number(wallet?.availableBalance ?? 0);
   const activeContracts: number = earnings?.activeContracts ?? 0;
   const totalEarned: number = earnings?.totalEarned ?? 0;
   const activeRevenue: number = earnings?.activeRevenue ?? 0;
@@ -158,44 +197,48 @@ export function PTDashboard() {
 
   const kpis = [
     {
-      label: "Học viên",
-      value: isLoading ? "–" : String(activeContracts),
-      change: "Hợp đồng",
-      icon: Users,
+      label: "Số dư ví khả dụng",
+      value: formatVND(availableBalance),
+      change: "Ví PT",
+      icon: WalletIcon,
       color: "text-green-400",
       bg: "bg-green-500/10",
       iconBg: "bg-green-500/15",
       border: "border-green-500/20",
+      loading: walletLoading,
     },
     {
       label: "Buổi tập sắp tới",
-      value: isLoading ? "–" : String(upcomingCount),
+      value: String(upcomingCount),
       change: "Tuần này",
       icon: Calendar,
       color: "text-blue-400",
       bg: "bg-blue-500/10",
       iconBg: "bg-blue-500/15",
       border: "border-blue-500/20",
+      loading: sessionsLoading,
     },
     {
       label: "Hợp đồng đang hoạt động",
-      value: isLoading ? "–" : String(activeContracts),
-      change: "Đang hoạt động",
-      icon: FileText,
+      value: String(activeContracts),
+      change: "Đang chạy",
+      icon: Users,
       color: "text-violet-400",
       bg: "bg-violet-500/10",
       iconBg: "bg-violet-500/15",
       border: "border-violet-500/20",
+      loading: earningsLoading,
     },
     {
       label: "Tổng thu nhập",
-      value: isLoading ? "–" : formatVND(totalEarned),
+      value: formatVND(totalEarned),
       change: "Tổng cộng",
       icon: TrendingUp,
       color: "text-amber-400",
       bg: "bg-amber-500/10",
       iconBg: "bg-amber-500/15",
       border: "border-amber-500/20",
+      loading: earningsLoading,
     },
   ];
 
@@ -244,68 +287,45 @@ export function PTDashboard() {
       })),
   ];
 
-  const statusLabel: Record<string, string> = {
-    CONFIRMED: "Đã xác nhận",
-    REQUESTED: "Chờ xác nhận",
-  };
-
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-zinc-100">
-            Xin chào, {user?.firstName || "Coach"} 👋
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{today}</p>
+          <h1 className="text-zinc-100">Xin chào, {user?.firstName || "Coach"}</h1>
+          <p className="mt-0.5 text-sm text-zinc-500">{today}</p>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => navigate("/pt/clients")}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
+            onClick={() => navigate("/pt/wallet")}
+            className="flex items-center gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-2.5 text-sm font-bold text-zinc-200 transition-[transform,border-color] active:scale-[0.98] hover:border-zinc-600"
           >
-            <Users className="w-4 h-4" /> Xem học viên
+            <WalletIcon className="h-4 w-4" /> Ví của tôi
+          </button>
+          <button
+            onClick={() => navigate("/pt/clients")}
+            className="flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black shadow-lg shadow-green-500/20 transition-[transform,background-color] active:scale-[0.98] hover:bg-green-400"
+          >
+            <Users className="h-4 w-4" /> Xem học viên
           </button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className={`${k.bg} rounded-xl p-4 border ${k.border}`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className={`w-9 h-9 ${k.iconBg} rounded-lg flex items-center justify-center`}
-              >
-                <k.icon className={`w-4 h-4 ${k.color}`} />
-              </div>
-              <span
-                className={`text-xs font-bold ${k.color} bg-black/20 px-2 py-0.5 rounded-full`}
-              >
-                {k.change}
-              </span>
-            </div>
-            <div className="text-xl font-bold text-zinc-100">{k.value}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{k.label}</div>
-          </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {kpis.map((k, i) => (
+          <KpiCard key={k.label} {...k} animationDelayClass={STAGGER_DELAYS[i]} />
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-zinc-200">
-              Tổng quan doanh thu
-            </h4>
-          </div>
+      {/* Charts — asymmetric 3fr/2fr split rather than an even halves grid */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900 p-4 lg:col-span-3">
+          <h4 className="mb-3 text-sm font-bold text-zinc-200">Tổng quan doanh thu</h4>
           {earningsLoading ? (
-            <div className="h-[140px] flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <SkeletonChart />
+          ) : earningsError ? (
+            <ErrorState message="Không tải được doanh thu. Thử tải lại trang." />
           ) : (
             <ResponsiveContainer width="100%" height={140}>
               <BarChart data={revenueData}>
@@ -321,29 +341,18 @@ export function PTDashboard() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: "1px solid #27272a",
-                    backgroundColor: "#111111",
-                    color: "#f4f4f5",
-                  }}
-                  formatter={(v: number) => [formatVND(v)]}
-                />
+                <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [formatVND(v)]} />
                 <Bar dataKey="revenue" fill="#22c55e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200 mb-3">
-            Buổi tập tuần này
-          </h4>
+        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900 p-4 lg:col-span-2">
+          <h4 className="mb-3 text-sm font-bold text-zinc-200">Buổi tập tuần này</h4>
           {sessionsLoading ? (
-            <div className="h-[140px] flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <SkeletonChart />
+          ) : sessionsError ? (
+            <ErrorState message="Không tải được lịch tuần. Thử tải lại trang." />
           ) : (
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={sessionTrend}>
@@ -359,15 +368,7 @@ export function PTDashboard() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: "1px solid #27272a",
-                    backgroundColor: "#111111",
-                    color: "#f4f4f5",
-                  }}
-                />
+                <Tooltip contentStyle={chartTooltipStyle} />
                 <Line
                   type="monotone"
                   dataKey="sessions"
@@ -382,52 +383,51 @@ export function PTDashboard() {
       </div>
 
       {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Upcoming sessions */}
-        <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
-            <h4 className="text-sm font-bold text-zinc-200">
-              Buổi tập sắp tới
-            </h4>
+        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900 lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
+            <h4 className="text-sm font-bold text-zinc-200">Buổi tập sắp tới</h4>
             <button
               onClick={() => navigate("/pt/schedule")}
-              className="text-xs text-green-400 hover:text-green-300 transition-colors"
+              className="text-xs text-green-400 transition-colors hover:text-green-300"
             >
               Xem tất cả
             </button>
           </div>
           {sessionsLoading ? (
-            <div className="px-4 py-8 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <div className="divide-y divide-zinc-800/40">
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
             </div>
           ) : sortedSessions.length === 0 ? (
-            <div className="px-4 py-8 text-center text-zinc-500 text-sm">
-              Không có buổi tập sắp tới
-            </div>
+            <EmptyState
+              icon={CalendarX2}
+              title="Không có buổi tập sắp tới"
+              hint="Buổi tập mới sẽ hiện ở đây khi học viên đặt lịch."
+            />
           ) : (
             <div className="divide-y divide-zinc-800/40">
               {sortedSessions.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/30 transition-colors"
+                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-zinc-800/30"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center text-xs font-bold text-green-400">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-green-500/20 bg-green-500/15 text-xs font-bold text-green-400">
                       {getInitials(s)}
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-zinc-200">
-                        {resolveClientName(s)}
-                      </div>
-                      <div className="text-xs text-zinc-600 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />{" "}
-                        {formatSessionTime(s.scheduledStartAt)}
+                      <div className="text-sm font-bold text-zinc-200">{resolveClientName(s)}</div>
+                      <div className="flex items-center gap-1 text-xs text-zinc-600">
+                        <Clock className="h-3 w-3" /> {formatSessionTime(s.scheduledStartAt)}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         s.status === "CONFIRMED"
                           ? "bg-green-500/10 text-green-400"
                           : s.status === "REQUESTED"
@@ -444,21 +444,19 @@ export function PTDashboard() {
                       return (
                         <div className="flex flex-col items-end gap-0.5">
                           <button
-                            onClick={() =>
-                              joinState.enabled && handleJoinSession(s)
-                            }
+                            onClick={() => joinState.enabled && handleJoinSession(s)}
                             disabled={!joinState.enabled || isJoining}
                             title={joinState.reason}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-[transform,background-color] active:scale-[0.98] ${
                               joinState.enabled && !isJoining
-                                ? "bg-green-500 hover:bg-green-400 text-black shadow-sm shadow-green-500/20 cursor-pointer"
-                                : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                                ? "cursor-pointer bg-green-500 text-black shadow-sm shadow-green-500/20 hover:bg-green-400"
+                                : "cursor-not-allowed bg-zinc-700 text-zinc-500"
                             }`}
                           >
                             {isJoining ? "Đang vào..." : joinState.label}
                           </button>
                           {joinState.reason && !joinState.enabled && (
-                            <span className="text-[10px] text-zinc-600 text-right max-w-[120px] leading-tight">
+                            <span className="max-w-[120px] text-right text-[10px] leading-tight text-zinc-600">
                               {joinState.reason}
                             </span>
                           )}
@@ -473,36 +471,36 @@ export function PTDashboard() {
         </div>
 
         {/* Alerts */}
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
-            <AlertCircle className="w-4 h-4 text-amber-400" />
-            <h4 className="text-sm font-bold text-zinc-200">
-              Cảnh báo học viên
-            </h4>
+        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900">
+          <div className="flex items-center gap-2 border-b border-zinc-800/60 px-4 py-3">
+            <AlertCircle className="h-4 w-4 text-amber-400" />
+            <h4 className="text-sm font-bold text-zinc-200">Cảnh báo học viên</h4>
           </div>
           {contractsLoading ? (
-            <div className="px-4 py-8 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            <div className="divide-y divide-zinc-800/40">
+              <SkeletonRow />
+              <SkeletonRow />
             </div>
           ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 ? (
-            <div className="px-4 py-8 text-center text-zinc-500 text-sm">
-              Không có cảnh báo
-            </div>
+            <EmptyState
+              icon={CalendarCheck2}
+              title="Không có cảnh báo"
+              hint="Mọi hợp đồng và kế hoạch đang ổn."
+            />
           ) : (
             <div className="divide-y divide-zinc-800/40">
               {(pendingPlans as any[]).length > 0 && (
-                <div className="px-4 py-3 bg-violet-500/5">
+                <div className="bg-violet-500/5 px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-violet-400 flex-shrink-0" />
-                    <p className="text-xs text-zinc-300 leading-relaxed flex-1">
-                      {(pendingPlans as any[]).length} kế hoạch AI đang chờ bạn
-                      duyệt
+                    <Brain className="h-4 w-4 flex-shrink-0 text-violet-400" />
+                    <p className="flex-1 text-xs leading-relaxed text-zinc-300">
+                      {(pendingPlans as any[]).length} kế hoạch AI đang chờ bạn duyệt
                     </p>
                     <button
                       onClick={() => navigate("/pt/plans")}
-                      className="text-xs text-violet-400 hover:text-violet-300 font-semibold whitespace-nowrap"
+                      className="whitespace-nowrap text-xs font-semibold text-violet-400 hover:text-violet-300"
                     >
-                      Xem ngay →
+                      Xem ngay
                     </button>
                   </div>
                 </div>
@@ -512,9 +510,7 @@ export function PTDashboard() {
                   key={i}
                   className={`px-4 py-3 ${a.type === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}
                 >
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {a.text}
-                  </p>
+                  <p className="text-xs leading-relaxed text-zinc-400">{a.text}</p>
                 </div>
               ))}
             </div>

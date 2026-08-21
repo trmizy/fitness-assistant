@@ -1,8 +1,11 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { BottomNav } from "./BottomNav";
 import { CallOverlay } from "../call/CallOverlay";
 import bgGym from "../../../assets/bg-gym.jpg";
 
@@ -26,6 +29,22 @@ export function AppShell() {
     }
   }, [location.pathname, isPT, setActiveView]);
 
+  // Handle hardware back button for Android
+  useEffect(() => {
+    const backButtonListener = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      // If we are at the root dashboard of either view, exit app
+      if (location.pathname === "/client/dashboard" || location.pathname === "/pt/dashboard") {
+        CapacitorApp.exitApp();
+      } else {
+        // Otherwise, navigate back in history
+        navigate(-1);
+      }
+    });
+    return () => {
+      backButtonListener.then((listener) => listener.remove());
+    };
+  }, [location.pathname, navigate]);
+
   if (!isAuthenticated) return null;
   return (
     <>
@@ -37,6 +56,11 @@ export function AppShell() {
 
 function AppShellInner() {
   const { sidebarOpen, setSidebarOpen } = useApp();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const isChatView =
+    location.pathname.includes("/chat") && searchParams.has("conversationId");
 
   return (
     <div
@@ -64,11 +88,38 @@ function AppShellInner() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">
         <Topbar />
-        <main className="flex-1 overflow-y-auto bg-transparent relative z-10">
-          <Outlet />
+        <main
+          className={`flex-1 overflow-y-auto bg-transparent relative z-10 overflow-x-hidden ${
+            isChatView ? "" : "pb-16 lg:pb-0"
+          }`}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ clipPath: "circle(0% at 100% 50%)", opacity: 0 }}
+              animate={{ clipPath: "circle(150% at 50% 50%)", opacity: 1 }}
+              exit={{ clipPath: "circle(0% at 0% 50%)", opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              // min-h-full (not h-full): this box's real content height drives
+              // the clip-path circle's radius (circle() percentages are
+              // relative to the element's own box, not the viewport). Pinning
+              // it to exactly viewport height meant any page taller than one
+              // screen — e.g. the merged workout-log page — got sliced off by
+              // the circle's edge below that point, showing up as a diagonal
+              // cut with the AppShell background bleeding through. min-h-full
+              // still fills the viewport on short pages (so full-height
+              // children, e.g. the chat layout, are unaffected) but lets tall
+              // pages grow the box to their real height instead.
+              className="min-h-full"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
+        
+        {!isChatView && <BottomNav />}
       </div>
     </div>
   );

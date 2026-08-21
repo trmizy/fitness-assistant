@@ -2,6 +2,8 @@ import { Router } from "express";
 import { aiController } from "../controllers/ai.controller";
 import { cycleAnalysisController } from "../controllers/cycle-analysis.controller";
 import { cycleAssessmentController } from "../controllers/cycle-assessment.controller";
+import { feedbackAnalysisController } from "../controllers/feedback-analysis.controller";
+import { clientPlanDraftController } from "../controllers/client-plan-draft.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
@@ -62,5 +64,19 @@ router.post("/analyze-cycle", cycleAnalysisController.analyzeCycle);
 // does not replace /analyze-cycle, which the legacy /complete flow still
 // calls unchanged.
 router.post("/assess-cycle", cycleAssessmentController.assessCycle);
+
+// Phase 4 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — called by
+// fitness-service with an already-computed (rule-based, no AI)
+// CycleFeedbackSummary; this endpoint only interprets/explains it, never
+// decides. Advisory-only signal, consumed by the Decision Engine (Phase 5)
+// as one input among several, never as the final decision.
+router.post("/analyze-feedback", feedbackAnalysisController.analyzeFeedback);
+
+// Phase 7 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — called by
+// fitness-service's coach.service.ts when a PT clicks "Gợi ý bằng AI" while
+// building a plan for a client. Returns a DRAFT only — never persisted as a
+// real plan here; the PT must review/edit and explicitly submit via the
+// existing POST /coach/clients/:clientId/plans.
+router.post("/generate-client-plan-draft", clientPlanDraftController.generateDraft);
 
 export default router;

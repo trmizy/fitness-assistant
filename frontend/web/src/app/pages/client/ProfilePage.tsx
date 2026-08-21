@@ -9,6 +9,10 @@ import {
   Award,
   Loader2,
   Camera,
+  Dumbbell,
+  TrendingDown,
+  TrendingUp,
+  Target,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -74,11 +78,13 @@ export function ProfilePage() {
   const [activity, setActivity] = useState("Vận động vừa");
   const [diet, setDiet] = useState("Nhiều protein");
 
-  const [age, setAge] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
+  const [competesInSport, setCompetesInSport] = useState(false);
+  const [injuriesText, setInjuriesText] = useState("");
 
   // Sync isPT from profile API into context/localStorage when user is approved
   useEffect(() => {
@@ -108,12 +114,18 @@ export function ProfilePage() {
         };
         setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
       }
-      setAge(profileData.age?.toString() || "");
+      setDateOfBirth(
+        profileData.dateOfBirth
+          ? String(profileData.dateOfBirth).slice(0, 10)
+          : "",
+      );
       setGender(profileData.gender || "");
       setHeight(profileData.heightCm?.toString() || "");
       setWeight(profileData.currentWeight?.toString() || "");
       if (profileData.dietaryPreference) setDiet(profileData.dietaryPreference);
       setExperienceLevel(profileData.experienceLevel || "");
+      setCompetesInSport(Boolean(profileData.competesInSport));
+      setInjuriesText(Array.isArray(profileData.injuries) ? profileData.injuries.join(", ") : "");
     }
   }, [profileData]);
 
@@ -166,15 +178,17 @@ export function ProfilePage() {
               : activity === "Năng động"
                 ? "VERY_ACTIVE"
                 : "EXTREMELY_ACTIVE",
-      age: age ? parseInt(age) : undefined,
+      dateOfBirth: dateOfBirth || undefined,
       gender: gender ? gender.toUpperCase() : undefined,
       heightCm: height ? parseFloat(height) : undefined,
       currentWeight: weight ? parseFloat(weight) : undefined,
       dietaryPreference: diet,
-      // Empty string means "chưa xác định" — sent as undefined, never
-      // silently coerced to a specific level. The backend/AI side already
-      // treats a missing value as an explicit UNKNOWN, not a default.
       experienceLevel: experienceLevel || undefined,
+      competesInSport,
+      injuries: injuriesText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     });
   };
 
@@ -249,6 +263,84 @@ export function ProfilePage() {
           )}
         </button>
       </div>
+
+      {/* Weight journey — starting/current/target/progress. Spec §27:
+          starting weight is the IMMUTABLE journey-start snapshot
+          (profileData.startingWeight), never overwritten by later InBody
+          syncs — distinct from the editable "Cân nặng (kg)" field below,
+          which is the mutable current weight. Only rendered once there's
+          at least a starting + current weight to show progress against. */}
+      {profileData?.startingWeight != null && profileData?.currentWeight != null && (
+        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+          <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-green-400" /> Hành trình cân nặng
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Cân nặng bắt đầu
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.startingWeight} kg
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Hiện tại
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.currentWeight} kg
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Mục tiêu
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.targetWeight != null ? `${profileData.targetWeight} kg` : "Chưa đặt"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Đã thay đổi
+              </p>
+              <p
+                className={`text-lg font-bold flex items-center gap-1 ${
+                  profileData.startingWeight > profileData.currentWeight
+                    ? "text-green-400"
+                    : profileData.startingWeight < profileData.currentWeight
+                      ? "text-amber-400"
+                      : "text-zinc-400"
+                }`}
+              >
+                {profileData.startingWeight > profileData.currentWeight ? (
+                  <TrendingDown className="w-4 h-4" />
+                ) : profileData.startingWeight < profileData.currentWeight ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : null}
+                {Math.abs(
+                  Math.round((profileData.startingWeight - profileData.currentWeight) * 10) / 10,
+                )}{" "}
+                kg
+              </p>
+            </div>
+          </div>
+          {profileData.targetWeight != null && (
+            <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center gap-2 text-xs text-zinc-500">
+              <Target className="w-3.5 h-3.5 text-zinc-600" />
+              {Math.abs(
+                Math.round((profileData.currentWeight - profileData.targetWeight) * 10) / 10,
+              ) === 0
+                ? "Đã đạt mục tiêu cân nặng"
+                : `Còn ${Math.abs(
+                    Math.round(
+                      (profileData.currentWeight - profileData.targetWeight) * 10,
+                    ) / 10,
+                  )} kg để đạt mục tiêu`}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Avatar card */}
@@ -331,7 +423,13 @@ export function ProfilePage() {
                   value: user ? `${user.firstName} ${user.lastName}` : "",
                 },
                 { label: "Email", value: user?.email || "" },
-                { label: "Tuổi", value: age, setter: setAge, type: "number" },
+                {
+                  label: "Ngày sinh",
+                  value: dateOfBirth,
+                  setter: setDateOfBirth,
+                  type: "date",
+                  maxDate: new Date().toISOString().slice(0, 10),
+                },
                 {
                   label: "Chiều cao (cm)",
                   value: height,
@@ -353,6 +451,7 @@ export function ProfilePage() {
                     <input
                       type={f.type}
                       value={f.value}
+                      max={(f as any).maxDate}
                       onChange={(e) => f.setter(e.target.value)}
                       className={inputClass}
                     />
@@ -475,6 +574,21 @@ export function ProfilePage() {
                   Dùng để AI không đề xuất kỹ thuật nâng cao khi trình độ chưa được xác nhận.
                 </p>
               </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={competesInSport}
+                    disabled={!editing}
+                    onChange={(e) => setCompetesInSport(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-green-500 disabled:opacity-60"
+                  />
+                  Tôi đang thi đấu thể hình/thể thao chuyên nghiệp
+                </label>
+                <p className="text-[11px] text-zinc-600 mt-1">
+                  Bật mục này để hệ thống áp dụng ngưỡng kiểm tra dữ liệu chặt chẽ hơn và không đưa lời khuyên đơn giản hoá.
+                </p>
+              </div>
               <div>
                 <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
                   Chế độ ăn
@@ -502,12 +616,14 @@ export function ProfilePage() {
                 {editing ? (
                   <textarea
                     rows={2}
-                    placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..."
+                    placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý, cách nhau bằng dấu phẩy..."
+                    value={injuriesText}
+                    onChange={(e) => setInjuriesText(e.target.value)}
                     className={`${inputClass} resize-none`}
                   />
                 ) : (
                   <div className="text-sm text-zinc-400 py-2">
-                    Không có chấn thương.
+                    {injuriesText || "Không có chấn thương."}
                   </div>
                 )}
               </div>
@@ -515,6 +631,26 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Training Setup → Available Equipment (gym-onboarding project §26) */}
+      <button
+        type="button"
+        onClick={() => navigate("/client/training-equipment")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Dumbbell className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Thiết bị tập luyện</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Đổi phòng gym hoặc cập nhật thiết bị bạn có — dùng để lọc bài tập phù hợp
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
 
       {/* PT upgrade / switch banner */}
       {isPT ? (

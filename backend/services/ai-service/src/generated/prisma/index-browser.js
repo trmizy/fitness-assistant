@@ -202,7 +202,29 @@ exports.Prisma.PublishedPlanScalarFieldEnum = {
   ratingCount: 'ratingCount',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  version: 'version',
+  previousVersionId: 'previousVersionId',
+  changelog: 'changelog',
+  improvementReason: 'improvementReason',
+  approvedBy: 'approvedBy',
+  publisherIsVerifiedPt: 'publisherIsVerifiedPt',
+  qualityScore: 'qualityScore',
+  qualityScoreComputedAt: 'qualityScoreComputedAt'
+};
+
+exports.Prisma.PlanModerationAnalysisScalarFieldEnum = {
+  id: 'id',
+  publishedPlanId: 'publishedPlanId',
+  computedStats: 'computedStats',
+  ruleFlags: 'ruleFlags',
+  similarListings: 'similarListings',
+  aiConcerns: 'aiConcerns',
+  aiConfidenceScore: 'aiConfidenceScore',
+  aiRecommendation: 'aiRecommendation',
+  explanationForAdmin: 'explanationForAdmin',
+  usedFallback: 'usedFallback',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.PlanReviewScalarFieldEnum = {
@@ -211,6 +233,37 @@ exports.Prisma.PlanReviewScalarFieldEnum = {
   reviewerId: 'reviewerId',
   rating: 'rating',
   comment: 'comment',
+  createdAt: 'createdAt',
+  goalFit: 'goalFit',
+  difficultyFit: 'difficultyFit',
+  enjoyment: 'enjoyment',
+  clarity: 'clarity',
+  equipmentFit: 'equipmentFit',
+  timeFit: 'timeFit',
+  resultsPerception: 'resultsPerception',
+  wouldUseAgain: 'wouldUseAgain',
+  complaintTags: 'complaintTags',
+  freeText: 'freeText'
+};
+
+exports.Prisma.PlanImprovementSuggestionScalarFieldEnum = {
+  id: 'id',
+  publishedPlanId: 'publishedPlanId',
+  basedOnReviewCount: 'basedOnReviewCount',
+  qualityScoreSnapshot: 'qualityScoreSnapshot',
+  suggestions: 'suggestions',
+  commonComplaints: 'commonComplaints',
+  summary: 'summary',
+  generatedAt: 'generatedAt'
+};
+
+exports.Prisma.PlanAdoptionScalarFieldEnum = {
+  id: 'id',
+  publishedPlanId: 'publishedPlanId',
+  adopterId: 'adopterId',
+  accessBasis: 'accessBasis',
+  purchaseId: 'purchaseId',
+  wasCustomized: 'wasCustomized',
   createdAt: 'createdAt'
 };
 
@@ -237,6 +290,117 @@ exports.Prisma.TrainingPackagePurchaseScalarFieldEnum = {
   purchasedAt: 'purchasedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PersonalizedServiceScalarFieldEnum = {
+  id: 'id',
+  sellerId: 'sellerId',
+  serviceType: 'serviceType',
+  title: 'title',
+  description: 'description',
+  price: 'price',
+  deliverables: 'deliverables',
+  revisionLimit: 'revisionLimit',
+  initialDeliveryDays: 'initialDeliveryDays',
+  supportWeeks: 'supportWeeks',
+  targetGoal: 'targetGoal',
+  targetLevel: 'targetLevel',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PersonalizedServiceOrderScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  sellerId: 'sellerId',
+  buyerId: 'buyerId',
+  status: 'status',
+  titleSnapshot: 'titleSnapshot',
+  descriptionSnapshot: 'descriptionSnapshot',
+  serviceTypeSnapshot: 'serviceTypeSnapshot',
+  deliverablesSnapshot: 'deliverablesSnapshot',
+  revisionLimitSnapshot: 'revisionLimitSnapshot',
+  initialDeliveryDaysSnapshot: 'initialDeliveryDaysSnapshot',
+  supportWeeksSnapshot: 'supportWeeksSnapshot',
+  priceAtPurchase: 'priceAtPurchase',
+  paymentTransactionId: 'paymentTransactionId',
+  purchasedAt: 'purchasedAt',
+  intakeData: 'intakeData',
+  consentCategories: 'consentCategories',
+  intakeSubmittedAt: 'intakeSubmittedAt',
+  contractId: 'contractId',
+  initialDeliveryDeadline: 'initialDeliveryDeadline',
+  draftContent: 'draftContent',
+  draftVersion: 'draftVersion',
+  revisionCount: 'revisionCount',
+  acceptedAt: 'acceptedAt',
+  committedProgramId: 'committedProgramId',
+  cancelledAt: 'cancelledAt',
+  cancelReason: 'cancelReason',
+  refundRequestedAt: 'refundRequestedAt',
+  refundedAt: 'refundedAt',
+  disputeReason: 'disputeReason',
+  disputedAt: 'disputedAt',
+  preRefundStatus: 'preRefundStatus',
+  cumulativeRefundedAmount: 'cumulativeRefundedAmount',
+  refundResolvedBy: 'refundResolvedBy',
+  refundResolvedAt: 'refundResolvedAt',
+  refundResolutionNote: 'refundResolutionNote',
+  refundDecision: 'refundDecision',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PersonalizedServicePlanVersionScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  version: 'version',
+  content: 'content',
+  status: 'status',
+  createdBy: 'createdBy',
+  changeReason: 'changeReason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PersonalizedServiceCheckInScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  buyerId: 'buyerId',
+  weekNumber: 'weekNumber',
+  weight: 'weight',
+  energyLevel: 'energyLevel',
+  sleepQuality: 'sleepQuality',
+  stressLevel: 'stressLevel',
+  overallRpe: 'overallRpe',
+  workoutAdherence: 'workoutAdherence',
+  nutritionAdherence: 'nutritionAdherence',
+  painOrDiscomfort: 'painOrDiscomfort',
+  notes: 'notes',
+  requiresAttention: 'requiresAttention',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PersonalizedServiceReviewScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  buyerId: 'buyerId',
+  sellerId: 'sellerId',
+  overallRating: 'overallRating',
+  communicationRating: 'communicationRating',
+  personalizationRating: 'personalizationRating',
+  planQualityRating: 'planQualityRating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PersonalizedServiceRevisionRequestScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  category: 'category',
+  comment: 'comment',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt'
 };
 
 exports.Prisma.NutritionPlanScalarFieldEnum = {
@@ -328,6 +492,11 @@ exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -374,6 +543,51 @@ exports.TrainingPackagePurchaseStatus = exports.$Enums.TrainingPackagePurchaseSt
   FAILED: 'FAILED'
 };
 
+exports.PersonalizedServiceType = exports.$Enums.PersonalizedServiceType = {
+  PERSONALIZED_WORKOUT: 'PERSONALIZED_WORKOUT',
+  PERSONALIZED_NUTRITION: 'PERSONALIZED_NUTRITION',
+  WORKOUT_AND_NUTRITION: 'WORKOUT_AND_NUTRITION',
+  ONLINE_COACHING: 'ONLINE_COACHING'
+};
+
+exports.PersonalizedServiceStatus = exports.$Enums.PersonalizedServiceStatus = {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.PersonalizedServiceOrderStatus = exports.$Enums.PersonalizedServiceOrderStatus = {
+  PURCHASED: 'PURCHASED',
+  INTAKE_PENDING: 'INTAKE_PENDING',
+  INTAKE_SUBMITTED: 'INTAKE_SUBMITTED',
+  PT_REVIEWING: 'PT_REVIEWING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  DRAFT_DELIVERED: 'DRAFT_DELIVERED',
+  REVISION_REQUESTED: 'REVISION_REQUESTED',
+  REVISION_IN_PROGRESS: 'REVISION_IN_PROGRESS',
+  ACCEPTED: 'ACCEPTED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUND_REQUESTED: 'REFUND_REQUESTED',
+  REFUNDED: 'REFUNDED',
+  DISPUTED: 'DISPUTED'
+};
+
+exports.PlanVersionStatus = exports.$Enums.PlanVersionStatus = {
+  DELIVERED: 'DELIVERED',
+  ACCEPTED: 'ACCEPTED',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+exports.RevisionRequestCategory = exports.$Enums.RevisionRequestCategory = {
+  EXERCISE: 'EXERCISE',
+  SCHEDULE: 'SCHEDULE',
+  DIFFICULTY: 'DIFFICULTY',
+  EQUIPMENT: 'EQUIPMENT',
+  NUTRITION: 'NUTRITION',
+  OTHER: 'OTHER'
+};
+
 exports.KnowledgeSourceType = exports.$Enums.KnowledgeSourceType = {
   RSS: 'RSS',
   API: 'API',
@@ -417,9 +631,18 @@ exports.Prisma.ModelName = {
   UserMemory: 'UserMemory',
   WorkoutPlan: 'WorkoutPlan',
   PublishedPlan: 'PublishedPlan',
+  PlanModerationAnalysis: 'PlanModerationAnalysis',
   PlanReview: 'PlanReview',
+  PlanImprovementSuggestion: 'PlanImprovementSuggestion',
+  PlanAdoption: 'PlanAdoption',
   TrainingPackage: 'TrainingPackage',
   TrainingPackagePurchase: 'TrainingPackagePurchase',
+  PersonalizedService: 'PersonalizedService',
+  PersonalizedServiceOrder: 'PersonalizedServiceOrder',
+  PersonalizedServicePlanVersion: 'PersonalizedServicePlanVersion',
+  PersonalizedServiceCheckIn: 'PersonalizedServiceCheckIn',
+  PersonalizedServiceReview: 'PersonalizedServiceReview',
+  PersonalizedServiceRevisionRequest: 'PersonalizedServiceRevisionRequest',
   NutritionPlan: 'NutritionPlan',
   KnowledgeSource: 'KnowledgeSource',
   KnowledgeDocument: 'KnowledgeDocument',

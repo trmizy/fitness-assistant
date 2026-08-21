@@ -21,6 +21,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { todayAsScheduleDate } from "../utils/schedule-lock.util";
 
 const fitnessDatabaseUrl =
   process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
@@ -50,14 +51,18 @@ test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
 
-// Anchored to the real current UTC day, matching schedule-lock.integration
+// Anchored to the real current day, matching schedule-lock.integration
 // .test.ts's convention, so "this week"/"last week" stay correct whenever
-// this suite runs.
+// this suite runs. Uses the app's own Ho_Chi_Minh-aware "today"
+// (todayAsScheduleDate), not a raw UTC calendar day — the two disagree for
+// ~7 hours of every 24 (UTC 17:00-23:59), which would otherwise misalign
+// "this week" with what currentWeekRange() (schedule-lock.util.ts) — the
+// same definition getWorkoutStats itself uses — actually considers today.
 function dateOnly(offsetDays: number): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays),
-  );
+  const today = todayAsScheduleDate();
+  const result = new Date(today);
+  result.setUTCDate(result.getUTCDate() + offsetDays);
+  return result;
 }
 
 async function seedSchedule(

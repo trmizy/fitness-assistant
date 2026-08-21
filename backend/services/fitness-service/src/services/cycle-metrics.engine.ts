@@ -48,6 +48,11 @@ export interface CycleMetricsResult {
   workoutsPerWeek: number;
   weeklyVolumeByMuscleGroup: VolumeWeek[];
   volumeTrendPercent: number | null;
+  /** % change in total volume per week, from a least-squares regression
+   * across EVERY week of data (not just first-vs-last like volumeTrendPercent)
+   * — a single anomalous first/last week can't dominate this signal. Null
+   * with <2 weeks of volume data. */
+  volumeProgressionSlope: number | null;
   exerciseProgression: ExerciseProgression[];
   estimated1RmTrend: E1rmTrendPoint[];
   strengthProgressScore: number | null; // 0-1
@@ -68,6 +73,17 @@ export interface CycleMetricsResult {
   dataQualityScore: number; // 0-1, folds in InBody quality confidence
   newPRs: string[];
   inBodyQuality: InBodyQualityResult;
+  /** Absolute count of scheduled-but-not-completed sessions in the window
+   * (adherence.total - adherence.completed) — the Decision Engine previously
+   * only saw a ratio (adherenceRate), which can't distinguish "80% of 10
+   * sessions" from "80% of 100 sessions". Null carries the same 0/0
+   * semantics as AdherenceMetric.percent (see computeAdherence's doc
+   * comment) — 0 scheduled sessions is "no data", not "0 missed". */
+  missedSessionCount: number | null;
+  /** 0-1, or null if no nutrition logging exists at all in the window —
+   * never fabricated as 0. Combines (days logged ÷ days in window) with
+   * closeness of average logged calories to NutritionGoal.calories. */
+  nutritionConsistencyScore: number | null;
 }
 
 /** First-week vs last-week estimated-1RM change per exercise, from the
@@ -139,6 +155,16 @@ export function computeGoalProgressScore(
   goal: string | null,
   deltaSMM: number | null,
   deltaPBF: number | null,
+  // Performance-goal athletes (powerlifting/strength sport, not
+  // bodybuilding) may show flat/negative body-composition change during a
+  // successful cycle — strength/skill IS the progress, not muscle/fat delta.
+  // Previously this function returned null unconditionally for
+  // ATHLETIC_PERFORMANCE, meaning the Decision Engine had literally no
+  // goalProgressScore signal for this goal at all (see
+  // docs/USER_LEVEL_PERSONALIZATION_PLAN.md, nhóm D). Optional and
+  // backward-compatible: omitting it reproduces the exact prior behavior
+  // for MUSCLE_GAIN/WEIGHT_LOSS/other goals.
+  strengthProgressScore?: number | null,
 ): number | null {
   const c = cycleThresholds.classification;
   if (goal === "MUSCLE_GAIN") {
@@ -149,7 +175,13 @@ export function computeGoalProgressScore(
     if (deltaPBF == null) return null;
     return Math.round(Math.max(0, Math.min(1, 0.5 - deltaPBF / (2 * Math.abs(c.pbfProgressingMaxPct)))) * 100) / 100;
   }
-  return null; // MAINTENANCE/ATHLETIC_PERFORMANCE/unset — no single composition-based goal signal
+  if (goal === "ATHLETIC_PERFORMANCE") {
+    // computeStrengthProgressScore is already 0-1 (0.5 = no change), the
+    // same scale this function returns on every other branch — reuse it
+    // directly rather than re-deriving a parallel formula.
+    return strengthProgressScore ?? null;
+  }
+  return null; // MAINTENANCE/unset — no single composition-based goal signal
 }
 
 function linearTrend(points: Array<{ dayOffset: number; value: number }>): FieldTrend | null {
@@ -198,6 +230,68 @@ export function computeBodyCompositionTrends(comparablePoints: InBodyTrendPoint[
         .map((p) => ({ dayOffset: dayOffset(p.date), value: p.bodyFatPct! })),
     ),
   };
+}
+
+/** % change in weekly volume per week, from a least-squares regression across
+ * every week with data — unlike volumeChangePct (training-cycle-metrics.service.ts),
+ * which only compares the first and last week, a single noisy week can't
+ * dominate this signal. Null with <2 weeks of data or a zero/negative
+ * baseline (can't express a % change against it). */
+export function computeVolumeProgressionSlope(weeks: VolumeWeek[]): number | null {
+  if (weeks.length < 2) return null;
+  const trend = linearTrend(weeks.map((w) => ({ dayOffset: w.week * 7, value: w.totalVolumeKg })));
+  if (!trend || trend.changePerWeek == null) return null;
+  const baseline = weeks[0].totalVolumeKg;
+  if (baseline <= 0) return null;
+  return Math.round((trend.changePerWeek / baseline) * 1000) / 10;
+}
+
+/** 0-1 nutrition consistency: (days with any logged meal ÷ days in window)
+ * combined with how close average logged calories sit to NutritionGoal.calories.
+ * Returns null (never 0) when nothing was logged at all in the window — no
+ * nutrition data is "unknown", not "zero consistency". Kept as a plain async
+ * DB read (not folded into computeCycleMetrics's Promise.all) so callers that
+ * don't need it (e.g. legacy /complete, which doesn't touch nutrition today)
+ * aren't forced to pay the query. */
+export async function computeNutritionConsistencyScore(params: {
+  userId: string;
+  startDate: Date;
+  asOf: Date;
+}): Promise<number | null> {
+  const [mealCompletions, nutritionGoal] = await Promise.all([
+    prisma.nutritionMealCompletion.findMany({
+      where: { userId: params.userId, logDate: { gte: params.startDate, lte: params.asOf } },
+      select: { logDate: true, status: true, consumedCalories: true },
+    }),
+    prisma.nutritionGoal.findFirst({ where: { userId: params.userId, status: "ACTIVE" } }),
+  ]);
+  if (mealCompletions.length === 0) return null;
+
+  const byDay = new Map<string, { calories: number }>();
+  for (const m of mealCompletions) {
+    if (m.status !== "COMPLETED" && m.status !== "PARTIAL") continue;
+    const key = m.logDate.toISOString().slice(0, 10);
+    const day = byDay.get(key) ?? { calories: 0 };
+    day.calories += m.consumedCalories ?? 0;
+    byDay.set(key, day);
+  }
+  const loggedDays = [...byDay.values()];
+  if (loggedDays.length === 0) return null;
+
+  const totalDaysInWindow = Math.max(
+    1,
+    Math.floor((params.asOf.getTime() - params.startDate.getTime()) / 86_400_000) + 1,
+  );
+  const daysLoggedRatio = Math.min(1, loggedDays.length / totalDaysInWindow);
+  const avgCalories = loggedDays.reduce((s, d) => s + d.calories, 0) / loggedDays.length;
+  const targetCalories = nutritionGoal?.calories ?? null;
+  // No target set at all — can't judge closeness, don't penalize for it.
+  const closeness =
+    targetCalories && targetCalories > 0
+      ? Math.max(0, 1 - Math.abs(avgCalories - targetCalories) / targetCalories)
+      : 1;
+
+  return Math.round(daysLoggedRatio * closeness * 100) / 100;
 }
 
 interface SessionFeedbackRow {
@@ -302,7 +396,7 @@ export async function computeCycleMetrics(params: {
   inBodyEntries: InBodyEntrySnapshot[]; // from CycleInBodyLink + start/end, caller-fetched
   priorityExercises?: string[]; // from TrainingCycle.configuration.priorityExercises
 }): Promise<CycleMetricsResult> {
-  const [adherence, workoutMetrics, sessionFeedbackRows] = await Promise.all([
+  const [adherence, workoutMetrics, sessionFeedbackRows, nutritionConsistencyScore] = await Promise.all([
     computeAdherence(params.userId, params.planId, params.startDate, params.asOf),
     computeWorkoutMetrics(params.userId, params.startDate, params.asOf, params.planId),
     prisma.cycleSessionFeedback.findMany({
@@ -314,6 +408,7 @@ export async function computeCycleMetrics(params: {
         workoutSchedule: { select: { date: true } },
       },
     }),
+    computeNutritionConsistencyScore({ userId: params.userId, startDate: params.startDate, asOf: params.asOf }),
   ]);
 
   const newPRs = await computeNewPRs(params.userId, workoutMetrics.sets, params.startDate);
@@ -366,6 +461,7 @@ export async function computeCycleMetrics(params: {
   // what correctly route a 0/0 cycle to INSUFFICIENT_DATA — this field is
   // just not left as NaN.
   const adherenceRateValue = adherence.percent == null ? 0 : Math.round((adherence.percent / 100) * 100) / 100;
+  const strengthProgressScoreValue = computeStrengthProgressScore(exerciseProgression);
 
   return {
     adherenceRate: adherenceRateValue,
@@ -374,9 +470,10 @@ export async function computeCycleMetrics(params: {
     workoutsPerWeek: Math.round((adherence.completed / cycleWeeks) * 10) / 10,
     weeklyVolumeByMuscleGroup: workoutMetrics.volumeByWeek,
     volumeTrendPercent: workoutMetrics.volumeChangePct,
+    volumeProgressionSlope: computeVolumeProgressionSlope(workoutMetrics.volumeByWeek),
     exerciseProgression,
     estimated1RmTrend: workoutMetrics.e1rmTrend,
-    strengthProgressScore: computeStrengthProgressScore(exerciseProgression),
+    strengthProgressScore: strengthProgressScoreValue,
     performanceConsistencyScore: computePerformanceConsistencyScore(workoutMetrics.volumeByWeek),
     averageSessionRpe: fatigueRecovery.averageSessionRpe,
     rpeTrend: fatigueRecovery.rpeTrend,
@@ -399,10 +496,12 @@ export async function computeCycleMetrics(params: {
     bodyWeightTrend,
     skeletalMuscleTrend,
     bodyFatTrend,
-    goalProgressScore: computeGoalProgressScore(params.goal, deltaSMM, deltaPBF),
+    goalProgressScore: computeGoalProgressScore(params.goal, deltaSMM, deltaPBF, strengthProgressScoreValue),
     dataCompletenessScore,
     dataQualityScore,
     newPRs,
     inBodyQuality,
+    missedSessionCount: adherence.total > 0 ? adherence.total - adherence.completed : null,
+    nutritionConsistencyScore,
   };
 }

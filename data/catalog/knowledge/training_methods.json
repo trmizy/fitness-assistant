@@ -1,0 +1,99 @@
+[
+  {
+    "method_id": "fst7_inspired_finisher",
+    "method": "FST-7 inspired finisher",
+    "source_type": "coach_public_method",
+    "source_ref": "Hany Rambod — FST-7 (Fascia Stretch Training)",
+    "target_level": ["intermediate", "advanced", "professional"],
+    "goal": "hypertrophy",
+    "principle": "High-rep pump sets (about 7 sets x 8-12 reps, 30-45s rest) performed at the END of a target-muscle session, aiming for maximal blood-flow pump on the last exercise trained for that muscle.",
+    "constraints": [
+      "Avoid for complete beginners (experienceLevel BEGINNER or UNKNOWN)",
+      "Avoid when recoveryScore is low",
+      "Avoid when painScore/safetyFlags indicate joint pain",
+      "Only ever offered as an optional finisher, never a required part of the base program"
+    ],
+    "contraindications": ["acute joint pain in the target muscle/joint", "HIGH_PAIN_SCORE safety flag present"],
+    "evidence_strength": "practitioner_synthesis",
+    "citations": [
+      "https://barbend.com/fst7/",
+      "https://www.evogennutrition.com/pages/fst-7"
+    ],
+    "usage_in_app": "Optional finisher suggestion for a lagging body part (findLaggingMuscleGroups output), gated by experienceLevel === ADVANCED and safetyFlags.severity !== critical",
+    "copyright_safe": true,
+    "wording_rule": "Present as 'kỹ thuật finisher lấy cảm hứng từ nguyên tắc FST-7 công khai' — never 'lịch tập FST-7 của Hany Rambod'",
+    "reviewed_by": "manual review, this pass",
+    "reviewed_at": "2026-07-31"
+  },
+  {
+    "method_id": "mountain_dog_phase_structure",
+    "method": "Mountain Dog inspired 3-phase session structure",
+    "source_type": "coach_public_method",
+    "source_ref": "John Meadows — Mountain Dog Training",
+    "target_level": ["advanced", "professional"],
+    "goal": "hypertrophy",
+    "principle": "Structure a single session in 3 phases: (1) pre-activation with moderate weight, 8-12 reps, no intensity techniques; (2) strength/tension phase working up to a hard-but-controlled top set; (3) pump phase using intensity techniques (drop-sets, rest-pause) only on isolation/accessory work at the end.",
+    "constraints": [
+      "Avoid phase 3 (drop-sets/rest-pause) for beginner or unknown experience level",
+      "Avoid phase 3 additions when fatigueScore is high or recoveryScore is low",
+      "Phase 1/2 (no intensity techniques) remain safe defaults for any level"
+    ],
+    "contraindications": ["HIGH_PAIN_SCORE safety flag present", "RISING_PAIN_TREND safety flag present"],
+    "evidence_strength": "practitioner_synthesis",
+    "citations": ["https://barbend.com/mountain-dog-training/"],
+    "usage_in_app": "Optional session-structure template for ADVANCED users choosing a Bro Split / Specialization Block",
+    "copyright_safe": true,
+    "wording_rule": "Present as 'cấu trúc buổi tập lấy cảm hứng từ nguyên tắc Mountain Dog công khai' — never attribute a specific workout as John Meadows' own program",
+    "reviewed_by": "manual review, this pass",
+    "reviewed_at": "2026-07-31"
+  },
+  {
+    "method_id": "phat_inspired_power_hypertrophy_split",
+    "method": "PHAT-inspired power/hypertrophy split",
+    "source_type": "coach_public_method",
+    "source_ref": "Dr. Layne Norton — PHAT (Power Hypertrophy Adaptive Training)",
+    "target_level": ["intermediate", "advanced", "professional"],
+    "goal": "strength_and_hypertrophy",
+    "principle": "Train each major muscle group twice per week within a 5-day split: 2 'power' days (low reps, heavy load, powerlifting-style) and 3 'hypertrophy' days (higher reps, higher volume, bodybuilding-style) covering the same muscle groups.",
+    "constraints": [
+      "Requires at least INTERMEDIATE experienceLevel — the twice-weekly heavy+high-volume combination is a meaningful fatigue load",
+      "Not recommended when adherenceRate is already struggling to meet a simpler 3-4 day split",
+      "Power-day top sets should be gated by RPE/RIR reliability — see docs/gym-fitness-research.md §3 on autoregulation accuracy by experience level"
+    ],
+    "contraindications": [],
+    "evidence_strength": "practitioner_synthesis",
+    "citations": [
+      "https://barbend.com/phat-training/",
+      "https://legionathletics.com/phat-workout/"
+    ],
+    "usage_in_app": "Optional template suggestion for INTERMEDIATE/ADVANCED users wanting combined strength+hypertrophy goals",
+    "copyright_safe": true,
+    "wording_rule": "Present as 'mẫu lịch lấy cảm hứng từ nguyên tắc Power/Hypertrophy công khai (PHAT-inspired)' — never 'chương trình PHAT chính thức của Layne Norton'",
+    "reviewed_by": "manual review, this pass",
+    "reviewed_at": "2026-07-31"
+  },
+  {
+    "method_id": "rp_mesocycle_deload_structure",
+    "method": "Renaissance Periodization inspired mesocycle + deload structure",
+    "source_type": "coach_public_method",
+    "source_ref": "Dr. Mike Israetel — Renaissance Periodization",
+    "target_level": ["beginner", "intermediate", "advanced", "professional"],
+    "goal": "hypertrophy",
+    "principle": "Structure training in ~4-week mesocycles with volume increasing week to week (volume-first linear progression), followed by a deload week (reduced volume/intensity) before the next mesocycle begins.",
+    "constraints": [
+      "The 4-week/1-deload cadence is a product default informed by practitioner consensus and Bell et al. (2025) 4-8 week deload guidance — not a fixed medical rule; adjust per data (see docs/TRAINING_CYCLE_DECISION_ENGINE.md)",
+      "For BEGINNER users, deload triggers should stay conservative/infrequent — beginners rarely accumulate enough fatigue to need one in a first 4-week block"
+    ],
+    "contraindications": [],
+    "evidence_strength": "practitioner_synthesis",
+    "citations": [
+      "https://www.jtsstrength.com/mesocycle-design-for-hypertrophy/",
+      "https://www.youtube.com/watch?v=3FmyIztDG7M"
+    ],
+    "usage_in_app": "Backing rationale for cycle-thresholds.config.ts's minimumCycleDays=28 default and the DELOAD decision branch's cadence expectations",
+    "copyright_safe": true,
+    "wording_rule": "Present as 'cấu trúc chu kỳ lấy cảm hứng từ nguyên tắc mesocycle/deload công khai' — never attribute to a specific paid RP program",
+    "reviewed_by": "manual review, this pass",
+    "reviewed_at": "2026-07-31"
+  }
+]

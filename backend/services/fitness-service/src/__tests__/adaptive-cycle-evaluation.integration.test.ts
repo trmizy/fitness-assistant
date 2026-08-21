@@ -26,6 +26,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { Client as PgClient } from "pg";
 
 const fitnessDatabaseUrl = process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
 const canUseIntegrationDb = /(_test|postgres-test)/i.test(fitnessDatabaseUrl);
@@ -33,14 +35,59 @@ if (process.env.FITNESS_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.FITNESS_DATABASE_URL;
 }
 
-// Real seeded dev user (see backend/services/auth-service/prisma/seed.ts) —
-// used because InBody/profile lookups go over real HTTP to user-service's
-// own (non-test) dev DB; there is no user-service test-DB swap in this repo
-// today, so bridging via the real seeded user is the same approach the
-// existing cross-service calls in this codebase's other integration tests
-// rely on.
-const TEST_USER_ID = "2adeb124-8a5d-49e6-870f-42c9f925919a";
-const REAL_INBODY_ID = "0c18018e-b1ae-4034-b424-225eee8fb6b4";
+// Real-time body profile refactor (Phase 2, §23) — root-cause fix for this
+// test's prior flakiness: it used to hardcode a specific seeded user
+// (john.doe@example.com) and a specific pre-existing InBody entry id.
+// Verified live (2026-08-18): that entry no longer exists and the seeded
+// user currently has ZERO InBody entries at all — shared seed data drifts
+// over time (other specs/manual testing legitimately mutate john.doe's
+// profile), so a hardcoded id is inherently fragile. Fixed the same way
+// training-cycle-baseline-snapshot.integration.test.ts (Phase 1) already
+// does it: generate a fresh random userId and seed a real InBody row for
+// it directly, via a real pg connection — no shared seeded account
+// touched, nothing to drift. There is still no user-service test-DB swap
+// in this repo, so this seeds into user-service's real dev DB
+// (gymcoach_user) for a synthetic id that was never shared with anything
+// else, and cleans it up in test.after — same bridging approach the other
+// cross-service integration tests in this codebase already rely on.
+const TEST_USER_ID = randomUUID();
+
+const USER_DB_URL =
+  process.env.USER_DATABASE_URL ||
+  "postgresql://gymcoach:gymcoach_password@localhost:5433/gymcoach_user";
+
+async function withUserDb<T>(fn: (client: PgClient) => Promise<T>): Promise<T> {
+  const client = new PgClient({ connectionString: USER_DB_URL });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.end();
+  }
+}
+
+/** Seeds one real InBody entry, dated yesterday (real wall-clock — must be
+ * on/before whatever "now" is when startDraftCycle's systemClock activates
+ * the cycle) so fetchLatestInBodyOnOrBefore can actually resolve it. */
+async function seedInBodyEntry(userId: string, weight: number): Promise<string> {
+  const id = randomUUID();
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await withUserDb((client) =>
+    client.query(
+      `INSERT INTO inbody_entries (id, user_id, date, date_only, weight, body_fat, muscle_mass, status, updated_at)
+       VALUES ($1, $2, $3::date, $3::date, $4, 18, 32, 'manual', now())`,
+      [id, userId, yesterday, weight],
+    ),
+  );
+  return id;
+}
+
+async function cleanupUserServiceData(userId: string): Promise<void> {
+  await withUserDb(async (client) => {
+    await client.query(`DELETE FROM inbody_entries WHERE user_id = $1`, [userId]);
+    await client.query(`DELETE FROM user_profiles WHERE "userId" = $1`, [userId]);
+  });
+}
 
 type PrismaClientLike = (typeof import("../repositories/prisma"))["prisma"];
 type TrainingCycleServiceLike = (typeof import("../services/training-cycle.service"))["trainingCycleService"];
@@ -58,15 +105,50 @@ async function loadModules() {
   return { prisma: prisma!, trainingCycleService: trainingCycleService! };
 }
 
+let REAL_INBODY_ID: string;
+// Captured in step 3 below — cleaned up in test.after. Found via a
+// full-suite run where "every exercise has a movementPattern set" /
+// "every exercise has at least one equipment link" kept failing on a
+// stray leftover "Integration Squat ..." row: this file's own userId-
+// scoped cleanup (cleanupUserServiceData) only ever touched the
+// user-service DB (inbody/profile), never this fitness-service Exercise/
+// Workout/TrainingCycle data it creates — a real, previously-latent
+// test-hygiene gap, not a product bug.
+let createdExerciseId: string | undefined;
+
 test.after(async () => {
-  if (prisma) await prisma.$disconnect();
+  if (prisma) {
+    await cleanupFitnessServiceData(prisma, TEST_USER_ID, createdExerciseId).catch(() => {});
+    await prisma.$disconnect();
+  }
+  await cleanupUserServiceData(TEST_USER_ID).catch(() => {});
 });
+
+async function cleanupFitnessServiceData(
+  db: PrismaClientLike,
+  userId: string,
+  exerciseId?: string,
+) {
+  const workouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+  await db.workoutSet.deleteMany({ where: { workoutExercise: { workout: { userId } } } });
+  await db.workoutExercise.deleteMany({ where: { workoutId: { in: workouts.map((w) => w.id) } } });
+  await db.workoutSchedule.deleteMany({ where: { userId } });
+  await db.workout.deleteMany({ where: { userId } });
+  await db.recommendationAudit.deleteMany({ where: { userId } }).catch(() => {});
+  await db.cycleAssessment.deleteMany({ where: { cycle: { userId } } }).catch(() => {});
+  await db.trainingCycle.deleteMany({ where: { userId } });
+  if (exerciseId) await db.exercise.deleteMany({ where: { id: exerciseId } }).catch(() => {});
+}
 
 test(
   "Adaptive Training Cycle Evaluation — full 9-step lifecycle",
   { skip: canUseIntegrationDb ? false : "Set FITNESS_DATABASE_URL to a *_test database to run this integration test", timeout: 150_000 },
   async (t) => {
     const { prisma: db, trainingCycleService: service } = await loadModules();
+
+    // 0. Seed this test's own InBody entry for its own fresh userId — see
+    // the header comment for why (root-cause fix for prior flakiness).
+    REAL_INBODY_ID = await seedInBodyEntry(TEST_USER_ID, 80);
 
     // 1. Tạo cycle (create).
     const cycle = await service.startCycle(TEST_USER_ID, null, "2026-05-01", 30, {
@@ -94,6 +176,7 @@ test(
           instructions: "Test exercise.",
         },
       });
+      createdExerciseId = exercise.id;
       // WorkoutSchedule has @@unique([userId, date]) — use "now" (the cycle
       // just started at activation time in step 2) with a small random
       // sub-second offset so repeated test runs never collide with a
@@ -187,6 +270,34 @@ test(
         where: { cycleId: cycle.id, assessmentVersion: 1 },
       });
       assert.equal(versionOnes.length, 1, "exactly one assessment for version 1, no duplicates");
+
+      // RecommendationAudit: evaluateCycle must write one interaction-log
+      // row per real evaluation, distinct from the CycleAssessment result
+      // row itself (see docs/TRAINING_CYCLE_DECISION_ENGINE.md §4).
+      //
+      // Test-assumption update (Phase 2): this used to assert exactly ONE
+      // audit row total. Since the Adaptive Nutrition Decision Engine
+      // (nutrition-decision.engine.ts) now runs at this same evaluation
+      // touchpoint and writes its OWN independent audit row
+      // (engineVersion="nutrition-adaptive-v1" — see
+      // docs/body-state-and-adaptive-planning.md), a real evaluate() call
+      // correctly produces TWO rows now, not one. This is the intended
+      // Phase 2 behavior (training and nutrition have independent
+      // accept/reject lifecycles), so the test is updated to match — not
+      // a product bug (spec §46: assumption was outdated, so the test was
+      // corrected, product was not weakened).
+      const audits = await db.recommendationAudit.findMany({ where: { cycleId: cycle.id } });
+      const trainingAudits = audits.filter((a) => a.engineVersion === "adaptive-v1");
+      const nutritionAudits = audits.filter((a) => a.engineVersion === "nutrition-adaptive-v1");
+      assert.equal(trainingAudits.length, 1, "expected exactly one TRAINING audit row for this evaluate() call");
+      assert.equal(trainingAudits[0].decision, assessment.decision);
+      assert.equal(trainingAudits[0].userAction, null, "not yet accepted/rejected");
+      // The nutrition engine may legitimately fail to produce a result for
+      // this synthetic test user (e.g. no active NutritionGoal seeded) —
+      // evaluateNutritionForCycle degrades to null rather than throwing, in
+      // which case no nutrition audit row is written at all. Assert AT MOST
+      // one, not exactly one, to stay correct either way.
+      assert.ok(nutritionAudits.length <= 1, "expected at most one NUTRITION audit row for this evaluate() call");
     });
 
     let assessmentId: string;
@@ -204,6 +315,22 @@ test(
       const accepted = await service.acceptRecommendation(cycle.id, TEST_USER_ID, assessmentId);
       assert.equal(accepted.userDecision, "ACCEPTED");
       assert.ok(accepted.reviewedAt);
+
+      // Test-assumption update (Phase 2, same reason as step 6 above) —
+      // scope to the TRAINING audit row specifically. This also pins down
+      // a real bug this test caught and training-cycle.service.ts's
+      // reviewRecommendation fixed: accepting the training recommendation
+      // must NEVER also mark an independent nutrition audit row (if one
+      // exists for the same assessmentId) as reviewed.
+      const audits = await db.recommendationAudit.findMany({ where: { cycleId: cycle.id, assessmentId } });
+      const trainingAudits = audits.filter((a) => a.engineVersion === "adaptive-v1");
+      const nutritionAudits = audits.filter((a) => a.engineVersion === "nutrition-adaptive-v1");
+      assert.equal(trainingAudits.length, 1);
+      assert.equal(trainingAudits[0].userAction, "accepted", "accepting a recommendation must update its own audit row");
+      assert.ok(trainingAudits[0].userActionAt);
+      for (const na of nutritionAudits) {
+        assert.equal(na.userAction, null, "accepting the TRAINING recommendation must never touch the independent nutrition audit row");
+      }
 
       // A second accept on the same assessment must be rejected (409), not silently succeed twice.
       await assert.rejects(

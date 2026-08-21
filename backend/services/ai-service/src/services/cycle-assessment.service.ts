@@ -8,6 +8,7 @@ import {
   type AssessCycleOutput,
 } from "../schemas/cycle-assessment.schemas";
 import type { EvidenceUsed } from "../llm/types";
+import { validateProposedChanges } from "../llm/proposed-change-validator";
 
 export interface AssessCycleResult extends AssessCycleOutput {
   citations: EvidenceUsed[];
@@ -20,6 +21,17 @@ const DECISION_LABEL: Record<AssessCycleRequest["decision"]["value"], string> = 
   DELOAD: "giảm tải để phục hồi",
   REBUILD: "xây dựng lại chương trình từ đầu",
   INSUFFICIENT_DATA: "chưa đủ dữ liệu để kết luận",
+};
+
+const NUTRITION_DECISION_LABEL: Record<
+  NonNullable<AssessCycleRequest["nutrition"]>["decision"],
+  string
+> = {
+  KEEP_PLAN: "giữ nguyên calo/macro hiện tại",
+  PROPOSE_ADJUSTMENT: "đề xuất điều chỉnh calo/macro",
+  REQUEST_MORE_DATA: "cần thêm dữ liệu trước khi kết luận",
+  EARLY_REVIEW: "cần xem xét sớm trước khi tiếp tục kế hoạch dinh dưỡng",
+  ESCALATE: "cần chuyển cho chuyên gia y tế/PT xem xét ngay",
 };
 
 function buildRagQueries(req: AssessCycleRequest): string[] {
@@ -37,9 +49,21 @@ function buildRagQueries(req: AssessCycleRequest): string[] {
 
 function buildAssessmentPrompt(req: AssessCycleRequest, evidenceText: string): string {
   const decision = req.decision.value;
+  const level = req.cycle.experienceLevel ?? "UNKNOWN";
+  const isBeginner = level === "BEGINNER" || level === "UNKNOWN";
+  const isProfessional = level === "ADVANCED" && req.cycle.competesInSport === true;
+  const levelGuidance = isBeginner
+    ? "Người dùng ở trình độ MỚI BẮT ĐẦU (beginner/chưa rõ). TUYỆT ĐỐI KHÔNG đề xuất kỹ thuật nâng cao (drop-set, FST-7 finisher, mechanical drop-set, rest-pause...), KHÔNG đề xuất tăng khối lượng/cường độ lớn — chỉ những thay đổi nhỏ, an toàn, ưu tiên kỹ thuật đúng."
+    : isProfessional
+      ? "Người dùng là VẬN ĐỘNG VIÊN THI ĐẤU (ADVANCED + competesInSport). Hãy đề cập đến việc cần giám sát chặt chẽ hơn, ưu tiên hiệu suất/thi đấu, và nhấn mạnh việc xác nhận với HLV/chuyên gia trước khi áp dụng thay đổi lớn."
+      : level === "ADVANCED"
+        ? "Người dùng ở trình độ NÂNG CAO — có thể đề cập kỹ thuật nâng cao (nếu allowedChanges cho phép) nhưng vẫn phải theo đúng constraints an toàn."
+        : "Người dùng ở trình độ TRUNG BÌNH (đã biết tập) — có thể đề xuất tăng tải dựa trên progressive overload nhưng chưa mở khóa kỹ thuật nâng cao dạng FST-7/Mountain Dog.";
   return `Bạn là một huấn luyện viên thể hình giàu kinh nghiệm. Một hệ thống tính toán (Decision Engine) đã PHÂN TÍCH XONG chu kỳ tập luyện này và đưa ra quyết định — nhiệm vụ của bạn CHỈ là GIẢI THÍCH quyết định đó bằng tiếng Việt dễ hiểu, KHÔNG được tự tính lại số liệu, KHÔNG được đổi quyết định.
 
 QUYẾT ĐỊNH ĐÃ CHỐT (không được thay đổi): "${decision}" (${DECISION_LABEL[decision]})
+
+Trình độ người dùng: ${level}${req.cycle.competesInSport ? " (competesInSport=true)" : ""}. ${levelGuidance}
 
 Nhiệm vụ của bạn:
 - Giải thích quyết định trên bằng ngôn ngữ dễ hiểu, dựa trên reasonCodes và computedMetrics bên dưới.
@@ -51,8 +75,28 @@ Nhiệm vụ của bạn:
 - KHÔNG được đề xuất steroid, hormone, hoặc chất cấm.
 - requiresConfirmation LUÔN là true — người dùng phải xác nhận trước khi áp dụng bất kỳ thay đổi nào.
 
+${
+    req.nutrition
+      ? `
+Ngoài đánh giá tập luyện trên, hệ thống CŨNG đã tính riêng một quyết định dinh dưỡng (độc lập, đã CHỐT, bạn CHỈ giải thích, KHÔNG được đổi):
+QUYẾT ĐỊNH DINH DƯỠNG ĐÃ CHỐT: "${req.nutrition.decision}" (${NUTRITION_DECISION_LABEL[req.nutrition.decision]})
+- confidence: ${req.nutrition.confidence}
+- reasonCodes: ${JSON.stringify(req.nutrition.reasonCodes)}
+- signals: ${JSON.stringify(req.nutrition.signals)}
+- proposedChanges: ${JSON.stringify(req.nutrition.proposedChanges)}
+
+Hãy thêm trường "nutritionSummary" vào JSON trả về, với:
+- nutritionDecision: PHẢI đúng bằng "${req.nutrition.decision}", không đổi.
+- headline: một câu ngắn tóm tắt quyết định dinh dưỡng.
+- explanation: giải thích ngắn gọn, phân biệt rõ 3 phần: (1) Quan sát được (observation) từ signals, (2) Diễn giải (interpretation) — TẠI SAO lại đi đến quyết định này, (3) Khuyến nghị (recommendation) — người dùng nên làm gì tiếp theo. KHÔNG được tự đề xuất một con số calo/macro nào khác với proposedChanges ở trên. Nếu proposedChanges là null, không được bịa ra một con số.
+${req.nutrition.decision === "PROPOSE_ADJUSTMENT" ? "- Đây là một ĐỀ XUẤT — PHẢI nói rõ người dùng cần XÁC NHẬN trước khi thay đổi có hiệu lực, không phải đã được áp dụng." : ""}
+${req.nutrition.decision === "ESCALATE" || req.nutrition.decision === "EARLY_REVIEW" ? "- KHÔNG được chẩn đoán nguyên nhân đau/khó chịu. Chỉ khuyên dừng lại và tham khảo chuyên gia y tế/PT phù hợp." : ""}
+`
+      : ""
+  }
+
 Chỉ trả lời bằng JSON hợp lệ theo ĐÚNG shape sau, không markdown, không giải thích ngoài JSON:
-{"decision": "${decision}", "headline": string, "summary": string, "positiveSignals": string[], "warningSignals": string[], "proposedChanges": [{"type": "VOLUME"|"LOAD"|"REPS"|"EXERCISE"|"FREQUENCY"|"DELOAD", "target": string, "currentValue": string, "proposedValue": string, "reason": string}], "missingData": string[], "safetyNotice": string|null, "requiresConfirmation": true}
+{"decision": "${decision}", "headline": string, "summary": string, "positiveSignals": string[], "warningSignals": string[], "proposedChanges": [{"type": "VOLUME"|"LOAD"|"REPS"|"EXERCISE"|"FREQUENCY"|"DELOAD", "target": string, "currentValue": string, "proposedValue": string, "reason": string}], "missingData": string[], "safetyNotice": string|null, "requiresConfirmation": true${req.nutrition ? `, "nutritionSummary": {"nutritionDecision": "${req.nutrition.decision}", "headline": string, "explanation": string}` : ""}}
 
 Dữ liệu chu kỳ:
 - Tên: ${req.cycle.name ?? "(không đặt tên)"}, mục tiêu: ${req.cycle.goalType ?? "không rõ"}, chu kỳ số ${req.cycle.cycleIndex}, độ dài ${req.cycle.durationDays} ngày
@@ -88,6 +132,15 @@ function buildDeterministicFallback(req: AssessCycleRequest): AssessCycleOutput 
     missingData: req.dataQuality.qualityFlags,
     safetyNotice: criticalFlag?.message ?? req.safetyFlags[0]?.message ?? null,
     requiresConfirmation: true,
+    nutritionSummary: req.nutrition
+      ? {
+          nutritionDecision: req.nutrition.decision,
+          headline: `Dinh dưỡng: ${NUTRITION_DECISION_LABEL[req.nutrition.decision]}`,
+          explanation:
+            "AI không tạo được phần giải thích chi tiết — dựa trên các lý do được hệ thống tính toán trực tiếp: " +
+            req.nutrition.reasonCodes.join("; "),
+        }
+      : null,
   };
 }
 
@@ -149,6 +202,50 @@ export const cycleAssessmentService = {
         "[cycle-assessment] LLM proposed change type(s) outside allowedChanges — dropping them",
       );
       output.proposedChanges = filteredChanges;
+    }
+
+    // Same belt-and-braces override for the nutrition decision — the LLM
+    // only ever explains nutrition-decision.engine.ts's already-computed
+    // output, never recomputes or overrides it (spec §3/§5/§41).
+    if (req.nutrition) {
+      if (!output.nutritionSummary) {
+        output.nutritionSummary = {
+          nutritionDecision: req.nutrition.decision,
+          headline: `Dinh dưỡng: ${NUTRITION_DECISION_LABEL[req.nutrition.decision]}`,
+          explanation: "Không có giải thích chi tiết từ AI cho phần dinh dưỡng.",
+        };
+      } else if (output.nutritionSummary.nutritionDecision !== req.nutrition.decision) {
+        logger.warn(
+          {
+            llmNutritionDecision: output.nutritionSummary.nutritionDecision,
+            engineNutritionDecision: req.nutrition.decision,
+            userId: req.userId,
+          },
+          "[cycle-assessment] LLM echoed a different nutrition decision than the engine — overriding with the engine's value",
+        );
+        output.nutritionSummary.nutritionDecision = req.nutrition.decision;
+      }
+    } else if (output.nutritionSummary) {
+      // Model hallucinated a nutrition section when none was requested —
+      // strip it rather than surface an explanation for a decision that
+      // was never actually computed.
+      output.nutritionSummary = null;
+    }
+
+    // Semantic check on the surviving changes' actual values (target/
+    // currentValue/proposedValue) — the allowedChanges filter above only
+    // checks the change TYPE is permitted, not that the magnitude is
+    // plausible for a single-cycle recommendation. See
+    // proposed-change-validator.ts's doc comment.
+    const level = req.cycle.experienceLevel ?? "UNKNOWN";
+    const isBeginner = level === "BEGINNER" || level === "UNKNOWN";
+    const { valid, dropped } = validateProposedChanges(output.proposedChanges, { isBeginner });
+    if (dropped.length > 0) {
+      logger.warn(
+        { userId: req.userId, dropped: dropped.map((d) => d.reason) },
+        "[cycle-assessment] proposedChanges failed semantic validation — dropping them",
+      );
+      output.proposedChanges = valid;
     }
 
     return { ...output, citations };

@@ -127,6 +127,7 @@ exports.Prisma.WalletScalarFieldEnum = {
   ownerType: 'ownerType',
   ownerId: 'ownerId',
   availableBalance: 'availableBalance',
+  pendingBalance: 'pendingBalance',
   lockedBalance: 'lockedBalance',
   status: 'status',
   createdAt: 'createdAt',
@@ -138,6 +139,7 @@ exports.Prisma.WalletLedgerEntryScalarFieldEnum = {
   walletId: 'walletId',
   transactionId: 'transactionId',
   entryType: 'entryType',
+  bucket: 'bucket',
   amount: 'amount',
   balanceBefore: 'balanceBefore',
   balanceAfter: 'balanceAfter',
@@ -192,6 +194,20 @@ exports.Prisma.PlatformCommissionScalarFieldEnum = {
   status: 'status',
   settledAt: 'settledAt',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.PartnerReceivableScalarFieldEnum = {
+  id: 'id',
+  partnerType: 'partnerType',
+  partnerId: 'partnerId',
+  amount: 'amount',
+  recovered: 'recovered',
+  reason: 'reason',
+  contractId: 'contractId',
+  transactionId: 'transactionId',
+  settledAt: 'settledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
@@ -253,13 +269,19 @@ exports.LedgerEntryType = exports.$Enums.LedgerEntryType = {
   CREDIT: 'CREDIT'
 };
 
+exports.LedgerBucket = exports.$Enums.LedgerBucket = {
+  PENDING: 'PENDING',
+  AVAILABLE: 'AVAILABLE'
+};
+
 exports.PurposeType = exports.$Enums.PurposeType = {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
   GYM_PT_COMBO: 'GYM_PT_COMBO',
   WALLET_TOPUP: 'WALLET_TOPUP',
   REFUND: 'REFUND',
-  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
+  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE'
 };
 
 exports.PaymentStatus = exports.$Enums.PaymentStatus = {
@@ -285,7 +307,8 @@ exports.RelatedEntityType = exports.$Enums.RelatedEntityType = {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
   WALLET_TOPUP: 'WALLET_TOPUP',
-  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
+  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE'
 };
 
 exports.ActivationStatus = exports.$Enums.ActivationStatus = {
@@ -312,6 +335,7 @@ exports.Prisma.ModelName = {
   WalletLedgerEntry: 'WalletLedgerEntry',
   PaymentTransaction: 'PaymentTransaction',
   PlatformCommission: 'PlatformCommission',
+  PartnerReceivable: 'PartnerReceivable',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

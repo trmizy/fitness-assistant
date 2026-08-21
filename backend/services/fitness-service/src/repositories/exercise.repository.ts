@@ -91,4 +91,22 @@ export const exerciseRepository = {
     } catch {}
     return created;
   },
+
+  // Gate 6 (exercise/anatomy data-expansion roadmap) — real ExerciseMuscle
+  // links for the muscle-map UI, with primary/secondary role intact
+  // (impossible to get from the legacy flat muscleGroupsActivated
+  // column). Returns [] for an exercise with no mapping yet — the UI's
+  // job to render an explicit "chưa có dữ liệu" state for that, never
+  // guessed from the exercise name.
+  async findMuscleLinks(exerciseId: string) {
+    return prisma.exerciseMuscle.findMany({
+      where: { exerciseId },
+      include: { muscle: true },
+      orderBy: [{ role: "asc" }],
+    });
+  },
+
+  async listAllMuscles() {
+    return prisma.muscle.findMany({ orderBy: [{ anatomyRegion: "asc" }, { code: "asc" }] });
+  },
 };

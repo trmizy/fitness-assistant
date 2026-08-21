@@ -6,52 +6,30 @@ import type {
   UserProfile,
 } from "./types";
 import type { PersonalizationContext } from "./profile_extractor";
+import { evaluateProteinIntake, evaluateCalorieSurplus } from "./nutrition_engine";
 
 function compactProfile(profile: UserProfile): string {
-  // Weight: InBody is always the priority source; profile weight is a fallback
-  const inBodyDate = profile.inBody?.measuredAt
-    ? `InBody đo ngày ${String(profile.inBody.measuredAt).slice(0, 10)}`
-    : null;
-  const weightSource = inBodyDate ?? "profile (tự khai báo)";
-  const weightDisplay = profile.currentWeightKg ?? "unknown";
-
   const lines: string[] = [
     `- Age: ${profile.age ?? "unknown"}`,
     `- Gender: ${profile.gender ?? "unknown"}`,
     `- Height(cm): ${profile.heightCm ?? "unknown"}`,
-    `- Weight(kg): ${weightDisplay} [nguồn: ${weightSource}]`,
     `- Goal: ${profile.goal ?? "unknown"}`,
     `- Activity level: ${profile.activityLevel ?? "unknown"}`,
     `- Experience level: ${profile.experienceLevel ?? "BEGINNER"}`,
   ];
 
-  if (profile.inBody) {
-    const lbl = inBodyDate ? ` (${inBodyDate})` : "";
-    lines.push(`- Body fat%${lbl}: ${profile.inBody.bodyFatPct ?? "unknown"}`);
-    lines.push(
-      `- Skeletal muscle(kg)${lbl}: ${profile.inBody.skeletalMuscleKg ?? "unknown"}`,
-    );
-    if (profile.inBody.bodyFatKg != null)
-      lines.push(`- Fat mass(kg)${lbl}: ${profile.inBody.bodyFatKg}`);
-    if (profile.inBody.bmi != null)
-      lines.push(`- BMI${lbl}: ${profile.inBody.bmi}`);
-    if (profile.inBody.bmr != null)
-      lines.push(`- BMR(kcal/day)${lbl}: ${profile.inBody.bmr}`);
-    // Segmental muscle analysis
-    const sm = profile.inBody.segmentalMuscle;
-    if (sm) {
-      lines.push(
-        `- Segmental muscle(kg)${lbl}: tay-P ${sm.rightArm ?? "?"} tay-T ${sm.leftArm ?? "?"} thân ${sm.trunk ?? "?"} chân-P ${sm.rightLeg ?? "?"} chân-T ${sm.leftLeg ?? "?"}`,
-      );
-    }
-    // Segmental fat analysis
-    const sf = profile.inBody.segmentalFat;
-    if (sf) {
-      lines.push(
-        `- Segmental fat(kg)${lbl}: tay-P ${sf.rightArm ?? "?"} tay-T ${sf.leftArm ?? "?"} thân ${sf.trunk ?? "?"} chân-P ${sf.rightLeg ?? "?"} chân-T ${sf.leftLeg ?? "?"}`,
-      );
-    }
-  }
+  // Weight and every InBody-derived body-composition figure (body fat%,
+  // skeletal muscle, fat mass, BMI, BMR, segmental analysis) used to be
+  // rendered again here — verbatim — right before the CoachContext JSON
+  // block below (which always accompanies this text; see
+  // orchestrator.service.ts's bodyCompAndCoachText) already renders the
+  // exact same numbers in `inbody_latest`/`inbody_trend`, with clearer
+  // current/trend/baseline semantics and measurement-quality context. Two
+  // differently-formatted copies of the same numbers in one prompt is a
+  // real risk (a future edit to one and not the other silently produces
+  // contradictory instructions to the model), not a harmless redundancy —
+  // see docs/body-state-and-adaptive-planning.md. CoachContext is now the
+  // single source for all of this; nothing here duplicates it.
 
   if (profile.training.injuries.length > 0) {
     lines.push(
@@ -362,16 +340,39 @@ function compactRetrieval(result: RetrievalResult): string {
   );
 }
 
-function compactRecommendations(recommendation: RecommendationResult): string {
+function compactRecommendations(
+  recommendation: RecommendationResult,
+  weightKg?: number,
+): string {
   const n = recommendation.nutrition;
   const w = recommendation.workout;
   const m = recommendation.meal;
+
+  // Deterministic protein g/kg + surplus evaluation (Part 5/4) — computed
+  // once here so the LLM explains an already-decided number instead of
+  // doing its own arithmetic. SCIENTIFIC_EVIDENCE: 1.4-2.0 g/kg range is
+  // Jäger et al. 2017 (ISSN protein position stand); the surplus band is a
+  // PRODUCT_HEURISTIC starting point, not a single "correct" number.
+  const extra: string[] = [];
+  if (weightKg && n.proteinGrams) {
+    const evalResult = evaluateProteinIntake(n.proteinGrams, weightKg);
+    extra.push(
+      `Protein per kg bodyweight: ${evalResult.gPerKg} g/kg (${weightKg}kg) — ${evalResult.note}`,
+    );
+  }
+  if (n.maintenanceCalories && n.targetCalories && recommendation.objective === "muscle_gain") {
+    const surplus = evaluateCalorieSurplus(n.maintenanceCalories, n.targetCalories);
+    extra.push(
+      `Calorie surplus vs maintenance: ${Math.round(surplus.surplusPct * 100)}% — ${surplus.note}`,
+    );
+  }
 
   const lines = [
     `Objective: ${recommendation.objective}`,
     `Calories target: ${n.targetCalories}`,
     `Macros grams/day: protein=${n.proteinGrams}, carbs=${n.carbsGrams}, fats=${n.fatGrams}`,
     `Nutrition confidence: ${n.confidence}`,
+    ...extra,
     `Workout split: ${w.split}`,
     `Workout sessions/week: ${w.sessionsPerWeek}`,
     `Workout focus: ${w.focus.join(", ")}`,
@@ -440,6 +441,27 @@ export const promptBuilder = {
       "- Không bịa calories tuyệt đối nếu chưa có weight, height, age, activity.",
       '- "Tay trước" = biceps, KHÔNG phải tay trái/tay phải.',
       "- 6 buổi/tuần không tự động sai — đánh giá theo recovery và volume.",
+      "",
+      // Real-time body profile / evidence-based adaptive nutrition refactor
+      // (spec §22) — see docs/body-state-and-adaptive-planning.md and
+      // docs/research/fitness-nutrition-evidence.md for the reasoning and
+      // citations behind these.
+      "QUY TẮC DỮ LIỆU CƠ THỂ & SUY LUẬN THÍCH ỨNG (không được vi phạm):",
+      "- KHÔNG BAO GIỜ nhầm baseline (điểm bắt đầu, cố định) với current (hiện tại, luôn cập nhật) hoặc target (mục tiêu, do user đặt).",
+      "- KHÔNG BAO GIỜ tự đổi target weight/mục tiêu chỉ vì có đo lường mới — mục tiêu chỉ đổi khi user xác nhận.",
+      "- Đo lường (measurement) là quan sát tại một thời điểm; kế hoạch calo/macro (prescription) là khuyến nghị hiện hành — không lẫn lộn hai khái niệm này.",
+      "- Dùng xu hướng (trend, trung bình nhiều ngày) để suy luận thích ứng, KHÔNG dùng một lần cân duy nhất.",
+      "- InBody/BIA là ƯỚC TÍNH (sai số body fat% ~4 điểm %, khối lượng ~2.4kg theo nghiên cứu Brewer 2021) — không diễn giải một thay đổi nhỏ trong 1 tuần như một kết luận chắc chắn.",
+      "- Cân nhắc điều kiện đo (giờ đo, đã ăn/đói, vừa tập hay chưa) khi đánh giá độ tin cậy của một thay đổi thành phần cơ thể theo thời gian.",
+      "- Calories từ thiết bị đeo (wearable) là ƯỚC TÍNH năng lượng hoạt động, KHÔNG PHẢI số chính xác tuyệt đối.",
+      "- KHÔNG mặc định user được ăn thêm đúng 100% số calories wearable báo đã đốt.",
+      "- KHÔNG khẳng định một tuần thay đổi body fat% chắc chắn phản ánh đúng thay đổi mỡ thật sự.",
+      "- KHÔNG chẩn đoán bệnh lý. Nếu có dấu hiệu y tế/thai kỳ/rối loạn ăn uống/triệu chứng nghiêm trọng, khuyến nghị gặp chuyên gia y tế thay vì tự đưa phác đồ giảm cân.",
+      "- KHÔNG giả định một con số chính xác cho adaptive thermogenesis của user này — hiện tượng này có thể xảy ra nhưng mức độ khác nhau ở mỗi người, không được bịa số.",
+      "- Khi bằng chứng khoa học không đủ để kết luận, nói rõ điều đó thay vì đưa câu trả lời chắc chắn giả tạo.",
+      "- Phân biệt rõ: bằng chứng khoa học (có trích dẫn) vs. product heuristic (quy ước kỹ thuật, ví dụ cửa sổ trung bình 7 ngày) vs. sở thích cá nhân của user.",
+      "- Khi đề xuất điều chỉnh kế hoạch, LUÔN giải thích TẠI SAO (tín hiệu nào: xu hướng cân nặng, độ tuân thủ dinh dưỡng/tập luyện, phục hồi — không chỉ dựa vào cân nặng).",
+      "- Đánh giá tiến trình dựa trên nhiều tín hiệu (xu hướng cân, body fat, sức mạnh, độ tuân thủ), KHÔNG chỉ số kg trên cân.",
     ];
 
     const enRules = [
@@ -468,6 +490,27 @@ export const promptBuilder = {
       "- Do NOT expose system structure, JSON, or parsed intent to the user.",
       "- Do NOT invent exercises or make unsupported medical claims.",
       "- If profile data is missing, give the best safe default first, then ask 1–2 targeted follow-ups at the end.",
+      "",
+      // Real-time body profile / evidence-based adaptive nutrition refactor
+      // (spec §22) — see docs/body-state-and-adaptive-planning.md and
+      // docs/research/fitness-nutrition-evidence.md for the reasoning and
+      // citations behind these.
+      "BODY DATA & ADAPTIVE REASONING RULES (never violate these):",
+      "- NEVER confuse baseline (fixed starting point) with current (always-updating) or target (user-set goal).",
+      "- NEVER silently change the user's target weight/goal just because a new measurement arrived — a goal only changes when the user confirms it.",
+      "- A measurement is a point-in-time observation; a calorie/macro prescription is the current recommendation — never conflate the two.",
+      "- Use TRENDS (multi-day averages) for adaptive reasoning, never a single day's weigh-in.",
+      "- InBody/BIA readings are ESTIMATES (body-fat% error ~4 points, mass ~2.4kg per Brewer et al. 2021) — do not over-interpret a small week-to-week change as a certain conclusion.",
+      "- Factor in measurement conditions (time of day, fasted vs fed, pre/post-exercise) when judging confidence in a body-composition change over time.",
+      "- Wearable-reported calories burned are an ESTIMATE of active energy expenditure, NOT an exact number.",
+      "- NEVER assume the user should \"eat back\" 100% of wearable-reported calories burned.",
+      "- NEVER claim one week of body-fat% change definitely represents true fat-mass change.",
+      "- NEVER diagnose a medical condition. For medical/pregnancy/eating-disorder/severe-symptom red flags, recommend a qualified healthcare professional instead of prescribing weight-loss changes yourself.",
+      "- NEVER invent a precise adaptive-thermogenesis number for this individual — it can occur but its magnitude varies per person; do not fabricate a figure.",
+      "- When evidence is insufficient to draw a conclusion, say so plainly rather than manufacturing false certainty.",
+      "- Distinguish clearly: scientific evidence (cited) vs. product heuristic (an engineering convention, e.g. a 7-day averaging window) vs. the user's own stated preference.",
+      "- When proposing a plan adjustment, ALWAYS explain WHY (which signals: weight trend, nutrition/training adherence, recovery — never weight alone).",
+      "- Evaluate progress using multiple signals (weight trend, body fat, strength, adherence), NEVER the scale number alone.",
     ];
 
     return [
@@ -545,7 +588,10 @@ export const promptBuilder = {
         if (isGeneralKnowledge) return [];
         return [
           `Chỉ số tính toán (nguồn sự thật — không được lệch khỏi các con số này):`,
-          compactRecommendations(recommendation),
+          compactRecommendations(
+            recommendation,
+            context.profile.currentWeightKg ?? context.profile.inBody?.weightKg,
+          ),
           "",
         ];
       })(),
@@ -555,9 +601,23 @@ export const promptBuilder = {
       "",
       ...(() => {
         const isMeal = intent.routeIntent === "meal_plan_request";
+        const isTiming = intent.routeIntent === "nutrient_timing_request";
         const isInjury = intent.mentionsInjury;
         const isGeneralKnowledge =
           intent.routeIntent === "general_fitness_knowledge";
+
+        // Part 10 response-contract check: is this general-knowledge
+        // question actually about nutrition specifically (vs. a bare
+        // workout-technique/general question)? Only nutrition questions
+        // get the structured Observation/Data/Reasoning/Assumption/
+        // Action/Question/Safety contract below — a generic "how do I
+        // squat" question shouldn't be forced through a nutrition-shaped
+        // template.
+        const isNutritionKnowledge =
+          isGeneralKnowledge &&
+          /protein|calo|calories|macro|carb\b|dinh d[uư][oơ]ng|dinh duong|th[uự]c [dđ][oơ]n|thuc don|b[uữ]a [aă]n|bua an|[aă]n u[oố]ng|chat beo|chất béo/i.test(
+            intent.normalizedQuestion,
+          );
 
         if (responseLanguage === "vi") {
           if (isGeneralKnowledge) {
@@ -570,6 +630,41 @@ export const promptBuilder = {
               "- Chỉ đưa ra lời khuyên cá nhân hóa nếu phù hợp với câu hỏi.",
               "- KHÔNG ép buộc xuất ra bảng lịch tập hay bảng dinh dưỡng nếu câu hỏi chỉ hỏi kiến thức chung.",
               "- Viết theo đoạn văn dễ đọc, dùng markdown cơ bản, không dài dòng.",
+              ...(isNutritionKnowledge
+                ? [
+                    "",
+                    "Vì đây là câu hỏi về DINH DƯỠNG, cấu trúc câu trả lời theo thứ tự sau (không cần tiêu đề markdown cho từng phần, viết tự nhiên nhưng đủ ý theo đúng thứ tự):",
+                    "1. Trả lời trực tiếp câu hỏi trước tiên — đừng vòng vo.",
+                    "2. Nêu rõ dữ liệu/con số nào bạn đang dùng và từ đâu (ví dụ: cân nặng người dùng vừa cung cấp, hay 'Chỉ số tính toán' ở trên) — nếu KHÔNG có dữ liệu cá nhân liên quan, bỏ qua bước này.",
+                    "3. Nếu có tính toán (vd: g/kg, kcal), nêu ngắn gọn công thức/logic — không chỉ đưa ra con số suông.",
+                    "4. Nêu rõ giả định hoặc phần chưa chắc chắn nếu có (vd: thiếu chiều cao/tuổi nên chỉ là ước tính).",
+                    "5. Đề xuất hành động thực tế, cụ thể.",
+                    "6. CHỈ hỏi thêm thông tin nếu thực sự cần thiết để trả lời chính xác hơn — không hỏi cho có.",
+                    "7. Nếu có yếu tố an toàn liên quan (bệnh lý, mang thai, tuổi vị thành niên, lượng cực đoan), nêu cảnh báo có mục tiêu — không dùng disclaimer chung chung.",
+                    "Không đánh số 1-7 trong câu trả lời — đây là thứ tự nội dung, không phải định dạng hiển thị.",
+                  ]
+                : []),
+            ];
+          }
+
+          if (isTiming) {
+            return [
+              "ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (chỉ trả lời câu hỏi về THỜI ĐIỂM ăn quanh buổi tập, viết bằng tiếng Việt):",
+              "⛔ Đây KHÔNG phải yêu cầu tạo thực đơn đầy đủ (1 ngày hay 7 ngày) — user chỉ hỏi nên ăn gì/khi nào quanh buổi tập. TUYỆT ĐỐI KHÔNG tạo bảng thực đơn cả ngày/cả tuần, KHÔNG liệt kê đủ 3 bữa sáng/trưa/tối, trừ khi user yêu cầu rõ.",
+              "⛔ TUYỆT ĐỐI KHÔNG đưa lịch tập, bảng bài tập hay nội dung training vào câu trả lời này.",
+              "⛔ PHẢI dùng ĐÚNG NGUYÊN VĂN 2 tiêu đề markdown '## Trước Tập' và '## Sau Tập' bên dưới — đây là 2 phần BẮT BUỘC phải có, không được đổi tên, không được gộp lại, không được bỏ qua.",
+              "",
+              "## [Một câu nhận xét cá nhân hóa ngắn dựa trên dữ liệu của họ, nếu có]",
+              "",
+              "## Trước Tập",
+              "[Ưu tiên carb dễ tiêu + một ít protein — ví dụ: cơm, chuối, bánh mì, yến mạch, sữa chua + trứng/sữa/whey nếu họ có dùng. Hạn chế ăn quá nhiều chất béo/chất xơ sát giờ tập vì dễ đầy bụng. Cho 1-2 ví dụ món Việt cụ thể, dễ chuẩn bị.]",
+              "",
+              "## Sau Tập",
+              "[Protein + carb trong bữa kế tiếp — ví dụ ức gà/cá/đậu hũ với cơm hoặc khoai lang. Nói rõ KHÔNG cần thần thánh hoá 'cửa sổ 30 phút' — tổng protein cả ngày quan trọng hơn thời điểm chính xác. Cho 1-2 ví dụ món Việt cụ thể.]",
+              "",
+              "[Chỉ thêm nếu họ hỏi về meal-prep] Gợi ý ngắn cách chuẩn bị sẵn 2-3 món cho cả tuần — KHÔNG tự ý mở rộng thành một thực đơn đầy đủ nếu họ không yêu cầu.",
+              "[Chỉ thêm nếu thiếu giờ tập cụ thể hoặc mục tiêu] Đưa nguyên tắc chung ở trên, rồi hỏi thêm đúng 1 câu để cá nhân hóa tốt hơn.",
+              "Giữ câu trả lời gọn — đây là câu trả lời nhanh cho 1 câu hỏi cụ thể, không phải một bản kế hoạch dài.",
             ];
           }
 
@@ -674,6 +769,27 @@ export const promptBuilder = {
             "- Provide personalized advice only if it makes sense for the question.",
             "- DO NOT force a workout table or nutrition table unless the user explicitly asks for a full plan.",
             "- Write in easy-to-read paragraphs using basic markdown.",
+          ];
+        }
+
+        if (isTiming) {
+          return [
+            "MANDATORY OUTPUT FORMAT (pre/post-workout meal TIMING question only, write in English):",
+            "⛔ This is NOT a request to generate a full (1-day or 7-day) meal plan — the user only asked what/when to eat around a workout. DO NOT produce a full-day meal table or list all 3 meals unless explicitly asked.",
+            "⛔ DO NOT include any workout schedule, exercise table, or training plan content.",
+            "⛔ You MUST use the EXACT markdown headings '## Before Training' and '## After Training' below — these two sections are REQUIRED, do not rename, merge, or skip them.",
+            "",
+            "## [One short personalized note based on their data, if available]",
+            "",
+            "## Before Training",
+            "[Favor easy-to-digest carbs + a little protein — e.g. rice, banana, bread, oats, yogurt + eggs/milk/whey if they use it. Avoid too much fat/fiber right before training since it can feel heavy. Give 1-2 concrete examples.]",
+            "",
+            "## After Training",
+            "[Protein + carbs in the next meal — e.g. chicken/fish/tofu with rice or sweet potato. Explicitly note there's no magic '30-minute window' — total daily protein matters more than exact timing. Give 1-2 concrete examples.]",
+            "",
+            "[Only add if they asked about meal-prep] A brief suggestion for prepping 2-3 dishes ahead for the week — do not turn this into a full plan unless asked.",
+            "[Only add if training time or goal is missing] Give the general principles above, then ask exactly one follow-up question.",
+            "Keep it short — this is a quick answer to one specific question, not a multi-day plan.",
           ];
         }
 

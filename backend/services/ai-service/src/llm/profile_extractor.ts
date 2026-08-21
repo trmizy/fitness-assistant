@@ -35,6 +35,10 @@ type ProfileResponse = {
     injuries?: string[];
     currentWeight?: number;
     targetWeight?: number;
+    // Immutable "journey start" weight (see UserProfile.startingWeight,
+    // user-service) — distinct from currentWeight, which changes on every
+    // InBody sync. May be absent for accounts that predate this field.
+    startingWeight?: number;
   } | null;
 };
 
@@ -350,6 +354,7 @@ export const profileExtractor = {
       //    entered profile weight. Profile weight is only a fallback when no InBody exists.
       currentWeightKg: latestInBody?.weightKg ?? profileData?.currentWeight,
       targetWeightKg: profileData?.targetWeight,
+      startingWeightKg: profileData?.startingWeight,
       training: mapTraining(profileData),
       inBody: latestInBody,
     };

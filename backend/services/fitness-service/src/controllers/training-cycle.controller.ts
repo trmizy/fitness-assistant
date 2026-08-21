@@ -2,6 +2,7 @@ import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { z } from "zod";
 import { trainingCycleService } from "../services/training-cycle.service";
+import { feedbackAnalysisService } from "../services/feedback-analysis.service";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   createTrainingCycleSchema,
@@ -118,6 +119,28 @@ export const trainingCycleController = {
     }
   },
 
+  // Phase 2 — nutrition recommendation accept/reject, independent from the
+  // training accept/reject above (spec §14/§15).
+  async acceptNutritionRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const body = recommendationDecisionSchema.parse(req.body ?? {});
+      const assessment = await trainingCycleService.acceptNutritionRecommendation(req.params.id, req.user!.id, body.assessmentId);
+      res.json(assessment);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to accept nutrition recommendation");
+    }
+  },
+
+  async rejectNutritionRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const body = recommendationDecisionSchema.parse(req.body ?? {});
+      const assessment = await trainingCycleService.rejectNutritionRecommendation(req.params.id, req.user!.id, body.assessmentId);
+      res.json(assessment);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to reject nutrition recommendation");
+    }
+  },
+
   async linkInBodyEntry(req: AuthRequest, res: Response): Promise<void> {
     try {
       const body = linkInBodyEntrySchema.parse(req.body ?? {});
@@ -224,12 +247,52 @@ export const trainingCycleController = {
     }
   },
 
+  async listRecommendationAudits(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const audits = await trainingCycleService.listRecommendationAudits(req.params.id, req.user!.id);
+      res.json({ audits });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to list recommendation audits");
+    }
+  },
+
   async report(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await trainingCycleService.getCycleReport(req.params.id, req.user!.id);
       res.json(result);
     } catch (error: any) {
       handleServiceError(res, error, "Failed to build training cycle report");
+    }
+  },
+
+  // Phase 3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md
+  async sessionFeedbackSummary(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await trainingCycleService.getSessionFeedbackSummary(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to build session feedback summary");
+    }
+  },
+
+  // Phase 4 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — explicit
+  // trigger (mirrors POST /evaluate) since this calls the AI service and
+  // writes an audit row; never runs automatically on a GET.
+  async analyzeFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await feedbackAnalysisService.analyzeCycleFeedback(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to analyze cycle feedback");
+    }
+  },
+
+  async latestFeedbackAnalysis(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await feedbackAnalysisService.getLatestFeedbackAnalysis(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch latest feedback analysis");
     }
   },
 

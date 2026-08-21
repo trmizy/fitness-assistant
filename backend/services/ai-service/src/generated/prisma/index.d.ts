@@ -39,10 +39,25 @@ export type WorkoutPlan = $Result.DefaultSelection<Prisma.$WorkoutPlanPayload>
  */
 export type PublishedPlan = $Result.DefaultSelection<Prisma.$PublishedPlanPayload>
 /**
+ * Model PlanModerationAnalysis
+ * 
+ */
+export type PlanModerationAnalysis = $Result.DefaultSelection<Prisma.$PlanModerationAnalysisPayload>
+/**
  * Model PlanReview
  * 
  */
 export type PlanReview = $Result.DefaultSelection<Prisma.$PlanReviewPayload>
+/**
+ * Model PlanImprovementSuggestion
+ * 
+ */
+export type PlanImprovementSuggestion = $Result.DefaultSelection<Prisma.$PlanImprovementSuggestionPayload>
+/**
+ * Model PlanAdoption
+ * 
+ */
+export type PlanAdoption = $Result.DefaultSelection<Prisma.$PlanAdoptionPayload>
 /**
  * Model TrainingPackage
  * 
@@ -53,6 +68,36 @@ export type TrainingPackage = $Result.DefaultSelection<Prisma.$TrainingPackagePa
  * 
  */
 export type TrainingPackagePurchase = $Result.DefaultSelection<Prisma.$TrainingPackagePurchasePayload>
+/**
+ * Model PersonalizedService
+ * 
+ */
+export type PersonalizedService = $Result.DefaultSelection<Prisma.$PersonalizedServicePayload>
+/**
+ * Model PersonalizedServiceOrder
+ * 
+ */
+export type PersonalizedServiceOrder = $Result.DefaultSelection<Prisma.$PersonalizedServiceOrderPayload>
+/**
+ * Model PersonalizedServicePlanVersion
+ * 
+ */
+export type PersonalizedServicePlanVersion = $Result.DefaultSelection<Prisma.$PersonalizedServicePlanVersionPayload>
+/**
+ * Model PersonalizedServiceCheckIn
+ * 
+ */
+export type PersonalizedServiceCheckIn = $Result.DefaultSelection<Prisma.$PersonalizedServiceCheckInPayload>
+/**
+ * Model PersonalizedServiceReview
+ * 
+ */
+export type PersonalizedServiceReview = $Result.DefaultSelection<Prisma.$PersonalizedServiceReviewPayload>
+/**
+ * Model PersonalizedServiceRevisionRequest
+ * 
+ */
+export type PersonalizedServiceRevisionRequest = $Result.DefaultSelection<Prisma.$PersonalizedServiceRevisionRequestPayload>
 /**
  * Model NutritionPlan
  * 
@@ -134,6 +179,66 @@ export const TrainingPackagePurchaseStatus: {
 export type TrainingPackagePurchaseStatus = (typeof TrainingPackagePurchaseStatus)[keyof typeof TrainingPackagePurchaseStatus]
 
 
+export const PersonalizedServiceType: {
+  PERSONALIZED_WORKOUT: 'PERSONALIZED_WORKOUT',
+  PERSONALIZED_NUTRITION: 'PERSONALIZED_NUTRITION',
+  WORKOUT_AND_NUTRITION: 'WORKOUT_AND_NUTRITION',
+  ONLINE_COACHING: 'ONLINE_COACHING'
+};
+
+export type PersonalizedServiceType = (typeof PersonalizedServiceType)[keyof typeof PersonalizedServiceType]
+
+
+export const PersonalizedServiceStatus: {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+};
+
+export type PersonalizedServiceStatus = (typeof PersonalizedServiceStatus)[keyof typeof PersonalizedServiceStatus]
+
+
+export const PersonalizedServiceOrderStatus: {
+  PURCHASED: 'PURCHASED',
+  INTAKE_PENDING: 'INTAKE_PENDING',
+  INTAKE_SUBMITTED: 'INTAKE_SUBMITTED',
+  PT_REVIEWING: 'PT_REVIEWING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  DRAFT_DELIVERED: 'DRAFT_DELIVERED',
+  REVISION_REQUESTED: 'REVISION_REQUESTED',
+  REVISION_IN_PROGRESS: 'REVISION_IN_PROGRESS',
+  ACCEPTED: 'ACCEPTED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUND_REQUESTED: 'REFUND_REQUESTED',
+  REFUNDED: 'REFUNDED',
+  DISPUTED: 'DISPUTED'
+};
+
+export type PersonalizedServiceOrderStatus = (typeof PersonalizedServiceOrderStatus)[keyof typeof PersonalizedServiceOrderStatus]
+
+
+export const PlanVersionStatus: {
+  DELIVERED: 'DELIVERED',
+  ACCEPTED: 'ACCEPTED',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+export type PlanVersionStatus = (typeof PlanVersionStatus)[keyof typeof PlanVersionStatus]
+
+
+export const RevisionRequestCategory: {
+  EXERCISE: 'EXERCISE',
+  SCHEDULE: 'SCHEDULE',
+  DIFFICULTY: 'DIFFICULTY',
+  EQUIPMENT: 'EQUIPMENT',
+  NUTRITION: 'NUTRITION',
+  OTHER: 'OTHER'
+};
+
+export type RevisionRequestCategory = (typeof RevisionRequestCategory)[keyof typeof RevisionRequestCategory]
+
+
 export const KnowledgeSourceType: {
   RSS: 'RSS',
   API: 'API',
@@ -206,6 +311,26 @@ export const TrainingPackageStatus: typeof $Enums.TrainingPackageStatus
 export type TrainingPackagePurchaseStatus = $Enums.TrainingPackagePurchaseStatus
 
 export const TrainingPackagePurchaseStatus: typeof $Enums.TrainingPackagePurchaseStatus
+
+export type PersonalizedServiceType = $Enums.PersonalizedServiceType
+
+export const PersonalizedServiceType: typeof $Enums.PersonalizedServiceType
+
+export type PersonalizedServiceStatus = $Enums.PersonalizedServiceStatus
+
+export const PersonalizedServiceStatus: typeof $Enums.PersonalizedServiceStatus
+
+export type PersonalizedServiceOrderStatus = $Enums.PersonalizedServiceOrderStatus
+
+export const PersonalizedServiceOrderStatus: typeof $Enums.PersonalizedServiceOrderStatus
+
+export type PlanVersionStatus = $Enums.PlanVersionStatus
+
+export const PlanVersionStatus: typeof $Enums.PlanVersionStatus
+
+export type RevisionRequestCategory = $Enums.RevisionRequestCategory
+
+export const RevisionRequestCategory: typeof $Enums.RevisionRequestCategory
 
 export type KnowledgeSourceType = $Enums.KnowledgeSourceType
 
@@ -401,6 +526,16 @@ export class PrismaClient<
   get publishedPlan(): Prisma.PublishedPlanDelegate<ExtArgs>;
 
   /**
+   * `prisma.planModerationAnalysis`: Exposes CRUD operations for the **PlanModerationAnalysis** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlanModerationAnalyses
+    * const planModerationAnalyses = await prisma.planModerationAnalysis.findMany()
+    * ```
+    */
+  get planModerationAnalysis(): Prisma.PlanModerationAnalysisDelegate<ExtArgs>;
+
+  /**
    * `prisma.planReview`: Exposes CRUD operations for the **PlanReview** model.
     * Example usage:
     * ```ts
@@ -409,6 +544,26 @@ export class PrismaClient<
     * ```
     */
   get planReview(): Prisma.PlanReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.planImprovementSuggestion`: Exposes CRUD operations for the **PlanImprovementSuggestion** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlanImprovementSuggestions
+    * const planImprovementSuggestions = await prisma.planImprovementSuggestion.findMany()
+    * ```
+    */
+  get planImprovementSuggestion(): Prisma.PlanImprovementSuggestionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.planAdoption`: Exposes CRUD operations for the **PlanAdoption** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlanAdoptions
+    * const planAdoptions = await prisma.planAdoption.findMany()
+    * ```
+    */
+  get planAdoption(): Prisma.PlanAdoptionDelegate<ExtArgs>;
 
   /**
    * `prisma.trainingPackage`: Exposes CRUD operations for the **TrainingPackage** model.
@@ -429,6 +584,66 @@ export class PrismaClient<
     * ```
     */
   get trainingPackagePurchase(): Prisma.TrainingPackagePurchaseDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedService`: Exposes CRUD operations for the **PersonalizedService** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServices
+    * const personalizedServices = await prisma.personalizedService.findMany()
+    * ```
+    */
+  get personalizedService(): Prisma.PersonalizedServiceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedServiceOrder`: Exposes CRUD operations for the **PersonalizedServiceOrder** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServiceOrders
+    * const personalizedServiceOrders = await prisma.personalizedServiceOrder.findMany()
+    * ```
+    */
+  get personalizedServiceOrder(): Prisma.PersonalizedServiceOrderDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedServicePlanVersion`: Exposes CRUD operations for the **PersonalizedServicePlanVersion** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServicePlanVersions
+    * const personalizedServicePlanVersions = await prisma.personalizedServicePlanVersion.findMany()
+    * ```
+    */
+  get personalizedServicePlanVersion(): Prisma.PersonalizedServicePlanVersionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedServiceCheckIn`: Exposes CRUD operations for the **PersonalizedServiceCheckIn** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServiceCheckIns
+    * const personalizedServiceCheckIns = await prisma.personalizedServiceCheckIn.findMany()
+    * ```
+    */
+  get personalizedServiceCheckIn(): Prisma.PersonalizedServiceCheckInDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedServiceReview`: Exposes CRUD operations for the **PersonalizedServiceReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServiceReviews
+    * const personalizedServiceReviews = await prisma.personalizedServiceReview.findMany()
+    * ```
+    */
+  get personalizedServiceReview(): Prisma.PersonalizedServiceReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.personalizedServiceRevisionRequest`: Exposes CRUD operations for the **PersonalizedServiceRevisionRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PersonalizedServiceRevisionRequests
+    * const personalizedServiceRevisionRequests = await prisma.personalizedServiceRevisionRequest.findMany()
+    * ```
+    */
+  get personalizedServiceRevisionRequest(): Prisma.PersonalizedServiceRevisionRequestDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionPlan`: Exposes CRUD operations for the **NutritionPlan** model.
@@ -935,9 +1150,18 @@ export namespace Prisma {
     UserMemory: 'UserMemory',
     WorkoutPlan: 'WorkoutPlan',
     PublishedPlan: 'PublishedPlan',
+    PlanModerationAnalysis: 'PlanModerationAnalysis',
     PlanReview: 'PlanReview',
+    PlanImprovementSuggestion: 'PlanImprovementSuggestion',
+    PlanAdoption: 'PlanAdoption',
     TrainingPackage: 'TrainingPackage',
     TrainingPackagePurchase: 'TrainingPackagePurchase',
+    PersonalizedService: 'PersonalizedService',
+    PersonalizedServiceOrder: 'PersonalizedServiceOrder',
+    PersonalizedServicePlanVersion: 'PersonalizedServicePlanVersion',
+    PersonalizedServiceCheckIn: 'PersonalizedServiceCheckIn',
+    PersonalizedServiceReview: 'PersonalizedServiceReview',
+    PersonalizedServiceRevisionRequest: 'PersonalizedServiceRevisionRequest',
     NutritionPlan: 'NutritionPlan',
     KnowledgeSource: 'KnowledgeSource',
     KnowledgeDocument: 'KnowledgeDocument',
@@ -959,7 +1183,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planReview" | "trainingPackage" | "trainingPackagePurchase" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1313,6 +1537,76 @@ export namespace Prisma {
           }
         }
       }
+      PlanModerationAnalysis: {
+        payload: Prisma.$PlanModerationAnalysisPayload<ExtArgs>
+        fields: Prisma.PlanModerationAnalysisFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlanModerationAnalysisFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlanModerationAnalysisFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          findFirst: {
+            args: Prisma.PlanModerationAnalysisFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlanModerationAnalysisFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          findMany: {
+            args: Prisma.PlanModerationAnalysisFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>[]
+          }
+          create: {
+            args: Prisma.PlanModerationAnalysisCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          createMany: {
+            args: Prisma.PlanModerationAnalysisCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlanModerationAnalysisCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>[]
+          }
+          delete: {
+            args: Prisma.PlanModerationAnalysisDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          update: {
+            args: Prisma.PlanModerationAnalysisUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlanModerationAnalysisDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlanModerationAnalysisUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PlanModerationAnalysisUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanModerationAnalysisPayload>
+          }
+          aggregate: {
+            args: Prisma.PlanModerationAnalysisAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlanModerationAnalysis>
+          }
+          groupBy: {
+            args: Prisma.PlanModerationAnalysisGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlanModerationAnalysisGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlanModerationAnalysisCountArgs<ExtArgs>
+            result: $Utils.Optional<PlanModerationAnalysisCountAggregateOutputType> | number
+          }
+        }
+      }
       PlanReview: {
         payload: Prisma.$PlanReviewPayload<ExtArgs>
         fields: Prisma.PlanReviewFieldRefs
@@ -1380,6 +1674,146 @@ export namespace Prisma {
           count: {
             args: Prisma.PlanReviewCountArgs<ExtArgs>
             result: $Utils.Optional<PlanReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlanImprovementSuggestion: {
+        payload: Prisma.$PlanImprovementSuggestionPayload<ExtArgs>
+        fields: Prisma.PlanImprovementSuggestionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlanImprovementSuggestionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlanImprovementSuggestionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          findFirst: {
+            args: Prisma.PlanImprovementSuggestionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlanImprovementSuggestionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          findMany: {
+            args: Prisma.PlanImprovementSuggestionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>[]
+          }
+          create: {
+            args: Prisma.PlanImprovementSuggestionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          createMany: {
+            args: Prisma.PlanImprovementSuggestionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlanImprovementSuggestionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>[]
+          }
+          delete: {
+            args: Prisma.PlanImprovementSuggestionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          update: {
+            args: Prisma.PlanImprovementSuggestionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlanImprovementSuggestionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlanImprovementSuggestionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PlanImprovementSuggestionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanImprovementSuggestionPayload>
+          }
+          aggregate: {
+            args: Prisma.PlanImprovementSuggestionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlanImprovementSuggestion>
+          }
+          groupBy: {
+            args: Prisma.PlanImprovementSuggestionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlanImprovementSuggestionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlanImprovementSuggestionCountArgs<ExtArgs>
+            result: $Utils.Optional<PlanImprovementSuggestionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlanAdoption: {
+        payload: Prisma.$PlanAdoptionPayload<ExtArgs>
+        fields: Prisma.PlanAdoptionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlanAdoptionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlanAdoptionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          findFirst: {
+            args: Prisma.PlanAdoptionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlanAdoptionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          findMany: {
+            args: Prisma.PlanAdoptionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>[]
+          }
+          create: {
+            args: Prisma.PlanAdoptionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          createMany: {
+            args: Prisma.PlanAdoptionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlanAdoptionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>[]
+          }
+          delete: {
+            args: Prisma.PlanAdoptionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          update: {
+            args: Prisma.PlanAdoptionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlanAdoptionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlanAdoptionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PlanAdoptionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanAdoptionPayload>
+          }
+          aggregate: {
+            args: Prisma.PlanAdoptionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlanAdoption>
+          }
+          groupBy: {
+            args: Prisma.PlanAdoptionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlanAdoptionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlanAdoptionCountArgs<ExtArgs>
+            result: $Utils.Optional<PlanAdoptionCountAggregateOutputType> | number
           }
         }
       }
@@ -1520,6 +1954,426 @@ export namespace Prisma {
           count: {
             args: Prisma.TrainingPackagePurchaseCountArgs<ExtArgs>
             result: $Utils.Optional<TrainingPackagePurchaseCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedService: {
+        payload: Prisma.$PersonalizedServicePayload<ExtArgs>
+        fields: Prisma.PersonalizedServiceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServiceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServiceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServiceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServiceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServiceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServiceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServiceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServiceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServiceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServiceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServiceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServiceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServiceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServiceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedService>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServiceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServiceCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedServiceOrder: {
+        payload: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>
+        fields: Prisma.PersonalizedServiceOrderFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServiceOrderFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServiceOrderFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServiceOrderFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServiceOrderFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServiceOrderFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServiceOrderCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServiceOrderCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServiceOrderCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServiceOrderDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServiceOrderUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServiceOrderDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServiceOrderUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServiceOrderUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceOrderPayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServiceOrderAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedServiceOrder>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServiceOrderGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceOrderGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServiceOrderCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceOrderCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedServicePlanVersion: {
+        payload: Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>
+        fields: Prisma.PersonalizedServicePlanVersionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServicePlanVersionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServicePlanVersionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServicePlanVersionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServicePlanVersionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServicePlanVersionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServicePlanVersionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServicePlanVersionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServicePlanVersionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServicePlanVersionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServicePlanVersionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServicePlanVersionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServicePlanVersionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServicePlanVersionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServicePlanVersionPayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServicePlanVersionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedServicePlanVersion>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServicePlanVersionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServicePlanVersionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServicePlanVersionCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServicePlanVersionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedServiceCheckIn: {
+        payload: Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>
+        fields: Prisma.PersonalizedServiceCheckInFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServiceCheckInFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServiceCheckInFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServiceCheckInFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServiceCheckInFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServiceCheckInFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServiceCheckInCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServiceCheckInCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServiceCheckInCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServiceCheckInDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServiceCheckInUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServiceCheckInDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServiceCheckInUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServiceCheckInUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceCheckInPayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServiceCheckInAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedServiceCheckIn>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServiceCheckInGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceCheckInGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServiceCheckInCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceCheckInCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedServiceReview: {
+        payload: Prisma.$PersonalizedServiceReviewPayload<ExtArgs>
+        fields: Prisma.PersonalizedServiceReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServiceReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServiceReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServiceReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServiceReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServiceReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServiceReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServiceReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServiceReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServiceReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServiceReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServiceReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServiceReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServiceReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServiceReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedServiceReview>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServiceReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServiceReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      PersonalizedServiceRevisionRequest: {
+        payload: Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>
+        fields: Prisma.PersonalizedServiceRevisionRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PersonalizedServiceRevisionRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PersonalizedServiceRevisionRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.PersonalizedServiceRevisionRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PersonalizedServiceRevisionRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          findMany: {
+            args: Prisma.PersonalizedServiceRevisionRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>[]
+          }
+          create: {
+            args: Prisma.PersonalizedServiceRevisionRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          createMany: {
+            args: Prisma.PersonalizedServiceRevisionRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PersonalizedServiceRevisionRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.PersonalizedServiceRevisionRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          update: {
+            args: Prisma.PersonalizedServiceRevisionRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.PersonalizedServiceRevisionRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PersonalizedServiceRevisionRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PersonalizedServiceRevisionRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PersonalizedServiceRevisionRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.PersonalizedServiceRevisionRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePersonalizedServiceRevisionRequest>
+          }
+          groupBy: {
+            args: Prisma.PersonalizedServiceRevisionRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceRevisionRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PersonalizedServiceRevisionRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<PersonalizedServiceRevisionRequestCountAggregateOutputType> | number
           }
         }
       }
@@ -2137,11 +2991,15 @@ export namespace Prisma {
   export type PublishedPlanCountOutputType = {
     reviews: number
     packages: number
+    improvementSuggestions: number
+    moderationAnalyses: number
   }
 
   export type PublishedPlanCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     reviews?: boolean | PublishedPlanCountOutputTypeCountReviewsArgs
     packages?: boolean | PublishedPlanCountOutputTypeCountPackagesArgs
+    improvementSuggestions?: boolean | PublishedPlanCountOutputTypeCountImprovementSuggestionsArgs
+    moderationAnalyses?: boolean | PublishedPlanCountOutputTypeCountModerationAnalysesArgs
   }
 
   // Custom InputTypes
@@ -2167,6 +3025,20 @@ export namespace Prisma {
    */
   export type PublishedPlanCountOutputTypeCountPackagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TrainingPackageWhereInput
+  }
+
+  /**
+   * PublishedPlanCountOutputType without action
+   */
+  export type PublishedPlanCountOutputTypeCountImprovementSuggestionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanImprovementSuggestionWhereInput
+  }
+
+  /**
+   * PublishedPlanCountOutputType without action
+   */
+  export type PublishedPlanCountOutputTypeCountModerationAnalysesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanModerationAnalysisWhereInput
   }
 
 
@@ -2198,6 +3070,86 @@ export namespace Prisma {
    */
   export type TrainingPackageCountOutputTypeCountPurchasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TrainingPackagePurchaseWhereInput
+  }
+
+
+  /**
+   * Count Type PersonalizedServiceCountOutputType
+   */
+
+  export type PersonalizedServiceCountOutputType = {
+    orders: number
+  }
+
+  export type PersonalizedServiceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    orders?: boolean | PersonalizedServiceCountOutputTypeCountOrdersArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceCountOutputType without action
+   */
+  export type PersonalizedServiceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCountOutputType
+     */
+    select?: PersonalizedServiceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceCountOutputType without action
+   */
+  export type PersonalizedServiceCountOutputTypeCountOrdersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+
+  /**
+   * Count Type PersonalizedServiceOrderCountOutputType
+   */
+
+  export type PersonalizedServiceOrderCountOutputType = {
+    revisionRequests: number
+    planVersions: number
+    checkIns: number
+  }
+
+  export type PersonalizedServiceOrderCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    revisionRequests?: boolean | PersonalizedServiceOrderCountOutputTypeCountRevisionRequestsArgs
+    planVersions?: boolean | PersonalizedServiceOrderCountOutputTypeCountPlanVersionsArgs
+    checkIns?: boolean | PersonalizedServiceOrderCountOutputTypeCountCheckInsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceOrderCountOutputType without action
+   */
+  export type PersonalizedServiceOrderCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrderCountOutputType
+     */
+    select?: PersonalizedServiceOrderCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceOrderCountOutputType without action
+   */
+  export type PersonalizedServiceOrderCountOutputTypeCountRevisionRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceRevisionRequestWhereInput
+  }
+
+  /**
+   * PersonalizedServiceOrderCountOutputType without action
+   */
+  export type PersonalizedServiceOrderCountOutputTypeCountPlanVersionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServicePlanVersionWhereInput
+  }
+
+  /**
+   * PersonalizedServiceOrderCountOutputType without action
+   */
+  export type PersonalizedServiceOrderCountOutputTypeCountCheckInsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceCheckInWhereInput
   }
 
 
@@ -6395,11 +7347,15 @@ export namespace Prisma {
   export type PublishedPlanAvgAggregateOutputType = {
     avgRating: number | null
     ratingCount: number | null
+    version: number | null
+    qualityScore: number | null
   }
 
   export type PublishedPlanSumAggregateOutputType = {
     avgRating: number | null
     ratingCount: number | null
+    version: number | null
+    qualityScore: number | null
   }
 
   export type PublishedPlanMinAggregateOutputType = {
@@ -6416,6 +7372,14 @@ export namespace Prisma {
     publishedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    version: number | null
+    previousVersionId: string | null
+    changelog: string | null
+    improvementReason: string | null
+    approvedBy: string | null
+    publisherIsVerifiedPt: boolean | null
+    qualityScore: number | null
+    qualityScoreComputedAt: Date | null
   }
 
   export type PublishedPlanMaxAggregateOutputType = {
@@ -6432,6 +7396,14 @@ export namespace Prisma {
     publishedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    version: number | null
+    previousVersionId: string | null
+    changelog: string | null
+    improvementReason: string | null
+    approvedBy: string | null
+    publisherIsVerifiedPt: boolean | null
+    qualityScore: number | null
+    qualityScoreComputedAt: Date | null
   }
 
   export type PublishedPlanCountAggregateOutputType = {
@@ -6448,6 +7420,14 @@ export namespace Prisma {
     publishedAt: number
     createdAt: number
     updatedAt: number
+    version: number
+    previousVersionId: number
+    changelog: number
+    improvementReason: number
+    approvedBy: number
+    publisherIsVerifiedPt: number
+    qualityScore: number
+    qualityScoreComputedAt: number
     _all: number
   }
 
@@ -6455,11 +7435,15 @@ export namespace Prisma {
   export type PublishedPlanAvgAggregateInputType = {
     avgRating?: true
     ratingCount?: true
+    version?: true
+    qualityScore?: true
   }
 
   export type PublishedPlanSumAggregateInputType = {
     avgRating?: true
     ratingCount?: true
+    version?: true
+    qualityScore?: true
   }
 
   export type PublishedPlanMinAggregateInputType = {
@@ -6476,6 +7460,14 @@ export namespace Prisma {
     publishedAt?: true
     createdAt?: true
     updatedAt?: true
+    version?: true
+    previousVersionId?: true
+    changelog?: true
+    improvementReason?: true
+    approvedBy?: true
+    publisherIsVerifiedPt?: true
+    qualityScore?: true
+    qualityScoreComputedAt?: true
   }
 
   export type PublishedPlanMaxAggregateInputType = {
@@ -6492,6 +7484,14 @@ export namespace Prisma {
     publishedAt?: true
     createdAt?: true
     updatedAt?: true
+    version?: true
+    previousVersionId?: true
+    changelog?: true
+    improvementReason?: true
+    approvedBy?: true
+    publisherIsVerifiedPt?: true
+    qualityScore?: true
+    qualityScoreComputedAt?: true
   }
 
   export type PublishedPlanCountAggregateInputType = {
@@ -6508,6 +7508,14 @@ export namespace Prisma {
     publishedAt?: true
     createdAt?: true
     updatedAt?: true
+    version?: true
+    previousVersionId?: true
+    changelog?: true
+    improvementReason?: true
+    approvedBy?: true
+    publisherIsVerifiedPt?: true
+    qualityScore?: true
+    qualityScoreComputedAt?: true
     _all?: true
   }
 
@@ -6611,6 +7619,14 @@ export namespace Prisma {
     publishedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    version: number
+    previousVersionId: string | null
+    changelog: string | null
+    improvementReason: string | null
+    approvedBy: string | null
+    publisherIsVerifiedPt: boolean
+    qualityScore: number | null
+    qualityScoreComputedAt: Date | null
     _count: PublishedPlanCountAggregateOutputType | null
     _avg: PublishedPlanAvgAggregateOutputType | null
     _sum: PublishedPlanSumAggregateOutputType | null
@@ -6646,9 +7662,19 @@ export namespace Prisma {
     publishedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    version?: boolean
+    previousVersionId?: boolean
+    changelog?: boolean
+    improvementReason?: boolean
+    approvedBy?: boolean
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: boolean
+    qualityScoreComputedAt?: boolean
     sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
     reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
     packages?: boolean | PublishedPlan$packagesArgs<ExtArgs>
+    improvementSuggestions?: boolean | PublishedPlan$improvementSuggestionsArgs<ExtArgs>
+    moderationAnalyses?: boolean | PublishedPlan$moderationAnalysesArgs<ExtArgs>
     _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["publishedPlan"]>
 
@@ -6666,6 +7692,14 @@ export namespace Prisma {
     publishedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    version?: boolean
+    previousVersionId?: boolean
+    changelog?: boolean
+    improvementReason?: boolean
+    approvedBy?: boolean
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: boolean
+    qualityScoreComputedAt?: boolean
     sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["publishedPlan"]>
 
@@ -6683,12 +7717,22 @@ export namespace Prisma {
     publishedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    version?: boolean
+    previousVersionId?: boolean
+    changelog?: boolean
+    improvementReason?: boolean
+    approvedBy?: boolean
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: boolean
+    qualityScoreComputedAt?: boolean
   }
 
   export type PublishedPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
     reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
     packages?: boolean | PublishedPlan$packagesArgs<ExtArgs>
+    improvementSuggestions?: boolean | PublishedPlan$improvementSuggestionsArgs<ExtArgs>
+    moderationAnalyses?: boolean | PublishedPlan$moderationAnalysesArgs<ExtArgs>
     _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PublishedPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6701,6 +7745,8 @@ export namespace Prisma {
       sourcePlan: Prisma.$WorkoutPlanPayload<ExtArgs>
       reviews: Prisma.$PlanReviewPayload<ExtArgs>[]
       packages: Prisma.$TrainingPackagePayload<ExtArgs>[]
+      improvementSuggestions: Prisma.$PlanImprovementSuggestionPayload<ExtArgs>[]
+      moderationAnalyses: Prisma.$PlanModerationAnalysisPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6716,6 +7762,14 @@ export namespace Prisma {
       publishedAt: Date | null
       createdAt: Date
       updatedAt: Date
+      version: number
+      previousVersionId: string | null
+      changelog: string | null
+      improvementReason: string | null
+      approvedBy: string | null
+      publisherIsVerifiedPt: boolean
+      qualityScore: number | null
+      qualityScoreComputedAt: Date | null
     }, ExtArgs["result"]["publishedPlan"]>
     composites: {}
   }
@@ -7083,6 +8137,8 @@ export namespace Prisma {
     sourcePlan<T extends WorkoutPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutPlanDefaultArgs<ExtArgs>>): Prisma__WorkoutPlanClient<$Result.GetResult<Prisma.$WorkoutPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     reviews<T extends PublishedPlan$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findMany"> | Null>
     packages<T extends PublishedPlan$packagesArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$packagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findMany"> | Null>
+    improvementSuggestions<T extends PublishedPlan$improvementSuggestionsArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$improvementSuggestionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findMany"> | Null>
+    moderationAnalyses<T extends PublishedPlan$moderationAnalysesArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$moderationAnalysesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7125,6 +8181,14 @@ export namespace Prisma {
     readonly publishedAt: FieldRef<"PublishedPlan", 'DateTime'>
     readonly createdAt: FieldRef<"PublishedPlan", 'DateTime'>
     readonly updatedAt: FieldRef<"PublishedPlan", 'DateTime'>
+    readonly version: FieldRef<"PublishedPlan", 'Int'>
+    readonly previousVersionId: FieldRef<"PublishedPlan", 'String'>
+    readonly changelog: FieldRef<"PublishedPlan", 'String'>
+    readonly improvementReason: FieldRef<"PublishedPlan", 'String'>
+    readonly approvedBy: FieldRef<"PublishedPlan", 'String'>
+    readonly publisherIsVerifiedPt: FieldRef<"PublishedPlan", 'Boolean'>
+    readonly qualityScore: FieldRef<"PublishedPlan", 'Float'>
+    readonly qualityScoreComputedAt: FieldRef<"PublishedPlan", 'DateTime'>
   }
     
 
@@ -7483,6 +8547,46 @@ export namespace Prisma {
   }
 
   /**
+   * PublishedPlan.improvementSuggestions
+   */
+  export type PublishedPlan$improvementSuggestionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    where?: PlanImprovementSuggestionWhereInput
+    orderBy?: PlanImprovementSuggestionOrderByWithRelationInput | PlanImprovementSuggestionOrderByWithRelationInput[]
+    cursor?: PlanImprovementSuggestionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlanImprovementSuggestionScalarFieldEnum | PlanImprovementSuggestionScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan.moderationAnalyses
+   */
+  export type PublishedPlan$moderationAnalysesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    where?: PlanModerationAnalysisWhereInput
+    orderBy?: PlanModerationAnalysisOrderByWithRelationInput | PlanModerationAnalysisOrderByWithRelationInput[]
+    cursor?: PlanModerationAnalysisWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlanModerationAnalysisScalarFieldEnum | PlanModerationAnalysisScalarFieldEnum[]
+  }
+
+  /**
    * PublishedPlan without action
    */
   export type PublishedPlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7494,6 +8598,1029 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PublishedPlanInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlanModerationAnalysis
+   */
+
+  export type AggregatePlanModerationAnalysis = {
+    _count: PlanModerationAnalysisCountAggregateOutputType | null
+    _avg: PlanModerationAnalysisAvgAggregateOutputType | null
+    _sum: PlanModerationAnalysisSumAggregateOutputType | null
+    _min: PlanModerationAnalysisMinAggregateOutputType | null
+    _max: PlanModerationAnalysisMaxAggregateOutputType | null
+  }
+
+  export type PlanModerationAnalysisAvgAggregateOutputType = {
+    aiConfidenceScore: number | null
+  }
+
+  export type PlanModerationAnalysisSumAggregateOutputType = {
+    aiConfidenceScore: number | null
+  }
+
+  export type PlanModerationAnalysisMinAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    aiConfidenceScore: number | null
+    aiRecommendation: string | null
+    explanationForAdmin: string | null
+    usedFallback: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PlanModerationAnalysisMaxAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    aiConfidenceScore: number | null
+    aiRecommendation: string | null
+    explanationForAdmin: string | null
+    usedFallback: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PlanModerationAnalysisCountAggregateOutputType = {
+    id: number
+    publishedPlanId: number
+    computedStats: number
+    ruleFlags: number
+    similarListings: number
+    aiConcerns: number
+    aiConfidenceScore: number
+    aiRecommendation: number
+    explanationForAdmin: number
+    usedFallback: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PlanModerationAnalysisAvgAggregateInputType = {
+    aiConfidenceScore?: true
+  }
+
+  export type PlanModerationAnalysisSumAggregateInputType = {
+    aiConfidenceScore?: true
+  }
+
+  export type PlanModerationAnalysisMinAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    aiConfidenceScore?: true
+    aiRecommendation?: true
+    explanationForAdmin?: true
+    usedFallback?: true
+    createdAt?: true
+  }
+
+  export type PlanModerationAnalysisMaxAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    aiConfidenceScore?: true
+    aiRecommendation?: true
+    explanationForAdmin?: true
+    usedFallback?: true
+    createdAt?: true
+  }
+
+  export type PlanModerationAnalysisCountAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    computedStats?: true
+    ruleFlags?: true
+    similarListings?: true
+    aiConcerns?: true
+    aiConfidenceScore?: true
+    aiRecommendation?: true
+    explanationForAdmin?: true
+    usedFallback?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PlanModerationAnalysisAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanModerationAnalysis to aggregate.
+     */
+    where?: PlanModerationAnalysisWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanModerationAnalyses to fetch.
+     */
+    orderBy?: PlanModerationAnalysisOrderByWithRelationInput | PlanModerationAnalysisOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlanModerationAnalysisWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanModerationAnalyses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanModerationAnalyses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlanModerationAnalyses
+    **/
+    _count?: true | PlanModerationAnalysisCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlanModerationAnalysisAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlanModerationAnalysisSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlanModerationAnalysisMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlanModerationAnalysisMaxAggregateInputType
+  }
+
+  export type GetPlanModerationAnalysisAggregateType<T extends PlanModerationAnalysisAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlanModerationAnalysis]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlanModerationAnalysis[P]>
+      : GetScalarType<T[P], AggregatePlanModerationAnalysis[P]>
+  }
+
+
+
+
+  export type PlanModerationAnalysisGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanModerationAnalysisWhereInput
+    orderBy?: PlanModerationAnalysisOrderByWithAggregationInput | PlanModerationAnalysisOrderByWithAggregationInput[]
+    by: PlanModerationAnalysisScalarFieldEnum[] | PlanModerationAnalysisScalarFieldEnum
+    having?: PlanModerationAnalysisScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlanModerationAnalysisCountAggregateInputType | true
+    _avg?: PlanModerationAnalysisAvgAggregateInputType
+    _sum?: PlanModerationAnalysisSumAggregateInputType
+    _min?: PlanModerationAnalysisMinAggregateInputType
+    _max?: PlanModerationAnalysisMaxAggregateInputType
+  }
+
+  export type PlanModerationAnalysisGroupByOutputType = {
+    id: string
+    publishedPlanId: string
+    computedStats: JsonValue
+    ruleFlags: JsonValue
+    similarListings: JsonValue
+    aiConcerns: JsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback: boolean
+    createdAt: Date
+    _count: PlanModerationAnalysisCountAggregateOutputType | null
+    _avg: PlanModerationAnalysisAvgAggregateOutputType | null
+    _sum: PlanModerationAnalysisSumAggregateOutputType | null
+    _min: PlanModerationAnalysisMinAggregateOutputType | null
+    _max: PlanModerationAnalysisMaxAggregateOutputType | null
+  }
+
+  type GetPlanModerationAnalysisGroupByPayload<T extends PlanModerationAnalysisGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlanModerationAnalysisGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlanModerationAnalysisGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlanModerationAnalysisGroupByOutputType[P]>
+            : GetScalarType<T[P], PlanModerationAnalysisGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlanModerationAnalysisSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    computedStats?: boolean
+    ruleFlags?: boolean
+    similarListings?: boolean
+    aiConcerns?: boolean
+    aiConfidenceScore?: boolean
+    aiRecommendation?: boolean
+    explanationForAdmin?: boolean
+    usedFallback?: boolean
+    createdAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planModerationAnalysis"]>
+
+  export type PlanModerationAnalysisSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    computedStats?: boolean
+    ruleFlags?: boolean
+    similarListings?: boolean
+    aiConcerns?: boolean
+    aiConfidenceScore?: boolean
+    aiRecommendation?: boolean
+    explanationForAdmin?: boolean
+    usedFallback?: boolean
+    createdAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planModerationAnalysis"]>
+
+  export type PlanModerationAnalysisSelectScalar = {
+    id?: boolean
+    publishedPlanId?: boolean
+    computedStats?: boolean
+    ruleFlags?: boolean
+    similarListings?: boolean
+    aiConcerns?: boolean
+    aiConfidenceScore?: boolean
+    aiRecommendation?: boolean
+    explanationForAdmin?: boolean
+    usedFallback?: boolean
+    createdAt?: boolean
+  }
+
+  export type PlanModerationAnalysisInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+  export type PlanModerationAnalysisIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+
+  export type $PlanModerationAnalysisPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlanModerationAnalysis"
+    objects: {
+      publishedPlan: Prisma.$PublishedPlanPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      publishedPlanId: string
+      computedStats: Prisma.JsonValue
+      ruleFlags: Prisma.JsonValue
+      similarListings: Prisma.JsonValue
+      aiConcerns: Prisma.JsonValue
+      aiConfidenceScore: number
+      aiRecommendation: string
+      explanationForAdmin: string
+      usedFallback: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["planModerationAnalysis"]>
+    composites: {}
+  }
+
+  type PlanModerationAnalysisGetPayload<S extends boolean | null | undefined | PlanModerationAnalysisDefaultArgs> = $Result.GetResult<Prisma.$PlanModerationAnalysisPayload, S>
+
+  type PlanModerationAnalysisCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PlanModerationAnalysisFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PlanModerationAnalysisCountAggregateInputType | true
+    }
+
+  export interface PlanModerationAnalysisDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlanModerationAnalysis'], meta: { name: 'PlanModerationAnalysis' } }
+    /**
+     * Find zero or one PlanModerationAnalysis that matches the filter.
+     * @param {PlanModerationAnalysisFindUniqueArgs} args - Arguments to find a PlanModerationAnalysis
+     * @example
+     * // Get one PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlanModerationAnalysisFindUniqueArgs>(args: SelectSubset<T, PlanModerationAnalysisFindUniqueArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PlanModerationAnalysis that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PlanModerationAnalysisFindUniqueOrThrowArgs} args - Arguments to find a PlanModerationAnalysis
+     * @example
+     * // Get one PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlanModerationAnalysisFindUniqueOrThrowArgs>(args: SelectSubset<T, PlanModerationAnalysisFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PlanModerationAnalysis that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisFindFirstArgs} args - Arguments to find a PlanModerationAnalysis
+     * @example
+     * // Get one PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlanModerationAnalysisFindFirstArgs>(args?: SelectSubset<T, PlanModerationAnalysisFindFirstArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PlanModerationAnalysis that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisFindFirstOrThrowArgs} args - Arguments to find a PlanModerationAnalysis
+     * @example
+     * // Get one PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlanModerationAnalysisFindFirstOrThrowArgs>(args?: SelectSubset<T, PlanModerationAnalysisFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PlanModerationAnalyses that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlanModerationAnalyses
+     * const planModerationAnalyses = await prisma.planModerationAnalysis.findMany()
+     * 
+     * // Get first 10 PlanModerationAnalyses
+     * const planModerationAnalyses = await prisma.planModerationAnalysis.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const planModerationAnalysisWithIdOnly = await prisma.planModerationAnalysis.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlanModerationAnalysisFindManyArgs>(args?: SelectSubset<T, PlanModerationAnalysisFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PlanModerationAnalysis.
+     * @param {PlanModerationAnalysisCreateArgs} args - Arguments to create a PlanModerationAnalysis.
+     * @example
+     * // Create one PlanModerationAnalysis
+     * const PlanModerationAnalysis = await prisma.planModerationAnalysis.create({
+     *   data: {
+     *     // ... data to create a PlanModerationAnalysis
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlanModerationAnalysisCreateArgs>(args: SelectSubset<T, PlanModerationAnalysisCreateArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PlanModerationAnalyses.
+     * @param {PlanModerationAnalysisCreateManyArgs} args - Arguments to create many PlanModerationAnalyses.
+     * @example
+     * // Create many PlanModerationAnalyses
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlanModerationAnalysisCreateManyArgs>(args?: SelectSubset<T, PlanModerationAnalysisCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlanModerationAnalyses and returns the data saved in the database.
+     * @param {PlanModerationAnalysisCreateManyAndReturnArgs} args - Arguments to create many PlanModerationAnalyses.
+     * @example
+     * // Create many PlanModerationAnalyses
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlanModerationAnalyses and only return the `id`
+     * const planModerationAnalysisWithIdOnly = await prisma.planModerationAnalysis.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlanModerationAnalysisCreateManyAndReturnArgs>(args?: SelectSubset<T, PlanModerationAnalysisCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PlanModerationAnalysis.
+     * @param {PlanModerationAnalysisDeleteArgs} args - Arguments to delete one PlanModerationAnalysis.
+     * @example
+     * // Delete one PlanModerationAnalysis
+     * const PlanModerationAnalysis = await prisma.planModerationAnalysis.delete({
+     *   where: {
+     *     // ... filter to delete one PlanModerationAnalysis
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlanModerationAnalysisDeleteArgs>(args: SelectSubset<T, PlanModerationAnalysisDeleteArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PlanModerationAnalysis.
+     * @param {PlanModerationAnalysisUpdateArgs} args - Arguments to update one PlanModerationAnalysis.
+     * @example
+     * // Update one PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlanModerationAnalysisUpdateArgs>(args: SelectSubset<T, PlanModerationAnalysisUpdateArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PlanModerationAnalyses.
+     * @param {PlanModerationAnalysisDeleteManyArgs} args - Arguments to filter PlanModerationAnalyses to delete.
+     * @example
+     * // Delete a few PlanModerationAnalyses
+     * const { count } = await prisma.planModerationAnalysis.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlanModerationAnalysisDeleteManyArgs>(args?: SelectSubset<T, PlanModerationAnalysisDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanModerationAnalyses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlanModerationAnalyses
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlanModerationAnalysisUpdateManyArgs>(args: SelectSubset<T, PlanModerationAnalysisUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PlanModerationAnalysis.
+     * @param {PlanModerationAnalysisUpsertArgs} args - Arguments to update or create a PlanModerationAnalysis.
+     * @example
+     * // Update or create a PlanModerationAnalysis
+     * const planModerationAnalysis = await prisma.planModerationAnalysis.upsert({
+     *   create: {
+     *     // ... data to create a PlanModerationAnalysis
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlanModerationAnalysis we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlanModerationAnalysisUpsertArgs>(args: SelectSubset<T, PlanModerationAnalysisUpsertArgs<ExtArgs>>): Prisma__PlanModerationAnalysisClient<$Result.GetResult<Prisma.$PlanModerationAnalysisPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PlanModerationAnalyses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisCountArgs} args - Arguments to filter PlanModerationAnalyses to count.
+     * @example
+     * // Count the number of PlanModerationAnalyses
+     * const count = await prisma.planModerationAnalysis.count({
+     *   where: {
+     *     // ... the filter for the PlanModerationAnalyses we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlanModerationAnalysisCountArgs>(
+      args?: Subset<T, PlanModerationAnalysisCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlanModerationAnalysisCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlanModerationAnalysis.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlanModerationAnalysisAggregateArgs>(args: Subset<T, PlanModerationAnalysisAggregateArgs>): Prisma.PrismaPromise<GetPlanModerationAnalysisAggregateType<T>>
+
+    /**
+     * Group by PlanModerationAnalysis.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanModerationAnalysisGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlanModerationAnalysisGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlanModerationAnalysisGroupByArgs['orderBy'] }
+        : { orderBy?: PlanModerationAnalysisGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlanModerationAnalysisGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlanModerationAnalysisGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlanModerationAnalysis model
+   */
+  readonly fields: PlanModerationAnalysisFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlanModerationAnalysis.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlanModerationAnalysisClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    publishedPlan<T extends PublishedPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlanDefaultArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlanModerationAnalysis model
+   */ 
+  interface PlanModerationAnalysisFieldRefs {
+    readonly id: FieldRef<"PlanModerationAnalysis", 'String'>
+    readonly publishedPlanId: FieldRef<"PlanModerationAnalysis", 'String'>
+    readonly computedStats: FieldRef<"PlanModerationAnalysis", 'Json'>
+    readonly ruleFlags: FieldRef<"PlanModerationAnalysis", 'Json'>
+    readonly similarListings: FieldRef<"PlanModerationAnalysis", 'Json'>
+    readonly aiConcerns: FieldRef<"PlanModerationAnalysis", 'Json'>
+    readonly aiConfidenceScore: FieldRef<"PlanModerationAnalysis", 'Float'>
+    readonly aiRecommendation: FieldRef<"PlanModerationAnalysis", 'String'>
+    readonly explanationForAdmin: FieldRef<"PlanModerationAnalysis", 'String'>
+    readonly usedFallback: FieldRef<"PlanModerationAnalysis", 'Boolean'>
+    readonly createdAt: FieldRef<"PlanModerationAnalysis", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlanModerationAnalysis findUnique
+   */
+  export type PlanModerationAnalysisFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanModerationAnalysis to fetch.
+     */
+    where: PlanModerationAnalysisWhereUniqueInput
+  }
+
+  /**
+   * PlanModerationAnalysis findUniqueOrThrow
+   */
+  export type PlanModerationAnalysisFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanModerationAnalysis to fetch.
+     */
+    where: PlanModerationAnalysisWhereUniqueInput
+  }
+
+  /**
+   * PlanModerationAnalysis findFirst
+   */
+  export type PlanModerationAnalysisFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanModerationAnalysis to fetch.
+     */
+    where?: PlanModerationAnalysisWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanModerationAnalyses to fetch.
+     */
+    orderBy?: PlanModerationAnalysisOrderByWithRelationInput | PlanModerationAnalysisOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanModerationAnalyses.
+     */
+    cursor?: PlanModerationAnalysisWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanModerationAnalyses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanModerationAnalyses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanModerationAnalyses.
+     */
+    distinct?: PlanModerationAnalysisScalarFieldEnum | PlanModerationAnalysisScalarFieldEnum[]
+  }
+
+  /**
+   * PlanModerationAnalysis findFirstOrThrow
+   */
+  export type PlanModerationAnalysisFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanModerationAnalysis to fetch.
+     */
+    where?: PlanModerationAnalysisWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanModerationAnalyses to fetch.
+     */
+    orderBy?: PlanModerationAnalysisOrderByWithRelationInput | PlanModerationAnalysisOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanModerationAnalyses.
+     */
+    cursor?: PlanModerationAnalysisWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanModerationAnalyses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanModerationAnalyses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanModerationAnalyses.
+     */
+    distinct?: PlanModerationAnalysisScalarFieldEnum | PlanModerationAnalysisScalarFieldEnum[]
+  }
+
+  /**
+   * PlanModerationAnalysis findMany
+   */
+  export type PlanModerationAnalysisFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanModerationAnalyses to fetch.
+     */
+    where?: PlanModerationAnalysisWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanModerationAnalyses to fetch.
+     */
+    orderBy?: PlanModerationAnalysisOrderByWithRelationInput | PlanModerationAnalysisOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlanModerationAnalyses.
+     */
+    cursor?: PlanModerationAnalysisWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanModerationAnalyses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanModerationAnalyses.
+     */
+    skip?: number
+    distinct?: PlanModerationAnalysisScalarFieldEnum | PlanModerationAnalysisScalarFieldEnum[]
+  }
+
+  /**
+   * PlanModerationAnalysis create
+   */
+  export type PlanModerationAnalysisCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlanModerationAnalysis.
+     */
+    data: XOR<PlanModerationAnalysisCreateInput, PlanModerationAnalysisUncheckedCreateInput>
+  }
+
+  /**
+   * PlanModerationAnalysis createMany
+   */
+  export type PlanModerationAnalysisCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlanModerationAnalyses.
+     */
+    data: PlanModerationAnalysisCreateManyInput | PlanModerationAnalysisCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanModerationAnalysis createManyAndReturn
+   */
+  export type PlanModerationAnalysisCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PlanModerationAnalyses.
+     */
+    data: PlanModerationAnalysisCreateManyInput | PlanModerationAnalysisCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlanModerationAnalysis update
+   */
+  export type PlanModerationAnalysisUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlanModerationAnalysis.
+     */
+    data: XOR<PlanModerationAnalysisUpdateInput, PlanModerationAnalysisUncheckedUpdateInput>
+    /**
+     * Choose, which PlanModerationAnalysis to update.
+     */
+    where: PlanModerationAnalysisWhereUniqueInput
+  }
+
+  /**
+   * PlanModerationAnalysis updateMany
+   */
+  export type PlanModerationAnalysisUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlanModerationAnalyses.
+     */
+    data: XOR<PlanModerationAnalysisUpdateManyMutationInput, PlanModerationAnalysisUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanModerationAnalyses to update
+     */
+    where?: PlanModerationAnalysisWhereInput
+  }
+
+  /**
+   * PlanModerationAnalysis upsert
+   */
+  export type PlanModerationAnalysisUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlanModerationAnalysis to update in case it exists.
+     */
+    where: PlanModerationAnalysisWhereUniqueInput
+    /**
+     * In case the PlanModerationAnalysis found by the `where` argument doesn't exist, create a new PlanModerationAnalysis with this data.
+     */
+    create: XOR<PlanModerationAnalysisCreateInput, PlanModerationAnalysisUncheckedCreateInput>
+    /**
+     * In case the PlanModerationAnalysis was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlanModerationAnalysisUpdateInput, PlanModerationAnalysisUncheckedUpdateInput>
+  }
+
+  /**
+   * PlanModerationAnalysis delete
+   */
+  export type PlanModerationAnalysisDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
+    /**
+     * Filter which PlanModerationAnalysis to delete.
+     */
+    where: PlanModerationAnalysisWhereUniqueInput
+  }
+
+  /**
+   * PlanModerationAnalysis deleteMany
+   */
+  export type PlanModerationAnalysisDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanModerationAnalyses to delete
+     */
+    where?: PlanModerationAnalysisWhereInput
+  }
+
+  /**
+   * PlanModerationAnalysis without action
+   */
+  export type PlanModerationAnalysisDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanModerationAnalysis
+     */
+    select?: PlanModerationAnalysisSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanModerationAnalysisInclude<ExtArgs> | null
   }
 
 
@@ -7511,10 +9638,20 @@ export namespace Prisma {
 
   export type PlanReviewAvgAggregateOutputType = {
     rating: number | null
+    goalFit: number | null
+    enjoyment: number | null
+    clarity: number | null
+    equipmentFit: number | null
+    timeFit: number | null
   }
 
   export type PlanReviewSumAggregateOutputType = {
     rating: number | null
+    goalFit: number | null
+    enjoyment: number | null
+    clarity: number | null
+    equipmentFit: number | null
+    timeFit: number | null
   }
 
   export type PlanReviewMinAggregateOutputType = {
@@ -7524,6 +9661,15 @@ export namespace Prisma {
     rating: number | null
     comment: string | null
     createdAt: Date | null
+    goalFit: number | null
+    difficultyFit: string | null
+    enjoyment: number | null
+    clarity: number | null
+    equipmentFit: number | null
+    timeFit: number | null
+    resultsPerception: string | null
+    wouldUseAgain: boolean | null
+    freeText: string | null
   }
 
   export type PlanReviewMaxAggregateOutputType = {
@@ -7533,6 +9679,15 @@ export namespace Prisma {
     rating: number | null
     comment: string | null
     createdAt: Date | null
+    goalFit: number | null
+    difficultyFit: string | null
+    enjoyment: number | null
+    clarity: number | null
+    equipmentFit: number | null
+    timeFit: number | null
+    resultsPerception: string | null
+    wouldUseAgain: boolean | null
+    freeText: string | null
   }
 
   export type PlanReviewCountAggregateOutputType = {
@@ -7542,16 +9697,36 @@ export namespace Prisma {
     rating: number
     comment: number
     createdAt: number
+    goalFit: number
+    difficultyFit: number
+    enjoyment: number
+    clarity: number
+    equipmentFit: number
+    timeFit: number
+    resultsPerception: number
+    wouldUseAgain: number
+    complaintTags: number
+    freeText: number
     _all: number
   }
 
 
   export type PlanReviewAvgAggregateInputType = {
     rating?: true
+    goalFit?: true
+    enjoyment?: true
+    clarity?: true
+    equipmentFit?: true
+    timeFit?: true
   }
 
   export type PlanReviewSumAggregateInputType = {
     rating?: true
+    goalFit?: true
+    enjoyment?: true
+    clarity?: true
+    equipmentFit?: true
+    timeFit?: true
   }
 
   export type PlanReviewMinAggregateInputType = {
@@ -7561,6 +9736,15 @@ export namespace Prisma {
     rating?: true
     comment?: true
     createdAt?: true
+    goalFit?: true
+    difficultyFit?: true
+    enjoyment?: true
+    clarity?: true
+    equipmentFit?: true
+    timeFit?: true
+    resultsPerception?: true
+    wouldUseAgain?: true
+    freeText?: true
   }
 
   export type PlanReviewMaxAggregateInputType = {
@@ -7570,6 +9754,15 @@ export namespace Prisma {
     rating?: true
     comment?: true
     createdAt?: true
+    goalFit?: true
+    difficultyFit?: true
+    enjoyment?: true
+    clarity?: true
+    equipmentFit?: true
+    timeFit?: true
+    resultsPerception?: true
+    wouldUseAgain?: true
+    freeText?: true
   }
 
   export type PlanReviewCountAggregateInputType = {
@@ -7579,6 +9772,16 @@ export namespace Prisma {
     rating?: true
     comment?: true
     createdAt?: true
+    goalFit?: true
+    difficultyFit?: true
+    enjoyment?: true
+    clarity?: true
+    equipmentFit?: true
+    timeFit?: true
+    resultsPerception?: true
+    wouldUseAgain?: true
+    complaintTags?: true
+    freeText?: true
     _all?: true
   }
 
@@ -7675,6 +9878,16 @@ export namespace Prisma {
     rating: number
     comment: string | null
     createdAt: Date
+    goalFit: number | null
+    difficultyFit: string | null
+    enjoyment: number | null
+    clarity: number | null
+    equipmentFit: number | null
+    timeFit: number | null
+    resultsPerception: string | null
+    wouldUseAgain: boolean | null
+    complaintTags: JsonValue | null
+    freeText: string | null
     _count: PlanReviewCountAggregateOutputType | null
     _avg: PlanReviewAvgAggregateOutputType | null
     _sum: PlanReviewSumAggregateOutputType | null
@@ -7703,6 +9916,16 @@ export namespace Prisma {
     rating?: boolean
     comment?: boolean
     createdAt?: boolean
+    goalFit?: boolean
+    difficultyFit?: boolean
+    enjoyment?: boolean
+    clarity?: boolean
+    equipmentFit?: boolean
+    timeFit?: boolean
+    resultsPerception?: boolean
+    wouldUseAgain?: boolean
+    complaintTags?: boolean
+    freeText?: boolean
     publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["planReview"]>
 
@@ -7713,6 +9936,16 @@ export namespace Prisma {
     rating?: boolean
     comment?: boolean
     createdAt?: boolean
+    goalFit?: boolean
+    difficultyFit?: boolean
+    enjoyment?: boolean
+    clarity?: boolean
+    equipmentFit?: boolean
+    timeFit?: boolean
+    resultsPerception?: boolean
+    wouldUseAgain?: boolean
+    complaintTags?: boolean
+    freeText?: boolean
     publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["planReview"]>
 
@@ -7723,6 +9956,16 @@ export namespace Prisma {
     rating?: boolean
     comment?: boolean
     createdAt?: boolean
+    goalFit?: boolean
+    difficultyFit?: boolean
+    enjoyment?: boolean
+    clarity?: boolean
+    equipmentFit?: boolean
+    timeFit?: boolean
+    resultsPerception?: boolean
+    wouldUseAgain?: boolean
+    complaintTags?: boolean
+    freeText?: boolean
   }
 
   export type PlanReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7744,6 +9987,16 @@ export namespace Prisma {
       rating: number
       comment: string | null
       createdAt: Date
+      goalFit: number | null
+      difficultyFit: string | null
+      enjoyment: number | null
+      clarity: number | null
+      equipmentFit: number | null
+      timeFit: number | null
+      resultsPerception: string | null
+      wouldUseAgain: boolean | null
+      complaintTags: Prisma.JsonValue | null
+      freeText: string | null
     }, ExtArgs["result"]["planReview"]>
     composites: {}
   }
@@ -8144,6 +10397,16 @@ export namespace Prisma {
     readonly rating: FieldRef<"PlanReview", 'Int'>
     readonly comment: FieldRef<"PlanReview", 'String'>
     readonly createdAt: FieldRef<"PlanReview", 'DateTime'>
+    readonly goalFit: FieldRef<"PlanReview", 'Int'>
+    readonly difficultyFit: FieldRef<"PlanReview", 'String'>
+    readonly enjoyment: FieldRef<"PlanReview", 'Int'>
+    readonly clarity: FieldRef<"PlanReview", 'Int'>
+    readonly equipmentFit: FieldRef<"PlanReview", 'Int'>
+    readonly timeFit: FieldRef<"PlanReview", 'Int'>
+    readonly resultsPerception: FieldRef<"PlanReview", 'String'>
+    readonly wouldUseAgain: FieldRef<"PlanReview", 'Boolean'>
+    readonly complaintTags: FieldRef<"PlanReview", 'Json'>
+    readonly freeText: FieldRef<"PlanReview", 'String'>
   }
     
 
@@ -8473,6 +10736,1907 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PlanReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlanImprovementSuggestion
+   */
+
+  export type AggregatePlanImprovementSuggestion = {
+    _count: PlanImprovementSuggestionCountAggregateOutputType | null
+    _avg: PlanImprovementSuggestionAvgAggregateOutputType | null
+    _sum: PlanImprovementSuggestionSumAggregateOutputType | null
+    _min: PlanImprovementSuggestionMinAggregateOutputType | null
+    _max: PlanImprovementSuggestionMaxAggregateOutputType | null
+  }
+
+  export type PlanImprovementSuggestionAvgAggregateOutputType = {
+    basedOnReviewCount: number | null
+    qualityScoreSnapshot: number | null
+  }
+
+  export type PlanImprovementSuggestionSumAggregateOutputType = {
+    basedOnReviewCount: number | null
+    qualityScoreSnapshot: number | null
+  }
+
+  export type PlanImprovementSuggestionMinAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    basedOnReviewCount: number | null
+    qualityScoreSnapshot: number | null
+    summary: string | null
+    generatedAt: Date | null
+  }
+
+  export type PlanImprovementSuggestionMaxAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    basedOnReviewCount: number | null
+    qualityScoreSnapshot: number | null
+    summary: string | null
+    generatedAt: Date | null
+  }
+
+  export type PlanImprovementSuggestionCountAggregateOutputType = {
+    id: number
+    publishedPlanId: number
+    basedOnReviewCount: number
+    qualityScoreSnapshot: number
+    suggestions: number
+    commonComplaints: number
+    summary: number
+    generatedAt: number
+    _all: number
+  }
+
+
+  export type PlanImprovementSuggestionAvgAggregateInputType = {
+    basedOnReviewCount?: true
+    qualityScoreSnapshot?: true
+  }
+
+  export type PlanImprovementSuggestionSumAggregateInputType = {
+    basedOnReviewCount?: true
+    qualityScoreSnapshot?: true
+  }
+
+  export type PlanImprovementSuggestionMinAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    basedOnReviewCount?: true
+    qualityScoreSnapshot?: true
+    summary?: true
+    generatedAt?: true
+  }
+
+  export type PlanImprovementSuggestionMaxAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    basedOnReviewCount?: true
+    qualityScoreSnapshot?: true
+    summary?: true
+    generatedAt?: true
+  }
+
+  export type PlanImprovementSuggestionCountAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    basedOnReviewCount?: true
+    qualityScoreSnapshot?: true
+    suggestions?: true
+    commonComplaints?: true
+    summary?: true
+    generatedAt?: true
+    _all?: true
+  }
+
+  export type PlanImprovementSuggestionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanImprovementSuggestion to aggregate.
+     */
+    where?: PlanImprovementSuggestionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanImprovementSuggestions to fetch.
+     */
+    orderBy?: PlanImprovementSuggestionOrderByWithRelationInput | PlanImprovementSuggestionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlanImprovementSuggestionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanImprovementSuggestions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanImprovementSuggestions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlanImprovementSuggestions
+    **/
+    _count?: true | PlanImprovementSuggestionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlanImprovementSuggestionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlanImprovementSuggestionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlanImprovementSuggestionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlanImprovementSuggestionMaxAggregateInputType
+  }
+
+  export type GetPlanImprovementSuggestionAggregateType<T extends PlanImprovementSuggestionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlanImprovementSuggestion]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlanImprovementSuggestion[P]>
+      : GetScalarType<T[P], AggregatePlanImprovementSuggestion[P]>
+  }
+
+
+
+
+  export type PlanImprovementSuggestionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanImprovementSuggestionWhereInput
+    orderBy?: PlanImprovementSuggestionOrderByWithAggregationInput | PlanImprovementSuggestionOrderByWithAggregationInput[]
+    by: PlanImprovementSuggestionScalarFieldEnum[] | PlanImprovementSuggestionScalarFieldEnum
+    having?: PlanImprovementSuggestionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlanImprovementSuggestionCountAggregateInputType | true
+    _avg?: PlanImprovementSuggestionAvgAggregateInputType
+    _sum?: PlanImprovementSuggestionSumAggregateInputType
+    _min?: PlanImprovementSuggestionMinAggregateInputType
+    _max?: PlanImprovementSuggestionMaxAggregateInputType
+  }
+
+  export type PlanImprovementSuggestionGroupByOutputType = {
+    id: string
+    publishedPlanId: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot: number | null
+    suggestions: JsonValue
+    commonComplaints: JsonValue
+    summary: string
+    generatedAt: Date
+    _count: PlanImprovementSuggestionCountAggregateOutputType | null
+    _avg: PlanImprovementSuggestionAvgAggregateOutputType | null
+    _sum: PlanImprovementSuggestionSumAggregateOutputType | null
+    _min: PlanImprovementSuggestionMinAggregateOutputType | null
+    _max: PlanImprovementSuggestionMaxAggregateOutputType | null
+  }
+
+  type GetPlanImprovementSuggestionGroupByPayload<T extends PlanImprovementSuggestionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlanImprovementSuggestionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlanImprovementSuggestionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlanImprovementSuggestionGroupByOutputType[P]>
+            : GetScalarType<T[P], PlanImprovementSuggestionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlanImprovementSuggestionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    basedOnReviewCount?: boolean
+    qualityScoreSnapshot?: boolean
+    suggestions?: boolean
+    commonComplaints?: boolean
+    summary?: boolean
+    generatedAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planImprovementSuggestion"]>
+
+  export type PlanImprovementSuggestionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    basedOnReviewCount?: boolean
+    qualityScoreSnapshot?: boolean
+    suggestions?: boolean
+    commonComplaints?: boolean
+    summary?: boolean
+    generatedAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planImprovementSuggestion"]>
+
+  export type PlanImprovementSuggestionSelectScalar = {
+    id?: boolean
+    publishedPlanId?: boolean
+    basedOnReviewCount?: boolean
+    qualityScoreSnapshot?: boolean
+    suggestions?: boolean
+    commonComplaints?: boolean
+    summary?: boolean
+    generatedAt?: boolean
+  }
+
+  export type PlanImprovementSuggestionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+  export type PlanImprovementSuggestionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+
+  export type $PlanImprovementSuggestionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlanImprovementSuggestion"
+    objects: {
+      publishedPlan: Prisma.$PublishedPlanPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      publishedPlanId: string
+      basedOnReviewCount: number
+      qualityScoreSnapshot: number | null
+      suggestions: Prisma.JsonValue
+      commonComplaints: Prisma.JsonValue
+      summary: string
+      generatedAt: Date
+    }, ExtArgs["result"]["planImprovementSuggestion"]>
+    composites: {}
+  }
+
+  type PlanImprovementSuggestionGetPayload<S extends boolean | null | undefined | PlanImprovementSuggestionDefaultArgs> = $Result.GetResult<Prisma.$PlanImprovementSuggestionPayload, S>
+
+  type PlanImprovementSuggestionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PlanImprovementSuggestionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PlanImprovementSuggestionCountAggregateInputType | true
+    }
+
+  export interface PlanImprovementSuggestionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlanImprovementSuggestion'], meta: { name: 'PlanImprovementSuggestion' } }
+    /**
+     * Find zero or one PlanImprovementSuggestion that matches the filter.
+     * @param {PlanImprovementSuggestionFindUniqueArgs} args - Arguments to find a PlanImprovementSuggestion
+     * @example
+     * // Get one PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlanImprovementSuggestionFindUniqueArgs>(args: SelectSubset<T, PlanImprovementSuggestionFindUniqueArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PlanImprovementSuggestion that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PlanImprovementSuggestionFindUniqueOrThrowArgs} args - Arguments to find a PlanImprovementSuggestion
+     * @example
+     * // Get one PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlanImprovementSuggestionFindUniqueOrThrowArgs>(args: SelectSubset<T, PlanImprovementSuggestionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PlanImprovementSuggestion that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionFindFirstArgs} args - Arguments to find a PlanImprovementSuggestion
+     * @example
+     * // Get one PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlanImprovementSuggestionFindFirstArgs>(args?: SelectSubset<T, PlanImprovementSuggestionFindFirstArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PlanImprovementSuggestion that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionFindFirstOrThrowArgs} args - Arguments to find a PlanImprovementSuggestion
+     * @example
+     * // Get one PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlanImprovementSuggestionFindFirstOrThrowArgs>(args?: SelectSubset<T, PlanImprovementSuggestionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PlanImprovementSuggestions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlanImprovementSuggestions
+     * const planImprovementSuggestions = await prisma.planImprovementSuggestion.findMany()
+     * 
+     * // Get first 10 PlanImprovementSuggestions
+     * const planImprovementSuggestions = await prisma.planImprovementSuggestion.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const planImprovementSuggestionWithIdOnly = await prisma.planImprovementSuggestion.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlanImprovementSuggestionFindManyArgs>(args?: SelectSubset<T, PlanImprovementSuggestionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PlanImprovementSuggestion.
+     * @param {PlanImprovementSuggestionCreateArgs} args - Arguments to create a PlanImprovementSuggestion.
+     * @example
+     * // Create one PlanImprovementSuggestion
+     * const PlanImprovementSuggestion = await prisma.planImprovementSuggestion.create({
+     *   data: {
+     *     // ... data to create a PlanImprovementSuggestion
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlanImprovementSuggestionCreateArgs>(args: SelectSubset<T, PlanImprovementSuggestionCreateArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PlanImprovementSuggestions.
+     * @param {PlanImprovementSuggestionCreateManyArgs} args - Arguments to create many PlanImprovementSuggestions.
+     * @example
+     * // Create many PlanImprovementSuggestions
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlanImprovementSuggestionCreateManyArgs>(args?: SelectSubset<T, PlanImprovementSuggestionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlanImprovementSuggestions and returns the data saved in the database.
+     * @param {PlanImprovementSuggestionCreateManyAndReturnArgs} args - Arguments to create many PlanImprovementSuggestions.
+     * @example
+     * // Create many PlanImprovementSuggestions
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlanImprovementSuggestions and only return the `id`
+     * const planImprovementSuggestionWithIdOnly = await prisma.planImprovementSuggestion.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlanImprovementSuggestionCreateManyAndReturnArgs>(args?: SelectSubset<T, PlanImprovementSuggestionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PlanImprovementSuggestion.
+     * @param {PlanImprovementSuggestionDeleteArgs} args - Arguments to delete one PlanImprovementSuggestion.
+     * @example
+     * // Delete one PlanImprovementSuggestion
+     * const PlanImprovementSuggestion = await prisma.planImprovementSuggestion.delete({
+     *   where: {
+     *     // ... filter to delete one PlanImprovementSuggestion
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlanImprovementSuggestionDeleteArgs>(args: SelectSubset<T, PlanImprovementSuggestionDeleteArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PlanImprovementSuggestion.
+     * @param {PlanImprovementSuggestionUpdateArgs} args - Arguments to update one PlanImprovementSuggestion.
+     * @example
+     * // Update one PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlanImprovementSuggestionUpdateArgs>(args: SelectSubset<T, PlanImprovementSuggestionUpdateArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PlanImprovementSuggestions.
+     * @param {PlanImprovementSuggestionDeleteManyArgs} args - Arguments to filter PlanImprovementSuggestions to delete.
+     * @example
+     * // Delete a few PlanImprovementSuggestions
+     * const { count } = await prisma.planImprovementSuggestion.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlanImprovementSuggestionDeleteManyArgs>(args?: SelectSubset<T, PlanImprovementSuggestionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanImprovementSuggestions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlanImprovementSuggestions
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlanImprovementSuggestionUpdateManyArgs>(args: SelectSubset<T, PlanImprovementSuggestionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PlanImprovementSuggestion.
+     * @param {PlanImprovementSuggestionUpsertArgs} args - Arguments to update or create a PlanImprovementSuggestion.
+     * @example
+     * // Update or create a PlanImprovementSuggestion
+     * const planImprovementSuggestion = await prisma.planImprovementSuggestion.upsert({
+     *   create: {
+     *     // ... data to create a PlanImprovementSuggestion
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlanImprovementSuggestion we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlanImprovementSuggestionUpsertArgs>(args: SelectSubset<T, PlanImprovementSuggestionUpsertArgs<ExtArgs>>): Prisma__PlanImprovementSuggestionClient<$Result.GetResult<Prisma.$PlanImprovementSuggestionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PlanImprovementSuggestions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionCountArgs} args - Arguments to filter PlanImprovementSuggestions to count.
+     * @example
+     * // Count the number of PlanImprovementSuggestions
+     * const count = await prisma.planImprovementSuggestion.count({
+     *   where: {
+     *     // ... the filter for the PlanImprovementSuggestions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlanImprovementSuggestionCountArgs>(
+      args?: Subset<T, PlanImprovementSuggestionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlanImprovementSuggestionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlanImprovementSuggestion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlanImprovementSuggestionAggregateArgs>(args: Subset<T, PlanImprovementSuggestionAggregateArgs>): Prisma.PrismaPromise<GetPlanImprovementSuggestionAggregateType<T>>
+
+    /**
+     * Group by PlanImprovementSuggestion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanImprovementSuggestionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlanImprovementSuggestionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlanImprovementSuggestionGroupByArgs['orderBy'] }
+        : { orderBy?: PlanImprovementSuggestionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlanImprovementSuggestionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlanImprovementSuggestionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlanImprovementSuggestion model
+   */
+  readonly fields: PlanImprovementSuggestionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlanImprovementSuggestion.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlanImprovementSuggestionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    publishedPlan<T extends PublishedPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlanDefaultArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlanImprovementSuggestion model
+   */ 
+  interface PlanImprovementSuggestionFieldRefs {
+    readonly id: FieldRef<"PlanImprovementSuggestion", 'String'>
+    readonly publishedPlanId: FieldRef<"PlanImprovementSuggestion", 'String'>
+    readonly basedOnReviewCount: FieldRef<"PlanImprovementSuggestion", 'Int'>
+    readonly qualityScoreSnapshot: FieldRef<"PlanImprovementSuggestion", 'Float'>
+    readonly suggestions: FieldRef<"PlanImprovementSuggestion", 'Json'>
+    readonly commonComplaints: FieldRef<"PlanImprovementSuggestion", 'Json'>
+    readonly summary: FieldRef<"PlanImprovementSuggestion", 'String'>
+    readonly generatedAt: FieldRef<"PlanImprovementSuggestion", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlanImprovementSuggestion findUnique
+   */
+  export type PlanImprovementSuggestionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanImprovementSuggestion to fetch.
+     */
+    where: PlanImprovementSuggestionWhereUniqueInput
+  }
+
+  /**
+   * PlanImprovementSuggestion findUniqueOrThrow
+   */
+  export type PlanImprovementSuggestionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanImprovementSuggestion to fetch.
+     */
+    where: PlanImprovementSuggestionWhereUniqueInput
+  }
+
+  /**
+   * PlanImprovementSuggestion findFirst
+   */
+  export type PlanImprovementSuggestionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanImprovementSuggestion to fetch.
+     */
+    where?: PlanImprovementSuggestionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanImprovementSuggestions to fetch.
+     */
+    orderBy?: PlanImprovementSuggestionOrderByWithRelationInput | PlanImprovementSuggestionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanImprovementSuggestions.
+     */
+    cursor?: PlanImprovementSuggestionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanImprovementSuggestions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanImprovementSuggestions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanImprovementSuggestions.
+     */
+    distinct?: PlanImprovementSuggestionScalarFieldEnum | PlanImprovementSuggestionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanImprovementSuggestion findFirstOrThrow
+   */
+  export type PlanImprovementSuggestionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanImprovementSuggestion to fetch.
+     */
+    where?: PlanImprovementSuggestionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanImprovementSuggestions to fetch.
+     */
+    orderBy?: PlanImprovementSuggestionOrderByWithRelationInput | PlanImprovementSuggestionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanImprovementSuggestions.
+     */
+    cursor?: PlanImprovementSuggestionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanImprovementSuggestions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanImprovementSuggestions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanImprovementSuggestions.
+     */
+    distinct?: PlanImprovementSuggestionScalarFieldEnum | PlanImprovementSuggestionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanImprovementSuggestion findMany
+   */
+  export type PlanImprovementSuggestionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanImprovementSuggestions to fetch.
+     */
+    where?: PlanImprovementSuggestionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanImprovementSuggestions to fetch.
+     */
+    orderBy?: PlanImprovementSuggestionOrderByWithRelationInput | PlanImprovementSuggestionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlanImprovementSuggestions.
+     */
+    cursor?: PlanImprovementSuggestionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanImprovementSuggestions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanImprovementSuggestions.
+     */
+    skip?: number
+    distinct?: PlanImprovementSuggestionScalarFieldEnum | PlanImprovementSuggestionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanImprovementSuggestion create
+   */
+  export type PlanImprovementSuggestionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlanImprovementSuggestion.
+     */
+    data: XOR<PlanImprovementSuggestionCreateInput, PlanImprovementSuggestionUncheckedCreateInput>
+  }
+
+  /**
+   * PlanImprovementSuggestion createMany
+   */
+  export type PlanImprovementSuggestionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlanImprovementSuggestions.
+     */
+    data: PlanImprovementSuggestionCreateManyInput | PlanImprovementSuggestionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanImprovementSuggestion createManyAndReturn
+   */
+  export type PlanImprovementSuggestionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PlanImprovementSuggestions.
+     */
+    data: PlanImprovementSuggestionCreateManyInput | PlanImprovementSuggestionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlanImprovementSuggestion update
+   */
+  export type PlanImprovementSuggestionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlanImprovementSuggestion.
+     */
+    data: XOR<PlanImprovementSuggestionUpdateInput, PlanImprovementSuggestionUncheckedUpdateInput>
+    /**
+     * Choose, which PlanImprovementSuggestion to update.
+     */
+    where: PlanImprovementSuggestionWhereUniqueInput
+  }
+
+  /**
+   * PlanImprovementSuggestion updateMany
+   */
+  export type PlanImprovementSuggestionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlanImprovementSuggestions.
+     */
+    data: XOR<PlanImprovementSuggestionUpdateManyMutationInput, PlanImprovementSuggestionUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanImprovementSuggestions to update
+     */
+    where?: PlanImprovementSuggestionWhereInput
+  }
+
+  /**
+   * PlanImprovementSuggestion upsert
+   */
+  export type PlanImprovementSuggestionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlanImprovementSuggestion to update in case it exists.
+     */
+    where: PlanImprovementSuggestionWhereUniqueInput
+    /**
+     * In case the PlanImprovementSuggestion found by the `where` argument doesn't exist, create a new PlanImprovementSuggestion with this data.
+     */
+    create: XOR<PlanImprovementSuggestionCreateInput, PlanImprovementSuggestionUncheckedCreateInput>
+    /**
+     * In case the PlanImprovementSuggestion was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlanImprovementSuggestionUpdateInput, PlanImprovementSuggestionUncheckedUpdateInput>
+  }
+
+  /**
+   * PlanImprovementSuggestion delete
+   */
+  export type PlanImprovementSuggestionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+    /**
+     * Filter which PlanImprovementSuggestion to delete.
+     */
+    where: PlanImprovementSuggestionWhereUniqueInput
+  }
+
+  /**
+   * PlanImprovementSuggestion deleteMany
+   */
+  export type PlanImprovementSuggestionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanImprovementSuggestions to delete
+     */
+    where?: PlanImprovementSuggestionWhereInput
+  }
+
+  /**
+   * PlanImprovementSuggestion without action
+   */
+  export type PlanImprovementSuggestionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanImprovementSuggestion
+     */
+    select?: PlanImprovementSuggestionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanImprovementSuggestionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlanAdoption
+   */
+
+  export type AggregatePlanAdoption = {
+    _count: PlanAdoptionCountAggregateOutputType | null
+    _min: PlanAdoptionMinAggregateOutputType | null
+    _max: PlanAdoptionMaxAggregateOutputType | null
+  }
+
+  export type PlanAdoptionMinAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    adopterId: string | null
+    accessBasis: string | null
+    purchaseId: string | null
+    wasCustomized: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PlanAdoptionMaxAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    adopterId: string | null
+    accessBasis: string | null
+    purchaseId: string | null
+    wasCustomized: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PlanAdoptionCountAggregateOutputType = {
+    id: number
+    publishedPlanId: number
+    adopterId: number
+    accessBasis: number
+    purchaseId: number
+    wasCustomized: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PlanAdoptionMinAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    adopterId?: true
+    accessBasis?: true
+    purchaseId?: true
+    wasCustomized?: true
+    createdAt?: true
+  }
+
+  export type PlanAdoptionMaxAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    adopterId?: true
+    accessBasis?: true
+    purchaseId?: true
+    wasCustomized?: true
+    createdAt?: true
+  }
+
+  export type PlanAdoptionCountAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    adopterId?: true
+    accessBasis?: true
+    purchaseId?: true
+    wasCustomized?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PlanAdoptionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanAdoption to aggregate.
+     */
+    where?: PlanAdoptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanAdoptions to fetch.
+     */
+    orderBy?: PlanAdoptionOrderByWithRelationInput | PlanAdoptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlanAdoptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanAdoptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanAdoptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlanAdoptions
+    **/
+    _count?: true | PlanAdoptionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlanAdoptionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlanAdoptionMaxAggregateInputType
+  }
+
+  export type GetPlanAdoptionAggregateType<T extends PlanAdoptionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlanAdoption]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlanAdoption[P]>
+      : GetScalarType<T[P], AggregatePlanAdoption[P]>
+  }
+
+
+
+
+  export type PlanAdoptionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanAdoptionWhereInput
+    orderBy?: PlanAdoptionOrderByWithAggregationInput | PlanAdoptionOrderByWithAggregationInput[]
+    by: PlanAdoptionScalarFieldEnum[] | PlanAdoptionScalarFieldEnum
+    having?: PlanAdoptionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlanAdoptionCountAggregateInputType | true
+    _min?: PlanAdoptionMinAggregateInputType
+    _max?: PlanAdoptionMaxAggregateInputType
+  }
+
+  export type PlanAdoptionGroupByOutputType = {
+    id: string
+    publishedPlanId: string
+    adopterId: string
+    accessBasis: string
+    purchaseId: string | null
+    wasCustomized: boolean
+    createdAt: Date
+    _count: PlanAdoptionCountAggregateOutputType | null
+    _min: PlanAdoptionMinAggregateOutputType | null
+    _max: PlanAdoptionMaxAggregateOutputType | null
+  }
+
+  type GetPlanAdoptionGroupByPayload<T extends PlanAdoptionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlanAdoptionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlanAdoptionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlanAdoptionGroupByOutputType[P]>
+            : GetScalarType<T[P], PlanAdoptionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlanAdoptionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    adopterId?: boolean
+    accessBasis?: boolean
+    purchaseId?: boolean
+    wasCustomized?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["planAdoption"]>
+
+  export type PlanAdoptionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    adopterId?: boolean
+    accessBasis?: boolean
+    purchaseId?: boolean
+    wasCustomized?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["planAdoption"]>
+
+  export type PlanAdoptionSelectScalar = {
+    id?: boolean
+    publishedPlanId?: boolean
+    adopterId?: boolean
+    accessBasis?: boolean
+    purchaseId?: boolean
+    wasCustomized?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $PlanAdoptionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlanAdoption"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      publishedPlanId: string
+      adopterId: string
+      accessBasis: string
+      purchaseId: string | null
+      wasCustomized: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["planAdoption"]>
+    composites: {}
+  }
+
+  type PlanAdoptionGetPayload<S extends boolean | null | undefined | PlanAdoptionDefaultArgs> = $Result.GetResult<Prisma.$PlanAdoptionPayload, S>
+
+  type PlanAdoptionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PlanAdoptionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PlanAdoptionCountAggregateInputType | true
+    }
+
+  export interface PlanAdoptionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlanAdoption'], meta: { name: 'PlanAdoption' } }
+    /**
+     * Find zero or one PlanAdoption that matches the filter.
+     * @param {PlanAdoptionFindUniqueArgs} args - Arguments to find a PlanAdoption
+     * @example
+     * // Get one PlanAdoption
+     * const planAdoption = await prisma.planAdoption.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlanAdoptionFindUniqueArgs>(args: SelectSubset<T, PlanAdoptionFindUniqueArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PlanAdoption that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PlanAdoptionFindUniqueOrThrowArgs} args - Arguments to find a PlanAdoption
+     * @example
+     * // Get one PlanAdoption
+     * const planAdoption = await prisma.planAdoption.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlanAdoptionFindUniqueOrThrowArgs>(args: SelectSubset<T, PlanAdoptionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PlanAdoption that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionFindFirstArgs} args - Arguments to find a PlanAdoption
+     * @example
+     * // Get one PlanAdoption
+     * const planAdoption = await prisma.planAdoption.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlanAdoptionFindFirstArgs>(args?: SelectSubset<T, PlanAdoptionFindFirstArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PlanAdoption that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionFindFirstOrThrowArgs} args - Arguments to find a PlanAdoption
+     * @example
+     * // Get one PlanAdoption
+     * const planAdoption = await prisma.planAdoption.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlanAdoptionFindFirstOrThrowArgs>(args?: SelectSubset<T, PlanAdoptionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PlanAdoptions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlanAdoptions
+     * const planAdoptions = await prisma.planAdoption.findMany()
+     * 
+     * // Get first 10 PlanAdoptions
+     * const planAdoptions = await prisma.planAdoption.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const planAdoptionWithIdOnly = await prisma.planAdoption.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlanAdoptionFindManyArgs>(args?: SelectSubset<T, PlanAdoptionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PlanAdoption.
+     * @param {PlanAdoptionCreateArgs} args - Arguments to create a PlanAdoption.
+     * @example
+     * // Create one PlanAdoption
+     * const PlanAdoption = await prisma.planAdoption.create({
+     *   data: {
+     *     // ... data to create a PlanAdoption
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlanAdoptionCreateArgs>(args: SelectSubset<T, PlanAdoptionCreateArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PlanAdoptions.
+     * @param {PlanAdoptionCreateManyArgs} args - Arguments to create many PlanAdoptions.
+     * @example
+     * // Create many PlanAdoptions
+     * const planAdoption = await prisma.planAdoption.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlanAdoptionCreateManyArgs>(args?: SelectSubset<T, PlanAdoptionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlanAdoptions and returns the data saved in the database.
+     * @param {PlanAdoptionCreateManyAndReturnArgs} args - Arguments to create many PlanAdoptions.
+     * @example
+     * // Create many PlanAdoptions
+     * const planAdoption = await prisma.planAdoption.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlanAdoptions and only return the `id`
+     * const planAdoptionWithIdOnly = await prisma.planAdoption.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlanAdoptionCreateManyAndReturnArgs>(args?: SelectSubset<T, PlanAdoptionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PlanAdoption.
+     * @param {PlanAdoptionDeleteArgs} args - Arguments to delete one PlanAdoption.
+     * @example
+     * // Delete one PlanAdoption
+     * const PlanAdoption = await prisma.planAdoption.delete({
+     *   where: {
+     *     // ... filter to delete one PlanAdoption
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlanAdoptionDeleteArgs>(args: SelectSubset<T, PlanAdoptionDeleteArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PlanAdoption.
+     * @param {PlanAdoptionUpdateArgs} args - Arguments to update one PlanAdoption.
+     * @example
+     * // Update one PlanAdoption
+     * const planAdoption = await prisma.planAdoption.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlanAdoptionUpdateArgs>(args: SelectSubset<T, PlanAdoptionUpdateArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PlanAdoptions.
+     * @param {PlanAdoptionDeleteManyArgs} args - Arguments to filter PlanAdoptions to delete.
+     * @example
+     * // Delete a few PlanAdoptions
+     * const { count } = await prisma.planAdoption.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlanAdoptionDeleteManyArgs>(args?: SelectSubset<T, PlanAdoptionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanAdoptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlanAdoptions
+     * const planAdoption = await prisma.planAdoption.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlanAdoptionUpdateManyArgs>(args: SelectSubset<T, PlanAdoptionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PlanAdoption.
+     * @param {PlanAdoptionUpsertArgs} args - Arguments to update or create a PlanAdoption.
+     * @example
+     * // Update or create a PlanAdoption
+     * const planAdoption = await prisma.planAdoption.upsert({
+     *   create: {
+     *     // ... data to create a PlanAdoption
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlanAdoption we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlanAdoptionUpsertArgs>(args: SelectSubset<T, PlanAdoptionUpsertArgs<ExtArgs>>): Prisma__PlanAdoptionClient<$Result.GetResult<Prisma.$PlanAdoptionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PlanAdoptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionCountArgs} args - Arguments to filter PlanAdoptions to count.
+     * @example
+     * // Count the number of PlanAdoptions
+     * const count = await prisma.planAdoption.count({
+     *   where: {
+     *     // ... the filter for the PlanAdoptions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlanAdoptionCountArgs>(
+      args?: Subset<T, PlanAdoptionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlanAdoptionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlanAdoption.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlanAdoptionAggregateArgs>(args: Subset<T, PlanAdoptionAggregateArgs>): Prisma.PrismaPromise<GetPlanAdoptionAggregateType<T>>
+
+    /**
+     * Group by PlanAdoption.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanAdoptionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlanAdoptionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlanAdoptionGroupByArgs['orderBy'] }
+        : { orderBy?: PlanAdoptionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlanAdoptionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlanAdoptionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlanAdoption model
+   */
+  readonly fields: PlanAdoptionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlanAdoption.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlanAdoptionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlanAdoption model
+   */ 
+  interface PlanAdoptionFieldRefs {
+    readonly id: FieldRef<"PlanAdoption", 'String'>
+    readonly publishedPlanId: FieldRef<"PlanAdoption", 'String'>
+    readonly adopterId: FieldRef<"PlanAdoption", 'String'>
+    readonly accessBasis: FieldRef<"PlanAdoption", 'String'>
+    readonly purchaseId: FieldRef<"PlanAdoption", 'String'>
+    readonly wasCustomized: FieldRef<"PlanAdoption", 'Boolean'>
+    readonly createdAt: FieldRef<"PlanAdoption", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlanAdoption findUnique
+   */
+  export type PlanAdoptionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PlanAdoption to fetch.
+     */
+    where: PlanAdoptionWhereUniqueInput
+  }
+
+  /**
+   * PlanAdoption findUniqueOrThrow
+   */
+  export type PlanAdoptionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PlanAdoption to fetch.
+     */
+    where: PlanAdoptionWhereUniqueInput
+  }
+
+  /**
+   * PlanAdoption findFirst
+   */
+  export type PlanAdoptionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PlanAdoption to fetch.
+     */
+    where?: PlanAdoptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanAdoptions to fetch.
+     */
+    orderBy?: PlanAdoptionOrderByWithRelationInput | PlanAdoptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanAdoptions.
+     */
+    cursor?: PlanAdoptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanAdoptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanAdoptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanAdoptions.
+     */
+    distinct?: PlanAdoptionScalarFieldEnum | PlanAdoptionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanAdoption findFirstOrThrow
+   */
+  export type PlanAdoptionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PlanAdoption to fetch.
+     */
+    where?: PlanAdoptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanAdoptions to fetch.
+     */
+    orderBy?: PlanAdoptionOrderByWithRelationInput | PlanAdoptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanAdoptions.
+     */
+    cursor?: PlanAdoptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanAdoptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanAdoptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanAdoptions.
+     */
+    distinct?: PlanAdoptionScalarFieldEnum | PlanAdoptionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanAdoption findMany
+   */
+  export type PlanAdoptionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PlanAdoptions to fetch.
+     */
+    where?: PlanAdoptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanAdoptions to fetch.
+     */
+    orderBy?: PlanAdoptionOrderByWithRelationInput | PlanAdoptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlanAdoptions.
+     */
+    cursor?: PlanAdoptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanAdoptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanAdoptions.
+     */
+    skip?: number
+    distinct?: PlanAdoptionScalarFieldEnum | PlanAdoptionScalarFieldEnum[]
+  }
+
+  /**
+   * PlanAdoption create
+   */
+  export type PlanAdoptionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PlanAdoption.
+     */
+    data: XOR<PlanAdoptionCreateInput, PlanAdoptionUncheckedCreateInput>
+  }
+
+  /**
+   * PlanAdoption createMany
+   */
+  export type PlanAdoptionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlanAdoptions.
+     */
+    data: PlanAdoptionCreateManyInput | PlanAdoptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanAdoption createManyAndReturn
+   */
+  export type PlanAdoptionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PlanAdoptions.
+     */
+    data: PlanAdoptionCreateManyInput | PlanAdoptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanAdoption update
+   */
+  export type PlanAdoptionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PlanAdoption.
+     */
+    data: XOR<PlanAdoptionUpdateInput, PlanAdoptionUncheckedUpdateInput>
+    /**
+     * Choose, which PlanAdoption to update.
+     */
+    where: PlanAdoptionWhereUniqueInput
+  }
+
+  /**
+   * PlanAdoption updateMany
+   */
+  export type PlanAdoptionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlanAdoptions.
+     */
+    data: XOR<PlanAdoptionUpdateManyMutationInput, PlanAdoptionUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanAdoptions to update
+     */
+    where?: PlanAdoptionWhereInput
+  }
+
+  /**
+   * PlanAdoption upsert
+   */
+  export type PlanAdoptionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PlanAdoption to update in case it exists.
+     */
+    where: PlanAdoptionWhereUniqueInput
+    /**
+     * In case the PlanAdoption found by the `where` argument doesn't exist, create a new PlanAdoption with this data.
+     */
+    create: XOR<PlanAdoptionCreateInput, PlanAdoptionUncheckedCreateInput>
+    /**
+     * In case the PlanAdoption was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlanAdoptionUpdateInput, PlanAdoptionUncheckedUpdateInput>
+  }
+
+  /**
+   * PlanAdoption delete
+   */
+  export type PlanAdoptionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
+    /**
+     * Filter which PlanAdoption to delete.
+     */
+    where: PlanAdoptionWhereUniqueInput
+  }
+
+  /**
+   * PlanAdoption deleteMany
+   */
+  export type PlanAdoptionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanAdoptions to delete
+     */
+    where?: PlanAdoptionWhereInput
+  }
+
+  /**
+   * PlanAdoption without action
+   */
+  export type PlanAdoptionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanAdoption
+     */
+    select?: PlanAdoptionSelect<ExtArgs> | null
   }
 
 
@@ -10545,6 +14709,6694 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedService
+   */
+
+  export type AggregatePersonalizedService = {
+    _count: PersonalizedServiceCountAggregateOutputType | null
+    _avg: PersonalizedServiceAvgAggregateOutputType | null
+    _sum: PersonalizedServiceSumAggregateOutputType | null
+    _min: PersonalizedServiceMinAggregateOutputType | null
+    _max: PersonalizedServiceMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServiceAvgAggregateOutputType = {
+    price: number | null
+    revisionLimit: number | null
+    initialDeliveryDays: number | null
+    supportWeeks: number | null
+  }
+
+  export type PersonalizedServiceSumAggregateOutputType = {
+    price: number | null
+    revisionLimit: number | null
+    initialDeliveryDays: number | null
+    supportWeeks: number | null
+  }
+
+  export type PersonalizedServiceMinAggregateOutputType = {
+    id: string | null
+    sellerId: string | null
+    serviceType: $Enums.PersonalizedServiceType | null
+    title: string | null
+    description: string | null
+    price: number | null
+    revisionLimit: number | null
+    initialDeliveryDays: number | null
+    supportWeeks: number | null
+    targetGoal: string | null
+    targetLevel: string | null
+    status: $Enums.PersonalizedServiceStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PersonalizedServiceMaxAggregateOutputType = {
+    id: string | null
+    sellerId: string | null
+    serviceType: $Enums.PersonalizedServiceType | null
+    title: string | null
+    description: string | null
+    price: number | null
+    revisionLimit: number | null
+    initialDeliveryDays: number | null
+    supportWeeks: number | null
+    targetGoal: string | null
+    targetLevel: string | null
+    status: $Enums.PersonalizedServiceStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PersonalizedServiceCountAggregateOutputType = {
+    id: number
+    sellerId: number
+    serviceType: number
+    title: number
+    description: number
+    price: number
+    deliverables: number
+    revisionLimit: number
+    initialDeliveryDays: number
+    supportWeeks: number
+    targetGoal: number
+    targetLevel: number
+    status: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServiceAvgAggregateInputType = {
+    price?: true
+    revisionLimit?: true
+    initialDeliveryDays?: true
+    supportWeeks?: true
+  }
+
+  export type PersonalizedServiceSumAggregateInputType = {
+    price?: true
+    revisionLimit?: true
+    initialDeliveryDays?: true
+    supportWeeks?: true
+  }
+
+  export type PersonalizedServiceMinAggregateInputType = {
+    id?: true
+    sellerId?: true
+    serviceType?: true
+    title?: true
+    description?: true
+    price?: true
+    revisionLimit?: true
+    initialDeliveryDays?: true
+    supportWeeks?: true
+    targetGoal?: true
+    targetLevel?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PersonalizedServiceMaxAggregateInputType = {
+    id?: true
+    sellerId?: true
+    serviceType?: true
+    title?: true
+    description?: true
+    price?: true
+    revisionLimit?: true
+    initialDeliveryDays?: true
+    supportWeeks?: true
+    targetGoal?: true
+    targetLevel?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PersonalizedServiceCountAggregateInputType = {
+    id?: true
+    sellerId?: true
+    serviceType?: true
+    title?: true
+    description?: true
+    price?: true
+    deliverables?: true
+    revisionLimit?: true
+    initialDeliveryDays?: true
+    supportWeeks?: true
+    targetGoal?: true
+    targetLevel?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServiceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedService to aggregate.
+     */
+    where?: PersonalizedServiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServices to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderByWithRelationInput | PersonalizedServiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServices
+    **/
+    _count?: true | PersonalizedServiceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PersonalizedServiceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PersonalizedServiceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServiceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServiceMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServiceAggregateType<T extends PersonalizedServiceAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedService]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedService[P]>
+      : GetScalarType<T[P], AggregatePersonalizedService[P]>
+  }
+
+
+
+
+  export type PersonalizedServiceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceWhereInput
+    orderBy?: PersonalizedServiceOrderByWithAggregationInput | PersonalizedServiceOrderByWithAggregationInput[]
+    by: PersonalizedServiceScalarFieldEnum[] | PersonalizedServiceScalarFieldEnum
+    having?: PersonalizedServiceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServiceCountAggregateInputType | true
+    _avg?: PersonalizedServiceAvgAggregateInputType
+    _sum?: PersonalizedServiceSumAggregateInputType
+    _min?: PersonalizedServiceMinAggregateInputType
+    _max?: PersonalizedServiceMaxAggregateInputType
+  }
+
+  export type PersonalizedServiceGroupByOutputType = {
+    id: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description: string | null
+    price: number
+    deliverables: JsonValue
+    revisionLimit: number | null
+    initialDeliveryDays: number
+    supportWeeks: number | null
+    targetGoal: string | null
+    targetLevel: string | null
+    status: $Enums.PersonalizedServiceStatus
+    createdAt: Date
+    updatedAt: Date
+    _count: PersonalizedServiceCountAggregateOutputType | null
+    _avg: PersonalizedServiceAvgAggregateOutputType | null
+    _sum: PersonalizedServiceSumAggregateOutputType | null
+    _min: PersonalizedServiceMinAggregateOutputType | null
+    _max: PersonalizedServiceMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServiceGroupByPayload<T extends PersonalizedServiceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServiceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServiceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServiceGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServiceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServiceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sellerId?: boolean
+    serviceType?: boolean
+    title?: boolean
+    description?: boolean
+    price?: boolean
+    deliverables?: boolean
+    revisionLimit?: boolean
+    initialDeliveryDays?: boolean
+    supportWeeks?: boolean
+    targetGoal?: boolean
+    targetLevel?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    orders?: boolean | PersonalizedService$ordersArgs<ExtArgs>
+    _count?: boolean | PersonalizedServiceCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedService"]>
+
+  export type PersonalizedServiceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sellerId?: boolean
+    serviceType?: boolean
+    title?: boolean
+    description?: boolean
+    price?: boolean
+    deliverables?: boolean
+    revisionLimit?: boolean
+    initialDeliveryDays?: boolean
+    supportWeeks?: boolean
+    targetGoal?: boolean
+    targetLevel?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["personalizedService"]>
+
+  export type PersonalizedServiceSelectScalar = {
+    id?: boolean
+    sellerId?: boolean
+    serviceType?: boolean
+    title?: boolean
+    description?: boolean
+    price?: boolean
+    deliverables?: boolean
+    revisionLimit?: boolean
+    initialDeliveryDays?: boolean
+    supportWeeks?: boolean
+    targetGoal?: boolean
+    targetLevel?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PersonalizedServiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    orders?: boolean | PersonalizedService$ordersArgs<ExtArgs>
+    _count?: boolean | PersonalizedServiceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServiceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PersonalizedServicePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedService"
+    objects: {
+      orders: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sellerId: string
+      serviceType: $Enums.PersonalizedServiceType
+      title: string
+      description: string | null
+      price: number
+      deliverables: Prisma.JsonValue
+      revisionLimit: number | null
+      initialDeliveryDays: number
+      supportWeeks: number | null
+      targetGoal: string | null
+      targetLevel: string | null
+      status: $Enums.PersonalizedServiceStatus
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["personalizedService"]>
+    composites: {}
+  }
+
+  type PersonalizedServiceGetPayload<S extends boolean | null | undefined | PersonalizedServiceDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServicePayload, S>
+
+  type PersonalizedServiceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServiceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServiceCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServiceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedService'], meta: { name: 'PersonalizedService' } }
+    /**
+     * Find zero or one PersonalizedService that matches the filter.
+     * @param {PersonalizedServiceFindUniqueArgs} args - Arguments to find a PersonalizedService
+     * @example
+     * // Get one PersonalizedService
+     * const personalizedService = await prisma.personalizedService.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServiceFindUniqueArgs>(args: SelectSubset<T, PersonalizedServiceFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedService that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServiceFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedService
+     * @example
+     * // Get one PersonalizedService
+     * const personalizedService = await prisma.personalizedService.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServiceFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServiceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedService that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceFindFirstArgs} args - Arguments to find a PersonalizedService
+     * @example
+     * // Get one PersonalizedService
+     * const personalizedService = await prisma.personalizedService.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServiceFindFirstArgs>(args?: SelectSubset<T, PersonalizedServiceFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedService that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceFindFirstOrThrowArgs} args - Arguments to find a PersonalizedService
+     * @example
+     * // Get one PersonalizedService
+     * const personalizedService = await prisma.personalizedService.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServiceFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServiceFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServices that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServices
+     * const personalizedServices = await prisma.personalizedService.findMany()
+     * 
+     * // Get first 10 PersonalizedServices
+     * const personalizedServices = await prisma.personalizedService.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServiceWithIdOnly = await prisma.personalizedService.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServiceFindManyArgs>(args?: SelectSubset<T, PersonalizedServiceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedService.
+     * @param {PersonalizedServiceCreateArgs} args - Arguments to create a PersonalizedService.
+     * @example
+     * // Create one PersonalizedService
+     * const PersonalizedService = await prisma.personalizedService.create({
+     *   data: {
+     *     // ... data to create a PersonalizedService
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServiceCreateArgs>(args: SelectSubset<T, PersonalizedServiceCreateArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServices.
+     * @param {PersonalizedServiceCreateManyArgs} args - Arguments to create many PersonalizedServices.
+     * @example
+     * // Create many PersonalizedServices
+     * const personalizedService = await prisma.personalizedService.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServiceCreateManyArgs>(args?: SelectSubset<T, PersonalizedServiceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServices and returns the data saved in the database.
+     * @param {PersonalizedServiceCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServices.
+     * @example
+     * // Create many PersonalizedServices
+     * const personalizedService = await prisma.personalizedService.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServices and only return the `id`
+     * const personalizedServiceWithIdOnly = await prisma.personalizedService.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServiceCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServiceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedService.
+     * @param {PersonalizedServiceDeleteArgs} args - Arguments to delete one PersonalizedService.
+     * @example
+     * // Delete one PersonalizedService
+     * const PersonalizedService = await prisma.personalizedService.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedService
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServiceDeleteArgs>(args: SelectSubset<T, PersonalizedServiceDeleteArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedService.
+     * @param {PersonalizedServiceUpdateArgs} args - Arguments to update one PersonalizedService.
+     * @example
+     * // Update one PersonalizedService
+     * const personalizedService = await prisma.personalizedService.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServiceUpdateArgs>(args: SelectSubset<T, PersonalizedServiceUpdateArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServices.
+     * @param {PersonalizedServiceDeleteManyArgs} args - Arguments to filter PersonalizedServices to delete.
+     * @example
+     * // Delete a few PersonalizedServices
+     * const { count } = await prisma.personalizedService.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServiceDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServiceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServices
+     * const personalizedService = await prisma.personalizedService.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServiceUpdateManyArgs>(args: SelectSubset<T, PersonalizedServiceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedService.
+     * @param {PersonalizedServiceUpsertArgs} args - Arguments to update or create a PersonalizedService.
+     * @example
+     * // Update or create a PersonalizedService
+     * const personalizedService = await prisma.personalizedService.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedService
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedService we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServiceUpsertArgs>(args: SelectSubset<T, PersonalizedServiceUpsertArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCountArgs} args - Arguments to filter PersonalizedServices to count.
+     * @example
+     * // Count the number of PersonalizedServices
+     * const count = await prisma.personalizedService.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServices we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServiceCountArgs>(
+      args?: Subset<T, PersonalizedServiceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServiceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedService.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServiceAggregateArgs>(args: Subset<T, PersonalizedServiceAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServiceAggregateType<T>>
+
+    /**
+     * Group by PersonalizedService.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServiceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServiceGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServiceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServiceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServiceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedService model
+   */
+  readonly fields: PersonalizedServiceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedService.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServiceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    orders<T extends PersonalizedService$ordersArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedService$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedService model
+   */ 
+  interface PersonalizedServiceFieldRefs {
+    readonly id: FieldRef<"PersonalizedService", 'String'>
+    readonly sellerId: FieldRef<"PersonalizedService", 'String'>
+    readonly serviceType: FieldRef<"PersonalizedService", 'PersonalizedServiceType'>
+    readonly title: FieldRef<"PersonalizedService", 'String'>
+    readonly description: FieldRef<"PersonalizedService", 'String'>
+    readonly price: FieldRef<"PersonalizedService", 'Float'>
+    readonly deliverables: FieldRef<"PersonalizedService", 'Json'>
+    readonly revisionLimit: FieldRef<"PersonalizedService", 'Int'>
+    readonly initialDeliveryDays: FieldRef<"PersonalizedService", 'Int'>
+    readonly supportWeeks: FieldRef<"PersonalizedService", 'Int'>
+    readonly targetGoal: FieldRef<"PersonalizedService", 'String'>
+    readonly targetLevel: FieldRef<"PersonalizedService", 'String'>
+    readonly status: FieldRef<"PersonalizedService", 'PersonalizedServiceStatus'>
+    readonly createdAt: FieldRef<"PersonalizedService", 'DateTime'>
+    readonly updatedAt: FieldRef<"PersonalizedService", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedService findUnique
+   */
+  export type PersonalizedServiceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedService to fetch.
+     */
+    where: PersonalizedServiceWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedService findUniqueOrThrow
+   */
+  export type PersonalizedServiceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedService to fetch.
+     */
+    where: PersonalizedServiceWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedService findFirst
+   */
+  export type PersonalizedServiceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedService to fetch.
+     */
+    where?: PersonalizedServiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServices to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderByWithRelationInput | PersonalizedServiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServices.
+     */
+    cursor?: PersonalizedServiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServices.
+     */
+    distinct?: PersonalizedServiceScalarFieldEnum | PersonalizedServiceScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedService findFirstOrThrow
+   */
+  export type PersonalizedServiceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedService to fetch.
+     */
+    where?: PersonalizedServiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServices to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderByWithRelationInput | PersonalizedServiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServices.
+     */
+    cursor?: PersonalizedServiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServices.
+     */
+    distinct?: PersonalizedServiceScalarFieldEnum | PersonalizedServiceScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedService findMany
+   */
+  export type PersonalizedServiceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServices to fetch.
+     */
+    where?: PersonalizedServiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServices to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderByWithRelationInput | PersonalizedServiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServices.
+     */
+    cursor?: PersonalizedServiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServices.
+     */
+    skip?: number
+    distinct?: PersonalizedServiceScalarFieldEnum | PersonalizedServiceScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedService create
+   */
+  export type PersonalizedServiceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedService.
+     */
+    data: XOR<PersonalizedServiceCreateInput, PersonalizedServiceUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedService createMany
+   */
+  export type PersonalizedServiceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServices.
+     */
+    data: PersonalizedServiceCreateManyInput | PersonalizedServiceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedService createManyAndReturn
+   */
+  export type PersonalizedServiceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServices.
+     */
+    data: PersonalizedServiceCreateManyInput | PersonalizedServiceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedService update
+   */
+  export type PersonalizedServiceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedService.
+     */
+    data: XOR<PersonalizedServiceUpdateInput, PersonalizedServiceUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedService to update.
+     */
+    where: PersonalizedServiceWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedService updateMany
+   */
+  export type PersonalizedServiceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServices.
+     */
+    data: XOR<PersonalizedServiceUpdateManyMutationInput, PersonalizedServiceUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServices to update
+     */
+    where?: PersonalizedServiceWhereInput
+  }
+
+  /**
+   * PersonalizedService upsert
+   */
+  export type PersonalizedServiceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedService to update in case it exists.
+     */
+    where: PersonalizedServiceWhereUniqueInput
+    /**
+     * In case the PersonalizedService found by the `where` argument doesn't exist, create a new PersonalizedService with this data.
+     */
+    create: XOR<PersonalizedServiceCreateInput, PersonalizedServiceUncheckedCreateInput>
+    /**
+     * In case the PersonalizedService was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServiceUpdateInput, PersonalizedServiceUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedService delete
+   */
+  export type PersonalizedServiceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedService to delete.
+     */
+    where: PersonalizedServiceWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedService deleteMany
+   */
+  export type PersonalizedServiceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServices to delete
+     */
+    where?: PersonalizedServiceWhereInput
+  }
+
+  /**
+   * PersonalizedService.orders
+   */
+  export type PersonalizedService$ordersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    where?: PersonalizedServiceOrderWhereInput
+    orderBy?: PersonalizedServiceOrderOrderByWithRelationInput | PersonalizedServiceOrderOrderByWithRelationInput[]
+    cursor?: PersonalizedServiceOrderWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PersonalizedServiceOrderScalarFieldEnum | PersonalizedServiceOrderScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedService without action
+   */
+  export type PersonalizedServiceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedService
+     */
+    select?: PersonalizedServiceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedServiceOrder
+   */
+
+  export type AggregatePersonalizedServiceOrder = {
+    _count: PersonalizedServiceOrderCountAggregateOutputType | null
+    _avg: PersonalizedServiceOrderAvgAggregateOutputType | null
+    _sum: PersonalizedServiceOrderSumAggregateOutputType | null
+    _min: PersonalizedServiceOrderMinAggregateOutputType | null
+    _max: PersonalizedServiceOrderMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServiceOrderAvgAggregateOutputType = {
+    revisionLimitSnapshot: number | null
+    initialDeliveryDaysSnapshot: number | null
+    supportWeeksSnapshot: number | null
+    priceAtPurchase: number | null
+    draftVersion: number | null
+    revisionCount: number | null
+    cumulativeRefundedAmount: number | null
+  }
+
+  export type PersonalizedServiceOrderSumAggregateOutputType = {
+    revisionLimitSnapshot: number | null
+    initialDeliveryDaysSnapshot: number | null
+    supportWeeksSnapshot: number | null
+    priceAtPurchase: number | null
+    draftVersion: number | null
+    revisionCount: number | null
+    cumulativeRefundedAmount: number | null
+  }
+
+  export type PersonalizedServiceOrderMinAggregateOutputType = {
+    id: string | null
+    serviceId: string | null
+    sellerId: string | null
+    buyerId: string | null
+    status: $Enums.PersonalizedServiceOrderStatus | null
+    titleSnapshot: string | null
+    descriptionSnapshot: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType | null
+    revisionLimitSnapshot: number | null
+    initialDeliveryDaysSnapshot: number | null
+    supportWeeksSnapshot: number | null
+    priceAtPurchase: number | null
+    paymentTransactionId: string | null
+    purchasedAt: Date | null
+    intakeSubmittedAt: Date | null
+    contractId: string | null
+    initialDeliveryDeadline: Date | null
+    draftVersion: number | null
+    revisionCount: number | null
+    acceptedAt: Date | null
+    committedProgramId: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+    refundRequestedAt: Date | null
+    refundedAt: Date | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    preRefundStatus: string | null
+    cumulativeRefundedAmount: number | null
+    refundResolvedBy: string | null
+    refundResolvedAt: Date | null
+    refundResolutionNote: string | null
+    refundDecision: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PersonalizedServiceOrderMaxAggregateOutputType = {
+    id: string | null
+    serviceId: string | null
+    sellerId: string | null
+    buyerId: string | null
+    status: $Enums.PersonalizedServiceOrderStatus | null
+    titleSnapshot: string | null
+    descriptionSnapshot: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType | null
+    revisionLimitSnapshot: number | null
+    initialDeliveryDaysSnapshot: number | null
+    supportWeeksSnapshot: number | null
+    priceAtPurchase: number | null
+    paymentTransactionId: string | null
+    purchasedAt: Date | null
+    intakeSubmittedAt: Date | null
+    contractId: string | null
+    initialDeliveryDeadline: Date | null
+    draftVersion: number | null
+    revisionCount: number | null
+    acceptedAt: Date | null
+    committedProgramId: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+    refundRequestedAt: Date | null
+    refundedAt: Date | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    preRefundStatus: string | null
+    cumulativeRefundedAmount: number | null
+    refundResolvedBy: string | null
+    refundResolvedAt: Date | null
+    refundResolutionNote: string | null
+    refundDecision: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PersonalizedServiceOrderCountAggregateOutputType = {
+    id: number
+    serviceId: number
+    sellerId: number
+    buyerId: number
+    status: number
+    titleSnapshot: number
+    descriptionSnapshot: number
+    serviceTypeSnapshot: number
+    deliverablesSnapshot: number
+    revisionLimitSnapshot: number
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot: number
+    priceAtPurchase: number
+    paymentTransactionId: number
+    purchasedAt: number
+    intakeData: number
+    consentCategories: number
+    intakeSubmittedAt: number
+    contractId: number
+    initialDeliveryDeadline: number
+    draftContent: number
+    draftVersion: number
+    revisionCount: number
+    acceptedAt: number
+    committedProgramId: number
+    cancelledAt: number
+    cancelReason: number
+    refundRequestedAt: number
+    refundedAt: number
+    disputeReason: number
+    disputedAt: number
+    preRefundStatus: number
+    cumulativeRefundedAmount: number
+    refundResolvedBy: number
+    refundResolvedAt: number
+    refundResolutionNote: number
+    refundDecision: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServiceOrderAvgAggregateInputType = {
+    revisionLimitSnapshot?: true
+    initialDeliveryDaysSnapshot?: true
+    supportWeeksSnapshot?: true
+    priceAtPurchase?: true
+    draftVersion?: true
+    revisionCount?: true
+    cumulativeRefundedAmount?: true
+  }
+
+  export type PersonalizedServiceOrderSumAggregateInputType = {
+    revisionLimitSnapshot?: true
+    initialDeliveryDaysSnapshot?: true
+    supportWeeksSnapshot?: true
+    priceAtPurchase?: true
+    draftVersion?: true
+    revisionCount?: true
+    cumulativeRefundedAmount?: true
+  }
+
+  export type PersonalizedServiceOrderMinAggregateInputType = {
+    id?: true
+    serviceId?: true
+    sellerId?: true
+    buyerId?: true
+    status?: true
+    titleSnapshot?: true
+    descriptionSnapshot?: true
+    serviceTypeSnapshot?: true
+    revisionLimitSnapshot?: true
+    initialDeliveryDaysSnapshot?: true
+    supportWeeksSnapshot?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    purchasedAt?: true
+    intakeSubmittedAt?: true
+    contractId?: true
+    initialDeliveryDeadline?: true
+    draftVersion?: true
+    revisionCount?: true
+    acceptedAt?: true
+    committedProgramId?: true
+    cancelledAt?: true
+    cancelReason?: true
+    refundRequestedAt?: true
+    refundedAt?: true
+    disputeReason?: true
+    disputedAt?: true
+    preRefundStatus?: true
+    cumulativeRefundedAmount?: true
+    refundResolvedBy?: true
+    refundResolvedAt?: true
+    refundResolutionNote?: true
+    refundDecision?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PersonalizedServiceOrderMaxAggregateInputType = {
+    id?: true
+    serviceId?: true
+    sellerId?: true
+    buyerId?: true
+    status?: true
+    titleSnapshot?: true
+    descriptionSnapshot?: true
+    serviceTypeSnapshot?: true
+    revisionLimitSnapshot?: true
+    initialDeliveryDaysSnapshot?: true
+    supportWeeksSnapshot?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    purchasedAt?: true
+    intakeSubmittedAt?: true
+    contractId?: true
+    initialDeliveryDeadline?: true
+    draftVersion?: true
+    revisionCount?: true
+    acceptedAt?: true
+    committedProgramId?: true
+    cancelledAt?: true
+    cancelReason?: true
+    refundRequestedAt?: true
+    refundedAt?: true
+    disputeReason?: true
+    disputedAt?: true
+    preRefundStatus?: true
+    cumulativeRefundedAmount?: true
+    refundResolvedBy?: true
+    refundResolvedAt?: true
+    refundResolutionNote?: true
+    refundDecision?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PersonalizedServiceOrderCountAggregateInputType = {
+    id?: true
+    serviceId?: true
+    sellerId?: true
+    buyerId?: true
+    status?: true
+    titleSnapshot?: true
+    descriptionSnapshot?: true
+    serviceTypeSnapshot?: true
+    deliverablesSnapshot?: true
+    revisionLimitSnapshot?: true
+    initialDeliveryDaysSnapshot?: true
+    supportWeeksSnapshot?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    purchasedAt?: true
+    intakeData?: true
+    consentCategories?: true
+    intakeSubmittedAt?: true
+    contractId?: true
+    initialDeliveryDeadline?: true
+    draftContent?: true
+    draftVersion?: true
+    revisionCount?: true
+    acceptedAt?: true
+    committedProgramId?: true
+    cancelledAt?: true
+    cancelReason?: true
+    refundRequestedAt?: true
+    refundedAt?: true
+    disputeReason?: true
+    disputedAt?: true
+    preRefundStatus?: true
+    cumulativeRefundedAmount?: true
+    refundResolvedBy?: true
+    refundResolvedAt?: true
+    refundResolutionNote?: true
+    refundDecision?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServiceOrderAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceOrder to aggregate.
+     */
+    where?: PersonalizedServiceOrderWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceOrders to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderOrderByWithRelationInput | PersonalizedServiceOrderOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServiceOrderWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceOrders from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceOrders.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServiceOrders
+    **/
+    _count?: true | PersonalizedServiceOrderCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PersonalizedServiceOrderAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PersonalizedServiceOrderSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServiceOrderMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServiceOrderMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServiceOrderAggregateType<T extends PersonalizedServiceOrderAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedServiceOrder]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedServiceOrder[P]>
+      : GetScalarType<T[P], AggregatePersonalizedServiceOrder[P]>
+  }
+
+
+
+
+  export type PersonalizedServiceOrderGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceOrderWhereInput
+    orderBy?: PersonalizedServiceOrderOrderByWithAggregationInput | PersonalizedServiceOrderOrderByWithAggregationInput[]
+    by: PersonalizedServiceOrderScalarFieldEnum[] | PersonalizedServiceOrderScalarFieldEnum
+    having?: PersonalizedServiceOrderScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServiceOrderCountAggregateInputType | true
+    _avg?: PersonalizedServiceOrderAvgAggregateInputType
+    _sum?: PersonalizedServiceOrderSumAggregateInputType
+    _min?: PersonalizedServiceOrderMinAggregateInputType
+    _max?: PersonalizedServiceOrderMaxAggregateInputType
+  }
+
+  export type PersonalizedServiceOrderGroupByOutputType = {
+    id: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonValue
+    revisionLimitSnapshot: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot: number | null
+    priceAtPurchase: number
+    paymentTransactionId: string | null
+    purchasedAt: Date
+    intakeData: JsonValue | null
+    consentCategories: JsonValue | null
+    intakeSubmittedAt: Date | null
+    contractId: string | null
+    initialDeliveryDeadline: Date | null
+    draftContent: JsonValue | null
+    draftVersion: number
+    revisionCount: number
+    acceptedAt: Date | null
+    committedProgramId: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+    refundRequestedAt: Date | null
+    refundedAt: Date | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    preRefundStatus: string | null
+    cumulativeRefundedAmount: number
+    refundResolvedBy: string | null
+    refundResolvedAt: Date | null
+    refundResolutionNote: string | null
+    refundDecision: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PersonalizedServiceOrderCountAggregateOutputType | null
+    _avg: PersonalizedServiceOrderAvgAggregateOutputType | null
+    _sum: PersonalizedServiceOrderSumAggregateOutputType | null
+    _min: PersonalizedServiceOrderMinAggregateOutputType | null
+    _max: PersonalizedServiceOrderMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServiceOrderGroupByPayload<T extends PersonalizedServiceOrderGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServiceOrderGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServiceOrderGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServiceOrderGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServiceOrderGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServiceOrderSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    serviceId?: boolean
+    sellerId?: boolean
+    buyerId?: boolean
+    status?: boolean
+    titleSnapshot?: boolean
+    descriptionSnapshot?: boolean
+    serviceTypeSnapshot?: boolean
+    deliverablesSnapshot?: boolean
+    revisionLimitSnapshot?: boolean
+    initialDeliveryDaysSnapshot?: boolean
+    supportWeeksSnapshot?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    purchasedAt?: boolean
+    intakeData?: boolean
+    consentCategories?: boolean
+    intakeSubmittedAt?: boolean
+    contractId?: boolean
+    initialDeliveryDeadline?: boolean
+    draftContent?: boolean
+    draftVersion?: boolean
+    revisionCount?: boolean
+    acceptedAt?: boolean
+    committedProgramId?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+    refundRequestedAt?: boolean
+    refundedAt?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    preRefundStatus?: boolean
+    cumulativeRefundedAmount?: boolean
+    refundResolvedBy?: boolean
+    refundResolvedAt?: boolean
+    refundResolutionNote?: boolean
+    refundDecision?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
+    revisionRequests?: boolean | PersonalizedServiceOrder$revisionRequestsArgs<ExtArgs>
+    planVersions?: boolean | PersonalizedServiceOrder$planVersionsArgs<ExtArgs>
+    checkIns?: boolean | PersonalizedServiceOrder$checkInsArgs<ExtArgs>
+    review?: boolean | PersonalizedServiceOrder$reviewArgs<ExtArgs>
+    _count?: boolean | PersonalizedServiceOrderCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceOrder"]>
+
+  export type PersonalizedServiceOrderSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    serviceId?: boolean
+    sellerId?: boolean
+    buyerId?: boolean
+    status?: boolean
+    titleSnapshot?: boolean
+    descriptionSnapshot?: boolean
+    serviceTypeSnapshot?: boolean
+    deliverablesSnapshot?: boolean
+    revisionLimitSnapshot?: boolean
+    initialDeliveryDaysSnapshot?: boolean
+    supportWeeksSnapshot?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    purchasedAt?: boolean
+    intakeData?: boolean
+    consentCategories?: boolean
+    intakeSubmittedAt?: boolean
+    contractId?: boolean
+    initialDeliveryDeadline?: boolean
+    draftContent?: boolean
+    draftVersion?: boolean
+    revisionCount?: boolean
+    acceptedAt?: boolean
+    committedProgramId?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+    refundRequestedAt?: boolean
+    refundedAt?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    preRefundStatus?: boolean
+    cumulativeRefundedAmount?: boolean
+    refundResolvedBy?: boolean
+    refundResolvedAt?: boolean
+    refundResolutionNote?: boolean
+    refundDecision?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceOrder"]>
+
+  export type PersonalizedServiceOrderSelectScalar = {
+    id?: boolean
+    serviceId?: boolean
+    sellerId?: boolean
+    buyerId?: boolean
+    status?: boolean
+    titleSnapshot?: boolean
+    descriptionSnapshot?: boolean
+    serviceTypeSnapshot?: boolean
+    deliverablesSnapshot?: boolean
+    revisionLimitSnapshot?: boolean
+    initialDeliveryDaysSnapshot?: boolean
+    supportWeeksSnapshot?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    purchasedAt?: boolean
+    intakeData?: boolean
+    consentCategories?: boolean
+    intakeSubmittedAt?: boolean
+    contractId?: boolean
+    initialDeliveryDeadline?: boolean
+    draftContent?: boolean
+    draftVersion?: boolean
+    revisionCount?: boolean
+    acceptedAt?: boolean
+    committedProgramId?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+    refundRequestedAt?: boolean
+    refundedAt?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    preRefundStatus?: boolean
+    cumulativeRefundedAmount?: boolean
+    refundResolvedBy?: boolean
+    refundResolvedAt?: boolean
+    refundResolutionNote?: boolean
+    refundDecision?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PersonalizedServiceOrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
+    revisionRequests?: boolean | PersonalizedServiceOrder$revisionRequestsArgs<ExtArgs>
+    planVersions?: boolean | PersonalizedServiceOrder$planVersionsArgs<ExtArgs>
+    checkIns?: boolean | PersonalizedServiceOrder$checkInsArgs<ExtArgs>
+    review?: boolean | PersonalizedServiceOrder$reviewArgs<ExtArgs>
+    _count?: boolean | PersonalizedServiceOrderCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServiceOrderIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
+  }
+
+  export type $PersonalizedServiceOrderPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedServiceOrder"
+    objects: {
+      service: Prisma.$PersonalizedServicePayload<ExtArgs>
+      revisionRequests: Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>[]
+      planVersions: Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>[]
+      checkIns: Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>[]
+      review: Prisma.$PersonalizedServiceReviewPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      serviceId: string
+      sellerId: string
+      buyerId: string
+      status: $Enums.PersonalizedServiceOrderStatus
+      titleSnapshot: string
+      descriptionSnapshot: string | null
+      serviceTypeSnapshot: $Enums.PersonalizedServiceType
+      deliverablesSnapshot: Prisma.JsonValue
+      revisionLimitSnapshot: number | null
+      initialDeliveryDaysSnapshot: number
+      supportWeeksSnapshot: number | null
+      priceAtPurchase: number
+      paymentTransactionId: string | null
+      purchasedAt: Date
+      intakeData: Prisma.JsonValue | null
+      consentCategories: Prisma.JsonValue | null
+      intakeSubmittedAt: Date | null
+      contractId: string | null
+      initialDeliveryDeadline: Date | null
+      draftContent: Prisma.JsonValue | null
+      draftVersion: number
+      revisionCount: number
+      acceptedAt: Date | null
+      committedProgramId: string | null
+      cancelledAt: Date | null
+      cancelReason: string | null
+      refundRequestedAt: Date | null
+      refundedAt: Date | null
+      disputeReason: string | null
+      disputedAt: Date | null
+      preRefundStatus: string | null
+      cumulativeRefundedAmount: number
+      refundResolvedBy: string | null
+      refundResolvedAt: Date | null
+      refundResolutionNote: string | null
+      refundDecision: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["personalizedServiceOrder"]>
+    composites: {}
+  }
+
+  type PersonalizedServiceOrderGetPayload<S extends boolean | null | undefined | PersonalizedServiceOrderDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServiceOrderPayload, S>
+
+  type PersonalizedServiceOrderCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServiceOrderFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServiceOrderCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServiceOrderDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedServiceOrder'], meta: { name: 'PersonalizedServiceOrder' } }
+    /**
+     * Find zero or one PersonalizedServiceOrder that matches the filter.
+     * @param {PersonalizedServiceOrderFindUniqueArgs} args - Arguments to find a PersonalizedServiceOrder
+     * @example
+     * // Get one PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServiceOrderFindUniqueArgs>(args: SelectSubset<T, PersonalizedServiceOrderFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedServiceOrder that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServiceOrderFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedServiceOrder
+     * @example
+     * // Get one PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServiceOrderFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServiceOrderFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceOrder that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderFindFirstArgs} args - Arguments to find a PersonalizedServiceOrder
+     * @example
+     * // Get one PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServiceOrderFindFirstArgs>(args?: SelectSubset<T, PersonalizedServiceOrderFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceOrder that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderFindFirstOrThrowArgs} args - Arguments to find a PersonalizedServiceOrder
+     * @example
+     * // Get one PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServiceOrderFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServiceOrderFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServiceOrders that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServiceOrders
+     * const personalizedServiceOrders = await prisma.personalizedServiceOrder.findMany()
+     * 
+     * // Get first 10 PersonalizedServiceOrders
+     * const personalizedServiceOrders = await prisma.personalizedServiceOrder.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServiceOrderWithIdOnly = await prisma.personalizedServiceOrder.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServiceOrderFindManyArgs>(args?: SelectSubset<T, PersonalizedServiceOrderFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedServiceOrder.
+     * @param {PersonalizedServiceOrderCreateArgs} args - Arguments to create a PersonalizedServiceOrder.
+     * @example
+     * // Create one PersonalizedServiceOrder
+     * const PersonalizedServiceOrder = await prisma.personalizedServiceOrder.create({
+     *   data: {
+     *     // ... data to create a PersonalizedServiceOrder
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServiceOrderCreateArgs>(args: SelectSubset<T, PersonalizedServiceOrderCreateArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServiceOrders.
+     * @param {PersonalizedServiceOrderCreateManyArgs} args - Arguments to create many PersonalizedServiceOrders.
+     * @example
+     * // Create many PersonalizedServiceOrders
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServiceOrderCreateManyArgs>(args?: SelectSubset<T, PersonalizedServiceOrderCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServiceOrders and returns the data saved in the database.
+     * @param {PersonalizedServiceOrderCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServiceOrders.
+     * @example
+     * // Create many PersonalizedServiceOrders
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServiceOrders and only return the `id`
+     * const personalizedServiceOrderWithIdOnly = await prisma.personalizedServiceOrder.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServiceOrderCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServiceOrderCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedServiceOrder.
+     * @param {PersonalizedServiceOrderDeleteArgs} args - Arguments to delete one PersonalizedServiceOrder.
+     * @example
+     * // Delete one PersonalizedServiceOrder
+     * const PersonalizedServiceOrder = await prisma.personalizedServiceOrder.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedServiceOrder
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServiceOrderDeleteArgs>(args: SelectSubset<T, PersonalizedServiceOrderDeleteArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedServiceOrder.
+     * @param {PersonalizedServiceOrderUpdateArgs} args - Arguments to update one PersonalizedServiceOrder.
+     * @example
+     * // Update one PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServiceOrderUpdateArgs>(args: SelectSubset<T, PersonalizedServiceOrderUpdateArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServiceOrders.
+     * @param {PersonalizedServiceOrderDeleteManyArgs} args - Arguments to filter PersonalizedServiceOrders to delete.
+     * @example
+     * // Delete a few PersonalizedServiceOrders
+     * const { count } = await prisma.personalizedServiceOrder.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServiceOrderDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServiceOrderDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServiceOrders.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServiceOrders
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServiceOrderUpdateManyArgs>(args: SelectSubset<T, PersonalizedServiceOrderUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedServiceOrder.
+     * @param {PersonalizedServiceOrderUpsertArgs} args - Arguments to update or create a PersonalizedServiceOrder.
+     * @example
+     * // Update or create a PersonalizedServiceOrder
+     * const personalizedServiceOrder = await prisma.personalizedServiceOrder.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedServiceOrder
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceOrder we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServiceOrderUpsertArgs>(args: SelectSubset<T, PersonalizedServiceOrderUpsertArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServiceOrders.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderCountArgs} args - Arguments to filter PersonalizedServiceOrders to count.
+     * @example
+     * // Count the number of PersonalizedServiceOrders
+     * const count = await prisma.personalizedServiceOrder.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceOrders we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServiceOrderCountArgs>(
+      args?: Subset<T, PersonalizedServiceOrderCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServiceOrderCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedServiceOrder.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServiceOrderAggregateArgs>(args: Subset<T, PersonalizedServiceOrderAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServiceOrderAggregateType<T>>
+
+    /**
+     * Group by PersonalizedServiceOrder.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceOrderGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServiceOrderGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServiceOrderGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServiceOrderGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServiceOrderGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServiceOrderGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedServiceOrder model
+   */
+  readonly fields: PersonalizedServiceOrderFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedServiceOrder.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServiceOrderClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    service<T extends PersonalizedServiceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceDefaultArgs<ExtArgs>>): Prisma__PersonalizedServiceClient<$Result.GetResult<Prisma.$PersonalizedServicePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    revisionRequests<T extends PersonalizedServiceOrder$revisionRequestsArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrder$revisionRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findMany"> | Null>
+    planVersions<T extends PersonalizedServiceOrder$planVersionsArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrder$planVersionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findMany"> | Null>
+    checkIns<T extends PersonalizedServiceOrder$checkInsArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrder$checkInsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findMany"> | Null>
+    review<T extends PersonalizedServiceOrder$reviewArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrder$reviewArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedServiceOrder model
+   */ 
+  interface PersonalizedServiceOrderFieldRefs {
+    readonly id: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly serviceId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly sellerId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly buyerId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly status: FieldRef<"PersonalizedServiceOrder", 'PersonalizedServiceOrderStatus'>
+    readonly titleSnapshot: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly descriptionSnapshot: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly serviceTypeSnapshot: FieldRef<"PersonalizedServiceOrder", 'PersonalizedServiceType'>
+    readonly deliverablesSnapshot: FieldRef<"PersonalizedServiceOrder", 'Json'>
+    readonly revisionLimitSnapshot: FieldRef<"PersonalizedServiceOrder", 'Int'>
+    readonly initialDeliveryDaysSnapshot: FieldRef<"PersonalizedServiceOrder", 'Int'>
+    readonly supportWeeksSnapshot: FieldRef<"PersonalizedServiceOrder", 'Int'>
+    readonly priceAtPurchase: FieldRef<"PersonalizedServiceOrder", 'Float'>
+    readonly paymentTransactionId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly purchasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly intakeData: FieldRef<"PersonalizedServiceOrder", 'Json'>
+    readonly consentCategories: FieldRef<"PersonalizedServiceOrder", 'Json'>
+    readonly intakeSubmittedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly contractId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly initialDeliveryDeadline: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly draftContent: FieldRef<"PersonalizedServiceOrder", 'Json'>
+    readonly draftVersion: FieldRef<"PersonalizedServiceOrder", 'Int'>
+    readonly revisionCount: FieldRef<"PersonalizedServiceOrder", 'Int'>
+    readonly acceptedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly committedProgramId: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly cancelledAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly cancelReason: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly refundRequestedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly refundedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly disputeReason: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly disputedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly preRefundStatus: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly cumulativeRefundedAmount: FieldRef<"PersonalizedServiceOrder", 'Float'>
+    readonly refundResolvedBy: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly refundResolvedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly refundResolutionNote: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly refundDecision: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly createdAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly updatedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceOrder findUnique
+   */
+  export type PersonalizedServiceOrderFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceOrder to fetch.
+     */
+    where: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceOrder findUniqueOrThrow
+   */
+  export type PersonalizedServiceOrderFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceOrder to fetch.
+     */
+    where: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceOrder findFirst
+   */
+  export type PersonalizedServiceOrderFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceOrder to fetch.
+     */
+    where?: PersonalizedServiceOrderWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceOrders to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderOrderByWithRelationInput | PersonalizedServiceOrderOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceOrders.
+     */
+    cursor?: PersonalizedServiceOrderWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceOrders from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceOrders.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceOrders.
+     */
+    distinct?: PersonalizedServiceOrderScalarFieldEnum | PersonalizedServiceOrderScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder findFirstOrThrow
+   */
+  export type PersonalizedServiceOrderFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceOrder to fetch.
+     */
+    where?: PersonalizedServiceOrderWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceOrders to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderOrderByWithRelationInput | PersonalizedServiceOrderOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceOrders.
+     */
+    cursor?: PersonalizedServiceOrderWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceOrders from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceOrders.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceOrders.
+     */
+    distinct?: PersonalizedServiceOrderScalarFieldEnum | PersonalizedServiceOrderScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder findMany
+   */
+  export type PersonalizedServiceOrderFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceOrders to fetch.
+     */
+    where?: PersonalizedServiceOrderWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceOrders to fetch.
+     */
+    orderBy?: PersonalizedServiceOrderOrderByWithRelationInput | PersonalizedServiceOrderOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServiceOrders.
+     */
+    cursor?: PersonalizedServiceOrderWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceOrders from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceOrders.
+     */
+    skip?: number
+    distinct?: PersonalizedServiceOrderScalarFieldEnum | PersonalizedServiceOrderScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder create
+   */
+  export type PersonalizedServiceOrderCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedServiceOrder.
+     */
+    data: XOR<PersonalizedServiceOrderCreateInput, PersonalizedServiceOrderUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedServiceOrder createMany
+   */
+  export type PersonalizedServiceOrderCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServiceOrders.
+     */
+    data: PersonalizedServiceOrderCreateManyInput | PersonalizedServiceOrderCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedServiceOrder createManyAndReturn
+   */
+  export type PersonalizedServiceOrderCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServiceOrders.
+     */
+    data: PersonalizedServiceOrderCreateManyInput | PersonalizedServiceOrderCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceOrder update
+   */
+  export type PersonalizedServiceOrderUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedServiceOrder.
+     */
+    data: XOR<PersonalizedServiceOrderUpdateInput, PersonalizedServiceOrderUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedServiceOrder to update.
+     */
+    where: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceOrder updateMany
+   */
+  export type PersonalizedServiceOrderUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServiceOrders.
+     */
+    data: XOR<PersonalizedServiceOrderUpdateManyMutationInput, PersonalizedServiceOrderUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServiceOrders to update
+     */
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  /**
+   * PersonalizedServiceOrder upsert
+   */
+  export type PersonalizedServiceOrderUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedServiceOrder to update in case it exists.
+     */
+    where: PersonalizedServiceOrderWhereUniqueInput
+    /**
+     * In case the PersonalizedServiceOrder found by the `where` argument doesn't exist, create a new PersonalizedServiceOrder with this data.
+     */
+    create: XOR<PersonalizedServiceOrderCreateInput, PersonalizedServiceOrderUncheckedCreateInput>
+    /**
+     * In case the PersonalizedServiceOrder was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServiceOrderUpdateInput, PersonalizedServiceOrderUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedServiceOrder delete
+   */
+  export type PersonalizedServiceOrderDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedServiceOrder to delete.
+     */
+    where: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceOrder deleteMany
+   */
+  export type PersonalizedServiceOrderDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceOrders to delete
+     */
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  /**
+   * PersonalizedServiceOrder.revisionRequests
+   */
+  export type PersonalizedServiceOrder$revisionRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithRelationInput | PersonalizedServiceRevisionRequestOrderByWithRelationInput[]
+    cursor?: PersonalizedServiceRevisionRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PersonalizedServiceRevisionRequestScalarFieldEnum | PersonalizedServiceRevisionRequestScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder.planVersions
+   */
+  export type PersonalizedServiceOrder$planVersionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    where?: PersonalizedServicePlanVersionWhereInput
+    orderBy?: PersonalizedServicePlanVersionOrderByWithRelationInput | PersonalizedServicePlanVersionOrderByWithRelationInput[]
+    cursor?: PersonalizedServicePlanVersionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PersonalizedServicePlanVersionScalarFieldEnum | PersonalizedServicePlanVersionScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder.checkIns
+   */
+  export type PersonalizedServiceOrder$checkInsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    where?: PersonalizedServiceCheckInWhereInput
+    orderBy?: PersonalizedServiceCheckInOrderByWithRelationInput | PersonalizedServiceCheckInOrderByWithRelationInput[]
+    cursor?: PersonalizedServiceCheckInWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PersonalizedServiceCheckInScalarFieldEnum | PersonalizedServiceCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceOrder.review
+   */
+  export type PersonalizedServiceOrder$reviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    where?: PersonalizedServiceReviewWhereInput
+  }
+
+  /**
+   * PersonalizedServiceOrder without action
+   */
+  export type PersonalizedServiceOrderDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceOrder
+     */
+    select?: PersonalizedServiceOrderSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceOrderInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedServicePlanVersion
+   */
+
+  export type AggregatePersonalizedServicePlanVersion = {
+    _count: PersonalizedServicePlanVersionCountAggregateOutputType | null
+    _avg: PersonalizedServicePlanVersionAvgAggregateOutputType | null
+    _sum: PersonalizedServicePlanVersionSumAggregateOutputType | null
+    _min: PersonalizedServicePlanVersionMinAggregateOutputType | null
+    _max: PersonalizedServicePlanVersionMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServicePlanVersionAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type PersonalizedServicePlanVersionSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type PersonalizedServicePlanVersionMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    version: number | null
+    status: $Enums.PlanVersionStatus | null
+    createdBy: string | null
+    changeReason: string | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServicePlanVersionMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    version: number | null
+    status: $Enums.PlanVersionStatus | null
+    createdBy: string | null
+    changeReason: string | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServicePlanVersionCountAggregateOutputType = {
+    id: number
+    orderId: number
+    version: number
+    content: number
+    status: number
+    createdBy: number
+    changeReason: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServicePlanVersionAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type PersonalizedServicePlanVersionSumAggregateInputType = {
+    version?: true
+  }
+
+  export type PersonalizedServicePlanVersionMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    version?: true
+    status?: true
+    createdBy?: true
+    changeReason?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServicePlanVersionMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    version?: true
+    status?: true
+    createdBy?: true
+    changeReason?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServicePlanVersionCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    version?: true
+    content?: true
+    status?: true
+    createdBy?: true
+    changeReason?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServicePlanVersionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServicePlanVersion to aggregate.
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServicePlanVersions to fetch.
+     */
+    orderBy?: PersonalizedServicePlanVersionOrderByWithRelationInput | PersonalizedServicePlanVersionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServicePlanVersionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServicePlanVersions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServicePlanVersions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServicePlanVersions
+    **/
+    _count?: true | PersonalizedServicePlanVersionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PersonalizedServicePlanVersionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PersonalizedServicePlanVersionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServicePlanVersionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServicePlanVersionMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServicePlanVersionAggregateType<T extends PersonalizedServicePlanVersionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedServicePlanVersion]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedServicePlanVersion[P]>
+      : GetScalarType<T[P], AggregatePersonalizedServicePlanVersion[P]>
+  }
+
+
+
+
+  export type PersonalizedServicePlanVersionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServicePlanVersionWhereInput
+    orderBy?: PersonalizedServicePlanVersionOrderByWithAggregationInput | PersonalizedServicePlanVersionOrderByWithAggregationInput[]
+    by: PersonalizedServicePlanVersionScalarFieldEnum[] | PersonalizedServicePlanVersionScalarFieldEnum
+    having?: PersonalizedServicePlanVersionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServicePlanVersionCountAggregateInputType | true
+    _avg?: PersonalizedServicePlanVersionAvgAggregateInputType
+    _sum?: PersonalizedServicePlanVersionSumAggregateInputType
+    _min?: PersonalizedServicePlanVersionMinAggregateInputType
+    _max?: PersonalizedServicePlanVersionMaxAggregateInputType
+  }
+
+  export type PersonalizedServicePlanVersionGroupByOutputType = {
+    id: string
+    orderId: string
+    version: number
+    content: JsonValue
+    status: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason: string | null
+    createdAt: Date
+    _count: PersonalizedServicePlanVersionCountAggregateOutputType | null
+    _avg: PersonalizedServicePlanVersionAvgAggregateOutputType | null
+    _sum: PersonalizedServicePlanVersionSumAggregateOutputType | null
+    _min: PersonalizedServicePlanVersionMinAggregateOutputType | null
+    _max: PersonalizedServicePlanVersionMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServicePlanVersionGroupByPayload<T extends PersonalizedServicePlanVersionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServicePlanVersionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServicePlanVersionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServicePlanVersionGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServicePlanVersionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServicePlanVersionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    version?: boolean
+    content?: boolean
+    status?: boolean
+    createdBy?: boolean
+    changeReason?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServicePlanVersion"]>
+
+  export type PersonalizedServicePlanVersionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    version?: boolean
+    content?: boolean
+    status?: boolean
+    createdBy?: boolean
+    changeReason?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServicePlanVersion"]>
+
+  export type PersonalizedServicePlanVersionSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    version?: boolean
+    content?: boolean
+    status?: boolean
+    createdBy?: boolean
+    changeReason?: boolean
+    createdAt?: boolean
+  }
+
+  export type PersonalizedServicePlanVersionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServicePlanVersionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+
+  export type $PersonalizedServicePlanVersionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedServicePlanVersion"
+    objects: {
+      order: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      version: number
+      content: Prisma.JsonValue
+      status: $Enums.PlanVersionStatus
+      createdBy: string
+      changeReason: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["personalizedServicePlanVersion"]>
+    composites: {}
+  }
+
+  type PersonalizedServicePlanVersionGetPayload<S extends boolean | null | undefined | PersonalizedServicePlanVersionDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload, S>
+
+  type PersonalizedServicePlanVersionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServicePlanVersionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServicePlanVersionCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServicePlanVersionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedServicePlanVersion'], meta: { name: 'PersonalizedServicePlanVersion' } }
+    /**
+     * Find zero or one PersonalizedServicePlanVersion that matches the filter.
+     * @param {PersonalizedServicePlanVersionFindUniqueArgs} args - Arguments to find a PersonalizedServicePlanVersion
+     * @example
+     * // Get one PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServicePlanVersionFindUniqueArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedServicePlanVersion that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServicePlanVersionFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedServicePlanVersion
+     * @example
+     * // Get one PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServicePlanVersionFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServicePlanVersion that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionFindFirstArgs} args - Arguments to find a PersonalizedServicePlanVersion
+     * @example
+     * // Get one PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServicePlanVersionFindFirstArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServicePlanVersion that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionFindFirstOrThrowArgs} args - Arguments to find a PersonalizedServicePlanVersion
+     * @example
+     * // Get one PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServicePlanVersionFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServicePlanVersions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServicePlanVersions
+     * const personalizedServicePlanVersions = await prisma.personalizedServicePlanVersion.findMany()
+     * 
+     * // Get first 10 PersonalizedServicePlanVersions
+     * const personalizedServicePlanVersions = await prisma.personalizedServicePlanVersion.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServicePlanVersionWithIdOnly = await prisma.personalizedServicePlanVersion.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServicePlanVersionFindManyArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedServicePlanVersion.
+     * @param {PersonalizedServicePlanVersionCreateArgs} args - Arguments to create a PersonalizedServicePlanVersion.
+     * @example
+     * // Create one PersonalizedServicePlanVersion
+     * const PersonalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.create({
+     *   data: {
+     *     // ... data to create a PersonalizedServicePlanVersion
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServicePlanVersionCreateArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionCreateArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServicePlanVersions.
+     * @param {PersonalizedServicePlanVersionCreateManyArgs} args - Arguments to create many PersonalizedServicePlanVersions.
+     * @example
+     * // Create many PersonalizedServicePlanVersions
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServicePlanVersionCreateManyArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServicePlanVersions and returns the data saved in the database.
+     * @param {PersonalizedServicePlanVersionCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServicePlanVersions.
+     * @example
+     * // Create many PersonalizedServicePlanVersions
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServicePlanVersions and only return the `id`
+     * const personalizedServicePlanVersionWithIdOnly = await prisma.personalizedServicePlanVersion.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServicePlanVersionCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedServicePlanVersion.
+     * @param {PersonalizedServicePlanVersionDeleteArgs} args - Arguments to delete one PersonalizedServicePlanVersion.
+     * @example
+     * // Delete one PersonalizedServicePlanVersion
+     * const PersonalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedServicePlanVersion
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServicePlanVersionDeleteArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionDeleteArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedServicePlanVersion.
+     * @param {PersonalizedServicePlanVersionUpdateArgs} args - Arguments to update one PersonalizedServicePlanVersion.
+     * @example
+     * // Update one PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServicePlanVersionUpdateArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionUpdateArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServicePlanVersions.
+     * @param {PersonalizedServicePlanVersionDeleteManyArgs} args - Arguments to filter PersonalizedServicePlanVersions to delete.
+     * @example
+     * // Delete a few PersonalizedServicePlanVersions
+     * const { count } = await prisma.personalizedServicePlanVersion.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServicePlanVersionDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServicePlanVersionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServicePlanVersions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServicePlanVersions
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServicePlanVersionUpdateManyArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedServicePlanVersion.
+     * @param {PersonalizedServicePlanVersionUpsertArgs} args - Arguments to update or create a PersonalizedServicePlanVersion.
+     * @example
+     * // Update or create a PersonalizedServicePlanVersion
+     * const personalizedServicePlanVersion = await prisma.personalizedServicePlanVersion.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedServicePlanVersion
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedServicePlanVersion we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServicePlanVersionUpsertArgs>(args: SelectSubset<T, PersonalizedServicePlanVersionUpsertArgs<ExtArgs>>): Prisma__PersonalizedServicePlanVersionClient<$Result.GetResult<Prisma.$PersonalizedServicePlanVersionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServicePlanVersions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionCountArgs} args - Arguments to filter PersonalizedServicePlanVersions to count.
+     * @example
+     * // Count the number of PersonalizedServicePlanVersions
+     * const count = await prisma.personalizedServicePlanVersion.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServicePlanVersions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServicePlanVersionCountArgs>(
+      args?: Subset<T, PersonalizedServicePlanVersionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServicePlanVersionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedServicePlanVersion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServicePlanVersionAggregateArgs>(args: Subset<T, PersonalizedServicePlanVersionAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServicePlanVersionAggregateType<T>>
+
+    /**
+     * Group by PersonalizedServicePlanVersion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServicePlanVersionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServicePlanVersionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServicePlanVersionGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServicePlanVersionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServicePlanVersionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServicePlanVersionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedServicePlanVersion model
+   */
+  readonly fields: PersonalizedServicePlanVersionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedServicePlanVersion.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServicePlanVersionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends PersonalizedServiceOrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrderDefaultArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedServicePlanVersion model
+   */ 
+  interface PersonalizedServicePlanVersionFieldRefs {
+    readonly id: FieldRef<"PersonalizedServicePlanVersion", 'String'>
+    readonly orderId: FieldRef<"PersonalizedServicePlanVersion", 'String'>
+    readonly version: FieldRef<"PersonalizedServicePlanVersion", 'Int'>
+    readonly content: FieldRef<"PersonalizedServicePlanVersion", 'Json'>
+    readonly status: FieldRef<"PersonalizedServicePlanVersion", 'PlanVersionStatus'>
+    readonly createdBy: FieldRef<"PersonalizedServicePlanVersion", 'String'>
+    readonly changeReason: FieldRef<"PersonalizedServicePlanVersion", 'String'>
+    readonly createdAt: FieldRef<"PersonalizedServicePlanVersion", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServicePlanVersion findUnique
+   */
+  export type PersonalizedServicePlanVersionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServicePlanVersion to fetch.
+     */
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion findUniqueOrThrow
+   */
+  export type PersonalizedServicePlanVersionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServicePlanVersion to fetch.
+     */
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion findFirst
+   */
+  export type PersonalizedServicePlanVersionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServicePlanVersion to fetch.
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServicePlanVersions to fetch.
+     */
+    orderBy?: PersonalizedServicePlanVersionOrderByWithRelationInput | PersonalizedServicePlanVersionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServicePlanVersions.
+     */
+    cursor?: PersonalizedServicePlanVersionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServicePlanVersions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServicePlanVersions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServicePlanVersions.
+     */
+    distinct?: PersonalizedServicePlanVersionScalarFieldEnum | PersonalizedServicePlanVersionScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServicePlanVersion findFirstOrThrow
+   */
+  export type PersonalizedServicePlanVersionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServicePlanVersion to fetch.
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServicePlanVersions to fetch.
+     */
+    orderBy?: PersonalizedServicePlanVersionOrderByWithRelationInput | PersonalizedServicePlanVersionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServicePlanVersions.
+     */
+    cursor?: PersonalizedServicePlanVersionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServicePlanVersions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServicePlanVersions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServicePlanVersions.
+     */
+    distinct?: PersonalizedServicePlanVersionScalarFieldEnum | PersonalizedServicePlanVersionScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServicePlanVersion findMany
+   */
+  export type PersonalizedServicePlanVersionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServicePlanVersions to fetch.
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServicePlanVersions to fetch.
+     */
+    orderBy?: PersonalizedServicePlanVersionOrderByWithRelationInput | PersonalizedServicePlanVersionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServicePlanVersions.
+     */
+    cursor?: PersonalizedServicePlanVersionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServicePlanVersions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServicePlanVersions.
+     */
+    skip?: number
+    distinct?: PersonalizedServicePlanVersionScalarFieldEnum | PersonalizedServicePlanVersionScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServicePlanVersion create
+   */
+  export type PersonalizedServicePlanVersionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedServicePlanVersion.
+     */
+    data: XOR<PersonalizedServicePlanVersionCreateInput, PersonalizedServicePlanVersionUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedServicePlanVersion createMany
+   */
+  export type PersonalizedServicePlanVersionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServicePlanVersions.
+     */
+    data: PersonalizedServicePlanVersionCreateManyInput | PersonalizedServicePlanVersionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedServicePlanVersion createManyAndReturn
+   */
+  export type PersonalizedServicePlanVersionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServicePlanVersions.
+     */
+    data: PersonalizedServicePlanVersionCreateManyInput | PersonalizedServicePlanVersionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServicePlanVersion update
+   */
+  export type PersonalizedServicePlanVersionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedServicePlanVersion.
+     */
+    data: XOR<PersonalizedServicePlanVersionUpdateInput, PersonalizedServicePlanVersionUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedServicePlanVersion to update.
+     */
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion updateMany
+   */
+  export type PersonalizedServicePlanVersionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServicePlanVersions.
+     */
+    data: XOR<PersonalizedServicePlanVersionUpdateManyMutationInput, PersonalizedServicePlanVersionUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServicePlanVersions to update
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion upsert
+   */
+  export type PersonalizedServicePlanVersionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedServicePlanVersion to update in case it exists.
+     */
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+    /**
+     * In case the PersonalizedServicePlanVersion found by the `where` argument doesn't exist, create a new PersonalizedServicePlanVersion with this data.
+     */
+    create: XOR<PersonalizedServicePlanVersionCreateInput, PersonalizedServicePlanVersionUncheckedCreateInput>
+    /**
+     * In case the PersonalizedServicePlanVersion was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServicePlanVersionUpdateInput, PersonalizedServicePlanVersionUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedServicePlanVersion delete
+   */
+  export type PersonalizedServicePlanVersionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedServicePlanVersion to delete.
+     */
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion deleteMany
+   */
+  export type PersonalizedServicePlanVersionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServicePlanVersions to delete
+     */
+    where?: PersonalizedServicePlanVersionWhereInput
+  }
+
+  /**
+   * PersonalizedServicePlanVersion without action
+   */
+  export type PersonalizedServicePlanVersionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServicePlanVersion
+     */
+    select?: PersonalizedServicePlanVersionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServicePlanVersionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedServiceCheckIn
+   */
+
+  export type AggregatePersonalizedServiceCheckIn = {
+    _count: PersonalizedServiceCheckInCountAggregateOutputType | null
+    _avg: PersonalizedServiceCheckInAvgAggregateOutputType | null
+    _sum: PersonalizedServiceCheckInSumAggregateOutputType | null
+    _min: PersonalizedServiceCheckInMinAggregateOutputType | null
+    _max: PersonalizedServiceCheckInMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServiceCheckInAvgAggregateOutputType = {
+    weekNumber: number | null
+    weight: number | null
+    energyLevel: number | null
+    sleepQuality: number | null
+    stressLevel: number | null
+    overallRpe: number | null
+    workoutAdherence: number | null
+    nutritionAdherence: number | null
+    painOrDiscomfort: number | null
+  }
+
+  export type PersonalizedServiceCheckInSumAggregateOutputType = {
+    weekNumber: number | null
+    weight: number | null
+    energyLevel: number | null
+    sleepQuality: number | null
+    stressLevel: number | null
+    overallRpe: number | null
+    workoutAdherence: number | null
+    nutritionAdherence: number | null
+    painOrDiscomfort: number | null
+  }
+
+  export type PersonalizedServiceCheckInMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    buyerId: string | null
+    weekNumber: number | null
+    weight: number | null
+    energyLevel: number | null
+    sleepQuality: number | null
+    stressLevel: number | null
+    overallRpe: number | null
+    workoutAdherence: number | null
+    nutritionAdherence: number | null
+    painOrDiscomfort: number | null
+    notes: string | null
+    requiresAttention: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServiceCheckInMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    buyerId: string | null
+    weekNumber: number | null
+    weight: number | null
+    energyLevel: number | null
+    sleepQuality: number | null
+    stressLevel: number | null
+    overallRpe: number | null
+    workoutAdherence: number | null
+    nutritionAdherence: number | null
+    painOrDiscomfort: number | null
+    notes: string | null
+    requiresAttention: boolean | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServiceCheckInCountAggregateOutputType = {
+    id: number
+    orderId: number
+    buyerId: number
+    weekNumber: number
+    weight: number
+    energyLevel: number
+    sleepQuality: number
+    stressLevel: number
+    overallRpe: number
+    workoutAdherence: number
+    nutritionAdherence: number
+    painOrDiscomfort: number
+    notes: number
+    requiresAttention: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServiceCheckInAvgAggregateInputType = {
+    weekNumber?: true
+    weight?: true
+    energyLevel?: true
+    sleepQuality?: true
+    stressLevel?: true
+    overallRpe?: true
+    workoutAdherence?: true
+    nutritionAdherence?: true
+    painOrDiscomfort?: true
+  }
+
+  export type PersonalizedServiceCheckInSumAggregateInputType = {
+    weekNumber?: true
+    weight?: true
+    energyLevel?: true
+    sleepQuality?: true
+    stressLevel?: true
+    overallRpe?: true
+    workoutAdherence?: true
+    nutritionAdherence?: true
+    painOrDiscomfort?: true
+  }
+
+  export type PersonalizedServiceCheckInMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    weekNumber?: true
+    weight?: true
+    energyLevel?: true
+    sleepQuality?: true
+    stressLevel?: true
+    overallRpe?: true
+    workoutAdherence?: true
+    nutritionAdherence?: true
+    painOrDiscomfort?: true
+    notes?: true
+    requiresAttention?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServiceCheckInMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    weekNumber?: true
+    weight?: true
+    energyLevel?: true
+    sleepQuality?: true
+    stressLevel?: true
+    overallRpe?: true
+    workoutAdherence?: true
+    nutritionAdherence?: true
+    painOrDiscomfort?: true
+    notes?: true
+    requiresAttention?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServiceCheckInCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    weekNumber?: true
+    weight?: true
+    energyLevel?: true
+    sleepQuality?: true
+    stressLevel?: true
+    overallRpe?: true
+    workoutAdherence?: true
+    nutritionAdherence?: true
+    painOrDiscomfort?: true
+    notes?: true
+    requiresAttention?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServiceCheckInAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceCheckIn to aggregate.
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceCheckIns to fetch.
+     */
+    orderBy?: PersonalizedServiceCheckInOrderByWithRelationInput | PersonalizedServiceCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServiceCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServiceCheckIns
+    **/
+    _count?: true | PersonalizedServiceCheckInCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PersonalizedServiceCheckInAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PersonalizedServiceCheckInSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServiceCheckInMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServiceCheckInMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServiceCheckInAggregateType<T extends PersonalizedServiceCheckInAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedServiceCheckIn]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedServiceCheckIn[P]>
+      : GetScalarType<T[P], AggregatePersonalizedServiceCheckIn[P]>
+  }
+
+
+
+
+  export type PersonalizedServiceCheckInGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceCheckInWhereInput
+    orderBy?: PersonalizedServiceCheckInOrderByWithAggregationInput | PersonalizedServiceCheckInOrderByWithAggregationInput[]
+    by: PersonalizedServiceCheckInScalarFieldEnum[] | PersonalizedServiceCheckInScalarFieldEnum
+    having?: PersonalizedServiceCheckInScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServiceCheckInCountAggregateInputType | true
+    _avg?: PersonalizedServiceCheckInAvgAggregateInputType
+    _sum?: PersonalizedServiceCheckInSumAggregateInputType
+    _min?: PersonalizedServiceCheckInMinAggregateInputType
+    _max?: PersonalizedServiceCheckInMaxAggregateInputType
+  }
+
+  export type PersonalizedServiceCheckInGroupByOutputType = {
+    id: string
+    orderId: string
+    buyerId: string
+    weekNumber: number | null
+    weight: number | null
+    energyLevel: number | null
+    sleepQuality: number | null
+    stressLevel: number | null
+    overallRpe: number | null
+    workoutAdherence: number | null
+    nutritionAdherence: number | null
+    painOrDiscomfort: number | null
+    notes: string | null
+    requiresAttention: boolean
+    createdAt: Date
+    _count: PersonalizedServiceCheckInCountAggregateOutputType | null
+    _avg: PersonalizedServiceCheckInAvgAggregateOutputType | null
+    _sum: PersonalizedServiceCheckInSumAggregateOutputType | null
+    _min: PersonalizedServiceCheckInMinAggregateOutputType | null
+    _max: PersonalizedServiceCheckInMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServiceCheckInGroupByPayload<T extends PersonalizedServiceCheckInGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServiceCheckInGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServiceCheckInGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServiceCheckInGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServiceCheckInGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServiceCheckInSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    weekNumber?: boolean
+    weight?: boolean
+    energyLevel?: boolean
+    sleepQuality?: boolean
+    stressLevel?: boolean
+    overallRpe?: boolean
+    workoutAdherence?: boolean
+    nutritionAdherence?: boolean
+    painOrDiscomfort?: boolean
+    notes?: boolean
+    requiresAttention?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceCheckIn"]>
+
+  export type PersonalizedServiceCheckInSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    weekNumber?: boolean
+    weight?: boolean
+    energyLevel?: boolean
+    sleepQuality?: boolean
+    stressLevel?: boolean
+    overallRpe?: boolean
+    workoutAdherence?: boolean
+    nutritionAdherence?: boolean
+    painOrDiscomfort?: boolean
+    notes?: boolean
+    requiresAttention?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceCheckIn"]>
+
+  export type PersonalizedServiceCheckInSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    weekNumber?: boolean
+    weight?: boolean
+    energyLevel?: boolean
+    sleepQuality?: boolean
+    stressLevel?: boolean
+    overallRpe?: boolean
+    workoutAdherence?: boolean
+    nutritionAdherence?: boolean
+    painOrDiscomfort?: boolean
+    notes?: boolean
+    requiresAttention?: boolean
+    createdAt?: boolean
+  }
+
+  export type PersonalizedServiceCheckInInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServiceCheckInIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+
+  export type $PersonalizedServiceCheckInPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedServiceCheckIn"
+    objects: {
+      order: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      buyerId: string
+      weekNumber: number | null
+      weight: number | null
+      energyLevel: number | null
+      sleepQuality: number | null
+      stressLevel: number | null
+      overallRpe: number | null
+      workoutAdherence: number | null
+      nutritionAdherence: number | null
+      painOrDiscomfort: number | null
+      notes: string | null
+      requiresAttention: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["personalizedServiceCheckIn"]>
+    composites: {}
+  }
+
+  type PersonalizedServiceCheckInGetPayload<S extends boolean | null | undefined | PersonalizedServiceCheckInDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload, S>
+
+  type PersonalizedServiceCheckInCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServiceCheckInFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServiceCheckInCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServiceCheckInDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedServiceCheckIn'], meta: { name: 'PersonalizedServiceCheckIn' } }
+    /**
+     * Find zero or one PersonalizedServiceCheckIn that matches the filter.
+     * @param {PersonalizedServiceCheckInFindUniqueArgs} args - Arguments to find a PersonalizedServiceCheckIn
+     * @example
+     * // Get one PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServiceCheckInFindUniqueArgs>(args: SelectSubset<T, PersonalizedServiceCheckInFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedServiceCheckIn that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServiceCheckInFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedServiceCheckIn
+     * @example
+     * // Get one PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServiceCheckInFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServiceCheckInFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceCheckIn that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInFindFirstArgs} args - Arguments to find a PersonalizedServiceCheckIn
+     * @example
+     * // Get one PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServiceCheckInFindFirstArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceCheckIn that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInFindFirstOrThrowArgs} args - Arguments to find a PersonalizedServiceCheckIn
+     * @example
+     * // Get one PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServiceCheckInFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServiceCheckIns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServiceCheckIns
+     * const personalizedServiceCheckIns = await prisma.personalizedServiceCheckIn.findMany()
+     * 
+     * // Get first 10 PersonalizedServiceCheckIns
+     * const personalizedServiceCheckIns = await prisma.personalizedServiceCheckIn.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServiceCheckInWithIdOnly = await prisma.personalizedServiceCheckIn.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServiceCheckInFindManyArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedServiceCheckIn.
+     * @param {PersonalizedServiceCheckInCreateArgs} args - Arguments to create a PersonalizedServiceCheckIn.
+     * @example
+     * // Create one PersonalizedServiceCheckIn
+     * const PersonalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.create({
+     *   data: {
+     *     // ... data to create a PersonalizedServiceCheckIn
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServiceCheckInCreateArgs>(args: SelectSubset<T, PersonalizedServiceCheckInCreateArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServiceCheckIns.
+     * @param {PersonalizedServiceCheckInCreateManyArgs} args - Arguments to create many PersonalizedServiceCheckIns.
+     * @example
+     * // Create many PersonalizedServiceCheckIns
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServiceCheckInCreateManyArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServiceCheckIns and returns the data saved in the database.
+     * @param {PersonalizedServiceCheckInCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServiceCheckIns.
+     * @example
+     * // Create many PersonalizedServiceCheckIns
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServiceCheckIns and only return the `id`
+     * const personalizedServiceCheckInWithIdOnly = await prisma.personalizedServiceCheckIn.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServiceCheckInCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedServiceCheckIn.
+     * @param {PersonalizedServiceCheckInDeleteArgs} args - Arguments to delete one PersonalizedServiceCheckIn.
+     * @example
+     * // Delete one PersonalizedServiceCheckIn
+     * const PersonalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedServiceCheckIn
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServiceCheckInDeleteArgs>(args: SelectSubset<T, PersonalizedServiceCheckInDeleteArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedServiceCheckIn.
+     * @param {PersonalizedServiceCheckInUpdateArgs} args - Arguments to update one PersonalizedServiceCheckIn.
+     * @example
+     * // Update one PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServiceCheckInUpdateArgs>(args: SelectSubset<T, PersonalizedServiceCheckInUpdateArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServiceCheckIns.
+     * @param {PersonalizedServiceCheckInDeleteManyArgs} args - Arguments to filter PersonalizedServiceCheckIns to delete.
+     * @example
+     * // Delete a few PersonalizedServiceCheckIns
+     * const { count } = await prisma.personalizedServiceCheckIn.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServiceCheckInDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServiceCheckInDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServiceCheckIns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServiceCheckIns
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServiceCheckInUpdateManyArgs>(args: SelectSubset<T, PersonalizedServiceCheckInUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedServiceCheckIn.
+     * @param {PersonalizedServiceCheckInUpsertArgs} args - Arguments to update or create a PersonalizedServiceCheckIn.
+     * @example
+     * // Update or create a PersonalizedServiceCheckIn
+     * const personalizedServiceCheckIn = await prisma.personalizedServiceCheckIn.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedServiceCheckIn
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceCheckIn we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServiceCheckInUpsertArgs>(args: SelectSubset<T, PersonalizedServiceCheckInUpsertArgs<ExtArgs>>): Prisma__PersonalizedServiceCheckInClient<$Result.GetResult<Prisma.$PersonalizedServiceCheckInPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServiceCheckIns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInCountArgs} args - Arguments to filter PersonalizedServiceCheckIns to count.
+     * @example
+     * // Count the number of PersonalizedServiceCheckIns
+     * const count = await prisma.personalizedServiceCheckIn.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceCheckIns we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServiceCheckInCountArgs>(
+      args?: Subset<T, PersonalizedServiceCheckInCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServiceCheckInCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedServiceCheckIn.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServiceCheckInAggregateArgs>(args: Subset<T, PersonalizedServiceCheckInAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServiceCheckInAggregateType<T>>
+
+    /**
+     * Group by PersonalizedServiceCheckIn.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceCheckInGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServiceCheckInGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServiceCheckInGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServiceCheckInGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServiceCheckInGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServiceCheckInGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedServiceCheckIn model
+   */
+  readonly fields: PersonalizedServiceCheckInFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedServiceCheckIn.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServiceCheckInClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends PersonalizedServiceOrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrderDefaultArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedServiceCheckIn model
+   */ 
+  interface PersonalizedServiceCheckInFieldRefs {
+    readonly id: FieldRef<"PersonalizedServiceCheckIn", 'String'>
+    readonly orderId: FieldRef<"PersonalizedServiceCheckIn", 'String'>
+    readonly buyerId: FieldRef<"PersonalizedServiceCheckIn", 'String'>
+    readonly weekNumber: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly weight: FieldRef<"PersonalizedServiceCheckIn", 'Float'>
+    readonly energyLevel: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly sleepQuality: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly stressLevel: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly overallRpe: FieldRef<"PersonalizedServiceCheckIn", 'Float'>
+    readonly workoutAdherence: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly nutritionAdherence: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly painOrDiscomfort: FieldRef<"PersonalizedServiceCheckIn", 'Int'>
+    readonly notes: FieldRef<"PersonalizedServiceCheckIn", 'String'>
+    readonly requiresAttention: FieldRef<"PersonalizedServiceCheckIn", 'Boolean'>
+    readonly createdAt: FieldRef<"PersonalizedServiceCheckIn", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceCheckIn findUnique
+   */
+  export type PersonalizedServiceCheckInFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceCheckIn to fetch.
+     */
+    where: PersonalizedServiceCheckInWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn findUniqueOrThrow
+   */
+  export type PersonalizedServiceCheckInFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceCheckIn to fetch.
+     */
+    where: PersonalizedServiceCheckInWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn findFirst
+   */
+  export type PersonalizedServiceCheckInFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceCheckIn to fetch.
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceCheckIns to fetch.
+     */
+    orderBy?: PersonalizedServiceCheckInOrderByWithRelationInput | PersonalizedServiceCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceCheckIns.
+     */
+    cursor?: PersonalizedServiceCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceCheckIns.
+     */
+    distinct?: PersonalizedServiceCheckInScalarFieldEnum | PersonalizedServiceCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceCheckIn findFirstOrThrow
+   */
+  export type PersonalizedServiceCheckInFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceCheckIn to fetch.
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceCheckIns to fetch.
+     */
+    orderBy?: PersonalizedServiceCheckInOrderByWithRelationInput | PersonalizedServiceCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceCheckIns.
+     */
+    cursor?: PersonalizedServiceCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceCheckIns.
+     */
+    distinct?: PersonalizedServiceCheckInScalarFieldEnum | PersonalizedServiceCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceCheckIn findMany
+   */
+  export type PersonalizedServiceCheckInFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceCheckIns to fetch.
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceCheckIns to fetch.
+     */
+    orderBy?: PersonalizedServiceCheckInOrderByWithRelationInput | PersonalizedServiceCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServiceCheckIns.
+     */
+    cursor?: PersonalizedServiceCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceCheckIns.
+     */
+    skip?: number
+    distinct?: PersonalizedServiceCheckInScalarFieldEnum | PersonalizedServiceCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceCheckIn create
+   */
+  export type PersonalizedServiceCheckInCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedServiceCheckIn.
+     */
+    data: XOR<PersonalizedServiceCheckInCreateInput, PersonalizedServiceCheckInUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedServiceCheckIn createMany
+   */
+  export type PersonalizedServiceCheckInCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServiceCheckIns.
+     */
+    data: PersonalizedServiceCheckInCreateManyInput | PersonalizedServiceCheckInCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedServiceCheckIn createManyAndReturn
+   */
+  export type PersonalizedServiceCheckInCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServiceCheckIns.
+     */
+    data: PersonalizedServiceCheckInCreateManyInput | PersonalizedServiceCheckInCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceCheckIn update
+   */
+  export type PersonalizedServiceCheckInUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedServiceCheckIn.
+     */
+    data: XOR<PersonalizedServiceCheckInUpdateInput, PersonalizedServiceCheckInUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedServiceCheckIn to update.
+     */
+    where: PersonalizedServiceCheckInWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn updateMany
+   */
+  export type PersonalizedServiceCheckInUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServiceCheckIns.
+     */
+    data: XOR<PersonalizedServiceCheckInUpdateManyMutationInput, PersonalizedServiceCheckInUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServiceCheckIns to update
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn upsert
+   */
+  export type PersonalizedServiceCheckInUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedServiceCheckIn to update in case it exists.
+     */
+    where: PersonalizedServiceCheckInWhereUniqueInput
+    /**
+     * In case the PersonalizedServiceCheckIn found by the `where` argument doesn't exist, create a new PersonalizedServiceCheckIn with this data.
+     */
+    create: XOR<PersonalizedServiceCheckInCreateInput, PersonalizedServiceCheckInUncheckedCreateInput>
+    /**
+     * In case the PersonalizedServiceCheckIn was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServiceCheckInUpdateInput, PersonalizedServiceCheckInUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedServiceCheckIn delete
+   */
+  export type PersonalizedServiceCheckInDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedServiceCheckIn to delete.
+     */
+    where: PersonalizedServiceCheckInWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn deleteMany
+   */
+  export type PersonalizedServiceCheckInDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceCheckIns to delete
+     */
+    where?: PersonalizedServiceCheckInWhereInput
+  }
+
+  /**
+   * PersonalizedServiceCheckIn without action
+   */
+  export type PersonalizedServiceCheckInDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceCheckIn
+     */
+    select?: PersonalizedServiceCheckInSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceCheckInInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedServiceReview
+   */
+
+  export type AggregatePersonalizedServiceReview = {
+    _count: PersonalizedServiceReviewCountAggregateOutputType | null
+    _avg: PersonalizedServiceReviewAvgAggregateOutputType | null
+    _sum: PersonalizedServiceReviewSumAggregateOutputType | null
+    _min: PersonalizedServiceReviewMinAggregateOutputType | null
+    _max: PersonalizedServiceReviewMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServiceReviewAvgAggregateOutputType = {
+    overallRating: number | null
+    communicationRating: number | null
+    personalizationRating: number | null
+    planQualityRating: number | null
+  }
+
+  export type PersonalizedServiceReviewSumAggregateOutputType = {
+    overallRating: number | null
+    communicationRating: number | null
+    personalizationRating: number | null
+    planQualityRating: number | null
+  }
+
+  export type PersonalizedServiceReviewMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    buyerId: string | null
+    sellerId: string | null
+    overallRating: number | null
+    communicationRating: number | null
+    personalizationRating: number | null
+    planQualityRating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServiceReviewMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    buyerId: string | null
+    sellerId: string | null
+    overallRating: number | null
+    communicationRating: number | null
+    personalizationRating: number | null
+    planQualityRating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type PersonalizedServiceReviewCountAggregateOutputType = {
+    id: number
+    orderId: number
+    buyerId: number
+    sellerId: number
+    overallRating: number
+    communicationRating: number
+    personalizationRating: number
+    planQualityRating: number
+    comment: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServiceReviewAvgAggregateInputType = {
+    overallRating?: true
+    communicationRating?: true
+    personalizationRating?: true
+    planQualityRating?: true
+  }
+
+  export type PersonalizedServiceReviewSumAggregateInputType = {
+    overallRating?: true
+    communicationRating?: true
+    personalizationRating?: true
+    planQualityRating?: true
+  }
+
+  export type PersonalizedServiceReviewMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    sellerId?: true
+    overallRating?: true
+    communicationRating?: true
+    personalizationRating?: true
+    planQualityRating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServiceReviewMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    sellerId?: true
+    overallRating?: true
+    communicationRating?: true
+    personalizationRating?: true
+    planQualityRating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type PersonalizedServiceReviewCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    buyerId?: true
+    sellerId?: true
+    overallRating?: true
+    communicationRating?: true
+    personalizationRating?: true
+    planQualityRating?: true
+    comment?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServiceReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceReview to aggregate.
+     */
+    where?: PersonalizedServiceReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceReviews to fetch.
+     */
+    orderBy?: PersonalizedServiceReviewOrderByWithRelationInput | PersonalizedServiceReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServiceReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServiceReviews
+    **/
+    _count?: true | PersonalizedServiceReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PersonalizedServiceReviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PersonalizedServiceReviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServiceReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServiceReviewMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServiceReviewAggregateType<T extends PersonalizedServiceReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedServiceReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedServiceReview[P]>
+      : GetScalarType<T[P], AggregatePersonalizedServiceReview[P]>
+  }
+
+
+
+
+  export type PersonalizedServiceReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceReviewWhereInput
+    orderBy?: PersonalizedServiceReviewOrderByWithAggregationInput | PersonalizedServiceReviewOrderByWithAggregationInput[]
+    by: PersonalizedServiceReviewScalarFieldEnum[] | PersonalizedServiceReviewScalarFieldEnum
+    having?: PersonalizedServiceReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServiceReviewCountAggregateInputType | true
+    _avg?: PersonalizedServiceReviewAvgAggregateInputType
+    _sum?: PersonalizedServiceReviewSumAggregateInputType
+    _min?: PersonalizedServiceReviewMinAggregateInputType
+    _max?: PersonalizedServiceReviewMaxAggregateInputType
+  }
+
+  export type PersonalizedServiceReviewGroupByOutputType = {
+    id: string
+    orderId: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating: number | null
+    personalizationRating: number | null
+    planQualityRating: number | null
+    comment: string | null
+    createdAt: Date
+    _count: PersonalizedServiceReviewCountAggregateOutputType | null
+    _avg: PersonalizedServiceReviewAvgAggregateOutputType | null
+    _sum: PersonalizedServiceReviewSumAggregateOutputType | null
+    _min: PersonalizedServiceReviewMinAggregateOutputType | null
+    _max: PersonalizedServiceReviewMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServiceReviewGroupByPayload<T extends PersonalizedServiceReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServiceReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServiceReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServiceReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServiceReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServiceReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    sellerId?: boolean
+    overallRating?: boolean
+    communicationRating?: boolean
+    personalizationRating?: boolean
+    planQualityRating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceReview"]>
+
+  export type PersonalizedServiceReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    sellerId?: boolean
+    overallRating?: boolean
+    communicationRating?: boolean
+    personalizationRating?: boolean
+    planQualityRating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceReview"]>
+
+  export type PersonalizedServiceReviewSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    buyerId?: boolean
+    sellerId?: boolean
+    overallRating?: boolean
+    communicationRating?: boolean
+    personalizationRating?: boolean
+    planQualityRating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+  }
+
+  export type PersonalizedServiceReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServiceReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+
+  export type $PersonalizedServiceReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedServiceReview"
+    objects: {
+      order: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      buyerId: string
+      sellerId: string
+      overallRating: number
+      communicationRating: number | null
+      personalizationRating: number | null
+      planQualityRating: number | null
+      comment: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["personalizedServiceReview"]>
+    composites: {}
+  }
+
+  type PersonalizedServiceReviewGetPayload<S extends boolean | null | undefined | PersonalizedServiceReviewDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServiceReviewPayload, S>
+
+  type PersonalizedServiceReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServiceReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServiceReviewCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServiceReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedServiceReview'], meta: { name: 'PersonalizedServiceReview' } }
+    /**
+     * Find zero or one PersonalizedServiceReview that matches the filter.
+     * @param {PersonalizedServiceReviewFindUniqueArgs} args - Arguments to find a PersonalizedServiceReview
+     * @example
+     * // Get one PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServiceReviewFindUniqueArgs>(args: SelectSubset<T, PersonalizedServiceReviewFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedServiceReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServiceReviewFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedServiceReview
+     * @example
+     * // Get one PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServiceReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServiceReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewFindFirstArgs} args - Arguments to find a PersonalizedServiceReview
+     * @example
+     * // Get one PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServiceReviewFindFirstArgs>(args?: SelectSubset<T, PersonalizedServiceReviewFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewFindFirstOrThrowArgs} args - Arguments to find a PersonalizedServiceReview
+     * @example
+     * // Get one PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServiceReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServiceReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServiceReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServiceReviews
+     * const personalizedServiceReviews = await prisma.personalizedServiceReview.findMany()
+     * 
+     * // Get first 10 PersonalizedServiceReviews
+     * const personalizedServiceReviews = await prisma.personalizedServiceReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServiceReviewWithIdOnly = await prisma.personalizedServiceReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServiceReviewFindManyArgs>(args?: SelectSubset<T, PersonalizedServiceReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedServiceReview.
+     * @param {PersonalizedServiceReviewCreateArgs} args - Arguments to create a PersonalizedServiceReview.
+     * @example
+     * // Create one PersonalizedServiceReview
+     * const PersonalizedServiceReview = await prisma.personalizedServiceReview.create({
+     *   data: {
+     *     // ... data to create a PersonalizedServiceReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServiceReviewCreateArgs>(args: SelectSubset<T, PersonalizedServiceReviewCreateArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServiceReviews.
+     * @param {PersonalizedServiceReviewCreateManyArgs} args - Arguments to create many PersonalizedServiceReviews.
+     * @example
+     * // Create many PersonalizedServiceReviews
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServiceReviewCreateManyArgs>(args?: SelectSubset<T, PersonalizedServiceReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServiceReviews and returns the data saved in the database.
+     * @param {PersonalizedServiceReviewCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServiceReviews.
+     * @example
+     * // Create many PersonalizedServiceReviews
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServiceReviews and only return the `id`
+     * const personalizedServiceReviewWithIdOnly = await prisma.personalizedServiceReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServiceReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServiceReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedServiceReview.
+     * @param {PersonalizedServiceReviewDeleteArgs} args - Arguments to delete one PersonalizedServiceReview.
+     * @example
+     * // Delete one PersonalizedServiceReview
+     * const PersonalizedServiceReview = await prisma.personalizedServiceReview.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedServiceReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServiceReviewDeleteArgs>(args: SelectSubset<T, PersonalizedServiceReviewDeleteArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedServiceReview.
+     * @param {PersonalizedServiceReviewUpdateArgs} args - Arguments to update one PersonalizedServiceReview.
+     * @example
+     * // Update one PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServiceReviewUpdateArgs>(args: SelectSubset<T, PersonalizedServiceReviewUpdateArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServiceReviews.
+     * @param {PersonalizedServiceReviewDeleteManyArgs} args - Arguments to filter PersonalizedServiceReviews to delete.
+     * @example
+     * // Delete a few PersonalizedServiceReviews
+     * const { count } = await prisma.personalizedServiceReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServiceReviewDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServiceReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServiceReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServiceReviews
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServiceReviewUpdateManyArgs>(args: SelectSubset<T, PersonalizedServiceReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedServiceReview.
+     * @param {PersonalizedServiceReviewUpsertArgs} args - Arguments to update or create a PersonalizedServiceReview.
+     * @example
+     * // Update or create a PersonalizedServiceReview
+     * const personalizedServiceReview = await prisma.personalizedServiceReview.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedServiceReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServiceReviewUpsertArgs>(args: SelectSubset<T, PersonalizedServiceReviewUpsertArgs<ExtArgs>>): Prisma__PersonalizedServiceReviewClient<$Result.GetResult<Prisma.$PersonalizedServiceReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServiceReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewCountArgs} args - Arguments to filter PersonalizedServiceReviews to count.
+     * @example
+     * // Count the number of PersonalizedServiceReviews
+     * const count = await prisma.personalizedServiceReview.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServiceReviewCountArgs>(
+      args?: Subset<T, PersonalizedServiceReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServiceReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedServiceReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServiceReviewAggregateArgs>(args: Subset<T, PersonalizedServiceReviewAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServiceReviewAggregateType<T>>
+
+    /**
+     * Group by PersonalizedServiceReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServiceReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServiceReviewGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServiceReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServiceReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServiceReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedServiceReview model
+   */
+  readonly fields: PersonalizedServiceReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedServiceReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServiceReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends PersonalizedServiceOrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrderDefaultArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedServiceReview model
+   */ 
+  interface PersonalizedServiceReviewFieldRefs {
+    readonly id: FieldRef<"PersonalizedServiceReview", 'String'>
+    readonly orderId: FieldRef<"PersonalizedServiceReview", 'String'>
+    readonly buyerId: FieldRef<"PersonalizedServiceReview", 'String'>
+    readonly sellerId: FieldRef<"PersonalizedServiceReview", 'String'>
+    readonly overallRating: FieldRef<"PersonalizedServiceReview", 'Int'>
+    readonly communicationRating: FieldRef<"PersonalizedServiceReview", 'Int'>
+    readonly personalizationRating: FieldRef<"PersonalizedServiceReview", 'Int'>
+    readonly planQualityRating: FieldRef<"PersonalizedServiceReview", 'Int'>
+    readonly comment: FieldRef<"PersonalizedServiceReview", 'String'>
+    readonly createdAt: FieldRef<"PersonalizedServiceReview", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceReview findUnique
+   */
+  export type PersonalizedServiceReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceReview to fetch.
+     */
+    where: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceReview findUniqueOrThrow
+   */
+  export type PersonalizedServiceReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceReview to fetch.
+     */
+    where: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceReview findFirst
+   */
+  export type PersonalizedServiceReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceReview to fetch.
+     */
+    where?: PersonalizedServiceReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceReviews to fetch.
+     */
+    orderBy?: PersonalizedServiceReviewOrderByWithRelationInput | PersonalizedServiceReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceReviews.
+     */
+    cursor?: PersonalizedServiceReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceReviews.
+     */
+    distinct?: PersonalizedServiceReviewScalarFieldEnum | PersonalizedServiceReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceReview findFirstOrThrow
+   */
+  export type PersonalizedServiceReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceReview to fetch.
+     */
+    where?: PersonalizedServiceReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceReviews to fetch.
+     */
+    orderBy?: PersonalizedServiceReviewOrderByWithRelationInput | PersonalizedServiceReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceReviews.
+     */
+    cursor?: PersonalizedServiceReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceReviews.
+     */
+    distinct?: PersonalizedServiceReviewScalarFieldEnum | PersonalizedServiceReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceReview findMany
+   */
+  export type PersonalizedServiceReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceReviews to fetch.
+     */
+    where?: PersonalizedServiceReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceReviews to fetch.
+     */
+    orderBy?: PersonalizedServiceReviewOrderByWithRelationInput | PersonalizedServiceReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServiceReviews.
+     */
+    cursor?: PersonalizedServiceReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceReviews.
+     */
+    skip?: number
+    distinct?: PersonalizedServiceReviewScalarFieldEnum | PersonalizedServiceReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceReview create
+   */
+  export type PersonalizedServiceReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedServiceReview.
+     */
+    data: XOR<PersonalizedServiceReviewCreateInput, PersonalizedServiceReviewUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedServiceReview createMany
+   */
+  export type PersonalizedServiceReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServiceReviews.
+     */
+    data: PersonalizedServiceReviewCreateManyInput | PersonalizedServiceReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedServiceReview createManyAndReturn
+   */
+  export type PersonalizedServiceReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServiceReviews.
+     */
+    data: PersonalizedServiceReviewCreateManyInput | PersonalizedServiceReviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceReview update
+   */
+  export type PersonalizedServiceReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedServiceReview.
+     */
+    data: XOR<PersonalizedServiceReviewUpdateInput, PersonalizedServiceReviewUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedServiceReview to update.
+     */
+    where: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceReview updateMany
+   */
+  export type PersonalizedServiceReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServiceReviews.
+     */
+    data: XOR<PersonalizedServiceReviewUpdateManyMutationInput, PersonalizedServiceReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServiceReviews to update
+     */
+    where?: PersonalizedServiceReviewWhereInput
+  }
+
+  /**
+   * PersonalizedServiceReview upsert
+   */
+  export type PersonalizedServiceReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedServiceReview to update in case it exists.
+     */
+    where: PersonalizedServiceReviewWhereUniqueInput
+    /**
+     * In case the PersonalizedServiceReview found by the `where` argument doesn't exist, create a new PersonalizedServiceReview with this data.
+     */
+    create: XOR<PersonalizedServiceReviewCreateInput, PersonalizedServiceReviewUncheckedCreateInput>
+    /**
+     * In case the PersonalizedServiceReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServiceReviewUpdateInput, PersonalizedServiceReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedServiceReview delete
+   */
+  export type PersonalizedServiceReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedServiceReview to delete.
+     */
+    where: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceReview deleteMany
+   */
+  export type PersonalizedServiceReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceReviews to delete
+     */
+    where?: PersonalizedServiceReviewWhereInput
+  }
+
+  /**
+   * PersonalizedServiceReview without action
+   */
+  export type PersonalizedServiceReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceReview
+     */
+    select?: PersonalizedServiceReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PersonalizedServiceRevisionRequest
+   */
+
+  export type AggregatePersonalizedServiceRevisionRequest = {
+    _count: PersonalizedServiceRevisionRequestCountAggregateOutputType | null
+    _min: PersonalizedServiceRevisionRequestMinAggregateOutputType | null
+    _max: PersonalizedServiceRevisionRequestMaxAggregateOutputType | null
+  }
+
+  export type PersonalizedServiceRevisionRequestMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    category: $Enums.RevisionRequestCategory | null
+    comment: string | null
+    createdAt: Date | null
+    resolvedAt: Date | null
+  }
+
+  export type PersonalizedServiceRevisionRequestMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    category: $Enums.RevisionRequestCategory | null
+    comment: string | null
+    createdAt: Date | null
+    resolvedAt: Date | null
+  }
+
+  export type PersonalizedServiceRevisionRequestCountAggregateOutputType = {
+    id: number
+    orderId: number
+    category: number
+    comment: number
+    createdAt: number
+    resolvedAt: number
+    _all: number
+  }
+
+
+  export type PersonalizedServiceRevisionRequestMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    category?: true
+    comment?: true
+    createdAt?: true
+    resolvedAt?: true
+  }
+
+  export type PersonalizedServiceRevisionRequestMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    category?: true
+    comment?: true
+    createdAt?: true
+    resolvedAt?: true
+  }
+
+  export type PersonalizedServiceRevisionRequestCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    category?: true
+    comment?: true
+    createdAt?: true
+    resolvedAt?: true
+    _all?: true
+  }
+
+  export type PersonalizedServiceRevisionRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceRevisionRequest to aggregate.
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceRevisionRequests to fetch.
+     */
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithRelationInput | PersonalizedServiceRevisionRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PersonalizedServiceRevisionRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceRevisionRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceRevisionRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PersonalizedServiceRevisionRequests
+    **/
+    _count?: true | PersonalizedServiceRevisionRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PersonalizedServiceRevisionRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PersonalizedServiceRevisionRequestMaxAggregateInputType
+  }
+
+  export type GetPersonalizedServiceRevisionRequestAggregateType<T extends PersonalizedServiceRevisionRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregatePersonalizedServiceRevisionRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePersonalizedServiceRevisionRequest[P]>
+      : GetScalarType<T[P], AggregatePersonalizedServiceRevisionRequest[P]>
+  }
+
+
+
+
+  export type PersonalizedServiceRevisionRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithAggregationInput | PersonalizedServiceRevisionRequestOrderByWithAggregationInput[]
+    by: PersonalizedServiceRevisionRequestScalarFieldEnum[] | PersonalizedServiceRevisionRequestScalarFieldEnum
+    having?: PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PersonalizedServiceRevisionRequestCountAggregateInputType | true
+    _min?: PersonalizedServiceRevisionRequestMinAggregateInputType
+    _max?: PersonalizedServiceRevisionRequestMaxAggregateInputType
+  }
+
+  export type PersonalizedServiceRevisionRequestGroupByOutputType = {
+    id: string
+    orderId: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt: Date
+    resolvedAt: Date | null
+    _count: PersonalizedServiceRevisionRequestCountAggregateOutputType | null
+    _min: PersonalizedServiceRevisionRequestMinAggregateOutputType | null
+    _max: PersonalizedServiceRevisionRequestMaxAggregateOutputType | null
+  }
+
+  type GetPersonalizedServiceRevisionRequestGroupByPayload<T extends PersonalizedServiceRevisionRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PersonalizedServiceRevisionRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PersonalizedServiceRevisionRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PersonalizedServiceRevisionRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], PersonalizedServiceRevisionRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PersonalizedServiceRevisionRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    category?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceRevisionRequest"]>
+
+  export type PersonalizedServiceRevisionRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    category?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["personalizedServiceRevisionRequest"]>
+
+  export type PersonalizedServiceRevisionRequestSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    category?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+  }
+
+  export type PersonalizedServiceRevisionRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+  export type PersonalizedServiceRevisionRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | PersonalizedServiceOrderDefaultArgs<ExtArgs>
+  }
+
+  export type $PersonalizedServiceRevisionRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PersonalizedServiceRevisionRequest"
+    objects: {
+      order: Prisma.$PersonalizedServiceOrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      category: $Enums.RevisionRequestCategory
+      comment: string
+      createdAt: Date
+      resolvedAt: Date | null
+    }, ExtArgs["result"]["personalizedServiceRevisionRequest"]>
+    composites: {}
+  }
+
+  type PersonalizedServiceRevisionRequestGetPayload<S extends boolean | null | undefined | PersonalizedServiceRevisionRequestDefaultArgs> = $Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload, S>
+
+  type PersonalizedServiceRevisionRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PersonalizedServiceRevisionRequestFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PersonalizedServiceRevisionRequestCountAggregateInputType | true
+    }
+
+  export interface PersonalizedServiceRevisionRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PersonalizedServiceRevisionRequest'], meta: { name: 'PersonalizedServiceRevisionRequest' } }
+    /**
+     * Find zero or one PersonalizedServiceRevisionRequest that matches the filter.
+     * @param {PersonalizedServiceRevisionRequestFindUniqueArgs} args - Arguments to find a PersonalizedServiceRevisionRequest
+     * @example
+     * // Get one PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PersonalizedServiceRevisionRequestFindUniqueArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestFindUniqueArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PersonalizedServiceRevisionRequest that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PersonalizedServiceRevisionRequestFindUniqueOrThrowArgs} args - Arguments to find a PersonalizedServiceRevisionRequest
+     * @example
+     * // Get one PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PersonalizedServiceRevisionRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceRevisionRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestFindFirstArgs} args - Arguments to find a PersonalizedServiceRevisionRequest
+     * @example
+     * // Get one PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PersonalizedServiceRevisionRequestFindFirstArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestFindFirstArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PersonalizedServiceRevisionRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestFindFirstOrThrowArgs} args - Arguments to find a PersonalizedServiceRevisionRequest
+     * @example
+     * // Get one PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PersonalizedServiceRevisionRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PersonalizedServiceRevisionRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PersonalizedServiceRevisionRequests
+     * const personalizedServiceRevisionRequests = await prisma.personalizedServiceRevisionRequest.findMany()
+     * 
+     * // Get first 10 PersonalizedServiceRevisionRequests
+     * const personalizedServiceRevisionRequests = await prisma.personalizedServiceRevisionRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const personalizedServiceRevisionRequestWithIdOnly = await prisma.personalizedServiceRevisionRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PersonalizedServiceRevisionRequestFindManyArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PersonalizedServiceRevisionRequest.
+     * @param {PersonalizedServiceRevisionRequestCreateArgs} args - Arguments to create a PersonalizedServiceRevisionRequest.
+     * @example
+     * // Create one PersonalizedServiceRevisionRequest
+     * const PersonalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.create({
+     *   data: {
+     *     // ... data to create a PersonalizedServiceRevisionRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends PersonalizedServiceRevisionRequestCreateArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestCreateArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PersonalizedServiceRevisionRequests.
+     * @param {PersonalizedServiceRevisionRequestCreateManyArgs} args - Arguments to create many PersonalizedServiceRevisionRequests.
+     * @example
+     * // Create many PersonalizedServiceRevisionRequests
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PersonalizedServiceRevisionRequestCreateManyArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PersonalizedServiceRevisionRequests and returns the data saved in the database.
+     * @param {PersonalizedServiceRevisionRequestCreateManyAndReturnArgs} args - Arguments to create many PersonalizedServiceRevisionRequests.
+     * @example
+     * // Create many PersonalizedServiceRevisionRequests
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PersonalizedServiceRevisionRequests and only return the `id`
+     * const personalizedServiceRevisionRequestWithIdOnly = await prisma.personalizedServiceRevisionRequest.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PersonalizedServiceRevisionRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PersonalizedServiceRevisionRequest.
+     * @param {PersonalizedServiceRevisionRequestDeleteArgs} args - Arguments to delete one PersonalizedServiceRevisionRequest.
+     * @example
+     * // Delete one PersonalizedServiceRevisionRequest
+     * const PersonalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.delete({
+     *   where: {
+     *     // ... filter to delete one PersonalizedServiceRevisionRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PersonalizedServiceRevisionRequestDeleteArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestDeleteArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PersonalizedServiceRevisionRequest.
+     * @param {PersonalizedServiceRevisionRequestUpdateArgs} args - Arguments to update one PersonalizedServiceRevisionRequest.
+     * @example
+     * // Update one PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PersonalizedServiceRevisionRequestUpdateArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestUpdateArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PersonalizedServiceRevisionRequests.
+     * @param {PersonalizedServiceRevisionRequestDeleteManyArgs} args - Arguments to filter PersonalizedServiceRevisionRequests to delete.
+     * @example
+     * // Delete a few PersonalizedServiceRevisionRequests
+     * const { count } = await prisma.personalizedServiceRevisionRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PersonalizedServiceRevisionRequestDeleteManyArgs>(args?: SelectSubset<T, PersonalizedServiceRevisionRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PersonalizedServiceRevisionRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PersonalizedServiceRevisionRequests
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PersonalizedServiceRevisionRequestUpdateManyArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PersonalizedServiceRevisionRequest.
+     * @param {PersonalizedServiceRevisionRequestUpsertArgs} args - Arguments to update or create a PersonalizedServiceRevisionRequest.
+     * @example
+     * // Update or create a PersonalizedServiceRevisionRequest
+     * const personalizedServiceRevisionRequest = await prisma.personalizedServiceRevisionRequest.upsert({
+     *   create: {
+     *     // ... data to create a PersonalizedServiceRevisionRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceRevisionRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PersonalizedServiceRevisionRequestUpsertArgs>(args: SelectSubset<T, PersonalizedServiceRevisionRequestUpsertArgs<ExtArgs>>): Prisma__PersonalizedServiceRevisionRequestClient<$Result.GetResult<Prisma.$PersonalizedServiceRevisionRequestPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PersonalizedServiceRevisionRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestCountArgs} args - Arguments to filter PersonalizedServiceRevisionRequests to count.
+     * @example
+     * // Count the number of PersonalizedServiceRevisionRequests
+     * const count = await prisma.personalizedServiceRevisionRequest.count({
+     *   where: {
+     *     // ... the filter for the PersonalizedServiceRevisionRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends PersonalizedServiceRevisionRequestCountArgs>(
+      args?: Subset<T, PersonalizedServiceRevisionRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PersonalizedServiceRevisionRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PersonalizedServiceRevisionRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PersonalizedServiceRevisionRequestAggregateArgs>(args: Subset<T, PersonalizedServiceRevisionRequestAggregateArgs>): Prisma.PrismaPromise<GetPersonalizedServiceRevisionRequestAggregateType<T>>
+
+    /**
+     * Group by PersonalizedServiceRevisionRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PersonalizedServiceRevisionRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PersonalizedServiceRevisionRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PersonalizedServiceRevisionRequestGroupByArgs['orderBy'] }
+        : { orderBy?: PersonalizedServiceRevisionRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PersonalizedServiceRevisionRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPersonalizedServiceRevisionRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PersonalizedServiceRevisionRequest model
+   */
+  readonly fields: PersonalizedServiceRevisionRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PersonalizedServiceRevisionRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PersonalizedServiceRevisionRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends PersonalizedServiceOrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PersonalizedServiceOrderDefaultArgs<ExtArgs>>): Prisma__PersonalizedServiceOrderClient<$Result.GetResult<Prisma.$PersonalizedServiceOrderPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PersonalizedServiceRevisionRequest model
+   */ 
+  interface PersonalizedServiceRevisionRequestFieldRefs {
+    readonly id: FieldRef<"PersonalizedServiceRevisionRequest", 'String'>
+    readonly orderId: FieldRef<"PersonalizedServiceRevisionRequest", 'String'>
+    readonly category: FieldRef<"PersonalizedServiceRevisionRequest", 'RevisionRequestCategory'>
+    readonly comment: FieldRef<"PersonalizedServiceRevisionRequest", 'String'>
+    readonly createdAt: FieldRef<"PersonalizedServiceRevisionRequest", 'DateTime'>
+    readonly resolvedAt: FieldRef<"PersonalizedServiceRevisionRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PersonalizedServiceRevisionRequest findUnique
+   */
+  export type PersonalizedServiceRevisionRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceRevisionRequest to fetch.
+     */
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest findUniqueOrThrow
+   */
+  export type PersonalizedServiceRevisionRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceRevisionRequest to fetch.
+     */
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest findFirst
+   */
+  export type PersonalizedServiceRevisionRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceRevisionRequest to fetch.
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceRevisionRequests to fetch.
+     */
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithRelationInput | PersonalizedServiceRevisionRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceRevisionRequests.
+     */
+    cursor?: PersonalizedServiceRevisionRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceRevisionRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceRevisionRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceRevisionRequests.
+     */
+    distinct?: PersonalizedServiceRevisionRequestScalarFieldEnum | PersonalizedServiceRevisionRequestScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest findFirstOrThrow
+   */
+  export type PersonalizedServiceRevisionRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceRevisionRequest to fetch.
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceRevisionRequests to fetch.
+     */
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithRelationInput | PersonalizedServiceRevisionRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PersonalizedServiceRevisionRequests.
+     */
+    cursor?: PersonalizedServiceRevisionRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceRevisionRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceRevisionRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PersonalizedServiceRevisionRequests.
+     */
+    distinct?: PersonalizedServiceRevisionRequestScalarFieldEnum | PersonalizedServiceRevisionRequestScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest findMany
+   */
+  export type PersonalizedServiceRevisionRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which PersonalizedServiceRevisionRequests to fetch.
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PersonalizedServiceRevisionRequests to fetch.
+     */
+    orderBy?: PersonalizedServiceRevisionRequestOrderByWithRelationInput | PersonalizedServiceRevisionRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PersonalizedServiceRevisionRequests.
+     */
+    cursor?: PersonalizedServiceRevisionRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PersonalizedServiceRevisionRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PersonalizedServiceRevisionRequests.
+     */
+    skip?: number
+    distinct?: PersonalizedServiceRevisionRequestScalarFieldEnum | PersonalizedServiceRevisionRequestScalarFieldEnum[]
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest create
+   */
+  export type PersonalizedServiceRevisionRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PersonalizedServiceRevisionRequest.
+     */
+    data: XOR<PersonalizedServiceRevisionRequestCreateInput, PersonalizedServiceRevisionRequestUncheckedCreateInput>
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest createMany
+   */
+  export type PersonalizedServiceRevisionRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PersonalizedServiceRevisionRequests.
+     */
+    data: PersonalizedServiceRevisionRequestCreateManyInput | PersonalizedServiceRevisionRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest createManyAndReturn
+   */
+  export type PersonalizedServiceRevisionRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PersonalizedServiceRevisionRequests.
+     */
+    data: PersonalizedServiceRevisionRequestCreateManyInput | PersonalizedServiceRevisionRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest update
+   */
+  export type PersonalizedServiceRevisionRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PersonalizedServiceRevisionRequest.
+     */
+    data: XOR<PersonalizedServiceRevisionRequestUpdateInput, PersonalizedServiceRevisionRequestUncheckedUpdateInput>
+    /**
+     * Choose, which PersonalizedServiceRevisionRequest to update.
+     */
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest updateMany
+   */
+  export type PersonalizedServiceRevisionRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PersonalizedServiceRevisionRequests.
+     */
+    data: XOR<PersonalizedServiceRevisionRequestUpdateManyMutationInput, PersonalizedServiceRevisionRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which PersonalizedServiceRevisionRequests to update
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest upsert
+   */
+  export type PersonalizedServiceRevisionRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PersonalizedServiceRevisionRequest to update in case it exists.
+     */
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+    /**
+     * In case the PersonalizedServiceRevisionRequest found by the `where` argument doesn't exist, create a new PersonalizedServiceRevisionRequest with this data.
+     */
+    create: XOR<PersonalizedServiceRevisionRequestCreateInput, PersonalizedServiceRevisionRequestUncheckedCreateInput>
+    /**
+     * In case the PersonalizedServiceRevisionRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PersonalizedServiceRevisionRequestUpdateInput, PersonalizedServiceRevisionRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest delete
+   */
+  export type PersonalizedServiceRevisionRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
+    /**
+     * Filter which PersonalizedServiceRevisionRequest to delete.
+     */
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest deleteMany
+   */
+  export type PersonalizedServiceRevisionRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PersonalizedServiceRevisionRequests to delete
+     */
+    where?: PersonalizedServiceRevisionRequestWhereInput
+  }
+
+  /**
+   * PersonalizedServiceRevisionRequest without action
+   */
+  export type PersonalizedServiceRevisionRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PersonalizedServiceRevisionRequest
+     */
+    select?: PersonalizedServiceRevisionRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PersonalizedServiceRevisionRequestInclude<ExtArgs> | null
   }
 
 
@@ -16784,10 +27636,35 @@ export namespace Prisma {
     ratingCount: 'ratingCount',
     publishedAt: 'publishedAt',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    version: 'version',
+    previousVersionId: 'previousVersionId',
+    changelog: 'changelog',
+    improvementReason: 'improvementReason',
+    approvedBy: 'approvedBy',
+    publisherIsVerifiedPt: 'publisherIsVerifiedPt',
+    qualityScore: 'qualityScore',
+    qualityScoreComputedAt: 'qualityScoreComputedAt'
   };
 
   export type PublishedPlanScalarFieldEnum = (typeof PublishedPlanScalarFieldEnum)[keyof typeof PublishedPlanScalarFieldEnum]
+
+
+  export const PlanModerationAnalysisScalarFieldEnum: {
+    id: 'id',
+    publishedPlanId: 'publishedPlanId',
+    computedStats: 'computedStats',
+    ruleFlags: 'ruleFlags',
+    similarListings: 'similarListings',
+    aiConcerns: 'aiConcerns',
+    aiConfidenceScore: 'aiConfidenceScore',
+    aiRecommendation: 'aiRecommendation',
+    explanationForAdmin: 'explanationForAdmin',
+    usedFallback: 'usedFallback',
+    createdAt: 'createdAt'
+  };
+
+  export type PlanModerationAnalysisScalarFieldEnum = (typeof PlanModerationAnalysisScalarFieldEnum)[keyof typeof PlanModerationAnalysisScalarFieldEnum]
 
 
   export const PlanReviewScalarFieldEnum: {
@@ -16796,10 +27673,47 @@ export namespace Prisma {
     reviewerId: 'reviewerId',
     rating: 'rating',
     comment: 'comment',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    goalFit: 'goalFit',
+    difficultyFit: 'difficultyFit',
+    enjoyment: 'enjoyment',
+    clarity: 'clarity',
+    equipmentFit: 'equipmentFit',
+    timeFit: 'timeFit',
+    resultsPerception: 'resultsPerception',
+    wouldUseAgain: 'wouldUseAgain',
+    complaintTags: 'complaintTags',
+    freeText: 'freeText'
   };
 
   export type PlanReviewScalarFieldEnum = (typeof PlanReviewScalarFieldEnum)[keyof typeof PlanReviewScalarFieldEnum]
+
+
+  export const PlanImprovementSuggestionScalarFieldEnum: {
+    id: 'id',
+    publishedPlanId: 'publishedPlanId',
+    basedOnReviewCount: 'basedOnReviewCount',
+    qualityScoreSnapshot: 'qualityScoreSnapshot',
+    suggestions: 'suggestions',
+    commonComplaints: 'commonComplaints',
+    summary: 'summary',
+    generatedAt: 'generatedAt'
+  };
+
+  export type PlanImprovementSuggestionScalarFieldEnum = (typeof PlanImprovementSuggestionScalarFieldEnum)[keyof typeof PlanImprovementSuggestionScalarFieldEnum]
+
+
+  export const PlanAdoptionScalarFieldEnum: {
+    id: 'id',
+    publishedPlanId: 'publishedPlanId',
+    adopterId: 'adopterId',
+    accessBasis: 'accessBasis',
+    purchaseId: 'purchaseId',
+    wasCustomized: 'wasCustomized',
+    createdAt: 'createdAt'
+  };
+
+  export type PlanAdoptionScalarFieldEnum = (typeof PlanAdoptionScalarFieldEnum)[keyof typeof PlanAdoptionScalarFieldEnum]
 
 
   export const TrainingPackageScalarFieldEnum: {
@@ -16831,6 +27745,135 @@ export namespace Prisma {
   };
 
   export type TrainingPackagePurchaseScalarFieldEnum = (typeof TrainingPackagePurchaseScalarFieldEnum)[keyof typeof TrainingPackagePurchaseScalarFieldEnum]
+
+
+  export const PersonalizedServiceScalarFieldEnum: {
+    id: 'id',
+    sellerId: 'sellerId',
+    serviceType: 'serviceType',
+    title: 'title',
+    description: 'description',
+    price: 'price',
+    deliverables: 'deliverables',
+    revisionLimit: 'revisionLimit',
+    initialDeliveryDays: 'initialDeliveryDays',
+    supportWeeks: 'supportWeeks',
+    targetGoal: 'targetGoal',
+    targetLevel: 'targetLevel',
+    status: 'status',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PersonalizedServiceScalarFieldEnum = (typeof PersonalizedServiceScalarFieldEnum)[keyof typeof PersonalizedServiceScalarFieldEnum]
+
+
+  export const PersonalizedServiceOrderScalarFieldEnum: {
+    id: 'id',
+    serviceId: 'serviceId',
+    sellerId: 'sellerId',
+    buyerId: 'buyerId',
+    status: 'status',
+    titleSnapshot: 'titleSnapshot',
+    descriptionSnapshot: 'descriptionSnapshot',
+    serviceTypeSnapshot: 'serviceTypeSnapshot',
+    deliverablesSnapshot: 'deliverablesSnapshot',
+    revisionLimitSnapshot: 'revisionLimitSnapshot',
+    initialDeliveryDaysSnapshot: 'initialDeliveryDaysSnapshot',
+    supportWeeksSnapshot: 'supportWeeksSnapshot',
+    priceAtPurchase: 'priceAtPurchase',
+    paymentTransactionId: 'paymentTransactionId',
+    purchasedAt: 'purchasedAt',
+    intakeData: 'intakeData',
+    consentCategories: 'consentCategories',
+    intakeSubmittedAt: 'intakeSubmittedAt',
+    contractId: 'contractId',
+    initialDeliveryDeadline: 'initialDeliveryDeadline',
+    draftContent: 'draftContent',
+    draftVersion: 'draftVersion',
+    revisionCount: 'revisionCount',
+    acceptedAt: 'acceptedAt',
+    committedProgramId: 'committedProgramId',
+    cancelledAt: 'cancelledAt',
+    cancelReason: 'cancelReason',
+    refundRequestedAt: 'refundRequestedAt',
+    refundedAt: 'refundedAt',
+    disputeReason: 'disputeReason',
+    disputedAt: 'disputedAt',
+    preRefundStatus: 'preRefundStatus',
+    cumulativeRefundedAmount: 'cumulativeRefundedAmount',
+    refundResolvedBy: 'refundResolvedBy',
+    refundResolvedAt: 'refundResolvedAt',
+    refundResolutionNote: 'refundResolutionNote',
+    refundDecision: 'refundDecision',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PersonalizedServiceOrderScalarFieldEnum = (typeof PersonalizedServiceOrderScalarFieldEnum)[keyof typeof PersonalizedServiceOrderScalarFieldEnum]
+
+
+  export const PersonalizedServicePlanVersionScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    version: 'version',
+    content: 'content',
+    status: 'status',
+    createdBy: 'createdBy',
+    changeReason: 'changeReason',
+    createdAt: 'createdAt'
+  };
+
+  export type PersonalizedServicePlanVersionScalarFieldEnum = (typeof PersonalizedServicePlanVersionScalarFieldEnum)[keyof typeof PersonalizedServicePlanVersionScalarFieldEnum]
+
+
+  export const PersonalizedServiceCheckInScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    buyerId: 'buyerId',
+    weekNumber: 'weekNumber',
+    weight: 'weight',
+    energyLevel: 'energyLevel',
+    sleepQuality: 'sleepQuality',
+    stressLevel: 'stressLevel',
+    overallRpe: 'overallRpe',
+    workoutAdherence: 'workoutAdherence',
+    nutritionAdherence: 'nutritionAdherence',
+    painOrDiscomfort: 'painOrDiscomfort',
+    notes: 'notes',
+    requiresAttention: 'requiresAttention',
+    createdAt: 'createdAt'
+  };
+
+  export type PersonalizedServiceCheckInScalarFieldEnum = (typeof PersonalizedServiceCheckInScalarFieldEnum)[keyof typeof PersonalizedServiceCheckInScalarFieldEnum]
+
+
+  export const PersonalizedServiceReviewScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    buyerId: 'buyerId',
+    sellerId: 'sellerId',
+    overallRating: 'overallRating',
+    communicationRating: 'communicationRating',
+    personalizationRating: 'personalizationRating',
+    planQualityRating: 'planQualityRating',
+    comment: 'comment',
+    createdAt: 'createdAt'
+  };
+
+  export type PersonalizedServiceReviewScalarFieldEnum = (typeof PersonalizedServiceReviewScalarFieldEnum)[keyof typeof PersonalizedServiceReviewScalarFieldEnum]
+
+
+  export const PersonalizedServiceRevisionRequestScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    category: 'category',
+    comment: 'comment',
+    createdAt: 'createdAt',
+    resolvedAt: 'resolvedAt'
+  };
+
+  export type PersonalizedServiceRevisionRequestScalarFieldEnum = (typeof PersonalizedServiceRevisionRequestScalarFieldEnum)[keyof typeof PersonalizedServiceRevisionRequestScalarFieldEnum]
 
 
   export const NutritionPlanScalarFieldEnum: {
@@ -16944,6 +27987,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
   export const QueryMode: {
@@ -17113,6 +28164,76 @@ export namespace Prisma {
    * Reference to a field of type 'TrainingPackagePurchaseStatus[]'
    */
   export type ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrainingPackagePurchaseStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceType'
+   */
+  export type EnumPersonalizedServiceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceType'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceType[]'
+   */
+  export type ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceStatus'
+   */
+  export type EnumPersonalizedServiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceStatus[]'
+   */
+  export type ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceOrderStatus'
+   */
+  export type EnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceOrderStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PersonalizedServiceOrderStatus[]'
+   */
+  export type ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonalizedServiceOrderStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlanVersionStatus'
+   */
+  export type EnumPlanVersionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlanVersionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlanVersionStatus[]'
+   */
+  export type ListEnumPlanVersionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlanVersionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RevisionRequestCategory'
+   */
+  export type EnumRevisionRequestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RevisionRequestCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'RevisionRequestCategory[]'
+   */
+  export type ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RevisionRequestCategory[]'>
     
 
 
@@ -17610,9 +28731,19 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
     updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    version?: IntFilter<"PublishedPlan"> | number
+    previousVersionId?: StringNullableFilter<"PublishedPlan"> | string | null
+    changelog?: StringNullableFilter<"PublishedPlan"> | string | null
+    improvementReason?: StringNullableFilter<"PublishedPlan"> | string | null
+    approvedBy?: StringNullableFilter<"PublishedPlan"> | string | null
+    publisherIsVerifiedPt?: BoolFilter<"PublishedPlan"> | boolean
+    qualityScore?: FloatNullableFilter<"PublishedPlan"> | number | null
+    qualityScoreComputedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
     sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
     reviews?: PlanReviewListRelationFilter
     packages?: TrainingPackageListRelationFilter
+    improvementSuggestions?: PlanImprovementSuggestionListRelationFilter
+    moderationAnalyses?: PlanModerationAnalysisListRelationFilter
   }
 
   export type PublishedPlanOrderByWithRelationInput = {
@@ -17629,9 +28760,19 @@ export namespace Prisma {
     publishedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    version?: SortOrder
+    previousVersionId?: SortOrderInput | SortOrder
+    changelog?: SortOrderInput | SortOrder
+    improvementReason?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    publisherIsVerifiedPt?: SortOrder
+    qualityScore?: SortOrderInput | SortOrder
+    qualityScoreComputedAt?: SortOrderInput | SortOrder
     sourcePlan?: WorkoutPlanOrderByWithRelationInput
     reviews?: PlanReviewOrderByRelationAggregateInput
     packages?: TrainingPackageOrderByRelationAggregateInput
+    improvementSuggestions?: PlanImprovementSuggestionOrderByRelationAggregateInput
+    moderationAnalyses?: PlanModerationAnalysisOrderByRelationAggregateInput
   }
 
   export type PublishedPlanWhereUniqueInput = Prisma.AtLeast<{
@@ -17651,9 +28792,19 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
     updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    version?: IntFilter<"PublishedPlan"> | number
+    previousVersionId?: StringNullableFilter<"PublishedPlan"> | string | null
+    changelog?: StringNullableFilter<"PublishedPlan"> | string | null
+    improvementReason?: StringNullableFilter<"PublishedPlan"> | string | null
+    approvedBy?: StringNullableFilter<"PublishedPlan"> | string | null
+    publisherIsVerifiedPt?: BoolFilter<"PublishedPlan"> | boolean
+    qualityScore?: FloatNullableFilter<"PublishedPlan"> | number | null
+    qualityScoreComputedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
     sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
     reviews?: PlanReviewListRelationFilter
     packages?: TrainingPackageListRelationFilter
+    improvementSuggestions?: PlanImprovementSuggestionListRelationFilter
+    moderationAnalyses?: PlanModerationAnalysisListRelationFilter
   }, "id">
 
   export type PublishedPlanOrderByWithAggregationInput = {
@@ -17670,6 +28821,14 @@ export namespace Prisma {
     publishedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    version?: SortOrder
+    previousVersionId?: SortOrderInput | SortOrder
+    changelog?: SortOrderInput | SortOrder
+    improvementReason?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    publisherIsVerifiedPt?: SortOrder
+    qualityScore?: SortOrderInput | SortOrder
+    qualityScoreComputedAt?: SortOrderInput | SortOrder
     _count?: PublishedPlanCountOrderByAggregateInput
     _avg?: PublishedPlanAvgOrderByAggregateInput
     _max?: PublishedPlanMaxOrderByAggregateInput
@@ -17694,6 +28853,101 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableWithAggregatesFilter<"PublishedPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PublishedPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PublishedPlan"> | Date | string
+    version?: IntWithAggregatesFilter<"PublishedPlan"> | number
+    previousVersionId?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    changelog?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    improvementReason?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    approvedBy?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    publisherIsVerifiedPt?: BoolWithAggregatesFilter<"PublishedPlan"> | boolean
+    qualityScore?: FloatNullableWithAggregatesFilter<"PublishedPlan"> | number | null
+    qualityScoreComputedAt?: DateTimeNullableWithAggregatesFilter<"PublishedPlan"> | Date | string | null
+  }
+
+  export type PlanModerationAnalysisWhereInput = {
+    AND?: PlanModerationAnalysisWhereInput | PlanModerationAnalysisWhereInput[]
+    OR?: PlanModerationAnalysisWhereInput[]
+    NOT?: PlanModerationAnalysisWhereInput | PlanModerationAnalysisWhereInput[]
+    id?: StringFilter<"PlanModerationAnalysis"> | string
+    publishedPlanId?: StringFilter<"PlanModerationAnalysis"> | string
+    computedStats?: JsonFilter<"PlanModerationAnalysis">
+    ruleFlags?: JsonFilter<"PlanModerationAnalysis">
+    similarListings?: JsonFilter<"PlanModerationAnalysis">
+    aiConcerns?: JsonFilter<"PlanModerationAnalysis">
+    aiConfidenceScore?: FloatFilter<"PlanModerationAnalysis"> | number
+    aiRecommendation?: StringFilter<"PlanModerationAnalysis"> | string
+    explanationForAdmin?: StringFilter<"PlanModerationAnalysis"> | string
+    usedFallback?: BoolFilter<"PlanModerationAnalysis"> | boolean
+    createdAt?: DateTimeFilter<"PlanModerationAnalysis"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }
+
+  export type PlanModerationAnalysisOrderByWithRelationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    computedStats?: SortOrder
+    ruleFlags?: SortOrder
+    similarListings?: SortOrder
+    aiConcerns?: SortOrder
+    aiConfidenceScore?: SortOrder
+    aiRecommendation?: SortOrder
+    explanationForAdmin?: SortOrder
+    usedFallback?: SortOrder
+    createdAt?: SortOrder
+    publishedPlan?: PublishedPlanOrderByWithRelationInput
+  }
+
+  export type PlanModerationAnalysisWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PlanModerationAnalysisWhereInput | PlanModerationAnalysisWhereInput[]
+    OR?: PlanModerationAnalysisWhereInput[]
+    NOT?: PlanModerationAnalysisWhereInput | PlanModerationAnalysisWhereInput[]
+    publishedPlanId?: StringFilter<"PlanModerationAnalysis"> | string
+    computedStats?: JsonFilter<"PlanModerationAnalysis">
+    ruleFlags?: JsonFilter<"PlanModerationAnalysis">
+    similarListings?: JsonFilter<"PlanModerationAnalysis">
+    aiConcerns?: JsonFilter<"PlanModerationAnalysis">
+    aiConfidenceScore?: FloatFilter<"PlanModerationAnalysis"> | number
+    aiRecommendation?: StringFilter<"PlanModerationAnalysis"> | string
+    explanationForAdmin?: StringFilter<"PlanModerationAnalysis"> | string
+    usedFallback?: BoolFilter<"PlanModerationAnalysis"> | boolean
+    createdAt?: DateTimeFilter<"PlanModerationAnalysis"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }, "id">
+
+  export type PlanModerationAnalysisOrderByWithAggregationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    computedStats?: SortOrder
+    ruleFlags?: SortOrder
+    similarListings?: SortOrder
+    aiConcerns?: SortOrder
+    aiConfidenceScore?: SortOrder
+    aiRecommendation?: SortOrder
+    explanationForAdmin?: SortOrder
+    usedFallback?: SortOrder
+    createdAt?: SortOrder
+    _count?: PlanModerationAnalysisCountOrderByAggregateInput
+    _avg?: PlanModerationAnalysisAvgOrderByAggregateInput
+    _max?: PlanModerationAnalysisMaxOrderByAggregateInput
+    _min?: PlanModerationAnalysisMinOrderByAggregateInput
+    _sum?: PlanModerationAnalysisSumOrderByAggregateInput
+  }
+
+  export type PlanModerationAnalysisScalarWhereWithAggregatesInput = {
+    AND?: PlanModerationAnalysisScalarWhereWithAggregatesInput | PlanModerationAnalysisScalarWhereWithAggregatesInput[]
+    OR?: PlanModerationAnalysisScalarWhereWithAggregatesInput[]
+    NOT?: PlanModerationAnalysisScalarWhereWithAggregatesInput | PlanModerationAnalysisScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlanModerationAnalysis"> | string
+    publishedPlanId?: StringWithAggregatesFilter<"PlanModerationAnalysis"> | string
+    computedStats?: JsonWithAggregatesFilter<"PlanModerationAnalysis">
+    ruleFlags?: JsonWithAggregatesFilter<"PlanModerationAnalysis">
+    similarListings?: JsonWithAggregatesFilter<"PlanModerationAnalysis">
+    aiConcerns?: JsonWithAggregatesFilter<"PlanModerationAnalysis">
+    aiConfidenceScore?: FloatWithAggregatesFilter<"PlanModerationAnalysis"> | number
+    aiRecommendation?: StringWithAggregatesFilter<"PlanModerationAnalysis"> | string
+    explanationForAdmin?: StringWithAggregatesFilter<"PlanModerationAnalysis"> | string
+    usedFallback?: BoolWithAggregatesFilter<"PlanModerationAnalysis"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"PlanModerationAnalysis"> | Date | string
   }
 
   export type PlanReviewWhereInput = {
@@ -17706,6 +28960,16 @@ export namespace Prisma {
     rating?: IntFilter<"PlanReview"> | number
     comment?: StringNullableFilter<"PlanReview"> | string | null
     createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+    goalFit?: IntNullableFilter<"PlanReview"> | number | null
+    difficultyFit?: StringNullableFilter<"PlanReview"> | string | null
+    enjoyment?: IntNullableFilter<"PlanReview"> | number | null
+    clarity?: IntNullableFilter<"PlanReview"> | number | null
+    equipmentFit?: IntNullableFilter<"PlanReview"> | number | null
+    timeFit?: IntNullableFilter<"PlanReview"> | number | null
+    resultsPerception?: StringNullableFilter<"PlanReview"> | string | null
+    wouldUseAgain?: BoolNullableFilter<"PlanReview"> | boolean | null
+    complaintTags?: JsonNullableFilter<"PlanReview">
+    freeText?: StringNullableFilter<"PlanReview"> | string | null
     publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
   }
 
@@ -17716,6 +28980,16 @@ export namespace Prisma {
     rating?: SortOrder
     comment?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    goalFit?: SortOrderInput | SortOrder
+    difficultyFit?: SortOrderInput | SortOrder
+    enjoyment?: SortOrderInput | SortOrder
+    clarity?: SortOrderInput | SortOrder
+    equipmentFit?: SortOrderInput | SortOrder
+    timeFit?: SortOrderInput | SortOrder
+    resultsPerception?: SortOrderInput | SortOrder
+    wouldUseAgain?: SortOrderInput | SortOrder
+    complaintTags?: SortOrderInput | SortOrder
+    freeText?: SortOrderInput | SortOrder
     publishedPlan?: PublishedPlanOrderByWithRelationInput
   }
 
@@ -17730,6 +29004,16 @@ export namespace Prisma {
     rating?: IntFilter<"PlanReview"> | number
     comment?: StringNullableFilter<"PlanReview"> | string | null
     createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+    goalFit?: IntNullableFilter<"PlanReview"> | number | null
+    difficultyFit?: StringNullableFilter<"PlanReview"> | string | null
+    enjoyment?: IntNullableFilter<"PlanReview"> | number | null
+    clarity?: IntNullableFilter<"PlanReview"> | number | null
+    equipmentFit?: IntNullableFilter<"PlanReview"> | number | null
+    timeFit?: IntNullableFilter<"PlanReview"> | number | null
+    resultsPerception?: StringNullableFilter<"PlanReview"> | string | null
+    wouldUseAgain?: BoolNullableFilter<"PlanReview"> | boolean | null
+    complaintTags?: JsonNullableFilter<"PlanReview">
+    freeText?: StringNullableFilter<"PlanReview"> | string | null
     publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
   }, "id" | "publishedPlanId_reviewerId">
 
@@ -17740,6 +29024,16 @@ export namespace Prisma {
     rating?: SortOrder
     comment?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    goalFit?: SortOrderInput | SortOrder
+    difficultyFit?: SortOrderInput | SortOrder
+    enjoyment?: SortOrderInput | SortOrder
+    clarity?: SortOrderInput | SortOrder
+    equipmentFit?: SortOrderInput | SortOrder
+    timeFit?: SortOrderInput | SortOrder
+    resultsPerception?: SortOrderInput | SortOrder
+    wouldUseAgain?: SortOrderInput | SortOrder
+    complaintTags?: SortOrderInput | SortOrder
+    freeText?: SortOrderInput | SortOrder
     _count?: PlanReviewCountOrderByAggregateInput
     _avg?: PlanReviewAvgOrderByAggregateInput
     _max?: PlanReviewMaxOrderByAggregateInput
@@ -17757,6 +29051,150 @@ export namespace Prisma {
     rating?: IntWithAggregatesFilter<"PlanReview"> | number
     comment?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PlanReview"> | Date | string
+    goalFit?: IntNullableWithAggregatesFilter<"PlanReview"> | number | null
+    difficultyFit?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
+    enjoyment?: IntNullableWithAggregatesFilter<"PlanReview"> | number | null
+    clarity?: IntNullableWithAggregatesFilter<"PlanReview"> | number | null
+    equipmentFit?: IntNullableWithAggregatesFilter<"PlanReview"> | number | null
+    timeFit?: IntNullableWithAggregatesFilter<"PlanReview"> | number | null
+    resultsPerception?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
+    wouldUseAgain?: BoolNullableWithAggregatesFilter<"PlanReview"> | boolean | null
+    complaintTags?: JsonNullableWithAggregatesFilter<"PlanReview">
+    freeText?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
+  }
+
+  export type PlanImprovementSuggestionWhereInput = {
+    AND?: PlanImprovementSuggestionWhereInput | PlanImprovementSuggestionWhereInput[]
+    OR?: PlanImprovementSuggestionWhereInput[]
+    NOT?: PlanImprovementSuggestionWhereInput | PlanImprovementSuggestionWhereInput[]
+    id?: StringFilter<"PlanImprovementSuggestion"> | string
+    publishedPlanId?: StringFilter<"PlanImprovementSuggestion"> | string
+    basedOnReviewCount?: IntFilter<"PlanImprovementSuggestion"> | number
+    qualityScoreSnapshot?: FloatNullableFilter<"PlanImprovementSuggestion"> | number | null
+    suggestions?: JsonFilter<"PlanImprovementSuggestion">
+    commonComplaints?: JsonFilter<"PlanImprovementSuggestion">
+    summary?: StringFilter<"PlanImprovementSuggestion"> | string
+    generatedAt?: DateTimeFilter<"PlanImprovementSuggestion"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }
+
+  export type PlanImprovementSuggestionOrderByWithRelationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrderInput | SortOrder
+    suggestions?: SortOrder
+    commonComplaints?: SortOrder
+    summary?: SortOrder
+    generatedAt?: SortOrder
+    publishedPlan?: PublishedPlanOrderByWithRelationInput
+  }
+
+  export type PlanImprovementSuggestionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PlanImprovementSuggestionWhereInput | PlanImprovementSuggestionWhereInput[]
+    OR?: PlanImprovementSuggestionWhereInput[]
+    NOT?: PlanImprovementSuggestionWhereInput | PlanImprovementSuggestionWhereInput[]
+    publishedPlanId?: StringFilter<"PlanImprovementSuggestion"> | string
+    basedOnReviewCount?: IntFilter<"PlanImprovementSuggestion"> | number
+    qualityScoreSnapshot?: FloatNullableFilter<"PlanImprovementSuggestion"> | number | null
+    suggestions?: JsonFilter<"PlanImprovementSuggestion">
+    commonComplaints?: JsonFilter<"PlanImprovementSuggestion">
+    summary?: StringFilter<"PlanImprovementSuggestion"> | string
+    generatedAt?: DateTimeFilter<"PlanImprovementSuggestion"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }, "id">
+
+  export type PlanImprovementSuggestionOrderByWithAggregationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrderInput | SortOrder
+    suggestions?: SortOrder
+    commonComplaints?: SortOrder
+    summary?: SortOrder
+    generatedAt?: SortOrder
+    _count?: PlanImprovementSuggestionCountOrderByAggregateInput
+    _avg?: PlanImprovementSuggestionAvgOrderByAggregateInput
+    _max?: PlanImprovementSuggestionMaxOrderByAggregateInput
+    _min?: PlanImprovementSuggestionMinOrderByAggregateInput
+    _sum?: PlanImprovementSuggestionSumOrderByAggregateInput
+  }
+
+  export type PlanImprovementSuggestionScalarWhereWithAggregatesInput = {
+    AND?: PlanImprovementSuggestionScalarWhereWithAggregatesInput | PlanImprovementSuggestionScalarWhereWithAggregatesInput[]
+    OR?: PlanImprovementSuggestionScalarWhereWithAggregatesInput[]
+    NOT?: PlanImprovementSuggestionScalarWhereWithAggregatesInput | PlanImprovementSuggestionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlanImprovementSuggestion"> | string
+    publishedPlanId?: StringWithAggregatesFilter<"PlanImprovementSuggestion"> | string
+    basedOnReviewCount?: IntWithAggregatesFilter<"PlanImprovementSuggestion"> | number
+    qualityScoreSnapshot?: FloatNullableWithAggregatesFilter<"PlanImprovementSuggestion"> | number | null
+    suggestions?: JsonWithAggregatesFilter<"PlanImprovementSuggestion">
+    commonComplaints?: JsonWithAggregatesFilter<"PlanImprovementSuggestion">
+    summary?: StringWithAggregatesFilter<"PlanImprovementSuggestion"> | string
+    generatedAt?: DateTimeWithAggregatesFilter<"PlanImprovementSuggestion"> | Date | string
+  }
+
+  export type PlanAdoptionWhereInput = {
+    AND?: PlanAdoptionWhereInput | PlanAdoptionWhereInput[]
+    OR?: PlanAdoptionWhereInput[]
+    NOT?: PlanAdoptionWhereInput | PlanAdoptionWhereInput[]
+    id?: StringFilter<"PlanAdoption"> | string
+    publishedPlanId?: StringFilter<"PlanAdoption"> | string
+    adopterId?: StringFilter<"PlanAdoption"> | string
+    accessBasis?: StringFilter<"PlanAdoption"> | string
+    purchaseId?: StringNullableFilter<"PlanAdoption"> | string | null
+    wasCustomized?: BoolFilter<"PlanAdoption"> | boolean
+    createdAt?: DateTimeFilter<"PlanAdoption"> | Date | string
+  }
+
+  export type PlanAdoptionOrderByWithRelationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    adopterId?: SortOrder
+    accessBasis?: SortOrder
+    purchaseId?: SortOrderInput | SortOrder
+    wasCustomized?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanAdoptionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PlanAdoptionWhereInput | PlanAdoptionWhereInput[]
+    OR?: PlanAdoptionWhereInput[]
+    NOT?: PlanAdoptionWhereInput | PlanAdoptionWhereInput[]
+    publishedPlanId?: StringFilter<"PlanAdoption"> | string
+    adopterId?: StringFilter<"PlanAdoption"> | string
+    accessBasis?: StringFilter<"PlanAdoption"> | string
+    purchaseId?: StringNullableFilter<"PlanAdoption"> | string | null
+    wasCustomized?: BoolFilter<"PlanAdoption"> | boolean
+    createdAt?: DateTimeFilter<"PlanAdoption"> | Date | string
+  }, "id">
+
+  export type PlanAdoptionOrderByWithAggregationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    adopterId?: SortOrder
+    accessBasis?: SortOrder
+    purchaseId?: SortOrderInput | SortOrder
+    wasCustomized?: SortOrder
+    createdAt?: SortOrder
+    _count?: PlanAdoptionCountOrderByAggregateInput
+    _max?: PlanAdoptionMaxOrderByAggregateInput
+    _min?: PlanAdoptionMinOrderByAggregateInput
+  }
+
+  export type PlanAdoptionScalarWhereWithAggregatesInput = {
+    AND?: PlanAdoptionScalarWhereWithAggregatesInput | PlanAdoptionScalarWhereWithAggregatesInput[]
+    OR?: PlanAdoptionScalarWhereWithAggregatesInput[]
+    NOT?: PlanAdoptionScalarWhereWithAggregatesInput | PlanAdoptionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlanAdoption"> | string
+    publishedPlanId?: StringWithAggregatesFilter<"PlanAdoption"> | string
+    adopterId?: StringWithAggregatesFilter<"PlanAdoption"> | string
+    accessBasis?: StringWithAggregatesFilter<"PlanAdoption"> | string
+    purchaseId?: StringNullableWithAggregatesFilter<"PlanAdoption"> | string | null
+    wasCustomized?: BoolWithAggregatesFilter<"PlanAdoption"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"PlanAdoption"> | Date | string
   }
 
   export type TrainingPackageWhereInput = {
@@ -17920,6 +29358,674 @@ export namespace Prisma {
     purchasedAt?: DateTimeNullableWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string
+  }
+
+  export type PersonalizedServiceWhereInput = {
+    AND?: PersonalizedServiceWhereInput | PersonalizedServiceWhereInput[]
+    OR?: PersonalizedServiceWhereInput[]
+    NOT?: PersonalizedServiceWhereInput | PersonalizedServiceWhereInput[]
+    id?: StringFilter<"PersonalizedService"> | string
+    sellerId?: StringFilter<"PersonalizedService"> | string
+    serviceType?: EnumPersonalizedServiceTypeFilter<"PersonalizedService"> | $Enums.PersonalizedServiceType
+    title?: StringFilter<"PersonalizedService"> | string
+    description?: StringNullableFilter<"PersonalizedService"> | string | null
+    price?: FloatFilter<"PersonalizedService"> | number
+    deliverables?: JsonFilter<"PersonalizedService">
+    revisionLimit?: IntNullableFilter<"PersonalizedService"> | number | null
+    initialDeliveryDays?: IntFilter<"PersonalizedService"> | number
+    supportWeeks?: IntNullableFilter<"PersonalizedService"> | number | null
+    targetGoal?: StringNullableFilter<"PersonalizedService"> | string | null
+    targetLevel?: StringNullableFilter<"PersonalizedService"> | string | null
+    status?: EnumPersonalizedServiceStatusFilter<"PersonalizedService"> | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFilter<"PersonalizedService"> | Date | string
+    updatedAt?: DateTimeFilter<"PersonalizedService"> | Date | string
+    orders?: PersonalizedServiceOrderListRelationFilter
+  }
+
+  export type PersonalizedServiceOrderByWithRelationInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    serviceType?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    price?: SortOrder
+    deliverables?: SortOrder
+    revisionLimit?: SortOrderInput | SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrderInput | SortOrder
+    targetGoal?: SortOrderInput | SortOrder
+    targetLevel?: SortOrderInput | SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    orders?: PersonalizedServiceOrderOrderByRelationAggregateInput
+  }
+
+  export type PersonalizedServiceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PersonalizedServiceWhereInput | PersonalizedServiceWhereInput[]
+    OR?: PersonalizedServiceWhereInput[]
+    NOT?: PersonalizedServiceWhereInput | PersonalizedServiceWhereInput[]
+    sellerId?: StringFilter<"PersonalizedService"> | string
+    serviceType?: EnumPersonalizedServiceTypeFilter<"PersonalizedService"> | $Enums.PersonalizedServiceType
+    title?: StringFilter<"PersonalizedService"> | string
+    description?: StringNullableFilter<"PersonalizedService"> | string | null
+    price?: FloatFilter<"PersonalizedService"> | number
+    deliverables?: JsonFilter<"PersonalizedService">
+    revisionLimit?: IntNullableFilter<"PersonalizedService"> | number | null
+    initialDeliveryDays?: IntFilter<"PersonalizedService"> | number
+    supportWeeks?: IntNullableFilter<"PersonalizedService"> | number | null
+    targetGoal?: StringNullableFilter<"PersonalizedService"> | string | null
+    targetLevel?: StringNullableFilter<"PersonalizedService"> | string | null
+    status?: EnumPersonalizedServiceStatusFilter<"PersonalizedService"> | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFilter<"PersonalizedService"> | Date | string
+    updatedAt?: DateTimeFilter<"PersonalizedService"> | Date | string
+    orders?: PersonalizedServiceOrderListRelationFilter
+  }, "id">
+
+  export type PersonalizedServiceOrderByWithAggregationInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    serviceType?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    price?: SortOrder
+    deliverables?: SortOrder
+    revisionLimit?: SortOrderInput | SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrderInput | SortOrder
+    targetGoal?: SortOrderInput | SortOrder
+    targetLevel?: SortOrderInput | SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PersonalizedServiceCountOrderByAggregateInput
+    _avg?: PersonalizedServiceAvgOrderByAggregateInput
+    _max?: PersonalizedServiceMaxOrderByAggregateInput
+    _min?: PersonalizedServiceMinOrderByAggregateInput
+    _sum?: PersonalizedServiceSumOrderByAggregateInput
+  }
+
+  export type PersonalizedServiceScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServiceScalarWhereWithAggregatesInput | PersonalizedServiceScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServiceScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServiceScalarWhereWithAggregatesInput | PersonalizedServiceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedService"> | string
+    sellerId?: StringWithAggregatesFilter<"PersonalizedService"> | string
+    serviceType?: EnumPersonalizedServiceTypeWithAggregatesFilter<"PersonalizedService"> | $Enums.PersonalizedServiceType
+    title?: StringWithAggregatesFilter<"PersonalizedService"> | string
+    description?: StringNullableWithAggregatesFilter<"PersonalizedService"> | string | null
+    price?: FloatWithAggregatesFilter<"PersonalizedService"> | number
+    deliverables?: JsonWithAggregatesFilter<"PersonalizedService">
+    revisionLimit?: IntNullableWithAggregatesFilter<"PersonalizedService"> | number | null
+    initialDeliveryDays?: IntWithAggregatesFilter<"PersonalizedService"> | number
+    supportWeeks?: IntNullableWithAggregatesFilter<"PersonalizedService"> | number | null
+    targetGoal?: StringNullableWithAggregatesFilter<"PersonalizedService"> | string | null
+    targetLevel?: StringNullableWithAggregatesFilter<"PersonalizedService"> | string | null
+    status?: EnumPersonalizedServiceStatusWithAggregatesFilter<"PersonalizedService"> | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedService"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PersonalizedService"> | Date | string
+  }
+
+  export type PersonalizedServiceOrderWhereInput = {
+    AND?: PersonalizedServiceOrderWhereInput | PersonalizedServiceOrderWhereInput[]
+    OR?: PersonalizedServiceOrderWhereInput[]
+    NOT?: PersonalizedServiceOrderWhereInput | PersonalizedServiceOrderWhereInput[]
+    id?: StringFilter<"PersonalizedServiceOrder"> | string
+    serviceId?: StringFilter<"PersonalizedServiceOrder"> | string
+    sellerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    buyerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    status?: EnumPersonalizedServiceOrderStatusFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFilter<"PersonalizedServiceOrder"> | string
+    descriptionSnapshot?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonFilter<"PersonalizedServiceOrder">
+    revisionLimitSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
+    supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
+    consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
+    intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    contractId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    initialDeliveryDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    draftContent?: JsonNullableFilter<"PersonalizedServiceOrder">
+    draftVersion?: IntFilter<"PersonalizedServiceOrder"> | number
+    revisionCount?: IntFilter<"PersonalizedServiceOrder"> | number
+    acceptedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    committedProgramId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    cancelReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundRequestedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    disputeReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    disputedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    preRefundStatus?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cumulativeRefundedAmount?: FloatFilter<"PersonalizedServiceOrder"> | number
+    refundResolvedBy?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    service?: XOR<PersonalizedServiceRelationFilter, PersonalizedServiceWhereInput>
+    revisionRequests?: PersonalizedServiceRevisionRequestListRelationFilter
+    planVersions?: PersonalizedServicePlanVersionListRelationFilter
+    checkIns?: PersonalizedServiceCheckInListRelationFilter
+    review?: XOR<PersonalizedServiceReviewNullableRelationFilter, PersonalizedServiceReviewWhereInput> | null
+  }
+
+  export type PersonalizedServiceOrderOrderByWithRelationInput = {
+    id?: SortOrder
+    serviceId?: SortOrder
+    sellerId?: SortOrder
+    buyerId?: SortOrder
+    status?: SortOrder
+    titleSnapshot?: SortOrder
+    descriptionSnapshot?: SortOrderInput | SortOrder
+    serviceTypeSnapshot?: SortOrder
+    deliverablesSnapshot?: SortOrder
+    revisionLimitSnapshot?: SortOrderInput | SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrderInput | SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
+    purchasedAt?: SortOrder
+    intakeData?: SortOrderInput | SortOrder
+    consentCategories?: SortOrderInput | SortOrder
+    intakeSubmittedAt?: SortOrderInput | SortOrder
+    contractId?: SortOrderInput | SortOrder
+    initialDeliveryDeadline?: SortOrderInput | SortOrder
+    draftContent?: SortOrderInput | SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    committedProgramId?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    cancelReason?: SortOrderInput | SortOrder
+    refundRequestedAt?: SortOrderInput | SortOrder
+    refundedAt?: SortOrderInput | SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    preRefundStatus?: SortOrderInput | SortOrder
+    cumulativeRefundedAmount?: SortOrder
+    refundResolvedBy?: SortOrderInput | SortOrder
+    refundResolvedAt?: SortOrderInput | SortOrder
+    refundResolutionNote?: SortOrderInput | SortOrder
+    refundDecision?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    service?: PersonalizedServiceOrderByWithRelationInput
+    revisionRequests?: PersonalizedServiceRevisionRequestOrderByRelationAggregateInput
+    planVersions?: PersonalizedServicePlanVersionOrderByRelationAggregateInput
+    checkIns?: PersonalizedServiceCheckInOrderByRelationAggregateInput
+    review?: PersonalizedServiceReviewOrderByWithRelationInput
+  }
+
+  export type PersonalizedServiceOrderWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PersonalizedServiceOrderWhereInput | PersonalizedServiceOrderWhereInput[]
+    OR?: PersonalizedServiceOrderWhereInput[]
+    NOT?: PersonalizedServiceOrderWhereInput | PersonalizedServiceOrderWhereInput[]
+    serviceId?: StringFilter<"PersonalizedServiceOrder"> | string
+    sellerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    buyerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    status?: EnumPersonalizedServiceOrderStatusFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFilter<"PersonalizedServiceOrder"> | string
+    descriptionSnapshot?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonFilter<"PersonalizedServiceOrder">
+    revisionLimitSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
+    supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
+    consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
+    intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    contractId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    initialDeliveryDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    draftContent?: JsonNullableFilter<"PersonalizedServiceOrder">
+    draftVersion?: IntFilter<"PersonalizedServiceOrder"> | number
+    revisionCount?: IntFilter<"PersonalizedServiceOrder"> | number
+    acceptedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    committedProgramId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    cancelReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundRequestedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    disputeReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    disputedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    preRefundStatus?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cumulativeRefundedAmount?: FloatFilter<"PersonalizedServiceOrder"> | number
+    refundResolvedBy?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    service?: XOR<PersonalizedServiceRelationFilter, PersonalizedServiceWhereInput>
+    revisionRequests?: PersonalizedServiceRevisionRequestListRelationFilter
+    planVersions?: PersonalizedServicePlanVersionListRelationFilter
+    checkIns?: PersonalizedServiceCheckInListRelationFilter
+    review?: XOR<PersonalizedServiceReviewNullableRelationFilter, PersonalizedServiceReviewWhereInput> | null
+  }, "id">
+
+  export type PersonalizedServiceOrderOrderByWithAggregationInput = {
+    id?: SortOrder
+    serviceId?: SortOrder
+    sellerId?: SortOrder
+    buyerId?: SortOrder
+    status?: SortOrder
+    titleSnapshot?: SortOrder
+    descriptionSnapshot?: SortOrderInput | SortOrder
+    serviceTypeSnapshot?: SortOrder
+    deliverablesSnapshot?: SortOrder
+    revisionLimitSnapshot?: SortOrderInput | SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrderInput | SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
+    purchasedAt?: SortOrder
+    intakeData?: SortOrderInput | SortOrder
+    consentCategories?: SortOrderInput | SortOrder
+    intakeSubmittedAt?: SortOrderInput | SortOrder
+    contractId?: SortOrderInput | SortOrder
+    initialDeliveryDeadline?: SortOrderInput | SortOrder
+    draftContent?: SortOrderInput | SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    committedProgramId?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    cancelReason?: SortOrderInput | SortOrder
+    refundRequestedAt?: SortOrderInput | SortOrder
+    refundedAt?: SortOrderInput | SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    preRefundStatus?: SortOrderInput | SortOrder
+    cumulativeRefundedAmount?: SortOrder
+    refundResolvedBy?: SortOrderInput | SortOrder
+    refundResolvedAt?: SortOrderInput | SortOrder
+    refundResolutionNote?: SortOrderInput | SortOrder
+    refundDecision?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PersonalizedServiceOrderCountOrderByAggregateInput
+    _avg?: PersonalizedServiceOrderAvgOrderByAggregateInput
+    _max?: PersonalizedServiceOrderMaxOrderByAggregateInput
+    _min?: PersonalizedServiceOrderMinOrderByAggregateInput
+    _sum?: PersonalizedServiceOrderSumOrderByAggregateInput
+  }
+
+  export type PersonalizedServiceOrderScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServiceOrderScalarWhereWithAggregatesInput | PersonalizedServiceOrderScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServiceOrderScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServiceOrderScalarWhereWithAggregatesInput | PersonalizedServiceOrderScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedServiceOrder"> | string
+    serviceId?: StringWithAggregatesFilter<"PersonalizedServiceOrder"> | string
+    sellerId?: StringWithAggregatesFilter<"PersonalizedServiceOrder"> | string
+    buyerId?: StringWithAggregatesFilter<"PersonalizedServiceOrder"> | string
+    status?: EnumPersonalizedServiceOrderStatusWithAggregatesFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringWithAggregatesFilter<"PersonalizedServiceOrder"> | string
+    descriptionSnapshot?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeWithAggregatesFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonWithAggregatesFilter<"PersonalizedServiceOrder">
+    revisionLimitSnapshot?: IntNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | number | null
+    initialDeliveryDaysSnapshot?: IntWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    supportWeeksSnapshot?: IntNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | number | null
+    priceAtPurchase?: FloatWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    paymentTransactionId?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    purchasedAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
+    intakeData?: JsonNullableWithAggregatesFilter<"PersonalizedServiceOrder">
+    consentCategories?: JsonNullableWithAggregatesFilter<"PersonalizedServiceOrder">
+    intakeSubmittedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    contractId?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    initialDeliveryDeadline?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    draftContent?: JsonNullableWithAggregatesFilter<"PersonalizedServiceOrder">
+    draftVersion?: IntWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    revisionCount?: IntWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    acceptedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    committedProgramId?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    cancelledAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    cancelReason?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    refundRequestedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    disputeReason?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    disputedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    preRefundStatus?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    cumulativeRefundedAmount?: FloatWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    refundResolvedBy?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    refundResolvedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundResolutionNote?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    refundDecision?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionWhereInput = {
+    AND?: PersonalizedServicePlanVersionWhereInput | PersonalizedServicePlanVersionWhereInput[]
+    OR?: PersonalizedServicePlanVersionWhereInput[]
+    NOT?: PersonalizedServicePlanVersionWhereInput | PersonalizedServicePlanVersionWhereInput[]
+    id?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    orderId?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    version?: IntFilter<"PersonalizedServicePlanVersion"> | number
+    content?: JsonFilter<"PersonalizedServicePlanVersion">
+    status?: EnumPlanVersionStatusFilter<"PersonalizedServicePlanVersion"> | $Enums.PlanVersionStatus
+    createdBy?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    changeReason?: StringNullableFilter<"PersonalizedServicePlanVersion"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServicePlanVersion"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }
+
+  export type PersonalizedServicePlanVersionOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    version?: SortOrder
+    content?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    changeReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    order?: PersonalizedServiceOrderOrderByWithRelationInput
+  }
+
+  export type PersonalizedServicePlanVersionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    orderId_version?: PersonalizedServicePlanVersionOrderIdVersionCompoundUniqueInput
+    AND?: PersonalizedServicePlanVersionWhereInput | PersonalizedServicePlanVersionWhereInput[]
+    OR?: PersonalizedServicePlanVersionWhereInput[]
+    NOT?: PersonalizedServicePlanVersionWhereInput | PersonalizedServicePlanVersionWhereInput[]
+    orderId?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    version?: IntFilter<"PersonalizedServicePlanVersion"> | number
+    content?: JsonFilter<"PersonalizedServicePlanVersion">
+    status?: EnumPlanVersionStatusFilter<"PersonalizedServicePlanVersion"> | $Enums.PlanVersionStatus
+    createdBy?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    changeReason?: StringNullableFilter<"PersonalizedServicePlanVersion"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServicePlanVersion"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }, "id" | "orderId_version">
+
+  export type PersonalizedServicePlanVersionOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    version?: SortOrder
+    content?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    changeReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PersonalizedServicePlanVersionCountOrderByAggregateInput
+    _avg?: PersonalizedServicePlanVersionAvgOrderByAggregateInput
+    _max?: PersonalizedServicePlanVersionMaxOrderByAggregateInput
+    _min?: PersonalizedServicePlanVersionMinOrderByAggregateInput
+    _sum?: PersonalizedServicePlanVersionSumOrderByAggregateInput
+  }
+
+  export type PersonalizedServicePlanVersionScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServicePlanVersionScalarWhereWithAggregatesInput | PersonalizedServicePlanVersionScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServicePlanVersionScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServicePlanVersionScalarWhereWithAggregatesInput | PersonalizedServicePlanVersionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedServicePlanVersion"> | string
+    orderId?: StringWithAggregatesFilter<"PersonalizedServicePlanVersion"> | string
+    version?: IntWithAggregatesFilter<"PersonalizedServicePlanVersion"> | number
+    content?: JsonWithAggregatesFilter<"PersonalizedServicePlanVersion">
+    status?: EnumPlanVersionStatusWithAggregatesFilter<"PersonalizedServicePlanVersion"> | $Enums.PlanVersionStatus
+    createdBy?: StringWithAggregatesFilter<"PersonalizedServicePlanVersion"> | string
+    changeReason?: StringNullableWithAggregatesFilter<"PersonalizedServicePlanVersion"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServicePlanVersion"> | Date | string
+  }
+
+  export type PersonalizedServiceCheckInWhereInput = {
+    AND?: PersonalizedServiceCheckInWhereInput | PersonalizedServiceCheckInWhereInput[]
+    OR?: PersonalizedServiceCheckInWhereInput[]
+    NOT?: PersonalizedServiceCheckInWhereInput | PersonalizedServiceCheckInWhereInput[]
+    id?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    orderId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    buyerId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    weekNumber?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    weight?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    energyLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    sleepQuality?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    stressLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    overallRpe?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    workoutAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    nutritionAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    painOrDiscomfort?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    notes?: StringNullableFilter<"PersonalizedServiceCheckIn"> | string | null
+    requiresAttention?: BoolFilter<"PersonalizedServiceCheckIn"> | boolean
+    createdAt?: DateTimeFilter<"PersonalizedServiceCheckIn"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }
+
+  export type PersonalizedServiceCheckInOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    weekNumber?: SortOrderInput | SortOrder
+    weight?: SortOrderInput | SortOrder
+    energyLevel?: SortOrderInput | SortOrder
+    sleepQuality?: SortOrderInput | SortOrder
+    stressLevel?: SortOrderInput | SortOrder
+    overallRpe?: SortOrderInput | SortOrder
+    workoutAdherence?: SortOrderInput | SortOrder
+    nutritionAdherence?: SortOrderInput | SortOrder
+    painOrDiscomfort?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    requiresAttention?: SortOrder
+    createdAt?: SortOrder
+    order?: PersonalizedServiceOrderOrderByWithRelationInput
+  }
+
+  export type PersonalizedServiceCheckInWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PersonalizedServiceCheckInWhereInput | PersonalizedServiceCheckInWhereInput[]
+    OR?: PersonalizedServiceCheckInWhereInput[]
+    NOT?: PersonalizedServiceCheckInWhereInput | PersonalizedServiceCheckInWhereInput[]
+    orderId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    buyerId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    weekNumber?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    weight?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    energyLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    sleepQuality?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    stressLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    overallRpe?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    workoutAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    nutritionAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    painOrDiscomfort?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    notes?: StringNullableFilter<"PersonalizedServiceCheckIn"> | string | null
+    requiresAttention?: BoolFilter<"PersonalizedServiceCheckIn"> | boolean
+    createdAt?: DateTimeFilter<"PersonalizedServiceCheckIn"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }, "id">
+
+  export type PersonalizedServiceCheckInOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    weekNumber?: SortOrderInput | SortOrder
+    weight?: SortOrderInput | SortOrder
+    energyLevel?: SortOrderInput | SortOrder
+    sleepQuality?: SortOrderInput | SortOrder
+    stressLevel?: SortOrderInput | SortOrder
+    overallRpe?: SortOrderInput | SortOrder
+    workoutAdherence?: SortOrderInput | SortOrder
+    nutritionAdherence?: SortOrderInput | SortOrder
+    painOrDiscomfort?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    requiresAttention?: SortOrder
+    createdAt?: SortOrder
+    _count?: PersonalizedServiceCheckInCountOrderByAggregateInput
+    _avg?: PersonalizedServiceCheckInAvgOrderByAggregateInput
+    _max?: PersonalizedServiceCheckInMaxOrderByAggregateInput
+    _min?: PersonalizedServiceCheckInMinOrderByAggregateInput
+    _sum?: PersonalizedServiceCheckInSumOrderByAggregateInput
+  }
+
+  export type PersonalizedServiceCheckInScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServiceCheckInScalarWhereWithAggregatesInput | PersonalizedServiceCheckInScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServiceCheckInScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServiceCheckInScalarWhereWithAggregatesInput | PersonalizedServiceCheckInScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedServiceCheckIn"> | string
+    orderId?: StringWithAggregatesFilter<"PersonalizedServiceCheckIn"> | string
+    buyerId?: StringWithAggregatesFilter<"PersonalizedServiceCheckIn"> | string
+    weekNumber?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    weight?: FloatNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    energyLevel?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    sleepQuality?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    stressLevel?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    overallRpe?: FloatNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    workoutAdherence?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    nutritionAdherence?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    painOrDiscomfort?: IntNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | number | null
+    notes?: StringNullableWithAggregatesFilter<"PersonalizedServiceCheckIn"> | string | null
+    requiresAttention?: BoolWithAggregatesFilter<"PersonalizedServiceCheckIn"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceCheckIn"> | Date | string
+  }
+
+  export type PersonalizedServiceReviewWhereInput = {
+    AND?: PersonalizedServiceReviewWhereInput | PersonalizedServiceReviewWhereInput[]
+    OR?: PersonalizedServiceReviewWhereInput[]
+    NOT?: PersonalizedServiceReviewWhereInput | PersonalizedServiceReviewWhereInput[]
+    id?: StringFilter<"PersonalizedServiceReview"> | string
+    orderId?: StringFilter<"PersonalizedServiceReview"> | string
+    buyerId?: StringFilter<"PersonalizedServiceReview"> | string
+    sellerId?: StringFilter<"PersonalizedServiceReview"> | string
+    overallRating?: IntFilter<"PersonalizedServiceReview"> | number
+    communicationRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    personalizationRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    planQualityRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    comment?: StringNullableFilter<"PersonalizedServiceReview"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServiceReview"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }
+
+  export type PersonalizedServiceReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    sellerId?: SortOrder
+    overallRating?: SortOrder
+    communicationRating?: SortOrderInput | SortOrder
+    personalizationRating?: SortOrderInput | SortOrder
+    planQualityRating?: SortOrderInput | SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    order?: PersonalizedServiceOrderOrderByWithRelationInput
+  }
+
+  export type PersonalizedServiceReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    orderId?: string
+    AND?: PersonalizedServiceReviewWhereInput | PersonalizedServiceReviewWhereInput[]
+    OR?: PersonalizedServiceReviewWhereInput[]
+    NOT?: PersonalizedServiceReviewWhereInput | PersonalizedServiceReviewWhereInput[]
+    buyerId?: StringFilter<"PersonalizedServiceReview"> | string
+    sellerId?: StringFilter<"PersonalizedServiceReview"> | string
+    overallRating?: IntFilter<"PersonalizedServiceReview"> | number
+    communicationRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    personalizationRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    planQualityRating?: IntNullableFilter<"PersonalizedServiceReview"> | number | null
+    comment?: StringNullableFilter<"PersonalizedServiceReview"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServiceReview"> | Date | string
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }, "id" | "orderId">
+
+  export type PersonalizedServiceReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    sellerId?: SortOrder
+    overallRating?: SortOrder
+    communicationRating?: SortOrderInput | SortOrder
+    personalizationRating?: SortOrderInput | SortOrder
+    planQualityRating?: SortOrderInput | SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PersonalizedServiceReviewCountOrderByAggregateInput
+    _avg?: PersonalizedServiceReviewAvgOrderByAggregateInput
+    _max?: PersonalizedServiceReviewMaxOrderByAggregateInput
+    _min?: PersonalizedServiceReviewMinOrderByAggregateInput
+    _sum?: PersonalizedServiceReviewSumOrderByAggregateInput
+  }
+
+  export type PersonalizedServiceReviewScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServiceReviewScalarWhereWithAggregatesInput | PersonalizedServiceReviewScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServiceReviewScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServiceReviewScalarWhereWithAggregatesInput | PersonalizedServiceReviewScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedServiceReview"> | string
+    orderId?: StringWithAggregatesFilter<"PersonalizedServiceReview"> | string
+    buyerId?: StringWithAggregatesFilter<"PersonalizedServiceReview"> | string
+    sellerId?: StringWithAggregatesFilter<"PersonalizedServiceReview"> | string
+    overallRating?: IntWithAggregatesFilter<"PersonalizedServiceReview"> | number
+    communicationRating?: IntNullableWithAggregatesFilter<"PersonalizedServiceReview"> | number | null
+    personalizationRating?: IntNullableWithAggregatesFilter<"PersonalizedServiceReview"> | number | null
+    planQualityRating?: IntNullableWithAggregatesFilter<"PersonalizedServiceReview"> | number | null
+    comment?: StringNullableWithAggregatesFilter<"PersonalizedServiceReview"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceReview"> | Date | string
+  }
+
+  export type PersonalizedServiceRevisionRequestWhereInput = {
+    AND?: PersonalizedServiceRevisionRequestWhereInput | PersonalizedServiceRevisionRequestWhereInput[]
+    OR?: PersonalizedServiceRevisionRequestWhereInput[]
+    NOT?: PersonalizedServiceRevisionRequestWhereInput | PersonalizedServiceRevisionRequestWhereInput[]
+    id?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    orderId?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    category?: EnumRevisionRequestCategoryFilter<"PersonalizedServiceRevisionRequest"> | $Enums.RevisionRequestCategory
+    comment?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    createdAt?: DateTimeFilter<"PersonalizedServiceRevisionRequest"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"PersonalizedServiceRevisionRequest"> | Date | string | null
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    category?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    order?: PersonalizedServiceOrderOrderByWithRelationInput
+  }
+
+  export type PersonalizedServiceRevisionRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PersonalizedServiceRevisionRequestWhereInput | PersonalizedServiceRevisionRequestWhereInput[]
+    OR?: PersonalizedServiceRevisionRequestWhereInput[]
+    NOT?: PersonalizedServiceRevisionRequestWhereInput | PersonalizedServiceRevisionRequestWhereInput[]
+    orderId?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    category?: EnumRevisionRequestCategoryFilter<"PersonalizedServiceRevisionRequest"> | $Enums.RevisionRequestCategory
+    comment?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    createdAt?: DateTimeFilter<"PersonalizedServiceRevisionRequest"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"PersonalizedServiceRevisionRequest"> | Date | string | null
+    order?: XOR<PersonalizedServiceOrderRelationFilter, PersonalizedServiceOrderWhereInput>
+  }, "id">
+
+  export type PersonalizedServiceRevisionRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    category?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    _count?: PersonalizedServiceRevisionRequestCountOrderByAggregateInput
+    _max?: PersonalizedServiceRevisionRequestMaxOrderByAggregateInput
+    _min?: PersonalizedServiceRevisionRequestMinOrderByAggregateInput
+  }
+
+  export type PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput = {
+    AND?: PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput | PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput[]
+    OR?: PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput[]
+    NOT?: PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput | PersonalizedServiceRevisionRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | string
+    orderId?: StringWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | string
+    category?: EnumRevisionRequestCategoryWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | $Enums.RevisionRequestCategory
+    comment?: StringWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | Date | string
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceRevisionRequest"> | Date | string | null
   }
 
   export type NutritionPlanWhereInput = {
@@ -18909,9 +31015,19 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
     reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
     packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateInput = {
@@ -18928,8 +31044,18 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
     packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUpdateInput = {
@@ -18945,9 +31071,19 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
     reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
     packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateInput = {
@@ -18964,8 +31100,18 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
     packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanCreateManyInput = {
@@ -18982,6 +31128,14 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
   }
 
   export type PublishedPlanUpdateManyMutationInput = {
@@ -18997,6 +31151,14 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PublishedPlanUncheckedUpdateManyInput = {
@@ -19013,6 +31175,111 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PlanModerationAnalysisCreateInput = {
+    id?: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+    publishedPlan: PublishedPlanCreateNestedOneWithoutModerationAnalysesInput
+  }
+
+  export type PlanModerationAnalysisUncheckedCreateInput = {
+    id?: string
+    publishedPlanId: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanModerationAnalysisUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedPlan?: PublishedPlanUpdateOneRequiredWithoutModerationAnalysesNestedInput
+  }
+
+  export type PlanModerationAnalysisUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanModerationAnalysisCreateManyInput = {
+    id?: string
+    publishedPlanId: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanModerationAnalysisUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanModerationAnalysisUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlanReviewCreateInput = {
@@ -19021,6 +31288,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
     publishedPlan: PublishedPlanCreateNestedOneWithoutReviewsInput
   }
 
@@ -19031,6 +31308,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
   }
 
   export type PlanReviewUpdateInput = {
@@ -19039,6 +31326,16 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
     publishedPlan?: PublishedPlanUpdateOneRequiredWithoutReviewsNestedInput
   }
 
@@ -19049,6 +31346,16 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PlanReviewCreateManyInput = {
@@ -19058,6 +31365,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
   }
 
   export type PlanReviewUpdateManyMutationInput = {
@@ -19066,6 +31383,16 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PlanReviewUncheckedUpdateManyInput = {
@@ -19074,6 +31401,162 @@ export namespace Prisma {
     reviewerId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PlanImprovementSuggestionCreateInput = {
+    id?: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+    publishedPlan: PublishedPlanCreateNestedOneWithoutImprovementSuggestionsInput
+  }
+
+  export type PlanImprovementSuggestionUncheckedCreateInput = {
+    id?: string
+    publishedPlanId: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+  }
+
+  export type PlanImprovementSuggestionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedPlan?: PublishedPlanUpdateOneRequiredWithoutImprovementSuggestionsNestedInput
+  }
+
+  export type PlanImprovementSuggestionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanImprovementSuggestionCreateManyInput = {
+    id?: string
+    publishedPlanId: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+  }
+
+  export type PlanImprovementSuggestionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanImprovementSuggestionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanAdoptionCreateInput = {
+    id?: string
+    publishedPlanId: string
+    adopterId: string
+    accessBasis: string
+    purchaseId?: string | null
+    wasCustomized?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanAdoptionUncheckedCreateInput = {
+    id?: string
+    publishedPlanId: string
+    adopterId: string
+    accessBasis: string
+    purchaseId?: string | null
+    wasCustomized?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanAdoptionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    adopterId?: StringFieldUpdateOperationsInput | string
+    accessBasis?: StringFieldUpdateOperationsInput | string
+    purchaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    wasCustomized?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanAdoptionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    adopterId?: StringFieldUpdateOperationsInput | string
+    accessBasis?: StringFieldUpdateOperationsInput | string
+    purchaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    wasCustomized?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanAdoptionCreateManyInput = {
+    id?: string
+    publishedPlanId: string
+    adopterId: string
+    accessBasis: string
+    purchaseId?: string | null
+    wasCustomized?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanAdoptionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    adopterId?: StringFieldUpdateOperationsInput | string
+    accessBasis?: StringFieldUpdateOperationsInput | string
+    purchaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    wasCustomized?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanAdoptionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    adopterId?: StringFieldUpdateOperationsInput | string
+    accessBasis?: StringFieldUpdateOperationsInput | string
+    purchaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    wasCustomized?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -19252,6 +31735,798 @@ export namespace Prisma {
     purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCreateInput = {
+    id?: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description?: string | null
+    price: number
+    deliverables: JsonNullValueInput | InputJsonValue
+    revisionLimit?: number | null
+    initialDeliveryDays: number
+    supportWeeks?: number | null
+    targetGoal?: string | null
+    targetLevel?: string | null
+    status?: $Enums.PersonalizedServiceStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    orders?: PersonalizedServiceOrderCreateNestedManyWithoutServiceInput
+  }
+
+  export type PersonalizedServiceUncheckedCreateInput = {
+    id?: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description?: string | null
+    price: number
+    deliverables: JsonNullValueInput | InputJsonValue
+    revisionLimit?: number | null
+    initialDeliveryDays: number
+    supportWeeks?: number | null
+    targetGoal?: string | null
+    targetLevel?: string | null
+    status?: $Enums.PersonalizedServiceStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    orders?: PersonalizedServiceOrderUncheckedCreateNestedManyWithoutServiceInput
+  }
+
+  export type PersonalizedServiceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orders?: PersonalizedServiceOrderUpdateManyWithoutServiceNestedInput
+  }
+
+  export type PersonalizedServiceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orders?: PersonalizedServiceOrderUncheckedUpdateManyWithoutServiceNestedInput
+  }
+
+  export type PersonalizedServiceCreateManyInput = {
+    id?: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description?: string | null
+    price: number
+    deliverables: JsonNullValueInput | InputJsonValue
+    revisionLimit?: number | null
+    initialDeliveryDays: number
+    supportWeeks?: number | null
+    targetGoal?: string | null
+    targetLevel?: string | null
+    status?: $Enums.PersonalizedServiceStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PersonalizedServiceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceOrderCreateInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
+    revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
+    revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderCreateManyInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PersonalizedServiceOrderUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionCreateInput = {
+    id?: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+    order: PersonalizedServiceOrderCreateNestedOneWithoutPlanVersionsInput
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: PersonalizedServiceOrderUpdateOneRequiredWithoutPlanVersionsNestedInput
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionCreateManyInput = {
+    id?: string
+    orderId: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInCreateInput = {
+    id?: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+    order: PersonalizedServiceOrderCreateNestedOneWithoutCheckInsInput
+  }
+
+  export type PersonalizedServiceCheckInUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceCheckInUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: PersonalizedServiceOrderUpdateOneRequiredWithoutCheckInsNestedInput
+  }
+
+  export type PersonalizedServiceCheckInUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInCreateManyInput = {
+    id?: string
+    orderId: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceCheckInUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceReviewCreateInput = {
+    id?: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating?: number | null
+    personalizationRating?: number | null
+    planQualityRating?: number | null
+    comment?: string | null
+    createdAt?: Date | string
+    order: PersonalizedServiceOrderCreateNestedOneWithoutReviewInput
+  }
+
+  export type PersonalizedServiceReviewUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating?: number | null
+    personalizationRating?: number | null
+    planQualityRating?: number | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: PersonalizedServiceOrderUpdateOneRequiredWithoutReviewNestedInput
+  }
+
+  export type PersonalizedServiceReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceReviewCreateManyInput = {
+    id?: string
+    orderId: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating?: number | null
+    personalizationRating?: number | null
+    planQualityRating?: number | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateInput = {
+    id?: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    order: PersonalizedServiceOrderCreateNestedOneWithoutRevisionRequestsInput
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    order?: PersonalizedServiceOrderUpdateOneRequiredWithoutRevisionRequestsNestedInput
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateManyInput = {
+    id?: string
+    orderId: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type NutritionPlanCreateInput = {
@@ -20367,6 +33642,17 @@ export namespace Prisma {
     not?: NestedEnumPublishModerationStatusFilter<$PrismaModel> | $Enums.PublishModerationStatus
   }
 
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
   export type WorkoutPlanRelationFilter = {
     is?: WorkoutPlanWhereInput
     isNot?: WorkoutPlanWhereInput
@@ -20384,11 +33670,31 @@ export namespace Prisma {
     none?: TrainingPackageWhereInput
   }
 
+  export type PlanImprovementSuggestionListRelationFilter = {
+    every?: PlanImprovementSuggestionWhereInput
+    some?: PlanImprovementSuggestionWhereInput
+    none?: PlanImprovementSuggestionWhereInput
+  }
+
+  export type PlanModerationAnalysisListRelationFilter = {
+    every?: PlanModerationAnalysisWhereInput
+    some?: PlanModerationAnalysisWhereInput
+    none?: PlanModerationAnalysisWhereInput
+  }
+
   export type PlanReviewOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type TrainingPackageOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PlanImprovementSuggestionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PlanModerationAnalysisOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -20406,11 +33712,21 @@ export namespace Prisma {
     publishedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    version?: SortOrder
+    previousVersionId?: SortOrder
+    changelog?: SortOrder
+    improvementReason?: SortOrder
+    approvedBy?: SortOrder
+    publisherIsVerifiedPt?: SortOrder
+    qualityScore?: SortOrder
+    qualityScoreComputedAt?: SortOrder
   }
 
   export type PublishedPlanAvgOrderByAggregateInput = {
     avgRating?: SortOrder
     ratingCount?: SortOrder
+    version?: SortOrder
+    qualityScore?: SortOrder
   }
 
   export type PublishedPlanMaxOrderByAggregateInput = {
@@ -20427,6 +33743,14 @@ export namespace Prisma {
     publishedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    version?: SortOrder
+    previousVersionId?: SortOrder
+    changelog?: SortOrder
+    improvementReason?: SortOrder
+    approvedBy?: SortOrder
+    publisherIsVerifiedPt?: SortOrder
+    qualityScore?: SortOrder
+    qualityScoreComputedAt?: SortOrder
   }
 
   export type PublishedPlanMinOrderByAggregateInput = {
@@ -20443,11 +33767,21 @@ export namespace Prisma {
     publishedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    version?: SortOrder
+    previousVersionId?: SortOrder
+    changelog?: SortOrder
+    improvementReason?: SortOrder
+    approvedBy?: SortOrder
+    publisherIsVerifiedPt?: SortOrder
+    qualityScore?: SortOrder
+    qualityScoreComputedAt?: SortOrder
   }
 
   export type PublishedPlanSumOrderByAggregateInput = {
     avgRating?: SortOrder
     ratingCount?: SortOrder
+    version?: SortOrder
+    qualityScore?: SortOrder
   }
 
   export type EnumPublishModerationStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -20460,9 +33794,94 @@ export namespace Prisma {
     _max?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
   }
 
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
   export type PublishedPlanRelationFilter = {
     is?: PublishedPlanWhereInput
     isNot?: PublishedPlanWhereInput
+  }
+
+  export type PlanModerationAnalysisCountOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    computedStats?: SortOrder
+    ruleFlags?: SortOrder
+    similarListings?: SortOrder
+    aiConcerns?: SortOrder
+    aiConfidenceScore?: SortOrder
+    aiRecommendation?: SortOrder
+    explanationForAdmin?: SortOrder
+    usedFallback?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanModerationAnalysisAvgOrderByAggregateInput = {
+    aiConfidenceScore?: SortOrder
+  }
+
+  export type PlanModerationAnalysisMaxOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    aiConfidenceScore?: SortOrder
+    aiRecommendation?: SortOrder
+    explanationForAdmin?: SortOrder
+    usedFallback?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanModerationAnalysisMinOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    aiConfidenceScore?: SortOrder
+    aiRecommendation?: SortOrder
+    explanationForAdmin?: SortOrder
+    usedFallback?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanModerationAnalysisSumOrderByAggregateInput = {
+    aiConfidenceScore?: SortOrder
+  }
+
+  export type BoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+  export type JsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type PlanReviewPublishedPlanIdReviewerIdCompoundUniqueInput = {
@@ -20477,10 +33896,25 @@ export namespace Prisma {
     rating?: SortOrder
     comment?: SortOrder
     createdAt?: SortOrder
+    goalFit?: SortOrder
+    difficultyFit?: SortOrder
+    enjoyment?: SortOrder
+    clarity?: SortOrder
+    equipmentFit?: SortOrder
+    timeFit?: SortOrder
+    resultsPerception?: SortOrder
+    wouldUseAgain?: SortOrder
+    complaintTags?: SortOrder
+    freeText?: SortOrder
   }
 
   export type PlanReviewAvgOrderByAggregateInput = {
     rating?: SortOrder
+    goalFit?: SortOrder
+    enjoyment?: SortOrder
+    clarity?: SortOrder
+    equipmentFit?: SortOrder
+    timeFit?: SortOrder
   }
 
   export type PlanReviewMaxOrderByAggregateInput = {
@@ -20490,6 +33924,15 @@ export namespace Prisma {
     rating?: SortOrder
     comment?: SortOrder
     createdAt?: SortOrder
+    goalFit?: SortOrder
+    difficultyFit?: SortOrder
+    enjoyment?: SortOrder
+    clarity?: SortOrder
+    equipmentFit?: SortOrder
+    timeFit?: SortOrder
+    resultsPerception?: SortOrder
+    wouldUseAgain?: SortOrder
+    freeText?: SortOrder
   }
 
   export type PlanReviewMinOrderByAggregateInput = {
@@ -20499,10 +33942,126 @@ export namespace Prisma {
     rating?: SortOrder
     comment?: SortOrder
     createdAt?: SortOrder
+    goalFit?: SortOrder
+    difficultyFit?: SortOrder
+    enjoyment?: SortOrder
+    clarity?: SortOrder
+    equipmentFit?: SortOrder
+    timeFit?: SortOrder
+    resultsPerception?: SortOrder
+    wouldUseAgain?: SortOrder
+    freeText?: SortOrder
   }
 
   export type PlanReviewSumOrderByAggregateInput = {
     rating?: SortOrder
+    goalFit?: SortOrder
+    enjoyment?: SortOrder
+    clarity?: SortOrder
+    equipmentFit?: SortOrder
+    timeFit?: SortOrder
+  }
+
+  export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type PlanImprovementSuggestionCountOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrder
+    suggestions?: SortOrder
+    commonComplaints?: SortOrder
+    summary?: SortOrder
+    generatedAt?: SortOrder
+  }
+
+  export type PlanImprovementSuggestionAvgOrderByAggregateInput = {
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrder
+  }
+
+  export type PlanImprovementSuggestionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrder
+    summary?: SortOrder
+    generatedAt?: SortOrder
+  }
+
+  export type PlanImprovementSuggestionMinOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrder
+    summary?: SortOrder
+    generatedAt?: SortOrder
+  }
+
+  export type PlanImprovementSuggestionSumOrderByAggregateInput = {
+    basedOnReviewCount?: SortOrder
+    qualityScoreSnapshot?: SortOrder
+  }
+
+  export type PlanAdoptionCountOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    adopterId?: SortOrder
+    accessBasis?: SortOrder
+    purchaseId?: SortOrder
+    wasCustomized?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanAdoptionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    adopterId?: SortOrder
+    accessBasis?: SortOrder
+    purchaseId?: SortOrder
+    wasCustomized?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanAdoptionMinOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    adopterId?: SortOrder
+    accessBasis?: SortOrder
+    purchaseId?: SortOrder
+    wasCustomized?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type EnumTrainingPackageStatusFilter<$PrismaModel = never> = {
@@ -20650,6 +34209,552 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
     _max?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPersonalizedServiceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceType | EnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel> | $Enums.PersonalizedServiceType
+  }
+
+  export type EnumPersonalizedServiceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceStatus | EnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel> | $Enums.PersonalizedServiceStatus
+  }
+
+  export type PersonalizedServiceOrderListRelationFilter = {
+    every?: PersonalizedServiceOrderWhereInput
+    some?: PersonalizedServiceOrderWhereInput
+    none?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServiceOrderOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PersonalizedServiceCountOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    serviceType?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    deliverables?: SortOrder
+    revisionLimit?: SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrder
+    targetGoal?: SortOrder
+    targetLevel?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceAvgOrderByAggregateInput = {
+    price?: SortOrder
+    revisionLimit?: SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrder
+  }
+
+  export type PersonalizedServiceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    serviceType?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    revisionLimit?: SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrder
+    targetGoal?: SortOrder
+    targetLevel?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceMinOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    serviceType?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    revisionLimit?: SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrder
+    targetGoal?: SortOrder
+    targetLevel?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceSumOrderByAggregateInput = {
+    price?: SortOrder
+    revisionLimit?: SortOrder
+    initialDeliveryDays?: SortOrder
+    supportWeeks?: SortOrder
+  }
+
+  export type EnumPersonalizedServiceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceType | EnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceTypeWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel>
+  }
+
+  export type EnumPersonalizedServiceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceStatus | EnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceStatusWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPersonalizedServiceOrderStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceOrderStatus | EnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel> | $Enums.PersonalizedServiceOrderStatus
+  }
+
+  export type PersonalizedServiceRelationFilter = {
+    is?: PersonalizedServiceWhereInput
+    isNot?: PersonalizedServiceWhereInput
+  }
+
+  export type PersonalizedServiceRevisionRequestListRelationFilter = {
+    every?: PersonalizedServiceRevisionRequestWhereInput
+    some?: PersonalizedServiceRevisionRequestWhereInput
+    none?: PersonalizedServiceRevisionRequestWhereInput
+  }
+
+  export type PersonalizedServicePlanVersionListRelationFilter = {
+    every?: PersonalizedServicePlanVersionWhereInput
+    some?: PersonalizedServicePlanVersionWhereInput
+    none?: PersonalizedServicePlanVersionWhereInput
+  }
+
+  export type PersonalizedServiceCheckInListRelationFilter = {
+    every?: PersonalizedServiceCheckInWhereInput
+    some?: PersonalizedServiceCheckInWhereInput
+    none?: PersonalizedServiceCheckInWhereInput
+  }
+
+  export type PersonalizedServiceReviewNullableRelationFilter = {
+    is?: PersonalizedServiceReviewWhereInput | null
+    isNot?: PersonalizedServiceReviewWhereInput | null
+  }
+
+  export type PersonalizedServiceRevisionRequestOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PersonalizedServicePlanVersionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PersonalizedServiceCheckInOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PersonalizedServiceOrderCountOrderByAggregateInput = {
+    id?: SortOrder
+    serviceId?: SortOrder
+    sellerId?: SortOrder
+    buyerId?: SortOrder
+    status?: SortOrder
+    titleSnapshot?: SortOrder
+    descriptionSnapshot?: SortOrder
+    serviceTypeSnapshot?: SortOrder
+    deliverablesSnapshot?: SortOrder
+    revisionLimitSnapshot?: SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    purchasedAt?: SortOrder
+    intakeData?: SortOrder
+    consentCategories?: SortOrder
+    intakeSubmittedAt?: SortOrder
+    contractId?: SortOrder
+    initialDeliveryDeadline?: SortOrder
+    draftContent?: SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    acceptedAt?: SortOrder
+    committedProgramId?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+    refundRequestedAt?: SortOrder
+    refundedAt?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    preRefundStatus?: SortOrder
+    cumulativeRefundedAmount?: SortOrder
+    refundResolvedBy?: SortOrder
+    refundResolvedAt?: SortOrder
+    refundResolutionNote?: SortOrder
+    refundDecision?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceOrderAvgOrderByAggregateInput = {
+    revisionLimitSnapshot?: SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrder
+    priceAtPurchase?: SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    cumulativeRefundedAmount?: SortOrder
+  }
+
+  export type PersonalizedServiceOrderMaxOrderByAggregateInput = {
+    id?: SortOrder
+    serviceId?: SortOrder
+    sellerId?: SortOrder
+    buyerId?: SortOrder
+    status?: SortOrder
+    titleSnapshot?: SortOrder
+    descriptionSnapshot?: SortOrder
+    serviceTypeSnapshot?: SortOrder
+    revisionLimitSnapshot?: SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    purchasedAt?: SortOrder
+    intakeSubmittedAt?: SortOrder
+    contractId?: SortOrder
+    initialDeliveryDeadline?: SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    acceptedAt?: SortOrder
+    committedProgramId?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+    refundRequestedAt?: SortOrder
+    refundedAt?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    preRefundStatus?: SortOrder
+    cumulativeRefundedAmount?: SortOrder
+    refundResolvedBy?: SortOrder
+    refundResolvedAt?: SortOrder
+    refundResolutionNote?: SortOrder
+    refundDecision?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceOrderMinOrderByAggregateInput = {
+    id?: SortOrder
+    serviceId?: SortOrder
+    sellerId?: SortOrder
+    buyerId?: SortOrder
+    status?: SortOrder
+    titleSnapshot?: SortOrder
+    descriptionSnapshot?: SortOrder
+    serviceTypeSnapshot?: SortOrder
+    revisionLimitSnapshot?: SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    purchasedAt?: SortOrder
+    intakeSubmittedAt?: SortOrder
+    contractId?: SortOrder
+    initialDeliveryDeadline?: SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    acceptedAt?: SortOrder
+    committedProgramId?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+    refundRequestedAt?: SortOrder
+    refundedAt?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    preRefundStatus?: SortOrder
+    cumulativeRefundedAmount?: SortOrder
+    refundResolvedBy?: SortOrder
+    refundResolvedAt?: SortOrder
+    refundResolutionNote?: SortOrder
+    refundDecision?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceOrderSumOrderByAggregateInput = {
+    revisionLimitSnapshot?: SortOrder
+    initialDeliveryDaysSnapshot?: SortOrder
+    supportWeeksSnapshot?: SortOrder
+    priceAtPurchase?: SortOrder
+    draftVersion?: SortOrder
+    revisionCount?: SortOrder
+    cumulativeRefundedAmount?: SortOrder
+  }
+
+  export type EnumPersonalizedServiceOrderStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceOrderStatus | EnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceOrderStatusWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceOrderStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPlanVersionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanVersionStatus | EnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanVersionStatusFilter<$PrismaModel> | $Enums.PlanVersionStatus
+  }
+
+  export type PersonalizedServiceOrderRelationFilter = {
+    is?: PersonalizedServiceOrderWhereInput
+    isNot?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServicePlanVersionOrderIdVersionCompoundUniqueInput = {
+    orderId: string
+    version: number
+  }
+
+  export type PersonalizedServicePlanVersionCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    version?: SortOrder
+    content?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    changeReason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServicePlanVersionAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type PersonalizedServicePlanVersionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    changeReason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServicePlanVersionMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    changeReason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServicePlanVersionSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type EnumPlanVersionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanVersionStatus | EnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanVersionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PlanVersionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlanVersionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPlanVersionStatusFilter<$PrismaModel>
+  }
+
+  export type PersonalizedServiceCheckInCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    weekNumber?: SortOrder
+    weight?: SortOrder
+    energyLevel?: SortOrder
+    sleepQuality?: SortOrder
+    stressLevel?: SortOrder
+    overallRpe?: SortOrder
+    workoutAdherence?: SortOrder
+    nutritionAdherence?: SortOrder
+    painOrDiscomfort?: SortOrder
+    notes?: SortOrder
+    requiresAttention?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceCheckInAvgOrderByAggregateInput = {
+    weekNumber?: SortOrder
+    weight?: SortOrder
+    energyLevel?: SortOrder
+    sleepQuality?: SortOrder
+    stressLevel?: SortOrder
+    overallRpe?: SortOrder
+    workoutAdherence?: SortOrder
+    nutritionAdherence?: SortOrder
+    painOrDiscomfort?: SortOrder
+  }
+
+  export type PersonalizedServiceCheckInMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    weekNumber?: SortOrder
+    weight?: SortOrder
+    energyLevel?: SortOrder
+    sleepQuality?: SortOrder
+    stressLevel?: SortOrder
+    overallRpe?: SortOrder
+    workoutAdherence?: SortOrder
+    nutritionAdherence?: SortOrder
+    painOrDiscomfort?: SortOrder
+    notes?: SortOrder
+    requiresAttention?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceCheckInMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    weekNumber?: SortOrder
+    weight?: SortOrder
+    energyLevel?: SortOrder
+    sleepQuality?: SortOrder
+    stressLevel?: SortOrder
+    overallRpe?: SortOrder
+    workoutAdherence?: SortOrder
+    nutritionAdherence?: SortOrder
+    painOrDiscomfort?: SortOrder
+    notes?: SortOrder
+    requiresAttention?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceCheckInSumOrderByAggregateInput = {
+    weekNumber?: SortOrder
+    weight?: SortOrder
+    energyLevel?: SortOrder
+    sleepQuality?: SortOrder
+    stressLevel?: SortOrder
+    overallRpe?: SortOrder
+    workoutAdherence?: SortOrder
+    nutritionAdherence?: SortOrder
+    painOrDiscomfort?: SortOrder
+  }
+
+  export type PersonalizedServiceReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    sellerId?: SortOrder
+    overallRating?: SortOrder
+    communicationRating?: SortOrder
+    personalizationRating?: SortOrder
+    planQualityRating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceReviewAvgOrderByAggregateInput = {
+    overallRating?: SortOrder
+    communicationRating?: SortOrder
+    personalizationRating?: SortOrder
+    planQualityRating?: SortOrder
+  }
+
+  export type PersonalizedServiceReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    sellerId?: SortOrder
+    overallRating?: SortOrder
+    communicationRating?: SortOrder
+    personalizationRating?: SortOrder
+    planQualityRating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    buyerId?: SortOrder
+    sellerId?: SortOrder
+    overallRating?: SortOrder
+    communicationRating?: SortOrder
+    personalizationRating?: SortOrder
+    planQualityRating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PersonalizedServiceReviewSumOrderByAggregateInput = {
+    overallRating?: SortOrder
+    communicationRating?: SortOrder
+    personalizationRating?: SortOrder
+    planQualityRating?: SortOrder
+  }
+
+  export type EnumRevisionRequestCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.RevisionRequestCategory | EnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel> | $Enums.RevisionRequestCategory
+  }
+
+  export type PersonalizedServiceRevisionRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    category?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceRevisionRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    category?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type PersonalizedServiceRevisionRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    category?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type EnumRevisionRequestCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RevisionRequestCategory | EnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumRevisionRequestCategoryWithAggregatesFilter<$PrismaModel> | $Enums.RevisionRequestCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel>
+    _max?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel>
   }
 
   export type NutritionPlanCountOrderByAggregateInput = {
@@ -21213,6 +35318,20 @@ export namespace Prisma {
     connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
   }
 
+  export type PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput> | PlanImprovementSuggestionCreateWithoutPublishedPlanInput[] | PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput | PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanImprovementSuggestionCreateManyPublishedPlanInputEnvelope
+    connect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+  }
+
+  export type PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput> | PlanModerationAnalysisCreateWithoutPublishedPlanInput[] | PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput | PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanModerationAnalysisCreateManyPublishedPlanInputEnvelope
+    connect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+  }
+
   export type PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput = {
     create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
     connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
@@ -21227,8 +35346,30 @@ export namespace Prisma {
     connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
   }
 
+  export type PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput> | PlanImprovementSuggestionCreateWithoutPublishedPlanInput[] | PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput | PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanImprovementSuggestionCreateManyPublishedPlanInputEnvelope
+    connect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+  }
+
+  export type PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput> | PlanModerationAnalysisCreateWithoutPublishedPlanInput[] | PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput | PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanModerationAnalysisCreateManyPublishedPlanInputEnvelope
+    connect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+  }
+
   export type EnumPublishModerationStatusFieldUpdateOperationsInput = {
     set?: $Enums.PublishModerationStatus
+  }
+
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
   export type WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput = {
@@ -21267,6 +35408,34 @@ export namespace Prisma {
     deleteMany?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
   }
 
+  export type PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput> | PlanImprovementSuggestionCreateWithoutPublishedPlanInput[] | PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput | PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanImprovementSuggestionUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanImprovementSuggestionUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanImprovementSuggestionCreateManyPublishedPlanInputEnvelope
+    set?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    disconnect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    delete?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    connect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    update?: PlanImprovementSuggestionUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanImprovementSuggestionUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanImprovementSuggestionUpdateManyWithWhereWithoutPublishedPlanInput | PlanImprovementSuggestionUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanImprovementSuggestionScalarWhereInput | PlanImprovementSuggestionScalarWhereInput[]
+  }
+
+  export type PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput> | PlanModerationAnalysisCreateWithoutPublishedPlanInput[] | PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput | PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanModerationAnalysisUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanModerationAnalysisUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanModerationAnalysisCreateManyPublishedPlanInputEnvelope
+    set?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    disconnect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    delete?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    connect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    update?: PlanModerationAnalysisUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanModerationAnalysisUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanModerationAnalysisUpdateManyWithWhereWithoutPublishedPlanInput | PlanModerationAnalysisUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanModerationAnalysisScalarWhereInput | PlanModerationAnalysisScalarWhereInput[]
+  }
+
   export type PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
     create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
     connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
@@ -21295,10 +35464,56 @@ export namespace Prisma {
     deleteMany?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
   }
 
+  export type PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput> | PlanImprovementSuggestionCreateWithoutPublishedPlanInput[] | PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput | PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanImprovementSuggestionUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanImprovementSuggestionUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanImprovementSuggestionCreateManyPublishedPlanInputEnvelope
+    set?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    disconnect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    delete?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    connect?: PlanImprovementSuggestionWhereUniqueInput | PlanImprovementSuggestionWhereUniqueInput[]
+    update?: PlanImprovementSuggestionUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanImprovementSuggestionUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanImprovementSuggestionUpdateManyWithWhereWithoutPublishedPlanInput | PlanImprovementSuggestionUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanImprovementSuggestionScalarWhereInput | PlanImprovementSuggestionScalarWhereInput[]
+  }
+
+  export type PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput> | PlanModerationAnalysisCreateWithoutPublishedPlanInput[] | PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput | PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanModerationAnalysisUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanModerationAnalysisUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanModerationAnalysisCreateManyPublishedPlanInputEnvelope
+    set?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    disconnect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    delete?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    connect?: PlanModerationAnalysisWhereUniqueInput | PlanModerationAnalysisWhereUniqueInput[]
+    update?: PlanModerationAnalysisUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanModerationAnalysisUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanModerationAnalysisUpdateManyWithWhereWithoutPublishedPlanInput | PlanModerationAnalysisUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanModerationAnalysisScalarWhereInput | PlanModerationAnalysisScalarWhereInput[]
+  }
+
+  export type PublishedPlanCreateNestedOneWithoutModerationAnalysesInput = {
+    create?: XOR<PublishedPlanCreateWithoutModerationAnalysesInput, PublishedPlanUncheckedCreateWithoutModerationAnalysesInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutModerationAnalysesInput
+    connect?: PublishedPlanWhereUniqueInput
+  }
+
+  export type PublishedPlanUpdateOneRequiredWithoutModerationAnalysesNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutModerationAnalysesInput, PublishedPlanUncheckedCreateWithoutModerationAnalysesInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutModerationAnalysesInput
+    upsert?: PublishedPlanUpsertWithoutModerationAnalysesInput
+    connect?: PublishedPlanWhereUniqueInput
+    update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutModerationAnalysesInput, PublishedPlanUpdateWithoutModerationAnalysesInput>, PublishedPlanUncheckedUpdateWithoutModerationAnalysesInput>
+  }
+
   export type PublishedPlanCreateNestedOneWithoutReviewsInput = {
     create?: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
     connectOrCreate?: PublishedPlanCreateOrConnectWithoutReviewsInput
     connect?: PublishedPlanWhereUniqueInput
+  }
+
+  export type NullableBoolFieldUpdateOperationsInput = {
+    set?: boolean | null
   }
 
   export type PublishedPlanUpdateOneRequiredWithoutReviewsNestedInput = {
@@ -21307,6 +35522,20 @@ export namespace Prisma {
     upsert?: PublishedPlanUpsertWithoutReviewsInput
     connect?: PublishedPlanWhereUniqueInput
     update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutReviewsInput, PublishedPlanUpdateWithoutReviewsInput>, PublishedPlanUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type PublishedPlanCreateNestedOneWithoutImprovementSuggestionsInput = {
+    create?: XOR<PublishedPlanCreateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedCreateWithoutImprovementSuggestionsInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutImprovementSuggestionsInput
+    connect?: PublishedPlanWhereUniqueInput
+  }
+
+  export type PublishedPlanUpdateOneRequiredWithoutImprovementSuggestionsNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedCreateWithoutImprovementSuggestionsInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutImprovementSuggestionsInput
+    upsert?: PublishedPlanUpsertWithoutImprovementSuggestionsInput
+    connect?: PublishedPlanWhereUniqueInput
+    update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutImprovementSuggestionsInput, PublishedPlanUpdateWithoutImprovementSuggestionsInput>, PublishedPlanUncheckedUpdateWithoutImprovementSuggestionsInput>
   }
 
   export type PublishedPlanCreateNestedOneWithoutPackagesInput = {
@@ -21385,6 +35614,296 @@ export namespace Prisma {
     upsert?: TrainingPackageUpsertWithoutPurchasesInput
     connect?: TrainingPackageWhereUniqueInput
     update?: XOR<XOR<TrainingPackageUpdateToOneWithWhereWithoutPurchasesInput, TrainingPackageUpdateWithoutPurchasesInput>, TrainingPackageUncheckedUpdateWithoutPurchasesInput>
+  }
+
+  export type PersonalizedServiceOrderCreateNestedManyWithoutServiceInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput> | PersonalizedServiceOrderCreateWithoutServiceInput[] | PersonalizedServiceOrderUncheckedCreateWithoutServiceInput[]
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutServiceInput | PersonalizedServiceOrderCreateOrConnectWithoutServiceInput[]
+    createMany?: PersonalizedServiceOrderCreateManyServiceInputEnvelope
+    connect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateNestedManyWithoutServiceInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput> | PersonalizedServiceOrderCreateWithoutServiceInput[] | PersonalizedServiceOrderUncheckedCreateWithoutServiceInput[]
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutServiceInput | PersonalizedServiceOrderCreateOrConnectWithoutServiceInput[]
+    createMany?: PersonalizedServiceOrderCreateManyServiceInputEnvelope
+    connect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+  }
+
+  export type EnumPersonalizedServiceTypeFieldUpdateOperationsInput = {
+    set?: $Enums.PersonalizedServiceType
+  }
+
+  export type EnumPersonalizedServiceStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PersonalizedServiceStatus
+  }
+
+  export type PersonalizedServiceOrderUpdateManyWithoutServiceNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput> | PersonalizedServiceOrderCreateWithoutServiceInput[] | PersonalizedServiceOrderUncheckedCreateWithoutServiceInput[]
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutServiceInput | PersonalizedServiceOrderCreateOrConnectWithoutServiceInput[]
+    upsert?: PersonalizedServiceOrderUpsertWithWhereUniqueWithoutServiceInput | PersonalizedServiceOrderUpsertWithWhereUniqueWithoutServiceInput[]
+    createMany?: PersonalizedServiceOrderCreateManyServiceInputEnvelope
+    set?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    disconnect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    delete?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    connect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    update?: PersonalizedServiceOrderUpdateWithWhereUniqueWithoutServiceInput | PersonalizedServiceOrderUpdateWithWhereUniqueWithoutServiceInput[]
+    updateMany?: PersonalizedServiceOrderUpdateManyWithWhereWithoutServiceInput | PersonalizedServiceOrderUpdateManyWithWhereWithoutServiceInput[]
+    deleteMany?: PersonalizedServiceOrderScalarWhereInput | PersonalizedServiceOrderScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateManyWithoutServiceNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput> | PersonalizedServiceOrderCreateWithoutServiceInput[] | PersonalizedServiceOrderUncheckedCreateWithoutServiceInput[]
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutServiceInput | PersonalizedServiceOrderCreateOrConnectWithoutServiceInput[]
+    upsert?: PersonalizedServiceOrderUpsertWithWhereUniqueWithoutServiceInput | PersonalizedServiceOrderUpsertWithWhereUniqueWithoutServiceInput[]
+    createMany?: PersonalizedServiceOrderCreateManyServiceInputEnvelope
+    set?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    disconnect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    delete?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    connect?: PersonalizedServiceOrderWhereUniqueInput | PersonalizedServiceOrderWhereUniqueInput[]
+    update?: PersonalizedServiceOrderUpdateWithWhereUniqueWithoutServiceInput | PersonalizedServiceOrderUpdateWithWhereUniqueWithoutServiceInput[]
+    updateMany?: PersonalizedServiceOrderUpdateManyWithWhereWithoutServiceInput | PersonalizedServiceOrderUpdateManyWithWhereWithoutServiceInput[]
+    deleteMany?: PersonalizedServiceOrderScalarWhereInput | PersonalizedServiceOrderScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceCreateNestedOneWithoutOrdersInput = {
+    create?: XOR<PersonalizedServiceCreateWithoutOrdersInput, PersonalizedServiceUncheckedCreateWithoutOrdersInput>
+    connectOrCreate?: PersonalizedServiceCreateOrConnectWithoutOrdersInput
+    connect?: PersonalizedServiceWhereUniqueInput
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput> | PersonalizedServiceRevisionRequestCreateWithoutOrderInput[] | PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput | PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServiceRevisionRequestCreateManyOrderInputEnvelope
+    connect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+  }
+
+  export type PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput> | PersonalizedServicePlanVersionCreateWithoutOrderInput[] | PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput | PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServicePlanVersionCreateManyOrderInputEnvelope
+    connect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+  }
+
+  export type PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput> | PersonalizedServiceCheckInCreateWithoutOrderInput[] | PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput | PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServiceCheckInCreateManyOrderInputEnvelope
+    connect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+  }
+
+  export type PersonalizedServiceReviewCreateNestedOneWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: PersonalizedServiceReviewCreateOrConnectWithoutOrderInput
+    connect?: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput> | PersonalizedServiceRevisionRequestCreateWithoutOrderInput[] | PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput | PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServiceRevisionRequestCreateManyOrderInputEnvelope
+    connect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput> | PersonalizedServicePlanVersionCreateWithoutOrderInput[] | PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput | PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServicePlanVersionCreateManyOrderInputEnvelope
+    connect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+  }
+
+  export type PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput> | PersonalizedServiceCheckInCreateWithoutOrderInput[] | PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput | PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput[]
+    createMany?: PersonalizedServiceCheckInCreateManyOrderInputEnvelope
+    connect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+  }
+
+  export type PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput = {
+    create?: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: PersonalizedServiceReviewCreateOrConnectWithoutOrderInput
+    connect?: PersonalizedServiceReviewWhereUniqueInput
+  }
+
+  export type EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PersonalizedServiceOrderStatus
+  }
+
+  export type PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput = {
+    create?: XOR<PersonalizedServiceCreateWithoutOrdersInput, PersonalizedServiceUncheckedCreateWithoutOrdersInput>
+    connectOrCreate?: PersonalizedServiceCreateOrConnectWithoutOrdersInput
+    upsert?: PersonalizedServiceUpsertWithoutOrdersInput
+    connect?: PersonalizedServiceWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceUpdateToOneWithWhereWithoutOrdersInput, PersonalizedServiceUpdateWithoutOrdersInput>, PersonalizedServiceUncheckedUpdateWithoutOrdersInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput> | PersonalizedServiceRevisionRequestCreateWithoutOrderInput[] | PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput | PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServiceRevisionRequestUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServiceRevisionRequestUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServiceRevisionRequestCreateManyOrderInputEnvelope
+    set?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    disconnect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    delete?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    connect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    update?: PersonalizedServiceRevisionRequestUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServiceRevisionRequestUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServiceRevisionRequestUpdateManyWithWhereWithoutOrderInput | PersonalizedServiceRevisionRequestUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServiceRevisionRequestScalarWhereInput | PersonalizedServiceRevisionRequestScalarWhereInput[]
+  }
+
+  export type PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput> | PersonalizedServicePlanVersionCreateWithoutOrderInput[] | PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput | PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServicePlanVersionUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServicePlanVersionUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServicePlanVersionCreateManyOrderInputEnvelope
+    set?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    disconnect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    delete?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    connect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    update?: PersonalizedServicePlanVersionUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServicePlanVersionUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServicePlanVersionUpdateManyWithWhereWithoutOrderInput | PersonalizedServicePlanVersionUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServicePlanVersionScalarWhereInput | PersonalizedServicePlanVersionScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput> | PersonalizedServiceCheckInCreateWithoutOrderInput[] | PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput | PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServiceCheckInUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServiceCheckInUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServiceCheckInCreateManyOrderInputEnvelope
+    set?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    disconnect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    delete?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    connect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    update?: PersonalizedServiceCheckInUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServiceCheckInUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServiceCheckInUpdateManyWithWhereWithoutOrderInput | PersonalizedServiceCheckInUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServiceCheckInScalarWhereInput | PersonalizedServiceCheckInScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: PersonalizedServiceReviewCreateOrConnectWithoutOrderInput
+    upsert?: PersonalizedServiceReviewUpsertWithoutOrderInput
+    disconnect?: PersonalizedServiceReviewWhereInput | boolean
+    delete?: PersonalizedServiceReviewWhereInput | boolean
+    connect?: PersonalizedServiceReviewWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceReviewUpdateToOneWithWhereWithoutOrderInput, PersonalizedServiceReviewUpdateWithoutOrderInput>, PersonalizedServiceReviewUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput> | PersonalizedServiceRevisionRequestCreateWithoutOrderInput[] | PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput | PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServiceRevisionRequestUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServiceRevisionRequestUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServiceRevisionRequestCreateManyOrderInputEnvelope
+    set?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    disconnect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    delete?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    connect?: PersonalizedServiceRevisionRequestWhereUniqueInput | PersonalizedServiceRevisionRequestWhereUniqueInput[]
+    update?: PersonalizedServiceRevisionRequestUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServiceRevisionRequestUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServiceRevisionRequestUpdateManyWithWhereWithoutOrderInput | PersonalizedServiceRevisionRequestUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServiceRevisionRequestScalarWhereInput | PersonalizedServiceRevisionRequestScalarWhereInput[]
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput> | PersonalizedServicePlanVersionCreateWithoutOrderInput[] | PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput | PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServicePlanVersionUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServicePlanVersionUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServicePlanVersionCreateManyOrderInputEnvelope
+    set?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    disconnect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    delete?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    connect?: PersonalizedServicePlanVersionWhereUniqueInput | PersonalizedServicePlanVersionWhereUniqueInput[]
+    update?: PersonalizedServicePlanVersionUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServicePlanVersionUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServicePlanVersionUpdateManyWithWhereWithoutOrderInput | PersonalizedServicePlanVersionUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServicePlanVersionScalarWhereInput | PersonalizedServicePlanVersionScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput> | PersonalizedServiceCheckInCreateWithoutOrderInput[] | PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput | PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput[]
+    upsert?: PersonalizedServiceCheckInUpsertWithWhereUniqueWithoutOrderInput | PersonalizedServiceCheckInUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: PersonalizedServiceCheckInCreateManyOrderInputEnvelope
+    set?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    disconnect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    delete?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    connect?: PersonalizedServiceCheckInWhereUniqueInput | PersonalizedServiceCheckInWhereUniqueInput[]
+    update?: PersonalizedServiceCheckInUpdateWithWhereUniqueWithoutOrderInput | PersonalizedServiceCheckInUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: PersonalizedServiceCheckInUpdateManyWithWhereWithoutOrderInput | PersonalizedServiceCheckInUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: PersonalizedServiceCheckInScalarWhereInput | PersonalizedServiceCheckInScalarWhereInput[]
+  }
+
+  export type PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput = {
+    create?: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: PersonalizedServiceReviewCreateOrConnectWithoutOrderInput
+    upsert?: PersonalizedServiceReviewUpsertWithoutOrderInput
+    disconnect?: PersonalizedServiceReviewWhereInput | boolean
+    delete?: PersonalizedServiceReviewWhereInput | boolean
+    connect?: PersonalizedServiceReviewWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceReviewUpdateToOneWithWhereWithoutOrderInput, PersonalizedServiceReviewUpdateWithoutOrderInput>, PersonalizedServiceReviewUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceOrderCreateNestedOneWithoutPlanVersionsInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedCreateWithoutPlanVersionsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutPlanVersionsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  export type EnumPlanVersionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PlanVersionStatus
+  }
+
+  export type PersonalizedServiceOrderUpdateOneRequiredWithoutPlanVersionsNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedCreateWithoutPlanVersionsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutPlanVersionsInput
+    upsert?: PersonalizedServiceOrderUpsertWithoutPlanVersionsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceOrderUpdateToOneWithWhereWithoutPlanVersionsInput, PersonalizedServiceOrderUpdateWithoutPlanVersionsInput>, PersonalizedServiceOrderUncheckedUpdateWithoutPlanVersionsInput>
+  }
+
+  export type PersonalizedServiceOrderCreateNestedOneWithoutCheckInsInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedCreateWithoutCheckInsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutCheckInsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  export type PersonalizedServiceOrderUpdateOneRequiredWithoutCheckInsNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedCreateWithoutCheckInsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutCheckInsInput
+    upsert?: PersonalizedServiceOrderUpsertWithoutCheckInsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceOrderUpdateToOneWithWhereWithoutCheckInsInput, PersonalizedServiceOrderUpdateWithoutCheckInsInput>, PersonalizedServiceOrderUncheckedUpdateWithoutCheckInsInput>
+  }
+
+  export type PersonalizedServiceOrderCreateNestedOneWithoutReviewInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutReviewInput, PersonalizedServiceOrderUncheckedCreateWithoutReviewInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutReviewInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  export type PersonalizedServiceOrderUpdateOneRequiredWithoutReviewNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutReviewInput, PersonalizedServiceOrderUncheckedCreateWithoutReviewInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutReviewInput
+    upsert?: PersonalizedServiceOrderUpsertWithoutReviewInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceOrderUpdateToOneWithWhereWithoutReviewInput, PersonalizedServiceOrderUpdateWithoutReviewInput>, PersonalizedServiceOrderUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type PersonalizedServiceOrderCreateNestedOneWithoutRevisionRequestsInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedCreateWithoutRevisionRequestsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutRevisionRequestsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+  }
+
+  export type EnumRevisionRequestCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.RevisionRequestCategory
+  }
+
+  export type PersonalizedServiceOrderUpdateOneRequiredWithoutRevisionRequestsNestedInput = {
+    create?: XOR<PersonalizedServiceOrderCreateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedCreateWithoutRevisionRequestsInput>
+    connectOrCreate?: PersonalizedServiceOrderCreateOrConnectWithoutRevisionRequestsInput
+    upsert?: PersonalizedServiceOrderUpsertWithoutRevisionRequestsInput
+    connect?: PersonalizedServiceOrderWhereUniqueInput
+    update?: XOR<XOR<PersonalizedServiceOrderUpdateToOneWithWhereWithoutRevisionRequestsInput, PersonalizedServiceOrderUpdateWithoutRevisionRequestsInput>, PersonalizedServiceOrderUncheckedUpdateWithoutRevisionRequestsInput>
   }
 
   export type KnowledgeDocumentCreateNestedManyWithoutSourceInput = {
@@ -21873,6 +36392,57 @@ export namespace Prisma {
     _max?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
   }
 
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+
+  export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
   export type NestedEnumTrainingPackageStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.TrainingPackageStatus | EnumTrainingPackageStatusFieldRefInput<$PrismaModel>
     in?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
@@ -21905,6 +36475,91 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
     _max?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPersonalizedServiceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceType | EnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel> | $Enums.PersonalizedServiceType
+  }
+
+  export type NestedEnumPersonalizedServiceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceStatus | EnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel> | $Enums.PersonalizedServiceStatus
+  }
+
+  export type NestedEnumPersonalizedServiceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceType | EnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceType[] | ListEnumPersonalizedServiceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceTypeWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPersonalizedServiceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceStatus | EnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceStatus[] | ListEnumPersonalizedServiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceStatusWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceOrderStatus | EnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel> | $Enums.PersonalizedServiceOrderStatus
+  }
+
+  export type NestedEnumPersonalizedServiceOrderStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PersonalizedServiceOrderStatus | EnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PersonalizedServiceOrderStatus[] | ListEnumPersonalizedServiceOrderStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPersonalizedServiceOrderStatusWithAggregatesFilter<$PrismaModel> | $Enums.PersonalizedServiceOrderStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel>
+    _max?: NestedEnumPersonalizedServiceOrderStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPlanVersionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanVersionStatus | EnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanVersionStatusFilter<$PrismaModel> | $Enums.PlanVersionStatus
+  }
+
+  export type NestedEnumPlanVersionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanVersionStatus | EnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanVersionStatus[] | ListEnumPlanVersionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanVersionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PlanVersionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlanVersionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPlanVersionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRevisionRequestCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.RevisionRequestCategory | EnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel> | $Enums.RevisionRequestCategory
+  }
+
+  export type NestedEnumRevisionRequestCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RevisionRequestCategory | EnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RevisionRequestCategory[] | ListEnumRevisionRequestCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumRevisionRequestCategoryWithAggregatesFilter<$PrismaModel> | $Enums.RevisionRequestCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel>
+    _max?: NestedEnumRevisionRequestCategoryFilter<$PrismaModel>
   }
 
   export type NestedEnumKnowledgeSourceTypeFilter<$PrismaModel = never> = {
@@ -22032,8 +36687,18 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
     packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateWithoutSourcePlanInput = {
@@ -22049,8 +36714,18 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
     packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanCreateOrConnectWithoutSourcePlanInput = {
@@ -22096,6 +36771,14 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
     updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    version?: IntFilter<"PublishedPlan"> | number
+    previousVersionId?: StringNullableFilter<"PublishedPlan"> | string | null
+    changelog?: StringNullableFilter<"PublishedPlan"> | string | null
+    improvementReason?: StringNullableFilter<"PublishedPlan"> | string | null
+    approvedBy?: StringNullableFilter<"PublishedPlan"> | string | null
+    publisherIsVerifiedPt?: BoolFilter<"PublishedPlan"> | boolean
+    qualityScore?: FloatNullableFilter<"PublishedPlan"> | number | null
+    qualityScoreComputedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
   }
 
   export type WorkoutPlanCreateWithoutPublishedListingsInput = {
@@ -22157,6 +36840,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
   }
 
   export type PlanReviewUncheckedCreateWithoutPublishedPlanInput = {
@@ -22165,6 +36858,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
   }
 
   export type PlanReviewCreateOrConnectWithoutPublishedPlanInput = {
@@ -22210,6 +36913,72 @@ export namespace Prisma {
 
   export type TrainingPackageCreateManyPublishedPlanInputEnvelope = {
     data: TrainingPackageCreateManyPublishedPlanInput | TrainingPackageCreateManyPublishedPlanInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlanImprovementSuggestionCreateWithoutPublishedPlanInput = {
+    id?: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+  }
+
+  export type PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput = {
+    id?: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+  }
+
+  export type PlanImprovementSuggestionCreateOrConnectWithoutPublishedPlanInput = {
+    where: PlanImprovementSuggestionWhereUniqueInput
+    create: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanImprovementSuggestionCreateManyPublishedPlanInputEnvelope = {
+    data: PlanImprovementSuggestionCreateManyPublishedPlanInput | PlanImprovementSuggestionCreateManyPublishedPlanInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlanModerationAnalysisCreateWithoutPublishedPlanInput = {
+    id?: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput = {
+    id?: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PlanModerationAnalysisCreateOrConnectWithoutPublishedPlanInput = {
+    where: PlanModerationAnalysisWhereUniqueInput
+    create: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanModerationAnalysisCreateManyPublishedPlanInputEnvelope = {
+    data: PlanModerationAnalysisCreateManyPublishedPlanInput | PlanModerationAnalysisCreateManyPublishedPlanInput[]
     skipDuplicates?: boolean
   }
 
@@ -22298,6 +37067,16 @@ export namespace Prisma {
     rating?: IntFilter<"PlanReview"> | number
     comment?: StringNullableFilter<"PlanReview"> | string | null
     createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+    goalFit?: IntNullableFilter<"PlanReview"> | number | null
+    difficultyFit?: StringNullableFilter<"PlanReview"> | string | null
+    enjoyment?: IntNullableFilter<"PlanReview"> | number | null
+    clarity?: IntNullableFilter<"PlanReview"> | number | null
+    equipmentFit?: IntNullableFilter<"PlanReview"> | number | null
+    timeFit?: IntNullableFilter<"PlanReview"> | number | null
+    resultsPerception?: StringNullableFilter<"PlanReview"> | string | null
+    wouldUseAgain?: BoolNullableFilter<"PlanReview"> | boolean | null
+    complaintTags?: JsonNullableFilter<"PlanReview">
+    freeText?: StringNullableFilter<"PlanReview"> | string | null
   }
 
   export type TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput = {
@@ -22332,6 +37111,193 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"TrainingPackage"> | Date | string
   }
 
+  export type PlanImprovementSuggestionUpsertWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanImprovementSuggestionWhereUniqueInput
+    update: XOR<PlanImprovementSuggestionUpdateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedUpdateWithoutPublishedPlanInput>
+    create: XOR<PlanImprovementSuggestionCreateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanImprovementSuggestionUpdateWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanImprovementSuggestionWhereUniqueInput
+    data: XOR<PlanImprovementSuggestionUpdateWithoutPublishedPlanInput, PlanImprovementSuggestionUncheckedUpdateWithoutPublishedPlanInput>
+  }
+
+  export type PlanImprovementSuggestionUpdateManyWithWhereWithoutPublishedPlanInput = {
+    where: PlanImprovementSuggestionScalarWhereInput
+    data: XOR<PlanImprovementSuggestionUpdateManyMutationInput, PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanInput>
+  }
+
+  export type PlanImprovementSuggestionScalarWhereInput = {
+    AND?: PlanImprovementSuggestionScalarWhereInput | PlanImprovementSuggestionScalarWhereInput[]
+    OR?: PlanImprovementSuggestionScalarWhereInput[]
+    NOT?: PlanImprovementSuggestionScalarWhereInput | PlanImprovementSuggestionScalarWhereInput[]
+    id?: StringFilter<"PlanImprovementSuggestion"> | string
+    publishedPlanId?: StringFilter<"PlanImprovementSuggestion"> | string
+    basedOnReviewCount?: IntFilter<"PlanImprovementSuggestion"> | number
+    qualityScoreSnapshot?: FloatNullableFilter<"PlanImprovementSuggestion"> | number | null
+    suggestions?: JsonFilter<"PlanImprovementSuggestion">
+    commonComplaints?: JsonFilter<"PlanImprovementSuggestion">
+    summary?: StringFilter<"PlanImprovementSuggestion"> | string
+    generatedAt?: DateTimeFilter<"PlanImprovementSuggestion"> | Date | string
+  }
+
+  export type PlanModerationAnalysisUpsertWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanModerationAnalysisWhereUniqueInput
+    update: XOR<PlanModerationAnalysisUpdateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedUpdateWithoutPublishedPlanInput>
+    create: XOR<PlanModerationAnalysisCreateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanModerationAnalysisUpdateWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanModerationAnalysisWhereUniqueInput
+    data: XOR<PlanModerationAnalysisUpdateWithoutPublishedPlanInput, PlanModerationAnalysisUncheckedUpdateWithoutPublishedPlanInput>
+  }
+
+  export type PlanModerationAnalysisUpdateManyWithWhereWithoutPublishedPlanInput = {
+    where: PlanModerationAnalysisScalarWhereInput
+    data: XOR<PlanModerationAnalysisUpdateManyMutationInput, PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanInput>
+  }
+
+  export type PlanModerationAnalysisScalarWhereInput = {
+    AND?: PlanModerationAnalysisScalarWhereInput | PlanModerationAnalysisScalarWhereInput[]
+    OR?: PlanModerationAnalysisScalarWhereInput[]
+    NOT?: PlanModerationAnalysisScalarWhereInput | PlanModerationAnalysisScalarWhereInput[]
+    id?: StringFilter<"PlanModerationAnalysis"> | string
+    publishedPlanId?: StringFilter<"PlanModerationAnalysis"> | string
+    computedStats?: JsonFilter<"PlanModerationAnalysis">
+    ruleFlags?: JsonFilter<"PlanModerationAnalysis">
+    similarListings?: JsonFilter<"PlanModerationAnalysis">
+    aiConcerns?: JsonFilter<"PlanModerationAnalysis">
+    aiConfidenceScore?: FloatFilter<"PlanModerationAnalysis"> | number
+    aiRecommendation?: StringFilter<"PlanModerationAnalysis"> | string
+    explanationForAdmin?: StringFilter<"PlanModerationAnalysis"> | string
+    usedFallback?: BoolFilter<"PlanModerationAnalysis"> | boolean
+    createdAt?: DateTimeFilter<"PlanModerationAnalysis"> | Date | string
+  }
+
+  export type PublishedPlanCreateWithoutModerationAnalysesInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
+    sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+    reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUncheckedCreateWithoutModerationAnalysesInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
+    reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanCreateOrConnectWithoutModerationAnalysesInput = {
+    where: PublishedPlanWhereUniqueInput
+    create: XOR<PublishedPlanCreateWithoutModerationAnalysesInput, PublishedPlanUncheckedCreateWithoutModerationAnalysesInput>
+  }
+
+  export type PublishedPlanUpsertWithoutModerationAnalysesInput = {
+    update: XOR<PublishedPlanUpdateWithoutModerationAnalysesInput, PublishedPlanUncheckedUpdateWithoutModerationAnalysesInput>
+    create: XOR<PublishedPlanCreateWithoutModerationAnalysesInput, PublishedPlanUncheckedCreateWithoutModerationAnalysesInput>
+    where?: PublishedPlanWhereInput
+  }
+
+  export type PublishedPlanUpdateToOneWithWhereWithoutModerationAnalysesInput = {
+    where?: PublishedPlanWhereInput
+    data: XOR<PublishedPlanUpdateWithoutModerationAnalysesInput, PublishedPlanUncheckedUpdateWithoutModerationAnalysesInput>
+  }
+
+  export type PublishedPlanUpdateWithoutModerationAnalysesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+    reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateWithoutModerationAnalysesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
   export type PublishedPlanCreateWithoutReviewsInput = {
     id?: string
     publisherId: string
@@ -22345,8 +37311,18 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
     packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateWithoutReviewsInput = {
@@ -22363,7 +37339,17 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanCreateOrConnectWithoutReviewsInput = {
@@ -22395,8 +37381,18 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
     packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateWithoutReviewsInput = {
@@ -22413,7 +37409,141 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanCreateWithoutImprovementSuggestionsInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
+    sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+    reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUncheckedCreateWithoutImprovementSuggestionsInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
+    reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanCreateOrConnectWithoutImprovementSuggestionsInput = {
+    where: PublishedPlanWhereUniqueInput
+    create: XOR<PublishedPlanCreateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedCreateWithoutImprovementSuggestionsInput>
+  }
+
+  export type PublishedPlanUpsertWithoutImprovementSuggestionsInput = {
+    update: XOR<PublishedPlanUpdateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedUpdateWithoutImprovementSuggestionsInput>
+    create: XOR<PublishedPlanCreateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedCreateWithoutImprovementSuggestionsInput>
+    where?: PublishedPlanWhereInput
+  }
+
+  export type PublishedPlanUpdateToOneWithWhereWithoutImprovementSuggestionsInput = {
+    where?: PublishedPlanWhereInput
+    data: XOR<PublishedPlanUpdateWithoutImprovementSuggestionsInput, PublishedPlanUncheckedUpdateWithoutImprovementSuggestionsInput>
+  }
+
+  export type PublishedPlanUpdateWithoutImprovementSuggestionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+    reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateWithoutImprovementSuggestionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanCreateWithoutPackagesInput = {
@@ -22429,8 +37559,18 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
     reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateWithoutPackagesInput = {
@@ -22447,7 +37587,17 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
     reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedCreateNestedManyWithoutPublishedPlanInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanCreateOrConnectWithoutPackagesInput = {
@@ -22511,8 +37661,18 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
     reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateWithoutPackagesInput = {
@@ -22529,7 +37689,17 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput = {
@@ -22629,6 +37799,1298 @@ export namespace Prisma {
     status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceOrderCreateWithoutServiceInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateWithoutServiceInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderCreateOrConnectWithoutServiceInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    create: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput>
+  }
+
+  export type PersonalizedServiceOrderCreateManyServiceInputEnvelope = {
+    data: PersonalizedServiceOrderCreateManyServiceInput | PersonalizedServiceOrderCreateManyServiceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PersonalizedServiceOrderUpsertWithWhereUniqueWithoutServiceInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    update: XOR<PersonalizedServiceOrderUpdateWithoutServiceInput, PersonalizedServiceOrderUncheckedUpdateWithoutServiceInput>
+    create: XOR<PersonalizedServiceOrderCreateWithoutServiceInput, PersonalizedServiceOrderUncheckedCreateWithoutServiceInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateWithWhereUniqueWithoutServiceInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    data: XOR<PersonalizedServiceOrderUpdateWithoutServiceInput, PersonalizedServiceOrderUncheckedUpdateWithoutServiceInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateManyWithWhereWithoutServiceInput = {
+    where: PersonalizedServiceOrderScalarWhereInput
+    data: XOR<PersonalizedServiceOrderUpdateManyMutationInput, PersonalizedServiceOrderUncheckedUpdateManyWithoutServiceInput>
+  }
+
+  export type PersonalizedServiceOrderScalarWhereInput = {
+    AND?: PersonalizedServiceOrderScalarWhereInput | PersonalizedServiceOrderScalarWhereInput[]
+    OR?: PersonalizedServiceOrderScalarWhereInput[]
+    NOT?: PersonalizedServiceOrderScalarWhereInput | PersonalizedServiceOrderScalarWhereInput[]
+    id?: StringFilter<"PersonalizedServiceOrder"> | string
+    serviceId?: StringFilter<"PersonalizedServiceOrder"> | string
+    sellerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    buyerId?: StringFilter<"PersonalizedServiceOrder"> | string
+    status?: EnumPersonalizedServiceOrderStatusFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFilter<"PersonalizedServiceOrder"> | string
+    descriptionSnapshot?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFilter<"PersonalizedServiceOrder"> | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonFilter<"PersonalizedServiceOrder">
+    revisionLimitSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
+    supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
+    priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
+    consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
+    intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    contractId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    initialDeliveryDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    draftContent?: JsonNullableFilter<"PersonalizedServiceOrder">
+    draftVersion?: IntFilter<"PersonalizedServiceOrder"> | number
+    revisionCount?: IntFilter<"PersonalizedServiceOrder"> | number
+    acceptedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    committedProgramId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    cancelReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundRequestedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    disputeReason?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    disputedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    preRefundStatus?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    cumulativeRefundedAmount?: FloatFilter<"PersonalizedServiceOrder"> | number
+    refundResolvedBy?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+    updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
+  }
+
+  export type PersonalizedServiceCreateWithoutOrdersInput = {
+    id?: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description?: string | null
+    price: number
+    deliverables: JsonNullValueInput | InputJsonValue
+    revisionLimit?: number | null
+    initialDeliveryDays: number
+    supportWeeks?: number | null
+    targetGoal?: string | null
+    targetLevel?: string | null
+    status?: $Enums.PersonalizedServiceStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PersonalizedServiceUncheckedCreateWithoutOrdersInput = {
+    id?: string
+    sellerId: string
+    serviceType: $Enums.PersonalizedServiceType
+    title: string
+    description?: string | null
+    price: number
+    deliverables: JsonNullValueInput | InputJsonValue
+    revisionLimit?: number | null
+    initialDeliveryDays: number
+    supportWeeks?: number | null
+    targetGoal?: string | null
+    targetLevel?: string | null
+    status?: $Enums.PersonalizedServiceStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PersonalizedServiceCreateOrConnectWithoutOrdersInput = {
+    where: PersonalizedServiceWhereUniqueInput
+    create: XOR<PersonalizedServiceCreateWithoutOrdersInput, PersonalizedServiceUncheckedCreateWithoutOrdersInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateWithoutOrderInput = {
+    id?: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput = {
+    id?: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateOrConnectWithoutOrderInput = {
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+    create: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateManyOrderInputEnvelope = {
+    data: PersonalizedServiceRevisionRequestCreateManyOrderInput | PersonalizedServiceRevisionRequestCreateManyOrderInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PersonalizedServicePlanVersionCreateWithoutOrderInput = {
+    id?: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput = {
+    id?: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServicePlanVersionCreateOrConnectWithoutOrderInput = {
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+    create: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServicePlanVersionCreateManyOrderInputEnvelope = {
+    data: PersonalizedServicePlanVersionCreateManyOrderInput | PersonalizedServicePlanVersionCreateManyOrderInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PersonalizedServiceCheckInCreateWithoutOrderInput = {
+    id?: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput = {
+    id?: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceCheckInCreateOrConnectWithoutOrderInput = {
+    where: PersonalizedServiceCheckInWhereUniqueInput
+    create: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceCheckInCreateManyOrderInputEnvelope = {
+    data: PersonalizedServiceCheckInCreateManyOrderInput | PersonalizedServiceCheckInCreateManyOrderInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PersonalizedServiceReviewCreateWithoutOrderInput = {
+    id?: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating?: number | null
+    personalizationRating?: number | null
+    planQualityRating?: number | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceReviewUncheckedCreateWithoutOrderInput = {
+    id?: string
+    buyerId: string
+    sellerId: string
+    overallRating: number
+    communicationRating?: number | null
+    personalizationRating?: number | null
+    planQualityRating?: number | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceReviewCreateOrConnectWithoutOrderInput = {
+    where: PersonalizedServiceReviewWhereUniqueInput
+    create: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceUpsertWithoutOrdersInput = {
+    update: XOR<PersonalizedServiceUpdateWithoutOrdersInput, PersonalizedServiceUncheckedUpdateWithoutOrdersInput>
+    create: XOR<PersonalizedServiceCreateWithoutOrdersInput, PersonalizedServiceUncheckedCreateWithoutOrdersInput>
+    where?: PersonalizedServiceWhereInput
+  }
+
+  export type PersonalizedServiceUpdateToOneWithWhereWithoutOrdersInput = {
+    where?: PersonalizedServiceWhereInput
+    data: XOR<PersonalizedServiceUpdateWithoutOrdersInput, PersonalizedServiceUncheckedUpdateWithoutOrdersInput>
+  }
+
+  export type PersonalizedServiceUpdateWithoutOrdersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceUncheckedUpdateWithoutOrdersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    serviceType?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    deliverables?: JsonNullValueInput | InputJsonValue
+    revisionLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDays?: IntFieldUpdateOperationsInput | number
+    supportWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    targetGoal?: NullableStringFieldUpdateOperationsInput | string | null
+    targetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPersonalizedServiceStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceRevisionRequestUpsertWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+    update: XOR<PersonalizedServiceRevisionRequestUpdateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedUpdateWithoutOrderInput>
+    create: XOR<PersonalizedServiceRevisionRequestCreateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServiceRevisionRequestWhereUniqueInput
+    data: XOR<PersonalizedServiceRevisionRequestUpdateWithoutOrderInput, PersonalizedServiceRevisionRequestUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateManyWithWhereWithoutOrderInput = {
+    where: PersonalizedServiceRevisionRequestScalarWhereInput
+    data: XOR<PersonalizedServiceRevisionRequestUpdateManyMutationInput, PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceRevisionRequestScalarWhereInput = {
+    AND?: PersonalizedServiceRevisionRequestScalarWhereInput | PersonalizedServiceRevisionRequestScalarWhereInput[]
+    OR?: PersonalizedServiceRevisionRequestScalarWhereInput[]
+    NOT?: PersonalizedServiceRevisionRequestScalarWhereInput | PersonalizedServiceRevisionRequestScalarWhereInput[]
+    id?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    orderId?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    category?: EnumRevisionRequestCategoryFilter<"PersonalizedServiceRevisionRequest"> | $Enums.RevisionRequestCategory
+    comment?: StringFilter<"PersonalizedServiceRevisionRequest"> | string
+    createdAt?: DateTimeFilter<"PersonalizedServiceRevisionRequest"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"PersonalizedServiceRevisionRequest"> | Date | string | null
+  }
+
+  export type PersonalizedServicePlanVersionUpsertWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+    update: XOR<PersonalizedServicePlanVersionUpdateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedUpdateWithoutOrderInput>
+    create: XOR<PersonalizedServicePlanVersionCreateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServicePlanVersionUpdateWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServicePlanVersionWhereUniqueInput
+    data: XOR<PersonalizedServicePlanVersionUpdateWithoutOrderInput, PersonalizedServicePlanVersionUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServicePlanVersionUpdateManyWithWhereWithoutOrderInput = {
+    where: PersonalizedServicePlanVersionScalarWhereInput
+    data: XOR<PersonalizedServicePlanVersionUpdateManyMutationInput, PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderInput>
+  }
+
+  export type PersonalizedServicePlanVersionScalarWhereInput = {
+    AND?: PersonalizedServicePlanVersionScalarWhereInput | PersonalizedServicePlanVersionScalarWhereInput[]
+    OR?: PersonalizedServicePlanVersionScalarWhereInput[]
+    NOT?: PersonalizedServicePlanVersionScalarWhereInput | PersonalizedServicePlanVersionScalarWhereInput[]
+    id?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    orderId?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    version?: IntFilter<"PersonalizedServicePlanVersion"> | number
+    content?: JsonFilter<"PersonalizedServicePlanVersion">
+    status?: EnumPlanVersionStatusFilter<"PersonalizedServicePlanVersion"> | $Enums.PlanVersionStatus
+    createdBy?: StringFilter<"PersonalizedServicePlanVersion"> | string
+    changeReason?: StringNullableFilter<"PersonalizedServicePlanVersion"> | string | null
+    createdAt?: DateTimeFilter<"PersonalizedServicePlanVersion"> | Date | string
+  }
+
+  export type PersonalizedServiceCheckInUpsertWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServiceCheckInWhereUniqueInput
+    update: XOR<PersonalizedServiceCheckInUpdateWithoutOrderInput, PersonalizedServiceCheckInUncheckedUpdateWithoutOrderInput>
+    create: XOR<PersonalizedServiceCheckInCreateWithoutOrderInput, PersonalizedServiceCheckInUncheckedCreateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceCheckInUpdateWithWhereUniqueWithoutOrderInput = {
+    where: PersonalizedServiceCheckInWhereUniqueInput
+    data: XOR<PersonalizedServiceCheckInUpdateWithoutOrderInput, PersonalizedServiceCheckInUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceCheckInUpdateManyWithWhereWithoutOrderInput = {
+    where: PersonalizedServiceCheckInScalarWhereInput
+    data: XOR<PersonalizedServiceCheckInUpdateManyMutationInput, PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceCheckInScalarWhereInput = {
+    AND?: PersonalizedServiceCheckInScalarWhereInput | PersonalizedServiceCheckInScalarWhereInput[]
+    OR?: PersonalizedServiceCheckInScalarWhereInput[]
+    NOT?: PersonalizedServiceCheckInScalarWhereInput | PersonalizedServiceCheckInScalarWhereInput[]
+    id?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    orderId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    buyerId?: StringFilter<"PersonalizedServiceCheckIn"> | string
+    weekNumber?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    weight?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    energyLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    sleepQuality?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    stressLevel?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    overallRpe?: FloatNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    workoutAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    nutritionAdherence?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    painOrDiscomfort?: IntNullableFilter<"PersonalizedServiceCheckIn"> | number | null
+    notes?: StringNullableFilter<"PersonalizedServiceCheckIn"> | string | null
+    requiresAttention?: BoolFilter<"PersonalizedServiceCheckIn"> | boolean
+    createdAt?: DateTimeFilter<"PersonalizedServiceCheckIn"> | Date | string
+  }
+
+  export type PersonalizedServiceReviewUpsertWithoutOrderInput = {
+    update: XOR<PersonalizedServiceReviewUpdateWithoutOrderInput, PersonalizedServiceReviewUncheckedUpdateWithoutOrderInput>
+    create: XOR<PersonalizedServiceReviewCreateWithoutOrderInput, PersonalizedServiceReviewUncheckedCreateWithoutOrderInput>
+    where?: PersonalizedServiceReviewWhereInput
+  }
+
+  export type PersonalizedServiceReviewUpdateToOneWithWhereWithoutOrderInput = {
+    where?: PersonalizedServiceReviewWhereInput
+    data: XOR<PersonalizedServiceReviewUpdateWithoutOrderInput, PersonalizedServiceReviewUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type PersonalizedServiceReviewUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceReviewUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    overallRating?: IntFieldUpdateOperationsInput | number
+    communicationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    personalizationRating?: NullableIntFieldUpdateOperationsInput | number | null
+    planQualityRating?: NullableIntFieldUpdateOperationsInput | number | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceOrderCreateWithoutPlanVersionsInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
+    revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateWithoutPlanVersionsInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderCreateOrConnectWithoutPlanVersionsInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    create: XOR<PersonalizedServiceOrderCreateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedCreateWithoutPlanVersionsInput>
+  }
+
+  export type PersonalizedServiceOrderUpsertWithoutPlanVersionsInput = {
+    update: XOR<PersonalizedServiceOrderUpdateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedUpdateWithoutPlanVersionsInput>
+    create: XOR<PersonalizedServiceOrderCreateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedCreateWithoutPlanVersionsInput>
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServiceOrderUpdateToOneWithWhereWithoutPlanVersionsInput = {
+    where?: PersonalizedServiceOrderWhereInput
+    data: XOR<PersonalizedServiceOrderUpdateWithoutPlanVersionsInput, PersonalizedServiceOrderUncheckedUpdateWithoutPlanVersionsInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateWithoutPlanVersionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
+    revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateWithoutPlanVersionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderCreateWithoutCheckInsInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
+    revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateWithoutCheckInsInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderCreateOrConnectWithoutCheckInsInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    create: XOR<PersonalizedServiceOrderCreateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedCreateWithoutCheckInsInput>
+  }
+
+  export type PersonalizedServiceOrderUpsertWithoutCheckInsInput = {
+    update: XOR<PersonalizedServiceOrderUpdateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedUpdateWithoutCheckInsInput>
+    create: XOR<PersonalizedServiceOrderCreateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedCreateWithoutCheckInsInput>
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServiceOrderUpdateToOneWithWhereWithoutCheckInsInput = {
+    where?: PersonalizedServiceOrderWhereInput
+    data: XOR<PersonalizedServiceOrderUpdateWithoutCheckInsInput, PersonalizedServiceOrderUncheckedUpdateWithoutCheckInsInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateWithoutCheckInsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
+    revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateWithoutCheckInsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderCreateWithoutReviewInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
+    revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateWithoutReviewInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderCreateOrConnectWithoutReviewInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    create: XOR<PersonalizedServiceOrderCreateWithoutReviewInput, PersonalizedServiceOrderUncheckedCreateWithoutReviewInput>
+  }
+
+  export type PersonalizedServiceOrderUpsertWithoutReviewInput = {
+    update: XOR<PersonalizedServiceOrderUpdateWithoutReviewInput, PersonalizedServiceOrderUncheckedUpdateWithoutReviewInput>
+    create: XOR<PersonalizedServiceOrderCreateWithoutReviewInput, PersonalizedServiceOrderUncheckedCreateWithoutReviewInput>
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServiceOrderUpdateToOneWithWhereWithoutReviewInput = {
+    where?: PersonalizedServiceOrderWhereInput
+    data: XOR<PersonalizedServiceOrderUpdateWithoutReviewInput, PersonalizedServiceOrderUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
+    revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderCreateWithoutRevisionRequestsInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
+    planVersions?: PersonalizedServicePlanVersionCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedCreateWithoutRevisionRequestsInput = {
+    id?: string
+    serviceId: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
+    checkIns?: PersonalizedServiceCheckInUncheckedCreateNestedManyWithoutOrderInput
+    review?: PersonalizedServiceReviewUncheckedCreateNestedOneWithoutOrderInput
+  }
+
+  export type PersonalizedServiceOrderCreateOrConnectWithoutRevisionRequestsInput = {
+    where: PersonalizedServiceOrderWhereUniqueInput
+    create: XOR<PersonalizedServiceOrderCreateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedCreateWithoutRevisionRequestsInput>
+  }
+
+  export type PersonalizedServiceOrderUpsertWithoutRevisionRequestsInput = {
+    update: XOR<PersonalizedServiceOrderUpdateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedUpdateWithoutRevisionRequestsInput>
+    create: XOR<PersonalizedServiceOrderCreateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedCreateWithoutRevisionRequestsInput>
+    where?: PersonalizedServiceOrderWhereInput
+  }
+
+  export type PersonalizedServiceOrderUpdateToOneWithWhereWithoutRevisionRequestsInput = {
+    where?: PersonalizedServiceOrderWhereInput
+    data: XOR<PersonalizedServiceOrderUpdateWithoutRevisionRequestsInput, PersonalizedServiceOrderUncheckedUpdateWithoutRevisionRequestsInput>
+  }
+
+  export type PersonalizedServiceOrderUpdateWithoutRevisionRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
+    planVersions?: PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateWithoutRevisionRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    serviceId?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput
   }
 
   export type KnowledgeDocumentCreateWithoutSourceInput = {
@@ -23121,6 +39583,14 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    version?: number
+    previousVersionId?: string | null
+    changelog?: string | null
+    improvementReason?: string | null
+    approvedBy?: string | null
+    publisherIsVerifiedPt?: boolean
+    qualityScore?: number | null
+    qualityScoreComputedAt?: Date | string | null
   }
 
   export type PublishedPlanUpdateWithoutSourcePlanInput = {
@@ -23136,8 +39606,18 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
     packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateWithoutSourcePlanInput = {
@@ -23153,8 +39633,18 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
     packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    improvementSuggestions?: PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    moderationAnalyses?: PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateManyWithoutSourcePlanInput = {
@@ -23170,6 +39660,14 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    previousVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    changelog?: NullableStringFieldUpdateOperationsInput | string | null
+    improvementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    publisherIsVerifiedPt?: BoolFieldUpdateOperationsInput | boolean
+    qualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    qualityScoreComputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PlanReviewCreateManyPublishedPlanInput = {
@@ -23178,6 +39676,16 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+    goalFit?: number | null
+    difficultyFit?: string | null
+    enjoyment?: number | null
+    clarity?: number | null
+    equipmentFit?: number | null
+    timeFit?: number | null
+    resultsPerception?: string | null
+    wouldUseAgain?: boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: string | null
   }
 
   export type TrainingPackageCreateManyPublishedPlanInput = {
@@ -23192,12 +39700,45 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type PlanImprovementSuggestionCreateManyPublishedPlanInput = {
+    id?: string
+    basedOnReviewCount: number
+    qualityScoreSnapshot?: number | null
+    suggestions: JsonNullValueInput | InputJsonValue
+    commonComplaints: JsonNullValueInput | InputJsonValue
+    summary: string
+    generatedAt?: Date | string
+  }
+
+  export type PlanModerationAnalysisCreateManyPublishedPlanInput = {
+    id?: string
+    computedStats: JsonNullValueInput | InputJsonValue
+    ruleFlags: JsonNullValueInput | InputJsonValue
+    similarListings: JsonNullValueInput | InputJsonValue
+    aiConcerns: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore: number
+    aiRecommendation: string
+    explanationForAdmin: string
+    usedFallback?: boolean
+    createdAt?: Date | string
+  }
+
   export type PlanReviewUpdateWithoutPublishedPlanInput = {
     id?: StringFieldUpdateOperationsInput | string
     reviewerId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PlanReviewUncheckedUpdateWithoutPublishedPlanInput = {
@@ -23206,6 +39747,16 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PlanReviewUncheckedUpdateManyWithoutPublishedPlanInput = {
@@ -23214,6 +39765,16 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    goalFit?: NullableIntFieldUpdateOperationsInput | number | null
+    difficultyFit?: NullableStringFieldUpdateOperationsInput | string | null
+    enjoyment?: NullableIntFieldUpdateOperationsInput | number | null
+    clarity?: NullableIntFieldUpdateOperationsInput | number | null
+    equipmentFit?: NullableIntFieldUpdateOperationsInput | number | null
+    timeFit?: NullableIntFieldUpdateOperationsInput | number | null
+    resultsPerception?: NullableStringFieldUpdateOperationsInput | string | null
+    wouldUseAgain?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    complaintTags?: NullableJsonNullValueInput | InputJsonValue
+    freeText?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type TrainingPackageUpdateWithoutPublishedPlanInput = {
@@ -23252,6 +39813,75 @@ export namespace Prisma {
     status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanImprovementSuggestionUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanImprovementSuggestionUncheckedUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanImprovementSuggestionUncheckedUpdateManyWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    basedOnReviewCount?: IntFieldUpdateOperationsInput | number
+    qualityScoreSnapshot?: NullableFloatFieldUpdateOperationsInput | number | null
+    suggestions?: JsonNullValueInput | InputJsonValue
+    commonComplaints?: JsonNullValueInput | InputJsonValue
+    summary?: StringFieldUpdateOperationsInput | string
+    generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanModerationAnalysisUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanModerationAnalysisUncheckedUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanModerationAnalysisUncheckedUpdateManyWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    computedStats?: JsonNullValueInput | InputJsonValue
+    ruleFlags?: JsonNullValueInput | InputJsonValue
+    similarListings?: JsonNullValueInput | InputJsonValue
+    aiConcerns?: JsonNullValueInput | InputJsonValue
+    aiConfidenceScore?: FloatFieldUpdateOperationsInput | number
+    aiRecommendation?: StringFieldUpdateOperationsInput | string
+    explanationForAdmin?: StringFieldUpdateOperationsInput | string
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TrainingPackagePurchaseCreateManyPackageInput = {
@@ -23296,6 +39926,318 @@ export namespace Prisma {
     purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceOrderCreateManyServiceInput = {
+    id?: string
+    sellerId: string
+    buyerId: string
+    status?: $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot: string
+    descriptionSnapshot?: string | null
+    serviceTypeSnapshot: $Enums.PersonalizedServiceType
+    deliverablesSnapshot: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: number | null
+    initialDeliveryDaysSnapshot: number
+    supportWeeksSnapshot?: number | null
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    purchasedAt?: Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: Date | string | null
+    contractId?: string | null
+    initialDeliveryDeadline?: Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: number
+    revisionCount?: number
+    acceptedAt?: Date | string | null
+    committedProgramId?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    refundRequestedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    preRefundStatus?: string | null
+    cumulativeRefundedAmount?: number
+    refundResolvedBy?: string | null
+    refundResolvedAt?: Date | string | null
+    refundResolutionNote?: string | null
+    refundDecision?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PersonalizedServiceOrderUpdateWithoutServiceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateWithoutServiceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
+    planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
+    checkIns?: PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderNestedInput
+    review?: PersonalizedServiceReviewUncheckedUpdateOneWithoutOrderNestedInput
+  }
+
+  export type PersonalizedServiceOrderUncheckedUpdateManyWithoutServiceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPersonalizedServiceOrderStatusFieldUpdateOperationsInput | $Enums.PersonalizedServiceOrderStatus
+    titleSnapshot?: StringFieldUpdateOperationsInput | string
+    descriptionSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    serviceTypeSnapshot?: EnumPersonalizedServiceTypeFieldUpdateOperationsInput | $Enums.PersonalizedServiceType
+    deliverablesSnapshot?: JsonNullValueInput | InputJsonValue
+    revisionLimitSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    intakeData?: NullableJsonNullValueInput | InputJsonValue
+    consentCategories?: NullableJsonNullValueInput | InputJsonValue
+    intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    initialDeliveryDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    draftContent?: NullableJsonNullValueInput | InputJsonValue
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    revisionCount?: IntFieldUpdateOperationsInput | number
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedProgramId?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preRefundStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    cumulativeRefundedAmount?: FloatFieldUpdateOperationsInput | number
+    refundResolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceRevisionRequestCreateManyOrderInput = {
+    id?: string
+    category: $Enums.RevisionRequestCategory
+    comment: string
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type PersonalizedServicePlanVersionCreateManyOrderInput = {
+    id?: string
+    version: number
+    content: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanVersionStatus
+    createdBy: string
+    changeReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceCheckInCreateManyOrderInput = {
+    id?: string
+    buyerId: string
+    weekNumber?: number | null
+    weight?: number | null
+    energyLevel?: number | null
+    sleepQuality?: number | null
+    stressLevel?: number | null
+    overallRpe?: number | null
+    workoutAdherence?: number | null
+    nutritionAdherence?: number | null
+    painOrDiscomfort?: number | null
+    notes?: string | null
+    requiresAttention?: boolean
+    createdAt?: Date | string
+  }
+
+  export type PersonalizedServiceRevisionRequestUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumRevisionRequestCategoryFieldUpdateOperationsInput | $Enums.RevisionRequestCategory
+    comment?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PersonalizedServicePlanVersionUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    content?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanVersionStatusFieldUpdateOperationsInput | $Enums.PlanVersionStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    changeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PersonalizedServiceCheckInUncheckedUpdateManyWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    weekNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    weight?: NullableFloatFieldUpdateOperationsInput | number | null
+    energyLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    sleepQuality?: NullableIntFieldUpdateOperationsInput | number | null
+    stressLevel?: NullableIntFieldUpdateOperationsInput | number | null
+    overallRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    workoutAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    nutritionAdherence?: NullableIntFieldUpdateOperationsInput | number | null
+    painOrDiscomfort?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    requiresAttention?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type KnowledgeDocumentCreateManySourceInput = {
@@ -23468,6 +40410,14 @@ export namespace Prisma {
      */
     export type TrainingPackageCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingPackageCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use PersonalizedServiceCountOutputTypeDefaultArgs instead
+     */
+    export type PersonalizedServiceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceOrderCountOutputTypeDefaultArgs instead
+     */
+    export type PersonalizedServiceOrderCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceOrderCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use KnowledgeSourceCountOutputTypeDefaultArgs instead
      */
     export type KnowledgeSourceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
@@ -23496,9 +40446,21 @@ export namespace Prisma {
      */
     export type PublishedPlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PublishedPlanDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use PlanModerationAnalysisDefaultArgs instead
+     */
+    export type PlanModerationAnalysisArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanModerationAnalysisDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use PlanReviewDefaultArgs instead
      */
     export type PlanReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PlanImprovementSuggestionDefaultArgs instead
+     */
+    export type PlanImprovementSuggestionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanImprovementSuggestionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PlanAdoptionDefaultArgs instead
+     */
+    export type PlanAdoptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanAdoptionDefaultArgs<ExtArgs>
     /**
      * @deprecated Use TrainingPackageDefaultArgs instead
      */
@@ -23507,6 +40469,30 @@ export namespace Prisma {
      * @deprecated Use TrainingPackagePurchaseDefaultArgs instead
      */
     export type TrainingPackagePurchaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingPackagePurchaseDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceDefaultArgs instead
+     */
+    export type PersonalizedServiceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceOrderDefaultArgs instead
+     */
+    export type PersonalizedServiceOrderArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceOrderDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServicePlanVersionDefaultArgs instead
+     */
+    export type PersonalizedServicePlanVersionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServicePlanVersionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceCheckInDefaultArgs instead
+     */
+    export type PersonalizedServiceCheckInArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceCheckInDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceReviewDefaultArgs instead
+     */
+    export type PersonalizedServiceReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PersonalizedServiceRevisionRequestDefaultArgs instead
+     */
+    export type PersonalizedServiceRevisionRequestArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PersonalizedServiceRevisionRequestDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionPlanDefaultArgs instead
      */

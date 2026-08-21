@@ -5,6 +5,8 @@ import { profileRepository } from "../repositories/profile.repository";
 import { PrismaClient, PTApplicationStatus } from "../generated/prisma";
 import { ptApplicationsTotal } from "@gym-coach/shared";
 import { signPtApplicationDocumentUrls } from "../utils/ptDocumentUrl.util";
+import { assignReferralCodeIfMissing } from "../utils/referralCode";
+import { availabilityService } from "./availability.service";
 
 const prisma = new PrismaClient();
 
@@ -175,7 +177,18 @@ async function syncRoleToPT(userId: string): Promise<void> {
 export const ptApplicationService = {
   async getMe(userId: string) {
     const app = await ptApplicationRepository.findByUserId(userId);
-    return app ? signPtApplicationDocumentUrls(app) : app;
+    if (app) {
+      const signed = signPtApplicationDocumentUrls(app);
+      // B7a: Read availability directly from PTAvailability instead of PTApplication
+      const avail = await availabilityService.getAvailability(userId);
+      (signed as any).availabilityBlocks = avail.map((a: any) => ({
+        dayOfWeek: a.dayOfWeek,
+        startTime: a.startTime,
+        endTime: a.endTime,
+      }));
+      return signed;
+    }
+    return app;
   },
 
   async saveDraft(userId: string, data: any) {
@@ -196,6 +209,13 @@ export const ptApplicationService = {
     // Validate location data if provided
     await validateLocationData(data);
     await validatePriceFields(data);
+
+    // B7a: Save availability to PTAvailability directly
+    if (data.availabilityBlocks) {
+      await availabilityService.setAvailability(userId, data.availabilityBlocks);
+      // Remove from data so it doesn't pollute the JSON field in PTApplication
+      delete data.availabilityBlocks;
+    }
 
     return ptApplicationRepository.upsertDraft(profile.id, data);
   },
@@ -364,6 +384,7 @@ export const ptApplicationService = {
       // Perform role sync and profile update
       await syncRoleToPT(app.userProfile.userId);
       await profileRepository.setIsPT(app.userProfile.userId, true);
+      await assignReferralCodeIfMissing(app.userProfile.userId);
 
       // Create PTTrainingLocation records from application (idempotent)
       const rawLocations: any[] =
@@ -416,6 +437,15 @@ export const ptApplicationService = {
   async getById(id: string) {
     const app = await ptApplicationRepository.findById(id);
     if (!app) return null;
-    return signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
+    
+    const enriched = signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
+    // B7b: Attach availability blocks from PTAvailability for admin
+    const avail = await availabilityService.getAvailability(app.userProfile.userId);
+    (enriched as any).availabilityBlocks = avail.map((a: any) => ({
+      dayOfWeek: a.dayOfWeek,
+      startTime: a.startTime,
+      endTime: a.endTime,
+    }));
+    return enriched;
   },
 };

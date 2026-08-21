@@ -1,13 +1,29 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, FileText, Loader2, Store, X } from "lucide-react";
-import { marketplaceService, type PublishedPlanListing } from "../../services/api";
+import { Check, ChevronDown, FileText, Loader2, ShieldAlert, ShieldCheck, Store, X } from "lucide-react";
+import { marketplaceService } from "../../services/api";
 
 const FILTERS: Record<string, string> = {
   SUBMITTED: "Chờ duyệt",
   APPROVED: "Đã duyệt",
   REJECTED: "Đã từ chối",
+};
+
+const RECOMMENDATION_CONFIG: Record<string, { label: string; className: string }> = {
+  likely_safe: { label: "AI: Có vẻ ổn", className: "text-green-400 bg-green-500/10 border-green-500/30" },
+  needs_review: { label: "AI: Cần xem kỹ", className: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
+  likely_unsafe: { label: "AI: Nguy cơ cao", className: "text-red-400 bg-red-500/10 border-red-500/30" },
+};
+
+const RULE_FLAG_LABEL: Record<string, string> = {
+  NO_REST_DAY: "Không có ngày nghỉ (7/7 ngày)",
+  HIGH_FREQUENCY_WITHOUT_PROGRESSION_NOTES: "Tần suất cao nhưng thiếu ghi chú tiến trình",
+  EXCESSIVE_VOLUME_PER_SESSION: "Volume một buổi quá cao",
+  EXCESSIVE_SETS_SINGLE_EXERCISE: "Một bài tập có quá nhiều set",
+  MISSING_RECOVERY_NOTES_HIGH_FREQUENCY: "Tần suất cao nhưng thiếu ghi chú hồi phục",
+  DUPLICATE_EXERCISE_SAME_SESSION: "Trùng bài tập trong cùng buổi",
+  EMPTY_SCHEDULE: "Lịch tập trống",
 };
 
 export function MarketplaceModeration() {
@@ -44,7 +60,8 @@ export function MarketplaceModeration() {
     },
   });
 
-  const listings: PublishedPlanListing[] = listQuery.data ?? [];
+  const listings = listQuery.data ?? [];
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
@@ -103,13 +120,82 @@ export function MarketplaceModeration() {
                   </p>
                 </div>
               </div>
+              {(() => {
+                const analysis = listing.moderationAnalyses?.[0];
+                if (!analysis) return null;
+                const rec = RECOMMENDATION_CONFIG[analysis.aiRecommendation] ?? RECOMMENDATION_CONFIG.needs_review;
+                return (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border font-semibold ${rec.className}`}>
+                        <ShieldAlert className="w-3 h-3" /> {rec.label} ({Math.round(analysis.aiConfidenceScore * 100)}% tin cậy)
+                      </span>
+                      {analysis.usedFallback && (
+                        <span className="text-[10px] text-zinc-600 italic">AI không phản hồi được — chỉ dựa trên rule</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-400">{analysis.explanationForAdmin}</p>
+                    {analysis.ruleFlags.length > 0 && (
+                      <ul className="text-[11px] text-amber-300/80 list-disc list-inside">
+                        {analysis.ruleFlags.map((f) => (
+                          <li key={f}>{RULE_FLAG_LABEL[f] ?? f}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {analysis.similarListings.length > 0 && (
+                      <p className="text-[11px] text-red-300/80">
+                        ⚠ Có thể trùng lặp với: {analysis.similarListings.map((s) => `${s.title} (${Math.round(s.similarityScore * 100)}%)`).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <button
+                type="button"
+                onClick={() => setExpandedId(expandedId === listing.id ? null : listing.id)}
+                className="mt-3 flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200"
+              >
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedId === listing.id ? "rotate-180" : ""}`} />
+                Xem nội dung lịch tập ({listing.sourcePlan?.plan?.weeklySchedule?.length ?? 0} buổi)
+              </button>
+              {expandedId === listing.id && (
+                <div className="mt-2 space-y-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
+                  {(listing.sourcePlan?.plan?.weeklySchedule ?? []).map((day, i) => (
+                    <div key={i}>
+                      <p className="text-xs font-semibold text-zinc-300">{day.day}{day.goal ? ` — ${day.goal}` : ""}</p>
+                      <ul className="mt-1 space-y-0.5">
+                        {day.exercises.map((ex, j) => (
+                          <li key={j} className="text-[11px] text-zinc-500">
+                            {ex.name} — {ex.sets}×{ex.reps}
+                          </li>
+                        ))}
+                      </ul>
+                      {day.cardio && <p className="mt-0.5 text-[11px] text-zinc-600 italic">Cardio: {day.cardio}</p>}
+                    </div>
+                  ))}
+                  {(!listing.sourcePlan?.plan?.weeklySchedule || listing.sourcePlan.plan.weeklySchedule.length === 0) && (
+                    <p className="text-[11px] text-zinc-600">Không có dữ liệu lịch tập.</p>
+                  )}
+                </div>
+              )}
+
               {listing.description && (
                 <p className="mt-3 text-sm text-zinc-400">
                   {listing.description}
                 </p>
               )}
-              <p className="mt-3 text-xs text-zinc-600">
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-zinc-600">
                 Người đăng: {listing.publisherId}
+                {listing.publisherIsVerifiedPt ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold text-sky-400">
+                    <ShieldCheck className="h-3 w-3" /> PT xác thực
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[10px] text-zinc-500">
+                    Người dùng thường
+                  </span>
+                )}
               </p>
               {listing.moderationStatus === "REJECTED" &&
                 listing.moderationNote && (

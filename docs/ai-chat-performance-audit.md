@@ -2,6 +2,9 @@
 
 Scope: AI Coach chat latency for requests such as `Phan tich InBody moi nhat cua toi`.
 
+Status: current diagnostic reference. Runtime defaults come from
+`infra/compose/docker-compose.dev.yml` and `.env.example`.
+
 ## Request Flow
 
 Frontend:
@@ -44,10 +47,11 @@ Default limits:
 - Profile/context fetch: `AI_CHAT_CONTEXT_TIMEOUT_MS`, default `5000`.
 - RAG retrieval: `AI_CHAT_RAG_TIMEOUT_MS`, default `8000`.
 - Body-composition evidence: `AI_CHAT_EVIDENCE_TIMEOUT_MS`, default `8000`.
-- Embedding call: `EMBEDDING_TIMEOUT_MS`, default `8000`.
-- LLM generation: `AI_CHAT_LLM_TIMEOUT_MS` or `LLM_TIMEOUT_MS`, default `60000`.
-  For local dev on CPU, prefer `AI_CHAT_LLM_TIMEOUT_MS=30000` so a cold or
-  overloaded Ollama instance falls back quickly.
+- Embedding call: `RAG_EMBEDDING_TIMEOUT_MS` or `EMBEDDING_TIMEOUT_MS`;
+  Compose defaults to `120000` for the host Ollama runtime.
+- LLM generation: `AI_CHAT_LLM_TIMEOUT_MS` or `LLM_TIMEOUT_MS`; Compose defaults
+  to `300000`. Use a shorter chat-specific override only when fast fallback is
+  more important than allowing a cold model to finish.
 - Frontend stream timeout: `75000`.
 
 Fallback policy:
@@ -92,7 +96,7 @@ pnpm --filter @gym-coach/ai-service run ai:debug:chat -- "Phan tich InBody moi n
 If Ollama models are missing:
 
 ```bash
-ollama pull llama3.2:3b
+ollama list
 ollama pull nomic-embed-text
 ```
 

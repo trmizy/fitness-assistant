@@ -53,15 +53,132 @@ model Exercise {
   muscleGroupsActivated String[]       @map("muscle_groups_activated")
   instructions          String
   videoUrl              String?        @map("video_url")
+  // Additive fields bringing the production schema closer to the richer
+  // curated catalog already in data/catalog/plans/gym_exercises.csv (see
+  // docs/TRAINING_KNOWLEDGE_BASE_PLAN.md §1) — free-text/taxonomy-driven
+  // rather than a hard Prisma enum since data/catalog/taxonomy/ref_*.csv
+  // is the evolving source of truth for allowed values, not this schema.
+  movementPattern       String?        @map("movement_pattern") // e.g. "horizontal_push", "hip_hinge" — see ref_movement_patterns.csv
+  mechanics             String?        // "compound" | "isolation"
+  contraindications     String[]       @default([]) @map("contraindications")
+  // Onboarding/equipment-catalog integration (2026 gym-onboarding project) —
+  // "beginner" | "intermediate" | "expert", sourced from the same raw
+  // free-exercise-db dataset typeOfEquipment/mechanics already draw from
+  // (prisma/raw_exercises.json `level` field) but never previously captured.
+  // Advisory only — never a hard filter, just an input the generator can
+  // weight for beginner-appropriate exercise selection.
+  difficultyLevel       String?        @map("difficulty_level")
+  // Gate 6/12 (exercise/anatomy data-expansion roadmap) — rollout status.
+  // "STAGING" | "REVIEW_REQUIRED" | "APPROVED" | "PUBLISHED" | "DEPRECATED" | "REJECTED".
+  // Every one of the 883 pre-existing rows is explicitly backfilled to
+  // "PUBLISHED" by the migration that adds this column — this is a hard
+  // floor gating the AI-plan-generation and general browse/search paths
+  // (never the by-id history-resolution path, which must keep resolving
+  // regardless of status), so a freshly-imported exercise never reaches a
+  // real user until deliberately promoted.
+  status                String         @default("PUBLISHED")
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   workoutExercises        WorkoutExercise[]
   workoutProgramExercises WorkoutProgramExercise[]
+  equipmentLinks           ExerciseEquipment[]
+  // Gate 4 (exercise/anatomy data-expansion roadmap) — additive-only
+  // provenance/localization/muscle-mapping, none of which changes this
+  // row's own id or any existing column. See ExerciseSource/ExerciseAlias/
+  // ExerciseMuscle below for why these are separate child tables rather
+  // than new columns here: a single exercise can have MULTIPLE sources
+  // (e.g. the same movement independently present in free-exercise-db AND
+  // the curated Vietnamese catalog) and MULTIPLE aliases per language —
+  // neither fits a single-valued column without data loss.
+  sources   ExerciseSource[]
+  aliases   ExerciseAlias[]
+  muscleLinks ExerciseMuscle[]
+  // Gate 7 — reverse side of ExerciseReviewDecision.targetExercise (a
+  // LINK_AS_ALIAS_OF_EXISTING decision points back at whichever live
+  // exercise it was linked onto).
+  reviewDecisionsLinkedHere ExerciseReviewDecision[]
+
+  @@index([status])
 
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
   @@map("exercises")
+}
+
+// 🛠️ Normalized equipment catalog — closes the "onboarding equipment
+// selections are structurally disconnected from workout generation" gap.
+// typeOfEquipment above stays as-is (used by the older coarse
+// trainingLocation/equipmentPreference filters, kept for backward
+// compatibility) — this is the new, granular, many-to-many source of truth.
+// Stable, hand-chosen slugs (never regenerated) so ExerciseEquipment/
+// UserEquipment rows and any future FK-by-value references stay valid
+// across reseeds.
+model Equipment {
+  id          String   @id @default(uuid())
+  slug        String   @unique // stable identifier — e.g. "lat-pulldown-machine"
+  name        String   // display name — e.g. "Lat Pulldown Machine"
+  category    String   // FREE_WEIGHTS | BENCHES_RACKS | CABLE | CHEST_MACHINES | BACK_MACHINES | SHOULDER_MACHINES | LEG_MACHINES | ARM_MACHINES | CARDIO | OTHER
+  // Alternate names this equipment is commonly known by — e.g.
+  // ["Cable Stack","Functional Cable","Pulley","Cable Station"] for
+  // "Cable Machine". Search/import matching only; never a source of truth.
+  aliases     String[] @default([])
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  exerciseLinks ExerciseEquipment[]
+  userEquipment UserEquipment[]
+
+  @@index([category])
+  @@map("equipment")
+}
+
+// What equipment an exercise needs — many-to-many, an exercise can require
+// more than one item (e.g. Barbell Bench Press → barbell + bench).
+// requirementType distinguishes a hard requirement from an interchangeable
+// alternative (e.g. Lat Pulldown → REQUIRED cable-machine OR ALTERNATIVE
+// lat-pulldown-machine — owning either one is enough); OPTIONAL is reserved
+// for a future "nice to have but not filtering-relevant" case (e.g. a
+// dip belt for weighted dips) — not used by the current catalog, kept for
+// §11's forward-compatibility ask rather than added later as a breaking enum.
+model ExerciseEquipment {
+  id              String   @id @default(uuid())
+  exerciseId      String   @map("exercise_id")
+  equipmentId     String   @map("equipment_id")
+  requirementType String   @default("REQUIRED") @map("requirement_type") // REQUIRED | ALTERNATIVE | OPTIONAL
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  exercise  Exercise  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, equipmentId])
+  @@index([exerciseId])
+  @@index([equipmentId])
+  @@map("exercise_equipment")
+}
+
+// What equipment a user has told the system they have access to (onboarding
+// equipment step + later editable from Profile → Training Setup → Available
+// Equipment). userId is a plain cross-service reference (auth-service
+// User.id) — no Prisma relation, matching this schema's existing house
+// style for cross-service ids (WorkoutSchedule.userId, TrainingCycle.userId,
+// etc.). Authoritative source for deterministic equipment filtering in
+// /internal/exercises/for-ai-plans; UserProfile.availableEquipment
+// (user-service, free-text) stays as a secondary/legacy field still read by
+// the AI coach chat's advisory routine suggestions.
+model UserEquipment {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  equipmentId String   @map("equipment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, equipmentId])
+  @@index([userId])
+  @@map("user_equipment")
 }
 
 model Workout {
@@ -94,6 +211,20 @@ model WorkoutExercise {
   notes      String?
   order      Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
+  // Gate 4 — history-protection snapshot (impact map §2: Exercise is a
+  // LIVE reference with no existing snapshot, flagged HIGH risk — a
+  // renamed/reclassified exercise silently changes what a past log
+  // *displays*). Nullable/additive: existing rows are backfilled once
+  // (via this migration) from the exercise's name AT MIGRATION TIME — the
+  // best available approximation for history that predates this column,
+  // strictly better than nothing. New writes going forward should
+  // populate this at creation time with the name as it was THEN, so a
+  // later rename never retroactively changes what history shows. Never
+  // read INSTEAD of a live join in new code without this snapshot being
+  // populated — always fall back to the live Exercise.exerciseName when
+  // this is null, exactly the "explicit unknown, not silently guessed"
+  // pattern used throughout this codebase.
+  exerciseNameSnapshot String? @map("exercise_name_snapshot")
 
   workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise    Exercise     @relation(fields: [exerciseId], references: [id])
@@ -151,10 +282,33 @@ model Food {
   source   String  // 'sr_legacy' | 'survey_fndds'
   imageUrl String? @map("image_url")
 
+  // AI-nutrition-overhaul pass (Part 6 — food realism metadata). Scoped
+  // down from the spec's full field wishlist (canonicalName/localizedName/
+  // cuisineTags/availabilityRegion/... are NOT added here — populating
+  // those for 13k+ USDA rows needs a translation service this repo has no
+  // integration for, and is explicitly documented as deferred). These 3
+  // fields ARE backfilled for all rows via the migration's own UPDATE,
+  // using the same name-keyword classification already proven in
+  // ai-service's nutrition.processor.ts SERVING_CAP_RULES/excludedKeywords
+  // — real, populated data, not empty columns.
+  foodForm             String?  @map("food_form") // 'whole' | 'powder' | 'dried' | 'oil' | 'cheese' | 'nuts_seeds' | null (unclassified/whole by default)
+  isSupplement         Boolean  @default(false) @map("is_supplement") // protein powder/isolate/concentrate — Part 8: never auto-added to a plan
+  realisticServingMaxG Float?   @map("realistic_serving_max_g") // caps AI-generated meal-plan quantities; null = use the default whole-food cap
+
   aliases   FoodAlias[]
   mealItems NutritionProgramMealItem[]
+  // Gate 4 — additive provenance (see FoodSource below). The existing
+  // `source`/`fdcId` columns above already give every one of the 13,159
+  // live rows a lightweight, real provenance trail (USDA sr_legacy/
+  // survey_fndds + their own stable external id) — this table is for
+  // FUTURE multi-sourced foods (a Vietnamese dish also cross-referenced
+  // against Open Food Facts, a recipe versioned over time), not a
+  // required backfill for the existing USDA rows.
+  additionalSources FoodSource[]
+  recipeIngredientOf RecipeIngredient[]
 
   @@index([name])
+  @@index([isSupplement])
   @@map("foods")
 }
 
@@ -197,17 +351,41 @@ model NutritionLog {
 }
 
 // 🎯 Nutrition Goals (one per user, upserted)
+// Versioned (real-time body profile refactor, spec §24): a nutrition
+// prescription changing is a new version superseding the old one, never an
+// in-place overwrite — mirrors PersonalizedServicePlanVersion's existing
+// DELIVERED/ACCEPTED/SUPERSEDED pattern (ai-service). `userId` is
+// deliberately no longer @unique: many rows can exist per user over time,
+// with a DB-level partial unique index enforcing at most one ACTIVE row per
+// user (see migration add_nutrition_goal_versioning), same convention as
+// TrainingCycle's "one ACTIVE cycle per user" constraint just above.
 model NutritionGoal {
   id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
+  userId    String   @map("user_id")
   calories  Int      @default(2000)
   protein   Float    @default(150)
   carbs     Float    @default(200)
   fat       Float    @default(65)
   waterMl   Int?     @map("water_ml")
+  // "ACTIVE" | "SUPERSEDED"
+  status       String    @default("ACTIVE") @map("status")
+  validFrom    DateTime  @default(now()) @map("valid_from")
+  supersededAt DateTime? @map("superseded_at")
+  reason       String?
+  // "ONBOARDING" | "MANUAL" | "AI_ADAPTIVE" | "PT"
+  triggeredBy  String?   @map("triggered_by")
+  // "RECOMMENDED" | "CUSTOM" — was this goal calculated by the app
+  // (RECOMMENDED, from profile+goal+experienceLevel via nutrition_calculator.ts
+  // in ai-service) or hand-entered by the user (CUSTOM)? Defaults to
+  // RECOMMENDED to match existing rows/callers that never set it — the
+  // macro-consistency check (checkNutritionGoalMacroConsistency) already
+  // runs for both modes, this field only distinguishes UI presentation and
+  // whether the frontend shows the "why" explanation.
+  goalMode     String    @default("RECOMMENDED") @map("goal_mode")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([userId, status])
   @@map("nutrition_goals")
 }
 
@@ -306,7 +484,7 @@ model WorkoutSchedule {
   date            DateTime
   programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
   workoutId       String?  @map("workout_id")     // optional: completed workout
-  status          String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | SKIPPED
+  status          String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
   progressPercent Int      @default(0) @map("progress_percent")
   startedAt       DateTime? @map("started_at")
   completedAt     DateTime? @map("completed_at")
@@ -401,6 +579,8 @@ model TrainingCycle {
   sessionFeedback CycleSessionFeedback[]
   inbodyLinks     CycleInBodyLink[]
   assessments     CycleAssessment[]
+  feedbackSummary CycleFeedbackSummary?
+  feedbackAnalyses CycleFeedbackAnalysisAudit[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -441,6 +621,36 @@ model CycleAssessment {
   userDecision String   @default("PENDING") @map("user_decision") // PENDING | ACCEPTED | REJECTED
   reviewedAt   DateTime? @map("reviewed_at")
 
+  // Phase 2 — Adaptive Nutrition Decision Engine (nutrition-decision.engine.ts).
+  // A SEPARATE decision space and a SEPARATE accept/reject lifecycle from
+  // the training decision/userDecision above (a user can accept the
+  // training adjustment while rejecting the nutrition one, or vice versa) —
+  // deliberately kept on this SAME row rather than a new table, since both
+  // are computed at the same evaluation event/window (see
+  // docs/body-state-and-adaptive-planning.md). Applying an ACCEPTED
+  // nutritionProposedChanges never happens here — it only ever creates a
+  // new NutritionGoal version (fitness-service, versioned since Phase 1)
+  // via an explicit confirm call; this row just records what was proposed.
+  nutritionDecision    String?  @map("nutrition_decision") // KEEP_PLAN | PROPOSE_ADJUSTMENT | REQUEST_MORE_DATA | EARLY_REVIEW | ESCALATE
+  nutritionConfidence  String?  @map("nutrition_confidence") // LOW | MEDIUM | HIGH
+  nutritionSignals     Json?    @map("nutrition_signals")
+  nutritionProposedChanges Json? @map("nutrition_proposed_changes")
+  nutritionReasonCodes Json?    @map("nutrition_reason_codes")
+  nutritionEvidenceIds Json?    @map("nutrition_evidence_ids")
+  nutritionRequiresConfirmation Boolean @default(false) @map("nutrition_requires_confirmation")
+  // LLM explanation layer (ai-service /ai/assess-cycle's nutritionSummary) —
+  // never overrides nutritionDecision above, same rule as aiSummary/decision.
+  nutritionAiHeadline    String?  @map("nutrition_ai_headline")
+  nutritionAiExplanation String?  @map("nutrition_ai_explanation")
+  nutritionUserDecision String  @default("PENDING") @map("nutrition_user_decision") // PENDING | ACCEPTED | REJECTED
+  nutritionReviewedAt  DateTime? @map("nutrition_reviewed_at")
+  // Set only once nutritionUserDecision=ACCEPTED actually creates a new
+  // NutritionGoal version — FK-by-value (no relation; NutritionGoal has no
+  // back-reference to keep that model decoupled from the cycle-assessment
+  // concept, matching this file's existing FK-by-value convention for
+  // cross-concept references, e.g. RecommendationAudit.aiFeedbackAnalysisId).
+  appliedNutritionGoalId String? @map("applied_nutrition_goal_id")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
@@ -450,28 +660,260 @@ model CycleAssessment {
   @@map("cycle_assessments")
 }
 
-// 📝 Per-session subjective feedback (readiness/RPE/pain/notes) — kept
-// separate from WorkoutSchedule (which already owns plannedDate/
-// completedDate/completionStatus) rather than duplicating those fields;
-// 1:1 with the WorkoutSchedule row it's rated against.
+// 🔍 Interaction log for Decision Engine output — distinct from
+// CycleAssessment (the computed RESULT of one /evaluate run) because a
+// single assessment can be presented/viewed multiple times before a user
+// acts on it. Answers operational questions CycleAssessment alone can't,
+// e.g. "what fraction of DELOAD recommendations do users actually reject?"
+// See docs/TRAINING_CYCLE_DECISION_ENGINE.md §4.
+model RecommendationAudit {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  cycleId       String    @map("cycle_id")
+  assessmentId  String?   @map("assessment_id") // null for the legacy /complete path
+  engineVersion String    @map("engine_version") // "legacy-v2" | "adaptive-v1" | "nutrition-adaptive-v1" (Phase 2 — nutrition-decision.engine.ts; reuses this same generic table, no schema change needed for it)
+  decision      String
+  reasonCodes   Json      @map("reason_codes")
+  // Full CycleMetricsResult (or the legacy summary) at decision time — a
+  // debuggable/replayable snapshot, not just the trimmed supportingMetrics
+  // already embedded in CycleAssessment.
+  metricsSnapshot Json    @map("metrics_snapshot")
+  aiSummary     String?   @map("ai_summary")
+  presentedAt   DateTime  @default(now()) @map("presented_at")
+  userAction    String?   @map("user_action") // "accepted" | "rejected" | null (not yet acted on)
+  userActionAt  DateTime? @map("user_action_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // ── Phase 5 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — session
+  // feedback signals used by the Decision Engine for this specific
+  // decision, if any. All nullable/defaulted-false so this stays additive
+  // over every pre-Phase-5 audit row (engineVersion="legacy-v2" or an
+  // adaptive-v1 row from before this migration never had feedback signals).
+  feedbackSignalsUsed       Boolean @default(false) @map("feedback_signals_used")
+  feedbackSummarySnapshot   Json?   @map("feedback_summary_snapshot") // CycleFeedbackSummaryResult at decision time
+  aiFeedbackAnalysisId      String? @map("ai_feedback_analysis_id") // FK-by-value to CycleFeedbackAnalysisAudit.id (no relation — that table can be pruned independently)
+  // The full merged reasonCodes (base engine + feedback rules) — same array
+  // as `reasonCodes` above once feedback influenced the decision; kept as a
+  // separate named field per spec so "what the engine concluded from
+  // metrics alone" vs. "the actual final reasoning" stay independently
+  // inspectable even though they're equal whenever feedbackSignalsUsed=false.
+  finalDecisionReasonCodes Json?   @map("final_decision_reason_codes")
+  complaintValidity         String? @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data | null (no AI analysis was available)
+  decisionInfluenceFromFeedback String? @map("decision_influence_from_feedback") // none | minor_adjust | adjust | deload | rebuild_consideration
+
+  @@index([userId, cycleId])
+  @@index([cycleId, presentedAt])
+  @@map("recommendation_audits")
+}
+
+// 👥 Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — audit trail of
+// every PT/coach action against a client's fitness data (view or write).
+// Authorization itself is never sourced from this table (that's always a
+// fresh call to user-service's Contract.status===ACTIVE check, per
+// coach.service.ts) — this is a record of what happened, not a cache of
+// what's allowed.
+model CoachClientActionAudit {
+  id           String   @id @default(uuid())
+  ptUserId     String   @map("pt_user_id")
+  clientUserId String   @map("client_user_id")
+  action       String // VIEW_CLIENT_SUMMARY | CREATE_AND_ASSIGN_PLAN
+  metadata     Json? // action-specific detail (e.g. {programId, planName} for an assignment)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([ptUserId, clientUserId])
+  @@index([clientUserId, createdAt])
+  @@map("coach_client_action_audits")
+}
+
+// 🤖 Phase 7 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — audit trail of
+// every AI plan-DRAFT generation a PT requested for a client. Recorded
+// regardless of whether the PT actually used the draft (usedForAssignment
+// stays false until/unless the PT's subsequent createAndAssignPlan call is
+// linked back here — see coach.service.ts) — this table is a record of what
+// was suggested, never of what was assigned (that's CoachClientActionAudit's
+// CREATE_AND_ASSIGN_PLAN action + WorkoutProgram itself).
+model PlanGenerationAudit {
+  id           String @id @default(uuid())
+  ptUserId     String @map("pt_user_id")
+  clientUserId String @map("client_user_id")
+
+  ptNotes   String? @map("pt_notes")
+  requestSnapshot Json @map("request_snapshot") // client profile/feedback/priorDecisions/daysPerWeek/durationWeeks sent to the AI
+  draftDays Json @map("draft_days") // the returned days[] (exerciseId/order/sets/reps/note)
+  dataGaps  Json @map("data_gaps")
+  warnings  Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ptUserId, clientUserId])
+  @@index([clientUserId, createdAt])
+  @@map("plan_generation_audits")
+}
+
+// 📝 Per-session subjective feedback (readiness/RPE/pain/notes, and — as of
+// Phase 2 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — richer completion
+// feedback + skip/cancel reason capture) — kept separate from
+// WorkoutSchedule (which already owns plannedDate/completedDate/
+// completionStatus) rather than duplicating those fields; 1:1 with the
+// WorkoutSchedule row it's rated against.
+//
+// cycleId is nullable (extended from originally-required) — a session can
+// exist outside any training cycle and still be worth collecting feedback
+// on; only cycle-linked feedback rolls into CycleFeedbackSummary.
 model CycleSessionFeedback {
   id                String   @id @default(uuid())
-  cycleId           String   @map("cycle_id")
+  cycleId           String?  @map("cycle_id")
   workoutScheduleId String   @unique @map("workout_schedule_id")
 
-  readinessScore Int? @map("readiness_score") // 1-10, pre-session
-  sessionRpe     Float? @map("session_rpe") // 1-10, post-session overall RPE
+  readinessScore Int?   @map("readiness_score") // 1-10, pre-session
+  sessionRpe     Float? @map("session_rpe") // 1-10, post-session overall RPE (effort scale)
   painScore      Int?   @map("pain_score") // 0-10, 0 = no pain
-  notes          String?
+  notes          String? // also serves as "sessionComment" free text
+
+  // Completion feedback (COMPLETED / PARTIALLY_COMPLETED sessions)
+  sessionRating       Int?    @map("session_rating") // 1-5 satisfaction, distinct from the 1-10 RPE effort scale above
+  difficulty          String? // too_easy | just_right | too_hard
+  enjoyment           String? // low | medium | high
+  fatigueAfterSession Int?    @map("fatigue_after_session") // 1-10, POST-session (readinessScore above is pre-session)
+  painLocation         String? @map("pain_location") // free text or muscle-group label
+  wouldRepeatSession   String? @map("would_repeat_session") // yes | no | unsure
+  perceivedProgress    String? @map("perceived_progress") // better_than_last_time | same | worse | unsure
+
+  // Explicit "prompted, user chose not to fill it in" sentinel — distinct
+  // from "no row exists yet" (never prompted). Lets the UI/aggregator tell
+  // "missing because never asked" apart from "missing because dismissed."
+  feedbackMissing Boolean @default(false) @map("feedback_missing")
+
+  // Skip/cancel feedback (only populated when the linked WorkoutSchedule's
+  // status is SKIPPED or CANCELLED)
+  skipReason              String?   @map("skip_reason") // fatigue | pain | schedule_conflict | motivation | illness | equipment_unavailable | too_hard_previous_session | other
+  shouldAdjustPlan        Boolean?  @map("should_adjust_plan")
+  userAvailableMakeupDay  DateTime? @map("user_available_makeup_day")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  cycle           TrainingCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  workoutSchedule WorkoutSchedule @relation(fields: [workoutScheduleId], references: [id], onDelete: Cascade)
+  cycle           TrainingCycle?          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  workoutSchedule WorkoutSchedule         @relation(fields: [workoutScheduleId], references: [id], onDelete: Cascade)
+  exerciseFeedback ExerciseSessionFeedback[]
 
   @@index([cycleId])
   @@map("cycle_session_feedback")
+}
+
+// 📝 Per-exercise feedback within a session — one-to-many since a session
+// covers multiple exercises. Kept as a child table rather than a JSON array
+// column on CycleSessionFeedback so individual exercise issues are
+// queryable (e.g. "which exercises get pain reports most often" for
+// PlanImprovementSuggestion in Phase 8).
+model ExerciseSessionFeedback {
+  id                 String  @id @default(uuid())
+  sessionFeedbackId  String  @map("session_feedback_id")
+  exerciseId         String  @map("exercise_id")
+  rating             Int?    // 1-5
+  issueType          String? // too_heavy | too_light | too_many_sets | too_few_sets | uncomfortable | pain | boring | liked | confusing | equipment_unavailable
+  note               String?
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  sessionFeedback CycleSessionFeedback @relation(fields: [sessionFeedbackId], references: [id], onDelete: Cascade)
+
+  @@index([sessionFeedbackId])
+  @@index([exerciseId])
+  @@map("exercise_session_feedback")
+}
+
+// 📊 Phase 3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — deterministic,
+// code-computed rollup of every CycleSessionFeedback row in a cycle
+// (CycleFeedbackAggregator). One row per cycle (upsert-by-cycleId, latest-
+// wins — recomputed whenever feedback changes or a cycle is evaluated, not
+// versioned like CycleAssessment since it's a pure function of current
+// data, not a point-in-time decision). AI (Phase 4) reads this; never
+// computes it.
+model CycleFeedbackSummary {
+  id     String @id @default(uuid())
+  cycleId String @unique @map("cycle_id")
+
+  totalSessions        Int @map("total_sessions")
+  completedSessions    Int @map("completed_sessions")
+  partialSessions      Int @map("partial_sessions")
+  skippedSessions      Int @map("skipped_sessions")
+  cancelledSessions    Int @map("cancelled_sessions")
+  feedbackSubmittedCount Int @map("feedback_submitted_count")
+  feedbackMissingCount   Int @map("feedback_missing_count")
+  feedbackCompletionRate Float @map("feedback_completion_rate") // 0-1
+
+  averageSessionRating Float? @map("average_session_rating")
+  averageDifficultyScore Float? @map("average_difficulty_score") // too_easy=0, just_right=0.5, too_hard=1 — for trend purposes only
+  averageEnjoymentScore  Float? @map("average_enjoyment_score") // low=0, medium=0.5, high=1
+  averageFatigue Float? @map("average_fatigue")
+  averagePain    Float? @map("average_pain")
+
+  mostCommonIssues      Json @map("most_common_issues") // [{issueType, count}]
+  mostLikedExercises    Json @map("most_liked_exercises") // exerciseId[]
+  mostDislikedExercises Json @map("most_disliked_exercises") // exerciseId[]
+  exercisesWithPainReports Json @map("exercises_with_pain_reports") // exerciseId[]
+
+  sessionsMarkedTooHard Int @map("sessions_marked_too_hard")
+  sessionsMarkedTooEasy Int @map("sessions_marked_too_easy")
+  sessionsUserWouldNotRepeat Int @map("sessions_user_would_not_repeat")
+
+  positiveFeedbackCount Int @map("positive_feedback_count")
+  negativeFeedbackCount Int @map("negative_feedback_count")
+  neutralFeedbackCount  Int @map("neutral_feedback_count")
+  mixedFeedbackCount    Int @map("mixed_feedback_count")
+  feedbackSentimentByRules String @map("feedback_sentiment_by_rules") // positive | neutral | negative | mixed | insufficient_feedback
+
+  dataQualityScore Float @map("data_quality_score") // 0-1, from feedbackCompletionRate + sample size
+
+  safetyFlags                 Json @map("safety_flags") // string[]
+  equipmentMismatchFlags       Json @map("equipment_mismatch_flags")
+  adherenceRelatedComplaintFlags Json @map("adherence_related_complaint_flags")
+  motivationOrBoredomFlags      Json @map("motivation_or_boredom_flags")
+
+  computedAt DateTime @default(now()) @map("computed_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@map("cycle_feedback_summaries")
+}
+
+// 🤖 Phase 4 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — audit trail of
+// every AI feedback-interpretation call (ai-service POST /ai/analyze-feedback).
+// Snapshots the rule-computed CycleFeedbackSummary the AI was given (so a
+// later summary recompute can't retroactively change what this audit row
+// says the AI saw) plus its structured interpretation. Advisory-only: this
+// table records what the AI SUGGESTED, never a decision by itself — Phase 5
+// wires recommendedDecisionInfluence into the Decision Engine as one signal.
+model CycleFeedbackAnalysisAudit {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  cycleId String @map("cycle_id")
+
+  cycleFeedbackSummarySnapshot Json @map("cycle_feedback_summary_snapshot")
+
+  feedbackInterpretation String @map("feedback_interpretation")
+  sentiment              String // positive | negative | neutral | mixed | insufficient_feedback
+  complaintValidity      String @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data
+  complaintCategories    Json   @map("complaint_categories") // string[]
+  suggestedImprovementAreas Json @map("suggested_improvement_areas") // string[]
+  riskFlags              Json   @map("risk_flags") // string[]
+  recommendedDecisionInfluence String @map("recommended_decision_influence") // none | minor_adjust | adjust | deload | rebuild_consideration
+  explanationForUser      String @map("explanation_for_user")
+  explanationForCoach     String @map("explanation_for_coach")
+
+  // true when the LLM call failed and the deterministic (rule-only)
+  // fallback template was used instead — surfaced so Phase 5/UI can treat a
+  // fallback analysis with appropriately lower confidence.
+  aiFallback Boolean @default(false) @map("ai_fallback")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, cycleId])
+  @@index([cycleId, createdAt])
+  @@map("cycle_feedback_analysis_audits")
 }
 
 // 🔗 Links a user-service InBodyEntry (cross-service, plain id, no Prisma FK)
@@ -505,6 +947,16 @@ model NutritionProgram {
   fatTargetGrams       Float?    @map("fat_target_grams")
   sourcePlanId         String?   @map("source_plan_id")   // ai-service NutritionPlan id
   sourceType           String?   @map("source_type")      // "AI_PLAN" | "MANUAL"
+  // Which NutritionGoal (by id) was ACTIVE when this program was created —
+  // purely a traceability link for "was this plan built from the goal
+  // that's active now, or an older one". Never used as the source of truth
+  // for the mismatch numbers themselves (those come from this row's own
+  // dailyCaloriesTarget/proteinTargetGrams/carbTargetGrams/fatTargetGrams,
+  // which already act as a snapshot) — nutrition-goal-plan-consistency
+  // .service.ts falls back to a pure macro-value comparison when this is
+  // null (legacy programs created before this column existed), so nothing
+  // has to be backfilled for old rows to keep working.
+  sourceGoalId         String?   @map("source_goal_id")
   status               String    @default("ACTIVE")        // "ACTIVE" | "ARCHIVED"
   startDate            DateTime? @map("start_date")
   endDate              DateTime? @map("end_date")           // last calendar day of the plan
@@ -610,4 +1062,295 @@ model NutritionMealCompletion {
   @@unique([userId, mealId, logDate], name: "nutrition_meal_completion_unique")
   @@index([userId, logDate])
   @@map("nutrition_meal_completions")
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Gate 4 — exercise/anatomy/nutrition data-expansion roadmap.
+// Every model below is ADDITIVE ONLY: new tables, new nullable/defaulted
+// relation arrays on existing models (Exercise.sources/aliases/
+// muscleLinks, Food.additionalSources/recipeIngredientOf above). No
+// existing column, primary key, or FK behavior on Exercise/Food/
+// WorkoutExercise/WorkoutProgramExercise/NutritionProgramMealItem/etc.
+// changes. See docs/audit/exercise-nutrition-data-impact-map.md for the
+// full impact analysis and reports/data/duplicate-candidate-report.md
+// for the Gate 3 matching this schema is designed to support.
+// ══════════════════════════════════════════════════════════════════════
+
+// 📚 Real, structured provenance for exercises — closes the audit's
+// biggest documented gap (ALL 883 live exercises currently have NO
+// source/license recorded at the database level at all, only inferable
+// from reading seed script source code). A single exercise can have
+// MULTIPLE source records over time (e.g. originally free-exercise-db,
+// later cross-confirmed against the curated Vietnamese catalog or a wger
+// import) — each gets its own row here, never overwriting a prior one.
+model ExerciseSource {
+  id            String   @id @default(uuid())
+  exerciseId    String   @map("exercise_id")
+  sourceName    String   @map("source_name") // "free_exercise_db" | "curated_vi_catalog" | "equipment_gap_seed" | "wger" | ...
+  externalId    String?  @map("external_id") // the source's own id for this record (e.g. free-exercise-db's slug id, wger's numeric id, gym_exercises.csv's EX##### )
+  sourceUrl     String?  @map("source_url")
+  dataLicense   String?  @map("data_license") // e.g. "Unlicense", "CC-BY-SA-4.0", "original_curated" — see docs/research/fitness-data-source-and-license-review.md
+  mediaLicense  String?  @map("media_license") // separate from dataLicense — e.g. free-exercise-db's own images are UNDOCUMENTED even though the text data is Unlicense
+  sourceVersion String?  @map("source_version") // e.g. a wger API response's dataset snapshot date, or this repo's git commit for curated_vi_catalog
+  importedAt    DateTime @default(now()) @map("imported_at")
+  rawHash       String?  @map("raw_hash") // hash of the raw source record, so a re-import can detect "this exact record was already seen" without relying on mutable fields
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, sourceName, externalId])
+  @@index([exerciseId])
+  @@index([sourceName])
+  @@map("exercise_sources")
+}
+
+// 🌐 Localized names / common aliases — the actual mechanism Gate 5's
+// "link the curated Vietnamese catalog onto existing live exercises"
+// import will use: a Vietnamese name becomes an ADDITIVE alias on the
+// existing exercise row, never a rename of exerciseName and never a new
+// exercise row for what's really the same movement (per the Gate 3
+// EXACT_CROSS_SOURCE decisions in duplicate-candidate-report.md).
+model ExerciseAlias {
+  id              String   @id @default(uuid())
+  exerciseId      String   @map("exercise_id")
+  language        String // "vi" | "en"
+  alias           String
+  aliasNormalized String   @map("alias_normalized")
+  aliasType       String   @default("localized_name") @map("alias_type") // "localized_name" | "common_alias" | "abbreviation"
+  source          String? // which source asserted this specific alias, e.g. "curated_vi_catalog"
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, language, aliasNormalized])
+  @@index([exerciseId])
+  @@index([aliasNormalized])
+  @@map("exercise_aliases")
+}
+
+// 💪 Canonical muscle taxonomy — mirrors data/catalog/taxonomy/
+// ref_muscles.csv's 29 muscle_code values (chest/front_delts/lats/...),
+// NOT the free-text muscleGroupsActivated string[] already on Exercise
+// (kept as-is, unchanged, for backward compatibility with every existing
+// consumer). This is the real target for the Phase 1 SVG muscle-map UI
+// (body-muscles, per the license review) and for a genuine primary/
+// secondary distinction, which the live schema has never had.
+model Muscle {
+  id             String  @id @default(uuid())
+  code           String  @unique // stable slug, matches ref_muscles.csv's muscle_code, e.g. "chest", "front_delts"
+  nameVi         String  @map("name_vi")
+  nameEn         String? @map("name_en")
+  anatomyRegion  String? @map("anatomy_region") // coarse grouping for filtering/legend — "upper_body" | "lower_body" | "core" | "full_body"
+  parentMuscleId String? @map("parent_muscle_id") // e.g. "upper_chest" -> parent "chest", for a collapsible legend
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  parentMuscle  Muscle?          @relation("MuscleHierarchy", fields: [parentMuscleId], references: [id])
+  childMuscles  Muscle[]         @relation("MuscleHierarchy")
+  exerciseLinks ExerciseMuscle[]
+
+  @@map("muscles")
+}
+
+// 🔗 Exercise <-> canonical Muscle, WITH a real primary/secondary
+// distinction (impossible to express in the existing flat
+// muscleGroupsActivated string[] column). Additive and optional — an
+// exercise with no rows here yet is simply "not mapped", handled
+// explicitly (never crashes, never guessed) per the task's own explicit
+// muscle-map requirement.
+model ExerciseMuscle {
+  id         String   @id @default(uuid())
+  exerciseId String   @map("exercise_id")
+  muscleId   String   @map("muscle_id")
+  role       String // "primary" | "secondary"
+  source     String? // provenance of THIS mapping assertion, e.g. "curated_vi_catalog"
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscle   Muscle   @relation(fields: [muscleId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, muscleId, role])
+  @@index([exerciseId])
+  @@index([muscleId])
+  @@map("exercise_muscles")
+}
+
+// 📚 Real, structured provenance for foods — the Food.source/fdcId
+// columns already give every live row a lightweight provenance trail;
+// this table is for FUTURE multi-sourced foods (Open Food Facts barcode
+// cross-references, a Vietnamese ingredient later confirmed against the
+// FAO table once its license is resolved) where a single Food might
+// legitimately need more than one source record over time.
+model FoodSource {
+  id            String   @id @default(uuid())
+  foodId        String   @map("food_id")
+  sourceName    String   @map("source_name") // "usda_sr_legacy" | "usda_survey_fndds" | "open_food_facts" | "fao_vn_2007" | "curated_vi_recipe" | ...
+  externalId    String?  @map("external_id")
+  sourceUrl     String?  @map("source_url")
+  license       String?
+  sourceVersion String?  @map("source_version")
+  importedAt    DateTime @default(now()) @map("imported_at")
+  confidence    Float? // 0-1, e.g. lower for an inferred/estimated recipe-composed food
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, sourceName, externalId])
+  @@index([foodId])
+  @@map("food_sources")
+}
+
+// 🍜 Phase 3 — a Vietnamese dish (or any composed food) built from real
+// ingredients, never treated as a single Food row with a fabricated
+// aggregate macro (per the task's own explicit "món ăn Việt Nam phải
+// được tạo từ recipe ingredients khi có thể" rule). yieldServings +
+// RecipeIngredient's gramsEquivalent are what let a serving's macros be
+// COMPUTED from real ingredient data rather than guessed.
+model Recipe {
+  id             String   @id @default(uuid())
+  name           String
+  nameVi         String?  @map("name_vi")
+  version        Int      @default(1)
+  yieldServings  Float    @map("yield_servings") // how many servings the full recipe produces
+  preparationState String? @map("preparation_state") // "raw" | "cooked" — which state the ingredient amounts below assume
+  source         String? // e.g. "original_curated_vi", "user_submitted"
+  status         String   @default("STAGING") // Gate 12 rollout states: STAGING | REVIEW_REQUIRED | APPROVED | PUBLISHED | DEPRECATED | REJECTED
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  ingredients RecipeIngredient[]
+
+  @@index([status])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id               String  @id @default(uuid())
+  recipeId         String  @map("recipe_id")
+  foodId           String  @map("food_id")
+  amount           Float // in `unit` below
+  unit             String @default("g")
+  gramsEquivalent  Float  @map("grams_equivalent") // amount converted to grams — what the macro calculation actually uses, so unit conversions happen once at write time, not repeatedly at read time
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  food   Food   @relation(fields: [foodId], references: [id], onDelete: Restrict) // Restrict (not Cascade/SetNull): a recipe ingredient must always resolve to a real food — an accidental Food delete must not silently corrupt a recipe
+
+  @@index([recipeId])
+  @@index([foodId])
+  @@map("recipe_ingredients")
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Gate 5 — staging import pipeline tracking. Every real importer built on
+// top of this (food-alias linking, exercise localization, any future wger
+// import) creates exactly one ImportBatch per run and one ImportRecord per
+// source item it touched — this is what makes "run it twice, get zero
+// duplicates" independently auditable after the fact, not just an
+// assumption about the importer code being correct.
+// ══════════════════════════════════════════════════════════════════════
+
+model ImportBatch {
+  id              String    @id @default(uuid())
+  source          String // "curated_vi_food_aliases" | "curated_vi_exercise_catalog" | "wger" | ...
+  sourceVersion   String?   @map("source_version")
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  status          String    @default("RUNNING") // RUNNING | COMPLETED | FAILED | ROLLED_BACK
+  dryRun          Boolean   @default(false) @map("dry_run")
+  insertedCount   Int       @default(0) @map("inserted_count")
+  updatedCount    Int       @default(0) @map("updated_count")
+  skippedCount    Int       @default(0) @map("skipped_count")
+  duplicateCount  Int       @default(0) @map("duplicate_count")
+  reviewCount     Int       @default(0) @map("review_count")
+  errorCount      Int       @default(0) @map("error_count")
+  checksum        String? // hash of the input source data, so two runs against the same input are provably comparable
+
+  records ImportRecord[]
+
+  @@index([source, startedAt])
+  @@map("import_batches")
+}
+
+// One row per source item the batch considered — the durable, queryable
+// record of "what did this run actually decide for this specific item",
+// independent of whatever the importer printed to stdout at the time.
+model ImportRecord {
+  id              String   @id @default(uuid())
+  batchId         String   @map("batch_id")
+  externalRef     String   @map("external_ref") // the source's own identifier for this item, e.g. a gym_exercises.csv exercise_id or a food_aliases.vi.json alias string
+  decision        String // "INSERTED" | "UPDATED" | "SKIPPED_DUPLICATE" | "REVIEW_QUEUED" | "ERROR"
+  targetTable     String?  @map("target_table") // e.g. "exercise_aliases", "food_aliases"
+  targetId        String?  @map("target_id") // the created/updated row's id, when applicable — this is the rollback manifest: DELETE FROM <targetTable> WHERE id = <targetId>
+  detail          Json? // decision-specific detail (e.g. the DuplicateMatchResult for a review-queued item)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([batchId, decision])
+  @@map("import_records")
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Gate 7 — human review queue for exercise duplicate/variant candidates
+// left un-actioned by Gate 5/6's automatic importers (exerciseLocalization
+// Importer only auto-links EXACT_SAME_SOURCE/EXACT_CROSS_SOURCE;
+// newExerciseImporter only auto-imports DISTINCT/POSSIBLE_VARIANT as new
+// STAGING rows — LIKELY_DUPLICATE and MANUAL_REVIEW are NEVER acted on
+// automatically, per the task's own explicit rule). This table records a
+// HUMAN's decision per catalog candidate — it never itself mutates an
+// Exercise row; the review API applies the decision's real effect (create
+// an alias, create a new STAGING exercise, or nothing) through the exact
+// same helpers Gate 5's importers already use, then records what happened
+// here as the durable, auditable outcome.
+// ══════════════════════════════════════════════════════════════════════
+
+// Append-only on purpose (never updated in place) — GET .../history needs
+// the FULL sequence of decisions for a candidate, not just the latest.
+// "Idempotent" (resubmitting the same decision must never duplicate) is
+// enforced in the SERVICE layer instead: submitReviewDecision only
+// inserts a new row when it differs from the most recent one for that
+// externalRef; an identical resubmit is a no-op returning the existing
+// row. The CURRENT decision for a candidate is always "the newest row for
+// this externalRef", which the service/queue queries compute directly.
+model ExerciseReviewDecision {
+  id     String @id @default(uuid())
+  // The catalog row's own external id (gym_exercises.csv's exercise_id) —
+  // NOT a live Exercise.id, since a LIKELY_DUPLICATE/MANUAL_REVIEW/
+  // POSSIBLE_VARIANT candidate that gets REJECTED or SKIPPED never becomes
+  // one.
+  externalRef String @map("external_ref")
+  source      String @default("curated_vi_exercise_catalog") @map("source")
+
+  // "APPROVE_AS_NEW_STAGING" | "LINK_AS_ALIAS_OF_EXISTING" |
+  // "MARK_AS_DUPLICATE_SKIP" | "NEEDS_MORE_INFO" | "REJECT_RECORD"
+  decision String
+
+  // Required only for LINK_AS_ALIAS_OF_EXISTING — which live Exercise this
+  // candidate was linked onto. Never the catalog's own new row (there
+  // isn't one for that decision).
+  targetExerciseId String?   @map("target_exercise_id")
+  targetExercise   Exercise? @relation(fields: [targetExerciseId], references: [id], onDelete: SetNull)
+
+  // Effect of an APPROVE_AS_NEW_STAGING decision — which new Exercise row
+  // this candidate became, so the review UI can link out to it and the
+  // "already resolved" check has a second, explicit signal beyond
+  // ExerciseSource lookups.
+  createdExerciseId String? @map("created_exercise_id")
+
+  note String? // required by the API for every mutating decision — see review.controller.ts
+
+  // What detectDuplicate() actually said about this candidate AT THE TIME
+  // of this decision — an audit snapshot, not a live value, since the
+  // live catalog keeps growing and a later re-run could classify the same
+  // externalRef differently.
+  duplicateDecisionAtReview String? @map("duplicate_decision_at_review")
+  candidateSnapshot         Json?   @map("candidate_snapshot")
+
+  reviewerId String?  @map("reviewer_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([externalRef, source, createdAt])
+  @@index([decision])
+  @@map("exercise_review_decisions")
 }

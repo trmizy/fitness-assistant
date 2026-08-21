@@ -25,5 +25,20 @@ router.get(
   internalAuthMiddleware,
   internalController.getLatestClosedCycle as any,
 );
+router.post(
+  "/exercises/validate-plan-equipment",
+  internalAuthMiddleware,
+  internalController.validatePlanEquipment as any,
+);
+router.post(
+  "/workouts/manual-program",
+  internalAuthMiddleware,
+  internalController.commitManualProgram as any,
+);
+router.post(
+  "/exercises/validate-marketplace-schedules",
+  internalAuthMiddleware,
+  internalController.validateMarketplaceSchedules as any,
+);
 
 export default router;

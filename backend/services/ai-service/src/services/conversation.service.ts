@@ -264,6 +264,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     primaryPriority?: string;
     weightChangeRateKgPerWeek?: number;
     proteinTargetG?: number;
+    carbTargetG?: number;
+    fatTargetG?: number;
     carbsAroundWorkout?: boolean;
     preworkoutMeal?: boolean;
     postworkoutMeal?: boolean;
@@ -303,6 +305,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       primaryPriority: params.primaryPriority,
       weightChangeRateKgPerWeek: params.weightChangeRateKgPerWeek,
       proteinTargetG: params.proteinTargetG,
+      carbTargetG: params.carbTargetG,
+      fatTargetG: params.fatTargetG,
       carbsAroundWorkout: params.carbsAroundWorkout,
       preworkoutMeal: params.preworkoutMeal,
       postworkoutMeal: params.postworkoutMeal,

@@ -1,6 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
-import cors from "cors";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
@@ -9,12 +8,8 @@ import { getIo } from "./socket/index";
 const app: Express = express();
 
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    credentials: true,
-  }),
-);
+// No CORS middleware here: this service is only reached via the gateway, which handles CORS.
+// Having it here clobbers the gateway's origin-scoped headers with a mismatch.
 app.use(express.json());
 app.use(metricsMiddleware());
 

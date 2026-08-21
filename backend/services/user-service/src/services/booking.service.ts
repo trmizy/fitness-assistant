@@ -1,5 +1,6 @@
 import { createHmac } from "crypto";
 import {
+  AuditEntityType,
   SessionStatus,
   SessionMode,
   ContractStatus,
@@ -7,10 +8,15 @@ import {
 } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import {
+  releaseSessionMoney,
+  compensateNoShowMoney,
+} from "./contract-payout.service";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService } from "./contract.service";
+import { auditService } from "./audit.service";
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: DayOfWeek.SUNDAY,
@@ -27,6 +33,99 @@ function err(message: string, status: number) {
 }
 
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** How long the client has to confirm or dispute before the session auto-confirms. */
+export const AUTO_CONFIRM_DAYS = Number(
+  process.env.SESSION_AUTO_CONFIRM_DAYS ?? "3",
+);
+const AUTO_CONFIRM_MS = AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000;
+
+/** Collaborators of {@link deductQuotaOnce}, injectable so the once-only rule is testable. */
+export interface QuotaDeps {
+  claimDeduction: (sessionId: string) => Promise<boolean>;
+  incrementSession: (contractId: string) => Promise<unknown>;
+  checkAndCompleteContract: (contractId: string) => Promise<unknown>;
+  releaseMoney: (contractId: string, sessionId: string) => Promise<void>;
+}
+
+const defaultQuotaDeps: QuotaDeps = {
+  claimDeduction: (id) => sessionRepository.claimDeduction(id),
+  incrementSession: (id) => contractRepository.incrementSession(id),
+  checkAndCompleteContract: (id) => contractService.checkAndCompleteContract(id),
+  releaseMoney: (contractId, sessionId) => releaseSessionMoney(contractId, sessionId),
+};
+
+/**
+ * Consumes exactly one session of the contract's quota, once and only once, and pays out that
+ * session's share of the money.
+ *
+ * `claimDeduction` is a guarded update on `sessionDeducted` (false → true) that reports
+ * whether it actually claimed the row; the contract counter is incremented ONLY then. Two
+ * concurrent confirms, a retry, or a manual confirm racing the auto-confirm sweep therefore
+ * still cost the client a single session.
+ *
+ * The money release hangs off the same claim. Quota and payout are two views of one fact —
+ * "this session was delivered" — so gating both on the single compare-and-swap is what stops
+ * a retry from paying the PT twice for one session.
+ *
+ * Returns true when this call is the one that consumed the quota.
+ */
+export async function deductQuotaOnce(
+  sessionId: string,
+  contractId: string,
+  deps: QuotaDeps = defaultQuotaDeps,
+): Promise<boolean> {
+  const claimed = await deps.claimDeduction(sessionId);
+  if (!claimed) return false;
+  await deps.incrementSession(contractId);
+  await deps.releaseMoney(contractId, sessionId);
+  await deps.checkAndCompleteContract(contractId);
+  return true;
+}
+
+/**
+ * The slot rules a booking must satisfy: inside the trainer's published hours, not on a
+ * blocked date, and not overlapping another session.
+ *
+ * Extracted so rescheduling enforces exactly what booking does. Two copies of these checks
+ * would drift, and the drift would show up as a double-booked trainer.
+ */
+async function assertSlotBookable(
+  ptUserId: string,
+  startAt: Date,
+  endAt: Date,
+  excludeSessionId?: string,
+): Promise<void> {
+  const conflict = await sessionRepository.findConflict(
+    ptUserId,
+    startAt,
+    endAt,
+    excludeSessionId,
+  );
+  if (conflict) throw err("Khung giờ này trùng với một buổi tập khác", 409);
+
+  const ptAvailability = await availabilityRepository.findByPT(ptUserId);
+  if (ptAvailability.length === 0) return; // no published hours = no constraint
+
+  const dayOfWeek = DAY_MAP[startAt.getDay()];
+  const hhmm = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const slot = ptAvailability.find(
+    (a) =>
+      a.dayOfWeek === dayOfWeek &&
+      a.isActive &&
+      a.startTime <= hhmm(startAt) &&
+      a.endTime >= hhmm(endAt),
+  );
+  if (!slot) throw err("Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên", 400);
+
+  const dayStart = new Date(startAt);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(startAt);
+  dayEnd.setHours(23, 59, 59, 999);
+  const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
+  if (exceptions.length > 0) throw err("Huấn luyện viên nghỉ vào ngày này", 400);
+}
 
 export const bookingService = {
   // ── Client books a session ──────────────────────────────────────
@@ -48,6 +147,12 @@ export const bookingService = {
     // Must be the client of this contract
     if (contract.clientUserId !== clientUserId) {
       throw err("Not authorized", 403);
+    }
+
+    // A suspended PT has had their contracts unwound and refunded — no new sessions on top.
+    const ptProfile = await profileRepository.findByUserId(contract.ptUserId);
+    if ((ptProfile as any)?.ptSuspended) {
+      throw err("Huấn luyện viên hiện không nhận lịch mới", 409);
     }
 
     // Contract must be ACTIVE
@@ -208,7 +313,12 @@ export const bookingService = {
     return updated;
   },
 
-  // ── PT completes a session ──────────────────────────────────────
+  // ── PT reports the session as delivered ─────────────────────────
+  /**
+   * Moves the session to PENDING_CLIENT_CONFIRMATION instead of COMPLETED. The PT's word
+   * alone no longer consumes the client's quota — the client confirms, disputes, or the
+   * auto-confirm job settles it after AUTO_CONFIRM_DAYS.
+   */
   async completeSession(sessionId: string, ptUserId: string, ptNotes?: string) {
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Session not found", 404);
@@ -217,27 +327,21 @@ export const bookingService = {
       throw err(`Cannot complete session in ${session.status} status`, 400);
     }
 
+    const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
     const updated = await sessionRepository.updateStatus(
       sessionId,
-      SessionStatus.COMPLETED,
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
       {
-        completedAt: new Date(),
         ptNotes: ptNotes || undefined,
-        sessionDeducted: true,
+        clientConfirmDeadline: deadline,
       },
     );
-
-    // Increment usedSessions on contract
-    await contractRepository.incrementSession(session.contractId);
-
-    // Check if contract should auto-complete
-    await contractService.checkAndCompleteContract(session.contractId);
 
     await notificationService
       .create({
         userId: session.clientUserId,
-        text: "Session marked as completed",
-        eventType: "SESSION_COMPLETED",
+        text: `PT đã báo hoàn thành buổi tập. Vui lòng xác nhận trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn hệ thống sẽ tự xác nhận.`,
+        eventType: "SESSION_PENDING_CONFIRMATION",
         entityType: "SESSION",
         entityId: sessionId,
         link: "/client/booking",
@@ -245,6 +349,138 @@ export const bookingService = {
       .catch(() => {});
 
     return updated;
+  },
+
+  // ── Client confirms the session actually happened ───────────────
+  async clientConfirmSession(sessionId: string, clientUserId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
+      throw err(`Cannot confirm a session in ${session.status} status`, 400);
+    }
+
+    const deducted = await deductQuotaOnce(sessionId, session.contractId);
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.COMPLETED,
+      { completedAt: new Date() },
+    );
+
+    await notificationService
+      .create({
+        userId: session.ptUserId,
+        text: "Khách hàng đã xác nhận buổi tập",
+        eventType: "SESSION_COMPLETED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return { ...updated, quotaDeducted: deducted };
+  },
+
+  // ── Client disputes what the PT reported ────────────────────────
+  async disputeSession(
+    sessionId: string,
+    clientUserId: string,
+    reason: string,
+  ) {
+    if (!reason?.trim()) throw err("Dispute reason is required", 400);
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
+      throw err(`Cannot dispute a session in ${session.status} status`, 400);
+    }
+
+    // Quota is deliberately left untouched — an admin decides in resolveDispute.
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.DISPUTED,
+      { disputeReason: reason.trim(), disputedAt: new Date() },
+    );
+
+    await notificationService
+      .create({
+        userId: session.ptUserId,
+        text: "Khách hàng đã khiếu nại buổi tập — chờ quản trị viên phân xử",
+        eventType: "SESSION_DISPUTED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return updated;
+  },
+
+  // ── Admin rules on a disputed session ───────────────────────────
+  async resolveDispute(
+    sessionId: string,
+    adminId: string,
+    resolution: "COMPLETED" | "CANCELLED",
+    note: string,
+  ) {
+    if (!note?.trim()) throw err("Resolution note is required", 400);
+    if (resolution !== "COMPLETED" && resolution !== "CANCELLED") {
+      throw err("Resolution must be COMPLETED or CANCELLED", 400);
+    }
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.status !== SessionStatus.DISPUTED) {
+      throw err(`Session is not disputed (status ${session.status})`, 400);
+    }
+
+    // Only a COMPLETED ruling costs the client a session.
+    const deducted =
+      resolution === "COMPLETED"
+        ? await deductQuotaOnce(sessionId, session.contractId)
+        : false;
+
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      resolution === "COMPLETED"
+        ? SessionStatus.COMPLETED
+        : SessionStatus.CANCELLED,
+      {
+        resolvedBy: adminId,
+        resolutionNote: note.trim(),
+        resolvedAt: new Date(),
+        ...(resolution === "COMPLETED"
+          ? { completedAt: new Date() }
+          : { cancelledBy: "ADMIN", cancellationReason: note.trim() }),
+      },
+    );
+
+    for (const userId of [session.clientUserId, session.ptUserId]) {
+      await notificationService
+        .create({
+          userId,
+          text: `Quản trị viên đã phân xử buổi tập: ${resolution === "COMPLETED" ? "tính là đã hoàn thành" : "huỷ, không trừ buổi"}`,
+          eventType: "SESSION_DISPUTE_RESOLVED",
+          entityType: "SESSION",
+          entityId: sessionId,
+          link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
+        })
+        .catch(() => {});
+    }
+
+    return { ...updated, quotaDeducted: deducted };
+  },
+
+  /** Sessions waiting on this client's confirmation (what the client must act on). */
+  async listPendingConfirmation(clientUserId: string) {
+    return sessionRepository.findByStatusForUser(clientUserId, [
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
+    ]);
+  },
+
+  async listDisputed() {
+    return sessionRepository.findDisputed();
   },
 
   // ── Cancel session (either party) ──────────────────────────────
@@ -330,43 +566,53 @@ export const bookingService = {
 
     const isClientNoShow = noShowBy === "CLIENT";
 
-    const updated = await sessionRepository.updateStatus(
-      sessionId,
-      SessionStatus.NO_SHOW,
-      {
-        sessionDeducted: isClientNoShow,
-        ptNotes: isClientNoShow ? "Client no-show" : "PT no-show",
-      },
-    );
+    // A PT admitting their own absence is not a claim against anyone: settle it straight
+    // away as NO_SHOW with no quota cost. Accusing the CLIENT of not showing up DOES cost
+    // the client a session, so it goes through the same confirmation window as a completed
+    // session rather than being charged on the PT's say-so.
+    if (!isClientNoShow) {
+      const updated = await sessionRepository.updateStatus(
+        sessionId,
+        SessionStatus.NO_SHOW,
+        { sessionDeducted: false, ptNotes: "PT no-show" },
+      );
 
-    if (isClientNoShow) {
-      // Client no-show: deduct session
-      await contractRepository.incrementSession(session.contractId);
-      await contractService.checkAndCompleteContract(session.contractId);
+      // The client is owed one session's value in cash, charged back to the three parties.
+      // Not caught: if this fails the client is silently short-changed, which is worse than
+      // surfacing the error to the PT who is admitting the absence.
+      await compensateNoShowMoney(session.contractId, sessionId);
 
       await notificationService
         .create({
           userId: session.clientUserId,
-          text: "You were marked as no-show for a session",
-          eventType: "SESSION_NO_SHOW_CLIENT",
-          entityType: "SESSION",
-          entityId: sessionId,
-          link: "/client/booking",
-        })
-        .catch(() => {});
-    } else {
-      // PT no-show: no deduction, notify client
-      await notificationService
-        .create({
-          userId: session.clientUserId,
-          text: "Your trainer did not show up for the session. No session was deducted.",
+          text: "Huấn luyện viên vắng mặt. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
           eventType: "SESSION_NO_SHOW_PT",
           entityType: "SESSION",
           entityId: sessionId,
-          link: "/client/booking",
+          link: "/client/wallet",
         })
         .catch(() => {});
+
+      return updated;
     }
+
+    const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
+      { ptNotes: "Client no-show", clientConfirmDeadline: deadline },
+    );
+
+    await notificationService
+      .create({
+        userId: session.clientUserId,
+        text: `PT báo bạn vắng mặt. Nếu không đúng, hãy khiếu nại trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn buổi tập sẽ bị trừ.`,
+        eventType: "SESSION_PENDING_CONFIRMATION",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/client/booking",
+      })
+      .catch(() => {});
 
     return updated;
   },
@@ -488,5 +734,282 @@ export const bookingService = {
       const key = s.ptUserId === userId ? "clientProfile" : "ptProfile";
       return { ...s, [key]: profileMap.get(otherId) ?? null };
     });
+  },
+
+  // ── Session Rescheduling ────────────────────────────────────────
+
+  async requestReschedule(
+    sessionId: string,
+    userId: string,
+    data: {
+      proposedStartAt: string;
+      proposedEndAt: string;
+      reason: string;
+    }
+  ) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+
+    const isClient = session.clientUserId === userId;
+    const isPT = session.ptUserId === userId;
+    if (!isClient && !isPT) throw err("Not authorized", 403);
+
+    // VĐ4: only a CONFIRMED session. A REQUESTED one has not been agreed yet — there is
+    // nothing to move, and the PT can simply confirm it at a different time.
+    if (session.status !== SessionStatus.CONFIRMED) {
+      throw err("Chỉ buổi tập đã xác nhận (CONFIRMED) mới được dời lịch", 400);
+    }
+
+    const now = new Date();
+    if (session.scheduledStartAt.getTime() <= now.getTime()) {
+      throw err("Không thể dời lịch sau khi buổi tập đã bắt đầu", 400);
+    }
+    const timeUntilStart = session.scheduledStartAt.getTime() - now.getTime();
+    if (timeUntilStart < 12 * 60 * 60 * 1000) {
+      throw err("Không thể dời lịch trong vòng 12 giờ trước buổi tập", 400);
+    }
+
+    if (!data.reason || !data.reason.trim()) {
+      throw err("Phải nêu lý do dời lịch", 400);
+    }
+    if (data.reason.length > 500) {
+      throw err("Lý do dời lịch tối đa 500 ký tự", 400);
+    }
+
+    // Only one open request per session. Without this both sides can have a proposal in
+    // flight at once, and whichever is accepted second silently overwrites the first.
+    const open = await sessionRepository.findOpenRescheduleRequest(sessionId);
+    if (open) {
+      throw err("Buổi tập này đang có một yêu cầu dời lịch chờ phản hồi", 409);
+    }
+
+    // At most two moves per session, counting both sides. Past that the honest option is to
+    // cancel rather than keep pushing the booking around.
+    const usedMoves = await sessionRepository.countAcceptedReschedules(sessionId);
+    if (usedMoves >= 2) {
+      throw err("Buổi tập này đã dời 2 lần — chỉ còn cách huỷ", 409);
+    }
+
+    const proposedStart = new Date(data.proposedStartAt);
+    const proposedEnd = new Date(data.proposedEndAt);
+    if (isNaN(proposedStart.getTime()) || isNaN(proposedEnd.getTime())) {
+      throw err("Thời gian đề xuất không hợp lệ", 400);
+    }
+    if (proposedStart >= proposedEnd) {
+      throw err("Giờ bắt đầu phải trước giờ kết thúc", 400);
+    }
+    if (proposedStart <= now) {
+      throw err("Thời gian đề xuất phải ở tương lai", 400);
+    }
+
+    // The proposed slot has to survive the SAME checks a fresh booking does. Skipping this
+    // was the real hole: a reschedule could put the trainer in two places at once, or outside
+    // the hours they published, with no error at all.
+    await assertSlotBookable(
+      session.ptUserId,
+      proposedStart,
+      proposedEnd,
+      sessionId,
+    );
+
+    const request = await sessionRepository.createRescheduleRequest({
+      sessionId,
+      requestedBy: isClient ? "CLIENT" : "PT",
+      originalStartAt: session.scheduledStartAt,
+      originalEndAt: session.scheduledEndAt,
+      proposedStartAt: proposedStart,
+      proposedEndAt: proposedEnd,
+      reason: data.reason,
+      status: "PENDING",
+    });
+
+    // The session deliberately stays CONFIRMED. A proposal is an offer, not a change: until
+    // the other side accepts, the original booking is still what both parties owe each other,
+    // and the old time is still the time to turn up at.
+    //
+    // The previous code cast "RESCHEDULE_PENDING" to SessionStatus with a comment hoping the
+    // value existed. It does not, so every valid proposal died on a 500 from the status
+    // update — after the request row had already been written, which is why the "only one
+    // open request" rule appeared to work while nothing else did.
+
+    await auditService.record({
+      actorUserId: userId,
+      action: "SESSION_RESCHEDULE_REQUESTED",
+      entityType: AuditEntityType.SESSION,
+      entityId: sessionId,
+      metadata: {
+        requestId: request.id,
+        requestedBy: isClient ? "CLIENT" : "PT",
+        originalStartAt: session.scheduledStartAt.toISOString(),
+        proposedStartAt: proposedStart.toISOString(),
+        proposedEndAt: proposedEnd.toISOString(),
+        reason: data.reason,
+        movesUsed: usedMoves,
+      },
+    });
+
+    const targetUserId = isClient ? session.ptUserId : session.clientUserId;
+    notificationService.create({
+      userId: targetUserId,
+      text: `Có yêu cầu dời lịch buổi tập sang ngày ${proposedStart.toLocaleString()}`,
+      // "SESSION_UPDATE" is not a NotificationEventType, so Prisma rejected every one of
+      // these and the .catch swallowed it: the other party was never told a proposal had
+      // been made. The enum has had the right value all along.
+      eventType: "SESSION_RESCHEDULE_REQUESTED",
+      entityType: "SESSION",
+      entityId: sessionId
+    }).catch(console.error);
+
+    return request;
+  },
+
+  /**
+   * The requester withdraws their own proposal. Only they may do it, and only while it is
+   * still open — once the other side has answered, the answer stands.
+   */
+  async cancelRescheduleRequest(requestId: string, userId: string) {
+    const request = await sessionRepository.findRescheduleRequestById(requestId);
+    if (!request) throw err("Không tìm thấy yêu cầu dời lịch", 404);
+    if (request.status !== "PENDING") {
+      throw err("Yêu cầu đã được xử lý, không thể rút lại", 409);
+    }
+
+    const session = request.session;
+    const requesterId =
+      request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
+    if (requesterId !== userId) {
+      throw err("Chỉ người gửi mới được rút lại yêu cầu", 403);
+    }
+
+    const withdrawn = await sessionRepository.updateRescheduleRequestStatus(
+      requestId,
+      "CANCELLED",
+    );
+
+    await auditService.record({
+      actorUserId: userId,
+      action: "SESSION_RESCHEDULE_WITHDRAWN",
+      entityType: AuditEntityType.SESSION,
+      entityId: request.sessionId,
+      metadata: {
+        requestId,
+        requestedBy: request.requestedBy,
+        proposedStartAt: request.proposedStartAt.toISOString(),
+      },
+    });
+
+    return withdrawn;
+  },
+
+  /**
+   * Every proposal ever made on a session, newest first. Exists for dispute resolution —
+   * "who moved this, when, and why" has to be answerable after the fact.
+   */
+  async getRescheduleHistory(sessionId: string, userId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== userId && session.ptUserId !== userId) {
+      throw err("Not authorized", 403);
+    }
+    return sessionRepository.findRescheduleRequestsBySession(sessionId);
+  },
+
+  async respondToReschedule(
+    requestId: string,
+    userId: string,
+    action: "ACCEPT" | "REJECT",
+    responseNote?: string
+  ) {
+    const request = await sessionRepository.findRescheduleRequestById(requestId);
+    if (!request) throw err("Reschedule request not found", 404);
+    if (request.status !== "PENDING") {
+      throw err("Request already processed", 400);
+    }
+
+    const session = request.session;
+    const isClient = session.clientUserId === userId;
+    const isPT = session.ptUserId === userId;
+
+    if (!isClient && !isPT) throw err("Not authorized", 403);
+    
+    const expectedResponder = request.requestedBy === "CLIENT" ? "PT" : "CLIENT";
+    const actualResponder = isClient ? "CLIENT" : "PT";
+    if (actualResponder !== expectedResponder) {
+      throw err("You cannot respond to your own reschedule request", 403);
+    }
+
+    if (action === "ACCEPT") {
+      await sessionRepository.updateRescheduleRequestStatus(
+        requestId,
+        "ACCEPTED",
+        responseNote
+      );
+      await sessionRepository.updateStatus(
+        session.id,
+        SessionStatus.CONFIRMED,
+        {
+          scheduledStartAt: request.proposedStartAt,
+          scheduledEndAt: request.proposedEndAt,
+        }
+      );
+    } else {
+      await sessionRepository.updateRescheduleRequestStatus(
+        requestId,
+        "REJECTED",
+        responseNote
+      );
+      await sessionRepository.updateStatus(
+        session.id,
+        SessionStatus.CONFIRMED
+      );
+    }
+
+    // The session's time changing is the single most disputed fact in this flow — "I was
+    // never told it moved" is answered here, with who accepted and what the time was before.
+    await auditService.record({
+      actorUserId: userId,
+      action:
+        action === "ACCEPT"
+          ? "SESSION_RESCHEDULE_ACCEPTED"
+          : "SESSION_RESCHEDULE_REJECTED",
+      entityType: AuditEntityType.SESSION,
+      entityId: session.id,
+      metadata: {
+        requestId,
+        requestedBy: request.requestedBy,
+        respondedBy: isClient ? "CLIENT" : "PT",
+        originalStartAt: request.originalStartAt.toISOString(),
+        proposedStartAt: request.proposedStartAt.toISOString(),
+        // On a rejection the session keeps its original time; spell that out rather than
+        // leaving the reader to infer it from the action name.
+        effectiveStartAt:
+          action === "ACCEPT"
+            ? request.proposedStartAt.toISOString()
+            : session.scheduledStartAt.toISOString(),
+        responseNote: responseNote ?? null,
+      },
+    });
+
+    const requesterUserId = request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
+      notificationService.create({
+        userId: requesterUserId,
+        // The wording used to say "đã được xác nhận" on both branches, so a rejected
+        // request told the requester their session had moved. It had not.
+        text:
+          action === "ACCEPT"
+            ? `Yêu cầu dời lịch đã được chấp nhận. Giờ mới: ${request.proposedStartAt.toLocaleString("vi-VN")}`
+            : `Yêu cầu dời lịch đã bị từ chối. Buổi tập giữ nguyên giờ cũ.`,
+        // Same invalid enum value as on the request side — the answer never reached the
+        // person who had asked. The event type has to match the branch, or an acceptance
+        // and a rejection arrive looking identical to anything that filters on it.
+        eventType:
+          action === "ACCEPT"
+            ? "SESSION_RESCHEDULE_ACCEPTED"
+            : "SESSION_RESCHEDULE_REJECTED",
+        entityType: "SESSION",
+        entityId: request.sessionId
+      }).catch(console.error);
+
+    return sessionRepository.findRescheduleRequestById(requestId);
   },
 };

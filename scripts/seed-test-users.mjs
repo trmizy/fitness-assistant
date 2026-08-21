@@ -249,7 +249,7 @@ async function seedAuth(client, passwordHash) {
     await client.query(
       `INSERT INTO users (id, email, password, "firstName", "lastName", role, "createdAt", "updatedAt")
        VALUES ($1,$2,$3,$4,$5,'PT',$6,$6)
-       ON CONFLICT (email) DO UPDATE SET id = EXCLUDED.id
+       ON CONFLICT (email) DO NOTHING
        RETURNING id, email`,
       [id, email, passwordHash, fn, ln, rDate(150, 180)]
     );
@@ -269,7 +269,7 @@ async function seedAuth(client, passwordHash) {
     await client.query(
       `INSERT INTO users (id, email, password, "firstName", "lastName", role, "createdAt", "updatedAt")
        VALUES ($1,$2,$3,$4,$5,'CUSTOMER',$6,$6)
-       ON CONFLICT (email) DO UPDATE SET id = EXCLUDED.id
+       ON CONFLICT (email) DO NOTHING
        RETURNING id`,
       [id, email, passwordHash, fn, ln, createdAt]
     );

@@ -43,6 +43,21 @@ def parse_json_string(value: str) -> Any | None:
         return None
 
 
+def infer_contract(
+    instruction: str, output_json: Any | None, tags: list[str]
+) -> tuple[str, str]:
+    folded = " ".join([instruction, *tags]).lower()
+    if isinstance(output_json, dict) and (
+        "weeklySchedule" in output_json or "weekly_schedule" in output_json
+    ):
+        return "workout_plan", "structured_json"
+    if any(token in folded for token in ["rag", "citation", "evidence", "source_url"]):
+        return "rag_answer", "answer_with_evidence"
+    if isinstance(output_json, (dict, list)):
+        return "structured_fitness", "structured_json"
+    return "fitness_qa", "free_text"
+
+
 def normalize_example(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
     # Field names vary by source: hand-written JSONL uses instruction/output,
     # while the curated gym_instruction_tuning_pairs.csv (25k+ rows) uses the
@@ -95,12 +110,15 @@ def normalize_example(raw: dict[str, Any], source: str) -> dict[str, Any] | None
         tags = list(tags) + ["unstructured_output"]
 
     tags = sorted(set([str(item) for item in tags] + ["fitness", "coach", f"source:{source}"]))
+    task_type, response_contract = infer_contract(instruction, output_json, tags)
 
     return {
         "instruction": instruction,
         "input": input_text,
         "output": output_text,
         "tags": tags,
+        "task_type": task_type,
+        "response_contract": response_contract,
     }
 
 

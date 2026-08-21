@@ -3,8 +3,13 @@ import fs from "fs";
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { contractService } from "../services/contract.service";
+import {
+  moneyBreakdown,
+  terminateContractMoney,
+} from '../services/contract-payout.service';
+import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
-import { ContractStatus } from "../generated/prisma";
+import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 
 export const contractController = {
@@ -19,9 +24,21 @@ export const contractController = {
       res.status(201).json(contract);
     } catch (error: any) {
       logger.error(error, "Request contract error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to request contract" });
+      // LOW_AVAILABILITY carries the fields the client UI's warning dialog needs
+      // (availableSlots, packageSessions, nearestAvailableSlot) — a plain
+      // { error: message } here was silently swallowing all three, so the dialog's
+      // `code === "LOW_AVAILABILITY"` check could never match and it never rendered.
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to request contract",
+        ...(error.code === "LOW_AVAILABILITY"
+          ? {
+              code: error.code,
+              availableSlots: error.availableSlots,
+              packageSessions: error.packageSessions,
+              nearestAvailableSlot: error.nearestAvailableSlot,
+            }
+          : {}),
+      });
     }
   },
 
@@ -216,6 +233,25 @@ export const contractController = {
     }
   },
 
+  // INTERNAL — Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md, called
+  // by fitness-service before every PT/coach client-data or plan-assignment
+  // request. Strictly ACTIVE + PT->client direction — see
+  // contract.service.ts's checkActivePtClientRelationship doc comment.
+  async checkActivePtClientRelationship(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId } = req.query;
+      if (!ptUserId || !clientUserId || typeof ptUserId !== "string" || typeof clientUserId !== "string") {
+        res.status(400).json({ error: "ptUserId and clientUserId are required" });
+        return;
+      }
+      const result = await contractService.checkActivePtClientRelationship(ptUserId, clientUserId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "checkActivePtClientRelationship error");
+      res.status(500).json({ error: "Failed to verify PT-client relationship" });
+    }
+  },
+
   // INTERNAL — called by ai-service to verify that a contract is ACTIVE and get the PT user ID.
   // Security: validates clientId owns this contract and it is currently ACTIVE.
   // Response: minimal { ptUserId, contractId } — no full contract object.
@@ -256,6 +292,31 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, "getActivePTForClient error");
       res.status(500).json({ error: "Failed to verify contract" });
+    }
+  },
+
+  // INTERNAL — called by ai-service right after a Marketplace Personalized
+  // PT Service purchase is paid. See contractService.createMarketplaceContract's
+  // doc comment for why this bypasses the normal request/accept/sign flow.
+  async createMarketplaceContract(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId, packageName, description, price, paymentTransactionId } = req.body ?? {};
+      if (!ptUserId || !clientUserId || !packageName || typeof price !== "number") {
+        res.status(400).json({ error: "ptUserId, clientUserId, packageName, and price are required" });
+        return;
+      }
+      const contract = await contractService.createMarketplaceContract({
+        ptUserId,
+        clientUserId,
+        packageName,
+        description,
+        price,
+        paymentTransactionId,
+      });
+      res.status(201).json({ contractId: contract.id });
+    } catch (error: any) {
+      logger.error(error, "createMarketplaceContract error");
+      res.status(500).json({ error: "Failed to create marketplace contract" });
     }
   },
 
@@ -426,19 +487,119 @@ export const contractController = {
     }
   },
 
-  // Client pays a PENDING_PAYMENT contract via wallet-transfer
+  // Client starts payment for a PENDING_PAYMENT contract at their chosen gateway.
+  // Responds with a redirect URL; the contract activates on the webhook, not here.
   async pay(req: any, res: Response) {
     try {
       const clientUserId = req.headers['x-user-id'] as string;
-      const result = await contractService.pay(req.params.id, clientUserId);
+      const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
+      const result = await contractService.pay(req.params.id, clientUserId, provider);
       res.json(result);
     } catch (error: any) {
       if (error.message === 'ALREADY_PAID') {
         res.status(409).json({ error: error.message });
         return;
       }
+      if (error.code === 'PROVIDER_NOT_CONFIGURED') {
+        res.status(400).json({ error: error.message, code: error.code });
+        return;
+      }
       logger.error(error, 'Contract pay error');
       res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+    }
+  },
+
+  // Money view of a contract — either party may read it, nobody else.
+  async moneyBreakdown(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const role = req.headers['x-user-role'] as string;
+      const contract = await contractService.getById(req.params.id);
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+      const isParty = contract.clientUserId === userId || contract.ptUserId === userId;
+      if (!isParty && role !== 'ADMIN') {
+        res.status(403).json({ error: 'Not authorized' });
+        return;
+      }
+      const data = await moneyBreakdown(req.params.id);
+      if (!data) {
+        res.status(400).json({ error: 'Contract has no price or sessions to break down' });
+        return;
+      }
+      res.json(data);
+    } catch (error: any) {
+      logger.error(error, 'Money breakdown error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to load breakdown' });
+    }
+  },
+
+  /**
+   * End a contract and settle the money for good.
+   *
+   * The reason decides who bears the cost, so it is never taken from the caller at face
+   * value: a client may only ever declare their own cancellation, a PT only their own
+   * withdrawal, and only an admin can invoke the reasons that carry no penalty. Letting a
+   * PT self-report MUTUAL would hand them a way to dodge the cancellation fee.
+   */
+  async terminate(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const role = req.headers['x-user-role'] as string;
+      const reason = String(req.body?.reason ?? '').toUpperCase();
+
+      const contract = await contractService.getById(req.params.id);
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+
+      const isClient = contract.clientUserId === userId;
+      const isPt = contract.ptUserId === userId;
+      const isAdmin = role === 'ADMIN';
+
+      const allowed: Record<string, boolean> = {
+        CLIENT_CANCELLED: isClient || isAdmin,
+        PT_CANCELLED: isPt || isAdmin,
+        PT_BANNED: isAdmin,
+        MUTUAL: isAdmin,
+        EXPIRED: isAdmin,
+        COMPLETED: isAdmin,
+      };
+      if (!(reason in allowed)) {
+        res.status(400).json({ error: `Unknown termination reason: ${reason}` });
+        return;
+      }
+      if (!allowed[reason]) {
+        res.status(403).json({ error: `You may not terminate this contract as ${reason}` });
+        return;
+      }
+
+      const result = await terminateContractMoney(req.params.id, reason as any);
+
+      // The reason decides who pays, so record who declared it and under what authority.
+      // "The admin ended it as MUTUAL" and "the PT ended it as MUTUAL" settle differently,
+      // and only the log can tell them apart afterwards.
+      await auditService.record({
+        actorUserId: userId,
+        action: "CONTRACT_TERMINATED",
+        entityType: AuditEntityType.CONTRACT,
+        entityId: req.params.id,
+        metadata: {
+          reason,
+          actorRole: isAdmin ? "ADMIN" : isPt ? "PT" : isClient ? "CLIENT" : "UNKNOWN",
+          refund: result?.refund ?? null,
+          statusBefore: contract.status,
+        },
+        ...auditMeta(req),
+      });
+
+      res.json({ contractId: req.params.id, reason, settlement: result });
+    } catch (error: any) {
+      logger.error(error, 'Contract terminate error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract' });
     }
   },
 

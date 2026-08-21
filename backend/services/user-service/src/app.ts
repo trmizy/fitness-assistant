@@ -15,6 +15,8 @@ import dropboxSignWebhookRouter from "./routes/dropboxSignWebhook.routes";
 import internalRoutes from "./routes/internal.routes";
 import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
+import adminRoutes from "./routes/admin.routes";
+import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 
 const app = express();
 
@@ -75,6 +77,9 @@ app.use("/notifications", notificationRoutes);
 app.use("/sessions", sessionRoutes);
 app.use("/availability", availabilityRoutes);
 
+// Admin-only operations owned by this service (disputed sessions, …)
+app.use("/admin", adminRoutes);
+
 // Public location data (provinces/wards) — no auth required
 app.use("/locations", locationRoutes);
 
@@ -84,5 +89,8 @@ app.use("/pt/training-locations", trainingLocationRoutes);
 // Service-to-service only. Protected by serviceSecretMiddleware inside the router.
 // NOT exposed via gateway public routing.
 app.use("/internal", internalRoutes);
+
+// PT Service Package management — /me/service-packages (PT) and /pts/:ptUserId/service-packages (client)
+app.use("/me/service-packages", ptServicePackageRoutes);
 
 export default app;

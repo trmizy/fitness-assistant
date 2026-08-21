@@ -119,11 +119,16 @@ export function ClientDashboard() {
   upcomingEnd.setDate(upcomingEnd.getDate() + 30);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ["profile"],
+    // Must match the key InBodyModule's upload flow invalidates
+    // (["profile", user.id]) — a bare ["profile"] key is NOT a prefix
+    // match for that invalidation call, so this query silently never
+    // refreshed after an InBody upload. See docs/body-state-and-adaptive-planning.md.
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
       const res = await profileService.getProfile();
       return res.profile;
     },
+    enabled: !!user?.id,
   });
 
   const { data: inbodyHistory = [], isLoading: inbodyLoading } = useQuery({

@@ -7,6 +7,13 @@ import {
 } from "../services/profile.service";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import {
+  ptReviewRepository,
+  attachPtRatings,
+} from "../repositories/ptReview.repository";
+import { enrichForDiscovery } from "../services/pt-discovery.service";
+import { auditService, auditMeta } from "../services/audit.service";
+import { AuditEntityType } from "../generated/prisma";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
@@ -106,23 +113,112 @@ export const profileController = {
           res.status(400).json({ error: "wardCode phải là số nguyên" });
           return;
         }
+        // A ward code is only meaningful inside a province — the same number is reused
+        // across provinces, so filtering on it alone quietly matches wards the caller never
+        // meant. The search form already pairs the two; enforcing it only there leaves the
+        // rule off entirely for any caller that is not the form.
+        if (provinceCode === undefined) {
+          res
+            .status(400)
+            .json({ error: "wardCode phải đi kèm provinceCode" });
+          return;
+        }
       }
 
-      const profiles = await profileRepository.findPTs({
+      const searchCity = req.query.searchCity as string | undefined;
+      const searchDistrict = req.query.searchDistrict as string | undefined;
+      const gymId = req.query.gymId as string | undefined;
+      let specialties: string[] | undefined;
+      if (req.query.specialties) {
+        if (Array.isArray(req.query.specialties)) {
+          specialties = req.query.specialties as string[];
+        } else {
+          specialties = (req.query.specialties as string).split(",");
+        }
+      }
+
+      // Rating order can't be expressed in findPTs' orderBy (the score is aggregated from
+      // session_reviews, not a column), so for that one mode we page in memory: fetch the
+      // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
+      // sorting afterwards would only order each page against itself.
+      const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
+
+      let profiles = await profileRepository.findPTs({
         q: q?.trim() || undefined,
         minPrice,
         maxPrice,
         sessionMode,
         provinceCode,
         wardCode,
-        sortBy,
-        page,
-        limit,
+        searchCity,
+        searchDistrict,
+        gymId,
+        specialties,
+        sortBy: sortByRating ? undefined : sortBy,
+        page: sortByRating ? undefined : page,
+        limit: sortByRating ? 1000 : limit,
       });
+
+      // B10b. Ưu tiên gymId: Nếu có gymId, đưa các PT có cùng gymId lên đầu danh sách
+      if (gymId) {
+        profiles.sort((a, b) => {
+          if (a.gymId === gymId && b.gymId !== gymId) return -1;
+          if (b.gymId === gymId && a.gymId !== gymId) return 1;
+          return 0;
+        });
+      }
       await enrichProfilesWithAuthNames(profiles as any[]);
-      res.json({ pts: profiles });
+
+      // One grouped query for the whole list, never one per PT.
+      let rated = await attachPtRatings(profiles as any[]);
+
+      if (sortByRating) {
+        const dir = sortBy === "ratingAsc" ? 1 : -1;
+        // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
+        rated.sort((a, b) => {
+          if (a.avgRating === null && b.avgRating === null) return 0;
+          if (a.avgRating === null) return 1;
+          if (b.avgRating === null) return -1;
+          return (a.avgRating - b.avgRating) * dir;
+        });
+        const take = limit ?? 50;
+        const skip = page ? (page - 1) * take : 0;
+        rated = rated.slice(skip, skip + take);
+      }
+
+      // Phase 1 layer 2 + Phase 2 VĐ6: the two fields the buying UI needs. Both are computed
+      // for the whole page at once — one grouped slot query and one membership lookup — so
+      // the query count does not grow with the number of trainers returned.
+      // The viewer comes from the verified token, never from a query parameter — otherwise
+      // anyone could ask "rank this list as if I were that user" and read their gym membership.
+      const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
+
+      res.json({ pts: enriched });
     } catch (error) {
       logger.error(error, "List PTs error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** One PT's public profile, with their rating and the latest commented reviews. */
+  async getPTDetail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const profile = await profileRepository.findByUserId(userId);
+      if (!profile || !(profile as any).isPT) {
+        res.status(404).json({ error: "PT not found" });
+        return;
+      }
+
+      await enrichProfilesWithAuthNames([profile] as any[]);
+      const [rating, recentReviews] = await Promise.all([
+        ptReviewRepository.aggregateForPt(userId),
+        ptReviewRepository.recentCommentsForPt(userId, 5),
+      ]);
+
+      res.json({ ...(profile as any), ...rating, recentReviews });
+    } catch (error) {
+      logger.error(error, "Get PT detail error");
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -239,6 +335,35 @@ export const profileController = {
       res.json({ activeContracts, ocrStats });
     } catch (error) {
       logger.error(error, "Admin get stats error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  async toggleAcceptingClients(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { isAcceptingClients, notAcceptingReason } = req.body;
+      const { profile } = await profileService.toggleAcceptingClients(
+        req.user!.id,
+        isAcceptingClients,
+        notAcceptingReason
+      );
+
+      // Closing the door hides the buy button, so a client who was mid-purchase and a PT
+      // who says "I never stopped taking clients" need a dated record of the switch.
+      await auditService.record({
+        actorUserId: req.user!.id,
+        action: isAcceptingClients
+          ? "PT_ACCEPTING_CLIENTS_ON"
+          : "PT_ACCEPTING_CLIENTS_OFF",
+        entityType: AuditEntityType.PT_PROFILE,
+        entityId: req.user!.id,
+        metadata: { notAcceptingReason: notAcceptingReason ?? null },
+        ...auditMeta(req),
+      });
+
+      res.json({ profile });
+    } catch (error) {
+      logger.error(error, "Toggle accepting clients error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

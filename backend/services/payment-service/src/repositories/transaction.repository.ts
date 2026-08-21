@@ -18,7 +18,7 @@ export const transactionRepository = {
    * Scoped by BOTH provider and providerTransactionId — a webhook claiming to be
    * from provider X must only ever be able to match a transaction that was
    * actually created under provider X. Without the provider filter, a webhook
-   * event from one provider (e.g. a forged MOCK event) could match — and
+   * event from one provider (e.g. a forged MoMo event) could match — and
    * fraudulently complete — a real transaction created under a different
    * provider (e.g. VNPAY) if the attacker knows/guesses its providerTransactionId.
    */

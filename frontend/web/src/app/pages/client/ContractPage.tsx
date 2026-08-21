@@ -10,13 +10,22 @@ import {
   Loader2,
   ChevronRight,
   X,
+  Copy,
+  Check,
+  MessageSquare,
+  Hash,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService } from "../../services/api";
 import { toast } from "sonner";
-import type { Contract, ContractStatus } from "../../types";
+import type {
+  Contract,
+  ContractPartyProfile,
+  ContractStatus,
+} from "../../types";
 import { formatVND } from "../../utils/currency";
+import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 
 const statusConfig: Record<
   ContractStatus,
@@ -85,6 +94,33 @@ function formatPrice(price?: number | null) {
   return formatVND(price);
 }
 
+function formatDateTime(d?: string | null) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function partyName(p?: ContractPartyProfile | null, fallback?: string) {
+  const name = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
+  return name || p?.email || fallback || "—";
+}
+
+function partyInitials(p?: ContractPartyProfile | null) {
+  const letters = `${p?.firstName?.[0] ?? ""}${p?.lastName?.[0] ?? ""}`.trim();
+  return (letters || p?.email?.[0] || "?").toUpperCase();
+}
+
+const SESSION_MODE_LABEL: Record<string, string> = {
+  ONLINE: "Online",
+  OFFLINE: "In person",
+  HYBRID: "Hybrid",
+};
+
 export function ContractPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -92,6 +128,22 @@ export function ContractPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+  // The contract awaiting a gateway choice; null while the picker is closed.
+  const [payTarget, setPayTarget] = useState<Contract | null>(null);
+
+  // The contract id is the reference number a client has to quote when reporting a problem,
+  // so it needs to leave the page intact — no hand-transcribing a UUID.
+  const copyContractId = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(true);
+      toast.success("Copied contract ID");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      toast.error("Could not copy — select the ID manually");
+    }
+  };
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ["client-contracts", activeTab],
@@ -112,22 +164,33 @@ export function ContractPage() {
     },
   });
 
-  // Phase 4 — pay a PENDING_PAYMENT contract via wallet
+  /**
+   * Pay a PENDING_PAYMENT contract at the gateway the client picked.
+   *
+   * The response is a redirect, not a completed payment — the contract activates only once
+   * the gateway's signed webhook reaches payment-service. Showing success here would be
+   * taking the browser's word for whether money moved.
+   */
   const payMutation = useMutation({
-    mutationFn: (id: string) => contractService.pay(id),
+    mutationFn: ({ id, provider }: { id: string; provider: string }) =>
+      contractService.pay(id, provider),
     onSuccess: (result: any) => {
-      if (result?.payment?.status === "PAID") {
-        toast.success("Payment successful — contract is now active!");
-      } else {
-        toast.error(
-          result?.payment?.failureReason ||
-            "Payment failed — check your wallet balance",
-        );
+      const url = result?.payment?.redirectUrl;
+      if (url) {
+        window.location.href = url;
+        return;
       }
+      setPayTarget(null);
+      toast.error(
+        result?.payment?.failureReason ||
+          "Cổng thanh toán không trả về liên kết — thử lại hoặc chọn cổng khác",
+      );
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error || "Failed to pay");
+      toast.error(
+        err?.response?.data?.error || err?.response?.data?.code || "Không tạo được giao dịch",
+      );
     },
   });
 
@@ -270,6 +333,98 @@ export function ContractPage() {
                   </div>
                 </div>
 
+                {/* Who + which contract — everything a support ticket or dispute has to
+                    reference. Without this the client can only point at "my contract". */}
+                <div className="grid gap-3 sm:grid-cols-2 mb-3">
+                  <div className="bg-zinc-800/50 rounded-lg p-3">
+                    <div className="text-xs text-zinc-500 mb-2 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> Trainer
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {selected.ptProfile?.photoUrl ? (
+                        <img
+                          src={selected.ptProfile.photoUrl}
+                          alt=""
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-green-500/15 border border-green-500/25 text-green-400 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                          {partyInitials(selected.ptProfile)}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-zinc-200 truncate">
+                          {partyName(selected.ptProfile, "Trainer")}
+                        </div>
+                        {selected.ptProfile?.email && (
+                          <div className="text-xs text-zinc-500 truncate">
+                            {selected.ptProfile.email}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-zinc-600 font-mono truncate">
+                          ID: {selected.ptUserId}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/client/chat")}
+                      className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-zinc-700/60 text-zinc-300 text-xs font-semibold hover:bg-zinc-800 transition-colors"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" /> Message trainer
+                    </button>
+                  </div>
+
+                  <div className="bg-zinc-800/50 rounded-lg p-3 space-y-2">
+                    <div>
+                      <div className="text-xs text-zinc-500 mb-1 flex items-center gap-1.5">
+                        <Hash className="w-3.5 h-3.5" /> Contract ID
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 min-w-0 text-[11px] font-mono text-zinc-300 break-all select-all">
+                          {selected.id}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyContractId(selected.id)}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-green-400 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                          aria-label="Copy contract ID"
+                        >
+                          {copiedId ? (
+                            <Check className="w-3.5 h-3.5 text-green-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-700/40">
+                      <div>
+                        <div className="text-[11px] text-zinc-500">Created</div>
+                        <div className="text-xs text-zinc-300">
+                          {formatDateTime(selected.createdAt)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-zinc-500">Type</div>
+                        <div className="text-xs text-zinc-300">
+                          {selected.packageType === "PER_SESSION"
+                            ? "Per Session"
+                            : "Package"}
+                          {selected.sessionMode
+                            ? ` · ${SESSION_MODE_LABEL[selected.sessionMode] ?? selected.sessionMode}`
+                            : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-zinc-600 leading-snug">
+                      Quote this contract ID when you report a problem — it
+                      identifies the agreement, both parties and every session
+                      under it.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Key metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="bg-zinc-800/50 rounded-lg p-3">
@@ -362,7 +517,7 @@ export function ContractPage() {
               <div className="flex flex-wrap gap-2">
                 {selected.status === "PENDING_PAYMENT" && (
                   <button
-                    onClick={() => payMutation.mutate(selected.id)}
+                    onClick={() => setPayTarget(selected)}
                     disabled={payMutation.isPending}
                     className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
                   >
@@ -397,6 +552,15 @@ export function ContractPage() {
             </div>
           )}
         </div>
+      )}
+
+      {payTarget && (
+        <PaymentMethodDialog
+          amount={Number(payTarget.price ?? 0)}
+          isSubmitting={payMutation.isPending}
+          onClose={() => setPayTarget(null)}
+          onConfirm={(provider) => payMutation.mutate({ id: payTarget.id, provider })}
+        />
       )}
 
       {/* Cancel Dialog */}
