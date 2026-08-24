@@ -57,6 +57,12 @@ import {
   computeWorkoutLogSearchParams,
 } from "./workout-log-url.utils";
 import { mergeRealWorkoutData } from "./workout-log-completion-merge.utils";
+import { selectSmartSetPrefill, type SmartPrefillSource } from "./smart-set-prefill.utils";
+import {
+  persistActiveLogDraft,
+  readPersistedActiveLogDraft,
+  clearPersistedActiveLogDraft,
+} from "./active-log-draft.utils";
 import {
   computeMuscleGroupDistribution,
   computeActivityTypeDistribution,
@@ -633,6 +639,10 @@ type ActiveExerciseLog = {
   bodyWeightAtSetKg: string;
   durationSeconds: string;
   distanceMeters: string;
+  /** Editable only for BODYWEIGHT_REPS (roadmap P1.1 "bodyweight reps
+   * editable prefill") — other modes still derive reps from the fixed
+   * program prescription at completion time. */
+  reps: string;
   noWeight: boolean;
   rpe: number;
   rir: number;
@@ -644,6 +654,23 @@ type ExerciseLoggingMode =
   | "TIME"
   | "TIME_LOAD"
   | "DISTANCE_TIME";
+
+// Roadmap P1.1 "true set-by-set table UI" — one row of the real, persisted
+// WorkoutSet skeleton startSchedule already pre-creates. Mirrors exactly
+// the fields PATCH /workouts/sets/:setId accepts, so a row can always be
+// sent back as-is.
+type WorkoutSetRow = {
+  id: string;
+  setNumber: number;
+  completed: boolean;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  bodyWeightAtSetKg: number | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+};
 
 const MANUAL_WEEKDAYS = [
   { value: 1, short: "T2", label: "Thứ 2" },
@@ -1333,6 +1360,19 @@ export function WorkoutLogPage() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
   );
+  // Roadmap P1.1 "true set-by-set table UI" — the real per-set skeleton
+  // (id, setNumber, completed, logged fields), keyed by programExerciseId,
+  // fetched once per workoutId via GET /workouts/:id (already returns
+  // exercises[].workoutSets[] ordered by setNumber — see
+  // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md). `undefined` for
+  // a given programExerciseId means "not loaded yet" — callers must treat
+  // that the same as "unknown, fall back to today's exercise-level
+  // completion" rather than assuming zero sets.
+  const [workoutSetsByExercise, setWorkoutSetsByExercise] = useState<
+    Record<string, WorkoutSetRow[]>
+  >({});
+  const workoutSetsFetchedForWorkoutIdRef = useRef<string | null>(null);
+  const workoutStartAttemptedForScheduleIdRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
@@ -2132,6 +2172,9 @@ export function WorkoutLogPage() {
   const [progressionByExercise, setProgressionByExercise] = useState<
     Record<string, ExerciseProgression | null>
   >({});
+  const [smartPrefillSourceByExercise, setSmartPrefillSourceByExercise] = useState<
+    Record<string, SmartPrefillSource>
+  >({});
   const [feedbackPrompt, setFeedbackPrompt] = useState<{ scheduleId: string } | null>(null);
   const [skipCancelPrompt, setSkipCancelPrompt] = useState<{ scheduleId: string } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -2615,6 +2658,166 @@ export function WorkoutLogPage() {
     };
   }, [activeExIdx, dayExercises, progressionByExercise]);
 
+  // Roadmap P1.1 "true set-by-set table UI" — the real per-set skeleton
+  // (see docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md's audit
+  // findings: startSchedule already pre-creates one WorkoutSet row per
+  // planned set the moment the session starts). Fetched once per workoutId
+  // via GET /workouts/:id, which already returns exercises[].workoutSets[]
+  // ordered by setNumber. Only applies to the schedule-linked path — the
+  // ad-hoc/freeform logging branch has no schedule/workoutId to key off and
+  // keeps its existing single-value-per-exercise behavior untouched.
+  useEffect(() => {
+    if (planView !== "activeExercise") return;
+    const schedule = selectedSchedule();
+    if (!schedule?.id) return;
+    const workoutId = schedule.workoutId || (schedule as any)?.workout?.id || currentWorkoutId;
+
+    if (!workoutId) {
+      // Reaching the active view via a direct/deep-link URL (rather than
+      // clicking "Bắt đầu tập") never calls startSchedule, so no
+      // WorkoutExercise/WorkoutSet skeleton exists yet — without eagerly
+      // creating it here, the table (and per-set undo/prefill) would never
+      // appear for that very common landing path; the first completion
+      // would silently fall straight to the old bulk-complete path instead,
+      // defeating this whole feature for it. Never attempted on a locked
+      // day (matches "Bắt đầu tập"'s own disabled state there — a locked
+      // day with no existing session must stay read-only) or more than
+      // once per schedule.
+      if (isSelectedDayLocked) return;
+      if (workoutStartAttemptedForScheduleIdRef.current === schedule.id) return;
+      workoutStartAttemptedForScheduleIdRef.current = schedule.id;
+      workoutService
+        .startSchedule(schedule.id)
+        .then((started: any) => {
+          applyScheduleProgress(schedule.id, started);
+          setSelectedScheduleId(schedule.id);
+          if (started?.workoutId) setCurrentWorkoutId(started.workoutId);
+        })
+        .catch(() => {
+          // Non-critical: same fallback as below — the table just won't
+          // appear, and completion falls back to the old bulk path.
+          workoutStartAttemptedForScheduleIdRef.current = null;
+        });
+      return;
+    }
+
+    if (workoutSetsFetchedForWorkoutIdRef.current === workoutId) return;
+    workoutSetsFetchedForWorkoutIdRef.current = workoutId;
+    workoutService
+      .getWorkout(workoutId)
+      .then((workout: any) => {
+        const byProgramExerciseId: Record<string, WorkoutSetRow[]> = {};
+        for (const exercise of workout?.exercises ?? []) {
+          if (!exercise.programExerciseId) continue;
+          byProgramExerciseId[exercise.programExerciseId] = (exercise.workoutSets ?? [])
+            .slice()
+            .sort((a: any, b: any) => a.setNumber - b.setNumber)
+            .map((set: any) => ({
+              id: set.id,
+              setNumber: set.setNumber,
+              completed: Boolean(set.completed),
+              weight: set.weight ?? null,
+              reps: set.reps ?? null,
+              rpe: set.rpe ?? null,
+              rir: set.rir ?? null,
+              bodyWeightAtSetKg: set.bodyWeightAtSetKg ?? null,
+              durationSeconds: set.durationSeconds ?? null,
+              distanceMeters: set.distanceMeters ?? null,
+            }));
+        }
+        setWorkoutSetsByExercise((prev) => ({ ...prev, ...byProgramExerciseId }));
+      })
+      .catch(() => {
+        // Non-critical: falls back to today's exercise-level completion —
+        // see curExSetRows === undefined handling at every call site below.
+        workoutSetsFetchedForWorkoutIdRef.current = null;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkoutId, selectedScheduleId, currentProgram, aiSchedules, selectedDate, planView, isSelectedDayLocked]);
+
+  // Smart set prefill (roadmap P1.1), with session-resume draft restoration
+  // (roadmap P1.7) taking priority. This initializes the editable draft for
+  // the active exercise only after both async context calls have settled, so a
+  // slower deterministic target can still beat raw previous-performance data.
+  // It never marks a set/exercise complete and never overwrites a draft once
+  // the user has edited it.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId) return;
+    if (completedExercises.has(activeExIdx)) return;
+    if (activeExerciseLogsRef.current[activeExIdx]) return;
+
+    // A real, recent (<=12h old) draft the user already typed into THIS
+    // exact schedule+exercise pair — e.g. after a reload mid-set — always
+    // wins over recomputing a fresh prefill. Synchronous (no network
+    // round-trip needed), so it reappears immediately rather than waiting
+    // on previous-performance/progression to resolve.
+    const restoredDraft = readPersistedActiveLogDraft(
+      selectedSchedule()?.id ?? null,
+      exerciseDbId,
+    );
+    if (restoredDraft) {
+      const next = {
+        ...activeExerciseLogsRef.current,
+        [activeExIdx]: restoredDraft,
+      };
+      activeExerciseLogsRef.current = next;
+      setActiveExerciseLogs(next);
+      return;
+    }
+
+    const previous = previousPerformanceByExercise[exerciseDbId];
+    const progression = progressionByExercise[exerciseDbId];
+    if (previous === undefined || progression === undefined) return;
+
+    // Roadmap P1.1 "true set-by-set table UI" — when the real per-set
+    // skeleton has loaded, prefer THIS set's own previous actual (set 3
+    // should reference set 3's own history) over always set 1's. Falls
+    // back to the pre-existing behavior (undefined targetSetNumber) when
+    // the skeleton hasn't loaded yet — never blocks prefill on it.
+    const setRows = curEx?.programExerciseId
+      ? workoutSetsByExercise[curEx.programExerciseId]
+      : undefined;
+    const targetSetNumber = setRows?.find((row) => !row.completed)?.setNumber;
+
+    const selected = selectSmartSetPrefill({
+      loggingMode: exerciseLoggingMode(curEx),
+      progression,
+      previousSets: previous?.hasHistory ? previous.sets : [],
+      exerciseDefaults: {
+        weight: curEx?.weight ?? null,
+        bodyWeightAtSetKg: curEx?.bodyWeightAtSetKg ?? null,
+        reps: curEx?.reps ?? null,
+        durationSeconds: curEx?.durationSeconds ?? null,
+        distanceMeters: curEx?.distanceMeters ?? null,
+        rpe: curEx?.rpe ?? null,
+        rir: curEx?.rir ?? null,
+      },
+      userCurrentWeightKg: userProfile?.currentWeight ?? null,
+      targetSetNumber,
+    });
+
+    setSmartPrefillSourceByExercise((prev) => ({
+      ...prev,
+      [exerciseDbId]: selected.source,
+    }));
+    const next = {
+      ...activeExerciseLogsRef.current,
+      [activeExIdx]: selected.draft,
+    };
+    activeExerciseLogsRef.current = next;
+    setActiveExerciseLogs(next);
+  }, [
+    activeExIdx,
+    completedExercises,
+    dayExercises,
+    previousPerformanceByExercise,
+    progressionByExercise,
+    userProfile?.currentWeight,
+    workoutSetsByExercise,
+  ]);
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)
       .toString()
@@ -2688,6 +2891,12 @@ export function WorkoutLogPage() {
         const bodyWeightAtSetKg = Number(log?.bodyWeightAtSetKg);
         const durationSecondsValue = Number(log?.durationSeconds);
         const distanceMetersValue = Number(log?.distanceMeters);
+        // Roadmap P1.1 "bodyweight reps editable prefill" — same gating as
+        // the completeScheduleExercise path above: only BODYWEIGHT_REPS has
+        // a real editable reps control, so only it can override the fixed
+        // program prescription here.
+        const repsValue =
+          exerciseLoggingMode(exercise) === "BODYWEIGHT_REPS" ? Number(log?.reps) : NaN;
         // exercise.dbId already reflects any session-only swap (see
         // handleSelectSwap) — logging the substitute's real id here is the
         // ACCURATE record of what was actually performed, not a corruption
@@ -2699,7 +2908,10 @@ export function WorkoutLogPage() {
         return {
           exerciseId: exercise.dbId,
           sets: Number(exercise.sets) || 1,
-          reps: Number(exercise.reps) || undefined,
+          reps:
+            Number.isFinite(repsValue) && repsValue > 0
+              ? repsValue
+              : Number(exercise.reps) || undefined,
           duration:
             Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
               ? durationSecondsValue
@@ -2771,6 +2983,44 @@ export function WorkoutLogPage() {
 
     const scheduleForCompletion = selectedSchedule();
     const currentExercise = dayExercises[activeExIdx];
+
+    // Roadmap P1.1 "true set-by-set table UI" — a genuinely multi-set
+    // exercise (real skeleton loaded, >1 planned set) ALWAYS completes via
+    // the per-row PATCH /workouts/sets/:setId, for BOTH an interior set and
+    // the set that closes out the exercise. It must never fall through to
+    // completeScheduleExercise below: that call's "re-completion" branch
+    // unconditionally overwrites EVERY sibling WorkoutSet's weight/reps/etc
+    // with the one value it was given, which would silently corrupt the
+    // other already-independently-logged sets' distinct values — see
+    // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md. A genuine 1-set
+    // exercise (or the skeleton not having loaded yet, or the ad-hoc/
+    // freeform no-schedule path) keeps using the existing bulk path exactly
+    // as before — there is no sibling set to protect there.
+    const setRowsForCurEx = currentExercise?.programExerciseId
+      ? workoutSetsByExercise[currentExercise.programExerciseId]
+      : undefined;
+    const activeSetRowForCompletion = setRowsForCurEx?.find((row) => !row.completed);
+    // Computed BEFORE this completion, so it reflects "how many were still
+    // incomplete including the one about to be completed" — 1 means this
+    // IS the closing set. Passed explicitly rather than inferred from the
+    // server response, so there's no ambiguity about which set closed out.
+    const remainingSetCountBeforeThis = setRowsForCurEx?.filter((row) => !row.completed).length ?? 0;
+    if (
+      scheduleForCompletion?.id &&
+      setRowsForCurEx &&
+      setRowsForCurEx.length > 1 &&
+      activeSetRowForCompletion?.id
+    ) {
+      await handleCompletePerSetRow(
+        currentExercise,
+        activeSetRowForCompletion,
+        currentLog,
+        scheduleForCompletion.id,
+        remainingSetCountBeforeThis <= 1,
+      );
+      return;
+    }
+
     const previousCompleted = completedExercises;
     const newCompleted = new Set(completedExercises);
 
@@ -2817,6 +3067,16 @@ export function WorkoutLogPage() {
         const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
         const durationSecondsValue = Number(currentLog?.durationSeconds);
         const distanceMetersValue = Number(currentLog?.distanceMeters);
+        // Roadmap P1.1 "bodyweight reps editable prefill" — reps is only a
+        // real editable control for BODYWEIGHT_REPS today (see the RulerSlider
+        // gate above); every other mode omits it, exactly as before this
+        // change, so the backend keeps falling back to the fixed program
+        // prescription for them (workout.service.ts completeScheduleExercise,
+        // unchanged).
+        const repsValue =
+          exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS"
+            ? Number(currentLog?.reps)
+            : NaN;
         const notesParts = [
           currentLog?.noWeight ? "Không dùng tạ" : undefined,
           swapNotes[activeExIdx],
@@ -2827,6 +3087,7 @@ export function WorkoutLogPage() {
           {
             exerciseId: currentExercise.dbId || undefined,
             weight: Number.isFinite(weight) ? weight : undefined,
+            reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
             bodyWeightAtSetKg:
               Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
                 ? bodyWeightAtSetKg
@@ -2847,6 +3108,11 @@ export function WorkoutLogPage() {
         setSelectedScheduleId(scheduleForCompletion.id);
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
+        // A completed exercise's draft is now a real persisted set — never
+        // resurrect it as an editable draft on some future re-visit.
+        if (currentExercise?.dbId) {
+          clearPersistedActiveLogDraft(scheduleForCompletion.id, currentExercise.dbId);
+        }
 
         if (
           result.progressPercent >= 100 ||
@@ -2867,6 +3133,9 @@ export function WorkoutLogPage() {
       } else {
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
+        if (currentExercise?.dbId) {
+          clearPersistedActiveLogDraft(selectedSchedule()?.id ?? null, currentExercise.dbId);
+        }
         if (newCompleted.size === dayExercises.length) {
           const savedWorkoutId = await persistCompletedWorkout();
           setShowCompletion(true);
@@ -2889,9 +3158,280 @@ export function WorkoutLogPage() {
       setTimerSeconds(0);
     }
     if (activeExIdx < dayExercises.length - 1) {
+      const undoExIdx = activeExIdx;
+      const undoScheduleId = scheduleForCompletion?.id;
+      const undoProgramExerciseId = resolvedProgramExerciseId;
+      const undoExerciseName = currentExercise?.name;
       setRestSeconds(90);
       setRestTimerRunning(true);
       setActiveExIdx(activeExIdx + 1);
+      // Roadmap P1.6 "undo last set" — only offered right after completing a
+      // NON-final exercise (see docs/features/UNDO_LAST_SET_IMPACT_ANALYSIS.md
+      // for why the final exercise, which triggers the whole-workout
+      // completion screen/PR summary/cycle-feedback prompt, is deliberately
+      // out of scope). Undoing restores the exact values just submitted —
+      // never a blank input — so correcting a mistake is "undo, fix, submit
+      // again", not "undo, re-enter everything".
+      if (undoScheduleId && undoProgramExerciseId) {
+        toast(`Đã hoàn thành "${undoExerciseName}"`, {
+          action: {
+            label: "Hoàn tác",
+            onClick: () => {
+              void handleUndoExerciseCompletion(
+                undoExIdx,
+                undoScheduleId,
+                undoProgramExerciseId,
+                currentLog,
+              );
+            },
+          },
+          duration: 8_000,
+        });
+      }
+    }
+  };
+
+  // Roadmap P1.1 "true set-by-set table UI" — completes ONE interior set
+  // (interior OR the set that closes out the exercise — see
+  // handleCompleteExercise's own comment for why the closing set must ALSO
+  // go through this per-row path rather than completeScheduleExercise for
+  // a genuinely multi-set exercise). Uses updateSet's now-included
+  // `progress` field (see workout.service.ts's updateSet, same
+  // WorkoutProgressSummary shape completeScheduleExercise already
+  // returns) to learn whether that was the exercise's last remaining set,
+  // and if so runs the EXACT same advance/whole-workout-completion tail
+  // handleCompleteExercise's own bulk path already used — just reached via
+  // a safe per-row write instead of one that would have overwritten every
+  // sibling set's distinct values.
+  const handleCompletePerSetRow = async (
+    currentExercise: any,
+    setRow: WorkoutSetRow,
+    currentLog: ActiveExerciseLog | undefined,
+    scheduleId: string,
+    isClosingSet: boolean,
+  ) => {
+    const programExerciseId = currentExercise.programExerciseId as string;
+    const exIdx = activeExIdx;
+    setIsCompletingWorkout(true);
+    try {
+      const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
+      const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
+      const durationSecondsValue = Number(currentLog?.durationSeconds);
+      const distanceMetersValue = Number(currentLog?.distanceMeters);
+      const repsValue =
+        exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS"
+          ? Number(currentLog?.reps)
+          : NaN;
+      const updated: any = await workoutService.updateSet(setRow.id, {
+        weight: Number.isFinite(weight) ? weight : undefined,
+        reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
+        bodyWeightAtSetKg:
+          Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+            ? bodyWeightAtSetKg
+            : undefined,
+        durationSeconds:
+          Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+            ? durationSecondsValue
+            : undefined,
+        distanceMeters:
+          Number.isFinite(distanceMetersValue) && distanceMetersValue > 0
+            ? distanceMetersValue
+            : undefined,
+        rpe: currentLog?.rpe,
+        rir: currentLog?.rir,
+        completed: true,
+      });
+
+      setWorkoutSetsByExercise((prev) => {
+        const rows = prev[programExerciseId] ?? [];
+        return {
+          ...prev,
+          [programExerciseId]: rows.map((row) =>
+            row.id === setRow.id
+              ? {
+                  ...row,
+                  completed: true,
+                  weight: updated?.weight ?? row.weight,
+                  reps: updated?.reps ?? row.reps,
+                  rpe: updated?.rpe ?? row.rpe,
+                  rir: updated?.rir ?? row.rir,
+                  bodyWeightAtSetKg: updated?.bodyWeightAtSetKg ?? row.bodyWeightAtSetKg,
+                  durationSeconds: updated?.durationSeconds ?? row.durationSeconds,
+                  distanceMeters: updated?.distanceMeters ?? row.distanceMeters,
+                }
+              : row,
+          ),
+        };
+      });
+
+      if (currentExercise?.dbId) {
+        clearPersistedActiveLogDraft(scheduleId, currentExercise.dbId);
+      }
+
+      const result = updated?.progress;
+
+      if (isClosingSet && result) {
+        applyScheduleProgress(scheduleId, result);
+        if (result.workoutId) setCurrentWorkoutId(result.workoutId);
+        setSelectedScheduleId(scheduleId);
+        setCompletedExercises((prev) => new Set(prev).add(exIdx));
+
+        if (result.progressPercent >= 100 || result.completedExercises >= result.totalExercises) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          setShowCompletion(true);
+          if (result.workoutId) void loadCompletionSummary(result.workoutId);
+          if (result.trainingCycleId) {
+            setFeedbackPrompt({ scheduleId });
+          }
+          setTimeout(() => fireConfetti(), 300);
+          toast.success("Da luu hoan thanh buoi tap.");
+          void refetchProgramAndSchedules();
+          return;
+        }
+
+        // Exercise closed, more exercises remain — same advance/undo-toast
+        // tail as handleCompleteExercise's bulk path (roadmap P1.6),
+        // including resetting the elapsed-time ring for the new exercise
+        // (deliberately NOT reset for an interior same-exercise set below —
+        // it should keep running across a multi-set exercise's own sets).
+        if (exIdx < dayExercises.length - 1) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          setRestSeconds(90);
+          setRestTimerRunning(true);
+          setActiveExIdx(exIdx + 1);
+          toast(`Đã hoàn thành "${currentExercise?.name}"`, {
+            action: {
+              label: "Hoàn tác",
+              onClick: () => {
+                void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, true);
+              },
+            },
+            duration: 8_000,
+          });
+        }
+        return;
+      }
+
+      // Interior set — stay on this exercise, advance to the next row.
+      // Force a fresh prefill for it — otherwise the smart-prefill effect's
+      // own "already have a draft, do nothing" guard would leave the
+      // just-submitted (now stale) values sitting there.
+      const nextLogs = { ...activeExerciseLogsRef.current };
+      delete nextLogs[exIdx];
+      activeExerciseLogsRef.current = nextLogs;
+      setActiveExerciseLogs(nextLogs);
+
+      setRestSeconds(90);
+      setRestTimerRunning(true);
+
+      toast(`Đã hoàn thành set ${setRow.setNumber}`, {
+        action: {
+          label: "Hoàn tác",
+          onClick: () => {
+            void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, false);
+          },
+        },
+        duration: 8_000,
+      });
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể lưu trạng thái hoàn thành set.",
+      );
+    } finally {
+      setIsCompletingWorkout(false);
+    }
+  };
+
+  // Roadmap P1.1 "true set-by-set table UI" — reverts ONE set via the same
+  // safe PATCH /workouts/sets/:setId, regardless of whether it was an
+  // interior set or the one that closed out the exercise. `wasClosingSet`
+  // gates the extra exercise-level state reversal (completedExercises,
+  // activeExIdx, and — for the rare case this was also the day's very last
+  // set — the whole-workout completion screen); every one of those setters
+  // is a safe no-op for an interior-set undo (it never changed them in the
+  // first place), so this stays correct without branching on it internally.
+  const handleUndoSetRow = async (
+    exIdx: number,
+    programExerciseId: string,
+    setId: string,
+    submittedLog: ActiveExerciseLog | undefined,
+    wasClosingSet: boolean,
+  ) => {
+    try {
+      await workoutService.updateSet(setId, { completed: false });
+      setWorkoutSetsByExercise((prev) => {
+        const rows = prev[programExerciseId] ?? [];
+        return {
+          ...prev,
+          [programExerciseId]: rows.map((row) =>
+            row.id === setId ? { ...row, completed: false } : row,
+          ),
+        };
+      });
+      if (wasClosingSet) {
+        setCompletedExercises((prev) => {
+          const next = new Set(prev);
+          next.delete(exIdx);
+          return next;
+        });
+        setShowCompletion(false);
+        setCompletionSummary(null);
+        setFeedbackPrompt(null);
+      }
+      setActiveExIdx(exIdx);
+      setRestTimerRunning(false);
+      clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      if (submittedLog) {
+        const nextLogs = { ...activeExerciseLogsRef.current, [exIdx]: submittedLog };
+        activeExerciseLogsRef.current = nextLogs;
+        setActiveExerciseLogs(nextLogs);
+      }
+      toast.success("Đã hoàn tác set vừa hoàn thành.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể hoàn tác. Bạn có thể sửa và hoàn thành lại set.",
+      );
+    }
+  };
+
+  // Reverts one exercise's completion — see the toast action above for the
+  // only place this is wired up. Restores the just-submitted draft values
+  // (never blank) and cancels the rest timer that completion started.
+  const handleUndoExerciseCompletion = async (
+    exIdx: number,
+    scheduleId: string,
+    programExerciseId: string,
+    submittedLog: ActiveExerciseLog | undefined,
+  ) => {
+    try {
+      const result = await workoutService.undoCompleteScheduleExercise(
+        scheduleId,
+        programExerciseId,
+      );
+      applyScheduleProgress(scheduleId, result);
+      setCompletedExercises((prev) => {
+        const next = new Set(prev);
+        next.delete(exIdx);
+        return next;
+      });
+      setActiveExIdx(exIdx);
+      setRestTimerRunning(false);
+      clearPersistedRestTimer(scheduleId);
+      if (submittedLog) {
+        const nextLogs = {
+          ...activeExerciseLogsRef.current,
+          [exIdx]: submittedLog,
+        };
+        activeExerciseLogsRef.current = nextLogs;
+        setActiveExerciseLogs(nextLogs);
+      }
+      toast.success("Đã hoàn tác bài tập vừa hoàn thành.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể hoàn tác. Bạn có thể sửa và hoàn thành lại bài tập.",
+      );
     }
   };
 
@@ -2918,6 +3458,14 @@ export function WorkoutLogPage() {
       setCompletionSummary(null);
       setActiveExerciseLogs({});
       setIsCompletingWorkout(false);
+      // Same "deliberate exit, not a transient blip" semantics as the rest
+      // timer just above — a user who intentionally backs out of the active
+      // view should not have their old drafts silently reappear on some
+      // later, unrelated visit to this same day.
+      const scheduleIdForCleanup = selectedSchedule()?.id ?? null;
+      dayExercises.forEach((ex) => {
+        if (ex?.dbId) clearPersistedActiveLogDraft(scheduleIdForCleanup, ex.dbId);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planView]);
@@ -4599,10 +5147,40 @@ export function WorkoutLogPage() {
                   : "",
             durationSeconds: curEx?.durationSeconds != null ? String(curEx.durationSeconds) : "",
             distanceMeters: curEx?.distanceMeters != null ? String(curEx.distanceMeters) : "",
+            reps: curEx?.reps != null ? String(curEx.reps) : "",
             noWeight: !requiresExternalWeight,
             rpe: curEx?.rpe ?? 7,
             rir: curEx?.rir ?? 2,
           };
+          const smartPrefillSource = curEx?.dbId
+            ? smartPrefillSourceByExercise[curEx.dbId]
+            : undefined;
+          // Roadmap P1.1 "true set-by-set table UI" — curExSetRows is
+          // `undefined` until the real per-set skeleton has loaded (or for
+          // the ad-hoc/freeform path, which never has one); every call site
+          // below must treat that the same as "fall back to today's
+          // exercise-level completion", never assume zero sets.
+          const curExSetRows: WorkoutSetRow[] | undefined = curEx?.programExerciseId
+            ? workoutSetsByExercise[curEx.programExerciseId]
+            : undefined;
+          const activeSetRowIndex = curExSetRows
+            ? curExSetRows.findIndex((row) => !row.completed)
+            : -1;
+          const activeSetRow = activeSetRowIndex >= 0 ? curExSetRows![activeSetRowIndex] : undefined;
+          const incompleteSetCount = curExSetRows
+            ? curExSetRows.filter((row) => !row.completed).length
+            : 0;
+          // Defaults to true (today's single bulk-complete behavior) when
+          // the skeleton hasn't loaded yet or there's nothing to key off —
+          // safe because that's exactly what happens today for every
+          // exercise, never a regression.
+          const isLastRemainingSet = curExSetRows ? incompleteSetCount <= 1 : true;
+          const previousSetForRow = (setNumber: number) =>
+            curEx?.dbId
+              ? previousPerformanceByExercise[curEx.dbId]?.sets?.find(
+                  (s: any) => s.setNumber === setNumber,
+                )
+              : undefined;
           const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
             const prev = activeExerciseLogsRef.current;
             const nextLog = {
@@ -4622,6 +5200,9 @@ export function WorkoutLogPage() {
                 distanceMeters:
                   prev[activeExIdx]?.distanceMeters ??
                   (curEx?.distanceMeters != null ? String(curEx.distanceMeters) : ""),
+                reps:
+                  prev[activeExIdx]?.reps ??
+                  (curEx?.reps != null ? String(curEx.reps) : ""),
                 noWeight:
                   prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
                 rpe: prev[activeExIdx]?.rpe ?? curEx?.rpe ?? 7,
@@ -4634,6 +5215,14 @@ export function WorkoutLogPage() {
             };
             activeExerciseLogsRef.current = next;
             setActiveExerciseLogs(next);
+            // Session-resume draft persistence (roadmap P1.7) — only from
+            // real user edits (this function), never from the smart-prefill
+            // effect's own initial write, so a reload before the user has
+            // touched anything just re-computes the same deterministic
+            // prefill fresh instead of persisting a redundant copy of it.
+            if (curEx?.dbId) {
+              persistActiveLogDraft(selectedSchedule()?.id ?? null, curEx.dbId, nextLog);
+            }
           };
           // Gym-onboarding project follow-up §9 — session-only swap: only
           // dayExercises[activeExIdx] changes (local state), never the
@@ -4787,9 +5376,9 @@ export function WorkoutLogPage() {
               {/* Deterministic per-exercise progression — "today's target" +
                   "why", per docs/TRAINING_PROGRESSION_ARCHITECTURE.md §7.
                   The WHY line is a template keyed by reasonCodes[0], never
-                  an LLM call — renders correctly with AI fully absent (no AI
-                  wiring exists yet for this feature at all, see the openGym
-                  implementation report's "AI interaction" section). Visually
+                  an LLM call — renders correctly with AI fully absent. AI
+                  explanation is a separate optional endpoint and cannot
+                  override this deterministic target. Visually
                   separate from the "Lần trước" card above: one is what
                   happened, this is what the deterministic engine proposes
                   next — never conflated into one block. */}
@@ -5055,10 +5644,134 @@ export function WorkoutLogPage() {
                     </div>
                   </div>
 
+                  {/* Set overview table — roadmap P1.1 "true set-by-set
+                      table UI" (§6/§11's own mockup). Only rendered once
+                      the real per-set skeleton has loaded for a
+                      schedule-linked session with more than one set — a
+                      1-set exercise, the ad-hoc/freeform path, or a
+                      not-yet-loaded skeleton all keep today's plain single-
+                      value "Ghi chép" card below exactly as-is (see
+                      docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md's
+                      "Layout decision" — inputs stay in that card, this
+                      table is Previous/Recommended/status reference plus
+                      one-tap-undo for already-completed rows). */}
+                  {curExSetRows && curExSetRows.length > 1 && (
+                    <div
+                      data-testid="set-overview-table"
+                      className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 overflow-hidden"
+                    >
+                      <div className="px-4 pt-4 pb-1 text-xs text-zinc-600 uppercase tracking-wider">
+                        Các set
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-zinc-600 text-left">
+                              <th className="px-4 py-2 font-normal">Set</th>
+                              <th className="px-4 py-2 font-normal">Lần trước</th>
+                              <th className="px-4 py-2 font-normal">Đề xuất</th>
+                              <th className="px-4 py-2 font-normal">Hôm nay</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {curExSetRows.map((row, rowIdx) => {
+                              const isActiveRow = rowIdx === activeSetRowIndex;
+                              const prevSet = previousSetForRow(row.setNumber);
+                              const nextTarget = curEx?.dbId
+                                ? progressionByExercise[curEx.dbId]?.nextTarget
+                                : undefined;
+                              const recommendedLabel = nextTarget
+                                ? [
+                                    nextTarget.weightKg != null ? `${nextTarget.weightKg}kg` : null,
+                                    nextTarget.reps != null ? `${nextTarget.reps} reps` : null,
+                                    nextTarget.durationSeconds != null ? `${nextTarget.durationSeconds}s` : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" × ")
+                                : "—";
+                              return (
+                                <tr
+                                  key={row.id}
+                                  data-testid={`set-row-${row.setNumber}`}
+                                  data-set-completed={row.completed}
+                                  data-set-active={isActiveRow}
+                                  className={`border-t border-zinc-800/30 ${isActiveRow ? "bg-emerald-500/5" : ""}`}
+                                >
+                                  <td className="px-4 py-2.5 text-zinc-300">{row.setNumber}</td>
+                                  <td className="px-4 py-2.5 text-zinc-500">
+                                    {prevSet ? formatPerformanceSetLabel(prevSet) : "—"}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-emerald-400/80">
+                                    {row.completed ? "—" : recommendedLabel}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {row.completed ? (
+                                      <span className="inline-flex items-center gap-1.5 text-emerald-400">
+                                        <Check className="w-3.5 h-3.5" />
+                                        {[
+                                          row.weight != null ? `${row.weight}kg` : null,
+                                          row.reps != null ? `${row.reps} reps` : null,
+                                          row.durationSeconds != null ? `${row.durationSeconds}s` : null,
+                                          row.distanceMeters != null ? `${row.distanceMeters}m` : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" × ")}
+                                        {/* Only the MOST RECENTLY completed row ever gets an
+                                            inline undo — every set completes strictly in
+                                            order through this table (only the first
+                                            incomplete row is ever the active/completable
+                                            one), so "the row right before the active one"
+                                            (or the last row, once every set is done) is
+                                            always unambiguously the most recent completion.
+                                            Never offered on an earlier completed row —
+                                            undoing THAT one out of order isn't a scenario
+                                            this pass's design/tests cover. */}
+                                        {!isSelectedDayLocked &&
+                                          row.completed &&
+                                          (activeSetRowIndex === -1
+                                            ? rowIdx === curExSetRows.length - 1
+                                            : rowIdx === activeSetRowIndex - 1) && (
+                                          <button
+                                            type="button"
+                                            data-testid={`undo-set-${row.setNumber}`}
+                                            onClick={() =>
+                                              void handleUndoSetRow(
+                                                activeExIdx,
+                                                curEx.programExerciseId,
+                                                row.id,
+                                                activeExerciseLogsRef.current[activeExIdx],
+                                                activeSetRowIndex === -1,
+                                              )
+                                            }
+                                            className="ml-1 text-zinc-600 hover:text-amber-400 transition-colors"
+                                            aria-label={`Hoàn tác set ${row.setNumber}`}
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </span>
+                                    ) : isActiveRow ? (
+                                      <span className="text-emerald-300/80">Đang nhập bên dưới ↓</span>
+                                    ) : (
+                                      <span className="text-zinc-700">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Log Entry */}
                   <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
                     <p className="text-xs text-zinc-600 uppercase tracking-wider">
                       Ghi chép
+                      {curExSetRows && curExSetRows.length > 1 && activeSetRow && (
+                        <span className="normal-case text-zinc-500"> — Set {activeSetRow.setNumber}/{curExSetRows.length}</span>
+                      )}
                     </p>
                     {isSelectedDayLocked && (
                       <div
@@ -5158,6 +5871,33 @@ export function WorkoutLogPage() {
                       </label>
                     )}
 
+                    {/* Reps input — BODYWEIGHT_REPS only (roadmap P1.1
+                        "bodyweight reps editable prefill"). Reps is the
+                        actual progress axis for this mode (see
+                        exercise-progression.engine.ts's
+                        BODYWEIGHT_REP_CLIMB policy — reps go up, not load),
+                        so unlike REPS_LOAD/TIME_LOAD it needs a real editable
+                        control here rather than always trusting the fixed
+                        program prescription. Sent as `reps` in the
+                        completeScheduleExercise payload below; omitting it
+                        (blank) preserves the exact old behavior — the
+                        backend already falls back to the planned reps when
+                        none is supplied (workout.service.ts
+                        completeScheduleExercise, unchanged this pass). */}
+                    {curExLoggingMode === "BODYWEIGHT_REPS" && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Số reps"
+                        min={1}
+                        max={100}
+                        step={1}
+                        majorTickInterval={5}
+                        disabled={isSelectedDayLocked}
+                        value={Number(activeLog.reps) || 0}
+                        onChange={(next) => updateActiveLog({ reps: String(Math.round(next)) })}
+                      />
+                    )}
+
                     {needsDuration && (
                       <RulerSlider
                         className="min-w-0"
@@ -5196,6 +5936,20 @@ export function WorkoutLogPage() {
                           Bắt buộc nhập thời gian trước khi hoàn thành bài này.
                         </p>
                       )}
+                    {smartPrefillSource && (
+                      <p
+                        data-testid="smart-prefill-source"
+                        data-source={smartPrefillSource}
+                        className="text-[11px] text-emerald-300/75"
+                      >
+                        Đã điền sẵn từ{" "}
+                        {smartPrefillSource === "progression"
+                          ? "mục tiêu hôm nay"
+                          : smartPrefillSource === "previous"
+                            ? "lần trước"
+                            : "kế hoạch"}
+                      </p>
+                    )}
 
                     {showRpeRirHint && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
@@ -5301,7 +6055,13 @@ export function WorkoutLogPage() {
                       }`}
                     >
                       <Check className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{isCompleted ? "Xong" : "Hoàn thành"}</span>
+                      <span className="truncate">
+                        {isCompleted
+                          ? "Xong"
+                          : curExSetRows && curExSetRows.length > 1 && activeSetRow
+                            ? `Hoàn thành Set ${activeSetRow.setNumber}`
+                            : "Hoàn thành"}
+                      </span>
                     </button>
                     <button
                       onClick={handleSkipExercise}

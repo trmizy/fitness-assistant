@@ -63,6 +63,12 @@ router.post(
   authMiddleware,
   workoutController.completeScheduleExercise as any,
 );
+// Roadmap P1.6 "undo last set" — sibling of /complete above.
+router.post(
+  "/schedules/:id/exercises/:programExerciseId/undo-complete",
+  authMiddleware,
+  workoutController.undoCompleteScheduleExercise as any,
+);
 router.delete(
   "/schedules/:id",
   authMiddleware,

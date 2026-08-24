@@ -343,6 +343,33 @@ export const workoutController = {
     }
   },
 
+  // Roadmap P1.6 "undo last set" — sibling of completeScheduleExercise
+  // above, no request body (nothing to validate — this only ever flips the
+  // named exercise's completion flag back off).
+  async undoCompleteScheduleExercise(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const result = await workoutService.undoCompleteScheduleExercise(
+        req.user!.id,
+        req.params.id,
+        req.params.programExerciseId,
+      );
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(
+        { err: error },
+        "Error undoing workout schedule exercise completion",
+      );
+      res.status(500).json({ error: "Failed to undo exercise completion" });
+    }
+  },
+
   async createManualProgram(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = createManualProgramSchema.parse(req.body);

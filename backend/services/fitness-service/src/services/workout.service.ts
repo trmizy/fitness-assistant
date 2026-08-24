@@ -904,20 +904,37 @@ export const workoutService = {
     const updated = await workoutRepository.updateSet(setId, data);
     const workoutExercise = await prisma.workoutExercise.findFirst({
       where: { id: existing.workoutExerciseId, workout: { userId } },
-      select: { workoutId: true },
+      select: { workoutId: true, exerciseId: true, programExerciseId: true },
     });
+    // Roadmap P1.1 "true set-by-set table UI" — the recompute already ran
+    // here before this change, its result was just discarded. Returning it
+    // lets a caller completing the LAST remaining set of an exercise via
+    // this endpoint (instead of completeScheduleExercise, which would
+    // otherwise overwrite every SIBLING set's already-logged distinct
+    // values — see docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md)
+    // learn the same completedExercises/totalExercises/progressPercent/
+    // status/trainingCycleId completeScheduleExercise's response already
+    // carries, without a second network round-trip. `undefined` (the
+    // pre-existing behavior) when this set isn't linked to a schedule at
+    // all (the ad-hoc/freeform logging path).
+    let progress: Awaited<ReturnType<typeof recomputeScheduleProgress>> | undefined;
     if (workoutExercise?.workoutId) {
       const schedule = await prisma.workoutSchedule.findFirst({
         where: { userId, workoutId: workoutExercise.workoutId },
         select: { id: true },
       });
       if (schedule) {
-        await prisma.$transaction((tx) =>
-          recomputeScheduleProgress(tx, schedule.id, userId),
+        progress = await prisma.$transaction((tx) =>
+          recomputeScheduleProgress(tx, schedule.id, userId, {
+            sessionId: workoutExercise.workoutId!,
+            workoutId: workoutExercise.workoutId!,
+            exerciseId: workoutExercise.exerciseId,
+            programExerciseId: workoutExercise.programExerciseId ?? undefined,
+          }),
         );
       }
     }
-    return updated;
+    return { ...updated, progress };
   },
 
   // POST /workouts/:id/sets - append a single set to an existing workout. Finds or
@@ -1354,6 +1371,57 @@ export const workoutService = {
         exerciseId: finalExerciseId,
         programExerciseId,
         exerciseCompleted: true,
+      });
+    });
+  },
+
+  // Roadmap P1.6 "undo last set" / Milestone P1-A exit criterion. Deliberately
+  // narrow (see docs/features/UNDO_LAST_SET_IMPACT_ANALYSIS.md): reverts the
+  // ONE exercise the caller names back to not-completed, never a general
+  // multi-step history undo. recomputeScheduleProgress is the exact same
+  // derivation completeScheduleExercise already uses — it always recomputes
+  // completedExercises/progressPercent/status fresh from the current
+  // WorkoutSet.completed flags, so undo needs no parallel counting logic at
+  // all, just the flag flip. The frontend is responsible for only ever
+  // offering this for the most-recently-completed exercise in the current
+  // session (never a general edit-history undo) — this method's own
+  // authorization is ownership + "is this exercise currently completed",
+  // same trust boundary completeScheduleExercise already has for "which
+  // exercise" (both take an explicit programExerciseId from the caller).
+  async undoCompleteScheduleExercise(
+    userId: string,
+    scheduleId: string,
+    programExerciseId: string,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const schedule = await tx.workoutSchedule.findFirst({
+        where: { id: scheduleId, userId },
+      });
+      if (!schedule) throw { status: 404, message: "Schedule not found" };
+      assertScheduleDateEditable(schedule.date);
+      if (!schedule.workoutId) {
+        throw { status: 409, message: "No session has been started for this schedule yet" };
+      }
+
+      const workoutExercise = await tx.workoutExercise.findFirst({
+        where: { workoutId: schedule.workoutId, programExerciseId },
+        include: { workoutSets: true },
+      });
+      if (!workoutExercise || !isWorkoutExerciseCompleted(workoutExercise)) {
+        throw { status: 409, message: "This exercise is not currently marked complete" };
+      }
+
+      await tx.workoutSet.updateMany({
+        where: { workoutExerciseId: workoutExercise.id },
+        data: { completed: false },
+      });
+
+      return recomputeScheduleProgress(tx, schedule.id, userId, {
+        sessionId: schedule.workoutId,
+        workoutId: schedule.workoutId,
+        exerciseId: workoutExercise.exerciseId,
+        programExerciseId,
+        exerciseCompleted: false,
       });
     });
   },

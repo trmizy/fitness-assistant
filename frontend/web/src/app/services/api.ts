@@ -602,6 +602,13 @@ export const workoutService = {
       reps?: number;
       weight?: number;
       rpe?: number;
+      // Roadmap P1.1 "true set-by-set table UI" — the backend's
+      // updateWorkoutSetSchema already accepted every one of these; this
+      // type just never declared them for a caller to use.
+      rir?: number;
+      bodyWeightAtSetKg?: number | null;
+      durationSeconds?: number | null;
+      distanceMeters?: number | null;
       completed?: boolean;
     },
   ) => {
@@ -698,6 +705,20 @@ export const workoutService = {
     const { data } = await api.post(
       `/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/complete`,
       performed ?? {},
+    );
+    return data?.data ?? data;
+  },
+
+  // Roadmap P1.6 "undo last set" — sibling of completeScheduleExercise
+  // above. No body: this only ever flips the named exercise's completion
+  // flag back off.
+  undoCompleteScheduleExercise: async (
+    scheduleId: string,
+    programExerciseId: string,
+  ): Promise<WorkoutExerciseCompletionResponse> => {
+    const { data } = await api.post(
+      `/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/undo-complete`,
+      {},
     );
     return data?.data ?? data;
   },
