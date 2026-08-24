@@ -1,5 +1,8 @@
 # Bộ prompt Codex — AI Gym Assistant Knowledge Pipeline
 
+> Prompt and research archive. These prompts are not runtime configuration and
+> may refer to earlier architecture decisions.
+
 > Dán từng prompt theo thứ tự vào Claude Code / Codex CLI / Cursor Agent.
 > Mỗi prompt là một session độc lập. KHÔNG bỏ qua bước nào.
 

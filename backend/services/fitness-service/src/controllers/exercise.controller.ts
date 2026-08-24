@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { exerciseService } from "../services/exercise.service";
+import { exerciseSubstitutionService } from "../services/exercise-substitution.service";
+import { equipmentRepository } from "../repositories/equipment.repository";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
 export const exerciseController = {
@@ -73,6 +75,38 @@ export const exerciseController = {
     }
   },
 
+  // Gate 6 — GET /exercises/muscles: canonical muscle taxonomy (29
+  // entries seeded from data/catalog/taxonomy/ref_muscles.csv), the
+  // legend/reference list the muscle-map UI's body silhouette is built
+  // against.
+  async listMuscles(_req: Request, res: Response): Promise<void> {
+    try {
+      const muscles = await exerciseService.listMuscles();
+      res.json({ muscles });
+    } catch (error: any) {
+      logger.error({ err: error }, "Error fetching muscle taxonomy");
+      res.status(500).json({ error: "Failed to fetch muscle taxonomy" });
+    }
+  },
+
+  // Gate 6 — GET /exercises/:id/muscle-map: real primary/secondary
+  // ExerciseMuscle data for one exercise. `mapped: false` (empty
+  // primary/secondary) is a valid, expected response for an exercise
+  // with no mapping yet — never a 404/error for that case.
+  async getMuscleMap(req: Request, res: Response): Promise<void> {
+    try {
+      const muscleMap = await exerciseService.getMuscleMap(req.params.id);
+      res.json(muscleMap);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error fetching exercise muscle map");
+      res.status(500).json({ error: "Failed to fetch exercise muscle map" });
+    }
+  },
+
   // POST /exercises — admin-only (BUG-027 / TC-ADMIN-ADV-05). Accepts both the
   // canonical schema (exerciseName, typeOfActivity, ...) and a friendlier alias
   // shape that the test cases use ({ name, muscleGroups, equipment, difficulty }).
@@ -109,6 +143,41 @@ export const exerciseController = {
       }
       logger.error("Error creating exercise:", error);
       res.status(500).json({ error: "Failed to create exercise" });
+    }
+  },
+
+  // Gym-onboarding project §17 — "this exercise doesn't fit my equipment,
+  // what else can I do instead?", scoped to the caller's own saved
+  // equipment (Profile → Training Setup → Available Equipment).
+  // Returns a RANKED LIST (not just one best match) so the "Swap exercise"
+  // UI can show the user a few real options with a reason each, rather
+  // than silently picking for them. `?limit=` caps how many (default 5).
+  async getSubstitute(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const excludeParam = typeof req.query.exclude === "string" ? req.query.exclude : "";
+      const excludeExerciseIds = excludeParam.split(",").map((s) => s.trim()).filter(Boolean);
+      const limitParam = Number(req.query.limit);
+      const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(10, Math.trunc(limitParam)) : 5;
+
+      const equipmentIds = await equipmentRepository.listUserEquipmentIds(userId);
+      const substitutes = await exerciseSubstitutionService.rankSubstitutes(
+        id,
+        new Set(equipmentIds),
+        { excludeExerciseIds, limit },
+      );
+      if (substitutes.length === 0) {
+        res.status(404).json({ error: "No suitable substitute found for your available equipment" });
+        return;
+      }
+      // `substitute` (singular, best match) kept for any existing caller
+      // expecting the old single-object shape; `substitutes` is the new
+      // ranked list the UI actually uses.
+      res.json({ substitute: substitutes[0], substitutes });
+    } catch (error: any) {
+      logger.error({ message: error?.message }, "Error finding exercise substitute");
+      res.status(500).json({ error: "Failed to find a substitute exercise" });
     }
   },
 };

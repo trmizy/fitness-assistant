@@ -2,6 +2,13 @@ import { llmService } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { logger } from "@gym-coach/shared";
+import {
+  nutritionResponseSourceTotal,
+  nutritionMacroValidationTotal,
+  nutritionSafetyEscalationTotal,
+  nutritionWeightConflictTotal,
+  nutritionLlmInstructionOverrideTotal,
+} from "@gym-coach/shared";
 import { inputParser } from "./input_parser";
 import { intentRouter } from "./intent_router";
 import { languageGuard } from "./language_guard";
@@ -43,6 +50,18 @@ import {
   formatNutritionAnswer,
   nutritionContextResolver,
 } from "./nutrition_context";
+import {
+  extractStatedWeightKg,
+  requestsIgnoreSavedData,
+  resolveWeightForCalculation,
+  extractClaimedMacros,
+  checkMacroCalorieConsistency,
+  hasCalorieEstimationSignal,
+  checkCalorieEstimationInputs,
+  estimateTdee,
+  mapGenderToBiologicalSex,
+  mapActivityLevel,
+} from "./nutrition_engine";
 import { evidenceUsedFromDocs } from "./plan_evidence";
 import {
   buildCoachContext,
@@ -262,17 +281,46 @@ export const llmOrchestrator = {
       safetyCheck.type === "medical_emergency" ||
       safetyCheck.type === "unsafe_ped_request" ||
       safetyCheck.type === "unsafe_extreme_calorie_request" ||
-      safetyCheck.type === "prompt_injection_attempt"
+      safetyCheck.type === "severe_energy_restriction_warning" ||
+      safetyCheck.type === "prompt_injection_attempt" ||
+      safetyCheck.type === "medical_nutrition_condition" ||
+      safetyCheck.type === "minor_age_nutrition_request" ||
+      safetyCheck.type === "pregnancy_or_breastfeeding_nutrition_request" ||
+      safetyCheck.type === "eating_disorder_disclosure" ||
+      safetyCheck.type === "unsafe_weight_loss_behavior" ||
+      safetyCheck.type === "severe_allergy_disclosure" ||
+      safetyCheck.type === "prolonged_extreme_calorie_disclosure"
     ) {
       const answer =
         language.responseLanguage === "vi"
           ? safetyCheck.messageVi
           : safetyCheck.messageEn;
+      // Part 12 observability: the nutrition-specific triage types (vs.
+      // generic off_topic/medical_emergency/PED/prompt_injection, which
+      // predate this pass and aren't nutrition-domain metrics) get their
+      // own counter so escalation RATE by TYPE is queryable, not just
+      // inferable from logs.
+      const NUTRITION_SAFETY_TYPES = new Set([
+        "medical_nutrition_condition",
+        "minor_age_nutrition_request",
+        "pregnancy_or_breastfeeding_nutrition_request",
+        "eating_disorder_disclosure",
+        "unsafe_weight_loss_behavior",
+        "severe_allergy_disclosure",
+        "prolonged_extreme_calorie_disclosure",
+        "severe_energy_restriction_warning",
+      ]);
+      if (NUTRITION_SAFETY_TYPES.has(safetyCheck.type)) {
+        nutritionSafetyEscalationTotal.inc({ type: safetyCheck.type });
+      }
       traceLogger.end(trace, {
         retrievalEmpty: true,
         warningCount: 0,
         promptTokens: 0,
         completionTokens: 0,
+        // Part 12: which layer produced this answer — a static safety-gate
+        // template here, never the model or the DB.
+        responseSource: "safety_gate",
       });
       return makeEarlyPayload(
         trace.traceId,
@@ -354,6 +402,35 @@ export const llmOrchestrator = {
     ]);
     context.memories = memories;
 
+    // Part 3 precedence fix: a weight the user states in THIS message must
+    // be usable (with the conflict against the latest InBody explicitly
+    // surfaced), not silently overridden by — or silently overriding — the
+    // profile cache. This only affects THIS response's in-memory context
+    // (context.profile is rebuilt fresh per request from profileExtractor);
+    // it never writes back to InBody/UserProfile/baseline.
+    const messageStatedWeightKg = extractStatedWeightKg(question);
+    const ignoreSavedData = requestsIgnoreSavedData(question);
+    const weightResolution = resolveWeightForCalculation({
+      messageStatedWeightKg,
+      ignoreSavedData,
+      latestMeasurement: context.profile.inBody
+        ? {
+            weightKg: context.profile.inBody.weightKg,
+            measuredAt: context.profile.inBody.measuredAt,
+          }
+        : undefined,
+      profileCurrentWeightKg: context.profile.currentWeightKg,
+    });
+    if (weightResolution.weightKg != null) {
+      context.profile = {
+        ...context.profile,
+        currentWeightKg: weightResolution.weightKg,
+      };
+    }
+    if (weightResolution.conflict) {
+      nutritionWeightConflictTotal.inc();
+    }
+
     const nutritionIntent = detectNutritionLookupIntent(question, chatHistory);
     if (nutritionIntent.enabled) {
       const nutritionContext = await timeAsync(
@@ -383,6 +460,7 @@ export const llmOrchestrator = {
           warningCount: 1,
           promptTokens: 0,
           completionTokens: 0,
+          responseSource: "context_unavailable",
         });
 
         timing.totalMs = Date.now() - requestStartedAt;
@@ -403,11 +481,13 @@ export const llmOrchestrator = {
         nutritionContext,
         language.responseLanguage,
       );
+      nutritionResponseSourceTotal.inc({ source: "saved_data_lookup" });
       traceLogger.end(trace, {
         retrievalEmpty: true,
         warningCount: 0,
         promptTokens: 0,
         completionTokens: 0,
+        responseSource: "saved_data_lookup",
       });
 
       timing.totalMs = Date.now() - requestStartedAt;
@@ -458,6 +538,7 @@ export const llmOrchestrator = {
         warningCount: 1,
         promptTokens: 0,
         completionTokens: 0,
+        responseSource: "context_unavailable",
       });
 
       timing.totalMs = Date.now() - requestStartedAt;
@@ -505,6 +586,7 @@ export const llmOrchestrator = {
         warningCount: 0,
         promptTokens: 0,
         completionTokens: 0,
+        responseSource: "saved_data_lookup",
       });
 
       timing.totalMs = Date.now() - requestStartedAt;
@@ -528,6 +610,65 @@ export const llmOrchestrator = {
       };
     }
 
+    // Root-cause fix (bug report Q3: "Đánh giá 3000 kcal, 150g protein,
+    // 200g carb, 65g fat và kiểm tra tổng calo"): when the user states a
+    // NEW set of calorie/macro numbers to be checked (not a stored
+    // NutritionGoal — that path is handled separately in
+    // nutrition_context.ts's formatTargets), compute the real Atwater
+    // consistency check here and inject it as ground truth so the LLM
+    // reports the actual discrepancy instead of doing its own arithmetic.
+    const claimedMacros = extractClaimedMacros(question);
+    const claimedMacroCheck =
+      claimedMacros?.calories != null &&
+      claimedMacros.proteinG != null &&
+      claimedMacros.carbG != null &&
+      claimedMacros.fatG != null
+        ? checkMacroCalorieConsistency(
+            claimedMacros.calories,
+            claimedMacros.proteinG,
+            claimedMacros.carbG,
+            claimedMacros.fatG,
+          )
+        : undefined;
+    if (claimedMacroCheck) {
+      nutritionMacroValidationTotal.inc({
+        context: "user_claim",
+        result: claimedMacroCheck.consistent ? "consistent" : "inconsistent",
+      });
+    }
+
+    // Part 4 root-cause fix: a calorie/TDEE-estimation question ("mình cần
+    // bao nhiêu calo một ngày?") previously had no deterministic engine
+    // behind it at all — the LLM was left to invent a number from
+    // whatever profile fields happened to be in its prompt, silently
+    // guessing past any gaps. Resolve the Mifflin-St Jeor inputs from the
+    // (already weight-conflict-resolved) profile; when any required field
+    // is missing, inject an explicit instruction to ask for exactly that
+    // field instead of estimating — never a guessed number.
+    const calorieEstimationRequested = hasCalorieEstimationSignal(question);
+    const calorieEstimationInputsCheck = calorieEstimationRequested
+      ? checkCalorieEstimationInputs({
+          weightKg: weightResolution.weightKg,
+          heightCm: context.profile.heightCm,
+          age: context.profile.age,
+          sex: mapGenderToBiologicalSex(context.profile.gender),
+          activityLevel: mapActivityLevel(context.profile.activityLevel),
+        })
+      : undefined;
+    const tdeeEstimate =
+      calorieEstimationInputsCheck?.complete &&
+      weightResolution.weightKg != null &&
+      context.profile.heightCm != null &&
+      context.profile.age != null
+        ? estimateTdee({
+            weightKg: weightResolution.weightKg,
+            heightCm: context.profile.heightCm,
+            age: context.profile.age,
+            sex: mapGenderToBiologicalSex(context.profile.gender)!,
+            activityLevel: mapActivityLevel(context.profile.activityLevel)!,
+          })
+        : undefined;
+
     // Body composition analysis - synchronous, runs after profile is available
     const bodyCompAnalysis = analyzeBodyComposition(context.profile);
     const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
@@ -537,6 +678,18 @@ export const llmOrchestrator = {
     );
     const bodyCompAndCoachText = [
       bodyCompText,
+      weightResolution.conflictNote
+        ? `[Xung đột cân nặng] ${weightResolution.conflictNote} Dùng ${weightResolution.weightKg}kg (nguồn: ${weightResolution.source}) cho mọi tính toán trong câu trả lời này, và nêu rõ xung đột này với người dùng — không tự ý chọn số khác mà không giải thích.`
+        : undefined,
+      claimedMacroCheck
+        ? `[Kiểm tra macro/calo — nguồn sự thật, KHÔNG tự tính lại]: Người dùng nêu ${claimedMacros!.calories} kcal với ${claimedMacros!.proteinG}g protein/${claimedMacros!.carbG}g carb/${claimedMacros!.fatG}g fat. Theo Atwater (4/4/9), tổng thực tế = ${claimedMacroCheck.computedCalories} kcal. ${claimedMacroCheck.consistent ? "Số liệu này nhất quán (trong sai số làm tròn)." : `KHÔNG khớp — chênh lệch ${Math.abs(claimedMacroCheck.discrepancyKcal)} kcal so với ${claimedMacros!.calories} kcal đã nêu. Bạn PHẢI nêu rõ sự không nhất quán này bằng đúng con số trên, không được bỏ qua hoặc tự tính lại khác đi.`}`
+        : undefined,
+      calorieEstimationInputsCheck && !calorieEstimationInputsCheck.complete
+        ? `[Ước tính calo — thiếu dữ liệu, KHÔNG được đoán]: Người dùng hỏi về lượng calo cần thiết nhưng hồ sơ còn thiếu: ${calorieEstimationInputsCheck.missingFields.join(", ")}. Bạn PHẢI hỏi lại đúng các thông tin còn thiếu này trước khi đưa ra bất kỳ con số calo nào — TUYỆT ĐỐI không tự giả định hoặc ước lượng thay. Gợi ý câu hỏi: "${calorieEstimationInputsCheck.missingFieldsPromptVi}"`
+        : undefined,
+      tdeeEstimate
+        ? `[Ước tính TDEE — nguồn sự thật, KHÔNG tự tính lại]: Theo công thức ${tdeeEstimate.formulaVersion}, BMR ≈ ${tdeeEstimate.bmrKcal} kcal, TDEE ≈ ${tdeeEstimate.tdeeKcal} kcal/ngày (khoảng ${tdeeEstimate.tdeeRangeLowKcal}-${tdeeEstimate.tdeeRangeHighKcal} kcal, hệ số vận động ${tdeeEstimate.activityMultiplier}). Đây là ƯỚC TÍNH, PHẢI trình bày dưới dạng khoảng (không phải một số chính xác tuyệt đối) và nêu rõ đây là công thức dự đoán, nên hiệu chỉnh dần theo cân nặng thực tế theo dõi 2-4 tuần.${tdeeEstimate.applicabilityWarnings.length > 0 ? ` LƯU Ý PHẠM VI ÁP DỤNG: ${tdeeEstimate.applicabilityWarnings.join(" ")}` : ""}`
+        : undefined,
       `CoachContext JSON (sanitized, no user identity):\n${coachContextText}`,
     ]
       .filter(Boolean)
@@ -581,6 +734,16 @@ export const llmOrchestrator = {
       recommendation.responseIntent = "unsafe_weight_loss_request";
     }
 
+    // Surface the weight conflict in the deterministic fallback path too
+    // (not just the LLM prompt) — this is the safety net used if the LLM
+    // call fails or its answer is discarded by validation.
+    if (weightResolution.conflictNote) {
+      recommendation.assumptions = [
+        weightResolution.conflictNote,
+        ...recommendation.assumptions,
+      ];
+    }
+
     const deterministicAnswer = responseFormatter.format(
       recommendation,
       language.responseLanguage,
@@ -604,6 +767,7 @@ export const llmOrchestrator = {
       "body_recomposition_request",
       "meal_plan_request",
       "combined_plan_request",
+      "nutrient_timing_request",
     ]);
 
     const needsLlm =
@@ -709,6 +873,69 @@ export const llmOrchestrator = {
       usedDeterministicFallbackBecauseOfValidation = true;
       fallbackReason = "validation_fallback";
       onProgress?.("Đang dùng kế hoạch an toàn đã kiểm chứng.");
+      if (routedIntent.intent === "meal_plan_request") {
+        nutritionLlmInstructionOverrideTotal.inc({ reason: "validation_mismatch" });
+      }
+    }
+
+    // Part 12 observability: which layer actually produced this answer —
+    // scoped to the nutrition intent so the metric is meaningful (not
+    // diluted by every workout/general-knowledge answer too).
+    if (routedIntent.intent === "meal_plan_request" && !nutritionIntent.enabled) {
+      nutritionResponseSourceTotal.inc({
+        source: usedDeterministicFallbackBecauseOfValidation
+          ? "deterministic_fallback"
+          : needsLlm
+            ? "llm"
+            : "deterministic_fallback",
+      });
+    }
+
+    // Belt-and-braces (same principle as the mismatch fallback above, and
+    // the Adaptive Nutrition Decision Engine's own override elsewhere in
+    // this codebase): the ground-truth macro-consistency check was already
+    // injected into the prompt as an instruction, but a local/small LLM
+    // cannot be trusted to reliably FOLLOW that instruction (observed in
+    // E2E testing: the model echoed the user's raw 3000/150/200/65 numbers
+    // into a plan table without ever flagging that they don't add up). If
+    // the claimed macros are inconsistent and the model's answer doesn't
+    // already surface the real computed figure, append a deterministic,
+    // always-correct correction — the engine's number wins regardless of
+    // what the model chose to say.
+    if (
+      claimedMacroCheck &&
+      !claimedMacroCheck.consistent &&
+      !llmAnswer.includes(String(claimedMacroCheck.computedCalories))
+    ) {
+      const correction =
+        language.responseLanguage === "vi"
+          ? `\n\n⚠️ **Lưu ý về số liệu bạn nêu**: ${claimedMacros!.proteinG}g protein + ${claimedMacros!.carbG}g carb + ${claimedMacros!.fatG}g fat thực tế chỉ tương đương **${claimedMacroCheck.computedCalories} kcal** (theo công thức Atwater 4/4/9), không khớp với ${claimedMacros!.calories} kcal bạn đã nêu (chênh ${Math.abs(claimedMacroCheck.discrepancyKcal)} kcal). Bạn nên điều chỉnh lại một trong hai số để nhất quán.`
+          : `\n\n⚠️ **Note on the numbers you gave**: ${claimedMacros!.proteinG}g protein + ${claimedMacros!.carbG}g carb + ${claimedMacros!.fatG}g fat actually total **${claimedMacroCheck.computedCalories} kcal** (Atwater 4/4/9), not the ${claimedMacros!.calories} kcal you stated (a ${Math.abs(claimedMacroCheck.discrepancyKcal)} kcal gap). You should adjust one of the two figures so they're consistent.`;
+      llmAnswer = `${llmAnswer}${correction}`;
+      nutritionLlmInstructionOverrideTotal.inc({ reason: "macro_discrepancy_not_cited" });
+    }
+
+    // Same belt-and-braces reasoning for Part 4: if the profile is missing
+    // required calorie-calc fields and the model's answer doesn't actually
+    // ask for any of them (e.g. it invented a number anyway), append the
+    // deterministic missing-data prompt so the user is asked for real data
+    // rather than silently handed a guess.
+    if (
+      calorieEstimationInputsCheck &&
+      !calorieEstimationInputsCheck.complete &&
+      !calorieEstimationInputsCheck.missingFields.some((field) =>
+        llmAnswer.toLowerCase().includes(field.toLowerCase()),
+      ) &&
+      !/chiều cao|cân nặng|tuổi|giới tính|vận động|height|weight|age|gender|activity/i.test(
+        llmAnswer,
+      )
+    ) {
+      const askPrompt =
+        language.responseLanguage === "vi"
+          ? `\n\n📋 ${calorieEstimationInputsCheck.missingFieldsPromptVi}`
+          : `\n\n📋 To estimate your daily calorie needs accurately, please share: ${calorieEstimationInputsCheck.missingFields.join(", ")}. I won't guess these to avoid giving you a misleading number.`;
+      llmAnswer = `${llmAnswer}${askPrompt}`;
+      nutritionLlmInstructionOverrideTotal.inc({ reason: "calorie_calc_missing_data_not_requested" });
     }
 
     timing.totalMs = Date.now() - requestStartedAt;
@@ -725,11 +952,20 @@ export const llmOrchestrator = {
       "AI chat timing",
     );
 
+    // Part 12: trace which layer actually produced the final answer —
+    // "llm" only if a real model call happened AND wasn't discarded by
+    // validation; "deterministic_fallback" covers both "never needed the
+    // LLM for this intent" and "LLM ran but got overridden".
+    const finalResponseSource =
+      needsLlm && !usedDeterministicFallbackBecauseOfValidation && !unsafe?.blocked
+        ? "llm"
+        : "deterministic_fallback";
     traceLogger.end(trace, {
       retrievalEmpty: retrieval.isEmpty,
       warningCount: validation.warnings.length,
       promptTokens,
       completionTokens,
+      responseSource: finalResponseSource,
     });
 
     // Build evidence-used list from all retrieved fitness_evidence docs, including

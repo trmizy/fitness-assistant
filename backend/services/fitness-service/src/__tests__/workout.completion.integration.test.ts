@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { todayAsScheduleDate } from "../utils/schedule-lock.util";
 
 const fitnessDatabaseUrl =
   process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
@@ -46,10 +47,15 @@ test.after(async () => {
 // schedule/workout endpoint now enforces, failing this test for a reason
 // that has nothing to do with what it's actually testing.
 function dateOnly(offsetDays: number): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays),
-  );
+  // Ho_Chi_Minh-aware "today" (todayAsScheduleDate), not a raw UTC calendar
+  // day — the two disagree for ~7 hours of every 24 (UTC 17:00-23:59),
+  // during which a UTC-only "today" reads as "yesterday" per the real lock
+  // check and trips SCHEDULE_DATE_LOCKED — a real, previously-latent bug in
+  // this exact helper (verified reproducing), not the lock logic itself.
+  const today = todayAsScheduleDate();
+  const result = new Date(today);
+  result.setUTCDate(result.getUTCDate() + offsetDays);
+  return result;
 }
 
 async function seedProgramWithSchedule(
@@ -277,6 +283,112 @@ test(
           ),
         (err: any) => err?.status === 404,
       );
+    } finally {
+      await deleteSeed(db, userId);
+    }
+  },
+);
+
+test(
+  // Hardening pass §3 — completeScheduleExercise's optional 4th arg
+  // (`performed`) is the only way a session-only exercise swap
+  // (SwapExerciseModal) and the user's actually-logged weight/RPE/RIR ever
+  // reach the persisted WorkoutExercise/WorkoutSet log rows for the common,
+  // schedule-linked completion path. Before this, that data was silently
+  // discarded and only the PLANNED exercise/weight were ever recorded.
+  "Workout Log completion with `performed` records the actually-performed exercise/weight/RPE/RIR, and leaves the planned program exercise untouched",
+  {
+    skip: canUseIntegrationDb
+      ? false
+      : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database.",
+  },
+  async () => {
+    const { prisma: db, workoutService: service } = await loadModules();
+    const userId = `workout-swap-it-${Date.now()}`;
+    await deleteSeed(db, userId);
+
+    const seeded = await seedProgramWithSchedule(db, {
+      userId,
+      date: dateOnly(0),
+      exerciseCount: 2,
+    });
+    const substituteExerciseId = seeded.exerciseIds[1]; // a REAL exercise row, standing in for what SwapExerciseModal would return
+
+    try {
+      await service.startSchedule(userId, seeded.schedule.id);
+      const plannedExercise = seeded.plannedExercises[0];
+
+      const result = await service.completeScheduleExercise(
+        userId,
+        seeded.schedule.id,
+        plannedExercise.id,
+        {
+          exerciseId: substituteExerciseId,
+          weight: 42.5,
+          reps: 8,
+          rpe: 8.5,
+          rir: 1,
+          notes: 'Đã đổi từ "Integration Exercise 1" sang "Integration Exercise 2"',
+        },
+      );
+      assert.equal(result.completedExercises, 1);
+
+      const loggedExercise = await db.workoutExercise.findFirstOrThrow({
+        where: { workoutId: result.workoutId!, programExerciseId: plannedExercise.id },
+        include: { workoutSets: true },
+      });
+      // The LOG row records what was actually performed...
+      assert.equal(loggedExercise.exerciseId, substituteExerciseId);
+      assert.equal(loggedExercise.weight, 42.5);
+      assert.equal(loggedExercise.reps, 8);
+      assert.match(loggedExercise.notes ?? "", /Đã đổi từ/);
+      assert.ok(loggedExercise.workoutSets.length > 0);
+      assert.equal(loggedExercise.workoutSets[0].rpe, 8.5);
+      assert.equal(loggedExercise.workoutSets[0].rir, 1);
+      assert.equal(loggedExercise.workoutSets.every((s) => s.completed), true);
+
+      // ...while the underlying PLAN (WorkoutProgramExercise) is completely
+      // untouched — a session-only swap must never rewrite the program, so
+      // future weeks/sessions still see the originally-planned exercise.
+      const stillPlanned = await db.workoutProgramExercise.findUniqueOrThrow({
+        where: { id: plannedExercise.id },
+      });
+      assert.equal(stillPlanned.exerciseId, plannedExercise.exerciseId);
+      assert.notEqual(stillPlanned.exerciseId, substituteExerciseId);
+
+      // Re-completing (idempotent path) with a CORRECTED value must update
+      // the existing log row, not silently drop the correction.
+      const again = await service.completeScheduleExercise(
+        userId,
+        seeded.schedule.id,
+        plannedExercise.id,
+        { weight: 45, rpe: 9, rir: 0 },
+      );
+      assert.equal(again.completedExercises, 1);
+      const reLogged = await db.workoutExercise.findFirstOrThrow({
+        where: { workoutId: result.workoutId!, programExerciseId: plannedExercise.id },
+        include: { workoutSets: true },
+      });
+      assert.equal(reLogged.weight, 45);
+      assert.equal(reLogged.workoutSets[0].rpe, 9);
+      assert.equal(reLogged.workoutSets[0].rir, 0);
+      // exerciseId from the FIRST completion (the swap) must survive since
+      // the correction call didn't specify a new one.
+      assert.equal(reLogged.exerciseId, substituteExerciseId);
+
+      // Omitting `performed` entirely (old call shape) must still work
+      // exactly as before — falls back to the plan's prescribed values.
+      const secondExercise = seeded.plannedExercises[1];
+      const noBody = await service.completeScheduleExercise(
+        userId,
+        seeded.schedule.id,
+        secondExercise.id,
+      );
+      assert.equal(noBody.completedExercises, 2);
+      const fallbackLogged = await db.workoutExercise.findFirstOrThrow({
+        where: { workoutId: result.workoutId!, programExerciseId: secondExercise.id },
+      });
+      assert.equal(fallbackLogged.exerciseId, secondExercise.exerciseId);
     } finally {
       await deleteSeed(db, userId);
     }

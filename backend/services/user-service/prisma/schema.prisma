@@ -102,6 +102,24 @@ model UserProfile {
   currentWeight Float?
   targetWeight  Float?
 
+  // Immutable "journey start" weight — set exactly ONCE, the first time any
+  // weight is ever recorded for this user (onboarding self-report or their
+  // first InBody scan, whichever happens first), and never touched again by
+  // any later measurement/sync. This is deliberately distinct from
+  // `currentWeight` (which IS overwritten on every InBody sync — see
+  // profileRepository.upsert) and from a per-cycle baseline (see
+  // TrainingCycle.baselineMetrics in fitness-service): this field answers
+  // "where did the user's whole journey begin", not "where did the current
+  // training cycle begin". See docs/body-state-and-adaptive-planning.md.
+  startingWeight       Float?
+  // "ONBOARDING" (set at first-ever profile weight write) | "INBODY" (set at
+  // first-ever InBody sync, if that happened before any profile write) |
+  // "LEGACY_BACKFILL" (this user already had weight data before this field
+  // existed — best-effort backfilled from their earliest InBody entry, or
+  // their currentWeight if they have no InBody history at all; NOT
+  // guaranteed to be their true original starting weight).
+  startingWeightSource String?
+
   // User preferences
   dietaryPreference String? @map("dietary_preference")
   photoUrl          String? @map("photo_url")
@@ -286,8 +304,16 @@ enum ContractStatus {
 }
 
 enum ContractSource {
-  INDEPENDENT // PT hired directly, no gym involved
-  GYM         // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
+  INDEPENDENT  // PT hired directly, no gym involved
+  GYM          // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
+  MARKETPLACE  // Created from a Marketplace Personalized PT Service purchase (ai-service
+               // PersonalizedServiceOrder) — payment already happened via wallet-transfer
+               // before this Contract exists, so it's created directly ACTIVE (no
+               // PENDING_REVIEW/PENDING_SIGNATURE/PENDING_PAYMENT negotiation stages).
+               // Exists purely so the PT-client authorization surface already built on
+               // Contract.status===ACTIVE (coach.service.ts, computeChatEligibility,
+               // isActivePtClientRelationship) works unchanged for marketplace-originated
+               // relationships too — no second authorization source of truth.
 }
 
 /// Why a contract stopped. Each value selects one refund formula — see computeTermination.

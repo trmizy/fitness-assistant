@@ -1149,6 +1149,13 @@ function buildFollowUps(
     return [...fromMissing, ...extras].slice(0, 3);
   }
 
+  if (intent === "nutrient_timing_request") {
+    const extras = isVi
+      ? ["Bạn thường tập vào giờ nào trong ngày?"]
+      : ["What time of day do you usually train?"];
+    return [...fromMissing, ...extras].slice(0, 3);
+  }
+
   const extras = isVi
     ? ["Bạn có thể tập mấy buổi mỗi tuần?"]
     : ["How many training days per week can you commit?"];

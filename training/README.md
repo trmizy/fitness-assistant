@@ -1,17 +1,28 @@
 # Optional Coach Fine-Tuning Pipeline
 
-This folder is optional. The running product still uses Ollama + Qdrant + RAG as
-the primary knowledge and evidence architecture. Fine-tuning is research tooling
-for coaching style, structured output reliability, and behavior consistency. It
-must not be used as a storage layer for private user data.
+This directory contains an optional QLoRA research workflow. The application
+does not need it to run: production features use the configured Ollama model,
+Qdrant retrieval, deterministic fitness logic, and safety validation.
 
-## Data Safety Rules
+Current low-VRAM workflow:
 
-- Do not train on real personal user data unless it is explicitly permitted and anonymized.
-- Remove email, name, phone, addresses, IDs, and any direct identifiers.
-- Do not include full medical history or sensitive notes in training examples.
-- Prefer synthetic or aggregated examples.
-- Keep RAG/evidence citations in Qdrant metadata. Do not teach the model to invent sources.
+- Base: `unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit`
+- Config: `training/configs/qlora_coach_qwen2.5_1.5b.yaml`
+- Trainer: `training/scripts/train_qlora_unsloth.py`
+- Runtime model name: `fitness-coach-qwen2.5-1.5b:q4_K_M`
+- Intended hardware: a local CUDA GPU with about 4 GB VRAM
+
+The Qwen3 30B A3B config and RunPod A40 runbook are retained as an experimental
+reference. They are not the current default and were not validated end to end.
+
+## Data Safety
+
+- Do not train on real personal data unless use is explicitly permitted and the
+  records are anonymized.
+- Remove names, emails, phone numbers, addresses, account IDs, and direct identifiers.
+- Do not include full medical histories or sensitive private notes.
+- Prefer synthetic, reviewed, or aggregated examples.
+- Keep evidence citations in Qdrant metadata; do not train the model to invent sources.
 
 ## Dataset Format
 
@@ -26,17 +37,15 @@ Each JSONL row follows `training/data/coach_instruction_schema.json`:
 }
 ```
 
-## Prepare Dataset
+The preparation script reads approved local sources, sample contexts, and
+`training/data/raw/*.jsonl`. A production export can be generated with
+`pnpm --filter @gym-coach/ai-service run ai:export:finetune`, but its rows still
+require privacy and quality review.
 
-Dry run:
+## Prepare Data
 
-```bash
+```powershell
 python training/scripts/prepare_coach_dataset.py --dry-run
-```
-
-Write processed splits:
-
-```bash
 python training/scripts/prepare_coach_dataset.py --force
 ```
 
@@ -44,129 +53,89 @@ Outputs:
 
 - `training/data/processed/train.jsonl`
 - `training/data/processed/eval.jsonl`
+- `training/data/processed/eval_small.jsonl` when prepared for the local workflow
 
-The script reads:
+Do not start a paid or overnight training run until the dataset mix is checked.
+A dataset dominated by templated examples measures template imitation, not
+general coaching quality.
 
-- `data/catalog/rag/gym_instruction_tuning_pairs.csv` if present
-- `data/gym_instruction_tuning_pairs.csv` if present
-- `training/data/sample_coach_context_plans.jsonl`
-- `training/data/raw/*.jsonl` — including `production_export.jsonl` from
-  `pnpm run ai:export:finetune` (see `src/scripts/exportFineTuneDataset.ts`),
-  which pulls thumbs-up conversations and PT-approved plans
+## Validate The Training Configuration
 
-**Data readiness (checked 2026-07-17, this environment):** the templated CSV
-is still ~99.8% of the processed dataset. The production export currently
-resolves to only 8 distinct Q&A pairs (from seeded test-account fixtures,
-not organic user traffic) and 0 PT-approved workout plans — training on this
-today would mostly reinforce the templated CSV's phrasing, not real usage
-patterns. Re-run the export once there's a meaningful volume of real
-thumbs-up feedback and PT approvals before treating a training run as
-representative of actual product usage.
+Use the same Python environment intended for the real training run:
 
-## Train On A40
-
-Prepare a cloud GPU host with CUDA and an A40-class GPU, then install ML deps in
-a separate Python environment:
-
-```bash
-python -m venv .venv-train
-source .venv-train/bin/activate
-pip install torch transformers datasets peft trl bitsandbytes accelerate
+```powershell
+python training/scripts/train_qlora_unsloth.py --dry-run
 ```
 
-Validate config and dataset:
+The command validates paths and prints the resolved base model, dataset, output
+directory, step limit, and epoch count without loading CUDA training libraries.
 
-```bash
-python training/scripts/train_qlora.py \
-  --config training/configs/qlora_coach_qwen3_30b_a3b.yaml \
-  --dataset training/data/processed/train.jsonl \
-  --base-model Qwen/Qwen3-30B-A3B-Instruct-2507 \
-  --output-dir training/outputs/fitness-coach-qlora \
-  --dry-run
+## Train Locally
+
+Install a CUDA-compatible PyTorch and Unsloth environment separately from the
+Node workspace. Then run a short smoke test:
+
+```powershell
+python training/scripts/train_qlora_unsloth.py --max-steps 20
 ```
 
-Run training outside CI:
+Run the configured training job only after the smoke test is stable:
 
-```bash
-python training/scripts/train_qlora.py \
-  --config training/configs/qlora_coach_qwen3_30b_a3b.yaml \
-  --dataset training/data/processed/train.jsonl \
-  --base-model Qwen/Qwen3-30B-A3B-Instruct-2507 \
-  --output-dir training/outputs/fitness-coach-qlora \
-  --num-epochs 2
+```powershell
+python training/scripts/train_qlora_unsloth.py
 ```
 
-`Qwen/Qwen3-30B-A3B-Instruct-2507` is the exact HF source of the production
-Ollama model (`LLM_MODEL=qwen3:30b-a3b-instruct-2507-q4_K_M`) — training
-against any other base model produces an adapter that can never be deployed
-into the live chat. See `training/configs/qlora_coach_qwen3_30b_a3b.yaml`'s
-header comment for VRAM estimates and MoE-specific caveats (not verified
-end-to-end in this repo — no GPU host was available to run a real job).
+The checked-in config targets one practical overnight-style epoch and a reduced
+evaluation subset. Training duration and memory use depend on the local GPU and
+installed CUDA stack; the numbers in config comments are measurements from one
+machine, not a guarantee.
 
 ## Evaluate
 
-```bash
-python training/scripts/evaluate_coach_model.py \
-  --eval-file training/data/processed/eval.jsonl
+```powershell
+python training/scripts/evaluate_coach_model.py --eval-file training/data/processed/eval.jsonl
 ```
 
-Outputs:
+The evaluator checks structured JSON validity, schedule consistency,
+calorie/macro sanity, beginner volume, injury safety, missing-data behavior,
+citation non-hallucination, and Vietnamese output.
 
-- `training/reports/eval_report.json`
-- `training/reports/eval_report.md`
+Outputs are written under `training/reports/` and must be reviewed before
+changing the application's `LLM_MODEL`.
 
-Evaluation checks include structured JSON validity, available-day consistency,
-calorie/macro sanity, beginner volume safety, injury safety, missing-data
-follow-up behavior, citation non-hallucination smoke checks, and Vietnamese
-output smoke checks.
+## Merge And Export
 
-## Export To Ollama
+The active adapter was trained against an Unsloth 4-bit base. Merge it through
+Unsloth's own path:
 
-`training/scripts/export_adapter_to_ollama.py` automates the merge step
-directly (via `peft`/`transformers`) and drives llama.cpp's own conversion +
-quantization tooling for the rest, then writes the `Modelfile`. It requires a
-local llama.cpp checkout (`convert_hf_to_gguf.py` + a built `llama-quantize`
-binary) — llama.cpp is intentionally not vendored into this repo.
-
-Dry run first (prints the planned file layout, no ML deps required):
-
-```bash
-python training/scripts/export_adapter_to_ollama.py \
-  --adapter-dir training/outputs/fitness-coach-qlora \
-  --base-model Qwen/Qwen3-30B-A3B-Instruct-2507 \
-  --llama-cpp-dir /path/to/llama.cpp \
-  --quant-type Q4_K_M \
-  --dry-run
+```powershell
+python training/scripts/merge_lora_unsloth.py `
+  --adapter-dir training/outputs/fitness-coach-qlora-1.5b `
+  --output-dir training/outputs/gguf-export/merged-hf `
+  --max-seq-length 1024
 ```
 
-Then for real (needs `torch`, `transformers`, `peft` in your training venv):
+Convert the merged Hugging Face checkpoint with a compatible llama.cpp checkout,
+quantize it to GGUF, and create an Ollama model. llama.cpp is intentionally not
+vendored into this repository.
 
-```bash
-python training/scripts/export_adapter_to_ollama.py \
-  --adapter-dir training/outputs/fitness-coach-qlora \
-  --base-model Qwen/Qwen3-30B-A3B-Instruct-2507 \
-  --llama-cpp-dir /path/to/llama.cpp \
-  --quant-type Q4_K_M
+After creating the model, verify it before selecting it in `.env`:
+
+```powershell
+ollama list
+ollama run fitness-coach-qwen2.5-1.5b:q4_K_M
 ```
 
-This writes `training/outputs/gguf-export/{merged-hf/, fitness-coach-ft.f16.gguf,
-fitness-coach-ft.Q4_K_M.gguf, Modelfile}`. Then register in Ollama and point
-production at it:
-
-```bash
-cd training/outputs/gguf-export
-ollama create fitness-coach-ft -f Modelfile
+```dotenv
+LLM_MODEL=fitness-coach-qwen2.5-1.5b:q4_K_M
 ```
 
-```bash
-LLM_MODEL=fitness-coach-ft
-```
+Restart `ai-service` after changing the model and run the AI policy, evaluation,
+RAG, workout-plan, nutrition, and InBody chat checks.
 
-Not verified end-to-end in this repo: no GPU host was available to actually
-train an adapter and run this script against real merged weights — the
-merge/convert/quantize commands match current (2026-07) llama.cpp
-conventions, verified via llama.cpp's own docs, but sanity-check `--help`
-output against your checked-out version before a real run.
+## Legacy RunPod Experiment
 
-Keep Qdrant/RAG enabled. The fine-tuned model improves behavior; it does not
-replace evidence retrieval or backend calculation/validation.
+[`RUNPOD_RUNBOOK.md`](RUNPOD_RUNBOOK.md) documents the older
+Qwen3-30B-A3B/A40 experiment. Its cost figures are time-sensitive and its
+commands intentionally use `qlora_coach_qwen3_30b_a3b.yaml`. Do not confuse that
+reference workflow with the current local Qwen2.5 runtime.

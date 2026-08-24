@@ -886,8 +886,8 @@ export function PTDiscoveryPage() {
                         <div className="flex justify-center p-4">
                           <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
                         </div>
-                      ) : packagesData?.packages?.length > 0 ? (
-                        packagesData.packages.map((pkg: any) => {
+                      ) : packagesData?.length > 0 ? (
+                        packagesData.map((pkg: any) => {
                           const isPerSession = pkg.sessionCount === 1;
                           return (
                             <div
@@ -1003,6 +1003,11 @@ export function PTDiscoveryPage() {
                     {selectedPT.firstName} {selectedPT.lastName}
                   </div>
                   <div className="text-xs text-zinc-500">
+                    {/* `requestType` was referenced here with no declaration anywhere in this
+                        component — an orphaned leftover that threw "requestType is not defined"
+                        and crashed this modal outright the instant it opened, for every package.
+                        Real bug found live while testing the PT-hiring flow. Fixed to match the
+                        same isPerSession check (`sessionCount === 1`) used elsewhere in this file. */}
                     {selectedPackage?.sessionCount === 1
                       ? "Theo buổi"
                       : "Gói dịch vụ"}

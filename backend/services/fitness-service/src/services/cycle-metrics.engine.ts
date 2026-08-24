@@ -263,7 +263,7 @@ export async function computeNutritionConsistencyScore(params: {
       where: { userId: params.userId, logDate: { gte: params.startDate, lte: params.asOf } },
       select: { logDate: true, status: true, consumedCalories: true },
     }),
-    prisma.nutritionGoal.findUnique({ where: { userId: params.userId } }),
+    prisma.nutritionGoal.findFirst({ where: { userId: params.userId, status: "ACTIVE" } }),
   ]);
   if (mealCompletions.length === 0) return null;
 

@@ -92,7 +92,21 @@ export const exerciseService = {
       ? boundedInt(idsFilter.length, 30, 1, 100)
       : boundedInt(filters.limit, 30, 1, 100);
     const and: any[] = [];
-    if (idsFilter?.length) and.push({ id: { in: idsFilter } });
+    if (idsFilter?.length) {
+      and.push({ id: { in: idsFilter } });
+      // Deliberately NOT status-gated: this is the by-id resolution path
+      // (e.g. rendering an exercise already referenced by an existing
+      // workout plan/history) — an exercise that's already in someone's
+      // history must keep resolving regardless of its current catalog
+      // status, same "never let a catalog change corrupt history" rule
+      // applied everywhere else in this roadmap.
+    } else {
+      // Gate 6/12 hardening: the general browse/search/discover path must
+      // never surface an unreviewed import. All 883 pre-existing rows
+      // were explicitly backfilled to 'PUBLISHED', so this is purely
+      // additive for anything that existed before today.
+      and.push({ status: "PUBLISHED" });
+    }
     const bodyPart = normalizeEnum(filters.bodyPart);
     const equipment = normalizeEquipment(
       filters.equipment ?? filters.typeOfEquipment,
@@ -169,5 +183,42 @@ export const exerciseService = {
 
   async create(data: any) {
     return exerciseRepository.create(data);
+  },
+
+  // Gate 6 — real muscle-map data for the SVG UI. Never guesses: an
+  // exercise with zero ExerciseMuscle rows returns empty
+  // primary/secondary arrays plus an explicit `mapped: false` flag, so
+  // the frontend renders a clear "chưa có dữ liệu nhóm cơ" state instead
+  // of either crashing or silently showing nothing unexplained.
+  async getMuscleMap(exerciseId: string) {
+    const exercise = await exerciseRepository.findById(exerciseId);
+    if (!exercise) throw { status: 404, message: "Exercise not found" };
+
+    const links = await exerciseRepository.findMuscleLinks(exerciseId);
+    const primary = links
+      .filter((l) => l.role === "primary")
+      .map((l) => ({ code: l.muscle.code, nameVi: l.muscle.nameVi, nameEn: l.muscle.nameEn, anatomyRegion: l.muscle.anatomyRegion }));
+    const secondary = links
+      .filter((l) => l.role === "secondary")
+      .map((l) => ({ code: l.muscle.code, nameVi: l.muscle.nameVi, nameEn: l.muscle.nameEn, anatomyRegion: l.muscle.anatomyRegion }));
+
+    return {
+      exerciseId,
+      exerciseName: exercise.exerciseName,
+      mapped: links.length > 0,
+      primary,
+      secondary,
+    };
+  },
+
+  async listMuscles() {
+    const muscles = await exerciseRepository.listAllMuscles();
+    return muscles.map((m) => ({
+      code: m.code,
+      nameVi: m.nameVi,
+      nameEn: m.nameEn,
+      anatomyRegion: m.anatomyRegion,
+      parentMuscleId: m.parentMuscleId,
+    }));
   },
 };

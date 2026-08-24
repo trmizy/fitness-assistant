@@ -52,13 +52,47 @@ test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
 
+// This test's own Exercise row (and everything scoped to its userId) was
+// never cleaned up — found via a full-suite run where "every exercise has
+// a movementPattern set" / "every exercise has at least one equipment
+// link" (movement-pattern.test.ts, equipment-data-integrity.test.ts) kept
+// failing on a stray leftover "Unification Test Squat ..." row every time
+// this file had run before them in the same test DB. Real, previously-
+// latent test-hygiene gap, not a product bug.
+async function deleteSeed(db: PrismaClientLike, userId: string, exerciseId?: string) {
+  const workouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+  await db.workoutSet.deleteMany({ where: { workoutExercise: { workout: { userId } } } });
+  await db.workoutExercise.deleteMany({ where: { workoutId: { in: workouts.map((w) => w.id) } } });
+  await db.workoutSchedule.deleteMany({ where: { userId } });
+  await db.workout.deleteMany({ where: { userId } });
+  await db.recommendationAudit.deleteMany({ where: { userId } }).catch(() => {});
+  await db.cycleAssessment.deleteMany({ where: { cycle: { userId } } }).catch(() => {});
+  await db.trainingCycle.deleteMany({ where: { userId } });
+  if (exerciseId) await db.exercise.deleteMany({ where: { id: exerciseId } }).catch(() => {});
+}
+
 test(
   "completeCycle() with sufficient data runs the SAME Adaptive Decision Engine as evaluateCycle() and produces a real, versioned CycleAssessment",
   skipOpts,
   async () => {
     const { prisma: db, trainingCycleService: service } = await loadModules();
     const userId = `unification-test-${randomUUID()}`;
+    let exerciseId: string | undefined;
 
+    try {
+      await runTest(db, service, userId, (id) => (exerciseId = id));
+    } finally {
+      await deleteSeed(db, userId, exerciseId);
+    }
+  },
+);
+
+async function runTest(
+  db: PrismaClientLike,
+  service: TrainingCycleServiceLike,
+  userId: string,
+  captureExerciseId: (id: string) => void,
+) {
     const now = new Date();
     const pastStart = new Date(now.getTime() - 35 * 86_400_000); // clears minimumCycleDays=28
 
@@ -84,6 +118,7 @@ test(
         instructions: "Test exercise.",
       },
     });
+    captureExerciseId(exercise.id);
 
     // 10 COMPLETED sessions across ~5 weeks (100% adherence, well above the
     // 8-session / 0.7-adherence gates), with a clear progressive-overload
@@ -150,16 +185,21 @@ test(
 
     assert.equal((completed.summary as any)?.unifiedAssessmentId, assessments[0].id);
 
-    // Single, unified audit trail: one RecommendationAudit row, same as evaluateCycle().
+    // Single, unified TRAINING audit trail: one RecommendationAudit row,
+    // same as evaluateCycle(). Test-assumption update (Phase 2): the
+    // Adaptive Nutrition Decision Engine now writes its OWN independent
+    // audit row (engineVersion="nutrition-adaptive-v1") at this same
+    // touchpoint — real, intentional Phase 2 behavior, not a regression —
+    // so this scopes to the training row specifically rather than asserting
+    // a flat total of 1 (see docs/body-state-and-adaptive-planning.md).
     const audits = await db.recommendationAudit.findMany({ where: { cycleId: cycle.id } });
-    assert.equal(audits.length, 1, "completeCycle() should write exactly one RecommendationAudit row, same as evaluateCycle()");
-    assert.equal(audits[0].engineVersion, "adaptive-v1");
-    assert.equal(audits[0].decision, completed.decision);
+    const trainingAudits = audits.filter((a) => a.engineVersion === "adaptive-v1");
+    assert.equal(trainingAudits.length, 1, "completeCycle() should write exactly one TRAINING RecommendationAudit row, same as evaluateCycle()");
+    assert.equal(trainingAudits[0].decision, completed.decision);
 
     // Calling evaluateCycle() afterward must NOT create a duplicate version 1
     // — it should create version 2, proving both endpoints share one
     // version sequence per cycle rather than two independent counters.
     const secondAssessment = await service.evaluateCycle(cycle.id, userId);
     assert.equal(secondAssessment.assessmentVersion, 2);
-  },
-);
+}

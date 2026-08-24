@@ -1662,6 +1662,21 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (PT/coach client data + plan assignment —
+// Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md). authMiddleware
+// only identifies the caller; coach.service.ts does the real per-request
+// authorization check against Contract.status===ACTIVE — no role gate here
+// since PT-ness is relationship-scoped (this PT + this client), not a
+// blanket role permission.
+router.use(
+  "/coach",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (nutrition)
 router.use(
   "/nutrition",
@@ -1685,6 +1700,19 @@ router.use(
 // Public — Exercises (no auth needed to browse)
 router.use(
   "/exercises",
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
+// Equipment catalog + per-user equipment (gym-onboarding project). Every
+// real caller (onboarding wizard, Profile → Training Setup) is already
+// authenticated, so — unlike /exercises — the whole prefix is gated here
+// rather than leaving the catalog GET publicly reachable for no benefit.
+router.use(
+  "/equipment",
+  authMiddleware,
   createProxyMiddleware({
     target: FITNESS_SERVICE_URL,
     changeOrigin: true,

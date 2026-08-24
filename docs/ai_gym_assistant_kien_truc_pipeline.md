@@ -1,5 +1,8 @@
 # Hệ thống AI Gym Assistant tự cập nhật tri thức (RAG) — Thiết kế kiến trúc chi tiết & khả thi chi phí thấp
 
+> Research architecture proposal. It informs the current system but does not
+> override the runtime contract in `ai-service-operations.md`.
+
 Tài liệu thiết kế dành cho một developer/sinh viên triển khai thật, demo được, và phát triển thành khoá luận ngành Hệ thống thông tin.
 
 ---

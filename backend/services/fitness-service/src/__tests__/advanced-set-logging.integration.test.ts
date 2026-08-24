@@ -19,6 +19,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { todayAsScheduleDate } from "../utils/schedule-lock.util";
 
 const fitnessDatabaseUrl =
   process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
@@ -58,11 +59,18 @@ test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
 
+// "Today", matching the app's own definition (Ho_Chi_Minh calendar day —
+// schedule-lock.util.ts's todayAsScheduleDate) rather than a raw UTC
+// calendar day. UTC and Ho_Chi_Minh disagree on which day it currently is
+// for ~7 hours of every 24 (UTC 17:00-23:59); a UTC-only "today" reads as
+// "yesterday" per the app's real lock check during that window and gets
+// rejected as SCHEDULE_DATE_LOCKED — a real, previously-latent bug in this
+// helper (verified reproducing), not in the lock logic itself.
 function dateOnly(offsetDays: number): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays),
-  );
+  const today = todayAsScheduleDate();
+  const result = new Date(today);
+  result.setUTCDate(result.getUTCDate() + offsetDays);
+  return result;
 }
 
 async function seedStartedSchedule(db: PrismaClientLike, userId: string) {

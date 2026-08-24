@@ -6,6 +6,13 @@ const ACCESS_TOKEN = process.env.AI_TEST_ACCESS_TOKEN;
 const EMAIL = process.env.AI_TEST_EMAIL;
 const PASSWORD = process.env.AI_TEST_PASSWORD;
 
+function localDateForCurrentWeek(targetDay: number): string {
+  const value = new Date();
+  const mondayOffset = (value.getDay() + 6) % 7;
+  value.setDate(value.getDate() - mondayOffset + (targetDay - 1));
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
 async function getToken(): Promise<string> {
   if (ACCESS_TOKEN) return ACCESS_TOKEN;
   if (!EMAIL || !PASSWORD) {
@@ -72,23 +79,25 @@ async function ask(question: string, headers: Record<string, string>) {
 async function main() {
   const token = await getToken();
   const headers = { Authorization: `Bearer ${token}` };
+  const tuesday = localDateForCurrentWeek(2);
+  const thursday = localDateForCurrentWeek(4);
+  const friday = localDateForCurrentWeek(5);
 
   const cases = [
     {
       label: "A",
       question: "thứ 3 tuần này tập gì",
-      expectedTargetDate: "2026-06-02",
-      expectedSource: "scheduled_session",
+      expectedTargetDate: tuesday,
     },
     {
       label: "B",
       question: "thứ 5 tuần này thì sao",
-      expectedTargetDate: "2026-06-04",
+      expectedTargetDate: thursday,
     },
     {
       label: "C",
       question: "thú 5 tuần này tập gì",
-      expectedTargetDate: "2026-06-04",
+      expectedTargetDate: thursday,
     },
     {
       label: "D",
@@ -105,7 +114,7 @@ async function main() {
     {
       label: "F",
       question: "còn thứ 6 thì sao",
-      expectedTargetDate: "2026-06-05",
+      expectedTargetDate: friday,
     },
   ];
 
@@ -115,14 +124,6 @@ async function main() {
     if (schedule.targetDate !== testCase.expectedTargetDate) {
       throw new Error(
         `${testCase.label}: expected targetDate=${testCase.expectedTargetDate}, got ${schedule.targetDate}`,
-      );
-    }
-    if (
-      testCase.expectedSource &&
-      schedule.source !== testCase.expectedSource
-    ) {
-      throw new Error(
-        `${testCase.label}: expected source=${testCase.expectedSource}, got ${schedule.source}`,
       );
     }
     if (

@@ -14,7 +14,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { profileService } from "../../services/api";
+import { profileService, equipmentService, type EquipmentCatalogItem } from "../../services/api";
+import { EquipmentPicker, TrainingLocationPresetRow } from "../../components/EquipmentPicker";
+import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../utils/units";
 import { toast } from "sonner";
 
 /**
@@ -63,17 +65,6 @@ const weekdayOptions = [
   { value: 0, label: "CN" },
 ];
 
-const equipmentOptions = ["barbell", "dumbbells", "machines", "cables", "bodyweight", "resistance_bands", "kettlebell"];
-const equipmentLabels: Record<string, string> = {
-  barbell: "Thanh đòn (Barbell)",
-  dumbbells: "Tạ đơn (Dumbbells)",
-  machines: "Máy tập (Machines)",
-  cables: "Ròng rọc (Cables)",
-  bodyweight: "Trọng lượng cơ thể",
-  resistance_bands: "Dây kháng lực",
-  kettlebell: "Kettlebell",
-};
-
 const splitOptions = ["Full Body", "Upper/Lower", "Push/Pull/Legs", "Bro Split", "Chưa xác định"];
 
 export function OnboardingWizardPage() {
@@ -89,23 +80,120 @@ export function OnboardingWizardPage() {
     enabled: !!user?.id,
   });
 
+  // Gym-onboarding project — real normalized equipment catalog, replacing
+  // the old flat 7-item ad-hoc list. `equipment` below holds catalog SLUGS
+  // (not the old barbell/dumbbells/machines/... vocabulary). UserEquipment
+  // (fitness-service) is the sole canonical source of truth the plan
+  // generator/substitution filter against; saved via equipmentService.
+  // setMyEquipment below, which ALSO keeps user-service's legacy
+  // UserProfile.availableEquipment free-text field in sync backend-to-
+  // backend (equipment.service.ts) — this page deliberately does NOT also
+  // send availableEquipment through profileService.updateProfile, so there
+  // is exactly one write path and no way for the two to diverge.
+  const catalogQuery = useQuery({
+    queryKey: ["equipment", "catalog"],
+    queryFn: () => equipmentService.getCatalog(),
+  });
+  const myEquipmentQuery = useQuery({
+    queryKey: ["equipment", "mine"],
+    queryFn: () => equipmentService.getMyEquipment(),
+    enabled: !!user?.id,
+  });
+  const catalog: EquipmentCatalogItem[] = catalogQuery.data ?? [];
+
   const [experienceLevel, setExperienceLevel] = useState("");
   const [goal, setGoal] = useState("");
   const [trainingDays, setTrainingDays] = useState<number[]>([]);
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState("60");
   const [preferredSplit, setPreferredSplit] = useState("");
-  const [equipment, setEquipment] = useState<string[]>([]);
+  const [equipment, setEquipment] = useState<Set<string>>(new Set());
   const [injuriesText, setInjuriesText] = useState("");
   const [competesInSport, setCompetesInSport] = useState(false);
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
-  const [heightCm, setHeightCm] = useState("");
-  const [currentWeight, setCurrentWeight] = useState("");
-  const [targetWeight, setTargetWeight] = useState("");
+  const [heightCm, setHeightCm] = useState(""); // canonical — always cm, matches backend/UserProfile.heightCm
+  const [currentWeight, setCurrentWeight] = useState(""); // canonical — always kg
+  const [targetWeight, setTargetWeight] = useState(""); // canonical — always kg
+  // Gym-onboarding project follow-up §13 — display-unit toggles. Only these
+  // two ever change; heightCm/currentWeight/targetWeight above stay the
+  // single canonical cm/kg values sent to the backend either way, and the
+  // rest of the app (Profile, InBody) keeps reading plain cm/kg unchanged.
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ftin">("cm");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
+  const [heightFt, setHeightFt] = useState("");
+  const [heightIn, setHeightIn] = useState("");
+
+  // Gym-onboarding project follow-up §14 — resume-on-refresh. The wizard
+  // only ever writes to the backend on final submit (Hoàn tất / Bỏ qua), so
+  // without this, a refresh or browser close mid-wizard silently discarded
+  // every field the user had already filled in. Draft is plain localStorage
+  // (no backend endpoint needed for a transient, single-device draft),
+  // keyed per-user so switching accounts on the same browser never leaks
+  // one user's in-progress answers into another's session.
+  const draftKey = user?.id ? `onboarding-draft-${user.id}` : null;
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
+
+  useEffect(() => {
+    if (!draftKey || draftLoadAttempted) return;
+    setDraftLoadAttempted(true);
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (typeof d !== "object" || d === null) return;
+      if (d.experienceLevel) setExperienceLevel(d.experienceLevel);
+      if (d.goal) setGoal(d.goal);
+      if (Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays);
+      if (d.sessionDurationMinutes) setSessionDurationMinutes(d.sessionDurationMinutes);
+      if (d.preferredSplit) setPreferredSplit(d.preferredSplit);
+      if (Array.isArray(d.equipment)) setEquipment(new Set(d.equipment));
+      if (typeof d.injuriesText === "string") setInjuriesText(d.injuriesText);
+      if (typeof d.competesInSport === "boolean") setCompetesInSport(d.competesInSport);
+      if (d.age) setAge(d.age);
+      if (d.gender) setGender(d.gender);
+      if (d.heightCm) setHeightCm(d.heightCm);
+      if (d.currentWeight) setCurrentWeight(d.currentWeight);
+      if (d.targetWeight) setTargetWeight(d.targetWeight);
+      if (d.heightUnit) setHeightUnit(d.heightUnit);
+      if (d.weightUnit) setWeightUnit(d.weightUnit);
+      if (d.heightFt) setHeightFt(d.heightFt);
+      if (d.heightIn) setHeightIn(d.heightIn);
+      if (typeof d.currentStep === "number") setCurrentStep(d.currentStep);
+      setDraftRestored(true);
+      toast.info("Đã khôi phục tiến trình thiết lập trước đó của bạn");
+    } catch {
+      // corrupt/unreadable draft — ignore, wizard just starts fresh
+    }
+  }, [draftKey, draftLoadAttempted]);
+
+  // Persist on every change — cheap (localStorage, small payload), and
+  // means literally any refresh/close/back-button mid-wizard is recoverable.
+  useEffect(() => {
+    if (!draftKey || !draftLoadAttempted) return; // wait for the restore attempt above to run first, so we never overwrite a not-yet-read draft with initial empty state
+    const draft = {
+      experienceLevel, goal, trainingDays, sessionDurationMinutes, preferredSplit,
+      equipment: Array.from(equipment), injuriesText, competesInSport, age, gender,
+      heightCm, currentWeight, targetWeight, heightUnit, weightUnit, heightFt, heightIn,
+      currentStep,
+    };
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+    } catch {
+      // storage full/unavailable — best-effort only, never blocks the wizard
+    }
+  }, [
+    draftKey, draftLoadAttempted, experienceLevel, goal, trainingDays, sessionDurationMinutes,
+    preferredSplit, equipment, injuriesText, competesInSport, age, gender, heightCm,
+    currentWeight, targetWeight, heightUnit, weightUnit, heightFt, heightIn, currentStep,
+  ]);
 
   // Pre-fill from any partial profile already saved (e.g. user filled some
   // of ProfilePage before the wizard existed, or came back after skipping).
+  // Skipped once a localStorage draft was restored — the draft is strictly
+  // more recent than whatever was last actually submitted to the backend.
   useEffect(() => {
+    if (draftRestored) return;
     const p = profileQuery.data;
     if (!p) return;
     if (p.experienceLevel) setExperienceLevel(p.experienceLevel);
@@ -113,7 +201,6 @@ export function OnboardingWizardPage() {
     if (Array.isArray(p.preferredTrainingDays)) setTrainingDays(p.preferredTrainingDays);
     if (p.sessionDurationMinutes) setSessionDurationMinutes(String(p.sessionDurationMinutes));
     if (p.preferredSplit) setPreferredSplit(p.preferredSplit);
-    if (Array.isArray(p.availableEquipment)) setEquipment(p.availableEquipment);
     if (Array.isArray(p.injuries)) setInjuriesText(p.injuries.join(", "));
     if (typeof p.competesInSport === "boolean") setCompetesInSport(p.competesInSport);
     if (p.age) setAge(String(p.age));
@@ -123,6 +210,17 @@ export function OnboardingWizardPage() {
     if (p.targetWeight) setTargetWeight(String(p.targetWeight));
   }, [profileQuery.data]);
 
+  // Pre-fill equipment selection from the new granular UserEquipment table
+  // once both the catalog and the user's saved ids have loaded (existing
+  // users with nothing saved yet simply start from an empty selection —
+  // see this file's header comment on the migration strategy).
+  useEffect(() => {
+    if (!catalogQuery.data || !myEquipmentQuery.data) return;
+    const idToSlug = new Map(catalogQuery.data.map((eq) => [eq.id, eq.slug]));
+    const slugs = myEquipmentQuery.data.map((id) => idToSlug.get(id)).filter((s): s is string => !!s);
+    if (slugs.length > 0) setEquipment(new Set(slugs));
+  }, [catalogQuery.data, myEquipmentQuery.data]);
+
   function buildPayload() {
     return {
       experienceLevel: experienceLevel || undefined,
@@ -130,7 +228,9 @@ export function OnboardingWizardPage() {
       preferredTrainingDays: trainingDays,
       sessionDurationMinutes: sessionDurationMinutes ? parseInt(sessionDurationMinutes, 10) : undefined,
       preferredSplit: preferredSplit && preferredSplit !== "Chưa xác định" ? preferredSplit : undefined,
-      availableEquipment: equipment,
+      // availableEquipment deliberately omitted — equipmentService.
+      // setMyEquipment (called alongside this in submitMutation) is the one
+      // write path for equipment, and syncs this legacy field itself.
       injuries: injuriesText
         .split(",")
         .map((s) => s.trim())
@@ -151,8 +251,19 @@ export function OnboardingWizardPage() {
   }
 
   const submitMutation = useMutation({
-    mutationFn: (finishedAllSteps: boolean) =>
-      profileService.updateProfile(buildPayload()).then((r) => ({ profile: r.profile, finishedAllSteps })),
+    mutationFn: async (finishedAllSteps: boolean) => {
+      const equipmentIds = catalog.filter((eq) => equipment.has(eq.slug)).map((eq) => eq.id);
+      const [profileResult] = await Promise.all([
+        profileService.updateProfile(buildPayload()),
+        // Best-effort — a granular-equipment save failure shouldn't block
+        // the rest of onboarding from completing. This is the ONLY place
+        // that writes equipment; it syncs the legacy availableEquipment
+        // field on user-service itself (equipment.service.ts), so nothing
+        // else in this component needs to write that field.
+        equipmentService.setMyEquipment(equipmentIds).catch(() => null),
+      ]);
+      return { profile: profileResult.profile, finishedAllSteps };
+    },
     onSuccess: ({ profile, finishedAllSteps }) => {
       // Write the fresh profile into the cache SYNCHRONOUSLY (not
       // invalidateQueries, which only schedules a background refetch) before
@@ -161,6 +272,16 @@ export function OnboardingWizardPage() {
       // pre-submit stale value (hasCompletedOnboarding: false) and bounce the
       // user straight back here.
       queryClient.setQueryData(["profile", user?.id], profile);
+      // Submit succeeded — the draft's job is done; clearing it means a
+      // future re-visit to this page (e.g. from Settings) starts from the
+      // just-saved profile, not a stale draft from this completed run.
+      if (draftKey) {
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // best-effort
+        }
+      }
       toast.success(finishedAllSteps ? "Đã lưu hồ sơ tập luyện" : "Đã bỏ qua — bạn có thể cập nhật lại trong Hồ sơ");
       navigate("/client/dashboard");
     },
@@ -178,8 +299,39 @@ export function OnboardingWizardPage() {
   const toggleDay = (d: number) => {
     setTrainingDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
   };
-  const toggleEquipment = (e: string) => {
-    setEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
+
+  // Unit toggles — heightCm/currentWeight/targetWeight stay canonical
+  // cm/kg throughout; only the ft/in split-fields need extra state since a
+  // single text input can't hold two independently-typeable numbers.
+  const switchHeightUnit = (unit: "cm" | "ftin") => {
+    if (unit === "ftin" && heightCm) {
+      const { feet, inches } = feetInchesFromCm(parseFloat(heightCm));
+      setHeightFt(String(feet));
+      setHeightIn(String(inches));
+    }
+    setHeightUnit(unit);
+  };
+  const updateHeightFtIn = (ft: string, inches: string) => {
+    setHeightFt(ft);
+    setHeightIn(inches);
+    const ftNum = parseFloat(ft);
+    const inNum = parseFloat(inches);
+    if (Number.isFinite(ftNum) || Number.isFinite(inNum)) {
+      setHeightCm(String(cmFromFeetInches(Number.isFinite(ftNum) ? ftNum : 0, Number.isFinite(inNum) ? inNum : 0)));
+    }
+  };
+  const displayWeight = (kgValue: string) => {
+    if (weightUnit === "kg" || !kgValue) return kgValue;
+    const kg = parseFloat(kgValue);
+    return Number.isFinite(kg) ? String(lbFromKg(kg)) : "";
+  };
+  const updateWeightFromDisplay = (displayValue: string, setter: (v: string) => void) => {
+    if (weightUnit === "kg") {
+      setter(displayValue);
+      return;
+    }
+    const lb = parseFloat(displayValue);
+    setter(Number.isFinite(lb) ? String(kgFromLb(lb)) : displayValue ? "0" : "");
   };
 
   if (profileQuery.isLoading) {
@@ -341,28 +493,21 @@ export function OnboardingWizardPage() {
           )}
 
           {currentStep === 2 && (
-            <div>
-              <label className={lbl}>Thiết bị bạn có thể sử dụng</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {equipmentOptions.map((eq) => (
-                  <label
-                    key={eq}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm cursor-pointer transition-all ${
-                      equipment.includes(eq) ? "border-green-500 bg-green-500/10 text-green-400" : "border-zinc-700/60 text-zinc-400"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={equipment.includes(eq)}
-                      onChange={() => toggleEquipment(eq)}
-                      className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-green-500"
-                    />
-                    {equipmentLabels[eq]}
-                  </label>
-                ))}
+            <div className="space-y-4">
+              <TrainingLocationPresetRow onApply={(slugs) => setEquipment(new Set(slugs))} />
+              <div>
+                <label className={lbl}>Thiết bị bạn có thể sử dụng</label>
+                {catalogQuery.isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                  </div>
+                ) : (
+                  <EquipmentPicker catalog={catalog} selectedSlugs={equipment} onChange={setEquipment} />
+                )}
               </div>
-              <p className="text-[11px] text-zinc-600 mt-2">
-                Không chọn gì nghĩa là phòng gym đầy đủ thiết bị — AI sẽ ưu tiên bài barbell/máy tập.
+              <p className="text-[11px] text-zinc-600">
+                Không chọn gì nghĩa là hệ thống sẽ giả định phòng gym đầy đủ thiết bị. Bạn có thể chỉnh lại
+                bất cứ lúc nào trong Hồ sơ → Thiết lập tập luyện.
               </p>
             </div>
           )}
@@ -412,17 +557,79 @@ export function OnboardingWizardPage() {
                   <option value="OTHER">Khác</option>
                 </select>
               </div>
-              <div>
-                <label className={lbl}>Chiều cao (cm)</label>
-                <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inp} />
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lbl} mb-0`}>Chiều cao</label>
+                  <div className="flex rounded-lg border border-zinc-700/60 overflow-hidden text-[11px]">
+                    {(["cm", "ftin"] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => switchHeightUnit(u)}
+                        className={`px-2.5 py-1 font-semibold ${heightUnit === u ? "bg-green-500 text-black" : "bg-zinc-800/60 text-zinc-400"}`}
+                      >
+                        {u === "cm" ? "cm" : "ft/in"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {heightUnit === "cm" ? (
+                  <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inp} placeholder="175" />
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={heightFt}
+                      onChange={(e) => updateHeightFtIn(e.target.value, heightIn)}
+                      className={inp}
+                      placeholder="ft"
+                    />
+                    <input
+                      type="number"
+                      value={heightIn}
+                      onChange={(e) => updateHeightFtIn(heightFt, e.target.value)}
+                      className={inp}
+                      placeholder="in"
+                    />
+                  </div>
+                )}
               </div>
-              <div>
-                <label className={lbl}>Cân nặng hiện tại (kg)</label>
-                <input type="number" value={currentWeight} onChange={(e) => setCurrentWeight(e.target.value)} className={inp} />
-              </div>
-              <div>
-                <label className={lbl}>Cân nặng mục tiêu (kg, nếu có)</label>
-                <input type="number" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} className={inp} />
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lbl} mb-0`}>Cân nặng</label>
+                  <div className="flex rounded-lg border border-zinc-700/60 overflow-hidden text-[11px]">
+                    {(["kg", "lb"] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setWeightUnit(u)}
+                        className={`px-2.5 py-1 font-semibold ${weightUnit === u ? "bg-green-500 text-black" : "bg-zinc-800/60 text-zinc-400"}`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-zinc-600 mb-1 block">Hiện tại</label>
+                    <input
+                      type="number"
+                      value={displayWeight(currentWeight)}
+                      onChange={(e) => updateWeightFromDisplay(e.target.value, setCurrentWeight)}
+                      className={inp}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-zinc-600 mb-1 block">Mục tiêu (nếu có)</label>
+                    <input
+                      type="number"
+                      value={displayWeight(targetWeight)}
+                      onChange={(e) => updateWeightFromDisplay(e.target.value, setTargetWeight)}
+                      className={inp}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -435,7 +642,15 @@ export function OnboardingWizardPage() {
                 <ReviewRow label="Mục tiêu" value={goalOptions.find((g) => g.key === goal)?.label} onEdit={() => setCurrentStep(0)} />
                 <ReviewRow label="Ngày tập/tuần" value={`${trainingDays.length} ngày`} onEdit={() => setCurrentStep(1)} />
                 <ReviewRow label="Kiểu chia lịch" value={preferredSplit || "Chưa có ý kiến"} onEdit={() => setCurrentStep(1)} />
-                <ReviewRow label="Thiết bị" value={equipment.length ? equipment.map((e) => equipmentLabels[e]).join(", ") : "Phòng gym đầy đủ"} onEdit={() => setCurrentStep(2)} />
+                <ReviewRow
+                  label="Thiết bị"
+                  value={
+                    equipment.size
+                      ? `${equipment.size} thiết bị đã chọn`
+                      : "Phòng gym đầy đủ (mặc định)"
+                  }
+                  onEdit={() => setCurrentStep(2)}
+                />
                 <ReviewRow label="Chấn thương" value={injuriesText || "Không có"} onEdit={() => setCurrentStep(3)} />
                 <ReviewRow label="Thi đấu chuyên nghiệp" value={competesInSport ? "Có" : "Không"} onEdit={() => setCurrentStep(3)} />
                 <ReviewRow label="Chỉ số cơ thể" value={[age && `${age} tuổi`, heightCm && `${heightCm}cm`, currentWeight && `${currentWeight}kg`].filter(Boolean).join(", ") || "Chưa nhập"} onEdit={() => setCurrentStep(4)} />

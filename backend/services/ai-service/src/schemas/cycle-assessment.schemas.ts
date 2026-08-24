@@ -41,6 +41,24 @@ export const AssessCycleRequestSchema = z.object({
    * this from recommendedActionScope (e.g. "none" -> [], "deload" -> only
    * DELOAD/VOLUME/LOAD-down). Constrains proposedChanges[].type below. */
   allowedChanges: z.array(z.enum(["VOLUME", "LOAD", "REPS", "EXERCISE", "FREQUENCY", "DELOAD"])).default([]),
+  /** Phase 2 — Adaptive Nutrition Decision Engine's ALREADY-COMPUTED output
+   * (nutrition-decision.engine.ts, fitness-service). Optional: a cycle
+   * evaluation whose nutrition engine run failed (see
+   * training-cycle.service.ts's evaluateNutritionForCycle try/catch) simply
+   * omits this — the LLM must never be asked to invent a nutrition decision
+   * that was never actually computed. Same rule as the training decision
+   * above: the LLM only EXPLAINS this, it never recomputes or overrides it. */
+  nutrition: z
+    .object({
+      decision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
+      confidence: z.enum(["LOW", "MEDIUM", "HIGH"]),
+      signals: z.record(z.string(), z.unknown()),
+      proposedChanges: z.record(z.string(), z.unknown()).nullable(),
+      reasonCodes: z.array(z.string()).default([]),
+      evidenceIds: z.array(z.string()).default([]),
+      requiresConfirmation: z.boolean(),
+    })
+    .optional(),
 });
 export type AssessCycleRequest = z.infer<typeof AssessCycleRequestSchema>;
 
@@ -73,5 +91,19 @@ export const AssessCycleOutputSchema = z.object({
   missingData: z.array(z.string()).default([]),
   safetyNotice: z.string().nullable().default(null),
   requiresConfirmation: z.boolean().default(true),
+  /** Phase 2 — natural-language explanation of the nutrition decision
+   * ALREADY computed by nutrition-decision.engine.ts, distinguishing
+   * Observation/Interpretation/Recommendation per spec §19. Present only
+   * when the request included a `nutrition` block; the model must echo
+   * `nutritionDecision` unchanged (same belt-and-braces override pattern
+   * as `decision` above, enforced in cycle-assessment.service.ts). */
+  nutritionSummary: z
+    .object({
+      nutritionDecision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
+      headline: z.string(),
+      explanation: z.string(),
+    })
+    .nullable()
+    .default(null),
 });
 export type AssessCycleOutput = z.infer<typeof AssessCycleOutputSchema>;

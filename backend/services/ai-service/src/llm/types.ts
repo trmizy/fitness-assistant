@@ -16,7 +16,16 @@ export type RoutedIntentType =
   | "unsafe_weight_loss_request"
   | "profile_completion_request"
   | "frequency_change_request"
-  | "schedule_specific_day_request";
+  | "schedule_specific_day_request"
+  // Focused pre/post-workout nutrient-timing advice ("trước/sau tập nên ăn
+  // gì?") — distinct from meal_plan_request so the answer stays a direct,
+  // short answer to the timing question instead of a full-day/7-day meal
+  // plan. Real bug found via E2E persona testing
+  // (24-ai-nutrition-persona-b-c.spec.ts, Persona B): every "ăn gì"-shaped
+  // question used to fall into meal_plan_request's catch-all pattern,
+  // which always renders a full meal-plan template regardless of what was
+  // actually asked.
+  | "nutrient_timing_request";
 
 export type RouteCategory =
   | "exercise_request"
@@ -62,6 +71,10 @@ export interface UserProfile {
   heightCm?: number;
   currentWeightKg?: number;
   targetWeightKg?: number;
+  // Immutable "journey start" weight — see UserProfile.startingWeight
+  // (user-service). Never equal to currentWeightKg after the first
+  // measurement; absent for accounts predating this field.
+  startingWeightKg?: number;
   goal?:
     | "WEIGHT_LOSS"
     | "MUSCLE_GAIN"

@@ -1,5 +1,8 @@
 # Training Cycle Decision Engine — Đề xuất nâng cấp
 
+> Historical proposal. The implemented flow is documented in
+> `adaptive-training-cycle-evaluation.md` and verified by current tests.
+
 > Bổ sung cho `docs/training-cycle-v2.md` (flow cũ, 3 quyết định) và `docs/adaptive-training-cycle-evaluation.md` (flow mới, 6 quyết định — đã triển khai). Tài liệu này đánh giá engine **hiện có** và đề xuất phần **còn thiếu** để trở thành một decision engine hoàn chỉnh theo đúng nguyên tắc "code tính số liệu, LLM chỉ giải thích, RAG chỉ dẫn chứng".
 >
 > **Không implement code trong tài liệu này** — đây là bản thiết kế chờ approval.

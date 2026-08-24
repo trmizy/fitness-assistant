@@ -178,6 +178,24 @@ export const updateWorkoutSetSchema = z.object({
   ...advancedSetFields,
 });
 
+// Hardening pass §3 — POST /workouts/schedules/:id/exercises/:programExerciseId/complete
+// previously took no body at all, so it always logged the PLANNED
+// exerciseId/weight/reps regardless of what the user actually entered in
+// WorkoutLogPage's "Ghi chép" card, and a session-only exercise swap
+// (SwapExerciseModal) was silently lost the moment the exercise was marked
+// complete via this (the common, schedule-linked) path — only the rarely-hit
+// ad-hoc createWorkout path ever recorded what was truly performed. All
+// fields optional and additive: omitting the body preserves the exact old
+// behavior (falls back to the planned values), never a breaking change.
+export const completeScheduleExerciseSchema = z.object({
+  exerciseId: z.string().uuid().optional(),
+  weight: z.number().nonnegative().optional(),
+  reps: z.number().int().positive().optional(),
+  rpe: z.number().min(1).max(10).optional(),
+  rir: z.number().int().min(0).max(5).optional(),
+  notes: z.string().max(500).optional(),
+});
+
 export const createNutritionSchema = z.object({
   date: z.string().datetime().optional(),
   mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
@@ -195,9 +213,14 @@ export const upsertNutritionGoalSchema = z.object({
   carbs: z.number().positive(),
   fat: z.number().positive(),
   waterMl: z.number().int().positive().optional().nullable(),
+  // "RECOMMENDED" (app-calculated, default) | "CUSTOM" (user hand-entered).
+  // Optional so existing callers that never send this keep working exactly
+  // as before.
+  goalMode: z.enum(["RECOMMENDED", "CUSTOM"]).optional(),
 });
 
 export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
 export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
+export type CompleteScheduleExerciseDto = z.infer<typeof completeScheduleExerciseSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;
 export type UpsertNutritionGoalDto = z.infer<typeof upsertNutritionGoalSchema>;

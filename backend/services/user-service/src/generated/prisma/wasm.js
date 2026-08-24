@@ -146,6 +146,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   hasCompletedOnboarding: 'hasCompletedOnboarding',
   currentWeight: 'currentWeight',
   targetWeight: 'targetWeight',
+  startingWeight: 'startingWeight',
+  startingWeightSource: 'startingWeightSource',
   dietaryPreference: 'dietaryPreference',
   photoUrl: 'photoUrl',
   sessionDurationMinutes: 'sessionDurationMinutes',
@@ -593,7 +595,8 @@ exports.SessionMode = exports.$Enums.SessionMode = {
 
 exports.ContractSource = exports.$Enums.ContractSource = {
   INDEPENDENT: 'INDEPENDENT',
-  GYM: 'GYM'
+  GYM: 'GYM',
+  MARKETPLACE: 'MARKETPLACE'
 };
 
 exports.TerminationReason = exports.$Enums.TerminationReason = {

@@ -16,6 +16,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { todayAsScheduleDate } from "../utils/schedule-lock.util";
 
 const fitnessDatabaseUrl = process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
 const canUseIntegrationDb = /(_test|postgres-test)/i.test(fitnessDatabaseUrl);
@@ -50,9 +51,16 @@ test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
 
+// Ho_Chi_Minh-aware "today" (todayAsScheduleDate), not a raw UTC calendar
+// day — the two disagree for ~7 hours of every 24 (UTC 17:00-23:59), during
+// which a UTC-only "today" reads as "yesterday" per the real lock check and
+// trips SCHEDULE_DATE_LOCKED — a real, previously-latent bug in this exact
+// helper (verified reproducing), not the lock logic itself.
 function dateOnly(offsetDays: number): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
+  const today = todayAsScheduleDate();
+  const result = new Date(today);
+  result.setUTCDate(result.getUTCDate() + offsetDays);
+  return result;
 }
 
 async function seedProgramWithSchedule(

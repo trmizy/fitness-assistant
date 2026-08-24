@@ -7,7 +7,7 @@ import { LlmError } from "../errors/api-error";
 const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
 const DEFAULT_LLM_MODEL_BY_PROVIDER: Record<string, string> = {
-  ollama: "llama3.2:3b",
+  ollama: "fitness-coach-qwen2.5-1.5b:q4_K_M",
   anthropic: "claude-sonnet-5",
 };
 export const LLM_MODEL =

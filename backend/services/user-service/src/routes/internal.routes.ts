@@ -68,11 +68,45 @@ router.get(
   contractController.getActivePTForClient as any,
 );
 
+// fitness-service calls this before every PT/coach client-data or
+// plan-assignment request (Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md).
+router.get(
+  "/contracts/active-relationship",
+  contractController.checkActivePtClientRelationship as any,
+);
+
+// ai-service calls this right after a Marketplace Personalized PT Service
+// purchase is paid, to create the ACTIVE Contract that the whole existing
+// PT-client authorization surface (coach.service.ts, chat eligibility) is
+// keyed on — see ContractSource.MARKETPLACE's schema comment.
+router.post(
+  "/contracts/marketplace",
+  contractController.createMarketplaceContract as any,
+);
+
 // ai-service workers run without an end-user bearer token. These read-only
 // endpoints expose the same user-owned context after service-secret validation.
 router.get("/profile/:userId", async (req, res) => {
   const result = await profileService.getProfile(req.params.userId);
   res.json(result);
+});
+
+router.get("/pt-marketplace-eligibility/:userId", async (req, res) => {
+  const profile = await profileRepository.findPtMarketplaceEligibilityByUserId(req.params.userId);
+  const application = profile?.ptApplication ?? null;
+  const isApprovedPt = profile?.isPT === true && application?.status === "APPROVED";
+
+  res.json({
+    userId: req.params.userId,
+    isApprovedPt,
+    isPT: profile?.isPT === true,
+    ptApplicationStatus: application?.status ?? null,
+    approvedAt: application?.approvedAt ?? null,
+    displayName: profile ? [profile.firstName, profile.lastName].filter(Boolean).join(" ") || null : null,
+    mainSpecialties: application?.mainSpecialties ?? [],
+    yearsOfExperience: application?.yearsOfExperience ?? null,
+    professionalBio: application?.professionalBio ?? null,
+  });
 });
 
 router.get("/inbody/:userId", async (req, res) => {
@@ -90,6 +124,24 @@ router.get("/profile/by-referral-code/:code", async (req, res) => {
     return;
   }
   res.json({ userId: profile.userId });
+});
+
+// Gym-onboarding project — fitness-service calls this after every write to
+// its normalized UserEquipment table, to keep UserProfile.availableEquipment
+// (this service, legacy free-text field still read by the AI coach chat's
+// advisory prompt/regex-based routine builder) in sync WITHOUT relying on
+// frontend code remembering to update both. UserEquipment stays the single
+// canonical source of truth for equipment availability; this is a
+// backend-to-backend sync of the read-only compatibility copy, never the
+// other way around.
+router.put("/profile/:userId/available-equipment", async (req, res) => {
+  const { availableEquipment } = req.body as { availableEquipment?: unknown };
+  if (!Array.isArray(availableEquipment) || !availableEquipment.every((v) => typeof v === "string")) {
+    res.status(400).json({ error: "availableEquipment must be an array of strings" });
+    return;
+  }
+  const result = await profileService.upsertProfile(req.params.userId, { availableEquipment });
+  res.json(result);
 });
 
 // Phase 4 — payment-service calls these after wallet-transfer PAID / refund reversal.

@@ -11,6 +11,14 @@ import {
   type WorkoutScheduleContext,
 } from "../llm/workout_schedule_context";
 
+function localDateAfter(days: number): string {
+  const value = new Date();
+  value.setDate(value.getDate() + days);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
+const tomorrow = localDateAfter(1);
+
 function assertNutritionFirst(
   question: string,
   expectedDate: string,
@@ -47,13 +55,13 @@ const workoutHistory = [
 
 assertNutritionFirst(
   "cho tôi thấy thực đơn sáng mai",
-  "2026-06-02",
+  tomorrow,
   "breakfast",
 );
-assertNutritionFirst("ngày mai tôi sẽ ăn gì", "2026-06-02", "all");
+assertNutritionFirst("ngày mai tôi sẽ ăn gì", tomorrow, "all");
 assertNutritionFirst("bữa tối ngày 18 tháng 6", "2026-06-18", "dinner");
 assertNutritionFirst("18/6 ăn gì", "2026-06-18", "all");
-assertWorkoutOnly("ngày mai tôi tập gì", "2026-06-02");
+assertWorkoutOnly("ngày mai tôi tập gì", tomorrow);
 
 const nutritionFollowUp = detectNutritionLookupIntent(
   "ngày mai",
@@ -64,7 +72,7 @@ assert.equal(
   true,
   "nutrition follow-up should inherit nutrition intent",
 );
-assert.equal(nutritionFollowUp.targetDate, "2026-06-02");
+assert.equal(nutritionFollowUp.targetDate, tomorrow);
 
 const workoutFollowUpNutrition = detectNutritionLookupIntent(
   "ngày mai",
@@ -81,7 +89,7 @@ assert.equal(
   true,
   "workout follow-up should stay workout",
 );
-assert.equal(workoutFollowUp.targetDate, "2026-06-02");
+assert.equal(workoutFollowUp.targetDate, tomorrow);
 
 assert.equal(nutritionSourceLabel("nutrition_log"), "Nhật ký dinh dưỡng");
 assert.equal(nutritionSourceLabel("meal_plan"), "Kế hoạch dinh dưỡng đã lưu");

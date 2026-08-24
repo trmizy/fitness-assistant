@@ -1,10 +1,11 @@
 import axios from "axios";
-import { logger } from "@gym-coach/shared";
+import { logger, nutritionMacroValidationTotal } from "@gym-coach/shared";
 import {
   conversationRepository,
   PlanStatus,
 } from "../repositories/conversation.repository";
 import type { ResponseLanguage } from "./types";
+import { checkMacroCalorieConsistency } from "./nutrition_engine";
 
 const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL ||
@@ -182,6 +183,22 @@ function detectMealType(q: string): MealType {
   return "all";
 }
 
+// ── Root-cause fix ────────────────────────────────────────────────────────
+// The old hasNutritionSignal() alone gated a hard early-return in
+// orchestrator.ts that skips the LLM, the deterministic recommendation
+// engine, and safety validation entirely. Matching it against ANY mention
+// of "an|uong|thuc don|bua|meal|nutrition|diet|calo|macro|protein|carb|
+// fat|dam|chat beo|dinh duong" meant virtually every nutrition-related
+// message — including calorie/macro ESTIMATION requests, plan CREATION
+// requests, target ANALYSIS/validation requests, and general nutrition
+// Q&A — collapsed onto the same "no saved meal plan for today" template.
+// The topic check below is intentionally still broad (it only says "this
+// message is ABOUT nutrition") — the actual narrowing happens in
+// hasSavedLookupAction (must show an explicit "show me the saved/logged
+// meal" action) and hasNutritionReasoningAction (create/estimate/analyze/
+// decide verbs veto the lookup path even when a lookup-ish word is also
+// present), both required by detectNutritionLookupIntent's `enabled` gate
+// below.
 function hasNutritionSignal(q: string): boolean {
   return /\b(an|uong|thuc\s*don|bua|meal|meal\s*plan|nutrition|diet|calo|calories|macro|protein|carb|fat|dam|chat\s*beo|dinh\s*duong)\b/.test(
     q,
@@ -196,6 +213,23 @@ function hasWorkoutSignal(q: string): boolean {
 
 function hasDateSignal(q: string): boolean {
   return /\b(hom\s*nay|ngay\s*mai|mai|today|tomorrow|ngay\s+\d{1,2}|thang\s+\d{1,2}|\d{1,2}\s*[/-]\s*\d{1,2})\b/.test(
+    q,
+  );
+}
+
+function hasSavedLookupAction(q: string): boolean {
+  return (
+    /\b(xem|cho\s*(toi|minh)\s*xem|hien\s*thi|lay|mo|lookup|show|view|display)\b/.test(
+      q,
+    ) ||
+    /\b(da\s*luu|dang\s*luu|saved|stored|nhat\s*ky|diary|log|lich\s*an|ke\s*hoach\s*hom\s*nay|thuc\s*don\s*hom\s*nay|hom\s*nay\s*(toi|minh)\s*(da\s*)?an\s*gi)\b/.test(
+      q,
+    )
+  );
+}
+
+function hasNutritionReasoningAction(q: string): boolean {
+  return /\b(tinh|uoc\s*tinh|phan\s*tich|danh\s*gia|tao|lap|goi\s*y|de\s*xuat|nen|co\s*nen|phu\s*hop|bao\s*nhieu|calorie\s*estimation|estimate|analyze|create|adjust|review|reconcile|macro)\b/.test(
     q,
   );
 }
@@ -229,9 +263,14 @@ export function detectNutritionLookupIntent(
     );
 
   const workoutSignal = hasWorkoutSignal(q);
+  const savedLookupAction = hasSavedLookupAction(q);
+  const reasoningAction = hasNutritionReasoningAction(q);
   const enabled =
-    nutritionSignal ||
-    (inheritedIntent && !workoutSignal && (dateSignal || shortFollowUp));
+    (nutritionSignal && savedLookupAction && !reasoningAction) ||
+    (inheritedIntent &&
+      !workoutSignal &&
+      !reasoningAction &&
+      (dateSignal || shortFollowUp));
   if (!enabled) {
     return {
       enabled: false,
@@ -254,7 +293,7 @@ export function detectNutritionLookupIntent(
     targetDate,
     mealType,
     reason: nutritionSignal
-      ? "nutrition_keyword"
+      ? "explicit_saved_nutrition_lookup"
       : "nutrition_follow_up_context",
   };
 }
@@ -651,9 +690,41 @@ function formatTargets(
     context.fatTarget != null ? `${Math.round(context.fatTarget)}g fat` : null,
   ].filter(Boolean);
   if (!parts.length) return null;
-  return language === "vi"
-    ? `Mục tiêu đang lưu: ${parts.join(" | ")}.`
-    : `Saved targets: ${parts.join(" | ")}.`;
+  const line =
+    language === "vi"
+      ? `Mục tiêu đang lưu: ${parts.join(" | ")}.`
+      : `Saved targets: ${parts.join(" | ")}.`;
+
+  // Root-cause fix: a stored target used to be displayed verbatim even
+  // when its own macros don't add up to its own calorie figure (bug
+  // report's exact case: 3000 kcal next to 150P/200C/65F, which is only
+  // 1985 kcal). Never show a possibly-self-contradictory number without
+  // flagging it.
+  if (
+    context.dailyCaloriesTarget != null &&
+    context.proteinTarget != null &&
+    context.carbTarget != null &&
+    context.fatTarget != null
+  ) {
+    const check = checkMacroCalorieConsistency(
+      context.dailyCaloriesTarget,
+      context.proteinTarget,
+      context.carbTarget,
+      context.fatTarget,
+    );
+    nutritionMacroValidationTotal.inc({
+      context: "saved_goal",
+      result: check.consistent ? "consistent" : "inconsistent",
+    });
+    if (!check.consistent) {
+      const warning =
+        language === "vi"
+          ? `⚠️ Lưu ý: macro này thực tế chỉ tương đương ${check.computedCalories} kcal (${Math.round(context.proteinTarget)}g×4 + ${Math.round(context.carbTarget)}g×4 + ${Math.round(context.fatTarget)}g×9), không khớp với ${Math.round(context.dailyCaloriesTarget)} kcal đã ghi — mục tiêu này cần được điều chỉnh lại cho nhất quán.`
+          : `⚠️ Note: these macros actually total ${check.computedCalories} kcal (${Math.round(context.proteinTarget)}g×4 + ${Math.round(context.carbTarget)}g×4 + ${Math.round(context.fatTarget)}g×9), not the stated ${Math.round(context.dailyCaloriesTarget)} kcal — this target needs to be reconciled.`;
+      return `${line}\n${warning}`;
+    }
+  }
+  return line;
 }
 
 export function formatNutritionAnswer(

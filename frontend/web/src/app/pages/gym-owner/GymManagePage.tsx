@@ -216,6 +216,9 @@ export function GymManagePage() {
         <CollaborationPanel as="GYM" gymId={id!} />
       </div>
 
+      {/* Check-in */}
+      <GymCheckinPanel gymId={id!} />
+
       {/* Plans */}
       <div>
         <div className="flex items-center justify-between mb-2">

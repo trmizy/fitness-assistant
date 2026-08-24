@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
@@ -8,10 +9,13 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  ClipboardList,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
+import { ClientFitnessSummaryCard } from "./ClientFitnessSummaryCard";
+import { AssignPlanModal } from "./AssignPlanModal";
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
@@ -97,6 +101,7 @@ const contractStatusLabel: Record<string, string> = {
 export function PTClientDetail() {
   const navigate = useNavigate();
   const { id: clientUserId } = useParams<{ id: string }>();
+  const [showAssignPlan, setShowAssignPlan] = useState(false);
 
   const { data: contracts = [], isLoading: contractsLoading } = useQuery({
     queryKey: ["pt-contracts"],
@@ -213,6 +218,14 @@ export function PTClientDetail() {
             >
               <Calendar className="w-4 h-4" /> Đặt lịch
             </button>
+            {contract.status === "ACTIVE" && (
+              <button
+                onClick={() => setShowAssignPlan(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-sm font-medium hover:bg-green-500/15 transition-colors"
+              >
+                <ClipboardList className="w-4 h-4" /> Giao kế hoạch
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -272,6 +285,10 @@ export function PTClientDetail() {
 
         {/* Contract info */}
         <div className="space-y-4">
+          {contract.status === "ACTIVE" && clientUserId && (
+            <ClientFitnessSummaryCard clientUserId={clientUserId} />
+          )}
+
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <div className="flex items-center gap-2 mb-3">
               <FileText className="w-4 h-4 text-green-400" />
@@ -356,6 +373,14 @@ export function PTClientDetail() {
           )}
         </div>
       </div>
+
+      {showAssignPlan && clientUserId && (
+        <AssignPlanModal
+          clientUserId={clientUserId}
+          clientName={clientName}
+          onClose={() => setShowAssignPlan(false)}
+        />
+      )}
     </div>
   );
 }

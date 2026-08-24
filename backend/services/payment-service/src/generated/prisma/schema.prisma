@@ -47,6 +47,7 @@ enum PurposeType {
   WALLET_TOPUP
   REFUND
   TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
   /// Money-flow plan 5.3: the dedicated PaymentTransaction row markPaid creates for a
   /// WithdrawalRequest payout. Outbound money has no originating gateway PaymentTransaction
   /// to reuse the way REFUND reuses the original purchase's — WalletLedgerEntry.transactionId
@@ -85,6 +86,7 @@ enum RelatedEntityType {
   PT_CONTRACT
   WALLET_TOPUP
   TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
 }
 
 enum ActivationStatus {

@@ -135,8 +135,37 @@ exports.Prisma.ExerciseScalarFieldEnum = {
   movementPattern: 'movementPattern',
   mechanics: 'mechanics',
   contraindications: 'contraindications',
+  difficultyLevel: 'difficultyLevel',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EquipmentScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  name: 'name',
+  category: 'category',
+  aliases: 'aliases',
+  description: 'description',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ExerciseEquipmentScalarFieldEnum = {
+  id: 'id',
+  exerciseId: 'exerciseId',
+  equipmentId: 'equipmentId',
+  requirementType: 'requirementType',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.UserEquipmentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  equipmentId: 'equipmentId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.WorkoutScalarFieldEnum = {
@@ -162,7 +191,8 @@ exports.Prisma.WorkoutExerciseScalarFieldEnum = {
   weight: 'weight',
   notes: 'notes',
   order: 'order',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  exerciseNameSnapshot: 'exerciseNameSnapshot'
 };
 
 exports.Prisma.WorkoutSetScalarFieldEnum = {
@@ -192,7 +222,10 @@ exports.Prisma.FoodScalarFieldEnum = {
   carbs: 'carbs',
   fats: 'fats',
   source: 'source',
-  imageUrl: 'imageUrl'
+  imageUrl: 'imageUrl',
+  foodForm: 'foodForm',
+  isSupplement: 'isSupplement',
+  realisticServingMaxG: 'realisticServingMaxG'
 };
 
 exports.Prisma.FoodAliasScalarFieldEnum = {
@@ -229,6 +262,12 @@ exports.Prisma.NutritionGoalScalarFieldEnum = {
   carbs: 'carbs',
   fat: 'fat',
   waterMl: 'waterMl',
+  status: 'status',
+  validFrom: 'validFrom',
+  supersededAt: 'supersededAt',
+  reason: 'reason',
+  triggeredBy: 'triggeredBy',
+  goalMode: 'goalMode',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -358,6 +397,18 @@ exports.Prisma.CycleAssessmentScalarFieldEnum = {
   proposedChanges: 'proposedChanges',
   userDecision: 'userDecision',
   reviewedAt: 'reviewedAt',
+  nutritionDecision: 'nutritionDecision',
+  nutritionConfidence: 'nutritionConfidence',
+  nutritionSignals: 'nutritionSignals',
+  nutritionProposedChanges: 'nutritionProposedChanges',
+  nutritionReasonCodes: 'nutritionReasonCodes',
+  nutritionEvidenceIds: 'nutritionEvidenceIds',
+  nutritionRequiresConfirmation: 'nutritionRequiresConfirmation',
+  nutritionAiHeadline: 'nutritionAiHeadline',
+  nutritionAiExplanation: 'nutritionAiExplanation',
+  nutritionUserDecision: 'nutritionUserDecision',
+  nutritionReviewedAt: 'nutritionReviewedAt',
+  appliedNutritionGoalId: 'appliedNutritionGoalId',
   createdAt: 'createdAt'
 };
 
@@ -374,6 +425,33 @@ exports.Prisma.RecommendationAuditScalarFieldEnum = {
   presentedAt: 'presentedAt',
   userAction: 'userAction',
   userActionAt: 'userActionAt',
+  createdAt: 'createdAt',
+  feedbackSignalsUsed: 'feedbackSignalsUsed',
+  feedbackSummarySnapshot: 'feedbackSummarySnapshot',
+  aiFeedbackAnalysisId: 'aiFeedbackAnalysisId',
+  finalDecisionReasonCodes: 'finalDecisionReasonCodes',
+  complaintValidity: 'complaintValidity',
+  decisionInfluenceFromFeedback: 'decisionInfluenceFromFeedback'
+};
+
+exports.Prisma.CoachClientActionAuditScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  clientUserId: 'clientUserId',
+  action: 'action',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PlanGenerationAuditScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  clientUserId: 'clientUserId',
+  ptNotes: 'ptNotes',
+  requestSnapshot: 'requestSnapshot',
+  draftDays: 'draftDays',
+  dataGaps: 'dataGaps',
+  warnings: 'warnings',
   createdAt: 'createdAt'
 };
 
@@ -385,8 +463,84 @@ exports.Prisma.CycleSessionFeedbackScalarFieldEnum = {
   sessionRpe: 'sessionRpe',
   painScore: 'painScore',
   notes: 'notes',
+  sessionRating: 'sessionRating',
+  difficulty: 'difficulty',
+  enjoyment: 'enjoyment',
+  fatigueAfterSession: 'fatigueAfterSession',
+  painLocation: 'painLocation',
+  wouldRepeatSession: 'wouldRepeatSession',
+  perceivedProgress: 'perceivedProgress',
+  feedbackMissing: 'feedbackMissing',
+  skipReason: 'skipReason',
+  shouldAdjustPlan: 'shouldAdjustPlan',
+  userAvailableMakeupDay: 'userAvailableMakeupDay',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ExerciseSessionFeedbackScalarFieldEnum = {
+  id: 'id',
+  sessionFeedbackId: 'sessionFeedbackId',
+  exerciseId: 'exerciseId',
+  rating: 'rating',
+  issueType: 'issueType',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CycleFeedbackSummaryScalarFieldEnum = {
+  id: 'id',
+  cycleId: 'cycleId',
+  totalSessions: 'totalSessions',
+  completedSessions: 'completedSessions',
+  partialSessions: 'partialSessions',
+  skippedSessions: 'skippedSessions',
+  cancelledSessions: 'cancelledSessions',
+  feedbackSubmittedCount: 'feedbackSubmittedCount',
+  feedbackMissingCount: 'feedbackMissingCount',
+  feedbackCompletionRate: 'feedbackCompletionRate',
+  averageSessionRating: 'averageSessionRating',
+  averageDifficultyScore: 'averageDifficultyScore',
+  averageEnjoymentScore: 'averageEnjoymentScore',
+  averageFatigue: 'averageFatigue',
+  averagePain: 'averagePain',
+  mostCommonIssues: 'mostCommonIssues',
+  mostLikedExercises: 'mostLikedExercises',
+  mostDislikedExercises: 'mostDislikedExercises',
+  exercisesWithPainReports: 'exercisesWithPainReports',
+  sessionsMarkedTooHard: 'sessionsMarkedTooHard',
+  sessionsMarkedTooEasy: 'sessionsMarkedTooEasy',
+  sessionsUserWouldNotRepeat: 'sessionsUserWouldNotRepeat',
+  positiveFeedbackCount: 'positiveFeedbackCount',
+  negativeFeedbackCount: 'negativeFeedbackCount',
+  neutralFeedbackCount: 'neutralFeedbackCount',
+  mixedFeedbackCount: 'mixedFeedbackCount',
+  feedbackSentimentByRules: 'feedbackSentimentByRules',
+  dataQualityScore: 'dataQualityScore',
+  safetyFlags: 'safetyFlags',
+  equipmentMismatchFlags: 'equipmentMismatchFlags',
+  adherenceRelatedComplaintFlags: 'adherenceRelatedComplaintFlags',
+  motivationOrBoredomFlags: 'motivationOrBoredomFlags',
+  computedAt: 'computedAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CycleFeedbackAnalysisAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cycleId: 'cycleId',
+  cycleFeedbackSummarySnapshot: 'cycleFeedbackSummarySnapshot',
+  feedbackInterpretation: 'feedbackInterpretation',
+  sentiment: 'sentiment',
+  complaintValidity: 'complaintValidity',
+  complaintCategories: 'complaintCategories',
+  suggestedImprovementAreas: 'suggestedImprovementAreas',
+  riskFlags: 'riskFlags',
+  recommendedDecisionInfluence: 'recommendedDecisionInfluence',
+  explanationForUser: 'explanationForUser',
+  explanationForCoach: 'explanationForCoach',
+  aiFallback: 'aiFallback',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.CycleInBodyLinkScalarFieldEnum = {
@@ -409,6 +563,7 @@ exports.Prisma.NutritionProgramScalarFieldEnum = {
   fatTargetGrams: 'fatTargetGrams',
   sourcePlanId: 'sourcePlanId',
   sourceType: 'sourceType',
+  sourceGoalId: 'sourceGoalId',
   status: 'status',
   startDate: 'startDate',
   endDate: 'endDate',
@@ -478,6 +633,128 @@ exports.Prisma.NutritionMealCompletionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ExerciseSourceScalarFieldEnum = {
+  id: 'id',
+  exerciseId: 'exerciseId',
+  sourceName: 'sourceName',
+  externalId: 'externalId',
+  sourceUrl: 'sourceUrl',
+  dataLicense: 'dataLicense',
+  mediaLicense: 'mediaLicense',
+  sourceVersion: 'sourceVersion',
+  importedAt: 'importedAt',
+  rawHash: 'rawHash'
+};
+
+exports.Prisma.ExerciseAliasScalarFieldEnum = {
+  id: 'id',
+  exerciseId: 'exerciseId',
+  language: 'language',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  aliasType: 'aliasType',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.MuscleScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  nameVi: 'nameVi',
+  nameEn: 'nameEn',
+  anatomyRegion: 'anatomyRegion',
+  parentMuscleId: 'parentMuscleId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ExerciseMuscleScalarFieldEnum = {
+  id: 'id',
+  exerciseId: 'exerciseId',
+  muscleId: 'muscleId',
+  role: 'role',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FoodSourceScalarFieldEnum = {
+  id: 'id',
+  foodId: 'foodId',
+  sourceName: 'sourceName',
+  externalId: 'externalId',
+  sourceUrl: 'sourceUrl',
+  license: 'license',
+  sourceVersion: 'sourceVersion',
+  importedAt: 'importedAt',
+  confidence: 'confidence'
+};
+
+exports.Prisma.RecipeScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  nameVi: 'nameVi',
+  version: 'version',
+  yieldServings: 'yieldServings',
+  preparationState: 'preparationState',
+  source: 'source',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RecipeIngredientScalarFieldEnum = {
+  id: 'id',
+  recipeId: 'recipeId',
+  foodId: 'foodId',
+  amount: 'amount',
+  unit: 'unit',
+  gramsEquivalent: 'gramsEquivalent',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ImportBatchScalarFieldEnum = {
+  id: 'id',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  status: 'status',
+  dryRun: 'dryRun',
+  insertedCount: 'insertedCount',
+  updatedCount: 'updatedCount',
+  skippedCount: 'skippedCount',
+  duplicateCount: 'duplicateCount',
+  reviewCount: 'reviewCount',
+  errorCount: 'errorCount',
+  checksum: 'checksum'
+};
+
+exports.Prisma.ImportRecordScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  externalRef: 'externalRef',
+  decision: 'decision',
+  targetTable: 'targetTable',
+  targetId: 'targetId',
+  detail: 'detail',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ExerciseReviewDecisionScalarFieldEnum = {
+  id: 'id',
+  externalRef: 'externalRef',
+  source: 'source',
+  decision: 'decision',
+  targetExerciseId: 'targetExerciseId',
+  createdExerciseId: 'createdExerciseId',
+  note: 'note',
+  duplicateDecisionAtReview: 'duplicateDecisionAtReview',
+  candidateSnapshot: 'candidateSnapshot',
+  reviewerId: 'reviewerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -543,6 +820,9 @@ exports.MovementType = exports.$Enums.MovementType = {
 
 exports.Prisma.ModelName = {
   Exercise: 'Exercise',
+  Equipment: 'Equipment',
+  ExerciseEquipment: 'ExerciseEquipment',
+  UserEquipment: 'UserEquipment',
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
   WorkoutSet: 'WorkoutSet',
@@ -558,13 +838,28 @@ exports.Prisma.ModelName = {
   TrainingCycle: 'TrainingCycle',
   CycleAssessment: 'CycleAssessment',
   RecommendationAudit: 'RecommendationAudit',
+  CoachClientActionAudit: 'CoachClientActionAudit',
+  PlanGenerationAudit: 'PlanGenerationAudit',
   CycleSessionFeedback: 'CycleSessionFeedback',
+  ExerciseSessionFeedback: 'ExerciseSessionFeedback',
+  CycleFeedbackSummary: 'CycleFeedbackSummary',
+  CycleFeedbackAnalysisAudit: 'CycleFeedbackAnalysisAudit',
   CycleInBodyLink: 'CycleInBodyLink',
   NutritionProgram: 'NutritionProgram',
   NutritionProgramDay: 'NutritionProgramDay',
   NutritionProgramMeal: 'NutritionProgramMeal',
   NutritionProgramMealItem: 'NutritionProgramMealItem',
-  NutritionMealCompletion: 'NutritionMealCompletion'
+  NutritionMealCompletion: 'NutritionMealCompletion',
+  ExerciseSource: 'ExerciseSource',
+  ExerciseAlias: 'ExerciseAlias',
+  Muscle: 'Muscle',
+  ExerciseMuscle: 'ExerciseMuscle',
+  FoodSource: 'FoodSource',
+  Recipe: 'Recipe',
+  RecipeIngredient: 'RecipeIngredient',
+  ImportBatch: 'ImportBatch',
+  ImportRecord: 'ImportRecord',
+  ExerciseReviewDecision: 'ExerciseReviewDecision'
 };
 
 /**

@@ -6,6 +6,12 @@ const ACCESS_TOKEN = process.env.AI_TEST_ACCESS_TOKEN;
 const EMAIL = process.env.AI_TEST_EMAIL;
 const PASSWORD = process.env.AI_TEST_PASSWORD;
 
+function localDateAfter(days: number): string {
+  const value = new Date();
+  value.setDate(value.getDate() + days);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
 async function getToken(): Promise<string> {
   if (ACCESS_TOKEN) return ACCESS_TOKEN;
   if (!EMAIL || !PASSWORD) {
@@ -78,15 +84,16 @@ async function ask(question: string, headers: Record<string, string>) {
 async function main() {
   const token = await getToken();
   const headers = { Authorization: `Bearer ${token}` };
+  const tomorrow = localDateAfter(1);
 
   const breakfast = await ask("cho tôi thấy thực đơn sáng mai", headers);
   if (!breakfast.payload.nutritionSchedule)
     throw new Error("Missing nutritionSchedule metadata for breakfast lookup.");
   if (breakfast.payload.workoutSchedule)
     throw new Error("Breakfast lookup must not call workout schedule.");
-  if (breakfast.payload.nutritionSchedule.targetDate !== "2026-06-02")
+  if (breakfast.payload.nutritionSchedule.targetDate !== tomorrow)
     throw new Error(
-      `Expected 2026-06-02, got ${breakfast.payload.nutritionSchedule.targetDate}`,
+      `Expected ${tomorrow}, got ${breakfast.payload.nutritionSchedule.targetDate}`,
     );
   if (breakfast.payload.nutritionSchedule.mealType !== "breakfast")
     throw new Error(
@@ -101,9 +108,9 @@ async function main() {
     );
   if (tomorrowFood.payload.workoutSchedule)
     throw new Error("Tomorrow meal lookup must not call workout schedule.");
-  if (tomorrowFood.payload.nutritionSchedule.targetDate !== "2026-06-02")
+  if (tomorrowFood.payload.nutritionSchedule.targetDate !== tomorrow)
     throw new Error(
-      `Expected 2026-06-02, got ${tomorrowFood.payload.nutritionSchedule.targetDate}`,
+      `Expected ${tomorrow}, got ${tomorrowFood.payload.nutritionSchedule.targetDate}`,
     );
   assertNoWorkoutLeak(tomorrowFood.answer, tomorrowFood.question);
 
@@ -112,9 +119,9 @@ async function main() {
     throw new Error("Missing workoutSchedule metadata for workout lookup.");
   if (tomorrowWorkout.payload.nutritionSchedule)
     throw new Error("Workout lookup must not call nutrition lookup.");
-  if (tomorrowWorkout.payload.workoutSchedule.targetDate !== "2026-06-02")
+  if (tomorrowWorkout.payload.workoutSchedule.targetDate !== tomorrow)
     throw new Error(
-      `Expected 2026-06-02, got ${tomorrowWorkout.payload.workoutSchedule.targetDate}`,
+      `Expected ${tomorrow}, got ${tomorrowWorkout.payload.workoutSchedule.targetDate}`,
     );
   assertNoNutritionLeak(tomorrowWorkout.answer, tomorrowWorkout.question);
 

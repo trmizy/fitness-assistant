@@ -181,7 +181,8 @@ export type SessionStatus =
   | "DISPUTED"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "RESCHEDULE_PENDING";
 export type SessionMode = "ONLINE" | "OFFLINE" | "HYBRID";
 
 export interface SessionRescheduleRequest {

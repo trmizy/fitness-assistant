@@ -19,6 +19,22 @@ export interface WalletTransferResult {
   failureReason?: string;
 }
 
+export interface RefundResult {
+  transactionId: string;
+  status: string;
+  refundAmount: number;
+}
+
+export class PaymentClientError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly httpStatus: number,
+  ) {
+    super(message);
+  }
+}
+
 export const paymentClient = {
   async walletTransfer(params: {
     payerOwnerId: string;
@@ -27,6 +43,13 @@ export const paymentClient = {
     relatedEntityId: string;
     idempotencyKey: string;
     initiatedBy: string;
+    // Defaults preserve marketplace.service.ts's existing TrainingPackage
+    // purchase call, which never passed these. personalized-service.service.ts
+    // passes PERSONALIZED_SERVICE_PURCHASE explicitly — without this, every
+    // Personalized Service order was silently ledgered as a TrainingPackage
+    // purchase, which would corrupt payment-service's own reporting/reconciliation.
+    purpose?: "TRAINING_PACKAGE_PURCHASE" | "PERSONALIZED_SERVICE_PURCHASE";
+    relatedEntityType?: "TRAINING_PACKAGE_PURCHASE" | "PERSONALIZED_SERVICE_PURCHASE";
   }): Promise<WalletTransferResult> {
     const { data } = await axios.post(
       `${PAYMENT_SERVICE_URL}/internal/payments/wallet-transfer`,
@@ -36,8 +59,8 @@ export const paymentClient = {
         receiverOwnerType: "CLIENT",
         receiverOwnerId: params.receiverOwnerId,
         amount: params.amount,
-        purpose: "TRAINING_PACKAGE_PURCHASE",
-        relatedEntityType: "TRAINING_PACKAGE_PURCHASE",
+        purpose: params.purpose ?? "TRAINING_PACKAGE_PURCHASE",
+        relatedEntityType: params.relatedEntityType ?? "TRAINING_PACKAGE_PURCHASE",
         relatedEntityId: params.relatedEntityId,
         idempotencyKey: params.idempotencyKey,
         initiatedBy: params.initiatedBy,
@@ -46,5 +69,34 @@ export const paymentClient = {
       { headers, timeout: 15_000 },
     );
     return data.data as WalletTransferResult;
+  },
+
+  // Reuses payment-service's EXISTING generic partial-refund endpoint (the
+  // same one gym-service uses for early membership cancellation) — no new
+  // refund/escrow primitive. `idempotencyKey` should be deterministic per
+  // (order, amount) so a double-click or retry replays the same result
+  // instead of refunding twice; a genuinely different amount gets a new key
+  // and a fresh transaction, by design (lets an admin retry with a
+  // corrected amount after a legitimate failure).
+  async refundTransaction(
+    originalTransactionId: string,
+    params: { refundAmount: number; initiatedBy: string; reason: string; idempotencyKey: string },
+  ): Promise<RefundResult> {
+    try {
+      const { data } = await axios.post(
+        `${PAYMENT_SERVICE_URL}/internal/payments/${originalTransactionId}/refund`,
+        params,
+        { headers, timeout: 15_000 },
+      );
+      return data.data as RefundResult;
+    } catch (err: any) {
+      const status = err?.response?.status ?? 500;
+      const code = err?.response?.data?.error?.code ?? "REFUND_FAILED";
+      throw new PaymentClientError(
+        err?.response?.data?.error?.message ?? code,
+        code,
+        status,
+      );
+    }
   },
 };

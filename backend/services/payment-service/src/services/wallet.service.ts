@@ -272,7 +272,7 @@ export const walletService = {
     const commissionAmount = amount.mul(commissionRate);
     const netToReceiver = amount.minus(commissionAmount);
 
-    await prisma.$transaction(async (tx) => {
+    const transferred = await prisma.$transaction(async (tx) => {
       const locked = await lockWallets(tx, [payerWalletId, receiverWalletId, platformWallet.id]);
       const payer = locked.get(payerWalletId)!;
       const receiver = locked.get(receiverWalletId)!;
@@ -280,6 +280,18 @@ export const walletService = {
 
       if (payer.status !== 'ACTIVE') throw new WalletNotActiveError(payerWalletId);
       if (receiver.status !== 'ACTIVE') throw new WalletNotActiveError(receiverWalletId);
+
+      // Wallet locks serialize duplicate deliveries, while this compare-and-swap makes
+      // the transaction status the idempotency boundary. Without it, the second caller
+      // would acquire the locks after the first commits and repeat every ledger entry.
+      const claimed = await tx.paymentTransaction.updateMany({
+        where: { id: transactionId, status: { in: ['PENDING', 'PROCESSING'] } },
+        data: { status: 'PROCESSING' },
+      });
+      if (claimed.count === 0) {
+        logger.info(`[WalletService] Transfer ${transactionId} already claimed/completed — skipping duplicate`);
+        return false;
+      }
 
       await applyDebit(tx, payer, amount, transactionId, 'Payment');
       await applyCredit(tx, receiver, netToReceiver, transactionId, 'Payment received');
@@ -302,9 +314,10 @@ export const walletService = {
         where: { id: transactionId },
         data: { status: 'PAID', paidAt: new Date() },
       });
+      return true;
     });
 
-    logger.info(`[WalletService] Transfer ${transactionId} completed: ${payerWalletId} -> ${receiverWalletId} (commission ${commissionAmount.toString()})`);
+    if (transferred) logger.info(`[WalletService] Transfer ${transactionId} completed: ${payerWalletId} -> ${receiverWalletId} (commission ${commissionAmount.toString()})`);
   },
 
   /**
@@ -325,11 +338,20 @@ export const walletService = {
     const platformWallet = await this.getOrCreatePlatformWallet();
     const netToReceiver = amount.minus(commissionAmount);
 
-    await prisma.$transaction(async (tx) => {
+    const reversed = await prisma.$transaction(async (tx) => {
       const locked = await lockWallets(tx, [payerWalletId, receiverWalletId, platformWallet.id]);
       const payer = locked.get(payerWalletId)!;
       const receiver = locked.get(receiverWalletId)!;
       const platform = locked.get(platformWallet.id)!;
+
+      const claimed = await tx.paymentTransaction.updateMany({
+        where: { id: refundTransactionId, status: { in: ['PENDING', 'PROCESSING'] } },
+        data: { status: 'PROCESSING' },
+      });
+      if (claimed.count === 0) {
+        logger.info(`[WalletService] Refund ${refundTransactionId} already claimed/completed — skipping duplicate`);
+        return false;
+      }
 
       // Reversal direction: credit back payer, debit receiver + platform.
       await applyCredit(tx, payer, amount, refundTransactionId, `Refund of ${originalTransactionId}`);
@@ -349,9 +371,10 @@ export const walletService = {
         where: { id: originalTransactionId },
         data: { status: 'REFUNDED', refundedAt: new Date() },
       });
+      return true;
     });
 
-    logger.info(`[WalletService] Refund ${refundTransactionId} reversed transfer ${originalTransactionId}`);
+    if (reversed) logger.info(`[WalletService] Refund ${refundTransactionId} reversed transfer ${originalTransactionId}`);
   },
 
   /**

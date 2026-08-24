@@ -1,4 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
+import { computeStartingWeightPatch } from "./profile-starting-weight.util";
 
 export const prisma = new PrismaClient();
 
@@ -12,12 +13,44 @@ export const profileRepository = {
   findByReferralCode: (code: string) =>
     prisma.userProfile.findUnique({ where: { referralCode: code } }),
 
-  upsert: (userId: string, data: Record<string, any>) =>
-    prisma.userProfile.upsert({
+  /**
+   * The single choke point every profile field write goes through (direct
+   * PATCH /profile edits AND the InBody→profile currentWeight sync both call
+   * this) — so the "journey start" rule lives here once, not duplicated per
+   * caller: the first time ANY write ever sets a non-null `currentWeight`
+   * for a profile that has no `startingWeight` yet, that same value is also
+   * captured as the immutable `startingWeight`. Every write after that
+   * leaves `startingWeight` untouched — it is a set-once field. `source`
+   * lets each caller say whether it was set via onboarding/manual edit or
+   * via an InBody sync, purely for audit/display; it does not change the
+   * set-once behavior. See UserProfile.startingWeight in schema.prisma.
+   *
+   * `targetWeight` is never touched by this logic — it only ever changes
+   * when a caller explicitly includes it in `data` (i.e. only on a real
+   * user/PT-driven goal edit), which was already true before this change.
+   */
+  upsert: async (
+    userId: string,
+    data: Record<string, any>,
+    options?: { source?: "ONBOARDING" | "INBODY" },
+  ) => {
+    const patch = { ...data };
+    const existing = await prisma.userProfile.findUnique({
       where: { userId },
-      update: { ...data, updatedAt: new Date() },
-      create: { userId, ...data },
-    }),
+      select: { startingWeight: true },
+    });
+    const startingWeightPatch = computeStartingWeightPatch({
+      existingStartingWeight: existing?.startingWeight,
+      incomingCurrentWeight: patch.currentWeight,
+      source: options?.source ?? "ONBOARDING",
+    });
+    if (startingWeightPatch) Object.assign(patch, startingWeightPatch);
+    return prisma.userProfile.upsert({
+      where: { userId },
+      update: { ...patch, updatedAt: new Date() },
+      create: { userId, ...patch },
+    });
+  },
 
   setIsPT: (userId: string, isPT: boolean) =>
     prisma.userProfile.upsert({
@@ -263,6 +296,26 @@ export const profileRepository = {
     prisma.pTApplication.findFirst({
       where: {
         userProfile: { userId },
+      },
+    }),
+
+  findPtMarketplaceEligibilityByUserId: (userId: string) =>
+    prisma.userProfile.findUnique({
+      where: { userId },
+      select: {
+        userId: true,
+        isPT: true,
+        firstName: true,
+        lastName: true,
+        ptApplication: {
+          select: {
+            status: true,
+            approvedAt: true,
+            mainSpecialties: true,
+            yearsOfExperience: true,
+            professionalBio: true,
+          },
+        },
       },
     }),
 

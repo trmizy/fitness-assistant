@@ -1,5 +1,8 @@
 # User-Level Personalization Plan — 4 nhóm người dùng
 
+> Design record. Use current schemas, routes, and tests to determine which
+> proposed items are implemented.
+
 > Thiết kế logic riêng cho 4 nhóm người dùng: A. Người mới, B. Người đã biết tập, C. Người tập lâu năm, D. Vận động viên chuyên nghiệp. Đối chiếu với hiện trạng code thật (`experienceLevel` đã tồn tại BEGINNER/INTERMEDIATE/ADVANCED/UNKNOWN — xem `docs/gym-fitness-research.md` mục 10 cho cơ sở khoa học ACSM đứng sau thiết kế này).
 >
 > **Không implement trong tài liệu này** — đây là bản thiết kế chờ approval.

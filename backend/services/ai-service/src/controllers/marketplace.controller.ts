@@ -13,9 +13,65 @@ const reviewSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+const COMPLAINT_TAG_VALUES = [
+  "too_hard",
+  "too_easy",
+  "equipment_mismatch",
+  "unclear_instructions",
+  "boring",
+  "time_commitment_too_high",
+  "not_matching_goal",
+  "injury_risk",
+  "other",
+] as const;
+
 const submitReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(1000).optional(),
+  // Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — all optional.
+  goalFit: z.number().int().min(1).max(5).optional(),
+  difficultyFit: z.enum(["too_easy", "just_right", "too_hard"]).optional(),
+  enjoyment: z.number().int().min(1).max(5).optional(),
+  clarity: z.number().int().min(1).max(5).optional(),
+  equipmentFit: z.number().int().min(1).max(5).optional(),
+  timeFit: z.number().int().min(1).max(5).optional(),
+  resultsPerception: z.enum(["better_than_expected", "as_expected", "worse_than_expected", "too_early_to_tell"]).optional(),
+  wouldUseAgain: z.boolean().optional(),
+  complaintTags: z.array(z.enum(COMPLAINT_TAG_VALUES)).max(10).optional(),
+  freeText: z.string().max(2000).optional(),
+});
+
+const republishSchema = z.object({
+  sourcePlanId: z.string().uuid().optional(),
+  title: z.string().min(3).max(120).optional(),
+  description: z.string().max(2000).optional(),
+  changelog: z.string().min(1).max(2000),
+  improvementReason: z.string().max(2000).optional(),
+});
+
+const customizedExerciseSchema = z.object({
+  exerciseId: z.string().min(1),
+  name: z.string().min(1),
+  sets: z.number().int().positive(),
+  reps: z.string().min(1),
+  restSeconds: z.number().int().positive().optional(),
+});
+
+const adoptPlanSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  repeatWeeks: z.number().int().min(1).max(52).optional(),
+  selectedWeekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+  replaceExisting: z.boolean().optional(),
+  // Phase 8 follow-up: lets the adopter trim/adjust exercises before import
+  // instead of always getting a rigid, unchangeable copy of the listing.
+  customizedWeeklySchedule: z
+    .array(
+      z.object({
+        day: z.string().min(1),
+        exercises: z.array(customizedExerciseSchema).min(1),
+      }),
+    )
+    .optional(),
 });
 
 const createPackageSchema = z.object({
@@ -35,6 +91,7 @@ export const marketplaceController = {
         body.sourcePlanId,
         body.title,
         body.description,
+        req.context.role,
       );
       res.status(201).json(formatSuccessResponse(listing));
     } catch (error) {
@@ -67,12 +124,17 @@ export const marketplaceController = {
 
   async browse(req: Request, res: Response, next: NextFunction) {
     try {
-      const { goal, sort, page, limit } = req.query as Record<string, string>;
+      const { goal, sort, page, limit, daysPerWeek, durationWeeksMax } = req.query as Record<string, string>;
+      const sortValue =
+        sort === "rating" || sort === "quality" || sort === "recommended" ? sort : "recent";
       const result = await marketplaceService.browse({
         goal,
-        sort: sort === "rating" ? "rating" : "recent",
+        sort: sortValue,
+        daysPerWeek: daysPerWeek ? Number(daysPerWeek) : undefined,
+        durationWeeksMax: durationWeeksMax ? Number(durationWeeksMax) : undefined,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
+        viewerId: sortValue === "recommended" ? req.context.userId : undefined,
       });
       res.json(formatSuccessResponse(result));
     } catch (error) {
@@ -92,11 +154,13 @@ export const marketplaceController = {
   async submitReview(req: Request, res: Response, next: NextFunction) {
     try {
       const body = submitReviewSchema.parse(req.body);
+      const { rating, comment, ...dimensions } = body;
       const review = await marketplaceService.submitReview(
         req.params.id,
         req.context.userId,
-        body.rating,
-        body.comment,
+        rating,
+        comment,
+        dimensions,
       );
       res.status(201).json(formatSuccessResponse(review));
     } catch (error) {
@@ -104,6 +168,48 @@ export const marketplaceController = {
         return next(
           new ApiError("VALIDATION_ERROR", error.errors[0]?.message ?? "Invalid input", 400),
         );
+      }
+      next(error);
+    }
+  },
+
+  // ── Phase 8: versioning ──────────────────────────────────────────────────
+  async republish(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = republishSchema.parse(req.body);
+      const listing = await marketplaceService.republishVersion(
+        req.context.userId,
+        req.params.id,
+        body,
+        req.context.role,
+      );
+      res.status(201).json(formatSuccessResponse(listing));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return next(new ApiError("VALIDATION_ERROR", error.errors[0]?.message ?? "Invalid input", 400));
+      }
+      next(error);
+    }
+  },
+
+  async getVersionHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const history = await marketplaceService.listVersionHistory(req.params.id);
+      res.json(formatSuccessResponse(history));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // ── Phase 8: adopt ───────────────────────────────────────────────────────
+  async adopt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = adoptPlanSchema.parse(req.body);
+      const result = await marketplaceService.adoptPlan(req.context.userId, req.params.id, body);
+      res.status(201).json(formatSuccessResponse(result));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return next(new ApiError("VALIDATION_ERROR", error.errors[0]?.message ?? "Invalid input", 400));
       }
       next(error);
     }
@@ -187,6 +293,25 @@ export const marketplaceController = {
     }
   },
 
+  // ── Phase 8: AI improvement suggestions (advisory only) ──────────────────
+  async generateImprovementSuggestions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await marketplaceService.generateImprovementSuggestions(req.context.userId, req.params.id);
+      res.status(201).json(formatSuccessResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listImprovementSuggestions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await marketplaceService.listImprovementSuggestions(req.context.userId, req.params.id);
+      res.json(formatSuccessResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  },
+
   // ── Admin ────────────────────────────────────────────────────────────────
   async listForModeration(req: Request, res: Response, next: NextFunction) {
     try {
@@ -207,7 +332,7 @@ export const marketplaceController = {
         );
       }
       const body = reviewSchema.parse(req.body ?? {});
-      const listing = await marketplaceService.reviewAction(id, action, body.note);
+      const listing = await marketplaceService.reviewAction(id, action, body.note, req.context.userId);
       res.json(formatSuccessResponse(listing));
     } catch (error) {
       if (error instanceof z.ZodError) {

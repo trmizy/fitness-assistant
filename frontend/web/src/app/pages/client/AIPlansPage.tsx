@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
@@ -32,6 +33,7 @@ import {
 import {
   planService,
   workoutService,
+  equipmentService,
   type PlanContent,
   type PlanExplanationResponse,
   type PlanStatusBackend,
@@ -429,6 +431,7 @@ function countInvalidExerciseIds(
 
 export function AIPlansPage() {
   const { user } = useApp();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userScopeId = user?.id ?? "guest";
   const { tasks: pendingAiTasks } = usePendingAiTasks(userScopeId);
@@ -443,6 +446,17 @@ export function AIPlansPage() {
   const [equipmentPreference, setEquipmentPreference] = useState<
     "MACHINE_ONLY" | "MIXED_GYM"
   >("MIXED_GYM");
+  // Gym-onboarding project — when the user has already saved granular
+  // equipment (Profile → Thiết bị tập luyện), that is the canonical source
+  // of truth the generator actually filters against; the two coarse
+  // selectors below become an unused fallback in that case. Surfaced as an
+  // inline note rather than hidden, so the choice here still shows why it's
+  // greyed-out in intent rather than looking broken.
+  const myEquipmentCountQuery = useQuery({
+    queryKey: ["equipment", "mine"],
+    queryFn: () => equipmentService.getMyEquipment(),
+  });
+  const hasGranularEquipment = (myEquipmentCountQuery.data?.length ?? 0) > 0;
   const [activePlanTab, setActivePlanTab] = useState<AiPlanTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") || params.get("type");
@@ -1352,6 +1366,23 @@ export function AIPlansPage() {
                 />
               </div>
             </div>
+
+            {hasGranularEquipment ? (
+              <div className="rounded-lg border border-sky-700/30 bg-sky-950/20 px-3 py-2 text-[11px] text-sky-200/80">
+                Bạn đã thiết lập thiết bị chi tiết trong Hồ sơ → Thiết bị tập luyện — hệ thống sẽ ưu tiên dùng
+                danh sách đó thay vì lựa chọn chung bên dưới.
+              </div>
+            ) : (
+              !myEquipmentCountQuery.isLoading && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/client/training-equipment")}
+                  className="w-full text-left rounded-lg border border-amber-700/30 bg-amber-950/20 hover:bg-amber-950/30 px-3 py-2 text-[11px] text-amber-200/80 transition-all"
+                >
+                  Thiết lập thiết bị tập luyện chi tiết để kế hoạch AI chỉ chọn bài bạn thực sự tập được →
+                </button>
+              )
+            )}
 
             {/* Training location */}
             <div className="space-y-2">

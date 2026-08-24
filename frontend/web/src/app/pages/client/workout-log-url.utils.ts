@@ -9,11 +9,9 @@
  * — component state and location.state don't survive either of those.
  */
 
-export type WorkoutLogTab = "overview" | "plan";
 export type WorkoutLogPlanView = "main" | "dayDetail" | "activeExercise";
 
 export interface WorkoutLogInitialState {
-  tab: WorkoutLogTab;
   day: number;
   /** YYYY-MM-DD — the specific calendar occurrence being viewed. `day`
    * alone (the program's day-of-week template number, e.g. 1-6 for a
@@ -36,8 +34,6 @@ const DATE_ONLY_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /** Reads the one-time initial navigation position from the URL at mount. */
 export function parseInitialWorkoutLogState(params: URLSearchParams): WorkoutLogInitialState {
-  const tab: WorkoutLogTab = params.get("tab") === "plan" ? "plan" : "overview";
-
   const dayRaw = Number(params.get("day"));
   const day = Number.isFinite(dayRaw) && dayRaw > 0 ? dayRaw : 1;
 
@@ -52,7 +48,7 @@ export function parseInitialWorkoutLogState(params: URLSearchParams): WorkoutLog
       ? "dayDetail"
       : "main";
 
-  return { tab, day, date, exerciseId, planView };
+  return { day, date, exerciseId, planView };
 }
 
 /**
@@ -78,7 +74,6 @@ export function resolveExerciseIndexFromId(
  * history entries (the caller applies this via `replace`).
  */
 export function computeWorkoutLogSearchParams(state: {
-  tab: WorkoutLogTab;
   planView: WorkoutLogPlanView;
   selectedDay: number;
   /** YYYY-MM-DD, or null when there's no specific calendar date in play
@@ -89,9 +84,6 @@ export function computeWorkoutLogSearchParams(state: {
   currentExerciseId: string | null | undefined;
 }): URLSearchParams {
   const next = new URLSearchParams();
-  if (state.tab !== "plan") return next;
-
-  next.set("tab", "plan");
   if (state.planView === "dayDetail" || state.planView === "activeExercise") {
     next.set("day", String(state.selectedDay));
     if (state.selectedDateLabel) next.set("date", state.selectedDateLabel);

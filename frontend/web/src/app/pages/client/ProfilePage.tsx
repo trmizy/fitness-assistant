@@ -9,6 +9,10 @@ import {
   Award,
   Loader2,
   Camera,
+  Dumbbell,
+  TrendingDown,
+  TrendingUp,
+  Target,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -259,6 +263,84 @@ export function ProfilePage() {
           )}
         </button>
       </div>
+
+      {/* Weight journey — starting/current/target/progress. Spec §27:
+          starting weight is the IMMUTABLE journey-start snapshot
+          (profileData.startingWeight), never overwritten by later InBody
+          syncs — distinct from the editable "Cân nặng (kg)" field below,
+          which is the mutable current weight. Only rendered once there's
+          at least a starting + current weight to show progress against. */}
+      {profileData?.startingWeight != null && profileData?.currentWeight != null && (
+        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+          <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-green-400" /> Hành trình cân nặng
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Cân nặng bắt đầu
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.startingWeight} kg
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Hiện tại
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.currentWeight} kg
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Mục tiêu
+              </p>
+              <p className="text-lg font-bold text-zinc-200">
+                {profileData.targetWeight != null ? `${profileData.targetWeight} kg` : "Chưa đặt"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+                Đã thay đổi
+              </p>
+              <p
+                className={`text-lg font-bold flex items-center gap-1 ${
+                  profileData.startingWeight > profileData.currentWeight
+                    ? "text-green-400"
+                    : profileData.startingWeight < profileData.currentWeight
+                      ? "text-amber-400"
+                      : "text-zinc-400"
+                }`}
+              >
+                {profileData.startingWeight > profileData.currentWeight ? (
+                  <TrendingDown className="w-4 h-4" />
+                ) : profileData.startingWeight < profileData.currentWeight ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : null}
+                {Math.abs(
+                  Math.round((profileData.startingWeight - profileData.currentWeight) * 10) / 10,
+                )}{" "}
+                kg
+              </p>
+            </div>
+          </div>
+          {profileData.targetWeight != null && (
+            <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center gap-2 text-xs text-zinc-500">
+              <Target className="w-3.5 h-3.5 text-zinc-600" />
+              {Math.abs(
+                Math.round((profileData.currentWeight - profileData.targetWeight) * 10) / 10,
+              ) === 0
+                ? "Đã đạt mục tiêu cân nặng"
+                : `Còn ${Math.abs(
+                    Math.round(
+                      (profileData.currentWeight - profileData.targetWeight) * 10,
+                    ) / 10,
+                  )} kg để đạt mục tiêu`}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Avatar card */}
@@ -549,6 +631,26 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Training Setup → Available Equipment (gym-onboarding project §26) */}
+      <button
+        type="button"
+        onClick={() => navigate("/client/training-equipment")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Dumbbell className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Thiết bị tập luyện</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Đổi phòng gym hoặc cập nhật thiết bị bạn có — dùng để lọc bài tập phù hợp
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
 
       {/* PT upgrade / switch banner */}
       {isPT ? (

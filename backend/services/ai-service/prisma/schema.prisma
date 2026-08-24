@@ -145,28 +145,158 @@ model PublishedPlan {
   createdAt        DateTime                @default(now()) @map("created_at")
   updatedAt        DateTime                @updatedAt @map("updated_at")
 
+  // ── Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — versioning.
+  // Publishing an update creates a NEW PublishedPlan row (version = prior+1,
+  // previousVersionId pointing back) rather than mutating this row in
+  // place — existing TrainingPackage/TrainingPackagePurchase/adoptions that
+  // reference an OLD id keep working unchanged (no destructive overwrite).
+  // approvedBy is set once an admin moderates this specific version (a new
+  // version always re-enters SUBMITTED, never inherits the prior version's
+  // APPROVED status).
+  version            Int     @default(1)
+  previousVersionId  String? @map("previous_version_id")
+  changelog          String? // what changed in this version, publisher-authored
+  improvementReason  String? @map("improvement_reason") // why this version was made — e.g. "addressed reviewer feedback about X"
+  approvedBy         String? @map("approved_by")
+
+  // true when the publisher's gateway role was "PT" at the moment of
+  // publish/republish (req.context.role, forwarded by the gateway from the
+  // verified JWT — not user-editable). Purely a display label ("PT xác
+  // thực" vs "người dùng tự chia sẻ") — publishing itself has the SAME
+  // requirements for everyone (see the hasCompletedCycleForPlan gate in
+  // publishPlan/republishVersion); a PT gets no special privilege here.
+  publisherIsVerifiedPt Boolean @default(false) @map("publisher_is_verified_pt")
+
+  // Deterministic (rule-based, NOT AI) quality score cache — see
+  // plan-quality-scorer.ts. Recomputed whenever a review is submitted.
+  qualityScore           Float?    @map("quality_score")
+  qualityScoreComputedAt DateTime? @map("quality_score_computed_at")
+
   sourcePlan WorkoutPlan       @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
   reviews    PlanReview[]
   packages   TrainingPackage[]
+  improvementSuggestions PlanImprovementSuggestion[]
+  moderationAnalyses     PlanModerationAnalysis[]
 
   @@index([publisherId])
   @@index([moderationStatus])
+  @@index([previousVersionId])
   @@map("published_plans")
+}
+
+// 🤖 Pre-moderation quality/safety screening — runs automatically right after
+// a plan is submitted (publishPlan/republishVersion), BEFORE any admin sees
+// it. Two layers, kept structurally separate: `ruleFlags`/`computedStats`
+// are deterministic (a plain rule engine over the plan's weeklySchedule —
+// no AI), `aiConcerns`/`aiConfidenceScore`/`aiRecommendation` are the LLM's
+// interpretation of those same rule outputs. The AI NEVER decides — it only
+// produces a report for the admin to read; `moderationStatus` only ever
+// changes via ContractController-style human action (reviewAction), never
+// automatically from this table. A deterministic rule flag always survives
+// into `aiRecommendation` even if the model tries to wave it off — see
+// plan-moderation-analysis.service.ts's belt-and-braces override.
+model PlanModerationAnalysis {
+  id              String @id @default(uuid())
+  publishedPlanId String @map("published_plan_id")
+
+  computedStats Json @map("computed_stats") // {daysPerWeek, restDaysPerWeek, avgSetsPerSession, ...} — plain arithmetic, no AI
+  ruleFlags     Json @map("rule_flags") // string[] — deterministic, e.g. NO_REST_DAY, EXCESSIVE_VOLUME_PER_SESSION
+
+  similarListings Json @map("similar_listings") // [{publishedPlanId, title, similarityScore}] — deterministic Jaccard similarity, see plan-similarity.ts
+
+  aiConcerns          Json    @map("ai_concerns") // string[]
+  aiConfidenceScore   Float   @map("ai_confidence_score") // 0-1 — the AI's own confidence, not a pass/fail
+  aiRecommendation    String  @map("ai_recommendation") // likely_safe | needs_review | likely_unsafe
+  explanationForAdmin String  @map("explanation_for_admin")
+  usedFallback        Boolean @default(false) @map("used_fallback")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@index([publishedPlanId, createdAt])
+  @@map("plan_moderation_analyses")
 }
 
 model PlanReview {
   id              String   @id @default(uuid())
   publishedPlanId String   @map("published_plan_id")
   reviewerId      String   @map("reviewer_id")
-  rating          Int // 1-5
-  comment         String?
+  rating          Int // 1-5 — overall, unchanged for backward compat
+  comment         String? // unchanged for backward compat; freeText below is the new richer field
   createdAt       DateTime @default(now()) @map("created_at")
+
+  // ── Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — additive
+  // multi-dimensional review fields. All nullable: a review submitted
+  // before this migration (or via a minimal client) stays valid with these
+  // simply unset — the aggregator (plan-quality-scorer.ts) treats a null
+  // dimension as "not rated" rather than as a zero/negative signal.
+  goalFit           Int?     @map("goal_fit") // 1-5: how well the plan fit the reviewer's stated goal
+  difficultyFit     String?  @map("difficulty_fit") // too_easy | just_right | too_hard
+  enjoyment         Int?     // 1-5
+  clarity           Int?     // 1-5: how clear/easy to follow the plan was
+  equipmentFit      Int?     @map("equipment_fit") // 1-5: how well required equipment matched what the reviewer had
+  timeFit           Int?     @map("time_fit") // 1-5: how well the time commitment fit the reviewer's schedule
+  resultsPerception String?  @map("results_perception") // better_than_expected | as_expected | worse_than_expected | too_early_to_tell
+  wouldUseAgain     Boolean? @map("would_use_again")
+  complaintTags     Json?    @map("complaint_tags") // string[] from a fixed enum, e.g. ["too_hard","equipment_mismatch"]
+  freeText          String?  @map("free_text") // richer free-text feedback, distinct from the legacy `comment`
 
   publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
 
   @@unique([publishedPlanId, reviewerId])
   @@index([publishedPlanId])
   @@map("plan_reviews")
+}
+
+// 🤖 Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — AI-generated
+// suggestions for a publisher, derived from the plan's aggregated reviews.
+// Advisory only: the AI never auto-edits or auto-publishes anything — a
+// publisher who wants to act on a suggestion still has to manually create a
+// new PublishedPlan version (see the versioning fields above).
+model PlanImprovementSuggestion {
+  id              String   @id @default(uuid())
+  publishedPlanId String   @map("published_plan_id")
+
+  basedOnReviewCount Int    @map("based_on_review_count")
+  qualityScoreSnapshot Float? @map("quality_score_snapshot")
+  suggestions     Json // string[] — concrete, review-grounded suggestions
+  commonComplaints Json  @map("common_complaints") // [{tag, count}] — deterministic, from complaintTags aggregation
+  summary         String // short human-readable summary for the publisher
+
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@index([publishedPlanId, generatedAt])
+  @@map("plan_improvement_suggestions")
+}
+
+// 📥 Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — closes the
+// audit-identified gap: no action previously existed for a browsing user to
+// actually adopt a marketplace plan into their own calendar (a paid
+// TrainingPackagePurchase alone never created anything usable). One row per
+// successful adopt call — fitness-service's /workouts/from-ai-plan is the
+// system of record for the resulting WorkoutProgram; this table just
+// records that the adoption happened, from which published version, and
+// under what access basis.
+model PlanAdoption {
+  id              String @id @default(uuid())
+  publishedPlanId String @map("published_plan_id")
+  adopterId       String @map("adopter_id")
+
+  accessBasis String @map("access_basis") // free | purchased
+  purchaseId  String? @map("purchase_id") // TrainingPackagePurchase.id, when accessBasis = "purchased"
+  // true when the adopter trimmed/adjusted exercises before importing
+  // (customizedWeeklySchedule) rather than taking the published plan
+  // unchanged — see marketplace.service.ts's adoptPlan.
+  wasCustomized Boolean @default(false) @map("was_customized")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([publishedPlanId, adopterId])
+  @@index([adopterId, createdAt])
+  @@map("plan_adoptions")
 }
 
 enum TrainingPackageStatus {
@@ -222,6 +352,286 @@ model TrainingPackagePurchase {
   @@index([buyerId])
   @@index([packageId])
   @@map("training_package_purchases")
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Personalized PT Service — the marketplace rework's core new product type.
+// TrainingPackage above sells a FIXED plan (same content to every buyer);
+// this sells a PT's TIME/EXPERTISE/PERSONALIZATION CAPACITY — buyer gets a
+// plan created FOR them, after Intake, via Draft/Revision/Accept. See the
+// business-rework spec, section VI-XXII.
+// ══════════════════════════════════════════════════════════════════════════
+
+enum PersonalizedServiceType {
+  PERSONALIZED_WORKOUT
+  PERSONALIZED_NUTRITION
+  WORKOUT_AND_NUTRITION
+  ONLINE_COACHING
+}
+
+enum PersonalizedServiceStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// A PT-configured, priced, personalized-coaching-service listing. sellerId
+// is enforced (service layer, not FK — same convention as TrainingPackage)
+// to belong to an APPROVED PT. `deliverables` is a free-form string[] — the
+// spec explicitly warns against hardcoding package features (§VII); a PT
+// configures what's actually included ("Personalized Workout Plan",
+// "Weekly Check-in", "3 Revisions", ...) rather than fixed boolean columns
+// that would need a migration every time a new deliverable is invented.
+model PersonalizedService {
+  id                  String                    @id @default(uuid())
+  sellerId            String                    @map("seller_id")
+  serviceType         PersonalizedServiceType   @map("service_type")
+  title               String
+  description         String?
+  price               Float
+  deliverables        Json // string[]
+  revisionLimit       Int?                      @map("revision_limit") // null = unlimited (§XX)
+  initialDeliveryDays Int                       @map("initial_delivery_days") // §XXXVII — deadline clock starts at intake submission, not purchase
+  supportWeeks        Int?                      @map("support_weeks") // null = one-off delivery, no ongoing coaching window
+  targetGoal          String?                   @map("target_goal")
+  targetLevel         String?                   @map("target_level")
+  status              PersonalizedServiceStatus @default(ACTIVE)
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+
+  orders PersonalizedServiceOrder[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@map("personalized_services")
+}
+
+enum PersonalizedServiceOrderStatus {
+  PURCHASED
+  INTAKE_PENDING
+  INTAKE_SUBMITTED
+  PT_REVIEWING
+  IN_PROGRESS
+  DRAFT_DELIVERED
+  REVISION_REQUESTED
+  REVISION_IN_PROGRESS
+  ACCEPTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUND_REQUESTED
+  REFUNDED
+  DISPUTED
+}
+
+// The purchase + full delivery lifecycle (§XII's state machine). The
+// service's terms are snapshotted onto the order AT PURCHASE TIME (§XXXVIII
+// — a later PT edit to the listing must never silently change an in-flight
+// or completed order's terms), exactly the same snapshot discipline
+// PublishedPlan's versioning already uses for free listings.
+model PersonalizedServiceOrder {
+  id       String                         @id @default(uuid())
+  serviceId String                        @map("service_id")
+  sellerId String                         @map("seller_id")
+  buyerId  String                         @map("buyer_id")
+  status   PersonalizedServiceOrderStatus @default(PURCHASED)
+
+  // ── Snapshot of the service's terms at purchase time ────────────────────
+  titleSnapshot               String                  @map("title_snapshot")
+  descriptionSnapshot         String?                 @map("description_snapshot")
+  serviceTypeSnapshot         PersonalizedServiceType @map("service_type_snapshot")
+  deliverablesSnapshot        Json                    @map("deliverables_snapshot")
+  revisionLimitSnapshot       Int?                    @map("revision_limit_snapshot")
+  initialDeliveryDaysSnapshot Int                     @map("initial_delivery_days_snapshot")
+  supportWeeksSnapshot        Int?                    @map("support_weeks_snapshot")
+
+  // ── Payment — real wallet transfer, same mechanism TrainingPackagePurchase
+  // already uses. No fabricated escrow (§XXXIV) — see final report for what
+  // payment-service actually supports. ────────────────────────────────────
+  priceAtPurchase      Float    @map("price_at_purchase")
+  paymentTransactionId String? @map("payment_transaction_id")
+  purchasedAt          DateTime @default(now()) @map("purchased_at")
+
+  // ── Intake + consent (§XIII/§XIV) — free-form JSON: the intake form's
+  // shape (body/goal/experience/training/health/lifestyle/nutrition/InBody
+  // selection/etc.) is inherently varied; a fixed relational shape would
+  // force a migration on every new question. consentCategories is the
+  // explicit opt-in list the client checked BEFORE any of intakeData is
+  // shared with the PT — never implicit. ──────────────────────────────────
+  intakeData        Json?     @map("intake_data")
+  consentCategories Json?     @map("consent_categories") // string[]
+  intakeSubmittedAt DateTime? @map("intake_submitted_at")
+
+  // ── PT-client authorization (§XII/§XV) — the Contract this order creates
+  // in user-service (ContractSource.MARKETPLACE) once intake is submitted.
+  // Every PT read of client data re-checks THIS relationship fresh via the
+  // existing cross-service authorization surface — no separate/cached
+  // "am I allowed" flag lives on this row. Plain cross-service id (no
+  // Prisma relation — user-service is a separate database), matching this
+  // codebase's existing convention for every other cross-service id. ──────
+  contractId String? @map("contract_id")
+
+  // ── Delivery deadline (§XXXVII) — clock starts at intakeSubmittedAt, not
+  // purchasedAt: the PT cannot start before the client answers Intake. ────
+  initialDeliveryDeadline DateTime? @map("initial_delivery_deadline")
+
+  // ── Draft + revision (§XVII-XXI). draftContent matches
+  // createManualProgramSchema's shape 1:1 (fitness-service) so Accept can
+  // commit it through the existing internal /workouts/manual-program
+  // endpoint unchanged — one program-creation implementation, not two. ────
+  draftContent  Json? @map("draft_content")
+  draftVersion  Int   @default(0) @map("draft_version")
+  revisionCount Int   @default(0) @map("revision_count")
+
+  acceptedAt         DateTime? @map("accepted_at")
+  committedProgramId String?   @map("committed_program_id") // fitness-service WorkoutProgram.id, set once ACCEPTED is committed
+
+  cancelledAt       DateTime? @map("cancelled_at")
+  cancelReason      String?   @map("cancel_reason")
+  refundRequestedAt DateTime? @map("refund_requested_at")
+  refundedAt        DateTime? @map("refunded_at")
+  disputeReason     String?   @map("dispute_reason")
+  disputedAt        DateTime? @map("disputed_at")
+  // The order's status immediately before it entered REFUND_REQUESTED —
+  // requestRefund() overwrites `status` (needed so REFUND_REQUESTED can gate
+  // other actions), so this is the only record of what to restore on DENY.
+  preRefundStatus String? @map("pre_refund_status")
+
+  // ── Refund resolution (admin) — separate from the buyer-facing
+  // REFUND_REQUESTED/REFUNDED status transition. cumulativeRefundedAmount
+  // is the running total ever actually refunded through payment-service's
+  // real generic refund endpoint (never assumed/auto-computed) — it is the
+  // ceiling check that makes double-refund structurally impossible: a
+  // second admin approval can never push the total past priceAtPurchase.
+  // No escrow/held-funds model exists anywhere in payment-service (verified
+  // — every purchase type transfers immediately); refund AMOUNT is
+  // therefore an explicit admin judgment call shown with the numbers behind
+  // it, not an automatic release computation. ──────────────────────────────
+  cumulativeRefundedAmount Float     @default(0) @map("cumulative_refunded_amount")
+  refundResolvedBy         String?   @map("refund_resolved_by")
+  refundResolvedAt         DateTime? @map("refund_resolved_at")
+  refundResolutionNote     String?   @map("refund_resolution_note")
+  refundDecision           String?   @map("refund_decision") // "APPROVED_FULL" | "APPROVED_PARTIAL" | "DENIED"
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  service          PersonalizedService                   @relation(fields: [serviceId], references: [id])
+  revisionRequests PersonalizedServiceRevisionRequest[]
+  planVersions     PersonalizedServicePlanVersion[]
+  checkIns         PersonalizedServiceCheckIn[]
+  review           PersonalizedServiceReview?
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([serviceId])
+  @@index([status])
+  @@map("personalized_service_orders")
+}
+
+enum PlanVersionStatus {
+  DELIVERED
+  ACCEPTED
+  SUPERSEDED
+}
+
+// §XVIII (versioning) — deliverDraft/acceptOrder used to overwrite
+// Order.draftContent in place; the previous version was gone the moment a
+// revision was redelivered. This table is the real history: one row per
+// deliver, never mutated after creation except the status transition
+// DELIVERED -> ACCEPTED (the one the buyer accepted) or -> SUPERSEDED (an
+// older delivered version once a newer one lands). Order.draftContent/
+// draftVersion stay as a denormalized "latest" pointer for cheap reads —
+// this table is the source of truth for history.
+model PersonalizedServicePlanVersion {
+  id           String            @id @default(uuid())
+  orderId      String            @map("order_id")
+  version      Int
+  content      Json
+  status       PlanVersionStatus @default(DELIVERED)
+  createdBy    String            @map("created_by") // sellerId who authored it
+  changeReason String?           @map("change_reason") // the revision comment that prompted this version, if any
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, version])
+  @@index([orderId])
+  @@map("personalized_service_plan_versions")
+}
+
+// §XIV/weekly check-in — deterministic-only. No AI diagnosis; requiresAttention
+// is a plain threshold flag computed server-side at write time so the PT
+// sees it without trusting a client-computed value.
+model PersonalizedServiceCheckIn {
+  id                 String   @id @default(uuid())
+  orderId            String   @map("order_id")
+  buyerId            String   @map("buyer_id")
+  weekNumber         Int?     @map("week_number")
+  weight             Float?
+  energyLevel        Int?     @map("energy_level") // 1-5
+  sleepQuality       Int?     @map("sleep_quality") // 1-5
+  stressLevel        Int?     @map("stress_level") // 1-5
+  overallRpe         Float?   @map("overall_rpe") // 1-10
+  workoutAdherence   Int?     @map("workout_adherence") // 0-100 %
+  nutritionAdherence Int?     @map("nutrition_adherence") // 0-100 %
+  painOrDiscomfort   Int?     @map("pain_or_discomfort") // 0-10
+  notes              String?
+  requiresAttention  Boolean  @default(false) @map("requires_attention")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("personalized_service_checkins")
+}
+
+// §XXIII — deliberately separate from PublishedPlan's review model: the
+// semantics differ (rating a PT's personalized coaching relationship, not a
+// static plan's content). One review per order, buyer-only, gated to
+// COMPLETED — the safest, most auditable eligibility per the spec's own
+// guidance when no stronger product requirement exists.
+model PersonalizedServiceReview {
+  id                    String   @id @default(uuid())
+  orderId               String   @unique @map("order_id")
+  buyerId               String   @map("buyer_id")
+  sellerId              String   @map("seller_id")
+  overallRating         Int      @map("overall_rating") // 1-5
+  communicationRating   Int?     @map("communication_rating")
+  personalizationRating Int?     @map("personalization_rating")
+  planQualityRating     Int?     @map("plan_quality_rating")
+  comment               String?
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@map("personalized_service_reviews")
+}
+
+enum RevisionRequestCategory {
+  EXERCISE
+  SCHEDULE
+  DIFFICULTY
+  EQUIPMENT
+  NUTRITION
+  OTHER
+}
+
+// Structured revision request (§XX) — separate rows (not just a counter) so
+// the PT sees the real history of what was asked across multiple rounds,
+// and a dispute (§XXXIII) has concrete evidence to reference.
+model PersonalizedServiceRevisionRequest {
+  id         String                   @id @default(uuid())
+  orderId    String                   @map("order_id")
+  category   RevisionRequestCategory
+  comment    String
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  resolvedAt DateTime?                @map("resolved_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("personalized_service_revision_requests")
 }
 
 model NutritionPlan {

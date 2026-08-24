@@ -210,7 +210,8 @@ export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
 
 export const ContractSource: {
   INDEPENDENT: 'INDEPENDENT',
-  GYM: 'GYM'
+  GYM: 'GYM',
+  MARKETPLACE: 'MARKETPLACE'
 };
 
 export type ContractSource = (typeof ContractSource)[keyof typeof ContractSource]
@@ -2856,6 +2857,7 @@ export namespace Prisma {
     preferredTrainingDays: number | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
     sessionDurationMinutes: number | null
   }
 
@@ -2865,6 +2867,7 @@ export namespace Prisma {
     preferredTrainingDays: number[]
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
     sessionDurationMinutes: number | null
   }
 
@@ -2889,6 +2892,8 @@ export namespace Prisma {
     hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number | null
@@ -2925,6 +2930,8 @@ export namespace Prisma {
     hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number | null
@@ -2964,6 +2971,8 @@ export namespace Prisma {
     hasCompletedOnboarding: number
     currentWeight: number
     targetWeight: number
+    startingWeight: number
+    startingWeightSource: number
     dietaryPreference: number
     photoUrl: number
     sessionDurationMinutes: number
@@ -2988,6 +2997,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
     sessionDurationMinutes?: true
   }
 
@@ -2997,6 +3007,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
     sessionDurationMinutes?: true
   }
 
@@ -3021,6 +3032,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
@@ -3057,6 +3070,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
@@ -3096,6 +3111,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
+    startingWeight?: true
+    startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
     sessionDurationMinutes?: true
@@ -3223,6 +3240,8 @@ export namespace Prisma {
     hasCompletedOnboarding: boolean
     currentWeight: number | null
     targetWeight: number | null
+    startingWeight: number | null
+    startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
     sessionDurationMinutes: number
@@ -3282,6 +3301,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
@@ -3326,6 +3347,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
@@ -3366,6 +3389,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    startingWeight?: boolean
+    startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
     sessionDurationMinutes?: boolean
@@ -3421,6 +3446,8 @@ export namespace Prisma {
       hasCompletedOnboarding: boolean
       currentWeight: number | null
       targetWeight: number | null
+      startingWeight: number | null
+      startingWeightSource: string | null
       dietaryPreference: string | null
       photoUrl: string | null
       sessionDurationMinutes: number
@@ -3854,6 +3881,8 @@ export namespace Prisma {
     readonly hasCompletedOnboarding: FieldRef<"UserProfile", 'Boolean'>
     readonly currentWeight: FieldRef<"UserProfile", 'Float'>
     readonly targetWeight: FieldRef<"UserProfile", 'Float'>
+    readonly startingWeight: FieldRef<"UserProfile", 'Float'>
+    readonly startingWeightSource: FieldRef<"UserProfile", 'String'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
     readonly photoUrl: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
@@ -22912,6 +22941,8 @@ export namespace Prisma {
     hasCompletedOnboarding: 'hasCompletedOnboarding',
     currentWeight: 'currentWeight',
     targetWeight: 'targetWeight',
+    startingWeight: 'startingWeight',
+    startingWeightSource: 'startingWeightSource',
     dietaryPreference: 'dietaryPreference',
     photoUrl: 'photoUrl',
     sessionDurationMinutes: 'sessionDurationMinutes',
@@ -23770,6 +23801,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
@@ -23813,6 +23846,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    startingWeight?: SortOrderInput | SortOrder
+    startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
@@ -23859,6 +23894,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
@@ -23902,6 +23939,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    startingWeight?: SortOrderInput | SortOrder
+    startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
@@ -23950,6 +23989,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    startingWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    startingWeightSource?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
@@ -25946,6 +25987,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -25989,6 +26032,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -26032,6 +26077,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -26075,6 +26122,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -26118,6 +26167,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -26158,6 +26209,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -26198,6 +26251,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -28764,6 +28819,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -28786,6 +28843,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
   }
 
@@ -28810,6 +28868,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -28846,6 +28906,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
+    startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -28867,6 +28929,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
   }
 
@@ -32773,6 +32836,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -32815,6 +32880,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -32933,6 +33000,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -32975,6 +33044,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -34749,6 +34820,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -34791,6 +34864,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -34919,6 +34994,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -34961,6 +35038,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -35003,6 +35082,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -35045,6 +35126,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
     sessionDurationMinutes?: number
@@ -35103,6 +35186,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -35145,6 +35230,8 @@ export namespace Prisma {
     hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number

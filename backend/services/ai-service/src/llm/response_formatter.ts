@@ -5,20 +5,76 @@ import type {
   UnsafeGuidance,
 } from "./types";
 
+// Same "insufficient profile data" fallback constants buildMealPlanTemplate()
+// already uses (recommendation_engine.ts) when nutritionCalculator.calculate()
+// legitimately returns targetCalories/proteinGrams/carbsGrams/fatGrams as
+// `undefined` (its own documented behavior for missing age/height/weight —
+// see nutrition_calculator.ts: `if (!bmr || !weight) return { formula,
+// confidence: "low" }`, no macro fields at all, by design).
+const FALLBACK_NUTRITION = {
+  targetCalories: 2100,
+  proteinGrams: 150,
+  carbsGrams: 220,
+  fatGrams: 65,
+};
+
+/**
+ * Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+ * Persona B/C: profile missing age/height, exactly the "low confidence"
+ * case above): formatNutritionSummary/buildActionSteps used to read
+ * `rec.nutrition.targetCalories ?? 0` directly. When nutrition is
+ * legitimately undefined (not zero — "we don't know yet"), `?? 0` rendered
+ * a literal "Calo 0 kcal / Đạm 0g / Carb 0g / Béo 0g" table, directly
+ * beneath a CORRECT "📊 Mục tiêu ngày: 2000 kcal | Đạm: 125g..." line built
+ * from the SAME recommendation's already-resolved `rec.mealPlan` fields
+ * (which apply this exact fallback inside buildMealPlanTemplate) — a
+ * self-contradictory answer in the same response. Preferring
+ * `rec.mealPlan`'s already-resolved numbers (when a meal plan exists) keeps
+ * every section of one answer consistent; falling back to the same
+ * non-zero defaults buildMealPlanTemplate uses (rather than 0) keeps every
+ * other caller (workout-only / injury paths, no mealPlan) from showing a
+ * nonsensical "0 kcal" target too.
+ */
+function resolveDisplayNutrition(rec: RecommendationResult): {
+  targetCalories: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+} {
+  if (rec.mealPlan) {
+    // MealPlanTemplate's kcal/proteinGrams/carbsGrams/fatGrams are
+    // non-optional — buildMealPlanTemplate() already resolved them (with
+    // its own FALLBACK_NUTRITION-equivalent defaults) before this point.
+    return {
+      targetCalories: rec.mealPlan.kcal,
+      proteinGrams: rec.mealPlan.proteinGrams,
+      carbsGrams: rec.mealPlan.carbsGrams,
+      fatGrams: rec.mealPlan.fatGrams,
+    };
+  }
+  const n = rec.nutrition;
+  return {
+    targetCalories: n.targetCalories ?? FALLBACK_NUTRITION.targetCalories,
+    proteinGrams: n.proteinGrams ?? FALLBACK_NUTRITION.proteinGrams,
+    carbsGrams: n.carbsGrams ?? FALLBACK_NUTRITION.carbsGrams,
+    fatGrams: n.fatGrams ?? FALLBACK_NUTRITION.fatGrams,
+  };
+}
+
 function formatNutritionSummary(
   rec: RecommendationResult,
   language: ResponseLanguage,
 ): string[] {
-  const n = rec.nutrition;
+  const n = resolveDisplayNutrition(rec);
   if (language === "vi") {
     return [
       "## 🥗 Dinh Dưỡng",
       "| Chỉ số | Giá trị |",
       "|--------|---------|",
-      `| Calo | ${n.targetCalories ?? 0} kcal |`,
-      `| Đạm | ${n.proteinGrams ?? 0}g |`,
-      `| Carb | ${n.carbsGrams ?? 0}g |`,
-      `| Béo | ${n.fatGrams ?? 0}g |`,
+      `| Calo | ${n.targetCalories} kcal |`,
+      `| Đạm | ${n.proteinGrams}g |`,
+      `| Carb | ${n.carbsGrams}g |`,
+      `| Béo | ${n.fatGrams}g |`,
     ];
   }
 
@@ -26,10 +82,10 @@ function formatNutritionSummary(
     "## 🥗 Nutrition",
     "| Metric | Value |",
     "|--------|-------|",
-    `| Calories | ${n.targetCalories ?? 0} kcal |`,
-    `| Protein | ${n.proteinGrams ?? 0}g |`,
-    `| Carbs | ${n.carbsGrams ?? 0}g |`,
-    `| Fats | ${n.fatGrams ?? 0}g |`,
+    `| Calories | ${n.targetCalories} kcal |`,
+    `| Protein | ${n.proteinGrams}g |`,
+    `| Carbs | ${n.carbsGrams}g |`,
+    `| Fats | ${n.fatGrams}g |`,
   ];
 }
 
@@ -37,16 +93,17 @@ function buildActionSteps(
   rec: RecommendationResult,
   language: ResponseLanguage,
 ): string[] {
+  const n = resolveDisplayNutrition(rec);
   const steps =
     language === "vi"
       ? [
           `Ưu tiên hoàn thành **${rec.workout.sessionsPerWeek} buổi/tuần** theo lịch đã gợi ý.`,
-          `Theo dõi macro trong 7 ngày: **Đạm ${rec.nutrition.proteinGrams ?? 0}g | Carb ${rec.nutrition.carbsGrams ?? 0}g | Béo ${rec.nutrition.fatGrams ?? 0}g**.`,
+          `Theo dõi macro trong 7 ngày: **Đạm ${n.proteinGrams}g | Carb ${n.carbsGrams}g | Béo ${n.fatGrams}g**.`,
           "Ghi lại mức năng lượng, chất lượng ngủ và hiệu suất tập để điều chỉnh vào tuần sau.",
         ]
       : [
           `Complete **${rec.workout.sessionsPerWeek} sessions/week** from the plan.`,
-          `Track macros for 7 days: **Protein ${rec.nutrition.proteinGrams ?? 0}g | Carbs ${rec.nutrition.carbsGrams ?? 0}g | Fats ${rec.nutrition.fatGrams ?? 0}g**.`,
+          `Track macros for 7 days: **Protein ${n.proteinGrams}g | Carbs ${n.carbsGrams}g | Fats ${n.fatGrams}g**.`,
           "Log energy, sleep quality, and training performance to adjust next week.",
         ];
 
@@ -434,6 +491,50 @@ function formatMealPlan(
   return lines.join("\n");
 }
 
+/**
+ * Deterministic fallback for nutrient_timing_request (used when the LLM is
+ * unavailable or its answer fails validation) — a short, generic,
+ * evidence-based pre/post-workout tip, never a full meal plan and never
+ * any workout-schedule content, matching prompt_builder.ts's own "isTiming"
+ * instructions for this intent.
+ */
+function formatNutrientTiming(
+  rec: RecommendationResult,
+  language: ResponseLanguage,
+): string {
+  const n = resolveDisplayNutrition(rec);
+  if (language === "vi") {
+    const lines = [
+      "## 🍽️ Ăn Trước/Sau Buổi Tập",
+      "",
+      "**Trước tập:** ưu tiên carb dễ tiêu + một ít protein — ví dụ cơm, chuối, bánh mì, yến mạch, hoặc sữa chua kèm trứng/sữa. Hạn chế ăn nhiều chất béo/chất xơ sát giờ tập vì dễ đầy bụng.",
+      "",
+      "**Sau tập:** protein + carb trong bữa kế tiếp — ví dụ ức gà/cá/đậu hũ với cơm hoặc khoai lang. Không cần lo về 'cửa sổ 30 phút' — tổng lượng protein cả ngày quan trọng hơn thời điểm ăn chính xác.",
+    ];
+    if (n.proteinGrams > 0) {
+      lines.push(
+        "",
+        `Mục tiêu đạm cả ngày của bạn hiện khoảng **${n.proteinGrams}g** — nên chia đều giữa các bữa thay vì dồn hết vào 1 bữa.`,
+      );
+    }
+    return lines.join("\n");
+  }
+  const lines = [
+    "## 🍽️ Pre/Post-Workout Meals",
+    "",
+    "**Before training:** favor easy-to-digest carbs + a little protein — e.g. rice, banana, bread, oats, or yogurt with eggs/milk. Avoid heavy fat/fiber right before training.",
+    "",
+    "**After training:** protein + carbs in your next meal — e.g. chicken/fish/tofu with rice or sweet potato. There's no strict '30-minute window' — total daily protein matters more than exact timing.",
+  ];
+  if (n.proteinGrams > 0) {
+    lines.push(
+      "",
+      `Your current daily protein target is about **${n.proteinGrams}g** — spread it across meals rather than one big dose.`,
+    );
+  }
+  return lines.join("\n");
+}
+
 function formatGeneral(
   rec: RecommendationResult,
   language: ResponseLanguage,
@@ -546,6 +647,8 @@ export const responseFormatter = {
       text = formatCombinedPlan(recommendation, language);
     } else if (recommendation.responseIntent === "meal_plan_request") {
       text = formatMealPlan(recommendation, language);
+    } else if (recommendation.responseIntent === "nutrient_timing_request") {
+      text = formatNutrientTiming(recommendation, language);
     } else {
       text = formatGeneral(recommendation, language);
     }

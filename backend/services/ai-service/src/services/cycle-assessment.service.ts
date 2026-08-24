@@ -23,6 +23,17 @@ const DECISION_LABEL: Record<AssessCycleRequest["decision"]["value"], string> = 
   INSUFFICIENT_DATA: "chưa đủ dữ liệu để kết luận",
 };
 
+const NUTRITION_DECISION_LABEL: Record<
+  NonNullable<AssessCycleRequest["nutrition"]>["decision"],
+  string
+> = {
+  KEEP_PLAN: "giữ nguyên calo/macro hiện tại",
+  PROPOSE_ADJUSTMENT: "đề xuất điều chỉnh calo/macro",
+  REQUEST_MORE_DATA: "cần thêm dữ liệu trước khi kết luận",
+  EARLY_REVIEW: "cần xem xét sớm trước khi tiếp tục kế hoạch dinh dưỡng",
+  ESCALATE: "cần chuyển cho chuyên gia y tế/PT xem xét ngay",
+};
+
 function buildRagQueries(req: AssessCycleRequest): string[] {
   const decision = req.decision.value;
   const queries: string[] = [];
@@ -64,8 +75,28 @@ Nhiệm vụ của bạn:
 - KHÔNG được đề xuất steroid, hormone, hoặc chất cấm.
 - requiresConfirmation LUÔN là true — người dùng phải xác nhận trước khi áp dụng bất kỳ thay đổi nào.
 
+${
+    req.nutrition
+      ? `
+Ngoài đánh giá tập luyện trên, hệ thống CŨNG đã tính riêng một quyết định dinh dưỡng (độc lập, đã CHỐT, bạn CHỈ giải thích, KHÔNG được đổi):
+QUYẾT ĐỊNH DINH DƯỠNG ĐÃ CHỐT: "${req.nutrition.decision}" (${NUTRITION_DECISION_LABEL[req.nutrition.decision]})
+- confidence: ${req.nutrition.confidence}
+- reasonCodes: ${JSON.stringify(req.nutrition.reasonCodes)}
+- signals: ${JSON.stringify(req.nutrition.signals)}
+- proposedChanges: ${JSON.stringify(req.nutrition.proposedChanges)}
+
+Hãy thêm trường "nutritionSummary" vào JSON trả về, với:
+- nutritionDecision: PHẢI đúng bằng "${req.nutrition.decision}", không đổi.
+- headline: một câu ngắn tóm tắt quyết định dinh dưỡng.
+- explanation: giải thích ngắn gọn, phân biệt rõ 3 phần: (1) Quan sát được (observation) từ signals, (2) Diễn giải (interpretation) — TẠI SAO lại đi đến quyết định này, (3) Khuyến nghị (recommendation) — người dùng nên làm gì tiếp theo. KHÔNG được tự đề xuất một con số calo/macro nào khác với proposedChanges ở trên. Nếu proposedChanges là null, không được bịa ra một con số.
+${req.nutrition.decision === "PROPOSE_ADJUSTMENT" ? "- Đây là một ĐỀ XUẤT — PHẢI nói rõ người dùng cần XÁC NHẬN trước khi thay đổi có hiệu lực, không phải đã được áp dụng." : ""}
+${req.nutrition.decision === "ESCALATE" || req.nutrition.decision === "EARLY_REVIEW" ? "- KHÔNG được chẩn đoán nguyên nhân đau/khó chịu. Chỉ khuyên dừng lại và tham khảo chuyên gia y tế/PT phù hợp." : ""}
+`
+      : ""
+  }
+
 Chỉ trả lời bằng JSON hợp lệ theo ĐÚNG shape sau, không markdown, không giải thích ngoài JSON:
-{"decision": "${decision}", "headline": string, "summary": string, "positiveSignals": string[], "warningSignals": string[], "proposedChanges": [{"type": "VOLUME"|"LOAD"|"REPS"|"EXERCISE"|"FREQUENCY"|"DELOAD", "target": string, "currentValue": string, "proposedValue": string, "reason": string}], "missingData": string[], "safetyNotice": string|null, "requiresConfirmation": true}
+{"decision": "${decision}", "headline": string, "summary": string, "positiveSignals": string[], "warningSignals": string[], "proposedChanges": [{"type": "VOLUME"|"LOAD"|"REPS"|"EXERCISE"|"FREQUENCY"|"DELOAD", "target": string, "currentValue": string, "proposedValue": string, "reason": string}], "missingData": string[], "safetyNotice": string|null, "requiresConfirmation": true${req.nutrition ? `, "nutritionSummary": {"nutritionDecision": "${req.nutrition.decision}", "headline": string, "explanation": string}` : ""}}
 
 Dữ liệu chu kỳ:
 - Tên: ${req.cycle.name ?? "(không đặt tên)"}, mục tiêu: ${req.cycle.goalType ?? "không rõ"}, chu kỳ số ${req.cycle.cycleIndex}, độ dài ${req.cycle.durationDays} ngày
@@ -101,6 +132,15 @@ function buildDeterministicFallback(req: AssessCycleRequest): AssessCycleOutput 
     missingData: req.dataQuality.qualityFlags,
     safetyNotice: criticalFlag?.message ?? req.safetyFlags[0]?.message ?? null,
     requiresConfirmation: true,
+    nutritionSummary: req.nutrition
+      ? {
+          nutritionDecision: req.nutrition.decision,
+          headline: `Dinh dưỡng: ${NUTRITION_DECISION_LABEL[req.nutrition.decision]}`,
+          explanation:
+            "AI không tạo được phần giải thích chi tiết — dựa trên các lý do được hệ thống tính toán trực tiếp: " +
+            req.nutrition.reasonCodes.join("; "),
+        }
+      : null,
   };
 }
 
@@ -162,6 +202,34 @@ export const cycleAssessmentService = {
         "[cycle-assessment] LLM proposed change type(s) outside allowedChanges — dropping them",
       );
       output.proposedChanges = filteredChanges;
+    }
+
+    // Same belt-and-braces override for the nutrition decision — the LLM
+    // only ever explains nutrition-decision.engine.ts's already-computed
+    // output, never recomputes or overrides it (spec §3/§5/§41).
+    if (req.nutrition) {
+      if (!output.nutritionSummary) {
+        output.nutritionSummary = {
+          nutritionDecision: req.nutrition.decision,
+          headline: `Dinh dưỡng: ${NUTRITION_DECISION_LABEL[req.nutrition.decision]}`,
+          explanation: "Không có giải thích chi tiết từ AI cho phần dinh dưỡng.",
+        };
+      } else if (output.nutritionSummary.nutritionDecision !== req.nutrition.decision) {
+        logger.warn(
+          {
+            llmNutritionDecision: output.nutritionSummary.nutritionDecision,
+            engineNutritionDecision: req.nutrition.decision,
+            userId: req.userId,
+          },
+          "[cycle-assessment] LLM echoed a different nutrition decision than the engine — overriding with the engine's value",
+        );
+        output.nutritionSummary.nutritionDecision = req.nutrition.decision;
+      }
+    } else if (output.nutritionSummary) {
+      // Model hallucinated a nutrition section when none was requested —
+      // strip it rather than surface an explanation for a decision that
+      // was never actually computed.
+      output.nutritionSummary = null;
     }
 
     // Semantic check on the surviving changes' actual values (target/

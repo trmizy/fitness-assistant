@@ -5,6 +5,7 @@ import planRoutes from "./routes/plan.routes";
 import adminAiRoutes from "./routes/admin.routes";
 import internalRoutes from "./routes/internal.routes";
 import marketplaceRoutes from "./routes/marketplace.routes";
+import personalizedServiceRoutes from "./routes/personalized-service.routes";
 import adminMarketplaceRoutes from "./routes/admin-marketplace.routes";
 import { ApiError, formatErrorResponse } from "./errors/api-error";
 import { llmService } from "./services/llm.service";
@@ -46,6 +47,12 @@ app.use("/plans", planRoutes);
 app.use("/admin/ai/marketplace", adminMarketplaceRoutes);
 app.use("/admin/ai", adminAiRoutes);
 app.use("/marketplace", marketplaceRoutes);
+// Personalized PT Service — distinct product from marketplaceRoutes'
+// PublishedPlan/TrainingPackage (fixed-plan) listings. Same base path
+// ("/marketplace") since it's conceptually part of the same marketplace;
+// route names (/services, /orders) don't collide with marketplaceRoutes'
+// (/plans, /packages).
+app.use("/marketplace", personalizedServiceRoutes);
 app.use("/internal", internalRoutes);
 
 // Global error handler.

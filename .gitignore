@@ -10,6 +10,7 @@ node_modules/
 # ------------------------------
 dist/
 build/
+**/.build/
 coverage/
 .turbo/
 .cache/
@@ -23,6 +24,18 @@ coverage/
 # old engine is still up) — these are junk, never a real build artifact, and *.tmp above
 # doesn't match them (the name ends in .tmp<pid>, not literal ".tmp").
 **/generated/prisma/*.tmp*
+
+# ------------------------------
+# Terraform local state/plugins — provider binaries alone can exceed 1GB
+# and must never be committed (blocked a real push to master on
+# 2026-08-20: two .exe provider plugins over GitHub's 100MB limit).
+# ------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
 
 # ------------------------------
 # Logs
@@ -57,6 +70,7 @@ Thumbs.db
 .idea/
 .vscode/
 .claude/
+.playwright-cli/
 
 # ------------------------------
 # Runtime / local data artifacts
@@ -131,3 +145,6 @@ frontend/web/android/local.properties
 *.jks
 # LAN-specific API endpoints for the APK build — differs per machine/network.
 frontend/web/.env.capacitor
+
+# Standalone browser QA project may contain authentication state.
+fitnessassistant-playwright-e2e/

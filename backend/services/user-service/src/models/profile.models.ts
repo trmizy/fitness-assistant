@@ -32,7 +32,14 @@ export const profileSchema = z.object({
   // Advisory/UI-only free text (e.g. "Full Body", "Push/Pull/Legs") — never
   // read by the Decision Engine, which only reasons about actually-logged
   // sessions. Capped to a sane length since it's free text from a client.
-  preferredSplit: z.string().max(100).optional(),
+  // .nullable() (in addition to .optional()) matters: the DB column is
+  // nullable and the profile repository does a partial Prisma update
+  // (omitted keys are left untouched), so an explicit `null` is the ONLY
+  // way to clear a previously-set split back to "no preference" — omitting
+  // the key (the old undefined-only shape) can never do that. Found via the
+  // onboarding Playwright spec's snapshot-restore step failing to restore a
+  // null preferredSplit back to null after the wizard set it to a real value.
+  preferredSplit: z.string().max(100).optional().nullable(),
   // Set true only by OnboardingWizardPage's final submit step — distinct
   // from "has some profile fields filled in" via the plain edit form.
   hasCompletedOnboarding: z.boolean().optional(),

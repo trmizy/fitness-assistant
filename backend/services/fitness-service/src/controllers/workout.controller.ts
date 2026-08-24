@@ -2,12 +2,15 @@ import { Response } from "express";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { workoutService } from "../services/workout.service";
+import { sessionFeedbackService } from "../services/session-feedback.service";
 import {
+  completeScheduleExerciseSchema,
   createManualProgramSchema,
   createWorkoutSchema,
   importAiPlanSchema,
   updateWorkoutSetSchema,
 } from "../models/fitness.models";
+import { sessionFeedbackInputSchema, dismissFeedbackSchema } from "../models/session-feedback.models";
 import { formatZodErrors } from "../utils/workout-validation";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
@@ -128,6 +131,23 @@ export const workoutController = {
     }
   },
 
+  async getSessionSummary(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const summary = await workoutService.getSessionSummary(
+        req.user!.id,
+        req.params.id,
+      );
+      res.json(summary);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching session summary:", error);
+      res.status(500).json({ error: "Failed to fetch session summary" });
+    }
+  },
+
   async updateSet(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = updateWorkoutSetSchema.parse(req.body);
@@ -230,13 +250,26 @@ export const workoutController = {
     res: Response,
   ): Promise<void> {
     try {
+      // Body is entirely optional (backward compatible with the old no-body
+      // shape) — see completeScheduleExerciseSchema's comment for why this
+      // exists: it's the only way the actually-performed weight/reps/RPE/RIR
+      // and a session-only exercise swap ever reach the persisted log.
+      const body = completeScheduleExerciseSchema.parse(req.body ?? {});
       const result = await workoutService.completeScheduleExercise(
         req.user!.id,
         req.params.id,
         req.params.programExerciseId,
+        body,
       );
       res.json({ success: true, data: result });
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: "Invalid exercise completion data",
+          details: formatZodErrors(error.errors),
+        });
+        return;
+      }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
@@ -485,6 +518,80 @@ export const workoutController = {
       }
       logger.error({ err: error }, "Error cancelling schedule");
       res.status(500).json({ error: "Failed to cancel schedule" });
+    }
+  },
+
+  // Phase 2 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — session
+  // feedback addressable directly by schedule id (works for sessions
+  // outside a training cycle too, unlike the older cycle-nested endpoint).
+  async getSessionFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await sessionFeedbackService.getFeedback(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error fetching session feedback");
+      res.status(500).json({ error: "Failed to fetch session feedback" });
+    }
+  },
+
+  async submitSessionFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = sessionFeedbackInputSchema.parse(req.body ?? {});
+      const result = await sessionFeedbackService.upsertFeedback(req.params.id, req.user!.id, parsed);
+      res.status(201).json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid feedback payload" });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error submitting session feedback");
+      res.status(500).json({ error: "Failed to submit session feedback" });
+    }
+  },
+
+  async updateSessionFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = sessionFeedbackInputSchema.parse(req.body ?? {});
+      const result = await sessionFeedbackService.upsertFeedback(req.params.id, req.user!.id, parsed);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid feedback payload" });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error updating session feedback");
+      res.status(500).json({ error: "Failed to update session feedback" });
+    }
+  },
+
+  async dismissSessionFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      dismissFeedbackSchema.parse(req.body ?? {});
+      const result = await sessionFeedbackService.dismissFeedback(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid request" });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error dismissing session feedback");
+      res.status(500).json({ error: "Failed to dismiss session feedback" });
     }
   },
 };

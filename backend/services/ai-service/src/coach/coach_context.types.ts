@@ -22,9 +22,38 @@ export interface UserProfileContext {
   height_cm: number | null;
   weight_kg: number | null;
   target_weight_kg: number | null;
+  // Immutable "journey start" weight (UserProfile.startingWeight,
+  // user-service) — set once, the first time this user ever had any weight
+  // recorded. Distinct from weight_kg (current) and from a per-cycle
+  // baseline. Null for accounts that predate this field with no InBody
+  // history to backfill from — never fabricated.
+  starting_weight_kg: number | null;
   goal: CoachGoal;
   activity_level: string | null;
   experience_level: CoachExperienceLevel;
+}
+
+/**
+ * Derived "progress since the journey began" figures — computed once here
+ * so the model never has to (and never gets it wrong) subtract weight_kg
+ * from starting_weight_kg itself. AI RULE (spec §22): never treat these as
+ * more precise than the underlying measurements they're built from (BIA
+ * has real uncertainty — see BODYCOMP-001 in
+ * docs/research/fitness-nutrition-evidence.md), and never confuse this
+ * with a per-cycle baseline (TrainingCycle.baselineMetrics, fitness-service)
+ * — this is the all-time figure, not "since this training block started".
+ */
+export interface JourneyContext {
+  starting_weight_kg: number | null;
+  current_weight_kg: number | null;
+  target_weight_kg: number | null;
+  /** starting_weight_kg - current_weight_kg. Positive = lost weight since
+   * starting. Null if either input is missing. */
+  changed_since_start_kg: number | null;
+  /** current_weight_kg - target_weight_kg. Positive = still above target
+   * (typical weight-loss framing); can be negative (already past target,
+   * or a gain-goal not yet reached). Null if either input is missing. */
+  remaining_to_goal_kg: number | null;
 }
 
 export interface InBodyContext {
@@ -91,6 +120,7 @@ export interface CoachConstraintsContext {
 
 export interface CoachContext {
   profile: UserProfileContext;
+  journey: JourneyContext;
   inbody_latest: InBodyContext;
   inbody_trend: InBodyTrendContext;
   training_summary: TrainingSummaryContext;

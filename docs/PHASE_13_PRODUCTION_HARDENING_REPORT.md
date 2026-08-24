@@ -1,5 +1,8 @@
 # Phase 13 — Production Hardening & QA End-to-End
 
+> Historical completion report. Test counts and environment state describe the
+> recorded run, not the current worktree.
+
 > Phạm vi: không thêm feature lớn mới. Mục tiêu là kiểm tra ứng dụng như chuẩn bị đưa demo/production, tìm bug thật, fix bug thật (khi an toàn), và xác nhận các flow chính (onboarding, 4 cấp độ người dùng, RAG, API contract) hoạt động qua HTTP thật — không phải chỉ unit test.
 
 ---

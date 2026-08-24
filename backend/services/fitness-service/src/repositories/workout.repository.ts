@@ -25,8 +25,18 @@ export const workoutRepository = {
       include: workoutInclude,
     }),
 
-  create: (userId: string, data: any) =>
-    prisma.$transaction(async (tx) => {
+  create: async (userId: string, data: any) => {
+    // History-protection snapshot (Gate 4, exerciseNameSnapshot's schema
+    // doc comment) — resolved once up front so a later exercise rename
+    // never retroactively changes what this logged set displays.
+    const exerciseIds = [...new Set(data.exercises.map((ex: any) => ex.exerciseId))] as string[];
+    const exerciseRows = await prisma.exercise.findMany({
+      where: { id: { in: exerciseIds } },
+      select: { id: true, exerciseName: true },
+    });
+    const nameById = new Map(exerciseRows.map((e) => [e.id, e.exerciseName]));
+
+    return prisma.$transaction(async (tx) => {
       const workout = await tx.workout.create({
         data: {
           userId,
@@ -39,6 +49,7 @@ export const workoutRepository = {
             create: data.exercises.map((ex: any, index: number) => ({
               exerciseId: ex.exerciseId,
               programExerciseId: ex.programExerciseId ?? null,
+              exerciseNameSnapshot: nameById.get(ex.exerciseId) ?? null,
               sets: ex.sets,
               reps: ex.reps,
               duration: ex.duration,
@@ -87,9 +98,18 @@ export const workoutRepository = {
       }
 
       return workout;
-    }),
+    });
+  },
 
   async update(id: string, data: any) {
+    // Same history-protection snapshot resolution as create() above.
+    const exerciseIds = [...new Set(data.exercises.map((ex: any) => ex.exerciseId))] as string[];
+    const exerciseRows = await prisma.exercise.findMany({
+      where: { id: { in: exerciseIds } },
+      select: { id: true, exerciseName: true },
+    });
+    const nameById = new Map(exerciseRows.map((e) => [e.id, e.exerciseName]));
+
     return prisma.$transaction(async (tx) => {
       await tx.workoutExercise.deleteMany({ where: { workoutId: id } });
       const workout = await tx.workout.update({
@@ -104,6 +124,7 @@ export const workoutRepository = {
             create: data.exercises.map((ex: any, index: number) => ({
               exerciseId: ex.exerciseId,
               programExerciseId: ex.programExerciseId ?? null,
+              exerciseNameSnapshot: nameById.get(ex.exerciseId) ?? null,
               sets: ex.sets,
               reps: ex.reps,
               duration: ex.duration,
@@ -216,6 +237,29 @@ export const workoutRepository = {
     return Array.from(prMap.values());
   },
 
+  // All logged sets for the given exercises, for this user, EXCLUDING the
+  // named workout — the "history to beat" when deciding whether the
+  // just-completed session set a new PR (see workout.service.ts
+  // getSessionSummary). Raw rows only: the estimated-1RM comparison lives
+  // in the service layer, next to the one place that formula is imported
+  // from, not duplicated here.
+  findPriorSetsForExercises: (
+    userId: string,
+    exerciseIds: string[],
+    excludeWorkoutId: string,
+  ) => {
+    if (exerciseIds.length === 0) return Promise.resolve([]);
+    return prisma.workoutExercise.findMany({
+      where: {
+        exerciseId: { in: exerciseIds },
+        workoutId: { not: excludeWorkoutId },
+        weight: { not: null },
+        workout: { userId },
+      },
+      select: { exerciseId: true, weight: true, reps: true },
+    });
+  },
+
   findForStats: (userId: string, startDate: Date) =>
     prisma.workout.findMany({
       where: { userId, date: { gte: startDate } },
@@ -279,10 +323,17 @@ export const workoutRepository = {
         orderBy: { order: "desc" },
         select: { order: true },
       });
+      // History-protection snapshot — same reasoning as create()/update()
+      // above.
+      const exerciseRow = await prisma.exercise.findUnique({
+        where: { id: exerciseId },
+        select: { exerciseName: true },
+      });
       workoutExercise = await prisma.workoutExercise.create({
         data: {
           workoutId,
           exerciseId,
+          exerciseNameSnapshot: exerciseRow?.exerciseName ?? null,
           sets: 0,
           order: (maxOrder?.order ?? -1) + 1,
         },

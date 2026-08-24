@@ -241,6 +241,25 @@ export const contractController = {
     }
   },
 
+  // INTERNAL — Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md, called
+  // by fitness-service before every PT/coach client-data or plan-assignment
+  // request. Strictly ACTIVE + PT->client direction — see
+  // contract.service.ts's checkActivePtClientRelationship doc comment.
+  async checkActivePtClientRelationship(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId } = req.query;
+      if (!ptUserId || !clientUserId || typeof ptUserId !== "string" || typeof clientUserId !== "string") {
+        res.status(400).json({ error: "ptUserId and clientUserId are required" });
+        return;
+      }
+      const result = await contractService.checkActivePtClientRelationship(ptUserId, clientUserId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "checkActivePtClientRelationship error");
+      res.status(500).json({ error: "Failed to verify PT-client relationship" });
+    }
+  },
+
   // INTERNAL — called by ai-service to verify that a contract is ACTIVE and get the PT user ID.
   // Security: validates clientId owns this contract and it is currently ACTIVE.
   // Response: minimal { ptUserId, contractId } — no full contract object.
@@ -281,6 +300,31 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, "getActivePTForClient error");
       res.status(500).json({ error: "Failed to verify contract" });
+    }
+  },
+
+  // INTERNAL — called by ai-service right after a Marketplace Personalized
+  // PT Service purchase is paid. See contractService.createMarketplaceContract's
+  // doc comment for why this bypasses the normal request/accept/sign flow.
+  async createMarketplaceContract(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId, packageName, description, price, paymentTransactionId } = req.body ?? {};
+      if (!ptUserId || !clientUserId || !packageName || typeof price !== "number") {
+        res.status(400).json({ error: "ptUserId, clientUserId, packageName, and price are required" });
+        return;
+      }
+      const contract = await contractService.createMarketplaceContract({
+        ptUserId,
+        clientUserId,
+        packageName,
+        description,
+        price,
+        paymentTransactionId,
+      });
+      res.status(201).json({ contractId: contract.id });
+    } catch (error: any) {
+      logger.error(error, "createMarketplaceContract error");
+      res.status(500).json({ error: "Failed to create marketplace contract" });
     }
   },
 

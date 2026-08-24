@@ -1,5 +1,10 @@
 # Fitness Assistant — Project Roadmap & Issue Tracker
 
+> Historical planning snapshot dated 2026-05-10. Several items and runtime
+> defaults in this file have since changed. Use `README.md`, `docs/README.md`,
+> Compose, and the current tests as the source of truth; retain this file for
+> issue history and design context.
+
 > **Ngày cập nhật:** 2026-05-10  
 > **Trạng thái tổng quát:** ~60% production-ready — Core flow hoạt động, nhưng còn nhiều gap về validation, test coverage, và service chưa hoàn thiện.
 
@@ -390,7 +395,9 @@ Hiện chỉ log calories/protein/carbs/fat cho cả ngày. Không track từng 
 
 **File:** `backend/services/fitness-service/src/seed_exercises_json.ts`
 
-Seed script đang ở `src/` thay vì `prisma/`. Điều này được note trong HANDOVER.md line 37.
+At the time of this roadmap snapshot, the seed script was under `src/` instead
+of `prisma/`. Verify the current location before acting; the temporary handover
+note referenced by the original text has been retired.
 
 **Việc cần làm:**
 

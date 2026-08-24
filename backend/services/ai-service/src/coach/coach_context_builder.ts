@@ -244,6 +244,12 @@ export function buildCoachContext(
     profile.currentWeightKg ?? (profile as any).currentWeight,
   );
   const weight = latest?.weight_kg ?? profileWeight;
+  const startingWeight = finiteNumber(
+    (profile as any).startingWeightKg ?? (profile as any).startingWeight,
+  );
+  const targetWeight = finiteNumber(
+    profile.targetWeightKg ?? (profile as any).targetWeight,
+  );
   const height = finiteNumber(profile.heightCm);
   const experience = mapExperience(
     profile.experienceLevel,
@@ -309,14 +315,26 @@ export function buildCoachContext(
       sex: mapSex(profile.gender),
       height_cm: height,
       weight_kg: weight,
-      target_weight_kg: finiteNumber(
-        profile.targetWeightKg ?? (profile as any).targetWeight,
-      ),
+      target_weight_kg: targetWeight,
+      starting_weight_kg: startingWeight,
       goal,
       activity_level: profile.activityLevel
         ? String(profile.activityLevel)
         : null,
       experience_level: experience,
+    },
+    journey: {
+      starting_weight_kg: startingWeight,
+      current_weight_kg: weight,
+      target_weight_kg: targetWeight,
+      changed_since_start_kg:
+        startingWeight != null && weight != null
+          ? Math.round((startingWeight - weight) * 10) / 10
+          : null,
+      remaining_to_goal_kg:
+        weight != null && targetWeight != null
+          ? Math.round((weight - targetWeight) * 10) / 10
+          : null,
     },
     inbody_latest: inbodyLatest,
     inbody_trend: buildTrend(input.inBodyHistory ?? [], latest),

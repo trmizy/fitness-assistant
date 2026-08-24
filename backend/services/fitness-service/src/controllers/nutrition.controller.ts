@@ -90,16 +90,50 @@ export const nutritionController = {
     }
   },
 
+  async getGoalHistory(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const history = await nutritionService.getGoalHistory(req.user!.id);
+      res.json({ history });
+    } catch (error) {
+      logger.error("Error fetching nutrition goal history:", error);
+      res.status(500).json({ error: "Failed to fetch nutrition goal history" });
+    }
+  },
+
+  // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
+  // câu 6) — read-only, never archives/regenerates anything.
+  async getActiveState(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const consistency = await nutritionService.getGoalPlanConsistency(req.user!.id);
+      res.json(consistency);
+    } catch (error) {
+      logger.error("Error computing nutrition goal/plan consistency:", error);
+      res.status(500).json({ error: "Failed to compute nutrition active state" });
+    }
+  },
+
   async upsertGoal(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = upsertNutritionGoalSchema.parse(req.body);
-      const goal = await nutritionService.upsertGoal(req.user!.id, data);
-      res.json(goal);
+      // Now returns { goal, planConsistency } — planConsistency lets the
+      // UI immediately warn if this newly-saved goal makes the user's
+      // active plan stale, instead of the mismatch only surfacing later.
+      const result = await nutritionService.upsertGoal(req.user!.id, data);
+      res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         res
           .status(400)
           .json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      // Typed {status, message, code} throws (e.g. macro/calorie
+      // consistency check) — surface the real, actionable message instead
+      // of collapsing every non-Zod error into a generic 500.
+      if (error && typeof error.status === "number") {
+        res
+          .status(error.status)
+          .json({ error: error.message, code: error.code });
         return;
       }
       logger.error("Error saving nutrition goal:", error);

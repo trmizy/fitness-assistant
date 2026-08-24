@@ -1,5 +1,8 @@
 # Kiểm soát thể trạng & chu kỳ tập luyện (v2)
 
+> Historical design predecessor. See `adaptive-training-cycle-evaluation.md`
+> for the later implemented flow.
+
 Chức năng gồm 2 chế độ vận hành: giám sát liên tục trong chu kỳ, và quyết
 định AI-đề-xuất khi kết thúc chu kỳ. Nguyên tắc xuyên suốt: **code tính số
 liệu, LLM chỉ diễn giải** — mọi delta/trend/phân loại đều deterministic

@@ -102,7 +102,17 @@ function AppShellInner() {
               animate={{ clipPath: "circle(150% at 50% 50%)", opacity: 1 }}
               exit={{ clipPath: "circle(0% at 0% 50%)", opacity: 0 }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="h-full"
+              // min-h-full (not h-full): this box's real content height drives
+              // the clip-path circle's radius (circle() percentages are
+              // relative to the element's own box, not the viewport). Pinning
+              // it to exactly viewport height meant any page taller than one
+              // screen — e.g. the merged workout-log page — got sliced off by
+              // the circle's edge below that point, showing up as a diagonal
+              // cut with the AppShell background bleeding through. min-h-full
+              // still fills the viewport on short pages (so full-height
+              // children, e.g. the chat layout, are unaffected) but lets tall
+              // pages grow the box to their real height instead.
+              className="min-h-full"
             >
               <Outlet />
             </motion.div>

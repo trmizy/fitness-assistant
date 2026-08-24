@@ -22,9 +22,14 @@ router.get("/:id/assessments/latest", authMiddleware, trainingCycleController.la
 router.get("/:id/assessments", authMiddleware, trainingCycleController.listAssessments as any);
 router.post("/:id/recommendation/accept", authMiddleware, trainingCycleController.acceptRecommendation as any);
 router.post("/:id/recommendation/reject", authMiddleware, trainingCycleController.rejectRecommendation as any);
+router.post("/:id/nutrition-recommendation/accept", authMiddleware, trainingCycleController.acceptNutritionRecommendation as any);
+router.post("/:id/nutrition-recommendation/reject", authMiddleware, trainingCycleController.rejectNutritionRecommendation as any);
 router.post("/:id/inbody-links", authMiddleware, trainingCycleController.linkInBodyEntry as any);
 router.post("/:id/sessions/:scheduleId/feedback", authMiddleware, trainingCycleController.submitSessionFeedback as any);
 router.get("/:id/report", authMiddleware, trainingCycleController.report as any);
+router.get("/:id/session-feedback-summary", authMiddleware, trainingCycleController.sessionFeedbackSummary as any);
+router.post("/:id/feedback-analysis", authMiddleware, trainingCycleController.analyzeFeedback as any);
+router.get("/:id/feedback-analysis/latest", authMiddleware, trainingCycleController.latestFeedbackAnalysis as any);
 router.get("/:id/audit", authMiddleware, trainingCycleController.listRecommendationAudits as any);
 router.delete("/:id", authMiddleware, trainingCycleController.remove as any);
 

@@ -37,6 +37,7 @@ import type { CoachContext } from "../coach/coach_context.types";
 import type { UserProfile } from "../llm/types";
 import type { WorkerUserContext } from "./worker-user-context";
 import { redisConnection } from "./ai.queue";
+import { validateWorkoutPlanInvariants } from "../services/workout-plan-invariant.service";
 
 type AllowedExercise = AllowedExerciseItem;
 
@@ -440,6 +441,7 @@ function repairScheduleLengthAndEmptyDays(
   daysPerWeek: number,
   exercisesPerDay: number,
   allowedExercises: AllowedExercise[],
+  perDayCatalogs: DayExerciseCatalog[],
   planId: string,
   jobId: string | undefined,
 ): {
@@ -471,7 +473,9 @@ function repairScheduleLengthAndEmptyDays(
 
   while (content.weeklySchedule.length < daysPerWeek) {
     const dayIndex = content.weeklySchedule.length;
-    const selected = allowedExercises[dayIndex % allowedExercises.length];
+    const dayCandidates =
+      perDayCatalogs.find((catalog) => catalog.dayIndex === dayIndex)?.exercises ?? [];
+    const selected = dayCandidates[0];
     if (!selected) break;
 
     content.weeklySchedule.push({
@@ -479,10 +483,7 @@ function repairScheduleLengthAndEmptyDays(
       goal: splitGoalForDay(goal, dayIndex, daysPerWeek),
       exercises: Array.from({ length: exercisesPerDay }, (_, exerciseIndex) => {
         const next =
-          allowedExercises[
-            (dayIndex * exercisesPerDay + exerciseIndex) %
-              allowedExercises.length
-          ] ?? selected;
+          dayCandidates[exerciseIndex % dayCandidates.length] ?? selected;
         return buildExercisePrescription(
           next,
           exerciseIndex + 1,
@@ -509,9 +510,9 @@ function repairScheduleLengthAndEmptyDays(
     const day = content.weeklySchedule[dayIndex];
     if (Array.isArray(day?.exercises) && day.exercises.length > 0) continue;
 
-    const selected =
-      chooseRepairExercise(day, goal, allowedExercises) ??
-      allowedExercises[dayIndex % allowedExercises.length];
+    const dayCandidates =
+      perDayCatalogs.find((catalog) => catalog.dayIndex === dayIndex)?.exercises ?? [];
+    const selected = chooseRepairExercise(day, goal, dayCandidates);
     if (!selected) continue;
 
     day.exercises = [
@@ -572,12 +573,10 @@ function repairScheduleLengthAndEmptyDays(
         continue;
       }
 
-      const preferred = chooseRepairExercise(day, goal, allowedExercises);
-      const fallback =
-        allowedExercises.find((exercise) => !usedIds.has(exercise.id)) ??
-        allowedExercises[
-          (dayIndex * exercisesPerDay + exerciseIndex) % allowedExercises.length
-        ];
+      const dayCandidates =
+        perDayCatalogs.find((catalog) => catalog.dayIndex === dayIndex)?.exercises ?? [];
+      const preferred = chooseRepairExercise(day, goal, dayCandidates);
+      const fallback = dayCandidates.find((exercise) => !usedIds.has(exercise.id));
       const selected =
         preferred && !usedIds.has(preferred.id) ? preferred : fallback;
       if (!selected) continue;
@@ -611,7 +610,7 @@ function repairExerciseCountAndDayGoals(
   goal: string,
   daysPerWeek: number,
   exercisesPerDay: number,
-  allowedExercises: AllowedExercise[],
+  perDayCatalogs: DayExerciseCatalog[],
   planId: string,
   jobId: string | undefined,
 ): {
@@ -674,14 +673,12 @@ function repairExerciseCountAndDayGoals(
     );
 
     while (day.exercises.length < exercisesPerDay) {
-      const preferred = chooseRepairExercise(day, goal, allowedExercises);
-      const fallbackIndex =
-        (dayIndex * exercisesPerDay + day.exercises.length) %
-        allowedExercises.length;
+      const dayCandidates =
+        perDayCatalogs.find((catalog) => catalog.dayIndex === dayIndex)?.exercises ?? [];
+      const preferred = chooseRepairExercise(day, goal, dayCandidates);
       const selected =
         (preferred && !usedIds.has(preferred.id) ? preferred : null) ??
-        allowedExercises.find((exercise) => !usedIds.has(exercise.id)) ??
-        allowedExercises[fallbackIndex];
+        dayCandidates.find((exercise) => !usedIds.has(exercise.id));
 
       if (!selected) break;
 
@@ -1099,6 +1096,13 @@ export const aiWorker = new Worker(
       return;
     }
 
+    // Declared this early (not just before the later id-validation retry
+    // block) because completePlan/enforceFinalPlanEquipmentInvariant close
+    // over it and can be invoked from the LLM-timeout recovery path, which
+    // runs before that later block — a `const` declared after the first
+    // call site would throw (temporal dead zone) on that path.
+    const allowedIds = new Set(allowedExercises.map((e) => e.id));
+
     // 3b. Fetch personal user context (InBody, workout history, nutrition)
     // Non-critical: failures are swallowed; plan will still be generated
     let userContextText = "";
@@ -1242,6 +1246,16 @@ export const aiWorker = new Worker(
       bodyCompText: bodyCompText || undefined,
       evidenceText,
     });
+    const generationRepairReasons: string[] = [];
+    const appendTrackedPlanWarnings = (
+      content: any,
+      warnings: Array<Record<string, unknown>>,
+    ) => {
+      generationRepairReasons.push(
+        ...warnings.map((warning) => String(warning.reason ?? warning.type ?? "repair")),
+      );
+      appendPlanWarnings(content, warnings);
+    };
 
     logger.info(
       {
@@ -1261,7 +1275,62 @@ export const aiWorker = new Worker(
       content: any,
       logMessage: string,
       extraLog: Record<string, unknown> = {},
-    ) => {
+    ): Promise<boolean> => {
+      if (Array.isArray(content?._metadata?.aiWarnings)) {
+        for (const warning of content._metadata.aiWarnings) {
+          const reason = String(warning?.reason ?? warning?.type ?? "repair");
+          if (!generationRepairReasons.includes(reason)) generationRepairReasons.push(reason);
+        }
+      }
+      const semanticResult = validateWorkoutPlanInvariants({
+        content,
+        daysPerWeek,
+        exercisesPerDay,
+        allowedExercises,
+        perDayCatalogs,
+      });
+      const equipmentViolations = await enforceFinalPlanEquipmentInvariant(content);
+      const failedConstraints = [
+        ...(semanticResult.ok
+          ? []
+          : semanticResult.violations.map((violation) => violation.code)),
+        ...equipmentViolations,
+      ];
+
+      content._metadata = content._metadata || {};
+      content._metadata.generationTelemetry = {
+        modelVersion: process.env.LLM_MODEL || "fitness-coach-qwen2.5-1.5b:q4_K_M",
+        promptVersion: "workout-plan-v2-deterministic-candidates",
+        generationAttempt: Number(job.attemptsMade ?? 0) + 1,
+        repairCount: generationRepairReasons.length,
+        repairReasons: generationRepairReasons,
+        schemaPass: parsePlanContent(JSON.stringify(content)).ok,
+        semanticPass: semanticResult.ok,
+        constraintPass: failedConstraints.length === 0,
+        failedConstraintNames: [...new Set(failedConstraints)],
+        candidateCount: allowedExercises.length,
+        fallbackUsed: Boolean((extraLog as any).recoveredFrom),
+        generationDurationMs: Date.now() - planJobStartedAt,
+      };
+
+      if (!semanticResult.ok || equipmentViolations.length > 0) {
+        const reason = `Final workout plan invariant failed: ${[
+          ...new Set(failedConstraints),
+        ].join(", ")}`;
+        await conversationRepository.updatePlanFailed(planId, reason);
+        logger.error(
+          {
+            jobId: job.id,
+            planId,
+            userId,
+            semanticViolations: semanticResult.ok ? [] : semanticResult.violations,
+            equipmentViolations,
+          },
+          "Plan generation failed closed before persistence",
+        );
+        return false;
+      }
+
       attachEvidenceToPlanContent(content, evidenceBundle);
       await conversationRepository.updatePlanCompletion(planId, content);
       logger.info(
@@ -1274,7 +1343,97 @@ export const aiWorker = new Worker(
         },
         logMessage,
       );
+      return true;
     };
+
+    // Hardening pass §7/§8 — FINAL, authoritative equipment safety net.
+    // Everything upstream (the equipment-filtered candidate pool, every
+    // repair path) is already supposed to guarantee this, but that pool is
+    // itself sampled/bounded (up to PLAN_EXERCISE_FETCH_LIMIT exercises per
+    // job) — this is the one check made against the plan's actual small,
+    // exact exerciseId set with no sampling involved, called as the very
+    // last step before ANY plan content is persisted. Never invents
+    // equipment or silently accepts a violation: one repair attempt sourced
+    // only from `allowedExercises` (itself equipment-safe by construction),
+    // then logs loudly if a slot still can't be resolved.
+    async function enforceFinalPlanEquipmentInvariant(content: any): Promise<string[]> {
+      if (!Array.isArray(content?.weeklySchedule)) {
+        return ["equipment_validator_missing_schedule"];
+      }
+      try {
+        const resp = await axios.post(
+          `${fitnessServiceUrl}/internal/exercises/validate-plan-equipment`,
+          { weeklySchedule: content.weeklySchedule },
+          {
+            timeout: 8000,
+            headers: { "x-internal-token": internalSecret, "x-user-id": userId },
+          },
+        );
+        const result = resp?.data?.data as
+          | { valid: boolean; violations: Array<{ exerciseId: string; dayIndex: number; exerciseName: string; required: string[] }>; skippedNoUserEquipment: boolean }
+          | undefined;
+        if (!result) return ["equipment_validator_invalid_response"];
+        if (result.valid || result.violations.length === 0) return [];
+
+        logger.warn(
+          { jobId: job.id, planId, userId, violations: result.violations },
+          "Final-plan equipment invariant violated — repairing before persistence",
+        );
+
+        for (const v of result.violations) {
+          const day = content.weeklySchedule[v.dayIndex];
+          if (!day || !Array.isArray(day.exercises)) continue;
+          const usedIds = new Set(
+            day.exercises.map((e: any) => String(e?.exerciseId || "")).filter((id: string) => allowedIds.has(id)),
+          );
+          const dayCandidates = perDayCatalogs.find(
+            (catalog) => catalog.dayIndex === v.dayIndex,
+          )?.exercises ?? [];
+          const replacement = dayCandidates.find(
+            (candidate) => !usedIds.has(candidate.id),
+          );
+          if (!replacement) continue; // no safe candidate exists at all — leave as-is, logged below
+          const idx = day.exercises.findIndex((e: any) => e?.exerciseId === v.exerciseId);
+          if (idx === -1) continue;
+          day.exercises[idx] = buildExercisePrescription(
+            replacement,
+            idx + 1,
+            "Auto-repaired: final equipment-invariant check found this exercise unavailable",
+          );
+          generationRepairReasons.push("replaced_equipment_incompatible_exercise");
+        }
+
+        const reValidateResp = await axios.post(
+          `${fitnessServiceUrl}/internal/exercises/validate-plan-equipment`,
+          { weeklySchedule: content.weeklySchedule },
+          { timeout: 8000, headers: { "x-internal-token": internalSecret, "x-user-id": userId } },
+        );
+        const reValidated = reValidateResp?.data?.data as { valid: boolean; violations: unknown[] } | undefined;
+        if (!reValidated) return ["equipment_validator_invalid_response"];
+        if (!reValidated.valid) {
+          // Repair couldn't fully resolve it (e.g. allowedExercises itself
+          // was too sparse for this user's equipment). Never invent
+          // equipment or silently ship an impossible exercise — log loudly
+          // for operator visibility; the plan still persists with whatever
+          // the repair pass achieved (better than failing the whole plan
+          // over one slot), but this is now diagnosable from logs.
+          logger.error(
+            { jobId: job.id, planId, userId, remainingViolations: reValidated.violations },
+            "Final-plan equipment invariant still violated after constrained repair",
+          );
+          return ["equipment_constraint_violation"];
+        } else {
+          logger.info({ jobId: job.id, planId, userId }, "Final-plan equipment invariant repair succeeded");
+          return [];
+        }
+      } catch (err) {
+        logger.error(
+          { err: (err as Error).message, jobId: job.id, planId },
+          "Final-plan equipment invariant check failed to run",
+        );
+        return ["equipment_validator_unavailable"];
+      }
+    }
 
     let rawAnswer: string;
     try {
@@ -1407,7 +1566,7 @@ export const aiWorker = new Worker(
     }
 
     // Validate exerciseIds are in allowedExercises. Retry once if not.
-    const allowedIds = new Set(allowedExercises.map((e) => e.id));
+    // (allowedIds itself is declared earlier now — see the comment there.)
 
     async function idsValid(
       content: any,
@@ -1448,12 +1607,13 @@ export const aiWorker = new Worker(
         daysPerWeek,
         exercisesPerDay,
         promptExercises,
+        perDayCatalogs,
         planId,
         job.id,
       );
 
       if (repaired.repaired) {
-        appendPlanWarnings(repaired.content, repaired.warnings);
+        appendTrackedPlanWarnings(repaired.content, repaired.warnings);
         parseResult = parsePlanContent(JSON.stringify(repaired.content));
         if (parseResult.ok) {
           logger.warn(
@@ -1530,12 +1690,12 @@ export const aiWorker = new Worker(
       goal,
       daysPerWeek,
       exercisesPerDay,
-      promptExercises,
+      perDayCatalogs,
       planId,
       job.id,
     );
     if (countRepair.repaired) {
-      appendPlanWarnings(countRepair.content, countRepair.warnings);
+      appendTrackedPlanWarnings(countRepair.content, countRepair.warnings);
       const repairedValidation = parsePlanContent(
         JSON.stringify(countRepair.content),
       );
@@ -1614,7 +1774,7 @@ export const aiWorker = new Worker(
     }
 
     if (mismatchWarnings.length > 0) {
-      appendPlanWarnings(planContentForRepair, mismatchWarnings);
+      appendTrackedPlanWarnings(planContentForRepair, mismatchWarnings);
       const repairedAfterMuscle = parsePlanContent(
         JSON.stringify(planContentForRepair),
       );
@@ -1673,14 +1833,11 @@ export const aiWorker = new Worker(
             )
               continue;
 
-            const preferred = chooseRepairExercise(day, goal, allowedExercises);
-            const fallback =
-              allowedExercises.find(
-                (candidate) => !usedIds.has(candidate.id),
-              ) ??
-              allowedExercises[
-                (dayIndex + exerciseIndex) % allowedExercises.length
-              ];
+            const dayCandidates = catalogById.get(dayIndex)?.exercises ?? [];
+            const preferred = chooseRepairExercise(day, goal, dayCandidates);
+            const fallback = dayCandidates.find(
+              (candidate) => !usedIds.has(candidate.id),
+            );
             const selected =
               preferred && !usedIds.has(preferred.id) ? preferred : fallback;
             if (!selected) continue;
@@ -1706,7 +1863,7 @@ export const aiWorker = new Worker(
       }
 
       if (replacementWarnings.length > 0) {
-        appendPlanWarnings(invalidContent, replacementWarnings);
+        appendTrackedPlanWarnings(invalidContent, replacementWarnings);
         const repairedValidation = parsePlanContent(
           JSON.stringify(invalidContent),
         );
@@ -1768,12 +1925,12 @@ export const aiWorker = new Worker(
           goal,
           daysPerWeek,
           exercisesPerDay,
-          promptExercises,
+          perDayCatalogs,
           planId,
           job.id,
         );
         if (retryCountRepair.repaired) {
-          appendPlanWarnings(
+          appendTrackedPlanWarnings(
             retryCountRepair.content,
             retryCountRepair.warnings,
           );
@@ -1813,7 +1970,7 @@ export const aiWorker = new Worker(
               const selected = chooseRepairExercise(
                 day,
                 goal,
-                allowedExercises,
+                catalogById.get(dayIndex)?.exercises ?? [],
               );
               if (!selected) {
                 continue;
@@ -1847,7 +2004,7 @@ export const aiWorker = new Worker(
             repairedValidation.ok &&
             repairedIdCheck.ok
           ) {
-            appendPlanWarnings(
+            appendTrackedPlanWarnings(
               incomplete,
               repairedDays.map((item) => ({
                 type: "deterministic_repair",
@@ -1972,68 +2129,18 @@ export const aiWorker = new Worker(
         return true;
       }
 
-      // 2) fallback to querying fitness-service public search if allowed list didn't help
-      const searchUrl =
-        process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
-      for (const nm of nameToFind) {
-        try {
-          const resp = await axios.get(`${searchUrl}/exercises`, {
-            params: { search: nm, limit: 5 },
-            timeout: 5000,
-          });
-          const candidates = Array.isArray(resp.data)
-            ? resp.data
-            : (resp.data?.data ?? []);
-          if (candidates && candidates.length > 0) {
-            // Try to select the best candidate by fuzzy-ish normalization match.
-            const qn = normalize(nm);
-            let best: any = null;
-            for (const c of candidates) {
-              const cn = normalize(c.exerciseName || c.name || "");
-              if (cn.includes(qn) || qn.includes(cn)) {
-                best = c;
-                break;
-              }
-            }
-            if (best) {
-              mappingWarnings.push({
-                type: "name_mapping",
-                planId,
-                jobId: job.id,
-                exerciseName: nm,
-                mappedTo: best.id,
-                mappedName: best.exerciseName || best.name,
-                source: "publicSearch",
-              });
-              for (const day of content.weeklySchedule) {
-                for (const ex of day.exercises) {
-                  if (
-                    (!ex.exerciseId ||
-                      ex.exerciseId === "" ||
-                      !allowedIds.has(String(ex.exerciseId))) &&
-                    ex.name &&
-                    normalize(String(ex.name)).includes(normalize(nm))
-                  ) {
-                    ex.exerciseId = best.id;
-                    ex.name = best.exerciseName || ex.name;
-                  }
-                }
-              }
-            } else {
-              logger.warn(
-                { planId, jobId: job.id, exerciseName: nm },
-                "Name not confidently matched in public search results (skipping)",
-              );
-            }
-          }
-        } catch (e) {
-          // Ignore individual lookup errors - continue best-effort.
-          logger.warn(
-            { err: e, name: nm, planId },
-            "Name->ID mapping lookup failed (continuing)",
-          );
-        }
-      }
+      // NOTE: a "2) fallback to fitness-service's public /exercises search"
+      // step used to live here. Removed — gym-onboarding project security
+      // review (§20/§26): that endpoint is NOT equipment-filtered, so a
+      // name too vague to confidently match against `allowedExercises`
+      // (already equipment-safe, tried above) could resolve to any exercise
+      // in the entire catalog regardless of the user's actual equipment,
+      // violating "the LLM/repair mechanism may only choose from a
+      // candidate pool already proven equipment-compatible". Any name that
+      // still isn't mapped after the allowedList attempt above now falls
+      // through to the deterministic per-day repair block below (still
+      // sourced only from `allowedExercises`), which was already the
+      // pipeline's own safe fallback for exactly this case.
 
       // Re-run id validation - if successful, persist and finish.
       const finalCheck = await idsValid(content);
@@ -2093,7 +2200,7 @@ export const aiWorker = new Worker(
         professionalValidation.errors.length > 0 ||
         professionalValidation.warnings.length > 0
       ) {
-        appendPlanWarnings(content, [
+        appendTrackedPlanWarnings(content, [
           {
             type: "coach_plan_validation",
             errors: professionalValidation.errors,
@@ -2129,7 +2236,7 @@ export const aiWorker = new Worker(
           exercisesPerDay,
           allowedExercises,
         }) as any;
-        appendPlanWarnings(content, [
+        appendTrackedPlanWarnings(content, [
           {
             type: "coach_plan_validation_fallback",
             reason: "structured_plan_failed_backend_validation",

@@ -136,8 +136,46 @@ function inferIntent(question: string): RoutedIntentType {
     return "combined_plan_request";
   }
 
+  // nutrient_timing_request: focused pre/post-workout nutrition advice
+  // ("trước/sau tập nên ăn gì?", "pre workout ăn gì?", "quanh buổi tập nên
+  // ăn carb thế nào?", "tập lúc 6h tối thì ăn sao?") — checked BEFORE the
+  // generic meal_plan_request catch-all below, since that pattern's bare
+  // "ăn gì"/"cách ăn" would otherwise swallow these too and always trigger
+  // a full meal-plan generation instead of a direct answer to the timing
+  // question. Real bug found via E2E persona testing
+  // (24-ai-nutrition-persona-b-c.spec.ts, Persona B).
+  // Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
+  // Persona C): a bare `[aă]n` match is too loose — it also matches the "an"
+  // inside completely unrelated words like "an toàn" (safe) or "quan trọng"
+  // (important), which wrongly classified "creatine và caffeine trước buổi
+  // tập... liều lượng bao nhiêu là AN TOÀN?" (a supplement-safety question)
+  // as a nutrient_timing_request. Require "ăn" (with the diacritic — the
+  // only spelling that unambiguously means "eat") as its own standalone
+  // word instead of a bare substring.
+  // \b around "eat"/"meal" is required — without it, "eat" as a bare
+  // substring matches inside completely unrelated words like "creatine"
+  // ("cr-EAT-ine"), the exact word Persona C's supplement question uses.
+  // Same substring-match bug class as the "ăn"-in-"an toàn" fix above.
+  const mentionsEating =
+    /\b(meal|eat)\b|bua|b[ữư]a|carb/i.test(q) ||
+    /(?<![\p{L}])ăn(?![\p{L}])/iu.test(q);
+  const mentionsWorkoutTiming =
+    // "trước/sau (khi) (buổi) tập", "trước và sau buổi tập"
+    /(tr[uướ][oớ]c|sau)\s*(v[aà]\s*sau\s*)?(khi\s*)?(bu[oổ]i\s*)?t[aậ]p\b/i.test(
+      q,
+    ) ||
+    // English "pre workout" / "post workout"
+    /(pre|post)[\s-]?workout/i.test(q) ||
+    // "quanh buổi tập"
+    /quanh\s*(bu[oổ]i\s*)?t[aậ]p/i.test(q) ||
+    // "tập lúc 6h/18h/6 giờ tối thì ăn ..." — training-time-anchored question
+    (/t[aậ]p\b.{0,25}(l[uú]c|gi[oờ])\s*\d/i.test(q) && mentionsEating);
+  if (mentionsWorkoutTiming && mentionsEating) {
+    return "nutrient_timing_request";
+  }
+
   if (
-    /(th[uứự]c [dđ][oơ]n|thực đơn|dinh d[uư][oơỡ]ng|dinh dưỡng|b[ưữ]a [aă]n|bua an|meal plan|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(
+    /(th[uứự]c [dđ][oơ]n|thực đơn|dinh d[uư][oơỡ]ng|dinh dưỡng|b[ưữ]a [aă]n|bua an|meal plan|calo\b|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(
       q,
     )
   ) {

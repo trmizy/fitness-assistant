@@ -18,9 +18,14 @@ import {
 import { evaluateAlerts, type CycleAlert } from "./training-cycle-alerts.service";
 import type { ProgressSignals } from "./training-cycle-classification.service";
 import { cycleThresholds } from "../config/cycle-thresholds.config";
-import { computeCycleMetrics } from "./cycle-metrics.engine";
+import { computeCycleMetrics, type CycleMetricsResult } from "./cycle-metrics.engine";
+import { cycleFeedbackAggregator, type CycleFeedbackSummaryResult } from "./cycle-feedback-aggregator";
 import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScope } from "./cycle-decision.engine";
 import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE } from "../utils/schedule-lock.util";
+import { buildCycleBaselineMetrics, buildCycleTargetMetrics } from "./cycle-baseline-snapshot.util";
+import { computeWeightTrend } from "./weight-trend.util";
+import { evaluateNutritionAdaptive, type NutritionDecisionResult } from "./nutrition-decision.engine";
+import { nutritionRepository } from "../repositories/nutrition.repository";
 import { systemClock, type Clock } from "../utils/clock";
 import type { CreateTrainingCycleInput, UpdateTrainingCycleInput, SessionFeedbackInput } from "../models/training-cycle.models";
 
@@ -148,6 +153,20 @@ export const trainingCycleService = {
       }),
     ]);
 
+    // Snapshot baseline/target metrics only at the moment the cycle actually
+    // activates — a DRAFT cycle hasn't started yet (mirrors the existing
+    // startInbodyId: null-for-DRAFT rule just above) and gets its snapshot
+    // later, in startDraftCycle, at real activation time.
+    const baselineMetrics =
+      requestedStatus === "ACTIVE"
+        ? buildCycleBaselineMetrics(startInBody, profile?.currentWeight)
+        : null;
+    // extra.targetMetrics (caller/PT-supplied) always wins when present;
+    // otherwise fall back to snapshotting the profile's current goal.
+    const targetMetrics =
+      extra?.targetMetrics ??
+      (requestedStatus === "ACTIVE" ? buildCycleTargetMetrics(profile?.targetWeight) : null);
+
     try {
       return await prisma.trainingCycle.create({
         data: {
@@ -161,7 +180,8 @@ export const trainingCycleService = {
           status: requestedStatus,
           startInbodyId: requestedStatus === "ACTIVE" ? (startInBody?.id ?? null) : null,
           name: extra?.name,
-          targetMetrics: extra?.targetMetrics as any,
+          baselineMetrics: baselineMetrics as any,
+          targetMetrics: targetMetrics as any,
           configuration: extra?.configuration as any,
           timezoneAtStart: APP_SCHEDULE_TIME_ZONE,
         },
@@ -201,7 +221,15 @@ export const trainingCycleService = {
     const start = startOfUtcDay(clock.now());
     const end = new Date(start);
     end.setDate(end.getDate() + cycle.durationDays);
-    const startInBody = await fetchLatestInBodyOnOrBefore(userId, start);
+    const [startInBody, profile] = await Promise.all([
+      fetchLatestInBodyOnOrBefore(userId, start),
+      fetchUserProfile(userId),
+    ]);
+    const baselineMetrics = buildCycleBaselineMetrics(startInBody, profile?.currentWeight);
+    // A DRAFT cycle may already carry caller-supplied targetMetrics from
+    // creation time (see startCycle) — only snapshot from the profile goal
+    // here if it doesn't.
+    const targetMetrics = cycle.targetMetrics ?? buildCycleTargetMetrics(profile?.targetWeight);
 
     try {
       return await prisma.trainingCycle.update({
@@ -211,6 +239,8 @@ export const trainingCycleService = {
           startDate: start,
           endDate: end,
           startInbodyId: startInBody?.id ?? null,
+          baselineMetrics: baselineMetrics as any,
+          targetMetrics: targetMetrics as any,
           timezoneAtStart: APP_SCHEDULE_TIME_ZONE,
         },
       });
@@ -492,6 +522,14 @@ export const trainingCycleService = {
     return cycle;
   },
 
+  /** Phase 3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — deterministic
+   * session-feedback rollup for a cycle. Computed fresh on every call (cheap,
+   * pure function of current data) and persisted as the latest snapshot. */
+  async getSessionFeedbackSummary(cycleId: string, userId: string) {
+    await this.getCycle(cycleId, userId); // ownership check, 404s if not found/not owned
+    return cycleFeedbackAggregator.computeAndPersist(cycleId);
+  },
+
   /** User approves a decision — records the plan for cycle N+1 (opening it is a separate call). */
   async approveDecision(cycleId: string, userId: string, nextPlanId: string) {
     const cycle = await prisma.trainingCycle.findFirst({ where: { id: cycleId, userId } });
@@ -580,6 +618,63 @@ export const trainingCycleService = {
     return entries.filter((e): e is InBodyEntrySnapshot => e != null);
   },
 
+  /** Phase 2 — runs the Adaptive Nutrition Decision Engine for a cycle
+   * evaluation, reusing the SAME CycleMetricsResult already computed for
+   * the training decision (no duplicate metrics fetch). Deliberately
+   * fetches its OWN recent InBody window via fetchInBodySeries (not the
+   * narrower collectCycleInBodyEntries result, which is only the
+   * explicitly cycle-linked entries) — weight-trend.util.ts needs a
+   * genuine rolling recent window regardless of which entries a user
+   * happened to manually link to this cycle. Returns null (never throws)
+   * on any lookup failure — a nutrition-evaluation problem must never fail
+   * the training assessment it's computed alongside. */
+  async evaluateNutritionForCycle(params: {
+    userId: string;
+    goal: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE" | null;
+    metrics: CycleMetricsResult;
+    cycleDurationDays: number;
+    now: Date;
+  }): Promise<NutritionDecisionResult | null> {
+    try {
+      const trendWindowStart = new Date(
+        params.now.getTime() - cycleThresholds.weightTrend.trendWindowDays * 86_400_000,
+      );
+      const [recentInBody, activeGoalRow] = await Promise.all([
+        fetchInBodySeries(params.userId, trendWindowStart, params.now),
+        nutritionRepository.findGoalByUserId(params.userId),
+      ]);
+      const weightTrend = computeWeightTrend(
+        recentInBody.map((e) => ({ date: e.date, weight: e.weight })),
+        params.now,
+        cycleThresholds.weightTrend,
+      );
+      const activeNutritionGoal = activeGoalRow
+        ? {
+            calories: activeGoalRow.calories,
+            protein: activeGoalRow.protein,
+            carbs: activeGoalRow.carbs,
+            fat: activeGoalRow.fat,
+          }
+        : null;
+      // targetWeightKg isn't actually read by evaluateNutritionAdaptive
+      // today (goal-specific rules key off the trend rate, not a direct
+      // distance-to-target calculation) — kept in the input type for the
+      // explanation layer / future use, resolved from the profile the
+      // caller already fetched rather than a second lookup here.
+      return evaluateNutritionAdaptive({
+        goal: params.goal,
+        targetWeightKg: null,
+        weightTrend,
+        metrics: params.metrics,
+        activeNutritionGoal,
+        cycleDurationDaysSoFar: params.cycleDurationDays,
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, userId: params.userId }, "[training-cycle] nutrition evaluation failed");
+      return null;
+    }
+  },
+
   /** Latest COMPLETED assessment decision for each of the user's most
    * recent prior cycles (most-recent-first) — feeds the Decision Engine's
    * REBUILD "two consecutive missed cycles" rule. Cycles that never got a
@@ -665,7 +760,7 @@ export const trainingCycleService = {
         where: { userId, logDate: { gte: windowStart, lte: windowEnd } },
         orderBy: { logDate: "asc" },
       }),
-      prisma.nutritionGoal.findUnique({ where: { userId } }),
+      prisma.nutritionGoal.findFirst({ where: { userId, status: "ACTIVE" } }),
     ]);
 
     const feedbackByScheduleId = new Map(feedbackRows.map((f) => [f.workoutScheduleId, f]));
@@ -957,6 +1052,37 @@ export const trainingCycleService = {
         | "UNKNOWN";
       const competesInSport = profile?.competesInSport === true;
 
+      // Phase 5 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — the
+      // deterministic feedback summary always gets computed/refreshed here
+      // (cheap, no AI call); the AI interpretation is NOT triggered
+      // automatically — reuses whatever the most recent explicit
+      // POST /:id/feedback-analysis produced, if any, so evaluate() never
+      // pays for a surprise extra LLM round-trip. Absence of a recent
+      // analysis just means the engine falls back to its rule-based-only
+      // feedback gating (still functional — see cycle-decision.engine.ts).
+      // computeAndPersist's return type is the loosely-typed Prisma row
+      // (JSON columns come back as `JsonValue`); the cast back to the
+      // pure result shape is safe since every JSON field was itself
+      // written from that same shape a few lines above in the aggregator.
+      const cycleFeedbackSummary = (await cycleFeedbackAggregator.computeAndPersist(
+        cycleId,
+      )) as unknown as CycleFeedbackSummaryResult;
+      const latestFeedbackAnalysis = await prisma.cycleFeedbackAnalysisAudit.findFirst({
+        where: { cycleId },
+        orderBy: { createdAt: "desc" },
+      });
+      const feedbackSignals = {
+        cycleFeedbackSummary,
+        aiFeedbackAnalysis: latestFeedbackAnalysis
+          ? {
+              complaintValidity: latestFeedbackAnalysis.complaintValidity as any,
+              recommendedDecisionInfluence: latestFeedbackAnalysis.recommendedDecisionInfluence as any,
+              complaintCategories: (latestFeedbackAnalysis.complaintCategories as any) ?? [],
+              riskFlags: (latestFeedbackAnalysis.riskFlags as any) ?? [],
+            }
+          : undefined,
+      };
+
       const engineResult = runDecisionEngine({
         cycleDurationDays,
         completedSessions,
@@ -964,9 +1090,22 @@ export const trainingCycleService = {
         priorCycleDecisions,
         experienceLevel,
         competesInSport,
+        feedbackSignals,
       });
 
       const allowedChanges = ACTION_SCOPE_TO_ALLOWED_CHANGES[engineResult.recommendedActionScope];
+
+      // Phase 2 — Adaptive Nutrition Decision Engine, evaluated at the same
+      // touchpoint as the training decision above (same window, same
+      // profile fetch already in hand) but a fully independent decision
+      // space and accept/reject lifecycle — see nutrition-decision.engine.ts.
+      const nutritionResult = await this.evaluateNutritionForCycle({
+        userId,
+        goal: (profile?.goal as any) ?? null,
+        metrics,
+        cycleDurationDays,
+        now,
+      });
 
       const aiResult = await assessCycleSafe(userId, {
         userId,
@@ -995,6 +1134,21 @@ export const trainingCycleService = {
         safetyFlags: engineResult.safetyFlags,
         currentPlanSummary: { planId: cycle.planId },
         allowedChanges,
+        // Phase 2 — omit entirely (not even an empty object) when the
+        // nutrition engine didn't run/failed, so ai-service never gets
+        // asked to explain a decision that doesn't exist (see
+        // AssessCycleRequestSchema's doc comment).
+        nutrition: nutritionResult
+          ? {
+              decision: nutritionResult.decision,
+              confidence: nutritionResult.confidence,
+              signals: nutritionResult.signals as any,
+              proposedChanges: nutritionResult.proposedChanges as any,
+              reasonCodes: nutritionResult.reasonCodes,
+              evidenceIds: nutritionResult.evidenceIds,
+              requiresConfirmation: nutritionResult.requiresConfirmation,
+            }
+          : undefined,
       });
 
       const updated = await prisma.cycleAssessment.update({
@@ -1011,6 +1165,16 @@ export const trainingCycleService = {
           recommendedActionScope: engineResult.recommendedActionScope as any,
           aiSummary: aiResult?.summary ?? null,
           proposedChanges: (aiResult?.proposedChanges ?? []) as any,
+          // Phase 2 — independent nutrition decision, same evaluation event.
+          nutritionDecision: nutritionResult?.decision ?? null,
+          nutritionConfidence: nutritionResult?.confidence ?? null,
+          nutritionSignals: (nutritionResult?.signals ?? null) as any,
+          nutritionProposedChanges: (nutritionResult?.proposedChanges ?? null) as any,
+          nutritionReasonCodes: (nutritionResult?.reasonCodes ?? null) as any,
+          nutritionEvidenceIds: (nutritionResult?.evidenceIds ?? null) as any,
+          nutritionRequiresConfirmation: nutritionResult?.requiresConfirmation ?? false,
+          nutritionAiHeadline: aiResult?.nutritionSummary?.headline ?? null,
+          nutritionAiExplanation: aiResult?.nutritionSummary?.explanation ?? null,
         },
       });
       void pushCycleAssessmentNotification(userId, cycleId, engineResult.decision).catch(() => {});
@@ -1031,10 +1195,40 @@ export const trainingCycleService = {
             reasonCodes: engineResult.reasonCodes as any,
             metricsSnapshot: metrics as any,
             aiSummary: aiResult?.summary ?? null,
+            // Phase 5 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md
+            feedbackSignalsUsed: engineResult.feedbackInfluenceApplied,
+            feedbackSummarySnapshot: cycleFeedbackSummary as any,
+            aiFeedbackAnalysisId: latestFeedbackAnalysis?.id ?? null,
+            finalDecisionReasonCodes: engineResult.reasonCodes as any,
+            complaintValidity: latestFeedbackAnalysis?.complaintValidity ?? null,
+            decisionInfluenceFromFeedback: engineResult.decisionInfluenceFromFeedback,
           },
         });
       } catch (err) {
         logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] recommendation audit write failed");
+      }
+      // Phase 2 — a SEPARATE audit row for the nutrition decision (reuses
+      // this same generic table, engineVersion="nutrition-adaptive-v1" —
+      // see docs/body-state-and-adaptive-planning.md). Independent from the
+      // training audit row above so "what fraction of nutrition proposals
+      // do users accept" is answerable on its own, same rationale as the
+      // original training audit table's own doc comment.
+      if (nutritionResult) {
+        try {
+          await prisma.recommendationAudit.create({
+            data: {
+              userId,
+              cycleId,
+              assessmentId: updated.id,
+              engineVersion: "nutrition-adaptive-v1",
+              decision: nutritionResult.decision,
+              reasonCodes: nutritionResult.reasonCodes as any,
+              metricsSnapshot: nutritionResult.signals as any,
+            },
+          });
+        } catch (err) {
+          logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] nutrition recommendation audit write failed");
+        }
       }
       return updated;
     } catch (err) {
@@ -1109,8 +1303,16 @@ export const trainingCycleService = {
     // existed), so this only updates if one is found rather than failing
     // the whole review action.
     try {
+      // Phase 2 bug found via this file's own test suite: scoped to
+      // engineVersion="adaptive-v1" (the TRAINING audit row) — without this
+      // filter, accepting/rejecting the training recommendation would ALSO
+      // silently mark the independent nutrition audit row (engineVersion=
+      // "nutrition-adaptive-v1") as reviewed, even though the user never
+      // touched the nutrition recommendation at all. See
+      // reviewNutritionRecommendation below for that lifecycle's own
+      // correctly-scoped update.
       await prisma.recommendationAudit.updateMany({
-        where: { assessmentId: assessment.id, userAction: null },
+        where: { assessmentId: assessment.id, engineVersion: "adaptive-v1", userAction: null },
         data: {
           userAction: userDecision === "ACCEPTED" ? "accepted" : "rejected",
           userActionAt: new Date(),
@@ -1120,6 +1322,96 @@ export const trainingCycleService = {
       logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] recommendation audit update failed");
     }
     return reviewed;
+  },
+
+  // ── Phase 2 — Nutrition recommendation accept/reject (independent from
+  // the training accept/reject above; spec §14/§15/§41). This is the ONLY
+  // place in the codebase allowed to create a new NutritionGoal version
+  // FROM an AI-adaptive proposal — the engine itself only ever returns a
+  // recommendation, never writes. ──
+  async acceptNutritionRecommendation(cycleId: string, userId: string, assessmentId?: string) {
+    return this.reviewNutritionRecommendation(cycleId, userId, "ACCEPTED", assessmentId);
+  },
+
+  async rejectNutritionRecommendation(cycleId: string, userId: string, assessmentId?: string) {
+    return this.reviewNutritionRecommendation(cycleId, userId, "REJECTED", assessmentId);
+  },
+
+  async reviewNutritionRecommendation(
+    cycleId: string,
+    userId: string,
+    userDecision: "ACCEPTED" | "REJECTED",
+    assessmentId?: string,
+  ) {
+    await this.getCycle(cycleId, userId);
+    const assessment = assessmentId
+      ? await prisma.cycleAssessment.findFirst({ where: { id: assessmentId, cycleId } })
+      : await prisma.cycleAssessment.findFirst({
+          where: { cycleId, status: "COMPLETED" },
+          orderBy: { assessmentVersion: "desc" },
+        });
+    if (!assessment) throw { status: 404, message: "Assessment not found" };
+    if (!assessment.nutritionDecision) {
+      throw { status: 404, message: "No nutrition recommendation on this assessment" };
+    }
+
+    // Atomic conditional update (spec §28/§29 — idempotent apply, no
+    // double-application under concurrency): the WHERE clause re-checks
+    // PENDING at the database level, so two concurrent accept/reject calls
+    // cannot both "win" the way a separate findFirst-then-update would —
+    // whichever commits first flips the row out of PENDING, and the loser's
+    // updateMany matches zero rows.
+    const claim = await prisma.cycleAssessment.updateMany({
+      where: { id: assessment.id, nutritionUserDecision: "PENDING" },
+      data: { nutritionUserDecision: userDecision, nutritionReviewedAt: new Date() },
+    });
+    if (claim.count === 0) {
+      throw { status: 409, message: "This nutrition recommendation has already been reviewed" };
+    }
+
+    let appliedNutritionGoalId: string | null = null;
+    if (userDecision === "ACCEPTED" && assessment.nutritionProposedChanges) {
+      const proposed = assessment.nutritionProposedChanges as Partial<{
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      }>;
+      const current = await nutritionRepository.findGoalByUserId(userId);
+      const merged = {
+        calories: proposed.calories ?? current?.calories ?? 2000,
+        protein: proposed.protein ?? current?.protein ?? 150,
+        carbs: proposed.carbs ?? current?.carbs ?? 200,
+        fat: proposed.fat ?? current?.fat ?? 65,
+        waterMl: current?.waterMl ?? null,
+      };
+      const reasonCodes = Array.isArray(assessment.nutritionReasonCodes)
+        ? (assessment.nutritionReasonCodes as unknown as string[])
+        : [];
+      const newGoal = await nutritionRepository.upsertGoal(userId, merged, {
+        reason: reasonCodes.length > 0 ? reasonCodes.join("; ") : undefined,
+        triggeredBy: "AI_ADAPTIVE",
+      });
+      appliedNutritionGoalId = newGoal.id;
+      await prisma.cycleAssessment.update({
+        where: { id: assessment.id },
+        data: { appliedNutritionGoalId },
+      });
+    }
+
+    try {
+      await prisma.recommendationAudit.updateMany({
+        where: { assessmentId: assessment.id, engineVersion: "nutrition-adaptive-v1", userAction: null },
+        data: {
+          userAction: userDecision === "ACCEPTED" ? "accepted" : "rejected",
+          userActionAt: new Date(),
+        },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] nutrition recommendation audit update failed");
+    }
+
+    return prisma.cycleAssessment.findUniqueOrThrow({ where: { id: assessment.id } });
   },
 
   /** Read-only interaction log for a cycle's recommendations — see

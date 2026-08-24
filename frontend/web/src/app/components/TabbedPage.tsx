@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export interface TabbedPageTab {
   value: string;
@@ -22,6 +22,13 @@ export function TabbedPage({
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.value);
   const activeTab = tabs.find((t) => t.value === active) ?? tabs[0];
 
+  // React Router can reuse the same page component when a legacy alias changes
+  // (for example /contracts -> /booking). Keep the selected tab aligned with
+  // that route instead of retaining stale local state from the previous URL.
+  useEffect(() => {
+    if (defaultTab) setActive(defaultTab);
+  }, [defaultTab]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-none flex gap-2 overflow-x-auto px-4 md:px-6 pt-4 pb-2">
@@ -29,6 +36,7 @@ export function TabbedPage({
           <button
             key={t.value}
             type="button"
+            data-testid={`page-tab-${t.value}`}
             onClick={() => setActive(t.value)}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
               active === t.value

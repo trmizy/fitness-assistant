@@ -115,7 +115,10 @@ Xem đầy đủ tại `TRAINING_CYCLE_DECISION_ENGINE.md`. Điểm mấu chốt
 ## 9. AI/RAG Architecture
 
 Hiện trạng (đã xác nhận qua code + `docs/ai-rag-architecture.md`):
-- Ollama (`qwen3:30b-a3b-instruct-2507-q4_K_M` theo README, `llama3.2:3b` theo roadmap cũ — **cần xác minh model nào đang thực sự chạy**, có khả năng đã nâng cấp giữa hai thời điểm viết tài liệu) + Qdrant (`nomic-embed-text`).
+- Ollama + Qdrant (`nomic-embed-text`). **Resolved after this audit:** the
+  current default model is defined by `.env.example` and Compose as
+  `fitness-coach-qwen2.5-1.5b:q4_K_M`; older Qwen3/llama3 references are
+  historical experiments or Docker-local fallbacks.
 - 4 collection tách biệt theo mục đích sử dụng (exercises cho chat, fitness_evidence cho lý luận thành phần cơ thể...) — thiết kế hợp lý, tránh exercise-chat evidence lẫn với cycle-evidence.
 - Evidence citation policy đã ghi rõ: chỉ dùng metadata đã retrieve, không để model tự bịa trích dẫn.
 - **Gap**: legacy cycle-analysis path cắt evidence context ở 500 ký tự và bỏ metadata trích dẫn — nên đồng bộ với Adaptive flow đã sửa đúng.
@@ -134,7 +137,7 @@ Hiện trạng (đã xác nhận qua code + `docs/ai-rag-architecture.md`):
 | Progress chart | Có volume theo tuần (Recharts) | Thêm biểu đồ InBody trend đa điểm (hiện `getProgress` chỉ trả summarized inBodyQuality, chưa có raw comparable-point series để vẽ line chart thật — đã ghi nhận là "known limitation" trong doc cũ) |
 | Cảnh báo thiếu dữ liệu | Có (`INSUFFICIENT_DATA`, "Chưa có dữ liệu" thay vì 0%) | Đã tốt — giữ nguyên chuẩn này khi mở rộng thêm metric mới |
 | Màn AI recommendation | Có (`AdaptiveAssessmentCard`) | Cho nhóm D: cần hiển thị rõ hơn "đây chỉ là diễn giải của AI, quyết định đến từ Decision Engine" — tăng minh bạch |
-| Mobile responsiveness | `apps/mobile` (Expo/React Native riêng biệt) đã bị xóa khỏi repo — app mobile chính thức giờ là bản Capacitor bọc `frontend/web` (`frontend/web/android`), dùng chung 100% code React với web | Không còn code mobile riêng để rà soát nguyên tắc data-sufficiency — Capacitor dùng chung `trainingCycles.ts` của web nên tự động thừa hưởng mọi fix đã áp dụng ở đó |
+| Mobile responsiveness | Có `apps/mobile` (Expo/React Native) riêng biệt — kiến trúc mobile-first thực sự, không chỉ responsive web | Đảm bảo mobile app cũng áp dụng đúng nguyên tắc data-sufficiency đã sửa ở web (cần rà soát `apps/mobile/src/api/trainingCycles.ts` có xử lý `percent: null` đúng không) |
 | Empty/loading/error | Đã sửa nhiều lỗi fake-empty-state trong các phiên trước | Tiếp tục áp dụng pattern này khi thêm màn hình mới (block sequence, peaking) |
 | Lock ngày đã qua | Có, và đã mở rộng khoá cả ngày tương lai (`schedule-lock.util.ts`) | Đã đầy đủ |
 | URL state tab/day/exercise | **Đã có** (`workout-log-url.utils.ts`) | Rà soát độ phủ — có áp dụng cho TrainingCyclePage (tab lịch sử/chu kỳ nào đang xem) chưa, hay chỉ WorkoutLogPage? |

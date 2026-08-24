@@ -1,5 +1,8 @@
 # Project Audit Report
 
+> Historical audit snapshot. For current setup and architecture, start at
+> `docs/README.md`.
+
 Date: 2026-07-08
 Scope: pre-GPU/fine-tuning stabilization for AI/RAG/data flows.
 

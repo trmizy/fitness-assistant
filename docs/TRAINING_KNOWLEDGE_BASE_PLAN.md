@@ -1,5 +1,8 @@
 # Training Knowledge Base Plan — Nguồn dữ liệu & Schema
 
+> Design record. Current ingestion commands and runtime behavior are documented
+> in `ai-service-operations.md` and `backend/services/ai-service/DATASETS.md`.
+
 > Bổ sung cho `docs/gym-fitness-research.md` (bằng chứng khoa học đã thu thập) và `docs/ai-rag-architecture.md` (kiến trúc RAG hiện có). Tài liệu này tập trung vào: (1) nguồn dữ liệu công khai hợp pháp còn thiếu, (2) schema knowledge-base có cấu trúc để AI dùng nhất quán, (3) rủi ro pháp lý/bản quyền.
 >
 > **Không implement trong tài liệu này** — bản thiết kế chờ approval.

@@ -424,6 +424,43 @@ export const contractService = {
     return contract;
   },
 
+  /**
+   * Internal-only — called by ai-service right after a Marketplace
+   * Personalized PT Service purchase is paid (wallet-transfer already
+   * succeeded there), NOT by any end-user-facing route. Unlike
+   * requestContract above, this skips PENDING_REVIEW/PENDING_SIGNATURE/
+   * PENDING_PAYMENT entirely and creates the Contract already ACTIVE —
+   * payment happened before this call, and a marketplace listing purchase
+   * is not a PT-negotiated session package that needs e-signature. This is
+   * the ONLY reason Contract.status===ACTIVE (the authorization condition
+   * every PT/coach endpoint already checks — coach.service.ts,
+   * computeChatEligibility, isActivePtClientRelationship) becomes true for
+   * a marketplace-originated relationship — no parallel authorization
+   * surface, see ContractSource.MARKETPLACE's schema comment.
+   */
+  async createMarketplaceContract(data: {
+    ptUserId: string;
+    clientUserId: string;
+    packageName: string;
+    description?: string;
+    price: number;
+    paymentTransactionId?: string;
+  }) {
+    return contractRepository.create({
+      ptUserId: data.ptUserId,
+      clientUserId: data.clientUserId,
+      status: ContractStatus.ACTIVE,
+      source: ContractSource.MARKETPLACE,
+      packageType: PackageType.PACKAGE,
+      packageName: data.packageName,
+      description: data.description,
+      totalSessions: 0, // marketplace personalized services are not session-count-based
+      price: data.price,
+      startDate: new Date(),
+      paymentTransactionId: data.paymentTransactionId,
+    });
+  },
+
   // ── PT accepts a pending contract ─────────────────────────────────
   async acceptContract(contractId: string, ptUserId: string) {
     const contract = await contractRepository.findById(contractId);
@@ -974,6 +1011,17 @@ export const contractService = {
     ]);
     const blocked = aActive === false || bActive === false;
     return { blocked };
+  },
+
+  // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — INTERNAL, called
+  // by fitness-service to authorize every PT/coach client-data or
+  // plan-assignment request. Strictly ACTIVE + PT->client direction, unlike
+  // checkRelationship above (which is direction-agnostic and includes
+  // PENDING_SIGNATURE/COMPLETED — fine for chat eligibility, not fine for
+  // "can this PT write training data for this client").
+  async checkActivePtClientRelationship(ptUserId: string, clientUserId: string) {
+    const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
+    return { active: !!contract, contractId: contract?.id ?? null };
   },
 
   /**

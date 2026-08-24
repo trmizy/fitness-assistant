@@ -1,12 +1,13 @@
 # AI Fitness Assistant: RAG Architecture
 
-This project currently uses a RAG-based AI architecture. It does not fine-tune
-or train model weights.
+The running product uses a RAG-based AI architecture. Model training is an
+optional, separate workflow under `training/`; normal application startup and
+knowledge ingestion do not train or modify model weights.
 
 ## Runtime Architecture
 
 - LLM runtime: Ollama
-- Base chat model: `LLM_MODEL`, default `llama3.2:3b`
+- Base chat model: `LLM_MODEL`, default `fitness-coach-qwen2.5-1.5b:q4_K_M`
 - Embedding model: `EMBEDDING_MODEL`, default `nomic-embed-text`
 - Vector database: Qdrant
 - AI service: `backend/services/ai-service`
@@ -28,7 +29,9 @@ AI Coach chat may retrieve from all chat-scoped collections, including
 
 ## AI Training vs RAG Ingestion
 
-The repository does not currently train or fine-tune a model.
+The application runtime does not train or fine-tune a model. The repository also
+contains optional QLoRA research tooling, but it is a separate, manually run
+pipeline and is not part of Docker application startup.
 
 What happens today:
 
@@ -39,10 +42,9 @@ What happens today:
 - Personalization uses user profile, InBody/body metrics, workout logs, and
   nutrition logs.
 
-Some datasets contain instruction-style examples. In this repo they are useful
-as evaluation data or future fine-tuning candidates. They are not a complete
-LoRA/QLoRA/Transformers fine-tuning pipeline, and running the current scripts
-does not modify model weights.
+Some datasets contain instruction-style examples used by evaluation and the
+optional training pipeline. Ingestion and reindex commands in this document
+only update Qdrant; see `training/README.md` for the distinct QLoRA workflow.
 
 ## Knowledge Ingestion And Reindexing
 
