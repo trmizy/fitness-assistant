@@ -28,7 +28,8 @@ export const updateMeSchema = z.object({
   lastName: z.string().trim().min(1).max(100).optional(),
 });
 
-export const roleSchema = z.enum(["ADMIN", "CUSTOMER", "PT", "GYM_OWNER", "GYM_STAFF"]);
+// Money-flow plan 5.1: GYM_STAFF removed — see schema.prisma's Role enum comment.
+export const roleSchema = z.enum(["ADMIN", "CUSTOMER", "PT", "GYM_OWNER"]);
 
 export const updateUserRoleSchema = z.object({
   role: roleSchema,

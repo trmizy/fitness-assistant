@@ -7,7 +7,7 @@ export function BottomNav() {
   const { role, isPT, isAdmin, activeView } = useApp();
   const location = useLocation();
 
-  if (isAdmin || role === "gym_owner" || role === "gym_staff") {
+  if (isAdmin || role === "gym_owner") {
     return null; // Don't show bottom nav for admin or gym owner yet
   }
 

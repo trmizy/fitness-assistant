@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as DropboxSign from "@dropbox/sign";
+import { logger } from "@gym-coach/shared";
 import { dropboxSignWebhookService } from "../services/dropboxSignWebhook.service";
 
 /**
@@ -91,6 +92,6 @@ export async function handleDropboxSignWebhook(
   dropboxSignWebhookService
     .handleEvent(event)
     .catch((err: any) =>
-      console.error("[DropboxSignWebhook] handleEvent error:", err?.message),
+      logger.error({ error: "DropboxSignWebhook handleEvent failed", message: err?.message }),
     );
 }

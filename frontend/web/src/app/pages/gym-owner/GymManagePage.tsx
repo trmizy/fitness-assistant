@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, ListChecks } from "lucide-react";
+import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, ListChecks, Banknote } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import type { Gym, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsR
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
+import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 
 /** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
  * so the badge here always matches what the public listing would actually show. */
@@ -30,6 +31,9 @@ export function GymManagePage() {
   const queryClient = useQueryClient();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
+  const [showWithdrawForm, setShowWithdrawForm] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
 
   const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
     queryKey: ["owned-gym", id],
@@ -60,6 +64,34 @@ export function GymManagePage() {
     queryFn: () => gymService.getGymReviews(id!),
     enabled: !!id,
   });
+
+  // Money-flow plan 5.3 — manual withdrawal flow. Requesting only creates a PENDING row; no
+  // money moves until an admin confirms a real bank transfer and marks it paid.
+  const { data: gymWithdrawals = [] } = useQuery<any[]>({
+    queryKey: ["owned-gym-withdrawals", id],
+    queryFn: () => gymService.listGymWithdrawals(id!),
+    enabled: !!id,
+  });
+
+  const withdrawMutation = useMutation({
+    mutationFn: () => gymService.requestGymWithdrawal(id!, withdrawAmount, withdrawPayoutInfo),
+    onSuccess: () => {
+      toast.success("Đã gửi yêu cầu rút tiền");
+      setShowWithdrawForm(false);
+      setWithdrawAmount("");
+      setWithdrawPayoutInfo("");
+      queryClient.invalidateQueries({ queryKey: ["owned-gym-withdrawals", id] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể tạo yêu cầu rút tiền"),
+  });
+
+  const openGymWithdrawals = gymWithdrawals.filter((w) => w.status === "PENDING" || w.status === "APPROVED");
+  const WITHDRAWAL_STATUS_LABEL: Record<string, string> = {
+    PENDING: "Đang chờ duyệt",
+    APPROVED: "Đã duyệt — chờ chi trả",
+    PAID: "Đã chi trả",
+    REJECTED: "Bị từ chối",
+  };
 
   const createPlanMutation = useMutation({
     mutationFn: () =>
@@ -114,12 +146,74 @@ export function GymManagePage() {
       </div>
 
       {/* Wallet */}
-      <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex items-center gap-3">
-        <WalletIcon className="w-5 h-5 text-green-400" />
-        <div>
-          <div className="text-xs text-zinc-400">Gym Revenue Wallet</div>
-          <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+      <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-3">
+          <WalletIcon className="w-5 h-5 text-green-400" />
+          <div>
+            <div className="text-xs text-zinc-400">Có thể rút</div>
+            <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+          </div>
         </div>
+        <div>
+          <div className="text-xs text-zinc-500">Đang chờ (gói hội viên chưa kết thúc)</div>
+          <div className="text-base font-semibold text-amber-400">{formatVND(Number(wallet?.pendingBalance ?? 0))}</div>
+        </div>
+        <button
+          onClick={() => setShowWithdrawForm((v) => !v)}
+          className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+        >
+          <Banknote className="w-3.5 h-3.5" /> Yêu cầu rút tiền
+        </button>
+
+        {showWithdrawForm && (
+          <div className="w-full bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3.5 space-y-2">
+            <input
+              type="number"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              placeholder="Số tiền (VNĐ)"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            />
+            <input
+              value={withdrawPayoutInfo}
+              onChange={(e) => setWithdrawPayoutInfo(e.target.value)}
+              placeholder="Số tài khoản / ngân hàng nhận tiền"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setShowWithdrawForm(false)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
+                Huỷ
+              </button>
+              <button
+                onClick={() => withdrawMutation.mutate()}
+                disabled={!withdrawAmount || !withdrawPayoutInfo.trim() || withdrawMutation.isPending}
+                className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
+              >
+                Gửi yêu cầu
+              </button>
+            </div>
+          </div>
+        )}
+
+        {openGymWithdrawals.length > 0 && (
+          <div className="w-full space-y-1.5">
+            {openGymWithdrawals.map((w) => (
+              <div key={w.id} className="flex items-center justify-between text-xs bg-zinc-900/60 border border-zinc-800/60 rounded-lg px-3 py-2">
+                <span className="text-zinc-400">{formatVND(Number(w.amount))}</span>
+                <span className="text-amber-400 font-medium">{WITHDRAWAL_STATUS_LABEL[w.status] ?? w.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Check-in */}
+      <GymCheckinPanel gymId={id!} />
+
+      {/* PT collaboration — component existed, fully built, but was never mounted on any
+          page: an owner had no way to reach it at all. */}
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
+        <CollaborationPanel as="GYM" gymId={id!} />
       </div>
 
       {/* Check-in */}

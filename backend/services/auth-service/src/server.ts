@@ -4,6 +4,7 @@ dotenv.config();
 import app from "./app";
 import { prisma } from "./repositories/auth.repository";
 import { logger } from "@gym-coach/shared";
+import { startPtDeactivationRelaySweepJob } from "./services/pt-deactivation-relay-sweep.service";
 
 // Fail-closed: /auth/internal/* endpoints rely on x-service-secret. Refuse to start
 // without one rather than running with an unprotected internal surface.
@@ -47,6 +48,9 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   logger.info(`🔐 Auth Service running on port ${PORT}`);
+  // Retries the account-lock -> user-service relay when it failed on the first attempt
+  // (money-flow plan 2.6) — see pt-deactivation-relay-sweep.service.ts.
+  startPtDeactivationRelaySweepJob();
 });
 
 process.on("SIGTERM", async () => {

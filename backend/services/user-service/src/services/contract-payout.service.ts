@@ -1,8 +1,16 @@
 import { logger } from "@gym-coach/shared";
-import { Prisma } from "../generated/prisma";
+import { Prisma, ContractStatus, SessionSettlementKind } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
+import { settleTracked } from "./session-settlement.service";
+
+/** Every termination reason ends the contract in exactly one of these two final states. */
+function statusFor(reason: string): ContractStatus {
+  if (reason === "COMPLETED") return ContractStatus.COMPLETED;
+  if (reason === "EXPIRED") return ContractStatus.EXPIRED;
+  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL
+}
 
 /**
  * Tells payment-service to move a contract's money when a session's outcome is settled.
@@ -54,7 +62,10 @@ export async function releaseSessionMoney(contractId: string, sessionId: string)
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
 
-  try {
+  const idempotencyKey = `SESSION_RELEASE:${sessionId}`;
+  // Money-flow plan 1.6: tracked so a failed release is retried by the settlement sweep
+  // instead of only ever being reconciled whenever the contract eventually terminates.
+  await settleTracked({ kind: SessionSettlementKind.SESSION_RELEASE, idempotencyKey, contractId, sessionId }, async () => {
     const result = await paymentClient.releaseSession({
       transactionId: contract.paymentTransactionId,
       price: contract.price!.toString(),
@@ -62,6 +73,10 @@ export async function releaseSessionMoney(contractId: string, sessionId: string)
       rates: ratesOf(contract),
       parties: partiesOf(contract),
       label: `Contract ${contract.id} session ${sessionId}`,
+      // Money-flow redesign plan 1.1: a retry after payment-service settled but this call
+      // failed before returning (or before the caller recorded success) must not release
+      // the same session's money twice.
+      idempotencyKey,
     });
 
     // Track what has actually been paid out so termination can top each party up to their
@@ -78,66 +93,59 @@ export async function releaseSessionMoney(contractId: string, sessionId: string)
     logger.info(
       `[ContractPayout] Released session ${sessionId} of ${contract.id}: pt=${result.released.pt} gym=${result.released.gym} platform=${result.released.platform}`,
     );
-  } catch (e) {
-    logger.error({
-      error: "Session money release failed — termination will reconcile it",
-      contractId,
-      sessionId,
-      message: (e as Error).message,
-    });
-  }
+  });
 }
 
 /**
  * The PT did not turn up. The client is compensated one session's value, charged to the three
- * parties in proportion, and the contract loses a session from its quota.
+ * parties in proportion, and the contract's entitlement is consumed by one.
  *
- * Dropping totalSessions is not bookkeeping tidiness — without it the client holds both the
- * cash for the missed session and the right to book it again, and would be paid twice.
+ * Money-flow plan 1.5: `totalSessions` (purchasedSessions) and `price` are immutable once
+ * signed — a no-show used to decrement `totalSessions`, which made every subsequent session's
+ * unit price (price / totalSessions) drift, and it left a 1-session contract with nothing left
+ * to decrement (client kept both the cash AND the right to book the session again).
+ * `compensatedSessions` records the same fact — one fewer entitlement owed — without touching
+ * the numbers every other formula divides by. See `getRemainingEntitlements` in
+ * contract.service.ts for where this is read back.
+ *
+ * Money-flow plan 1.6: does NOT throw on failure (a previous version did, on the reasoning
+ * that swallowing it would silently short-change the client — but both of its callers,
+ * `markNoShow` and `addException`, flip the session to NO_SHOW BEFORE calling this, and that
+ * status transition already commits regardless. A thrown error here does not undo it — it only
+ * blocks every future retry, because both callers' status guards refuse to touch a session that
+ * is already NO_SHOW. `settleTracked` records the failure instead, and the settlement sweep
+ * retries it — the client is still short-changed for a while, but not permanently and silently.
  */
 export async function compensateNoShowMoney(contractId: string, sessionId: string): Promise<void> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
 
-  // A one-session contract cannot shrink any further; refuse rather than divide by zero.
-  if (contract.totalSessions <= 1) {
-    logger.warn(`[ContractPayout] Contract ${contractId} has one session left — compensating without shrinking quota`);
-  }
-
-  try {
-    const result = await paymentClient.noShow({
-      transactionId: contract.paymentTransactionId,
-      price: contract.price!.toString(),
-      totalSessions: contract.totalSessions,
-      rates: ratesOf(contract),
-      parties: partiesOf(contract),
-      label: `Contract ${contract.id} no-show ${sessionId}`,
-    });
-
-    if (contract.totalSessions > 1) {
-      await prisma.contract.update({
-        where: { id: contract.id },
-        data: {
-          totalSessions: { decrement: 1 },
-          notes: `${contract.notes ? contract.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách, tổng số buổi giảm còn ${contract.totalSessions - 1}.`,
-        },
+  const idempotencyKey = `PT_NO_SHOW:${sessionId}`;
+  await settleTracked(
+    { kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey, contractId, sessionId },
+    async () => {
+      const result = await paymentClient.noShow({
+        transactionId: contract.paymentTransactionId,
+        price: contract.price!.toString(),
+        totalSessions: contract.totalSessions,
+        rates: ratesOf(contract),
+        parties: partiesOf(contract),
+        label: `Contract ${contract.id} no-show ${sessionId}`,
+        idempotencyKey,
       });
-    }
 
-    if (Number(result.shortfall) > 0) {
-      logger.warn(
-        `[ContractPayout] No-show shortfall ${result.shortfall} on ${contractId} — platform fronted it, receivable raised against the PT`,
+      await contractRepository.incrementCompensatedSessions(
+        contract.id,
+        `${contract.notes ? contract.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách.`,
       );
-    }
-  } catch (e) {
-    logger.error({
-      error: "No-show compensation failed",
-      contractId,
-      sessionId,
-      message: (e as Error).message,
-    });
-    throw e; // the client is owed money — surface this rather than swallowing it
-  }
+
+      if (Number(result.shortfall) > 0) {
+        logger.warn(
+          `[ContractPayout] No-show shortfall ${result.shortfall} on ${contractId} — platform fronted it, receivable raised against the PT`,
+        );
+      }
+    },
+  );
 }
 
 export type TerminationReason =
@@ -173,11 +181,18 @@ export async function terminateContractMoney(
     },
     parties: partiesOf(contract),
     label: `Contract ${contract.id} termination`,
+    // Money-flow redesign plan 1.1: a contract only ever terminates once, regardless of
+    // which reason triggers it — this key is stable across retries of the SAME termination.
+    idempotencyKey: `CONTRACT_TERMINATE:${contract.id}`,
   });
 
+  // Money settles above regardless — this must still land, or the contract stays ACTIVE
+  // forever with its escrow already emptied: assertSlotBookable only gates on status, so a
+  // client could keep booking new sessions against a contract that has no money left behind
+  // it.
   await prisma.contract.update({
     where: { id: contract.id },
-    data: { terminationReason: reason as any, terminatedAt: new Date() },
+    data: { terminationReason: reason as any, terminatedAt: new Date(), status: statusFor(reason) },
   });
 
   return result;

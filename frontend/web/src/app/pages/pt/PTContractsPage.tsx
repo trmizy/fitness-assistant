@@ -93,6 +93,17 @@ const STATUS_CONFIG: Record<
     bg: "bg-purple-500/10 border-purple-500/20",
     icon: FileText,
   },
+  // Missing entirely before this fix — STATUS_CONFIG is typed Record<ContractStatus, ...>,
+  // which should have made a missing key a compile error, but this project has no
+  // tsconfig.json so `vite build` (esbuild) never actually type-checks it. A contract lands
+  // here as soon as the PT accepts (REQUIRE_CONTRACT_ESIGN=false skips e-sign straight to
+  // PENDING_PAYMENT), so this crashed on every single Accept.
+  PENDING_PAYMENT: {
+    label: "Payment Due",
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
+    icon: DollarSign,
+  },
   ACTIVE: {
     label: "Active",
     color: "text-green-400",
@@ -155,7 +166,6 @@ export function PTContractsPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ["pt-contracts", tab],
@@ -185,13 +195,21 @@ export function PTContractsPage() {
       toast.error(err?.response?.data?.error || "Failed to reject"),
   });
 
+  // This button only ever shows for status === "ACTIVE" (real, paid money already split into
+  // pending buckets) — cancelContract (a plain status flip, no money) must never be used
+  // here. terminate settles everyone per PT_CANCELLED's formula: client gets 100% of the
+  // unused value back, PLUS a 10% penalty charged to the PT/gym pending buckets (symmetric
+  // to the client's own cancellation fee) — see docs/money-flow.md §3.5.
   const cancelMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      contractService.cancelContract(id, reason),
-    onSuccess: () => {
-      toast.success("Contract cancelled");
+    mutationFn: (id: string) => contractService.terminateContract(id, "PT_CANCELLED"),
+    onSuccess: (result: any) => {
+      const refund = Number(result?.settlement?.refund ?? 0);
+      toast.success(
+        refund > 0
+          ? `Đã hủy hợp đồng — khách được hoàn ${refund.toLocaleString("vi-VN")}đ`
+          : "Contract cancelled",
+      );
       setCancelId(null);
-      setCancelReason("");
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
@@ -804,31 +822,21 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                Are you sure? This cannot be undone. Please provide a reason.
+                This cannot be undone. The client is refunded 100% of the unused value —
+                <span className="text-amber-400 font-semibold"> plus a 10% cancellation penalty
+                charged against your (and the gym's, if any) pending balance.</span>
               </p>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                rows={3}
-                placeholder="Cancellation reason..."
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 resize-none"
-              />
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
-                onClick={() => {
-                  setCancelId(null);
-                  setCancelReason("");
-                }}
+                onClick={() => setCancelId(null)}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Keep
               </button>
               <button
-                onClick={() =>
-                  cancelMutation.mutate({ id: cancelId, reason: cancelReason })
-                }
-                disabled={!cancelReason.trim() || cancelMutation.isPending}
+                onClick={() => cancelMutation.mutate(cancelId)}
+                disabled={cancelMutation.isPending}
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending && (

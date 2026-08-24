@@ -258,8 +258,13 @@ model PTApplication {
   applicationTrainingLocations Json? @map("application_training_locations")
 
   // Admin interaction
-  adminNote       String? @map("admin_note")
-  rejectionReason String? @map("rejection_reason")
+  adminNote        String? @map("admin_note")
+  rejectionReason  String? @map("rejection_reason")
+  // Money-flow plan 5.5: which admin took the review action (approve/reject/request-info).
+  // reviewedAt/approvedAt recorded WHEN, never WHO — a plain userId, not a relation, because
+  // the admin's User row lives in auth-service, not here (same cross-service-id pattern as
+  // WithdrawalRequest.reviewedBy in payment-service).
+  reviewedByUserId String? @map("reviewed_by_user_id")
 
   // Timestamps
   submittedAt DateTime? @map("submitted_at")
@@ -358,6 +363,11 @@ enum SessionStatus {
   // or lets it auto-confirm after SESSION_AUTO_CONFIRM_DAYS.
   PENDING_CLIENT_CONFIRMATION
   DISPUTED // Client objected; quota stays untouched until an admin rules on it
+  // Money-flow plan 4.3: the client reported the PT never showed up — mirrors
+  // PENDING_CLIENT_CONFIRMATION's shape but in the opposite direction (PT owed a response,
+  // not the client). The PT either agrees (settled exactly like a PT self-admitted NO_SHOW)
+  // or denies it, which escalates to DISPUTED — the same admin-resolution flow 4.2 built.
+  PT_NO_SHOW_REPORTED
   COMPLETED // Session delivered and settled — the only state that consumes quota
   CANCELLED // Either party cancelled
   NO_SHOW // Client or PT did not attend
@@ -423,24 +433,40 @@ model Contract {
   status       ContractStatus @default(PENDING_REVIEW)
 
   // Package details
-  packageType     PackageType  @default(PACKAGE) @map("package_type")
-  packageName     String       @map("package_name")
+  packageType         PackageType  @default(PACKAGE) @map("package_type")
+  packageName         String       @map("package_name")
   // ONLINE or OFFLINE — never HYBRID for a specific contract
-  sessionMode     SessionMode? @map("session_mode")
-  description     String?
-  packageQuantity Int          @default(1) @map("package_quantity")
-  extraSessions   Int          @default(0) @map("extra_sessions")
-  totalSessions   Int          @map("total_sessions")
-  usedSessions    Int          @default(0) @map("used_sessions")
+  sessionMode         SessionMode? @map("session_mode")
+  description         String?
+  packageQuantity     Int          @default(1) @map("package_quantity")
+  extraSessions       Int          @default(0) @map("extra_sessions")
+  // purchasedSessions in the money-flow plan (§1.5) — the name stays `totalSessions` to avoid
+  // a rename across every caller, but the MEANING changed: this is now IMMUTABLE once signed,
+  // same as `price`. It used to be decremented on every PT no-show, which made
+  // `price / totalSessions` (every per-session release, every refund formula) drift after each
+  // one. See docs/money-flow.md §1.5 for the "Quyết định phát sinh" this deviation is logged
+  // under, and `getRemainingEntitlements` in contract.service.ts for the one place that reads
+  // this alongside usedSessions/compensatedSessions — nowhere else should re-derive it.
+  totalSessions       Int          @map("total_sessions")
+  usedSessions        Int          @default(0) @map("used_sessions")
+  // Entitlement consumed by a PT no-show the client was compensated for in cash — counted
+  // separately from usedSessions (which is "the client actually trained") so the two events
+  // stay individually auditable while still summing to one "consumed" figure (money-flow §1.5).
+  compensatedSessions Int          @default(0) @map("compensated_sessions")
   // Money is Decimal(14,2), never a float: these figures are split three ways and the split
   // has to reconcile to the đồng. Binary floating point cannot promise that.
-  price           Decimal?     @db.Decimal(14, 2)
-  pricePerSession Decimal?     @map("price_per_session") @db.Decimal(14, 2)
+  price               Decimal?     @db.Decimal(14, 2)
+  pricePerSession     Decimal?     @map("price_per_session") @db.Decimal(14, 2)
 
   // Timeline
-  startDate   DateTime? @map("start_date")
-  endDate     DateTime? @map("end_date")
-  completedAt DateTime? @map("completed_at")
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  completedAt  DateTime? @map("completed_at")
+  // Money-flow plan 3.6: snapshot of the package's validityDays at signing time (null = no
+  // expiry) — used ONLY to compute endDate the moment the contract activates. Before this,
+  // validityDays existed on PTServicePackage but nothing ever read it: a "12 sessions in 90
+  // days" package became a contract with no end date at all.
+  validityDays Int?      @map("validity_days")
 
   // Request & negotiation
   clientMessage      String? @map("client_message")
@@ -852,4 +878,55 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
   @@index([actorUserId, createdAt])
   @@map("audit_logs")
+}
+
+// ── Session settlement tracking (money-flow redesign plan 1.6) ────────────────────────────
+//
+// A session/contract's BUSINESS status (NO_SHOW, CANCELLED, COMPLETED, ...) and its MONEY
+// status must be able to diverge without either one blocking the other. Before this model,
+// `addException` and `markNoShow` flipped a session to NO_SHOW and then awaited compensation
+// with nothing catching a failure: if payment-service was briefly unreachable, the session was
+// permanently stuck NO_SHOW with no compensation ever paid, because every retry path is
+// gated by a status guard that now refuses to touch an already-NO_SHOW session again.
+//
+// This table is the retry record that status guard can no longer swallow. Each row tracks one
+// attempt at one financial operation, keyed by the SAME idempotency key money-flow plan 1.1's
+// `withIdempotentLedgerOp` already uses on the payment-service side — so a retry from the sweep
+// below can never double-book even if it races a live caller retrying the same operation.
+enum SessionSettlementKind {
+  PT_NO_SHOW_COMPENSATION
+  SESSION_RELEASE
+  CONTRACT_TERMINATION
+}
+
+enum SessionSettlementStatus {
+  PENDING
+  PROCESSING
+  SETTLED
+  FAILED
+}
+
+model SessionSettlement {
+  id             String                  @id @default(uuid())
+  kind           SessionSettlementKind
+  /// Same string this operation passes as `idempotencyKey` to payment-service (plan 1.1) —
+  /// e.g. "PT_NO_SHOW:<sessionId>". Unique so upsertPending finds the one row for a retry
+  /// instead of creating a duplicate.
+  idempotencyKey String                  @unique @map("idempotency_key")
+  /// Null only for CONTRACT_TERMINATION, which settles the whole contract, not one session.
+  sessionId      String?                 @map("session_id")
+  contractId     String                  @map("contract_id")
+  /// Termination reason, only meaningful for CONTRACT_TERMINATION — needed to reconstruct the
+  /// call when the sweep retries a row it did not originate.
+  reason         String?
+  status         SessionSettlementStatus @default(PENDING)
+  attempts       Int                     @default(0)
+  lastError      String?                 @map("last_error")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  settledAt      DateTime?               @map("settled_at")
+
+  // The sweep's own query: "everything not yet SETTLED".
+  @@index([status])
+  @@map("session_settlements")
 }

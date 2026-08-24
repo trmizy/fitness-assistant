@@ -5071,6 +5071,7 @@ export namespace Prisma {
     usedVisits: number | null
     payoutReleasedAt: Date | null
     multiGymWarned: boolean | null
+    refundClawbackDone: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5090,6 +5091,7 @@ export namespace Prisma {
     usedVisits: number | null
     payoutReleasedAt: Date | null
     multiGymWarned: boolean | null
+    refundClawbackDone: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5109,6 +5111,7 @@ export namespace Prisma {
     usedVisits: number
     payoutReleasedAt: number
     multiGymWarned: number
+    refundClawbackDone: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -5144,6 +5147,7 @@ export namespace Prisma {
     usedVisits?: true
     payoutReleasedAt?: true
     multiGymWarned?: true
+    refundClawbackDone?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5163,6 +5167,7 @@ export namespace Prisma {
     usedVisits?: true
     payoutReleasedAt?: true
     multiGymWarned?: true
+    refundClawbackDone?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5182,6 +5187,7 @@ export namespace Prisma {
     usedVisits?: true
     payoutReleasedAt?: true
     multiGymWarned?: true
+    refundClawbackDone?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -5288,6 +5294,7 @@ export namespace Prisma {
     usedVisits: number
     payoutReleasedAt: Date | null
     multiGymWarned: boolean
+    refundClawbackDone: boolean
     createdAt: Date
     updatedAt: Date
     _count: GymMembershipContractCountAggregateOutputType | null
@@ -5326,6 +5333,7 @@ export namespace Prisma {
     usedVisits?: boolean
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -5350,6 +5358,7 @@ export namespace Prisma {
     usedVisits?: boolean
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -5371,6 +5380,7 @@ export namespace Prisma {
     usedVisits?: boolean
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -5421,6 +5431,17 @@ export namespace Prisma {
        * had one elsewhere" disputes.
        */
       multiGymWarned: boolean
+      /**
+       * Money-flow plan 1.7: set right after `refundByAdmin`'s referral-clawback step commits
+       * its LOCAL bookkeeping (`GymMembershipReferral.clawedBack`). That local increment is not
+       * itself idempotent — payment-service's own idempotency guard (plan 1.1) means a retried
+       * `clawbackReferral` call just returns the FIRST attempt's cached amount rather than
+       * re-debiting anything, but gym-service would still add that cached amount onto
+       * `clawedBack` a second time if it re-entered the branch. `refundByAdmin` is one-shot per
+       * membership (blocked once status flips to CANCELLED), so this flag only ever needs to
+       * answer one question: did THIS refund's clawback step already run.
+       */
+      refundClawbackDone: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymMembershipContract"]>
@@ -5834,6 +5855,7 @@ export namespace Prisma {
     readonly usedVisits: FieldRef<"GymMembershipContract", 'Int'>
     readonly payoutReleasedAt: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly multiGymWarned: FieldRef<"GymMembershipContract", 'Boolean'>
+    readonly refundClawbackDone: FieldRef<"GymMembershipContract", 'Boolean'>
     readonly createdAt: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly updatedAt: FieldRef<"GymMembershipContract", 'DateTime'>
   }
@@ -11431,6 +11453,7 @@ export namespace Prisma {
     usedVisits: 'usedVisits',
     payoutReleasedAt: 'payoutReleasedAt',
     multiGymWarned: 'multiGymWarned',
+    refundClawbackDone: 'refundClawbackDone',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -12018,6 +12041,7 @@ export namespace Prisma {
     usedVisits?: IntFilter<"GymMembershipContract"> | number
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
+    refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -12041,6 +12065,7 @@ export namespace Prisma {
     usedVisits?: SortOrder
     payoutReleasedAt?: SortOrderInput | SortOrder
     multiGymWarned?: SortOrder
+    refundClawbackDone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
@@ -12067,6 +12092,7 @@ export namespace Prisma {
     usedVisits?: IntFilter<"GymMembershipContract"> | number
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
+    refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -12090,6 +12116,7 @@ export namespace Prisma {
     usedVisits?: SortOrder
     payoutReleasedAt?: SortOrderInput | SortOrder
     multiGymWarned?: SortOrder
+    refundClawbackDone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymMembershipContractCountOrderByAggregateInput
@@ -12117,6 +12144,7 @@ export namespace Prisma {
     usedVisits?: IntWithAggregatesFilter<"GymMembershipContract"> | number
     payoutReleasedAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolWithAggregatesFilter<"GymMembershipContract"> | boolean
+    refundClawbackDone?: BoolWithAggregatesFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
   }
@@ -12848,6 +12876,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -12871,6 +12900,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -12890,6 +12920,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -12913,6 +12944,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -12934,6 +12966,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12951,6 +12984,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12970,6 +13004,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13913,6 +13948,7 @@ export namespace Prisma {
     usedVisits?: SortOrder
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
+    refundClawbackDone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13939,6 +13975,7 @@ export namespace Prisma {
     usedVisits?: SortOrder
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
+    refundClawbackDone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13958,6 +13995,7 @@ export namespace Prisma {
     usedVisits?: SortOrder
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
+    refundClawbackDone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -15483,6 +15521,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
@@ -15504,6 +15543,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -15727,6 +15767,7 @@ export namespace Prisma {
     usedVisits?: IntFilter<"GymMembershipContract"> | number
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
+    refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
   }
@@ -15887,6 +15928,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -15908,6 +15950,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -16384,6 +16427,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -16406,6 +16450,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
@@ -16440,6 +16485,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -16462,6 +16508,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
@@ -16664,6 +16711,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -16686,6 +16734,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -16720,6 +16769,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -16742,6 +16792,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -16841,6 +16892,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16942,6 +16994,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
@@ -16963,6 +17016,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -16983,6 +17037,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17121,6 +17176,7 @@ export namespace Prisma {
     usedVisits?: number
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
+    refundClawbackDone?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17138,6 +17194,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -17159,6 +17216,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -17179,6 +17237,7 @@ export namespace Prisma {
     usedVisits?: IntFieldUpdateOperationsInput | number
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

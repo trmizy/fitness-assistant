@@ -1,17 +1,25 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Dumbbell, MapPin, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymReviewsSection } from "../../components/gym/GymReviewsSection";
+import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 
 export function GymDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // The plan awaiting a gateway choice; null while the picker is closed. Buying always asks
+  // which gateway first — there is no silent default (same contract as "Pay Now" on
+  // GymMembershipsPage, which retries a PENDING_PAYMENT membership through this same dialog).
+  const [buyTarget, setBuyTarget] = useState<GymMembershipPlan | null>(null);
+  // Optional PT referral code — applies to whichever plan is bought. Backend already
+  // supports it (membership.service.ts#purchase); nothing in the UI ever collected it.
+  const [referralCode, setReferralCode] = useState("");
 
   const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
     queryKey: ["gym", id],
@@ -26,19 +34,31 @@ export function GymDetailPage() {
   });
 
   const buyMutation = useMutation({
-    mutationFn: (planId: string) => gymService.buyMembership(id!, planId),
+    mutationFn: ({ planId, provider }: { planId: string; provider: string }) =>
+      gymService.buyMembership(id!, planId, provider, referralCode.trim() || undefined),
     onSuccess: (result: any) => {
-      if (result?.data?.payment?.status === "PAID") {
+      // Purchase creates the membership AND starts a checkout with the chosen gateway in one
+      // call (see membership.service.ts#purchase → attemptPayment) — the response is a
+      // redirect, not a settled payment. Membership activates on the gateway's confirmation,
+      // never on the browser's word (same contract as GymMembershipsPage's "Pay Now").
+      const payment = result?.data?.payment ?? result?.payment;
+      if (payment?.status === "PAID") {
         toast.success("Membership purchased — you're all set!");
         navigate("/client/gym-memberships");
-      } else {
-        // Purchase request succeeded (2xx) but the payment attempt itself failed
-        // (e.g. insufficient balance) — membership stays PENDING_PAYMENT, retriable.
-        toast.error(result?.data?.payment?.failureReason || "Payment failed — check your wallet balance");
-        queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
+        return;
       }
+      if (payment?.redirectUrl) {
+        window.location.href = payment.redirectUrl;
+        return;
+      }
+      // Checkout intent itself failed to start (e.g. gateway not configured) — membership
+      // stays PENDING_PAYMENT, retriable from "My Memberships" with a different provider.
+      toast.error(payment?.failureReason || "Không tạo được giao dịch thanh toán — thử lại từ Membership của bạn");
+      setBuyTarget(null);
+      navigate("/client/gym-memberships");
     },
     onError: (err: any) => {
+      setBuyTarget(null);
       const code = err?.response?.data?.error?.code;
       if (code === "ALREADY_HAS_PENDING_MEMBERSHIP") {
         toast.error("You already have a pending membership at this gym — pay it off first.");
@@ -47,6 +67,16 @@ export function GymDetailPage() {
       }
       if (code === "ALREADY_HAS_OPEN_MEMBERSHIP") {
         toast.error("You already have an active membership at this gym.");
+        return;
+      }
+      const referralMessages: Record<string, string> = {
+        REFERRAL_CODE_NOT_FOUND: "Mã giới thiệu không tồn tại",
+        CANNOT_REFER_YOURSELF: "Bạn không thể tự giới thiệu chính mình",
+        REFERRAL_NOT_APPLICABLE_AT_THIS_GYM: "Mã giới thiệu này không áp dụng cho phòng tập bạn đang chọn",
+        REFERRAL_ONLY_FOR_FIRST_MEMBERSHIP: "Mã giới thiệu chỉ áp dụng cho lần mua gói đầu tiên tại phòng gym này",
+      };
+      if (code in referralMessages) {
+        toast.error(referralMessages[code]);
         return;
       }
       toast.error(code || "Failed to purchase membership");
@@ -95,6 +125,22 @@ export function GymDetailPage() {
 
       <div>
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Membership Plans</h2>
+        {plans.length > 0 && (
+          <div className="mb-3">
+            <label htmlFor="referral-code" className="text-xs font-semibold text-zinc-500 mb-1 block">
+              Mã giới thiệu (không bắt buộc)
+            </label>
+            <input
+              id="referral-code"
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="VD: HUY2ABC"
+              maxLength={16}
+              className="w-full sm:w-64 px-3 py-2 bg-zinc-900 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 font-mono tracking-wider"
+            />
+          </div>
+        )}
         {plans.length === 0 ? (
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-8 text-center text-sm text-zinc-500">
             No plans available yet.
@@ -114,7 +160,7 @@ export function GymDetailPage() {
                   <div className="text-sm font-bold text-green-400 mb-2">{formatVND(Number(p.price))}</div>
                   <button
                     type="button"
-                    onClick={() => buyMutation.mutate(p.id)}
+                    onClick={() => setBuyTarget(p)}
                     disabled={buyMutation.isPending}
                     className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                   >
@@ -129,6 +175,16 @@ export function GymDetailPage() {
       </div>
 
       <GymReviewsSection gymId={id!} />
+
+      {buyTarget && (
+        <PaymentMethodDialog
+          amount={Number(buyTarget.price)}
+          title="Chọn phương thức thanh toán gói tập"
+          isSubmitting={buyMutation.isPending}
+          onClose={() => setBuyTarget(null)}
+          onConfirm={(provider) => buyMutation.mutate({ planId: buyTarget.id, provider })}
+        />
+      )}
     </div>
   );
 }

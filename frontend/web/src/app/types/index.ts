@@ -145,6 +145,10 @@ export interface Contract {
   description?: string;
   totalSessions: number;
   usedSessions: number;
+  /** PT no-shows already compensated in cash — counts against remaining entitlement the same
+   * as usedSessions, but is not folded into it (money-flow plan 1.5). Optional because older
+   * cached API responses predate the field; treat a missing value as 0. */
+  compensatedSessions?: number;
   price?: number;
   pricePerSession?: number;
   startDate?: string;
@@ -166,9 +170,15 @@ export interface Contract {
 }
 
 // ── Session types ────────────────────────────────────────────────
+// Money-flow plan 3.3: "RESCHEDULE_PENDING" removed — it is not a real backend status (a
+// session deliberately stays CONFIRMED while a reschedule proposal is pending; see
+// booking.service.ts's own comment on respondToReschedule). Whether a reschedule is pending is
+// read from the session's `rescheduleRequests` array, never from `status`.
 export type SessionStatus =
   | "REQUESTED"
   | "CONFIRMED"
+  | "PENDING_CLIENT_CONFIRMATION"
+  | "DISPUTED"
   | "COMPLETED"
   | "CANCELLED"
   | "NO_SHOW"
@@ -206,6 +216,11 @@ export interface Session {
   cancellationReason?: string;
   sessionDeducted: boolean;
   completedAt?: string;
+  // Money-flow plan 4.1: the client-confirmation window (PENDING_CLIENT_CONFIRMATION →
+  // COMPLETED, or DISPUTED if the client objects before this deadline).
+  clientConfirmDeadline?: string | null;
+  autoConfirmed?: boolean;
+  disputeReason?: string | null;
   createdAt: string;
   updatedAt: string;
   review?: SessionReview;
@@ -324,6 +339,10 @@ export interface Wallet {
   ownerType: "CLIENT" | "PT" | "GYM" | "PLATFORM";
   ownerId: string;
   availableBalance: string;
+  // Revenue already credited but held until the underlying contract/membership ends (see
+  // docs/money-flow.md §13.3) — not withdrawable yet. The API has always returned this;
+  // it was just missing from this type, which is why no wallet screen ever drew it.
+  pendingBalance: string;
   lockedBalance: string;
   status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;

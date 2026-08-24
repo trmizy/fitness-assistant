@@ -86,12 +86,33 @@ export const transactionRepository = {
     });
   },
 
-  /** Transactions stuck in PROCESSING past their timeout window (split by purpose — see reconciliation.service.ts). */
+  /**
+   * Every still-open purchase (not a wallet top-up — that flow is gone), regardless of age.
+   * A checkout is created with status PENDING and never moves to PROCESSING anywhere in this
+   * codebase (only the old wallet-topup path used PROCESSING) — filtering on PROCESSING alone
+   * would never match a real purchase. Fed to webhook.service.pollAndSettle every
+   * reconciliation cycle so a gateway with no reachable IPN (ZaloPay, MoMo, PayOS on this
+   * deployment) still gets confirmed before findStaleProcessing's timeout sweeps it to FAILED.
+   */
+  async findProcessingNonTopup() {
+    return prisma.paymentTransaction.findMany({
+      where: { status: { in: ['PENDING', 'PROCESSING'] }, purpose: { not: 'WALLET_TOPUP' } },
+      orderBy: { createdAt: 'asc' },
+    });
+  },
+
+  /**
+   * Transactions stuck open past their timeout window (split by purpose — see
+   * reconciliation.service.ts). PENDING is included alongside PROCESSING: a direct-to-gateway
+   * checkout is created as PENDING and never moves to PROCESSING, so filtering on PROCESSING
+   * alone left every abandoned non-topup purchase PENDING forever instead of eventually
+   * timing out to FAILED.
+   */
   async findStaleProcessing(purposeFilter: 'topup' | 'non-topup', staleMinutes: number) {
     const clause = purposeFilter === 'topup' ? Prisma.sql`"purpose" = 'WALLET_TOPUP'` : Prisma.sql`"purpose" != 'WALLET_TOPUP'`;
     return prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT id FROM payment_transactions
-      WHERE status = 'PROCESSING'
+      WHERE status IN ('PENDING', 'PROCESSING')
         AND ${clause}
         AND updated_at < NOW() - (${staleMinutes} || ' minutes')::INTERVAL
     `);

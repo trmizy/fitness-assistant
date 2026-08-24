@@ -22,7 +22,12 @@ import { apiBaseUrl } from "../config/serverUrl";
 // same-origin "/api" default. Saving a new address reloads the app so this re-runs.
 export const API_URL = apiBaseUrl();
 
-const api = axios.create({
+// Exported so a page can make an ad-hoc call without a dedicated service method — but always
+// through THIS instance. Its request interceptor is what reads the token correctly (via
+// @capacitor/preferences); reaching for a bare `axios` import and `localStorage.getItem`
+// instead skips both, silently sends every request unauthenticated, and is exactly what put
+// AdminDashboard.tsx and AdminWorkflowStudio.tsx into a permanent "failed to load" state.
+export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
@@ -2809,6 +2814,48 @@ export const adminService = {
     return data;
   },
 
+  // Money-flow plan 4.2: sessions a client disputed (PT reported it, client objected) — the
+  // backend has had list + resolve endpoints since VĐ2, but no admin UI ever called them, so
+  // a disputed session's money stayed frozen indefinitely with nobody able to rule on it.
+  listDisputedSessions: async () => {
+    const { data } = await api.get("/admin/sessions/disputed");
+    return data;
+  },
+  resolveSessionDispute: async (id: string, resolution: "COMPLETED" | "CANCELLED", note: string) => {
+    const { data } = await api.post(`/admin/sessions/${id}/resolve`, { resolution, note });
+    return data;
+  },
+
+  // Whole-platform money invariant (docs/money-flow.md §1.3): ESCROW.available must equal
+  // the sum of every claim on it (client refunds, PT/gym pending+available, platform
+  // revenue). balanced:false means the ledger created or destroyed money somewhere. The
+  // endpoint has existed since the money-flow redesign; nothing in the admin UI ever called
+  // it, so a real drift would have gone unnoticed with no page to show it on.
+  getReconciliation: async () => {
+    const { data } = await api.get("/admin/payments/reconciliation");
+    return data;
+  },
+
+  // Money-flow plan 5.3 — the manual withdrawal flow's admin side. approve/reject are optional
+  // review steps; markPaid is the only one that actually moves money, and only after the admin
+  // has already made a real bank/e-wallet transfer outside this system.
+  listPendingWithdrawals: async () => {
+    const { data } = await api.get("/admin/payments/withdrawals");
+    return data?.data ?? data;
+  },
+  approveWithdrawal: async (id: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/approve`);
+    return data?.data ?? data;
+  },
+  rejectWithdrawal: async (id: string, reason: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/reject`, { reason });
+    return data?.data ?? data;
+  },
+  markWithdrawalPaid: async (id: string, bankReference: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/mark-paid`, { bankReference });
+    return data?.data ?? data;
+  },
+
   getWorkflowMeta: async () => {
     const { data } = await api.get("/admin/workflows/meta");
     return data;
@@ -2874,6 +2921,17 @@ export const adminService = {
       {},
       { timeout: 120000 },
     );
+    return data;
+  },
+
+  // Exceptional gym-membership refund (money-flow §2.4) — gym violation/closure/transaction
+  // error only. Route has existed since the money-flow redesign with no caller anywhere in
+  // the admin UI.
+  refundGymMembership: async (
+    membershipId: string,
+    reason: "GYM_VIOLATION_SUSPENDED" | "GYM_CLOSED" | "TRANSACTION_ERROR",
+  ) => {
+    const { data } = await api.post(`/admin/gym-memberships/${membershipId}/refund`, { reason });
     return data;
   },
 
@@ -3244,6 +3302,22 @@ export const nutritionService = {
   },
 };
 
+export interface PTServicePackage {
+  id: string;
+  ptUserId: string;
+  name: string;
+  description: string | null;
+  sessionCount: number;
+  price: string;
+  sessionMode: "ONLINE" | "OFFLINE";
+  sessionDurationMinutes: number;
+  validityDays: number | null;
+  isActive: boolean;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const ptServicePackageService = {
   getPackagesForPT: async (ptUserId: string) => {
     // Backend responds { packages: [...] } — the caller (PTDiscoveryPage) has always
@@ -3253,6 +3327,46 @@ export const ptServicePackageService = {
     // while testing the PT-hiring flow — unwrap here to match what callers actually use.
     const { data } = await api.get(`/profile/pts/${ptUserId}/service-packages`);
     return data.packages ?? [];
+  },
+  // The PT's own view — everything including archived. Route existed on the backend
+  // (controller + service) with no route declaration wired to it, so every call here used
+  // to 404; the UI instead showed static placeholder packages that were never real.
+  getMyPackages: async (): Promise<{ packages: PTServicePackage[] }> => {
+    const { data } = await api.get("/profile/me/service-packages");
+    return data;
+  },
+  createPackage: async (payload: {
+    name: string;
+    description?: string;
+    sessionCount: number;
+    price: number;
+    sessionMode: "ONLINE" | "OFFLINE";
+    sessionDurationMinutes?: number;
+    validityDays?: number;
+  }): Promise<{ package: PTServicePackage }> => {
+    const { data } = await api.post("/profile/me/service-packages", payload);
+    return data;
+  },
+  updatePackage: async (
+    id: string,
+    payload: Partial<{
+      name: string;
+      description: string;
+      sessionCount: number;
+      price: number;
+      sessionMode: "ONLINE" | "OFFLINE";
+      sessionDurationMinutes: number;
+      validityDays: number | null;
+      isActive: boolean;
+    }>,
+  ): Promise<{ package: PTServicePackage }> => {
+    const { data } = await api.patch(`/profile/me/service-packages/${id}`, payload);
+    return data;
+  },
+  // Soft-archive — the backend never hard-deletes a package (signed contracts reference it).
+  archivePackage: async (id: string): Promise<{ archived: boolean; hasActiveContracts: boolean }> => {
+    const { data } = await api.delete(`/profile/me/service-packages/${id}`);
+    return data;
   },
 };
 
@@ -3276,8 +3390,23 @@ export const contractService = {
     const { data } = await api.patch(`/contracts/${id}/reject`, { reason });
     return data;
   },
+  // Withdraw/cancel BEFORE any money has settled (PENDING_REVIEW / PENDING_PAYMENT) — a
+  // plain status flip, nothing to refund because nothing was ever paid.
   cancelContract: async (id: string, reason: string) => {
     const { data } = await api.patch(`/contracts/${id}/cancel`, { reason });
+    return data;
+  },
+  // End an ACTIVE (paid) contract and settle everyone per the termination reason's formula
+  // — see docs/money-flow.md §3.3–3.6. CLIENT_CANCELLED refunds 90% of the unused value
+  // (10% penalty); the backend enforces who may declare which reason.
+  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED") => {
+    const { data } = await api.post(`/contracts/${id}/terminate`, { reason });
+    return data;
+  },
+  // Read-only preview of what a CLIENT_CANCELLED termination would pay out right now —
+  // shown before the client confirms so they see the actual refund, not a guess.
+  getMoneyBreakdown: async (id: string) => {
+    const { data } = await api.get(`/contracts/${id}/money-breakdown`);
     return data;
   },
   getEarnings: async () => {
@@ -3423,6 +3552,33 @@ export const sessionService = {
   },
   confirmSession: async (id: string) => {
     const { data } = await api.patch(`/sessions/${id}/confirm`);
+    return data;
+  },
+  // Money-flow plan 4.1: the CLIENT's side of confirming/disputing what the PT reported —
+  // distinct from confirmSession above (PT accepting a REQUESTED booking).
+  listPendingConfirmation: async () => {
+    const { data } = await api.get("/sessions/pending-confirmation");
+    return data;
+  },
+  clientConfirmSession: async (id: string) => {
+    const { data } = await api.post(`/sessions/${id}/confirm`);
+    return data;
+  },
+  disputeSession: async (id: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/dispute`, { reason });
+    return data;
+  },
+  // Money-flow plan 4.3 — client reports the PT never showed up, and the PT's response.
+  reportPtNoShow: async (id: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/report-no-show`, { reason });
+    return data;
+  },
+  respondToNoShowReport: async (id: string, response: "AGREE" | "DENY", note?: string) => {
+    const { data } = await api.post(`/sessions/${id}/respond-no-show`, { response, note });
+    return data;
+  },
+  listNoShowReports: async () => {
+    const { data } = await api.get("/sessions/no-show-reports");
     return data;
   },
   completeSession: async (id: string, ptNotes?: string) => {
@@ -3616,6 +3772,14 @@ export const paymentService = {
     const { data } = await api.get('/me/payments/methods');
     return data?.data ?? data;
   },
+  // Actively asks the gateway for this transaction's status — works for any purchase
+  // (membership, PT contract), not just the old wallet top-up. Used by the gateway
+  // return-page (PaymentResultPage) for every provider, since none of them can reach this
+  // deployment's IPN URL.
+  syncTransaction: async (transactionId: string) => {
+    const { data } = await api.post(`/me/payments/${transactionId}/sync`);
+    return data?.data ?? data;
+  },
 };
 
 export const walletService = {
@@ -3636,12 +3800,6 @@ export const walletService = {
     });
     return data?.data ?? data;
   },
-  // Actively asks the gateway (VNPay querydr, ...) for the transaction status — the
-  // ONLY signal the UI may trust for "payment succeeded" (never the return-URL query).
-  syncTopup: async (transactionId: string) => {
-    const { data } = await api.post(`/me/wallet/topup/${transactionId}/sync`);
-    return data?.data ?? data;
-  },
   // Always the PT earnings wallet.
   getPtWallet: async () => {
     const { data } = await api.get('/me/pt-wallet');
@@ -3649,6 +3807,16 @@ export const walletService = {
   },
   getPtTransactions: async () => {
     const { data } = await api.get('/me/pt-wallet/transactions');
+    return data?.data ?? data;
+  },
+  // Money-flow plan 5.3 — self-service withdrawal requests. Works for both the CLIENT and PT
+  // wallet: payment-service infers which one from the caller's role.
+  requestWithdrawal: async (amount: string, payoutInfo: string) => {
+    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo });
+    return data?.data ?? data;
+  },
+  getMyWithdrawals: async () => {
+    const { data } = await api.get('/me/withdrawals');
     return data?.data ?? data;
   },
 };
@@ -3724,10 +3892,11 @@ export const gymService = {
     return data?.data ?? data;
   },
   // Client
-  buyMembership: async (gymId: string, planId: string, provider?: string) => {
+  buyMembership: async (gymId: string, planId: string, provider?: string, referralCode?: string) => {
     const { data } = await api.post(`/gyms/${gymId}/memberships`, {
       planId,
       ...(provider ? { provider } : {}),
+      ...(referralCode ? { referralCode } : {}),
     });
     return data;
   },
@@ -3743,9 +3912,12 @@ export const gymService = {
     const { data } = await api.post(`/me/gym-memberships/${membershipId}/cancel`);
     return data?.data ?? data;
   },
-  // Cancel an ACTIVE membership → prorated refund (unused days) to the client wallet.
-  refundMembership: async (membershipId: string) => {
-    const { data } = await api.post(`/me/gym-memberships/${membershipId}/refund`);
+  // Cancel an ACTIVE membership. Money-flow plan §2.4: the client forfeits the unused
+  // portion — there is no refund on this path (a prorated refund is now an admin-only
+  // exceptional action at POST /admin/gym-memberships/:id/refund). The old client-facing
+  // .../refund route this used to call no longer exists on the backend.
+  cancelActiveMembership: async (membershipId: string) => {
+    const { data } = await api.post(`/me/gym-memberships/${membershipId}/cancel-membership`);
     return data?.data ?? data;
   },
   listMyMemberships: async () => {
@@ -3767,6 +3939,16 @@ export const gymService = {
   },
   getOwnedWallet: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/wallet`);
+    return data?.data ?? data;
+  },
+  // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
+  // payment-service, same shape as getOwnedWallet above.
+  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+    return data?.data ?? data;
+  },
+  listGymWithdrawals: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/withdrawals`);
     return data?.data ?? data;
   },
   createPlan: async (

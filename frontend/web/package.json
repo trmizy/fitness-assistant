@@ -47,7 +47,7 @@
     "@radix-ui/react-tooltip": "1.1.8",
     "@tanstack/react-query": "^5.17.9",
     "axios": "^1.13.6",
-    "body-muscles": "1.0.0",
+    "body-muscles": "^1.0.0",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

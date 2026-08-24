@@ -145,6 +145,7 @@ export const ptApplicationController = {
         req.params.id,
         action as any,
         req.body,
+        req.user!.id,
       );
       return res.json(app);
     } catch (error: any) {

@@ -7,8 +7,7 @@
     "frontend/*",
     "backend/gateway",
     "backend/services/*",
-    "backend/shared",
-    "apps/*"
+    "backend/shared"
   ],
   "scripts": {
     "dev": "pnpm run --parallel --filter './frontend/*' --filter './backend/gateway' --filter './backend/services/*' dev",

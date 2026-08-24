@@ -98,6 +98,11 @@ export type InBodyEntry = $Result.DefaultSelection<Prisma.$InBodyEntryPayload>
  * 
  */
 export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
+/**
+ * Model SessionSettlement
+ * 
+ */
+export type SessionSettlement = $Result.DefaultSelection<Prisma.$SessionSettlementPayload>
 
 /**
  * Enums
@@ -238,6 +243,7 @@ export const SessionStatus: {
   CONFIRMED: 'CONFIRMED',
   PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
   DISPUTED: 'DISPUTED',
+  PT_NO_SHOW_REPORTED: 'PT_NO_SHOW_REPORTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
@@ -314,6 +320,25 @@ export const AuditEntityType: {
 };
 
 export type AuditEntityType = (typeof AuditEntityType)[keyof typeof AuditEntityType]
+
+
+export const SessionSettlementKind: {
+  PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
+  SESSION_RELEASE: 'SESSION_RELEASE',
+  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION'
+};
+
+export type SessionSettlementKind = (typeof SessionSettlementKind)[keyof typeof SessionSettlementKind]
+
+
+export const SessionSettlementStatus: {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SETTLED: 'SETTLED',
+  FAILED: 'FAILED'
+};
+
+export type SessionSettlementStatus = (typeof SessionSettlementStatus)[keyof typeof SessionSettlementStatus]
 
 }
 
@@ -396,6 +421,14 @@ export const RescheduleStatus: typeof $Enums.RescheduleStatus
 export type AuditEntityType = $Enums.AuditEntityType
 
 export const AuditEntityType: typeof $Enums.AuditEntityType
+
+export type SessionSettlementKind = $Enums.SessionSettlementKind
+
+export const SessionSettlementKind: typeof $Enums.SessionSettlementKind
+
+export type SessionSettlementStatus = $Enums.SessionSettlementStatus
+
+export const SessionSettlementStatus: typeof $Enums.SessionSettlementStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -689,6 +722,16 @@ export class PrismaClient<
     * ```
     */
   get auditLog(): Prisma.AuditLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.sessionSettlement`: Exposes CRUD operations for the **SessionSettlement** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SessionSettlements
+    * const sessionSettlements = await prisma.sessionSettlement.findMany()
+    * ```
+    */
+  get sessionSettlement(): Prisma.SessionSettlementDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1146,7 +1189,8 @@ export namespace Prisma {
     PTServicePackage: 'PTServicePackage',
     SessionRescheduleRequest: 'SessionRescheduleRequest',
     InBodyEntry: 'InBodyEntry',
-    AuditLog: 'AuditLog'
+    AuditLog: 'AuditLog',
+    SessionSettlement: 'SessionSettlement'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1162,7 +1206,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2353,6 +2397,76 @@ export namespace Prisma {
           count: {
             args: Prisma.AuditLogCountArgs<ExtArgs>
             result: $Utils.Optional<AuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      SessionSettlement: {
+        payload: Prisma.$SessionSettlementPayload<ExtArgs>
+        fields: Prisma.SessionSettlementFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SessionSettlementFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SessionSettlementFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          findFirst: {
+            args: Prisma.SessionSettlementFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SessionSettlementFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          findMany: {
+            args: Prisma.SessionSettlementFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>[]
+          }
+          create: {
+            args: Prisma.SessionSettlementCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          createMany: {
+            args: Prisma.SessionSettlementCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SessionSettlementCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>[]
+          }
+          delete: {
+            args: Prisma.SessionSettlementDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          update: {
+            args: Prisma.SessionSettlementUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          deleteMany: {
+            args: Prisma.SessionSettlementDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SessionSettlementUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SessionSettlementUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionSettlementPayload>
+          }
+          aggregate: {
+            args: Prisma.SessionSettlementAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSessionSettlement>
+          }
+          groupBy: {
+            args: Prisma.SessionSettlementGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SessionSettlementGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SessionSettlementCountArgs<ExtArgs>
+            result: $Utils.Optional<SessionSettlementCountAggregateOutputType> | number
           }
         }
       }
@@ -4279,6 +4393,7 @@ export namespace Prisma {
     residenceLegacyDistrictName: string | null
     adminNote: string | null
     rejectionReason: string | null
+    reviewedByUserId: string | null
     submittedAt: Date | null
     reviewedAt: Date | null
     approvedAt: Date | null
@@ -4326,6 +4441,7 @@ export namespace Prisma {
     residenceLegacyDistrictName: string | null
     adminNote: string | null
     rejectionReason: string | null
+    reviewedByUserId: string | null
     submittedAt: Date | null
     reviewedAt: Date | null
     approvedAt: Date | null
@@ -4382,6 +4498,7 @@ export namespace Prisma {
     applicationTrainingLocations: number
     adminNote: number
     rejectionReason: number
+    reviewedByUserId: number
     submittedAt: number
     reviewedAt: number
     approvedAt: number
@@ -4459,6 +4576,7 @@ export namespace Prisma {
     residenceLegacyDistrictName?: true
     adminNote?: true
     rejectionReason?: true
+    reviewedByUserId?: true
     submittedAt?: true
     reviewedAt?: true
     approvedAt?: true
@@ -4506,6 +4624,7 @@ export namespace Prisma {
     residenceLegacyDistrictName?: true
     adminNote?: true
     rejectionReason?: true
+    reviewedByUserId?: true
     submittedAt?: true
     reviewedAt?: true
     approvedAt?: true
@@ -4562,6 +4681,7 @@ export namespace Prisma {
     applicationTrainingLocations?: true
     adminNote?: true
     rejectionReason?: true
+    reviewedByUserId?: true
     submittedAt?: true
     reviewedAt?: true
     approvedAt?: true
@@ -4705,6 +4825,7 @@ export namespace Prisma {
     applicationTrainingLocations: JsonValue | null
     adminNote: string | null
     rejectionReason: string | null
+    reviewedByUserId: string | null
     submittedAt: Date | null
     reviewedAt: Date | null
     approvedAt: Date | null
@@ -4780,6 +4901,7 @@ export namespace Prisma {
     applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
+    reviewedByUserId?: boolean
     submittedAt?: boolean
     reviewedAt?: boolean
     approvedAt?: boolean
@@ -4840,6 +4962,7 @@ export namespace Prisma {
     applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
+    reviewedByUserId?: boolean
     submittedAt?: boolean
     reviewedAt?: boolean
     approvedAt?: boolean
@@ -4897,6 +5020,7 @@ export namespace Prisma {
     applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
+    reviewedByUserId?: boolean
     submittedAt?: boolean
     reviewedAt?: boolean
     approvedAt?: boolean
@@ -4970,6 +5094,7 @@ export namespace Prisma {
       applicationTrainingLocations: Prisma.JsonValue | null
       adminNote: string | null
       rejectionReason: string | null
+      reviewedByUserId: string | null
       submittedAt: Date | null
       reviewedAt: Date | null
       approvedAt: Date | null
@@ -5419,6 +5544,7 @@ export namespace Prisma {
     readonly applicationTrainingLocations: FieldRef<"PTApplication", 'Json'>
     readonly adminNote: FieldRef<"PTApplication", 'String'>
     readonly rejectionReason: FieldRef<"PTApplication", 'String'>
+    readonly reviewedByUserId: FieldRef<"PTApplication", 'String'>
     readonly submittedAt: FieldRef<"PTApplication", 'DateTime'>
     readonly reviewedAt: FieldRef<"PTApplication", 'DateTime'>
     readonly approvedAt: FieldRef<"PTApplication", 'DateTime'>
@@ -7751,8 +7877,10 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
+    compensatedSessions: number | null
     price: Decimal | null
     pricePerSession: Decimal | null
+    validityDays: number | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -7768,8 +7896,10 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
+    compensatedSessions: number | null
     price: Decimal | null
     pricePerSession: Decimal | null
+    validityDays: number | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -7793,11 +7923,13 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
+    compensatedSessions: number | null
     price: Decimal | null
     pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
+    validityDays: number | null
     clientMessage: string | null
     rejectionReason: string | null
     cancelledBy: string | null
@@ -7850,11 +7982,13 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
+    compensatedSessions: number | null
     price: Decimal | null
     pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
+    validityDays: number | null
     clientMessage: string | null
     rejectionReason: string | null
     cancelledBy: string | null
@@ -7907,11 +8041,13 @@ export namespace Prisma {
     extraSessions: number
     totalSessions: number
     usedSessions: number
+    compensatedSessions: number
     price: number
     pricePerSession: number
     startDate: number
     endDate: number
     completedAt: number
+    validityDays: number
     clientMessage: number
     rejectionReason: number
     cancelledBy: number
@@ -7958,8 +8094,10 @@ export namespace Prisma {
     extraSessions?: true
     totalSessions?: true
     usedSessions?: true
+    compensatedSessions?: true
     price?: true
     pricePerSession?: true
+    validityDays?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -7975,8 +8113,10 @@ export namespace Prisma {
     extraSessions?: true
     totalSessions?: true
     usedSessions?: true
+    compensatedSessions?: true
     price?: true
     pricePerSession?: true
+    validityDays?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -8000,11 +8140,13 @@ export namespace Prisma {
     extraSessions?: true
     totalSessions?: true
     usedSessions?: true
+    compensatedSessions?: true
     price?: true
     pricePerSession?: true
     startDate?: true
     endDate?: true
     completedAt?: true
+    validityDays?: true
     clientMessage?: true
     rejectionReason?: true
     cancelledBy?: true
@@ -8057,11 +8199,13 @@ export namespace Prisma {
     extraSessions?: true
     totalSessions?: true
     usedSessions?: true
+    compensatedSessions?: true
     price?: true
     pricePerSession?: true
     startDate?: true
     endDate?: true
     completedAt?: true
+    validityDays?: true
     clientMessage?: true
     rejectionReason?: true
     cancelledBy?: true
@@ -8114,11 +8258,13 @@ export namespace Prisma {
     extraSessions?: true
     totalSessions?: true
     usedSessions?: true
+    compensatedSessions?: true
     price?: true
     pricePerSession?: true
     startDate?: true
     endDate?: true
     completedAt?: true
+    validityDays?: true
     clientMessage?: true
     rejectionReason?: true
     cancelledBy?: true
@@ -8258,11 +8404,13 @@ export namespace Prisma {
     extraSessions: number
     totalSessions: number
     usedSessions: number
+    compensatedSessions: number
     price: Decimal | null
     pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
+    validityDays: number | null
     clientMessage: string | null
     rejectionReason: string | null
     cancelledBy: string | null
@@ -8334,11 +8482,13 @@ export namespace Prisma {
     extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
+    compensatedSessions?: boolean
     price?: boolean
     pricePerSession?: boolean
     startDate?: boolean
     endDate?: boolean
     completedAt?: boolean
+    validityDays?: boolean
     clientMessage?: boolean
     rejectionReason?: boolean
     cancelledBy?: boolean
@@ -8394,11 +8544,13 @@ export namespace Prisma {
     extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
+    compensatedSessions?: boolean
     price?: boolean
     pricePerSession?: boolean
     startDate?: boolean
     endDate?: boolean
     completedAt?: boolean
+    validityDays?: boolean
     clientMessage?: boolean
     rejectionReason?: boolean
     cancelledBy?: boolean
@@ -8451,11 +8603,13 @@ export namespace Prisma {
     extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
+    compensatedSessions?: boolean
     price?: boolean
     pricePerSession?: boolean
     startDate?: boolean
     endDate?: boolean
     completedAt?: boolean
+    validityDays?: boolean
     clientMessage?: boolean
     rejectionReason?: boolean
     cancelledBy?: boolean
@@ -8521,11 +8675,13 @@ export namespace Prisma {
       extraSessions: number
       totalSessions: number
       usedSessions: number
+      compensatedSessions: number
       price: Prisma.Decimal | null
       pricePerSession: Prisma.Decimal | null
       startDate: Date | null
       endDate: Date | null
       completedAt: Date | null
+      validityDays: number | null
       clientMessage: string | null
       rejectionReason: string | null
       cancelledBy: string | null
@@ -8975,11 +9131,13 @@ export namespace Prisma {
     readonly extraSessions: FieldRef<"Contract", 'Int'>
     readonly totalSessions: FieldRef<"Contract", 'Int'>
     readonly usedSessions: FieldRef<"Contract", 'Int'>
+    readonly compensatedSessions: FieldRef<"Contract", 'Int'>
     readonly price: FieldRef<"Contract", 'Decimal'>
     readonly pricePerSession: FieldRef<"Contract", 'Decimal'>
     readonly startDate: FieldRef<"Contract", 'DateTime'>
     readonly endDate: FieldRef<"Contract", 'DateTime'>
     readonly completedAt: FieldRef<"Contract", 'DateTime'>
+    readonly validityDays: FieldRef<"Contract", 'Int'>
     readonly clientMessage: FieldRef<"Contract", 'String'>
     readonly rejectionReason: FieldRef<"Contract", 'String'>
     readonly cancelledBy: FieldRef<"Contract", 'String'>
@@ -21771,6 +21929,1014 @@ export namespace Prisma {
 
 
   /**
+   * Model SessionSettlement
+   */
+
+  export type AggregateSessionSettlement = {
+    _count: SessionSettlementCountAggregateOutputType | null
+    _avg: SessionSettlementAvgAggregateOutputType | null
+    _sum: SessionSettlementSumAggregateOutputType | null
+    _min: SessionSettlementMinAggregateOutputType | null
+    _max: SessionSettlementMaxAggregateOutputType | null
+  }
+
+  export type SessionSettlementAvgAggregateOutputType = {
+    attempts: number | null
+  }
+
+  export type SessionSettlementSumAggregateOutputType = {
+    attempts: number | null
+  }
+
+  export type SessionSettlementMinAggregateOutputType = {
+    id: string | null
+    kind: $Enums.SessionSettlementKind | null
+    idempotencyKey: string | null
+    sessionId: string | null
+    contractId: string | null
+    reason: string | null
+    status: $Enums.SessionSettlementStatus | null
+    attempts: number | null
+    lastError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    settledAt: Date | null
+  }
+
+  export type SessionSettlementMaxAggregateOutputType = {
+    id: string | null
+    kind: $Enums.SessionSettlementKind | null
+    idempotencyKey: string | null
+    sessionId: string | null
+    contractId: string | null
+    reason: string | null
+    status: $Enums.SessionSettlementStatus | null
+    attempts: number | null
+    lastError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    settledAt: Date | null
+  }
+
+  export type SessionSettlementCountAggregateOutputType = {
+    id: number
+    kind: number
+    idempotencyKey: number
+    sessionId: number
+    contractId: number
+    reason: number
+    status: number
+    attempts: number
+    lastError: number
+    createdAt: number
+    updatedAt: number
+    settledAt: number
+    _all: number
+  }
+
+
+  export type SessionSettlementAvgAggregateInputType = {
+    attempts?: true
+  }
+
+  export type SessionSettlementSumAggregateInputType = {
+    attempts?: true
+  }
+
+  export type SessionSettlementMinAggregateInputType = {
+    id?: true
+    kind?: true
+    idempotencyKey?: true
+    sessionId?: true
+    contractId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+    settledAt?: true
+  }
+
+  export type SessionSettlementMaxAggregateInputType = {
+    id?: true
+    kind?: true
+    idempotencyKey?: true
+    sessionId?: true
+    contractId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+    settledAt?: true
+  }
+
+  export type SessionSettlementCountAggregateInputType = {
+    id?: true
+    kind?: true
+    idempotencyKey?: true
+    sessionId?: true
+    contractId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+    settledAt?: true
+    _all?: true
+  }
+
+  export type SessionSettlementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionSettlement to aggregate.
+     */
+    where?: SessionSettlementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionSettlements to fetch.
+     */
+    orderBy?: SessionSettlementOrderByWithRelationInput | SessionSettlementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SessionSettlementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionSettlements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionSettlements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SessionSettlements
+    **/
+    _count?: true | SessionSettlementCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SessionSettlementAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SessionSettlementSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SessionSettlementMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SessionSettlementMaxAggregateInputType
+  }
+
+  export type GetSessionSettlementAggregateType<T extends SessionSettlementAggregateArgs> = {
+        [P in keyof T & keyof AggregateSessionSettlement]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSessionSettlement[P]>
+      : GetScalarType<T[P], AggregateSessionSettlement[P]>
+  }
+
+
+
+
+  export type SessionSettlementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionSettlementWhereInput
+    orderBy?: SessionSettlementOrderByWithAggregationInput | SessionSettlementOrderByWithAggregationInput[]
+    by: SessionSettlementScalarFieldEnum[] | SessionSettlementScalarFieldEnum
+    having?: SessionSettlementScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SessionSettlementCountAggregateInputType | true
+    _avg?: SessionSettlementAvgAggregateInputType
+    _sum?: SessionSettlementSumAggregateInputType
+    _min?: SessionSettlementMinAggregateInputType
+    _max?: SessionSettlementMaxAggregateInputType
+  }
+
+  export type SessionSettlementGroupByOutputType = {
+    id: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId: string | null
+    contractId: string
+    reason: string | null
+    status: $Enums.SessionSettlementStatus
+    attempts: number
+    lastError: string | null
+    createdAt: Date
+    updatedAt: Date
+    settledAt: Date | null
+    _count: SessionSettlementCountAggregateOutputType | null
+    _avg: SessionSettlementAvgAggregateOutputType | null
+    _sum: SessionSettlementSumAggregateOutputType | null
+    _min: SessionSettlementMinAggregateOutputType | null
+    _max: SessionSettlementMaxAggregateOutputType | null
+  }
+
+  type GetSessionSettlementGroupByPayload<T extends SessionSettlementGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SessionSettlementGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SessionSettlementGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SessionSettlementGroupByOutputType[P]>
+            : GetScalarType<T[P], SessionSettlementGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SessionSettlementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    settledAt?: boolean
+  }, ExtArgs["result"]["sessionSettlement"]>
+
+  export type SessionSettlementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    settledAt?: boolean
+  }, ExtArgs["result"]["sessionSettlement"]>
+
+  export type SessionSettlementSelectScalar = {
+    id?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    settledAt?: boolean
+  }
+
+
+  export type $SessionSettlementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SessionSettlement"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      kind: $Enums.SessionSettlementKind
+      /**
+       * Same string this operation passes as `idempotencyKey` to payment-service (plan 1.1) —
+       * e.g. "PT_NO_SHOW:<sessionId>". Unique so upsertPending finds the one row for a retry
+       * instead of creating a duplicate.
+       */
+      idempotencyKey: string
+      /**
+       * Null only for CONTRACT_TERMINATION, which settles the whole contract, not one session.
+       */
+      sessionId: string | null
+      contractId: string
+      /**
+       * Termination reason, only meaningful for CONTRACT_TERMINATION — needed to reconstruct the
+       * call when the sweep retries a row it did not originate.
+       */
+      reason: string | null
+      status: $Enums.SessionSettlementStatus
+      attempts: number
+      lastError: string | null
+      createdAt: Date
+      updatedAt: Date
+      settledAt: Date | null
+    }, ExtArgs["result"]["sessionSettlement"]>
+    composites: {}
+  }
+
+  type SessionSettlementGetPayload<S extends boolean | null | undefined | SessionSettlementDefaultArgs> = $Result.GetResult<Prisma.$SessionSettlementPayload, S>
+
+  type SessionSettlementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SessionSettlementFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SessionSettlementCountAggregateInputType | true
+    }
+
+  export interface SessionSettlementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SessionSettlement'], meta: { name: 'SessionSettlement' } }
+    /**
+     * Find zero or one SessionSettlement that matches the filter.
+     * @param {SessionSettlementFindUniqueArgs} args - Arguments to find a SessionSettlement
+     * @example
+     * // Get one SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SessionSettlementFindUniqueArgs>(args: SelectSubset<T, SessionSettlementFindUniqueArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one SessionSettlement that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SessionSettlementFindUniqueOrThrowArgs} args - Arguments to find a SessionSettlement
+     * @example
+     * // Get one SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SessionSettlementFindUniqueOrThrowArgs>(args: SelectSubset<T, SessionSettlementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first SessionSettlement that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementFindFirstArgs} args - Arguments to find a SessionSettlement
+     * @example
+     * // Get one SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SessionSettlementFindFirstArgs>(args?: SelectSubset<T, SessionSettlementFindFirstArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first SessionSettlement that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementFindFirstOrThrowArgs} args - Arguments to find a SessionSettlement
+     * @example
+     * // Get one SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SessionSettlementFindFirstOrThrowArgs>(args?: SelectSubset<T, SessionSettlementFindFirstOrThrowArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more SessionSettlements that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SessionSettlements
+     * const sessionSettlements = await prisma.sessionSettlement.findMany()
+     * 
+     * // Get first 10 SessionSettlements
+     * const sessionSettlements = await prisma.sessionSettlement.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const sessionSettlementWithIdOnly = await prisma.sessionSettlement.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SessionSettlementFindManyArgs>(args?: SelectSubset<T, SessionSettlementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a SessionSettlement.
+     * @param {SessionSettlementCreateArgs} args - Arguments to create a SessionSettlement.
+     * @example
+     * // Create one SessionSettlement
+     * const SessionSettlement = await prisma.sessionSettlement.create({
+     *   data: {
+     *     // ... data to create a SessionSettlement
+     *   }
+     * })
+     * 
+     */
+    create<T extends SessionSettlementCreateArgs>(args: SelectSubset<T, SessionSettlementCreateArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many SessionSettlements.
+     * @param {SessionSettlementCreateManyArgs} args - Arguments to create many SessionSettlements.
+     * @example
+     * // Create many SessionSettlements
+     * const sessionSettlement = await prisma.sessionSettlement.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SessionSettlementCreateManyArgs>(args?: SelectSubset<T, SessionSettlementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SessionSettlements and returns the data saved in the database.
+     * @param {SessionSettlementCreateManyAndReturnArgs} args - Arguments to create many SessionSettlements.
+     * @example
+     * // Create many SessionSettlements
+     * const sessionSettlement = await prisma.sessionSettlement.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SessionSettlements and only return the `id`
+     * const sessionSettlementWithIdOnly = await prisma.sessionSettlement.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SessionSettlementCreateManyAndReturnArgs>(args?: SelectSubset<T, SessionSettlementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a SessionSettlement.
+     * @param {SessionSettlementDeleteArgs} args - Arguments to delete one SessionSettlement.
+     * @example
+     * // Delete one SessionSettlement
+     * const SessionSettlement = await prisma.sessionSettlement.delete({
+     *   where: {
+     *     // ... filter to delete one SessionSettlement
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SessionSettlementDeleteArgs>(args: SelectSubset<T, SessionSettlementDeleteArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one SessionSettlement.
+     * @param {SessionSettlementUpdateArgs} args - Arguments to update one SessionSettlement.
+     * @example
+     * // Update one SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SessionSettlementUpdateArgs>(args: SelectSubset<T, SessionSettlementUpdateArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more SessionSettlements.
+     * @param {SessionSettlementDeleteManyArgs} args - Arguments to filter SessionSettlements to delete.
+     * @example
+     * // Delete a few SessionSettlements
+     * const { count } = await prisma.sessionSettlement.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SessionSettlementDeleteManyArgs>(args?: SelectSubset<T, SessionSettlementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SessionSettlements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SessionSettlements
+     * const sessionSettlement = await prisma.sessionSettlement.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SessionSettlementUpdateManyArgs>(args: SelectSubset<T, SessionSettlementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one SessionSettlement.
+     * @param {SessionSettlementUpsertArgs} args - Arguments to update or create a SessionSettlement.
+     * @example
+     * // Update or create a SessionSettlement
+     * const sessionSettlement = await prisma.sessionSettlement.upsert({
+     *   create: {
+     *     // ... data to create a SessionSettlement
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SessionSettlement we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SessionSettlementUpsertArgs>(args: SelectSubset<T, SessionSettlementUpsertArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of SessionSettlements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementCountArgs} args - Arguments to filter SessionSettlements to count.
+     * @example
+     * // Count the number of SessionSettlements
+     * const count = await prisma.sessionSettlement.count({
+     *   where: {
+     *     // ... the filter for the SessionSettlements we want to count
+     *   }
+     * })
+    **/
+    count<T extends SessionSettlementCountArgs>(
+      args?: Subset<T, SessionSettlementCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SessionSettlementCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SessionSettlement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SessionSettlementAggregateArgs>(args: Subset<T, SessionSettlementAggregateArgs>): Prisma.PrismaPromise<GetSessionSettlementAggregateType<T>>
+
+    /**
+     * Group by SessionSettlement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionSettlementGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SessionSettlementGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SessionSettlementGroupByArgs['orderBy'] }
+        : { orderBy?: SessionSettlementGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SessionSettlementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSessionSettlementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SessionSettlement model
+   */
+  readonly fields: SessionSettlementFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SessionSettlement.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SessionSettlementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SessionSettlement model
+   */ 
+  interface SessionSettlementFieldRefs {
+    readonly id: FieldRef<"SessionSettlement", 'String'>
+    readonly kind: FieldRef<"SessionSettlement", 'SessionSettlementKind'>
+    readonly idempotencyKey: FieldRef<"SessionSettlement", 'String'>
+    readonly sessionId: FieldRef<"SessionSettlement", 'String'>
+    readonly contractId: FieldRef<"SessionSettlement", 'String'>
+    readonly reason: FieldRef<"SessionSettlement", 'String'>
+    readonly status: FieldRef<"SessionSettlement", 'SessionSettlementStatus'>
+    readonly attempts: FieldRef<"SessionSettlement", 'Int'>
+    readonly lastError: FieldRef<"SessionSettlement", 'String'>
+    readonly createdAt: FieldRef<"SessionSettlement", 'DateTime'>
+    readonly updatedAt: FieldRef<"SessionSettlement", 'DateTime'>
+    readonly settledAt: FieldRef<"SessionSettlement", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SessionSettlement findUnique
+   */
+  export type SessionSettlementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter, which SessionSettlement to fetch.
+     */
+    where: SessionSettlementWhereUniqueInput
+  }
+
+  /**
+   * SessionSettlement findUniqueOrThrow
+   */
+  export type SessionSettlementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter, which SessionSettlement to fetch.
+     */
+    where: SessionSettlementWhereUniqueInput
+  }
+
+  /**
+   * SessionSettlement findFirst
+   */
+  export type SessionSettlementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter, which SessionSettlement to fetch.
+     */
+    where?: SessionSettlementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionSettlements to fetch.
+     */
+    orderBy?: SessionSettlementOrderByWithRelationInput | SessionSettlementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionSettlements.
+     */
+    cursor?: SessionSettlementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionSettlements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionSettlements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionSettlements.
+     */
+    distinct?: SessionSettlementScalarFieldEnum | SessionSettlementScalarFieldEnum[]
+  }
+
+  /**
+   * SessionSettlement findFirstOrThrow
+   */
+  export type SessionSettlementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter, which SessionSettlement to fetch.
+     */
+    where?: SessionSettlementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionSettlements to fetch.
+     */
+    orderBy?: SessionSettlementOrderByWithRelationInput | SessionSettlementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionSettlements.
+     */
+    cursor?: SessionSettlementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionSettlements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionSettlements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionSettlements.
+     */
+    distinct?: SessionSettlementScalarFieldEnum | SessionSettlementScalarFieldEnum[]
+  }
+
+  /**
+   * SessionSettlement findMany
+   */
+  export type SessionSettlementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter, which SessionSettlements to fetch.
+     */
+    where?: SessionSettlementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionSettlements to fetch.
+     */
+    orderBy?: SessionSettlementOrderByWithRelationInput | SessionSettlementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SessionSettlements.
+     */
+    cursor?: SessionSettlementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionSettlements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionSettlements.
+     */
+    skip?: number
+    distinct?: SessionSettlementScalarFieldEnum | SessionSettlementScalarFieldEnum[]
+  }
+
+  /**
+   * SessionSettlement create
+   */
+  export type SessionSettlementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * The data needed to create a SessionSettlement.
+     */
+    data: XOR<SessionSettlementCreateInput, SessionSettlementUncheckedCreateInput>
+  }
+
+  /**
+   * SessionSettlement createMany
+   */
+  export type SessionSettlementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SessionSettlements.
+     */
+    data: SessionSettlementCreateManyInput | SessionSettlementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SessionSettlement createManyAndReturn
+   */
+  export type SessionSettlementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many SessionSettlements.
+     */
+    data: SessionSettlementCreateManyInput | SessionSettlementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SessionSettlement update
+   */
+  export type SessionSettlementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * The data needed to update a SessionSettlement.
+     */
+    data: XOR<SessionSettlementUpdateInput, SessionSettlementUncheckedUpdateInput>
+    /**
+     * Choose, which SessionSettlement to update.
+     */
+    where: SessionSettlementWhereUniqueInput
+  }
+
+  /**
+   * SessionSettlement updateMany
+   */
+  export type SessionSettlementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SessionSettlements.
+     */
+    data: XOR<SessionSettlementUpdateManyMutationInput, SessionSettlementUncheckedUpdateManyInput>
+    /**
+     * Filter which SessionSettlements to update
+     */
+    where?: SessionSettlementWhereInput
+  }
+
+  /**
+   * SessionSettlement upsert
+   */
+  export type SessionSettlementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * The filter to search for the SessionSettlement to update in case it exists.
+     */
+    where: SessionSettlementWhereUniqueInput
+    /**
+     * In case the SessionSettlement found by the `where` argument doesn't exist, create a new SessionSettlement with this data.
+     */
+    create: XOR<SessionSettlementCreateInput, SessionSettlementUncheckedCreateInput>
+    /**
+     * In case the SessionSettlement was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SessionSettlementUpdateInput, SessionSettlementUncheckedUpdateInput>
+  }
+
+  /**
+   * SessionSettlement delete
+   */
+  export type SessionSettlementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+    /**
+     * Filter which SessionSettlement to delete.
+     */
+    where: SessionSettlementWhereUniqueInput
+  }
+
+  /**
+   * SessionSettlement deleteMany
+   */
+  export type SessionSettlementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionSettlements to delete
+     */
+    where?: SessionSettlementWhereInput
+  }
+
+  /**
+   * SessionSettlement without action
+   */
+  export type SessionSettlementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionSettlement
+     */
+    select?: SessionSettlementSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -21880,6 +23046,7 @@ export namespace Prisma {
     applicationTrainingLocations: 'applicationTrainingLocations',
     adminNote: 'adminNote',
     rejectionReason: 'rejectionReason',
+    reviewedByUserId: 'reviewedByUserId',
     submittedAt: 'submittedAt',
     reviewedAt: 'reviewedAt',
     approvedAt: 'approvedAt',
@@ -21931,11 +23098,13 @@ export namespace Prisma {
     extraSessions: 'extraSessions',
     totalSessions: 'totalSessions',
     usedSessions: 'usedSessions',
+    compensatedSessions: 'compensatedSessions',
     price: 'price',
     pricePerSession: 'pricePerSession',
     startDate: 'startDate',
     endDate: 'endDate',
     completedAt: 'completedAt',
+    validityDays: 'validityDays',
     clientMessage: 'clientMessage',
     rejectionReason: 'rejectionReason',
     cancelledBy: 'cancelledBy',
@@ -22193,6 +23362,24 @@ export namespace Prisma {
   };
 
   export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+  export const SessionSettlementScalarFieldEnum: {
+    id: 'id',
+    kind: 'kind',
+    idempotencyKey: 'idempotencyKey',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    reason: 'reason',
+    status: 'status',
+    attempts: 'attempts',
+    lastError: 'lastError',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    settledAt: 'settledAt'
+  };
+
+  export type SessionSettlementScalarFieldEnum = (typeof SessionSettlementScalarFieldEnum)[keyof typeof SessionSettlementScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -22603,6 +23790,34 @@ export namespace Prisma {
    */
   export type ListEnumAuditEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditEntityType[]'>
     
+
+
+  /**
+   * Reference to a field of type 'SessionSettlementKind'
+   */
+  export type EnumSessionSettlementKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSettlementKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionSettlementKind[]'
+   */
+  export type ListEnumSessionSettlementKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSettlementKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionSettlementStatus'
+   */
+  export type EnumSessionSettlementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSettlementStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionSettlementStatus[]'
+   */
+  export type ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSettlementStatus[]'>
+    
   /**
    * Deep Input Types
    */
@@ -22903,6 +24118,7 @@ export namespace Prisma {
     applicationTrainingLocations?: JsonNullableFilter<"PTApplication">
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
+    reviewedByUserId?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     reviewedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     approvedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -22962,6 +24178,7 @@ export namespace Prisma {
     applicationTrainingLocations?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
+    reviewedByUserId?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     approvedAt?: SortOrderInput | SortOrder
@@ -23024,6 +24241,7 @@ export namespace Prisma {
     applicationTrainingLocations?: JsonNullableFilter<"PTApplication">
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
+    reviewedByUserId?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     reviewedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     approvedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -23083,6 +24301,7 @@ export namespace Prisma {
     applicationTrainingLocations?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
+    reviewedByUserId?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     approvedAt?: SortOrderInput | SortOrder
@@ -23147,6 +24366,7 @@ export namespace Prisma {
     applicationTrainingLocations?: JsonNullableWithAggregatesFilter<"PTApplication">
     adminNote?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    reviewedByUserId?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
     reviewedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
     approvedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
@@ -23310,11 +24530,13 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
+    compensatedSessions?: IntFilter<"Contract"> | number
     price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    validityDays?: IntNullableFilter<"Contract"> | number | null
     clientMessage?: StringNullableFilter<"Contract"> | string | null
     rejectionReason?: StringNullableFilter<"Contract"> | string | null
     cancelledBy?: StringNullableFilter<"Contract"> | string | null
@@ -23369,11 +24591,13 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrderInput | SortOrder
     pricePerSession?: SortOrderInput | SortOrder
     startDate?: SortOrderInput | SortOrder
     endDate?: SortOrderInput | SortOrder
     completedAt?: SortOrderInput | SortOrder
+    validityDays?: SortOrderInput | SortOrder
     clientMessage?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     cancelledBy?: SortOrderInput | SortOrder
@@ -23431,11 +24655,13 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
+    compensatedSessions?: IntFilter<"Contract"> | number
     price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    validityDays?: IntNullableFilter<"Contract"> | number | null
     clientMessage?: StringNullableFilter<"Contract"> | string | null
     rejectionReason?: StringNullableFilter<"Contract"> | string | null
     cancelledBy?: StringNullableFilter<"Contract"> | string | null
@@ -23490,11 +24716,13 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrderInput | SortOrder
     pricePerSession?: SortOrderInput | SortOrder
     startDate?: SortOrderInput | SortOrder
     endDate?: SortOrderInput | SortOrder
     completedAt?: SortOrderInput | SortOrder
+    validityDays?: SortOrderInput | SortOrder
     clientMessage?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     cancelledBy?: SortOrderInput | SortOrder
@@ -23555,11 +24783,13 @@ export namespace Prisma {
     extraSessions?: IntWithAggregatesFilter<"Contract"> | number
     totalSessions?: IntWithAggregatesFilter<"Contract"> | number
     usedSessions?: IntWithAggregatesFilter<"Contract"> | number
+    compensatedSessions?: IntWithAggregatesFilter<"Contract"> | number
     price?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    validityDays?: IntNullableWithAggregatesFilter<"Contract"> | number | null
     clientMessage?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     cancelledBy?: StringNullableWithAggregatesFilter<"Contract"> | string | null
@@ -24703,6 +25933,95 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
   }
 
+  export type SessionSettlementWhereInput = {
+    AND?: SessionSettlementWhereInput | SessionSettlementWhereInput[]
+    OR?: SessionSettlementWhereInput[]
+    NOT?: SessionSettlementWhereInput | SessionSettlementWhereInput[]
+    id?: StringFilter<"SessionSettlement"> | string
+    kind?: EnumSessionSettlementKindFilter<"SessionSettlement"> | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFilter<"SessionSettlement"> | string
+    sessionId?: StringNullableFilter<"SessionSettlement"> | string | null
+    contractId?: StringFilter<"SessionSettlement"> | string
+    reason?: StringNullableFilter<"SessionSettlement"> | string | null
+    status?: EnumSessionSettlementStatusFilter<"SessionSettlement"> | $Enums.SessionSettlementStatus
+    attempts?: IntFilter<"SessionSettlement"> | number
+    lastError?: StringNullableFilter<"SessionSettlement"> | string | null
+    createdAt?: DateTimeFilter<"SessionSettlement"> | Date | string
+    updatedAt?: DateTimeFilter<"SessionSettlement"> | Date | string
+    settledAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+  }
+
+  export type SessionSettlementOrderByWithRelationInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    sessionId?: SortOrderInput | SortOrder
+    contractId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
+  }
+
+  export type SessionSettlementWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: SessionSettlementWhereInput | SessionSettlementWhereInput[]
+    OR?: SessionSettlementWhereInput[]
+    NOT?: SessionSettlementWhereInput | SessionSettlementWhereInput[]
+    kind?: EnumSessionSettlementKindFilter<"SessionSettlement"> | $Enums.SessionSettlementKind
+    sessionId?: StringNullableFilter<"SessionSettlement"> | string | null
+    contractId?: StringFilter<"SessionSettlement"> | string
+    reason?: StringNullableFilter<"SessionSettlement"> | string | null
+    status?: EnumSessionSettlementStatusFilter<"SessionSettlement"> | $Enums.SessionSettlementStatus
+    attempts?: IntFilter<"SessionSettlement"> | number
+    lastError?: StringNullableFilter<"SessionSettlement"> | string | null
+    createdAt?: DateTimeFilter<"SessionSettlement"> | Date | string
+    updatedAt?: DateTimeFilter<"SessionSettlement"> | Date | string
+    settledAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+  }, "id" | "idempotencyKey">
+
+  export type SessionSettlementOrderByWithAggregationInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    sessionId?: SortOrderInput | SortOrder
+    contractId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    _count?: SessionSettlementCountOrderByAggregateInput
+    _avg?: SessionSettlementAvgOrderByAggregateInput
+    _max?: SessionSettlementMaxOrderByAggregateInput
+    _min?: SessionSettlementMinOrderByAggregateInput
+    _sum?: SessionSettlementSumOrderByAggregateInput
+  }
+
+  export type SessionSettlementScalarWhereWithAggregatesInput = {
+    AND?: SessionSettlementScalarWhereWithAggregatesInput | SessionSettlementScalarWhereWithAggregatesInput[]
+    OR?: SessionSettlementScalarWhereWithAggregatesInput[]
+    NOT?: SessionSettlementScalarWhereWithAggregatesInput | SessionSettlementScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SessionSettlement"> | string
+    kind?: EnumSessionSettlementKindWithAggregatesFilter<"SessionSettlement"> | $Enums.SessionSettlementKind
+    idempotencyKey?: StringWithAggregatesFilter<"SessionSettlement"> | string
+    sessionId?: StringNullableWithAggregatesFilter<"SessionSettlement"> | string | null
+    contractId?: StringWithAggregatesFilter<"SessionSettlement"> | string
+    reason?: StringNullableWithAggregatesFilter<"SessionSettlement"> | string | null
+    status?: EnumSessionSettlementStatusWithAggregatesFilter<"SessionSettlement"> | $Enums.SessionSettlementStatus
+    attempts?: IntWithAggregatesFilter<"SessionSettlement"> | number
+    lastError?: StringNullableWithAggregatesFilter<"SessionSettlement"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SessionSettlement"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SessionSettlement"> | Date | string
+    settledAt?: DateTimeNullableWithAggregatesFilter<"SessionSettlement"> | Date | string | null
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -25071,6 +26390,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -25130,6 +26450,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -25187,6 +26508,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -25246,6 +26568,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -25304,6 +26627,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -25359,6 +26683,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -25415,6 +26740,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -25587,11 +26913,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -25646,11 +26974,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -25705,11 +27035,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25764,11 +27096,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25823,11 +27157,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -25880,11 +27216,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25937,11 +27275,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27259,6 +28599,111 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SessionSettlementCreateInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type SessionSettlementUncheckedCreateInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type SessionSettlementUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SessionSettlementUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SessionSettlementCreateManyInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type SessionSettlementUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SessionSettlementUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -27852,6 +29297,7 @@ export namespace Prisma {
     applicationTrainingLocations?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
+    reviewedByUserId?: SortOrder
     submittedAt?: SortOrder
     reviewedAt?: SortOrder
     approvedAt?: SortOrder
@@ -27913,6 +29359,7 @@ export namespace Prisma {
     residenceLegacyDistrictName?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
+    reviewedByUserId?: SortOrder
     submittedAt?: SortOrder
     reviewedAt?: SortOrder
     approvedAt?: SortOrder
@@ -27960,6 +29407,7 @@ export namespace Prisma {
     residenceLegacyDistrictName?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
+    reviewedByUserId?: SortOrder
     submittedAt?: SortOrder
     reviewedAt?: SortOrder
     approvedAt?: SortOrder
@@ -28204,11 +29652,13 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     completedAt?: SortOrder
+    validityDays?: SortOrder
     clientMessage?: SortOrder
     rejectionReason?: SortOrder
     cancelledBy?: SortOrder
@@ -28253,8 +29703,10 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    validityDays?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -28278,11 +29730,13 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     completedAt?: SortOrder
+    validityDays?: SortOrder
     clientMessage?: SortOrder
     rejectionReason?: SortOrder
     cancelledBy?: SortOrder
@@ -28335,11 +29789,13 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     completedAt?: SortOrder
+    validityDays?: SortOrder
     clientMessage?: SortOrder
     rejectionReason?: SortOrder
     cancelledBy?: SortOrder
@@ -28384,8 +29840,10 @@ export namespace Prisma {
     extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
+    compensatedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    validityDays?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -29326,6 +30784,93 @@ export namespace Prisma {
     _max?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
   }
 
+  export type EnumSessionSettlementKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementKind | EnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementKindFilter<$PrismaModel> | $Enums.SessionSettlementKind
+  }
+
+  export type EnumSessionSettlementStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementStatus | EnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementStatusFilter<$PrismaModel> | $Enums.SessionSettlementStatus
+  }
+
+  export type SessionSettlementCountOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type SessionSettlementAvgOrderByAggregateInput = {
+    attempts?: SortOrder
+  }
+
+  export type SessionSettlementMaxOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type SessionSettlementMinOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type SessionSettlementSumOrderByAggregateInput = {
+    attempts?: SortOrder
+  }
+
+  export type EnumSessionSettlementKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementKind | EnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementKindWithAggregatesFilter<$PrismaModel> | $Enums.SessionSettlementKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionSettlementKindFilter<$PrismaModel>
+    _max?: NestedEnumSessionSettlementKindFilter<$PrismaModel>
+  }
+
+  export type EnumSessionSettlementStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementStatus | EnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementStatusWithAggregatesFilter<$PrismaModel> | $Enums.SessionSettlementStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
+    _max?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -30222,6 +31767,14 @@ export namespace Prisma {
     set?: $Enums.AuditEntityType
   }
 
+  export type EnumSessionSettlementKindFieldUpdateOperationsInput = {
+    set?: $Enums.SessionSettlementKind
+  }
+
+  export type EnumSessionSettlementStatusFieldUpdateOperationsInput = {
+    set?: $Enums.SessionSettlementStatus
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -30888,6 +32441,40 @@ export namespace Prisma {
     _max?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
   }
 
+  export type NestedEnumSessionSettlementKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementKind | EnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementKindFilter<$PrismaModel> | $Enums.SessionSettlementKind
+  }
+
+  export type NestedEnumSessionSettlementStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementStatus | EnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementStatusFilter<$PrismaModel> | $Enums.SessionSettlementStatus
+  }
+
+  export type NestedEnumSessionSettlementKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementKind | EnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementKind[] | ListEnumSessionSettlementKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementKindWithAggregatesFilter<$PrismaModel> | $Enums.SessionSettlementKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionSettlementKindFilter<$PrismaModel>
+    _max?: NestedEnumSessionSettlementKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumSessionSettlementStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionSettlementStatus | EnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionSettlementStatus[] | ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionSettlementStatusWithAggregatesFilter<$PrismaModel> | $Enums.SessionSettlementStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
+    _max?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
+  }
+
   export type PTApplicationCreateWithoutUserProfileInput = {
     id?: string
     status?: $Enums.PTApplicationStatus
@@ -30936,6 +32523,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -30993,6 +32581,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -31148,6 +32737,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31205,6 +32795,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31653,6 +33244,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -31711,6 +33303,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -31783,6 +33376,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31841,6 +33435,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31897,6 +33492,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -31955,6 +33551,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
+    reviewedByUserId?: string | null
     submittedAt?: Date | string | null
     reviewedAt?: Date | string | null
     approvedAt?: Date | string | null
@@ -32027,6 +33624,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32085,6 +33683,7 @@ export namespace Prisma {
     applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32275,11 +33874,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -32333,11 +33934,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -32468,11 +34071,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32526,11 +34131,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32708,11 +34315,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -32766,11 +34375,13 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
+    compensatedSessions?: number
     price?: Decimal | DecimalJsLike | number | string | null
     pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
+    validityDays?: number | null
     clientMessage?: string | null
     rejectionReason?: string | null
     cancelledBy?: string | null
@@ -32907,11 +34518,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32965,11 +34578,13 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34586,6 +36201,10 @@ export namespace Prisma {
      * @deprecated Use AuditLogDefaultArgs instead
      */
     export type AuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AuditLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SessionSettlementDefaultArgs instead
+     */
+    export type SessionSettlementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionSettlementDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

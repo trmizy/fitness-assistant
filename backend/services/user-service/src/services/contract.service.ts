@@ -7,6 +7,7 @@ import {
   PackageType,
   SessionMode,
   Prisma,
+  SessionSettlementKind,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
@@ -19,10 +20,56 @@ import { generateContractPdf } from "./contractPdf.service";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { availabilityService } from "./availability.service";
 import { auditService } from "./audit.service";
+import { terminateContractMoney } from "./contract-payout.service";
+import { settleTracked } from "./session-settlement.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
+
+/**
+ * Money-flow plan 1.5 — the single shared formula for "how many sessions does this contract
+ * still owe". `totalSessions` (purchasedSessions in the plan's naming) is immutable once
+ * signed; `usedSessions` counts sessions the client actually trained (or was charged for by
+ * cancelling late); `compensatedSessions` counts PT no-shows the client was already paid cash
+ * for. Every caller — the completion check below, the booking quota gate in booking.service.ts
+ * — must go through this instead of re-deriving it, so a data model change only has to update
+ * arithmetic in one place.
+ */
+export interface SessionAccounting {
+  totalSessions: number;
+  usedSessions: number;
+  compensatedSessions: number;
+}
+
+export function getRemainingEntitlements(contract: SessionAccounting): number {
+  const consumed = contract.usedSessions + contract.compensatedSessions;
+  return Math.max(0, contract.totalSessions - consumed);
+}
+
+/** Collaborators of {@link contractService.checkAndCompleteContract}, injectable so the
+ * money-flow plan 1.2 fix (natural completion must settle money) is testable without a DB
+ * or an HTTP call — same pattern as `QuotaDeps` in booking.service.ts. */
+export interface CompleteContractDeps {
+  findById: (id: string) => Promise<
+    ({ id: string; status: ContractStatus } & SessionAccounting) | null
+  >;
+  updateStatus: (id: string, status: ContractStatus, extra: { completedAt: Date }) => Promise<unknown>;
+  settleMoney: (id: string, reason: "COMPLETED") => Promise<unknown>;
+}
+
+const defaultCompleteContractDeps: CompleteContractDeps = {
+  findById: (id) => contractRepository.findById(id),
+  updateStatus: (id, status, extra) => contractRepository.updateStatus(id, status, extra),
+  // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
+  // committed the contract to COMPLETED — there is no going back to retry a failed settlement
+  // through any status-gated endpoint, so the sweep is the only path left for it.
+  settleMoney: (id, reason) =>
+    settleTracked(
+      { kind: SessionSettlementKind.CONTRACT_TERMINATION, idempotencyKey: `CONTRACT_TERMINATE:${id}`, contractId: id, reason },
+      () => terminateContractMoney(id, reason),
+    ),
+};
 
 /** The subset of a PTServicePackage a contract copies. */
 export interface SnapshotSource {
@@ -32,6 +79,8 @@ export interface SnapshotSource {
   price: Prisma.Decimal | number | string;
   sessionMode: SessionMode;
   sessionDurationMinutes: number;
+  /** Money-flow plan 3.6: null = no expiry, matching the package's own field. */
+  validityDays?: number | null;
 }
 
 export interface PackageSnapshot {
@@ -42,6 +91,7 @@ export interface PackageSnapshot {
   price: number;
   sessionMode: SessionMode;
   sessionDurationMinutes: number;
+  validityDays: number | null;
 }
 
 /**
@@ -71,6 +121,7 @@ export function buildPackageSnapshot(pkg: SnapshotSource): PackageSnapshot {
     price: Number(pkg.price),
     sessionMode: pkg.sessionMode,
     sessionDurationMinutes: pkg.sessionDurationMinutes,
+    validityDays: pkg.validityDays ?? null,
   };
 }
 
@@ -129,10 +180,12 @@ const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || "";
 
-// Temporary bypass (requested to unblock testing where the Dropbox Sign webhook can't reach
-// this environment — see docs/money-flow.md's deviations log). Defaults to true, i.e. the
-// original required-e-sign behavior, so nothing changes unless this is explicitly set.
-// The Dropbox Sign integration itself is untouched — flip this back to re-require it.
+// Money-flow plan 5.2: e-signing is paused as a settled product decision (docs/money-flow.md's
+// scope section), set to "false" in docker-compose.dev.yml — not a temporary testing bypass
+// anymore. When off, a contract goes straight from PENDING_REVIEW to PENDING_PAYMENT on
+// PT-accept, the same destination the signing webhook would otherwise lead to. The Dropbox
+// Sign integration itself is untouched (its webhook route is unregistered instead — see
+// app.ts — while this flag is off, rather than left reachable with unverified signatures).
 const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
 
 /** Fire-and-forget: a notification email must never fail the flow that triggered it. */
@@ -350,6 +403,7 @@ export const contractService = {
         packageId: snapshot.packageId,
         packageSourceName: snapshot.packageSourceName,
         sessionDurationMinutes: snapshot.sessionDurationMinutes,
+        validityDays: snapshot.validityDays,
         lowAvailabilityWarned: availableSlots < pkg.sessionCount,
         slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
       } as any),
@@ -586,7 +640,12 @@ export const contractService = {
     return updated;
   },
 
-  // ── Cancel contract (either party) ─────────────────────────────────
+  // ── Cancel contract (either party) — PRE-MONEY only ────────────────
+  // Money-flow plan 2.3: this is a plain status flip, nothing more — it never calls
+  // terminateContractMoney. It used to also accept ACTIVE, which meant a paid contract
+  // cancelled through this path left its escrowed money in PENDING forever, unreleased and
+  // unrefunded. An ACTIVE contract has money in escrow and MUST go through
+  // POST /:id/terminate instead, which settles it per the termination reason's formula.
   async cancelContract(contractId: string, userId: string, reason: string) {
     if (!reason?.trim()) throw err("Cancellation reason is required", 400);
 
@@ -596,11 +655,14 @@ export const contractService = {
       throw err("Not authorized", 403);
     }
     if (
-      contract.status !== ContractStatus.ACTIVE &&
       contract.status !== ContractStatus.PENDING_REVIEW &&
       contract.status !== ContractStatus.PENDING_PAYMENT
     ) {
-      throw err(`Cannot cancel contract in ${contract.status} status`, 400);
+      throw err(
+        `Cannot cancel a contract in ${contract.status} status through this endpoint` +
+          (contract.status === ContractStatus.ACTIVE ? " — use terminate instead, which settles the escrowed money" : ""),
+        400,
+      );
     }
 
     const updated = await contractRepository.updateStatus(
@@ -638,17 +700,39 @@ export const contractService = {
   },
 
   // ── Auto-complete when sessions exhausted ──────────────────────────
-  async checkAndCompleteContract(contractId: string) {
-    const contract = await contractRepository.findById(contractId);
+  /**
+   * Money-flow plan 1.2: a contract that simply runs out of sessions — the ordinary,
+   * happy-path way a PT contract ends — must settle its money exactly like an explicit
+   * `terminate` call. Before this fix, this function only flipped `status`; nothing here
+   * ever called `terminateContractMoney`, so the escrow behind a naturally-completed
+   * contract stayed in the pending buckets forever.
+   *
+   * Best-effort on the money side: the session lifecycle has already moved on (`status`
+   * flips to COMPLETED first), so a payment-service outage here must not leave the contract
+   * stuck ACTIVE — it is retried safely later, since `terminateContractMoney` carries the
+   * `CONTRACT_TERMINATE:<id>` idempotency key (plan 1.1) and the reconciliation sweep (plan
+   * 1.6) picks up anything a first attempt missed.
+   */
+  async checkAndCompleteContract(
+    contractId: string,
+    deps: CompleteContractDeps = defaultCompleteContractDeps,
+  ) {
+    const contract = await deps.findById(contractId);
     if (!contract || contract.status !== ContractStatus.ACTIVE) return null;
-    if (contract.usedSessions >= contract.totalSessions) {
-      return contractRepository.updateStatus(
-        contractId,
-        ContractStatus.COMPLETED,
-        {
-          completedAt: new Date(),
-        },
-      );
+    if (getRemainingEntitlements(contract) <= 0) {
+      const updated = await deps.updateStatus(contractId, ContractStatus.COMPLETED, {
+        completedAt: new Date(),
+      });
+      try {
+        await deps.settleMoney(contractId, "COMPLETED");
+      } catch (e) {
+        logger.error({
+          error: "money settlement failed for a naturally completed contract",
+          contractId,
+          message: (e as Error).message,
+        });
+      }
+      return updated;
     }
     return null;
   },
@@ -868,13 +952,29 @@ export const contractService = {
     }
   },
 
-  async update(id: string, ptUserId: string, data: any) {
+  /**
+   * Money-flow plan 2.2: `data` used to go straight to the repository with no field
+   * allowlist — a PT who genuinely owns the contract could rewrite `price`, `totalSessions`,
+   * or any of the three revenue-split rates on a contract the client already accepted (or
+   * paid for). Only the descriptive fields below are ever editable, and only while the
+   * contract is still PENDING_REVIEW — once the client has accepted/signed/paid, they are
+   * relying on exactly what they saw, and it must not shift under them afterward.
+   */
+  async update(id: string, ptUserId: string, data: Record<string, unknown>) {
     const contract = await contractRepository.findById(id);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) {
       throw err("Only the PT can edit this contract", 403);
     }
-    return contractRepository.update(id, data);
+    if (contract.status !== ContractStatus.PENDING_REVIEW) {
+      throw err(`Cannot edit a contract in ${contract.status} status — only PENDING_REVIEW contracts may still be edited`, 400);
+    }
+    const EDITABLE_FIELDS = ["description", "notes", "terms"] as const;
+    const patch: Record<string, unknown> = {};
+    for (const field of EDITABLE_FIELDS) {
+      if (field in data) patch[field] = data[field];
+    }
+    return contractRepository.update(id, patch);
   },
 
   async incrementSession(id: string, ptUserId: string) {

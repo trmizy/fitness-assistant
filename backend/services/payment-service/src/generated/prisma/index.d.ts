@@ -34,6 +34,15 @@ export type Wallet = $Result.DefaultSelection<Prisma.$WalletPayload>
  */
 export type WalletLedgerEntry = $Result.DefaultSelection<Prisma.$WalletLedgerEntryPayload>
 /**
+ * Model WithdrawalRequest
+ * Money-flow redesign plan 5.3 — "luồng rút tiền bán thủ công". Deliberately minimal: no
+ * payout-API integration (chi ra ngoài vẫn thủ công, §5.3's explicit constraint). The ledger
+ * debit only happens at `markPaid`, when an admin confirms a real bank/e-wallet transfer
+ * already happened outside this system — this row exists to track that transfer, not to
+ * trigger it.
+ */
+export type WithdrawalRequest = $Result.DefaultSelection<Prisma.$WithdrawalRequestPayload>
+/**
  * Model PaymentTransaction
  * 
  */
@@ -54,6 +63,24 @@ export type PlatformCommission = $Result.DefaultSelection<Prisma.$PlatformCommis
  * the reconciliation invariant; instead it stays visible and recoverable.
  */
 export type PartnerReceivable = $Result.DefaultSelection<Prisma.$PartnerReceivablePayload>
+/**
+ * Model LedgerOperation
+ * Business-key idempotency for financial ledger operations that are NOT a
+ * PaymentTransaction (money-flow redesign plan item 1.1) — release-session,
+ * no-show compensation, contract termination, membership referral settle/
+ * clawback, membership pending-release. Each is written inside the SAME DB
+ * transaction as the wallet movements it guards (see contract-ledger.service.ts's
+ * / membership-ledger.service.ts's `withIdempotentLedgerOp`), so a crash between
+ * "money moved" and "this row committed" is impossible: either both land or
+ * neither does. A retry with the same `key` finds this row and replays `result`
+ * instead of moving money again — the "gọi lại cùng khoá phải là thao tác vô hại"
+ * requirement.
+ * 
+ * `key` follows a fixed per-operation-type format so it is self-describing in an
+ * audit query, e.g. `SESSION_RELEASE:<sessionId>`, `CONTRACT_TERMINATE:<contractId>`,
+ * `MEMBERSHIP_RELEASE:<membershipId>` — see docs/money-flow.md for the full list.
+ */
+export type LedgerOperation = $Result.DefaultSelection<Prisma.$LedgerOperationPayload>
 /**
  * Model PaymentWebhookEvent
  * 
@@ -99,6 +126,16 @@ export const LedgerBucket: {
 export type LedgerBucket = (typeof LedgerBucket)[keyof typeof LedgerBucket]
 
 
+export const WithdrawalRequestStatus: {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  PAID: 'PAID',
+  REJECTED: 'REJECTED'
+};
+
+export type WithdrawalRequestStatus = (typeof WithdrawalRequestStatus)[keyof typeof WithdrawalRequestStatus]
+
+
 export const PurposeType: {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
@@ -106,7 +143,8 @@ export const PurposeType: {
   WALLET_TOPUP: 'WALLET_TOPUP',
   REFUND: 'REFUND',
   TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
-  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE'
+  PERSONALIZED_SERVICE_PURCHASE: 'PERSONALIZED_SERVICE_PURCHASE',
+  WITHDRAWAL: 'WITHDRAWAL'
 };
 
 export type PurposeType = (typeof PurposeType)[keyof typeof PurposeType]
@@ -192,6 +230,10 @@ export const LedgerEntryType: typeof $Enums.LedgerEntryType
 export type LedgerBucket = $Enums.LedgerBucket
 
 export const LedgerBucket: typeof $Enums.LedgerBucket
+
+export type WithdrawalRequestStatus = $Enums.WithdrawalRequestStatus
+
+export const WithdrawalRequestStatus: typeof $Enums.WithdrawalRequestStatus
 
 export type PurposeType = $Enums.PurposeType
 
@@ -365,6 +407,16 @@ export class PrismaClient<
   get walletLedgerEntry(): Prisma.WalletLedgerEntryDelegate<ExtArgs>;
 
   /**
+   * `prisma.withdrawalRequest`: Exposes CRUD operations for the **WithdrawalRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WithdrawalRequests
+    * const withdrawalRequests = await prisma.withdrawalRequest.findMany()
+    * ```
+    */
+  get withdrawalRequest(): Prisma.WithdrawalRequestDelegate<ExtArgs>;
+
+  /**
    * `prisma.paymentTransaction`: Exposes CRUD operations for the **PaymentTransaction** model.
     * Example usage:
     * ```ts
@@ -393,6 +445,16 @@ export class PrismaClient<
     * ```
     */
   get partnerReceivable(): Prisma.PartnerReceivableDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ledgerOperation`: Exposes CRUD operations for the **LedgerOperation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerOperations
+    * const ledgerOperations = await prisma.ledgerOperation.findMany()
+    * ```
+    */
+  get ledgerOperation(): Prisma.LedgerOperationDelegate<ExtArgs>;
 
   /**
    * `prisma.paymentWebhookEvent`: Exposes CRUD operations for the **PaymentWebhookEvent** model.
@@ -846,9 +908,11 @@ export namespace Prisma {
   export const ModelName: {
     Wallet: 'Wallet',
     WalletLedgerEntry: 'WalletLedgerEntry',
+    WithdrawalRequest: 'WithdrawalRequest',
     PaymentTransaction: 'PaymentTransaction',
     PlatformCommission: 'PlatformCommission',
     PartnerReceivable: 'PartnerReceivable',
+    LedgerOperation: 'LedgerOperation',
     PaymentWebhookEvent: 'PaymentWebhookEvent'
   };
 
@@ -865,7 +929,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "wallet" | "walletLedgerEntry" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "paymentWebhookEvent"
+      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "paymentWebhookEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1006,6 +1070,76 @@ export namespace Prisma {
           count: {
             args: Prisma.WalletLedgerEntryCountArgs<ExtArgs>
             result: $Utils.Optional<WalletLedgerEntryCountAggregateOutputType> | number
+          }
+        }
+      }
+      WithdrawalRequest: {
+        payload: Prisma.$WithdrawalRequestPayload<ExtArgs>
+        fields: Prisma.WithdrawalRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WithdrawalRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WithdrawalRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.WithdrawalRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WithdrawalRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          findMany: {
+            args: Prisma.WithdrawalRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>[]
+          }
+          create: {
+            args: Prisma.WithdrawalRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          createMany: {
+            args: Prisma.WithdrawalRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WithdrawalRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.WithdrawalRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          update: {
+            args: Prisma.WithdrawalRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.WithdrawalRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WithdrawalRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WithdrawalRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WithdrawalRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.WithdrawalRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWithdrawalRequest>
+          }
+          groupBy: {
+            args: Prisma.WithdrawalRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WithdrawalRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WithdrawalRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<WithdrawalRequestCountAggregateOutputType> | number
           }
         }
       }
@@ -1216,6 +1350,76 @@ export namespace Prisma {
           count: {
             args: Prisma.PartnerReceivableCountArgs<ExtArgs>
             result: $Utils.Optional<PartnerReceivableCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerOperation: {
+        payload: Prisma.$LedgerOperationPayload<ExtArgs>
+        fields: Prisma.LedgerOperationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerOperationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerOperationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerOperationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerOperationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerOperationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerOperationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerOperationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerOperationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerOperationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          update: {
+            args: Prisma.LedgerOperationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerOperationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerOperationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LedgerOperationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerOperationPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerOperationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerOperation>
+          }
+          groupBy: {
+            args: Prisma.LedgerOperationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerOperationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerOperationCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerOperationCountAggregateOutputType> | number
           }
         }
       }
@@ -1451,10 +1655,12 @@ export namespace Prisma {
 
   export type WalletCountOutputType = {
     ledgerEntries: number
+    withdrawalRequests: number
   }
 
   export type WalletCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ledgerEntries?: boolean | WalletCountOutputTypeCountLedgerEntriesArgs
+    withdrawalRequests?: boolean | WalletCountOutputTypeCountWithdrawalRequestsArgs
   }
 
   // Custom InputTypes
@@ -1473,6 +1679,13 @@ export namespace Prisma {
    */
   export type WalletCountOutputTypeCountLedgerEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WalletLedgerEntryWhereInput
+  }
+
+  /**
+   * WalletCountOutputType without action
+   */
+  export type WalletCountOutputTypeCountWithdrawalRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WithdrawalRequestWhereInput
   }
 
 
@@ -1759,6 +1972,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     ledgerEntries?: boolean | Wallet$ledgerEntriesArgs<ExtArgs>
+    withdrawalRequests?: boolean | Wallet$withdrawalRequestsArgs<ExtArgs>
     _count?: boolean | WalletCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["wallet"]>
 
@@ -1788,6 +2002,7 @@ export namespace Prisma {
 
   export type WalletInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ledgerEntries?: boolean | Wallet$ledgerEntriesArgs<ExtArgs>
+    withdrawalRequests?: boolean | Wallet$withdrawalRequestsArgs<ExtArgs>
     _count?: boolean | WalletCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type WalletIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1796,6 +2011,7 @@ export namespace Prisma {
     name: "Wallet"
     objects: {
       ledgerEntries: Prisma.$WalletLedgerEntryPayload<ExtArgs>[]
+      withdrawalRequests: Prisma.$WithdrawalRequestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2172,6 +2388,7 @@ export namespace Prisma {
   export interface Prisma__WalletClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     ledgerEntries<T extends Wallet$ledgerEntriesArgs<ExtArgs> = {}>(args?: Subset<T, Wallet$ledgerEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WalletLedgerEntryPayload<ExtArgs>, T, "findMany"> | Null>
+    withdrawalRequests<T extends Wallet$withdrawalRequestsArgs<ExtArgs> = {}>(args?: Subset<T, Wallet$withdrawalRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2541,6 +2758,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: WalletLedgerEntryScalarFieldEnum | WalletLedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * Wallet.withdrawalRequests
+   */
+  export type Wallet$withdrawalRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    where?: WithdrawalRequestWhereInput
+    orderBy?: WithdrawalRequestOrderByWithRelationInput | WithdrawalRequestOrderByWithRelationInput[]
+    cursor?: WithdrawalRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WithdrawalRequestScalarFieldEnum | WithdrawalRequestScalarFieldEnum[]
   }
 
   /**
@@ -3600,6 +3837,1089 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: WalletLedgerEntryInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WithdrawalRequest
+   */
+
+  export type AggregateWithdrawalRequest = {
+    _count: WithdrawalRequestCountAggregateOutputType | null
+    _avg: WithdrawalRequestAvgAggregateOutputType | null
+    _sum: WithdrawalRequestSumAggregateOutputType | null
+    _min: WithdrawalRequestMinAggregateOutputType | null
+    _max: WithdrawalRequestMaxAggregateOutputType | null
+  }
+
+  export type WithdrawalRequestAvgAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type WithdrawalRequestSumAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type WithdrawalRequestMinAggregateOutputType = {
+    id: string | null
+    walletId: string | null
+    ownerType: $Enums.WalletOwnerType | null
+    ownerId: string | null
+    amount: Decimal | null
+    status: $Enums.WithdrawalRequestStatus | null
+    payoutInfo: string | null
+    bankReference: string | null
+    rejectionReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    paidAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type WithdrawalRequestMaxAggregateOutputType = {
+    id: string | null
+    walletId: string | null
+    ownerType: $Enums.WalletOwnerType | null
+    ownerId: string | null
+    amount: Decimal | null
+    status: $Enums.WithdrawalRequestStatus | null
+    payoutInfo: string | null
+    bankReference: string | null
+    rejectionReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    paidAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type WithdrawalRequestCountAggregateOutputType = {
+    id: number
+    walletId: number
+    ownerType: number
+    ownerId: number
+    amount: number
+    status: number
+    payoutInfo: number
+    bankReference: number
+    rejectionReason: number
+    reviewedBy: number
+    reviewedAt: number
+    paidAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type WithdrawalRequestAvgAggregateInputType = {
+    amount?: true
+  }
+
+  export type WithdrawalRequestSumAggregateInputType = {
+    amount?: true
+  }
+
+  export type WithdrawalRequestMinAggregateInputType = {
+    id?: true
+    walletId?: true
+    ownerType?: true
+    ownerId?: true
+    amount?: true
+    status?: true
+    payoutInfo?: true
+    bankReference?: true
+    rejectionReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    paidAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type WithdrawalRequestMaxAggregateInputType = {
+    id?: true
+    walletId?: true
+    ownerType?: true
+    ownerId?: true
+    amount?: true
+    status?: true
+    payoutInfo?: true
+    bankReference?: true
+    rejectionReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    paidAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type WithdrawalRequestCountAggregateInputType = {
+    id?: true
+    walletId?: true
+    ownerType?: true
+    ownerId?: true
+    amount?: true
+    status?: true
+    payoutInfo?: true
+    bankReference?: true
+    rejectionReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    paidAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type WithdrawalRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WithdrawalRequest to aggregate.
+     */
+    where?: WithdrawalRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WithdrawalRequests to fetch.
+     */
+    orderBy?: WithdrawalRequestOrderByWithRelationInput | WithdrawalRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WithdrawalRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WithdrawalRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WithdrawalRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WithdrawalRequests
+    **/
+    _count?: true | WithdrawalRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: WithdrawalRequestAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: WithdrawalRequestSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WithdrawalRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WithdrawalRequestMaxAggregateInputType
+  }
+
+  export type GetWithdrawalRequestAggregateType<T extends WithdrawalRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateWithdrawalRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWithdrawalRequest[P]>
+      : GetScalarType<T[P], AggregateWithdrawalRequest[P]>
+  }
+
+
+
+
+  export type WithdrawalRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WithdrawalRequestWhereInput
+    orderBy?: WithdrawalRequestOrderByWithAggregationInput | WithdrawalRequestOrderByWithAggregationInput[]
+    by: WithdrawalRequestScalarFieldEnum[] | WithdrawalRequestScalarFieldEnum
+    having?: WithdrawalRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WithdrawalRequestCountAggregateInputType | true
+    _avg?: WithdrawalRequestAvgAggregateInputType
+    _sum?: WithdrawalRequestSumAggregateInputType
+    _min?: WithdrawalRequestMinAggregateInputType
+    _max?: WithdrawalRequestMaxAggregateInputType
+  }
+
+  export type WithdrawalRequestGroupByOutputType = {
+    id: string
+    walletId: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal
+    status: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference: string | null
+    rejectionReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    paidAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: WithdrawalRequestCountAggregateOutputType | null
+    _avg: WithdrawalRequestAvgAggregateOutputType | null
+    _sum: WithdrawalRequestSumAggregateOutputType | null
+    _min: WithdrawalRequestMinAggregateOutputType | null
+    _max: WithdrawalRequestMaxAggregateOutputType | null
+  }
+
+  type GetWithdrawalRequestGroupByPayload<T extends WithdrawalRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WithdrawalRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WithdrawalRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WithdrawalRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], WithdrawalRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WithdrawalRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    walletId?: boolean
+    ownerType?: boolean
+    ownerId?: boolean
+    amount?: boolean
+    status?: boolean
+    payoutInfo?: boolean
+    bankReference?: boolean
+    rejectionReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    paidAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    wallet?: boolean | WalletDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["withdrawalRequest"]>
+
+  export type WithdrawalRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    walletId?: boolean
+    ownerType?: boolean
+    ownerId?: boolean
+    amount?: boolean
+    status?: boolean
+    payoutInfo?: boolean
+    bankReference?: boolean
+    rejectionReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    paidAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    wallet?: boolean | WalletDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["withdrawalRequest"]>
+
+  export type WithdrawalRequestSelectScalar = {
+    id?: boolean
+    walletId?: boolean
+    ownerType?: boolean
+    ownerId?: boolean
+    amount?: boolean
+    status?: boolean
+    payoutInfo?: boolean
+    bankReference?: boolean
+    rejectionReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    paidAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type WithdrawalRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    wallet?: boolean | WalletDefaultArgs<ExtArgs>
+  }
+  export type WithdrawalRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    wallet?: boolean | WalletDefaultArgs<ExtArgs>
+  }
+
+  export type $WithdrawalRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WithdrawalRequest"
+    objects: {
+      wallet: Prisma.$WalletPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      walletId: string
+      ownerType: $Enums.WalletOwnerType
+      ownerId: string
+      amount: Prisma.Decimal
+      status: $Enums.WithdrawalRequestStatus
+      /**
+       * Bank account / e-wallet details the requester provided — free text, no payout API to
+       * validate a schema against.
+       */
+      payoutInfo: string
+      /**
+       * Filled in by the admin at markPaid — the paper trail for the transfer that happened
+       * manually, outside this system.
+       */
+      bankReference: string | null
+      rejectionReason: string | null
+      reviewedBy: string | null
+      reviewedAt: Date | null
+      paidAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["withdrawalRequest"]>
+    composites: {}
+  }
+
+  type WithdrawalRequestGetPayload<S extends boolean | null | undefined | WithdrawalRequestDefaultArgs> = $Result.GetResult<Prisma.$WithdrawalRequestPayload, S>
+
+  type WithdrawalRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WithdrawalRequestFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WithdrawalRequestCountAggregateInputType | true
+    }
+
+  export interface WithdrawalRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WithdrawalRequest'], meta: { name: 'WithdrawalRequest' } }
+    /**
+     * Find zero or one WithdrawalRequest that matches the filter.
+     * @param {WithdrawalRequestFindUniqueArgs} args - Arguments to find a WithdrawalRequest
+     * @example
+     * // Get one WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WithdrawalRequestFindUniqueArgs>(args: SelectSubset<T, WithdrawalRequestFindUniqueArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one WithdrawalRequest that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WithdrawalRequestFindUniqueOrThrowArgs} args - Arguments to find a WithdrawalRequest
+     * @example
+     * // Get one WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WithdrawalRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, WithdrawalRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first WithdrawalRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestFindFirstArgs} args - Arguments to find a WithdrawalRequest
+     * @example
+     * // Get one WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WithdrawalRequestFindFirstArgs>(args?: SelectSubset<T, WithdrawalRequestFindFirstArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first WithdrawalRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestFindFirstOrThrowArgs} args - Arguments to find a WithdrawalRequest
+     * @example
+     * // Get one WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WithdrawalRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, WithdrawalRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more WithdrawalRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WithdrawalRequests
+     * const withdrawalRequests = await prisma.withdrawalRequest.findMany()
+     * 
+     * // Get first 10 WithdrawalRequests
+     * const withdrawalRequests = await prisma.withdrawalRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const withdrawalRequestWithIdOnly = await prisma.withdrawalRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WithdrawalRequestFindManyArgs>(args?: SelectSubset<T, WithdrawalRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a WithdrawalRequest.
+     * @param {WithdrawalRequestCreateArgs} args - Arguments to create a WithdrawalRequest.
+     * @example
+     * // Create one WithdrawalRequest
+     * const WithdrawalRequest = await prisma.withdrawalRequest.create({
+     *   data: {
+     *     // ... data to create a WithdrawalRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends WithdrawalRequestCreateArgs>(args: SelectSubset<T, WithdrawalRequestCreateArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many WithdrawalRequests.
+     * @param {WithdrawalRequestCreateManyArgs} args - Arguments to create many WithdrawalRequests.
+     * @example
+     * // Create many WithdrawalRequests
+     * const withdrawalRequest = await prisma.withdrawalRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WithdrawalRequestCreateManyArgs>(args?: SelectSubset<T, WithdrawalRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WithdrawalRequests and returns the data saved in the database.
+     * @param {WithdrawalRequestCreateManyAndReturnArgs} args - Arguments to create many WithdrawalRequests.
+     * @example
+     * // Create many WithdrawalRequests
+     * const withdrawalRequest = await prisma.withdrawalRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WithdrawalRequests and only return the `id`
+     * const withdrawalRequestWithIdOnly = await prisma.withdrawalRequest.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WithdrawalRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, WithdrawalRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a WithdrawalRequest.
+     * @param {WithdrawalRequestDeleteArgs} args - Arguments to delete one WithdrawalRequest.
+     * @example
+     * // Delete one WithdrawalRequest
+     * const WithdrawalRequest = await prisma.withdrawalRequest.delete({
+     *   where: {
+     *     // ... filter to delete one WithdrawalRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WithdrawalRequestDeleteArgs>(args: SelectSubset<T, WithdrawalRequestDeleteArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one WithdrawalRequest.
+     * @param {WithdrawalRequestUpdateArgs} args - Arguments to update one WithdrawalRequest.
+     * @example
+     * // Update one WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WithdrawalRequestUpdateArgs>(args: SelectSubset<T, WithdrawalRequestUpdateArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more WithdrawalRequests.
+     * @param {WithdrawalRequestDeleteManyArgs} args - Arguments to filter WithdrawalRequests to delete.
+     * @example
+     * // Delete a few WithdrawalRequests
+     * const { count } = await prisma.withdrawalRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WithdrawalRequestDeleteManyArgs>(args?: SelectSubset<T, WithdrawalRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WithdrawalRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WithdrawalRequests
+     * const withdrawalRequest = await prisma.withdrawalRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WithdrawalRequestUpdateManyArgs>(args: SelectSubset<T, WithdrawalRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one WithdrawalRequest.
+     * @param {WithdrawalRequestUpsertArgs} args - Arguments to update or create a WithdrawalRequest.
+     * @example
+     * // Update or create a WithdrawalRequest
+     * const withdrawalRequest = await prisma.withdrawalRequest.upsert({
+     *   create: {
+     *     // ... data to create a WithdrawalRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WithdrawalRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WithdrawalRequestUpsertArgs>(args: SelectSubset<T, WithdrawalRequestUpsertArgs<ExtArgs>>): Prisma__WithdrawalRequestClient<$Result.GetResult<Prisma.$WithdrawalRequestPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of WithdrawalRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestCountArgs} args - Arguments to filter WithdrawalRequests to count.
+     * @example
+     * // Count the number of WithdrawalRequests
+     * const count = await prisma.withdrawalRequest.count({
+     *   where: {
+     *     // ... the filter for the WithdrawalRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends WithdrawalRequestCountArgs>(
+      args?: Subset<T, WithdrawalRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WithdrawalRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WithdrawalRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WithdrawalRequestAggregateArgs>(args: Subset<T, WithdrawalRequestAggregateArgs>): Prisma.PrismaPromise<GetWithdrawalRequestAggregateType<T>>
+
+    /**
+     * Group by WithdrawalRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WithdrawalRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WithdrawalRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WithdrawalRequestGroupByArgs['orderBy'] }
+        : { orderBy?: WithdrawalRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WithdrawalRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWithdrawalRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WithdrawalRequest model
+   */
+  readonly fields: WithdrawalRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WithdrawalRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WithdrawalRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    wallet<T extends WalletDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WalletDefaultArgs<ExtArgs>>): Prisma__WalletClient<$Result.GetResult<Prisma.$WalletPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WithdrawalRequest model
+   */ 
+  interface WithdrawalRequestFieldRefs {
+    readonly id: FieldRef<"WithdrawalRequest", 'String'>
+    readonly walletId: FieldRef<"WithdrawalRequest", 'String'>
+    readonly ownerType: FieldRef<"WithdrawalRequest", 'WalletOwnerType'>
+    readonly ownerId: FieldRef<"WithdrawalRequest", 'String'>
+    readonly amount: FieldRef<"WithdrawalRequest", 'Decimal'>
+    readonly status: FieldRef<"WithdrawalRequest", 'WithdrawalRequestStatus'>
+    readonly payoutInfo: FieldRef<"WithdrawalRequest", 'String'>
+    readonly bankReference: FieldRef<"WithdrawalRequest", 'String'>
+    readonly rejectionReason: FieldRef<"WithdrawalRequest", 'String'>
+    readonly reviewedBy: FieldRef<"WithdrawalRequest", 'String'>
+    readonly reviewedAt: FieldRef<"WithdrawalRequest", 'DateTime'>
+    readonly paidAt: FieldRef<"WithdrawalRequest", 'DateTime'>
+    readonly createdAt: FieldRef<"WithdrawalRequest", 'DateTime'>
+    readonly updatedAt: FieldRef<"WithdrawalRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WithdrawalRequest findUnique
+   */
+  export type WithdrawalRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which WithdrawalRequest to fetch.
+     */
+    where: WithdrawalRequestWhereUniqueInput
+  }
+
+  /**
+   * WithdrawalRequest findUniqueOrThrow
+   */
+  export type WithdrawalRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which WithdrawalRequest to fetch.
+     */
+    where: WithdrawalRequestWhereUniqueInput
+  }
+
+  /**
+   * WithdrawalRequest findFirst
+   */
+  export type WithdrawalRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which WithdrawalRequest to fetch.
+     */
+    where?: WithdrawalRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WithdrawalRequests to fetch.
+     */
+    orderBy?: WithdrawalRequestOrderByWithRelationInput | WithdrawalRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WithdrawalRequests.
+     */
+    cursor?: WithdrawalRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WithdrawalRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WithdrawalRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WithdrawalRequests.
+     */
+    distinct?: WithdrawalRequestScalarFieldEnum | WithdrawalRequestScalarFieldEnum[]
+  }
+
+  /**
+   * WithdrawalRequest findFirstOrThrow
+   */
+  export type WithdrawalRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which WithdrawalRequest to fetch.
+     */
+    where?: WithdrawalRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WithdrawalRequests to fetch.
+     */
+    orderBy?: WithdrawalRequestOrderByWithRelationInput | WithdrawalRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WithdrawalRequests.
+     */
+    cursor?: WithdrawalRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WithdrawalRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WithdrawalRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WithdrawalRequests.
+     */
+    distinct?: WithdrawalRequestScalarFieldEnum | WithdrawalRequestScalarFieldEnum[]
+  }
+
+  /**
+   * WithdrawalRequest findMany
+   */
+  export type WithdrawalRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which WithdrawalRequests to fetch.
+     */
+    where?: WithdrawalRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WithdrawalRequests to fetch.
+     */
+    orderBy?: WithdrawalRequestOrderByWithRelationInput | WithdrawalRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WithdrawalRequests.
+     */
+    cursor?: WithdrawalRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WithdrawalRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WithdrawalRequests.
+     */
+    skip?: number
+    distinct?: WithdrawalRequestScalarFieldEnum | WithdrawalRequestScalarFieldEnum[]
+  }
+
+  /**
+   * WithdrawalRequest create
+   */
+  export type WithdrawalRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WithdrawalRequest.
+     */
+    data: XOR<WithdrawalRequestCreateInput, WithdrawalRequestUncheckedCreateInput>
+  }
+
+  /**
+   * WithdrawalRequest createMany
+   */
+  export type WithdrawalRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WithdrawalRequests.
+     */
+    data: WithdrawalRequestCreateManyInput | WithdrawalRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WithdrawalRequest createManyAndReturn
+   */
+  export type WithdrawalRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many WithdrawalRequests.
+     */
+    data: WithdrawalRequestCreateManyInput | WithdrawalRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WithdrawalRequest update
+   */
+  export type WithdrawalRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WithdrawalRequest.
+     */
+    data: XOR<WithdrawalRequestUpdateInput, WithdrawalRequestUncheckedUpdateInput>
+    /**
+     * Choose, which WithdrawalRequest to update.
+     */
+    where: WithdrawalRequestWhereUniqueInput
+  }
+
+  /**
+   * WithdrawalRequest updateMany
+   */
+  export type WithdrawalRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WithdrawalRequests.
+     */
+    data: XOR<WithdrawalRequestUpdateManyMutationInput, WithdrawalRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which WithdrawalRequests to update
+     */
+    where?: WithdrawalRequestWhereInput
+  }
+
+  /**
+   * WithdrawalRequest upsert
+   */
+  export type WithdrawalRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WithdrawalRequest to update in case it exists.
+     */
+    where: WithdrawalRequestWhereUniqueInput
+    /**
+     * In case the WithdrawalRequest found by the `where` argument doesn't exist, create a new WithdrawalRequest with this data.
+     */
+    create: XOR<WithdrawalRequestCreateInput, WithdrawalRequestUncheckedCreateInput>
+    /**
+     * In case the WithdrawalRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WithdrawalRequestUpdateInput, WithdrawalRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * WithdrawalRequest delete
+   */
+  export type WithdrawalRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
+    /**
+     * Filter which WithdrawalRequest to delete.
+     */
+    where: WithdrawalRequestWhereUniqueInput
+  }
+
+  /**
+   * WithdrawalRequest deleteMany
+   */
+  export type WithdrawalRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WithdrawalRequests to delete
+     */
+    where?: WithdrawalRequestWhereInput
+  }
+
+  /**
+   * WithdrawalRequest without action
+   */
+  export type WithdrawalRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WithdrawalRequest
+     */
+    select?: WithdrawalRequestSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WithdrawalRequestInclude<ExtArgs> | null
   }
 
 
@@ -6976,6 +8296,868 @@ export namespace Prisma {
 
 
   /**
+   * Model LedgerOperation
+   */
+
+  export type AggregateLedgerOperation = {
+    _count: LedgerOperationCountAggregateOutputType | null
+    _min: LedgerOperationMinAggregateOutputType | null
+    _max: LedgerOperationMaxAggregateOutputType | null
+  }
+
+  export type LedgerOperationMinAggregateOutputType = {
+    id: string | null
+    key: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerOperationMaxAggregateOutputType = {
+    id: string | null
+    key: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerOperationCountAggregateOutputType = {
+    id: number
+    key: number
+    result: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LedgerOperationMinAggregateInputType = {
+    id?: true
+    key?: true
+    createdAt?: true
+  }
+
+  export type LedgerOperationMaxAggregateInputType = {
+    id?: true
+    key?: true
+    createdAt?: true
+  }
+
+  export type LedgerOperationCountAggregateInputType = {
+    id?: true
+    key?: true
+    result?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LedgerOperationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerOperation to aggregate.
+     */
+    where?: LedgerOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerOperations to fetch.
+     */
+    orderBy?: LedgerOperationOrderByWithRelationInput | LedgerOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerOperations
+    **/
+    _count?: true | LedgerOperationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerOperationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerOperationMaxAggregateInputType
+  }
+
+  export type GetLedgerOperationAggregateType<T extends LedgerOperationAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerOperation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerOperation[P]>
+      : GetScalarType<T[P], AggregateLedgerOperation[P]>
+  }
+
+
+
+
+  export type LedgerOperationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerOperationWhereInput
+    orderBy?: LedgerOperationOrderByWithAggregationInput | LedgerOperationOrderByWithAggregationInput[]
+    by: LedgerOperationScalarFieldEnum[] | LedgerOperationScalarFieldEnum
+    having?: LedgerOperationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerOperationCountAggregateInputType | true
+    _min?: LedgerOperationMinAggregateInputType
+    _max?: LedgerOperationMaxAggregateInputType
+  }
+
+  export type LedgerOperationGroupByOutputType = {
+    id: string
+    key: string
+    result: JsonValue
+    createdAt: Date
+    _count: LedgerOperationCountAggregateOutputType | null
+    _min: LedgerOperationMinAggregateOutputType | null
+    _max: LedgerOperationMaxAggregateOutputType | null
+  }
+
+  type GetLedgerOperationGroupByPayload<T extends LedgerOperationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerOperationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerOperationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerOperationGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerOperationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerOperationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    key?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerOperation"]>
+
+  export type LedgerOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    key?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerOperation"]>
+
+  export type LedgerOperationSelectScalar = {
+    id?: boolean
+    key?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $LedgerOperationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerOperation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      key: string
+      result: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["ledgerOperation"]>
+    composites: {}
+  }
+
+  type LedgerOperationGetPayload<S extends boolean | null | undefined | LedgerOperationDefaultArgs> = $Result.GetResult<Prisma.$LedgerOperationPayload, S>
+
+  type LedgerOperationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LedgerOperationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LedgerOperationCountAggregateInputType | true
+    }
+
+  export interface LedgerOperationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerOperation'], meta: { name: 'LedgerOperation' } }
+    /**
+     * Find zero or one LedgerOperation that matches the filter.
+     * @param {LedgerOperationFindUniqueArgs} args - Arguments to find a LedgerOperation
+     * @example
+     * // Get one LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerOperationFindUniqueArgs>(args: SelectSubset<T, LedgerOperationFindUniqueArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LedgerOperation that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LedgerOperationFindUniqueOrThrowArgs} args - Arguments to find a LedgerOperation
+     * @example
+     * // Get one LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerOperationFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerOperationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LedgerOperation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationFindFirstArgs} args - Arguments to find a LedgerOperation
+     * @example
+     * // Get one LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerOperationFindFirstArgs>(args?: SelectSubset<T, LedgerOperationFindFirstArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LedgerOperation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationFindFirstOrThrowArgs} args - Arguments to find a LedgerOperation
+     * @example
+     * // Get one LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerOperationFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerOperationFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LedgerOperations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerOperations
+     * const ledgerOperations = await prisma.ledgerOperation.findMany()
+     * 
+     * // Get first 10 LedgerOperations
+     * const ledgerOperations = await prisma.ledgerOperation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerOperationWithIdOnly = await prisma.ledgerOperation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerOperationFindManyArgs>(args?: SelectSubset<T, LedgerOperationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LedgerOperation.
+     * @param {LedgerOperationCreateArgs} args - Arguments to create a LedgerOperation.
+     * @example
+     * // Create one LedgerOperation
+     * const LedgerOperation = await prisma.ledgerOperation.create({
+     *   data: {
+     *     // ... data to create a LedgerOperation
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerOperationCreateArgs>(args: SelectSubset<T, LedgerOperationCreateArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LedgerOperations.
+     * @param {LedgerOperationCreateManyArgs} args - Arguments to create many LedgerOperations.
+     * @example
+     * // Create many LedgerOperations
+     * const ledgerOperation = await prisma.ledgerOperation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerOperationCreateManyArgs>(args?: SelectSubset<T, LedgerOperationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerOperations and returns the data saved in the database.
+     * @param {LedgerOperationCreateManyAndReturnArgs} args - Arguments to create many LedgerOperations.
+     * @example
+     * // Create many LedgerOperations
+     * const ledgerOperation = await prisma.ledgerOperation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerOperations and only return the `id`
+     * const ledgerOperationWithIdOnly = await prisma.ledgerOperation.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerOperationCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerOperationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LedgerOperation.
+     * @param {LedgerOperationDeleteArgs} args - Arguments to delete one LedgerOperation.
+     * @example
+     * // Delete one LedgerOperation
+     * const LedgerOperation = await prisma.ledgerOperation.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerOperation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerOperationDeleteArgs>(args: SelectSubset<T, LedgerOperationDeleteArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LedgerOperation.
+     * @param {LedgerOperationUpdateArgs} args - Arguments to update one LedgerOperation.
+     * @example
+     * // Update one LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerOperationUpdateArgs>(args: SelectSubset<T, LedgerOperationUpdateArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LedgerOperations.
+     * @param {LedgerOperationDeleteManyArgs} args - Arguments to filter LedgerOperations to delete.
+     * @example
+     * // Delete a few LedgerOperations
+     * const { count } = await prisma.ledgerOperation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerOperationDeleteManyArgs>(args?: SelectSubset<T, LedgerOperationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerOperations
+     * const ledgerOperation = await prisma.ledgerOperation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerOperationUpdateManyArgs>(args: SelectSubset<T, LedgerOperationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LedgerOperation.
+     * @param {LedgerOperationUpsertArgs} args - Arguments to update or create a LedgerOperation.
+     * @example
+     * // Update or create a LedgerOperation
+     * const ledgerOperation = await prisma.ledgerOperation.upsert({
+     *   create: {
+     *     // ... data to create a LedgerOperation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerOperation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerOperationUpsertArgs>(args: SelectSubset<T, LedgerOperationUpsertArgs<ExtArgs>>): Prisma__LedgerOperationClient<$Result.GetResult<Prisma.$LedgerOperationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LedgerOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationCountArgs} args - Arguments to filter LedgerOperations to count.
+     * @example
+     * // Count the number of LedgerOperations
+     * const count = await prisma.ledgerOperation.count({
+     *   where: {
+     *     // ... the filter for the LedgerOperations we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerOperationCountArgs>(
+      args?: Subset<T, LedgerOperationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerOperationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerOperationAggregateArgs>(args: Subset<T, LedgerOperationAggregateArgs>): Prisma.PrismaPromise<GetLedgerOperationAggregateType<T>>
+
+    /**
+     * Group by LedgerOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerOperationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerOperationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerOperationGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerOperationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerOperationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerOperationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerOperation model
+   */
+  readonly fields: LedgerOperationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerOperation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerOperation model
+   */ 
+  interface LedgerOperationFieldRefs {
+    readonly id: FieldRef<"LedgerOperation", 'String'>
+    readonly key: FieldRef<"LedgerOperation", 'String'>
+    readonly result: FieldRef<"LedgerOperation", 'Json'>
+    readonly createdAt: FieldRef<"LedgerOperation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerOperation findUnique
+   */
+  export type LedgerOperationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerOperation to fetch.
+     */
+    where: LedgerOperationWhereUniqueInput
+  }
+
+  /**
+   * LedgerOperation findUniqueOrThrow
+   */
+  export type LedgerOperationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerOperation to fetch.
+     */
+    where: LedgerOperationWhereUniqueInput
+  }
+
+  /**
+   * LedgerOperation findFirst
+   */
+  export type LedgerOperationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerOperation to fetch.
+     */
+    where?: LedgerOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerOperations to fetch.
+     */
+    orderBy?: LedgerOperationOrderByWithRelationInput | LedgerOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerOperations.
+     */
+    cursor?: LedgerOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerOperations.
+     */
+    distinct?: LedgerOperationScalarFieldEnum | LedgerOperationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerOperation findFirstOrThrow
+   */
+  export type LedgerOperationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerOperation to fetch.
+     */
+    where?: LedgerOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerOperations to fetch.
+     */
+    orderBy?: LedgerOperationOrderByWithRelationInput | LedgerOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerOperations.
+     */
+    cursor?: LedgerOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerOperations.
+     */
+    distinct?: LedgerOperationScalarFieldEnum | LedgerOperationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerOperation findMany
+   */
+  export type LedgerOperationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerOperations to fetch.
+     */
+    where?: LedgerOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerOperations to fetch.
+     */
+    orderBy?: LedgerOperationOrderByWithRelationInput | LedgerOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerOperations.
+     */
+    cursor?: LedgerOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerOperations.
+     */
+    skip?: number
+    distinct?: LedgerOperationScalarFieldEnum | LedgerOperationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerOperation create
+   */
+  export type LedgerOperationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerOperation.
+     */
+    data: XOR<LedgerOperationCreateInput, LedgerOperationUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerOperation createMany
+   */
+  export type LedgerOperationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerOperations.
+     */
+    data: LedgerOperationCreateManyInput | LedgerOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerOperation createManyAndReturn
+   */
+  export type LedgerOperationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LedgerOperations.
+     */
+    data: LedgerOperationCreateManyInput | LedgerOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerOperation update
+   */
+  export type LedgerOperationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerOperation.
+     */
+    data: XOR<LedgerOperationUpdateInput, LedgerOperationUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerOperation to update.
+     */
+    where: LedgerOperationWhereUniqueInput
+  }
+
+  /**
+   * LedgerOperation updateMany
+   */
+  export type LedgerOperationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerOperations.
+     */
+    data: XOR<LedgerOperationUpdateManyMutationInput, LedgerOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerOperations to update
+     */
+    where?: LedgerOperationWhereInput
+  }
+
+  /**
+   * LedgerOperation upsert
+   */
+  export type LedgerOperationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerOperation to update in case it exists.
+     */
+    where: LedgerOperationWhereUniqueInput
+    /**
+     * In case the LedgerOperation found by the `where` argument doesn't exist, create a new LedgerOperation with this data.
+     */
+    create: XOR<LedgerOperationCreateInput, LedgerOperationUncheckedCreateInput>
+    /**
+     * In case the LedgerOperation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerOperationUpdateInput, LedgerOperationUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerOperation delete
+   */
+  export type LedgerOperationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+    /**
+     * Filter which LedgerOperation to delete.
+     */
+    where: LedgerOperationWhereUniqueInput
+  }
+
+  /**
+   * LedgerOperation deleteMany
+   */
+  export type LedgerOperationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerOperations to delete
+     */
+    where?: LedgerOperationWhereInput
+  }
+
+  /**
+   * LedgerOperation without action
+   */
+  export type LedgerOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerOperation
+     */
+    select?: LedgerOperationSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model PaymentWebhookEvent
    */
 
@@ -7976,6 +10158,26 @@ export namespace Prisma {
   export type WalletLedgerEntryScalarFieldEnum = (typeof WalletLedgerEntryScalarFieldEnum)[keyof typeof WalletLedgerEntryScalarFieldEnum]
 
 
+  export const WithdrawalRequestScalarFieldEnum: {
+    id: 'id',
+    walletId: 'walletId',
+    ownerType: 'ownerType',
+    ownerId: 'ownerId',
+    amount: 'amount',
+    status: 'status',
+    payoutInfo: 'payoutInfo',
+    bankReference: 'bankReference',
+    rejectionReason: 'rejectionReason',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt',
+    paidAt: 'paidAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type WithdrawalRequestScalarFieldEnum = (typeof WithdrawalRequestScalarFieldEnum)[keyof typeof WithdrawalRequestScalarFieldEnum]
+
+
   export const PaymentTransactionScalarFieldEnum: {
     id: 'id',
     payerId: 'payerId',
@@ -8046,6 +10248,16 @@ export namespace Prisma {
   };
 
   export type PartnerReceivableScalarFieldEnum = (typeof PartnerReceivableScalarFieldEnum)[keyof typeof PartnerReceivableScalarFieldEnum]
+
+
+  export const LedgerOperationScalarFieldEnum: {
+    id: 'id',
+    key: 'key',
+    result: 'result',
+    createdAt: 'createdAt'
+  };
+
+  export type LedgerOperationScalarFieldEnum = (typeof LedgerOperationScalarFieldEnum)[keyof typeof LedgerOperationScalarFieldEnum]
 
 
   export const PaymentWebhookEventScalarFieldEnum: {
@@ -8215,6 +10427,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'WithdrawalRequestStatus'
+   */
+  export type EnumWithdrawalRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WithdrawalRequestStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'WithdrawalRequestStatus[]'
+   */
+  export type ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WithdrawalRequestStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PurposeType'
    */
   export type EnumPurposeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PurposeType'>
@@ -8364,6 +10590,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
     ledgerEntries?: WalletLedgerEntryListRelationFilter
+    withdrawalRequests?: WithdrawalRequestListRelationFilter
   }
 
   export type WalletOrderByWithRelationInput = {
@@ -8377,6 +10604,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     ledgerEntries?: WalletLedgerEntryOrderByRelationAggregateInput
+    withdrawalRequests?: WithdrawalRequestOrderByRelationAggregateInput
   }
 
   export type WalletWhereUniqueInput = Prisma.AtLeast<{
@@ -8394,6 +10622,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
     ledgerEntries?: WalletLedgerEntryListRelationFilter
+    withdrawalRequests?: WithdrawalRequestListRelationFilter
   }, "id" | "ownerType_ownerId">
 
   export type WalletOrderByWithAggregationInput = {
@@ -8511,6 +10740,108 @@ export namespace Prisma {
     balanceAfter?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     description?: StringNullableWithAggregatesFilter<"WalletLedgerEntry"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WalletLedgerEntry"> | Date | string
+  }
+
+  export type WithdrawalRequestWhereInput = {
+    AND?: WithdrawalRequestWhereInput | WithdrawalRequestWhereInput[]
+    OR?: WithdrawalRequestWhereInput[]
+    NOT?: WithdrawalRequestWhereInput | WithdrawalRequestWhereInput[]
+    id?: StringFilter<"WithdrawalRequest"> | string
+    walletId?: StringFilter<"WithdrawalRequest"> | string
+    ownerType?: EnumWalletOwnerTypeFilter<"WithdrawalRequest"> | $Enums.WalletOwnerType
+    ownerId?: StringFilter<"WithdrawalRequest"> | string
+    amount?: DecimalFilter<"WithdrawalRequest"> | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFilter<"WithdrawalRequest"> | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFilter<"WithdrawalRequest"> | string
+    bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    createdAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+    wallet?: XOR<WalletRelationFilter, WalletWhereInput>
+  }
+
+  export type WithdrawalRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    walletId?: SortOrder
+    ownerType?: SortOrder
+    ownerId?: SortOrder
+    amount?: SortOrder
+    status?: SortOrder
+    payoutInfo?: SortOrder
+    bankReference?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    paidAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    wallet?: WalletOrderByWithRelationInput
+  }
+
+  export type WithdrawalRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WithdrawalRequestWhereInput | WithdrawalRequestWhereInput[]
+    OR?: WithdrawalRequestWhereInput[]
+    NOT?: WithdrawalRequestWhereInput | WithdrawalRequestWhereInput[]
+    walletId?: StringFilter<"WithdrawalRequest"> | string
+    ownerType?: EnumWalletOwnerTypeFilter<"WithdrawalRequest"> | $Enums.WalletOwnerType
+    ownerId?: StringFilter<"WithdrawalRequest"> | string
+    amount?: DecimalFilter<"WithdrawalRequest"> | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFilter<"WithdrawalRequest"> | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFilter<"WithdrawalRequest"> | string
+    bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    createdAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+    wallet?: XOR<WalletRelationFilter, WalletWhereInput>
+  }, "id">
+
+  export type WithdrawalRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    walletId?: SortOrder
+    ownerType?: SortOrder
+    ownerId?: SortOrder
+    amount?: SortOrder
+    status?: SortOrder
+    payoutInfo?: SortOrder
+    bankReference?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    paidAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: WithdrawalRequestCountOrderByAggregateInput
+    _avg?: WithdrawalRequestAvgOrderByAggregateInput
+    _max?: WithdrawalRequestMaxOrderByAggregateInput
+    _min?: WithdrawalRequestMinOrderByAggregateInput
+    _sum?: WithdrawalRequestSumOrderByAggregateInput
+  }
+
+  export type WithdrawalRequestScalarWhereWithAggregatesInput = {
+    AND?: WithdrawalRequestScalarWhereWithAggregatesInput | WithdrawalRequestScalarWhereWithAggregatesInput[]
+    OR?: WithdrawalRequestScalarWhereWithAggregatesInput[]
+    NOT?: WithdrawalRequestScalarWhereWithAggregatesInput | WithdrawalRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WithdrawalRequest"> | string
+    walletId?: StringWithAggregatesFilter<"WithdrawalRequest"> | string
+    ownerType?: EnumWalletOwnerTypeWithAggregatesFilter<"WithdrawalRequest"> | $Enums.WalletOwnerType
+    ownerId?: StringWithAggregatesFilter<"WithdrawalRequest"> | string
+    amount?: DecimalWithAggregatesFilter<"WithdrawalRequest"> | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusWithAggregatesFilter<"WithdrawalRequest"> | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringWithAggregatesFilter<"WithdrawalRequest"> | string
+    bankReference?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
+    rejectionReason?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
+    reviewedBy?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"WithdrawalRequest"> | Date | string | null
+    paidAt?: DateTimeNullableWithAggregatesFilter<"WithdrawalRequest"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"WithdrawalRequest"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"WithdrawalRequest"> | Date | string
   }
 
   export type PaymentTransactionWhereInput = {
@@ -8879,6 +11210,53 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"PartnerReceivable"> | Date | string
   }
 
+  export type LedgerOperationWhereInput = {
+    AND?: LedgerOperationWhereInput | LedgerOperationWhereInput[]
+    OR?: LedgerOperationWhereInput[]
+    NOT?: LedgerOperationWhereInput | LedgerOperationWhereInput[]
+    id?: StringFilter<"LedgerOperation"> | string
+    key?: StringFilter<"LedgerOperation"> | string
+    result?: JsonFilter<"LedgerOperation">
+    createdAt?: DateTimeFilter<"LedgerOperation"> | Date | string
+  }
+
+  export type LedgerOperationOrderByWithRelationInput = {
+    id?: SortOrder
+    key?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerOperationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    key?: string
+    AND?: LedgerOperationWhereInput | LedgerOperationWhereInput[]
+    OR?: LedgerOperationWhereInput[]
+    NOT?: LedgerOperationWhereInput | LedgerOperationWhereInput[]
+    result?: JsonFilter<"LedgerOperation">
+    createdAt?: DateTimeFilter<"LedgerOperation"> | Date | string
+  }, "id" | "key">
+
+  export type LedgerOperationOrderByWithAggregationInput = {
+    id?: SortOrder
+    key?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+    _count?: LedgerOperationCountOrderByAggregateInput
+    _max?: LedgerOperationMaxOrderByAggregateInput
+    _min?: LedgerOperationMinOrderByAggregateInput
+  }
+
+  export type LedgerOperationScalarWhereWithAggregatesInput = {
+    AND?: LedgerOperationScalarWhereWithAggregatesInput | LedgerOperationScalarWhereWithAggregatesInput[]
+    OR?: LedgerOperationScalarWhereWithAggregatesInput[]
+    NOT?: LedgerOperationScalarWhereWithAggregatesInput | LedgerOperationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerOperation"> | string
+    key?: StringWithAggregatesFilter<"LedgerOperation"> | string
+    result?: JsonWithAggregatesFilter<"LedgerOperation">
+    createdAt?: DateTimeWithAggregatesFilter<"LedgerOperation"> | Date | string
+  }
+
   export type PaymentWebhookEventWhereInput = {
     AND?: PaymentWebhookEventWhereInput | PaymentWebhookEventWhereInput[]
     OR?: PaymentWebhookEventWhereInput[]
@@ -8965,6 +11343,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutWalletInput
+    withdrawalRequests?: WithdrawalRequestCreateNestedManyWithoutWalletInput
   }
 
   export type WalletUncheckedCreateInput = {
@@ -8978,6 +11357,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutWalletInput
+    withdrawalRequests?: WithdrawalRequestUncheckedCreateNestedManyWithoutWalletInput
   }
 
   export type WalletUpdateInput = {
@@ -8991,6 +11371,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ledgerEntries?: WalletLedgerEntryUpdateManyWithoutWalletNestedInput
+    withdrawalRequests?: WithdrawalRequestUpdateManyWithoutWalletNestedInput
   }
 
   export type WalletUncheckedUpdateInput = {
@@ -9004,6 +11385,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutWalletNestedInput
+    withdrawalRequests?: WithdrawalRequestUncheckedUpdateManyWithoutWalletNestedInput
   }
 
   export type WalletCreateManyInput = {
@@ -9129,6 +11511,124 @@ export namespace Prisma {
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestCreateInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wallet: WalletCreateNestedOneWithoutWithdrawalRequestsInput
+  }
+
+  export type WithdrawalRequestUncheckedCreateInput = {
+    id?: string
+    walletId: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WithdrawalRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wallet?: WalletUpdateOneRequiredWithoutWithdrawalRequestsNestedInput
+  }
+
+  export type WithdrawalRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    walletId?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestCreateManyInput = {
+    id?: string
+    walletId: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WithdrawalRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    walletId?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PaymentTransactionCreateInput = {
@@ -9579,6 +12079,55 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LedgerOperationCreateInput = {
+    id?: string
+    key: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type LedgerOperationUncheckedCreateInput = {
+    id?: string
+    key: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type LedgerOperationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerOperationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerOperationCreateManyInput = {
+    id?: string
+    key: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type LedgerOperationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerOperationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PaymentWebhookEventCreateInput = {
     id?: string
     provider: $Enums.PaymentProviderType
@@ -9720,7 +12269,17 @@ export namespace Prisma {
     none?: WalletLedgerEntryWhereInput
   }
 
+  export type WithdrawalRequestListRelationFilter = {
+    every?: WithdrawalRequestWhereInput
+    some?: WithdrawalRequestWhereInput
+    none?: WithdrawalRequestWhereInput
+  }
+
   export type WalletLedgerEntryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WithdrawalRequestOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -9978,6 +12537,107 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
+  export type EnumWithdrawalRequestStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.WithdrawalRequestStatus | EnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel> | $Enums.WithdrawalRequestStatus
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type WithdrawalRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    walletId?: SortOrder
+    ownerType?: SortOrder
+    ownerId?: SortOrder
+    amount?: SortOrder
+    status?: SortOrder
+    payoutInfo?: SortOrder
+    bankReference?: SortOrder
+    rejectionReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    paidAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WithdrawalRequestAvgOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type WithdrawalRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    walletId?: SortOrder
+    ownerType?: SortOrder
+    ownerId?: SortOrder
+    amount?: SortOrder
+    status?: SortOrder
+    payoutInfo?: SortOrder
+    bankReference?: SortOrder
+    rejectionReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    paidAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WithdrawalRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    walletId?: SortOrder
+    ownerType?: SortOrder
+    ownerId?: SortOrder
+    amount?: SortOrder
+    status?: SortOrder
+    payoutInfo?: SortOrder
+    bankReference?: SortOrder
+    rejectionReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    paidAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WithdrawalRequestSumOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type EnumWithdrawalRequestStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WithdrawalRequestStatus | EnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWithdrawalRequestStatusWithAggregatesFilter<$PrismaModel> | $Enums.WithdrawalRequestStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel>
+    _max?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type EnumPurposeTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.PurposeType | EnumPurposeTypeFieldRefInput<$PrismaModel>
     in?: $Enums.PurposeType[] | ListEnumPurposeTypeFieldRefInput<$PrismaModel>
@@ -9997,17 +12657,6 @@ export namespace Prisma {
     in?: $Enums.PaymentProviderType[] | ListEnumPaymentProviderTypeFieldRefInput<$PrismaModel>
     notIn?: $Enums.PaymentProviderType[] | ListEnumPaymentProviderTypeFieldRefInput<$PrismaModel>
     not?: NestedEnumPaymentProviderTypeFilter<$PrismaModel> | $Enums.PaymentProviderType
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -10208,20 +12857,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPaymentProviderTypeFilter<$PrismaModel>
     _max?: NestedEnumPaymentProviderTypeFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -10449,6 +13084,50 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type LedgerOperationCountOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerOperationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerOperationMinOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    createdAt?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
   export type PaymentWebhookEventProviderProviderEventIdCompoundUniqueInput = {
     provider: $Enums.PaymentProviderType
     providerEventId: string
@@ -10495,31 +13174,6 @@ export namespace Prisma {
   export type PaymentWebhookEventSumOrderByAggregateInput = {
     retryCount?: SortOrder
   }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
-  }
 
   export type WalletLedgerEntryCreateNestedManyWithoutWalletInput = {
     create?: XOR<WalletLedgerEntryCreateWithoutWalletInput, WalletLedgerEntryUncheckedCreateWithoutWalletInput> | WalletLedgerEntryCreateWithoutWalletInput[] | WalletLedgerEntryUncheckedCreateWithoutWalletInput[]
@@ -10528,11 +13182,25 @@ export namespace Prisma {
     connect?: WalletLedgerEntryWhereUniqueInput | WalletLedgerEntryWhereUniqueInput[]
   }
 
+  export type WithdrawalRequestCreateNestedManyWithoutWalletInput = {
+    create?: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput> | WithdrawalRequestCreateWithoutWalletInput[] | WithdrawalRequestUncheckedCreateWithoutWalletInput[]
+    connectOrCreate?: WithdrawalRequestCreateOrConnectWithoutWalletInput | WithdrawalRequestCreateOrConnectWithoutWalletInput[]
+    createMany?: WithdrawalRequestCreateManyWalletInputEnvelope
+    connect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+  }
+
   export type WalletLedgerEntryUncheckedCreateNestedManyWithoutWalletInput = {
     create?: XOR<WalletLedgerEntryCreateWithoutWalletInput, WalletLedgerEntryUncheckedCreateWithoutWalletInput> | WalletLedgerEntryCreateWithoutWalletInput[] | WalletLedgerEntryUncheckedCreateWithoutWalletInput[]
     connectOrCreate?: WalletLedgerEntryCreateOrConnectWithoutWalletInput | WalletLedgerEntryCreateOrConnectWithoutWalletInput[]
     createMany?: WalletLedgerEntryCreateManyWalletInputEnvelope
     connect?: WalletLedgerEntryWhereUniqueInput | WalletLedgerEntryWhereUniqueInput[]
+  }
+
+  export type WithdrawalRequestUncheckedCreateNestedManyWithoutWalletInput = {
+    create?: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput> | WithdrawalRequestCreateWithoutWalletInput[] | WithdrawalRequestUncheckedCreateWithoutWalletInput[]
+    connectOrCreate?: WithdrawalRequestCreateOrConnectWithoutWalletInput | WithdrawalRequestCreateOrConnectWithoutWalletInput[]
+    createMany?: WithdrawalRequestCreateManyWalletInputEnvelope
+    connect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -10573,6 +13241,20 @@ export namespace Prisma {
     deleteMany?: WalletLedgerEntryScalarWhereInput | WalletLedgerEntryScalarWhereInput[]
   }
 
+  export type WithdrawalRequestUpdateManyWithoutWalletNestedInput = {
+    create?: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput> | WithdrawalRequestCreateWithoutWalletInput[] | WithdrawalRequestUncheckedCreateWithoutWalletInput[]
+    connectOrCreate?: WithdrawalRequestCreateOrConnectWithoutWalletInput | WithdrawalRequestCreateOrConnectWithoutWalletInput[]
+    upsert?: WithdrawalRequestUpsertWithWhereUniqueWithoutWalletInput | WithdrawalRequestUpsertWithWhereUniqueWithoutWalletInput[]
+    createMany?: WithdrawalRequestCreateManyWalletInputEnvelope
+    set?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    disconnect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    delete?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    connect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    update?: WithdrawalRequestUpdateWithWhereUniqueWithoutWalletInput | WithdrawalRequestUpdateWithWhereUniqueWithoutWalletInput[]
+    updateMany?: WithdrawalRequestUpdateManyWithWhereWithoutWalletInput | WithdrawalRequestUpdateManyWithWhereWithoutWalletInput[]
+    deleteMany?: WithdrawalRequestScalarWhereInput | WithdrawalRequestScalarWhereInput[]
+  }
+
   export type WalletLedgerEntryUncheckedUpdateManyWithoutWalletNestedInput = {
     create?: XOR<WalletLedgerEntryCreateWithoutWalletInput, WalletLedgerEntryUncheckedCreateWithoutWalletInput> | WalletLedgerEntryCreateWithoutWalletInput[] | WalletLedgerEntryUncheckedCreateWithoutWalletInput[]
     connectOrCreate?: WalletLedgerEntryCreateOrConnectWithoutWalletInput | WalletLedgerEntryCreateOrConnectWithoutWalletInput[]
@@ -10585,6 +13267,20 @@ export namespace Prisma {
     update?: WalletLedgerEntryUpdateWithWhereUniqueWithoutWalletInput | WalletLedgerEntryUpdateWithWhereUniqueWithoutWalletInput[]
     updateMany?: WalletLedgerEntryUpdateManyWithWhereWithoutWalletInput | WalletLedgerEntryUpdateManyWithWhereWithoutWalletInput[]
     deleteMany?: WalletLedgerEntryScalarWhereInput | WalletLedgerEntryScalarWhereInput[]
+  }
+
+  export type WithdrawalRequestUncheckedUpdateManyWithoutWalletNestedInput = {
+    create?: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput> | WithdrawalRequestCreateWithoutWalletInput[] | WithdrawalRequestUncheckedCreateWithoutWalletInput[]
+    connectOrCreate?: WithdrawalRequestCreateOrConnectWithoutWalletInput | WithdrawalRequestCreateOrConnectWithoutWalletInput[]
+    upsert?: WithdrawalRequestUpsertWithWhereUniqueWithoutWalletInput | WithdrawalRequestUpsertWithWhereUniqueWithoutWalletInput[]
+    createMany?: WithdrawalRequestCreateManyWalletInputEnvelope
+    set?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    disconnect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    delete?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    connect?: WithdrawalRequestWhereUniqueInput | WithdrawalRequestWhereUniqueInput[]
+    update?: WithdrawalRequestUpdateWithWhereUniqueWithoutWalletInput | WithdrawalRequestUpdateWithWhereUniqueWithoutWalletInput[]
+    updateMany?: WithdrawalRequestUpdateManyWithWhereWithoutWalletInput | WithdrawalRequestUpdateManyWithWhereWithoutWalletInput[]
+    deleteMany?: WithdrawalRequestScalarWhereInput | WithdrawalRequestScalarWhereInput[]
   }
 
   export type WalletCreateNestedOneWithoutLedgerEntriesInput = {
@@ -10627,6 +13323,28 @@ export namespace Prisma {
     update?: XOR<XOR<PaymentTransactionUpdateToOneWithWhereWithoutLedgerEntriesInput, PaymentTransactionUpdateWithoutLedgerEntriesInput>, PaymentTransactionUncheckedUpdateWithoutLedgerEntriesInput>
   }
 
+  export type WalletCreateNestedOneWithoutWithdrawalRequestsInput = {
+    create?: XOR<WalletCreateWithoutWithdrawalRequestsInput, WalletUncheckedCreateWithoutWithdrawalRequestsInput>
+    connectOrCreate?: WalletCreateOrConnectWithoutWithdrawalRequestsInput
+    connect?: WalletWhereUniqueInput
+  }
+
+  export type EnumWithdrawalRequestStatusFieldUpdateOperationsInput = {
+    set?: $Enums.WithdrawalRequestStatus
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type WalletUpdateOneRequiredWithoutWithdrawalRequestsNestedInput = {
+    create?: XOR<WalletCreateWithoutWithdrawalRequestsInput, WalletUncheckedCreateWithoutWithdrawalRequestsInput>
+    connectOrCreate?: WalletCreateOrConnectWithoutWithdrawalRequestsInput
+    upsert?: WalletUpsertWithoutWithdrawalRequestsInput
+    connect?: WalletWhereUniqueInput
+    update?: XOR<XOR<WalletUpdateToOneWithWhereWithoutWithdrawalRequestsInput, WalletUpdateWithoutWithdrawalRequestsInput>, WalletUncheckedUpdateWithoutWithdrawalRequestsInput>
+  }
+
   export type PlatformCommissionCreateNestedManyWithoutTransactionInput = {
     create?: XOR<PlatformCommissionCreateWithoutTransactionInput, PlatformCommissionUncheckedCreateWithoutTransactionInput> | PlatformCommissionCreateWithoutTransactionInput[] | PlatformCommissionUncheckedCreateWithoutTransactionInput[]
     connectOrCreate?: PlatformCommissionCreateOrConnectWithoutTransactionInput | PlatformCommissionCreateOrConnectWithoutTransactionInput[]
@@ -10665,10 +13383,6 @@ export namespace Prisma {
 
   export type EnumPaymentProviderTypeFieldUpdateOperationsInput = {
     set?: $Enums.PaymentProviderType
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type NullableEnumRelatedEntityTypeFieldUpdateOperationsInput = {
@@ -10969,6 +13683,48 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedEnumWithdrawalRequestStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.WithdrawalRequestStatus | EnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel> | $Enums.WithdrawalRequestStatus
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedEnumWithdrawalRequestStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WithdrawalRequestStatus | EnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WithdrawalRequestStatus[] | ListEnumWithdrawalRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWithdrawalRequestStatusWithAggregatesFilter<$PrismaModel> | $Enums.WithdrawalRequestStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel>
+    _max?: NestedEnumWithdrawalRequestStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumPurposeTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.PurposeType | EnumPurposeTypeFieldRefInput<$PrismaModel>
     in?: $Enums.PurposeType[] | ListEnumPurposeTypeFieldRefInput<$PrismaModel>
@@ -10988,17 +13744,6 @@ export namespace Prisma {
     in?: $Enums.PaymentProviderType[] | ListEnumPaymentProviderTypeFieldRefInput<$PrismaModel>
     notIn?: $Enums.PaymentProviderType[] | ListEnumPaymentProviderTypeFieldRefInput<$PrismaModel>
     not?: NestedEnumPaymentProviderTypeFilter<$PrismaModel> | $Enums.PaymentProviderType
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedEnumRelatedEntityTypeNullableFilter<$PrismaModel = never> = {
@@ -11043,20 +13788,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPaymentProviderTypeFilter<$PrismaModel>
     _max?: NestedEnumPaymentProviderTypeFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -11218,6 +13949,48 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type WithdrawalRequestCreateWithoutWalletInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WithdrawalRequestUncheckedCreateWithoutWalletInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WithdrawalRequestCreateOrConnectWithoutWalletInput = {
+    where: WithdrawalRequestWhereUniqueInput
+    create: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput>
+  }
+
+  export type WithdrawalRequestCreateManyWalletInputEnvelope = {
+    data: WithdrawalRequestCreateManyWalletInput | WithdrawalRequestCreateManyWalletInput[]
+    skipDuplicates?: boolean
+  }
+
   export type WalletLedgerEntryUpsertWithWhereUniqueWithoutWalletInput = {
     where: WalletLedgerEntryWhereUniqueInput
     update: XOR<WalletLedgerEntryUpdateWithoutWalletInput, WalletLedgerEntryUncheckedUpdateWithoutWalletInput>
@@ -11250,6 +14023,42 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WalletLedgerEntry"> | Date | string
   }
 
+  export type WithdrawalRequestUpsertWithWhereUniqueWithoutWalletInput = {
+    where: WithdrawalRequestWhereUniqueInput
+    update: XOR<WithdrawalRequestUpdateWithoutWalletInput, WithdrawalRequestUncheckedUpdateWithoutWalletInput>
+    create: XOR<WithdrawalRequestCreateWithoutWalletInput, WithdrawalRequestUncheckedCreateWithoutWalletInput>
+  }
+
+  export type WithdrawalRequestUpdateWithWhereUniqueWithoutWalletInput = {
+    where: WithdrawalRequestWhereUniqueInput
+    data: XOR<WithdrawalRequestUpdateWithoutWalletInput, WithdrawalRequestUncheckedUpdateWithoutWalletInput>
+  }
+
+  export type WithdrawalRequestUpdateManyWithWhereWithoutWalletInput = {
+    where: WithdrawalRequestScalarWhereInput
+    data: XOR<WithdrawalRequestUpdateManyMutationInput, WithdrawalRequestUncheckedUpdateManyWithoutWalletInput>
+  }
+
+  export type WithdrawalRequestScalarWhereInput = {
+    AND?: WithdrawalRequestScalarWhereInput | WithdrawalRequestScalarWhereInput[]
+    OR?: WithdrawalRequestScalarWhereInput[]
+    NOT?: WithdrawalRequestScalarWhereInput | WithdrawalRequestScalarWhereInput[]
+    id?: StringFilter<"WithdrawalRequest"> | string
+    walletId?: StringFilter<"WithdrawalRequest"> | string
+    ownerType?: EnumWalletOwnerTypeFilter<"WithdrawalRequest"> | $Enums.WalletOwnerType
+    ownerId?: StringFilter<"WithdrawalRequest"> | string
+    amount?: DecimalFilter<"WithdrawalRequest"> | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFilter<"WithdrawalRequest"> | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFilter<"WithdrawalRequest"> | string
+    bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
+    createdAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"WithdrawalRequest"> | Date | string
+  }
+
   export type WalletCreateWithoutLedgerEntriesInput = {
     id?: string
     ownerType: $Enums.WalletOwnerType
@@ -11260,6 +14069,7 @@ export namespace Prisma {
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    withdrawalRequests?: WithdrawalRequestCreateNestedManyWithoutWalletInput
   }
 
   export type WalletUncheckedCreateWithoutLedgerEntriesInput = {
@@ -11272,6 +14082,7 @@ export namespace Prisma {
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    withdrawalRequests?: WithdrawalRequestUncheckedCreateNestedManyWithoutWalletInput
   }
 
   export type WalletCreateOrConnectWithoutLedgerEntriesInput = {
@@ -11377,6 +14188,7 @@ export namespace Prisma {
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    withdrawalRequests?: WithdrawalRequestUpdateManyWithoutWalletNestedInput
   }
 
   export type WalletUncheckedUpdateWithoutLedgerEntriesInput = {
@@ -11389,6 +14201,7 @@ export namespace Prisma {
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    withdrawalRequests?: WithdrawalRequestUncheckedUpdateManyWithoutWalletNestedInput
   }
 
   export type PaymentTransactionUpsertWithoutLedgerEntriesInput = {
@@ -11472,6 +14285,74 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     commissions?: PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput
+  }
+
+  export type WalletCreateWithoutWithdrawalRequestsInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
+    lockedBalance?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WalletStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutWalletInput
+  }
+
+  export type WalletUncheckedCreateWithoutWithdrawalRequestsInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
+    lockedBalance?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WalletStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutWalletInput
+  }
+
+  export type WalletCreateOrConnectWithoutWithdrawalRequestsInput = {
+    where: WalletWhereUniqueInput
+    create: XOR<WalletCreateWithoutWithdrawalRequestsInput, WalletUncheckedCreateWithoutWithdrawalRequestsInput>
+  }
+
+  export type WalletUpsertWithoutWithdrawalRequestsInput = {
+    update: XOR<WalletUpdateWithoutWithdrawalRequestsInput, WalletUncheckedUpdateWithoutWithdrawalRequestsInput>
+    create: XOR<WalletCreateWithoutWithdrawalRequestsInput, WalletUncheckedCreateWithoutWithdrawalRequestsInput>
+    where?: WalletWhereInput
+  }
+
+  export type WalletUpdateToOneWithWhereWithoutWithdrawalRequestsInput = {
+    where?: WalletWhereInput
+    data: XOR<WalletUpdateWithoutWithdrawalRequestsInput, WalletUncheckedUpdateWithoutWithdrawalRequestsInput>
+  }
+
+  export type WalletUpdateWithoutWithdrawalRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ledgerEntries?: WalletLedgerEntryUpdateManyWithoutWalletNestedInput
+  }
+
+  export type WalletUncheckedUpdateWithoutWithdrawalRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutWalletNestedInput
   }
 
   export type PlatformCommissionCreateWithoutTransactionInput = {
@@ -11765,6 +14646,22 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type WithdrawalRequestCreateManyWalletInput = {
+    id?: string
+    ownerType: $Enums.WalletOwnerType
+    ownerId: string
+    amount: Decimal | DecimalJsLike | number | string
+    status?: $Enums.WithdrawalRequestStatus
+    payoutInfo: string
+    bankReference?: string | null
+    rejectionReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    paidAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type WalletLedgerEntryUpdateWithoutWalletInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
@@ -11799,6 +14696,54 @@ export namespace Prisma {
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestUpdateWithoutWalletInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestUncheckedUpdateWithoutWalletInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WithdrawalRequestUncheckedUpdateManyWithoutWalletInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
+    ownerId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumWithdrawalRequestStatusFieldUpdateOperationsInput | $Enums.WithdrawalRequestStatus
+    payoutInfo?: StringFieldUpdateOperationsInput | string
+    bankReference?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlatformCommissionCreateManyTransactionInput = {
@@ -11923,6 +14868,10 @@ export namespace Prisma {
      */
     export type WalletLedgerEntryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WalletLedgerEntryDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use WithdrawalRequestDefaultArgs instead
+     */
+    export type WithdrawalRequestArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WithdrawalRequestDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use PaymentTransactionDefaultArgs instead
      */
     export type PaymentTransactionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PaymentTransactionDefaultArgs<ExtArgs>
@@ -11934,6 +14883,10 @@ export namespace Prisma {
      * @deprecated Use PartnerReceivableDefaultArgs instead
      */
     export type PartnerReceivableArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PartnerReceivableDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LedgerOperationDefaultArgs instead
+     */
+    export type LedgerOperationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LedgerOperationDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PaymentWebhookEventDefaultArgs instead
      */

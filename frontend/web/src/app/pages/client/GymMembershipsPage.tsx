@@ -8,14 +8,12 @@ import { formatVND } from "../../utils/currency";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 
-/** Client-side preview of the prorated refund (backend recomputes the authoritative amount). */
-function proratedEstimate(m: GymMembershipContract): { amount: number; days: number } {
+/** Days left on an ACTIVE membership, for the cancel-warning copy (no refund is computed —
+ * money-flow plan §2.4: self-cancel forfeits the unused portion, it is not estimated). */
+function daysRemaining(m: GymMembershipContract): number {
   const now = Date.now();
-  const total = m.durationDaysSnapshot * 86_400_000;
   const end = m.endDate ? new Date(m.endDate).getTime() : now;
-  const remaining = Math.max(0, end - now);
-  const frac = total > 0 ? Math.min(1, remaining / total) : 0;
-  return { amount: Math.round(Number(m.priceAtPurchase) * frac * 100) / 100, days: Math.ceil(remaining / 86_400_000) };
+  return Math.max(0, Math.ceil((end - now) / 86_400_000));
 }
 
 const STATUS_CONFIG: Record<GymMembershipContractStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -34,7 +32,7 @@ export function GymMembershipsPage() {
   const queryClient = useQueryClient();
   // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
   const [scanning, setScanning] = useState(false);
-  const [refundTarget, setRefundTarget] = useState<GymMembershipContract | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<GymMembershipContract | null>(null);
   // The membership awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<GymMembershipContract | null>(null);
 
@@ -76,19 +74,16 @@ export function GymMembershipsPage() {
     onError: (err: any) => toast.error(err?.response?.data?.error?.code || "Failed to cancel"),
   });
 
-  const refundMutation = useMutation({
-    mutationFn: (id: string) => gymService.refundMembership(id),
-    onSuccess: (result: any) => {
-      const amount = Number(result?.refundAmount ?? 0);
-      toast.success(`Đã hủy & hoàn ${formatVND(amount)} vào ví của bạn`);
-      setRefundTarget(null);
+  const cancelActiveMutation = useMutation({
+    mutationFn: (id: string) => gymService.cancelActiveMembership(id),
+    onSuccess: () => {
+      toast.success("Đã hủy membership");
+      setCancelTarget(null);
       queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
-      queryClient.invalidateQueries({ queryKey: ["wallet"] });
     },
     onError: (err: any) => {
       const code = err?.response?.data?.error?.code;
-      if (code === "INSUFFICIENT_REFUND_FUNDS") toast.error("Ví phòng gym không đủ số dư để hoàn — liên hệ quản trị viên.");
-      else toast.error(code || err?.response?.data?.error?.message || "Hoàn tiền thất bại");
+      toast.error(code || err?.response?.data?.error?.message || "Hủy membership thất bại");
     },
   });
 
@@ -142,10 +137,10 @@ export function GymMembershipsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setRefundTarget(m)}
+                      onClick={() => setCancelTarget(m)}
                       className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> Hủy & hoàn tiền
+                      <RotateCcw className="w-3.5 h-3.5" /> Hủy membership
                     </button>
                   </div>
                 )}
@@ -188,39 +183,37 @@ export function GymMembershipsPage() {
         />
       )}
 
-      {refundTarget && (() => {
-        const est = proratedEstimate(refundTarget);
+      {cancelTarget && (() => {
+        const days = daysRemaining(cancelTarget);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
               <div className="p-5 border-b border-zinc-800/60">
-                <h3 className="text-zinc-100 font-bold">Hủy membership & hoàn tiền</h3>
+                <h3 className="text-zinc-100 font-bold">Hủy membership</h3>
               </div>
               <div className="p-5 space-y-3 text-sm text-zinc-300">
-                <p>Bạn sẽ hủy gói và được hoàn tiền <span className="font-semibold">theo số ngày còn lại</span>:</p>
-                <div className="bg-zinc-800/50 rounded-lg p-3 space-y-1 text-xs">
-                  <div className="flex justify-between"><span className="text-zinc-500">Giá gói</span><span>{formatVND(Number(refundTarget.priceAtPurchase))}</span></div>
-                  <div className="flex justify-between"><span className="text-zinc-500">Còn lại (ước tính)</span><span>{est.days} ngày / {refundTarget.durationDaysSnapshot} ngày</span></div>
-                  <div className="flex justify-between text-green-400 font-bold pt-1 border-t border-zinc-700/50"><span>Hoàn về ví (ước tính)</span><span>{formatVND(est.amount)}</span></div>
+                <p>Bạn sắp hủy gói còn <span className="font-semibold">{days} ngày / {cancelTarget.durationDaysSnapshot} ngày</span>.</p>
+                <div className="flex items-start gap-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  Bạn sẽ <span className="font-semibold">không được hoàn lại</span> số tiền của phần thời gian chưa sử dụng.
                 </div>
-                <p className="text-[11px] text-zinc-500">Phần đã sử dụng sẽ không được hoàn. Số tiền cuối cùng do hệ thống tính lại. Sau khi hoàn, membership chuyển sang Cancelled.</p>
               </div>
               <div className="p-5 border-t border-zinc-800/60 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setRefundTarget(null)}
+                  onClick={() => setCancelTarget(null)}
                   className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
                 >
                   Giữ lại
                 </button>
                 <button
                   type="button"
-                  onClick={() => refundMutation.mutate(refundTarget.id)}
-                  disabled={refundMutation.isPending}
+                  onClick={() => cancelActiveMutation.mutate(cancelTarget.id)}
+                  disabled={cancelActiveMutation.isPending}
                   className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:opacity-60 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                 >
-                  {refundMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Xác nhận hoàn
+                  {cancelActiveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Xác nhận hủy
                 </button>
               </div>
             </div>

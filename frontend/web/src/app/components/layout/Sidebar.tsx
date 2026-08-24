@@ -22,6 +22,7 @@ import {
   Workflow,
   Wallet,
   Store,
+  Gavel,
   Banknote,
   GitCompare,
 } from "lucide-react";
@@ -58,7 +59,8 @@ const clientNavFull = [
   { label: "Hồ sơ", icon: User, to: "/client/profile" },
 ];
 
-/** Gym owner / staff nav — wallet balance is shown per-gym inside GymManagePage */
+/** Gym owner nav — wallet balance is shown per-gym inside GymManagePage.
+ * Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now. */
 const gymOwnerNav = [
   {
     label: "Dashboard",
@@ -109,6 +111,8 @@ const adminNav = [
   { label: "Duyệt bài tập trùng lặp", icon: GitCompare, to: "/admin/exercise-review" },
   { label: "Hoàn tiền dịch vụ PT", icon: Banknote, to: "/admin/pt-service-refunds" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
+  { label: "Khiếu nại buổi tập", icon: Gavel, to: "/admin/disputes" },
+  { label: "Yêu cầu rút tiền", icon: Banknote, to: "/admin/withdrawals" },
   {
     label: "Workflows",
     icon: Workflow,
@@ -213,7 +217,7 @@ export function Sidebar() {
   let navItems: NavItem[];
   if (isAdmin) {
     navItems = adminNav;
-  } else if (role === "gym_owner" || role === "gym_staff") {
+  } else if (role === "gym_owner") {
     navItems = gymOwnerNav;
   } else if (isPT) {
     navItems = activeView === "pt" ? ptWorkspaceNav : ptClientNav;
@@ -358,9 +362,7 @@ export function Sidebar() {
                     ? "Huấn luyện viên"
                     : role === "gym_owner"
                       ? "Chủ phòng gym"
-                      : role === "gym_staff"
-                        ? "Nhân viên gym"
-                        : "Quản trị viên"}
+                      : "Quản trị viên"}
               </AutoText>
             </div>
           </div>

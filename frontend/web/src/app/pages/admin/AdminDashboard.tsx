@@ -10,6 +10,9 @@ import {
   Server,
   Loader2,
   RefreshCw,
+  Wallet as WalletIcon,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -23,10 +26,17 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { api, adminService } from "../../services/api";
+import { formatVND } from "../../utils/currency";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const REFUND_REASONS: { value: "GYM_VIOLATION_SUSPENDED" | "GYM_CLOSED" | "TRANSACTION_ERROR"; label: string }[] = [
+  { value: "GYM_VIOLATION_SUSPENDED", label: "Phòng tập vi phạm và bị khóa" },
+  { value: "GYM_CLOSED", label: "Phòng tập ngừng hoạt động / đóng cửa" },
+  { value: "TRANSACTION_ERROR", label: "Lỗi giao dịch" },
+];
 
 const COLORS = ["#22c55e", "#60a5fa", "#a855f7", "#f59e0b"];
 
@@ -41,12 +51,26 @@ export function AdminDashboard() {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: async () => {
-      const token = localStorage.getItem("accessToken");
-      const { data } = await axios.get(`${API_BASE}/admin/dashboard`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const { data } = await api.get("/admin/dashboard");
       return data.data;
     },
+  });
+
+  // Exceptional gym-membership refund (money-flow §2.4) — the route has existed since the
+  // redesign with no admin-facing caller anywhere. No membership-browsing endpoint exists
+  // yet either, so this takes the id directly rather than pretending to offer a picker.
+  const [refundMembershipId, setRefundMembershipId] = useState("");
+  const [refundReason, setRefundReason] = useState<typeof REFUND_REASONS[number]["value"] | "">("");
+  const refundMutation = useMutation({
+    mutationFn: () => adminService.refundGymMembership(refundMembershipId.trim(), refundReason as any),
+    onSuccess: (result: any) => {
+      const amount = Number(result?.data?.refundAmount ?? result?.refundAmount ?? 0);
+      toast.success(amount > 0 ? `Đã hoàn ${formatVND(amount)} cho khách` : "Đã hoàn tiền");
+      setRefundMembershipId("");
+      setRefundReason("");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.error?.code || "Hoàn tiền thất bại"),
   });
 
   if (isLoading) {
@@ -155,6 +179,41 @@ export function AdminDashboard() {
           </span>
         </div>
       </div>
+
+      {/* Money — the first thing an admin needs to know: how much is on the platform, and
+          does it reconcile. Full breakdown lives on Giám sát hệ thống; this is the headline. */}
+      {data?.money && (
+        <div
+          className={`rounded-xl p-4 border flex flex-wrap items-center gap-x-8 gap-y-2 ${
+            data.money.balanced
+              ? "bg-green-500/5 border-green-500/20"
+              : "bg-red-500/5 border-red-500/20"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <WalletIcon className="w-5 h-5 text-green-400" />
+            <div>
+              <div className="text-xs text-zinc-400">Tổng tiền giữ hộ (ESCROW)</div>
+              <div className="text-lg font-bold text-zinc-100">{formatVND(Number(data.money.escrow))}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-zinc-400">Doanh thu nền tảng</div>
+            <div className="text-lg font-bold text-zinc-100">{formatVND(Number(data.money.platformRevenue))}</div>
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            {data.money.balanced ? (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Sổ sách cân bằng
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
+                <XCircle className="w-3.5 h-3.5" /> Có lệch — xem Giám sát hệ thống
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -411,6 +470,46 @@ export function AdminDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Exceptional gym-membership refund — money-flow §2.4 */}
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
+        <h3 className="text-zinc-100 font-bold flex items-center gap-2 mb-1">
+          Hoàn tiền gói hội viên (ngoại lệ)
+        </h3>
+        <p className="text-xs text-zinc-500 mb-4">
+          Chỉ dùng khi phòng tập vi phạm/đóng cửa hoặc lỗi giao dịch — khách tự hủy không được
+          hoàn tiền và không đi qua form này.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={refundMembershipId}
+            onChange={(e) => setRefundMembershipId(e.target.value)}
+            placeholder="ID gói hội viên (UUID)"
+            className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 font-mono"
+          />
+          <select
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value as any)}
+            className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-red-500/50"
+          >
+            <option value="">-- Chọn lý do --</option>
+            {REFUND_REASONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => refundMutation.mutate()}
+            disabled={!refundMembershipId.trim() || !refundReason || refundMutation.isPending}
+            className="flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          >
+            {refundMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            Hoàn tiền
+          </button>
         </div>
       </div>
     </div>

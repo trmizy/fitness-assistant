@@ -23,8 +23,12 @@ import {
   RefreshCw,
   ExternalLink,
   Loader2,
+  Wallet as WalletIcon,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { adminService } from "../../services/api";
+import { formatVND } from "../../utils/currency";
 
 type ServiceProbe = {
   key: string;
@@ -69,6 +73,23 @@ const SERVICE_ICONS: Record<string, any> = {
 
 const GRAFANA_URL = "http://localhost:3100";
 
+type ReconciliationReport = {
+  escrow: string;
+  claims: string;
+  drift: string;
+  balanced: boolean;
+  breakdown: {
+    clientBalances: string;
+    ptPending: string;
+    ptAvailable: string;
+    gymPending: string;
+    gymAvailable: string;
+    platformRevenuePending: string;
+    platformRevenueAvailable: string;
+  };
+  negativeWallets: { id: string; ownerType: string; ownerId: string; available: string; pending: string }[];
+};
+
 function formatUptime(seconds: number | null): string {
   if (seconds === null || seconds === undefined) return "—";
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -84,6 +105,22 @@ export function SystemMonitoring() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
+
+  // Whole-platform money invariant (docs/money-flow.md §1.3) — the endpoint has existed
+  // since the money-flow redesign, but no admin page ever called it, so a real drift here
+  // had nowhere to surface.
+  const [recon, setRecon] = useState<ReconciliationReport | null>(null);
+  const [reconLoading, setReconLoading] = useState(true);
+  const fetchRecon = async () => {
+    try {
+      const res = await adminService.getReconciliation();
+      setRecon(res?.data ?? null);
+    } catch {
+      setRecon(null);
+    } finally {
+      setReconLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -106,7 +143,11 @@ export function SystemMonitoring() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    void fetchRecon();
+    const interval = setInterval(() => {
+      fetchData();
+      void fetchRecon();
+    }, 30000); // Auto-refresh every 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -197,6 +238,80 @@ export function SystemMonitoring() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Money Reconciliation — the whole-platform ESCROW invariant */}
+      <div
+        className={`rounded-xl p-4 border ${
+          reconLoading
+            ? "bg-zinc-900 border-zinc-800/60"
+            : recon?.balanced
+              ? "bg-green-500/5 border-green-500/20"
+              : "bg-red-500/5 border-red-500/20"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+            <WalletIcon className="w-4 h-4 text-zinc-400" /> Money Reconciliation
+          </h3>
+          {!reconLoading &&
+            (recon?.balanced ? (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Balanced
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
+                <XCircle className="w-3.5 h-3.5" /> Drift detected
+              </span>
+            ))}
+        </div>
+        {reconLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+          </div>
+        ) : !recon ? (
+          <p className="text-xs text-zinc-500">Could not load reconciliation data.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <div className="text-zinc-500">ESCROW (giữ hộ)</div>
+                <div className="text-zinc-200 font-semibold">{formatVND(Number(recon.escrow))}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Tổng các bên nhận quyền lợi</div>
+                <div className="text-zinc-200 font-semibold">{formatVND(Number(recon.claims))}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Chênh lệch</div>
+                <div className={`font-semibold ${Number(recon.drift) === 0 ? "text-green-400" : "text-red-400"}`}>
+                  {formatVND(Number(recon.drift))}
+                </div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Doanh thu nền tảng</div>
+                <div className="text-zinc-200 font-semibold">
+                  {formatVND(Number(recon.breakdown.platformRevenueAvailable))}
+                </div>
+              </div>
+            </div>
+            {recon.negativeWallets.length > 0 && (
+              <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <p className="text-xs text-red-400 font-semibold mb-1">
+                  {recon.negativeWallets.length} ví có số dư âm — luôn là lỗi
+                </p>
+                <ul className="text-[11px] text-red-300 space-y-0.5">
+                  {recon.negativeWallets.map((w) => (
+                    <li key={w.id}>
+                      {w.ownerType} {w.ownerId} — chờ {formatVND(Number(w.pending))}, khả dụng{" "}
+                      {formatVND(Number(w.available))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Health Score Banner */}

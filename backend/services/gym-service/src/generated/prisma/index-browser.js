@@ -176,6 +176,7 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   usedVisits: 'usedVisits',
   payoutReleasedAt: 'payoutReleasedAt',
   multiGymWarned: 'multiGymWarned',
+  refundClawbackDone: 'refundClawbackDone',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

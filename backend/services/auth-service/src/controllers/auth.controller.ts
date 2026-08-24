@@ -389,6 +389,8 @@ export const authController = {
       const updated = await authService.setUserActive(
         req.params.userId,
         isActive,
+        verified.id,
+        req.body?.reason,
       );
       res.json({ user: updated });
     } catch (error: any) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Preferences } from "@capacitor/preferences";
 import { API_URL, adminService } from "../../services/api";
 import {
   RefreshCw,
@@ -188,6 +189,15 @@ export function AdminWorkflowStudio() {
   const [e2eResult, setE2eResult] = useState<E2EResult | null>(null);
   const [e2eError, setE2eError] = useState<string | null>(null);
 
+  // Token storage moved to @capacitor/preferences (web impl: localStorage under a
+  // "CapacitorStorage." prefix, added for the Android APK build) — a bare
+  // localStorage.getItem("accessToken") always misses now, so the studio link below
+  // silently opened logged out. Preferences.get is async; loaded once on mount.
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  useEffect(() => {
+    void Preferences.get({ key: "accessToken" }).then(({ value }) => setAccessToken(value));
+  }, []);
+
   // ── Data loading ─────────────────────────────────────────────────────────
 
   const loadData = async () => {
@@ -366,7 +376,6 @@ export function AdminWorkflowStudio() {
   const signUpBasePath = (
     studioAuthState?.signUpUrl ?? `${studioBasePath}/signup`
   ).replace(/\/+$/, "");
-  const accessToken = localStorage.getItem("accessToken");
   const studioQuery =
     accessToken && studioBasePath.includes("/admin/workflows/studio")
       ? `?access_token=${encodeURIComponent(accessToken)}`

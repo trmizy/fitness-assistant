@@ -89,10 +89,17 @@ async function processWebhook(providerName: string, rawBody: Buffer): Promise<bo
       return true;
     }
 
+    // Look up by MoMo's own orderId, not transId: providerTransactionId was stored at
+    // checkout time as the orderId we generated (see momo.provider.ts#createPaymentIntent —
+    // providerTransactionId: orderId). transId is MoMo's own transaction number, minted only
+    // once the payment settles, and was never written to our row — matching on it here would
+    // never find the transaction, silently dropping every real MoMo IPN. providerEventId can
+    // still use transId (or fall back to orderId): it only needs to be unique per delivery,
+    // not resolvable to a row.
     await handleEvent({
       provider: providerName,
-      providerEventId: String(payload.transId),
-      providerTransactionId: String(payload.transId),
+      providerEventId: String(payload.transId ?? payload.orderId),
+      providerTransactionId: String(payload.orderId),
       payload: payload as unknown as Record<string, unknown>,
       status: payload.resultCode === 0 ? 'PAID' : 'FAILED',
     });

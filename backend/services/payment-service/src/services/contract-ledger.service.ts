@@ -11,6 +11,7 @@ import {
   ZERO,
 } from './contract-money';
 import { walletService, type LedgerOps } from './wallet.service';
+import { withIdempotentLedgerOp } from './ledger-idempotency';
 
 /**
  * Moves the money a contract's formulas call for.
@@ -165,58 +166,63 @@ export async function releaseSession(params: {
   rates: RateTable;
   parties: ContractParties;
   label: string;
+  /** Business key `SESSION_RELEASE:<sessionId>` — a retry with the same key replays the
+   * first call's result instead of releasing the session's money a second time (plan 1.1). */
+  idempotencyKey: string;
 }): Promise<ReleaseResult> {
-  const { transactionId, price, totalSessions, rates, parties, label } = params;
+  const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey } = params;
   const wallets = await resolveWallets(parties);
   const rel = computeSessionRelease(price, totalSessions, rates);
   assertGymConsistency(wallets, rel.gym);
 
-  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
-    const move = async (
-      walletId: string,
-      amount: Prisma.Decimal,
-      who: string,
-      debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
-    ) => {
-      if (amount.lessThanOrEqualTo(0)) return;
-      // Clamp to what is actually there. A contract whose pending bucket has already been
-      // drained (PT no-shows, an earlier partial refund) must not push a bucket negative;
-      // releasing only what remains keeps the invariant intact and the shortfall visible.
-      const available = ops.balance(walletId, 'PENDING');
-      const moving = available.lessThan(amount) ? available : amount;
-      if (moving.lessThanOrEqualTo(0)) {
-        logger.warn(`[ContractLedger] ${who} pending bucket empty for ${label} — nothing to release`);
-        return;
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const move = async (
+        walletId: string,
+        amount: Prisma.Decimal,
+        who: string,
+        debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
+      ) => {
+        if (amount.lessThanOrEqualTo(0)) return;
+        // Clamp to what is actually there. A contract whose pending bucket has already been
+        // drained (PT no-shows, an earlier partial refund) must not push a bucket negative;
+        // releasing only what remains keeps the invariant intact and the shortfall visible.
+        const available = ops.balance(walletId, 'PENDING');
+        const moving = available.lessThan(amount) ? available : amount;
+        if (moving.lessThanOrEqualTo(0)) {
+          logger.warn(`[ContractLedger] ${who} pending bucket empty for ${label} — nothing to release`);
+          return;
+        }
+        await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
+        await ops.credit(walletId, moving, `${label} — session earned`, 'AVAILABLE');
+
+        // A partner who owes the platform works the debt off out of what they just earned,
+        // before it becomes withdrawable. The platform is never a debtor to itself, so the
+        // revenue wallet is not passed a debtor.
+        if (debtor) {
+          await recoverReceivables({
+            ops,
+            walletId,
+            revenueWalletId: wallets.revenueId,
+            ...debtor,
+            justCredited: moving,
+            label,
+          });
+        }
+      };
+
+      await move(wallets.ptId, rel.pt, 'PT', { partnerType: 'PT', partnerId: parties.ptUserId });
+      if (wallets.gymId) {
+        await move(wallets.gymId, rel.gym, 'Gym', { partnerType: 'GYM', partnerId: parties.gymId! });
       }
-      await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
-      await ops.credit(walletId, moving, `${label} — session earned`, 'AVAILABLE');
+      await move(wallets.revenueId, rel.platform, 'Platform');
 
-      // A partner who owes the platform works the debt off out of what they just earned,
-      // before it becomes withdrawable. The platform is never a debtor to itself, so the
-      // revenue wallet is not passed a debtor.
-      if (debtor) {
-        await recoverReceivables({
-          ops,
-          walletId,
-          revenueWalletId: wallets.revenueId,
-          ...debtor,
-          justCredited: moving,
-          label,
-        });
-      }
-    };
-
-    await move(wallets.ptId, rel.pt, 'PT', { partnerType: 'PT', partnerId: parties.ptUserId });
-    if (wallets.gymId) {
-      await move(wallets.gymId, rel.gym, 'Gym', { partnerType: 'GYM', partnerId: parties.gymId! });
-    }
-    await move(wallets.revenueId, rel.platform, 'Platform');
-
-    return {
-      unit: rel.unit.toFixed(2),
-      released: { pt: rel.pt.toFixed(2), gym: rel.gym.toFixed(2), platform: rel.platform.toFixed(2) },
-    };
-  });
+      return {
+        unit: rel.unit.toFixed(2),
+        released: { pt: rel.pt.toFixed(2), gym: rel.gym.toFixed(2), platform: rel.platform.toFixed(2) },
+      };
+    }),
+  );
 }
 
 export interface NoShowResult {
@@ -240,13 +246,17 @@ export async function compensateNoShow(params: {
   rates: RateTable;
   parties: ContractParties;
   label: string;
+  /** Business key `PT_NO_SHOW:<sessionId>` — a retry with the same key replays the first
+   * call's result instead of compensating the client a second time (plan 1.1). */
+  idempotencyKey: string;
 }): Promise<NoShowResult> {
-  const { transactionId, price, totalSessions, rates, parties, label } = params;
+  const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey } = params;
   const wallets = await resolveWallets(parties);
   const c = computeNoShowCompensation(price, totalSessions, rates);
   assertGymConsistency(wallets, c.gym);
 
-  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
     const charged = { pt: ZERO, gym: ZERO, platform: ZERO };
     let shortfall = ZERO;
 
@@ -300,7 +310,8 @@ export async function compensateNoShow(params: {
       },
       shortfall: shortfall.toFixed(2),
     };
-  });
+    }),
+  );
 }
 
 /**
@@ -446,14 +457,18 @@ export async function terminateContract(params: {
   alreadyReleased: { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal };
   parties: ContractParties;
   label: string;
+  /** Business key `CONTRACT_TERMINATE:<contractId>` — a retry with the same key replays the
+   * first call's result instead of settling the contract a second time (plan 1.1). */
+  idempotencyKey: string;
 }): Promise<TerminationLedgerResult> {
-  const { transactionId, price, totalSessions, usedSessions, rates, reason, alreadyReleased, parties, label } = params;
+  const { transactionId, price, totalSessions, usedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey } = params;
 
   const outcome = computeTermination({ price, totalSessions, usedSessions, rates }, reason);
   const wallets = await resolveWallets(parties);
   assertGymConsistency(wallets, outcome.entitlement.gym);
 
-  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
     const topUp = { pt: ZERO, gym: ZERO, platform: ZERO };
     let shortfall = ZERO;
 
@@ -561,7 +576,8 @@ export async function terminateContract(params: {
       returnedToEscrow: drained.toFixed(2),
       shortfall: shortfall.plus(residue.lessThan(0) ? residue.abs() : ZERO).toFixed(2),
     };
-  });
+    }),
+  );
 }
 
 /** Reads both buckets of a wallet without locking — for display and reconciliation only. */

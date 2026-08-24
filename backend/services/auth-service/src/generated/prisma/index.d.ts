@@ -33,6 +33,11 @@ export type EmailVerification = $Result.DefaultSelection<Prisma.$EmailVerificati
  * 
  */
 export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
+/**
+ * Model PtDeactivationCall
+ * 
+ */
+export type PtDeactivationCall = $Result.DefaultSelection<Prisma.$PtDeactivationCallPayload>
 
 /**
  * Enums
@@ -42,17 +47,41 @@ export namespace $Enums {
   CUSTOMER: 'CUSTOMER',
   PT: 'PT',
   ADMIN: 'ADMIN',
-  GYM_OWNER: 'GYM_OWNER',
-  GYM_STAFF: 'GYM_STAFF'
+  GYM_OWNER: 'GYM_OWNER'
 };
 
 export type Role = (typeof Role)[keyof typeof Role]
+
+
+export const PtDeactivationAction: {
+  DEACTIVATE: 'DEACTIVATE',
+  REACTIVATE: 'REACTIVATE'
+};
+
+export type PtDeactivationAction = (typeof PtDeactivationAction)[keyof typeof PtDeactivationAction]
+
+
+export const PtDeactivationCallStatus: {
+  PENDING: 'PENDING',
+  SETTLED: 'SETTLED',
+  FAILED: 'FAILED'
+};
+
+export type PtDeactivationCallStatus = (typeof PtDeactivationCallStatus)[keyof typeof PtDeactivationCallStatus]
 
 }
 
 export type Role = $Enums.Role
 
 export const Role: typeof $Enums.Role
+
+export type PtDeactivationAction = $Enums.PtDeactivationAction
+
+export const PtDeactivationAction: typeof $Enums.PtDeactivationAction
+
+export type PtDeactivationCallStatus = $Enums.PtDeactivationCallStatus
+
+export const PtDeactivationCallStatus: typeof $Enums.PtDeactivationCallStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -216,6 +245,16 @@ export class PrismaClient<
     * ```
     */
   get auditLog(): Prisma.AuditLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptDeactivationCall`: Exposes CRUD operations for the **PtDeactivationCall** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtDeactivationCalls
+    * const ptDeactivationCalls = await prisma.ptDeactivationCall.findMany()
+    * ```
+    */
+  get ptDeactivationCall(): Prisma.PtDeactivationCallDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -660,7 +699,8 @@ export namespace Prisma {
     User: 'User',
     RefreshToken: 'RefreshToken',
     EmailVerification: 'EmailVerification',
-    AuditLog: 'AuditLog'
+    AuditLog: 'AuditLog',
+    PtDeactivationCall: 'PtDeactivationCall'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -676,7 +716,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "refreshToken" | "emailVerification" | "auditLog"
+      modelProps: "user" | "refreshToken" | "emailVerification" | "auditLog" | "ptDeactivationCall"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -957,6 +997,76 @@ export namespace Prisma {
           count: {
             args: Prisma.AuditLogCountArgs<ExtArgs>
             result: $Utils.Optional<AuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtDeactivationCall: {
+        payload: Prisma.$PtDeactivationCallPayload<ExtArgs>
+        fields: Prisma.PtDeactivationCallFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtDeactivationCallFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtDeactivationCallFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          findFirst: {
+            args: Prisma.PtDeactivationCallFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtDeactivationCallFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          findMany: {
+            args: Prisma.PtDeactivationCallFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>[]
+          }
+          create: {
+            args: Prisma.PtDeactivationCallCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          createMany: {
+            args: Prisma.PtDeactivationCallCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtDeactivationCallCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>[]
+          }
+          delete: {
+            args: Prisma.PtDeactivationCallDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          update: {
+            args: Prisma.PtDeactivationCallUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtDeactivationCallDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtDeactivationCallUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtDeactivationCallUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDeactivationCallPayload>
+          }
+          aggregate: {
+            args: Prisma.PtDeactivationCallAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtDeactivationCall>
+          }
+          groupBy: {
+            args: Prisma.PtDeactivationCallGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtDeactivationCallGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtDeactivationCallCountArgs<ExtArgs>
+            result: $Utils.Optional<PtDeactivationCallCountAggregateOutputType> | number
           }
         }
       }
@@ -5051,6 +5161,978 @@ export namespace Prisma {
 
 
   /**
+   * Model PtDeactivationCall
+   */
+
+  export type AggregatePtDeactivationCall = {
+    _count: PtDeactivationCallCountAggregateOutputType | null
+    _avg: PtDeactivationCallAvgAggregateOutputType | null
+    _sum: PtDeactivationCallSumAggregateOutputType | null
+    _min: PtDeactivationCallMinAggregateOutputType | null
+    _max: PtDeactivationCallMaxAggregateOutputType | null
+  }
+
+  export type PtDeactivationCallAvgAggregateOutputType = {
+    attempts: number | null
+  }
+
+  export type PtDeactivationCallSumAggregateOutputType = {
+    attempts: number | null
+  }
+
+  export type PtDeactivationCallMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    action: $Enums.PtDeactivationAction | null
+    adminId: string | null
+    reason: string | null
+    status: $Enums.PtDeactivationCallStatus | null
+    attempts: number | null
+    lastError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtDeactivationCallMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    action: $Enums.PtDeactivationAction | null
+    adminId: string | null
+    reason: string | null
+    status: $Enums.PtDeactivationCallStatus | null
+    attempts: number | null
+    lastError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtDeactivationCallCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    action: number
+    adminId: number
+    reason: number
+    status: number
+    attempts: number
+    lastError: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PtDeactivationCallAvgAggregateInputType = {
+    attempts?: true
+  }
+
+  export type PtDeactivationCallSumAggregateInputType = {
+    attempts?: true
+  }
+
+  export type PtDeactivationCallMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    action?: true
+    adminId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtDeactivationCallMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    action?: true
+    adminId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtDeactivationCallCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    action?: true
+    adminId?: true
+    reason?: true
+    status?: true
+    attempts?: true
+    lastError?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PtDeactivationCallAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDeactivationCall to aggregate.
+     */
+    where?: PtDeactivationCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDeactivationCalls to fetch.
+     */
+    orderBy?: PtDeactivationCallOrderByWithRelationInput | PtDeactivationCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtDeactivationCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDeactivationCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDeactivationCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtDeactivationCalls
+    **/
+    _count?: true | PtDeactivationCallCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtDeactivationCallAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtDeactivationCallSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtDeactivationCallMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtDeactivationCallMaxAggregateInputType
+  }
+
+  export type GetPtDeactivationCallAggregateType<T extends PtDeactivationCallAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtDeactivationCall]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtDeactivationCall[P]>
+      : GetScalarType<T[P], AggregatePtDeactivationCall[P]>
+  }
+
+
+
+
+  export type PtDeactivationCallGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtDeactivationCallWhereInput
+    orderBy?: PtDeactivationCallOrderByWithAggregationInput | PtDeactivationCallOrderByWithAggregationInput[]
+    by: PtDeactivationCallScalarFieldEnum[] | PtDeactivationCallScalarFieldEnum
+    having?: PtDeactivationCallScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtDeactivationCallCountAggregateInputType | true
+    _avg?: PtDeactivationCallAvgAggregateInputType
+    _sum?: PtDeactivationCallSumAggregateInputType
+    _min?: PtDeactivationCallMinAggregateInputType
+    _max?: PtDeactivationCallMaxAggregateInputType
+  }
+
+  export type PtDeactivationCallGroupByOutputType = {
+    id: string
+    ptUserId: string
+    action: $Enums.PtDeactivationAction
+    adminId: string
+    reason: string | null
+    status: $Enums.PtDeactivationCallStatus
+    attempts: number
+    lastError: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PtDeactivationCallCountAggregateOutputType | null
+    _avg: PtDeactivationCallAvgAggregateOutputType | null
+    _sum: PtDeactivationCallSumAggregateOutputType | null
+    _min: PtDeactivationCallMinAggregateOutputType | null
+    _max: PtDeactivationCallMaxAggregateOutputType | null
+  }
+
+  type GetPtDeactivationCallGroupByPayload<T extends PtDeactivationCallGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtDeactivationCallGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtDeactivationCallGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtDeactivationCallGroupByOutputType[P]>
+            : GetScalarType<T[P], PtDeactivationCallGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtDeactivationCallSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    action?: boolean
+    adminId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ptDeactivationCall"]>
+
+  export type PtDeactivationCallSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    action?: boolean
+    adminId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ptDeactivationCall"]>
+
+  export type PtDeactivationCallSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    action?: boolean
+    adminId?: boolean
+    reason?: boolean
+    status?: boolean
+    attempts?: boolean
+    lastError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $PtDeactivationCallPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtDeactivationCall"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      action: $Enums.PtDeactivationAction
+      adminId: string
+      reason: string | null
+      status: $Enums.PtDeactivationCallStatus
+      attempts: number
+      lastError: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["ptDeactivationCall"]>
+    composites: {}
+  }
+
+  type PtDeactivationCallGetPayload<S extends boolean | null | undefined | PtDeactivationCallDefaultArgs> = $Result.GetResult<Prisma.$PtDeactivationCallPayload, S>
+
+  type PtDeactivationCallCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtDeactivationCallFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtDeactivationCallCountAggregateInputType | true
+    }
+
+  export interface PtDeactivationCallDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtDeactivationCall'], meta: { name: 'PtDeactivationCall' } }
+    /**
+     * Find zero or one PtDeactivationCall that matches the filter.
+     * @param {PtDeactivationCallFindUniqueArgs} args - Arguments to find a PtDeactivationCall
+     * @example
+     * // Get one PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtDeactivationCallFindUniqueArgs>(args: SelectSubset<T, PtDeactivationCallFindUniqueArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtDeactivationCall that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtDeactivationCallFindUniqueOrThrowArgs} args - Arguments to find a PtDeactivationCall
+     * @example
+     * // Get one PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtDeactivationCallFindUniqueOrThrowArgs>(args: SelectSubset<T, PtDeactivationCallFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtDeactivationCall that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallFindFirstArgs} args - Arguments to find a PtDeactivationCall
+     * @example
+     * // Get one PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtDeactivationCallFindFirstArgs>(args?: SelectSubset<T, PtDeactivationCallFindFirstArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtDeactivationCall that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallFindFirstOrThrowArgs} args - Arguments to find a PtDeactivationCall
+     * @example
+     * // Get one PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtDeactivationCallFindFirstOrThrowArgs>(args?: SelectSubset<T, PtDeactivationCallFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtDeactivationCalls that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtDeactivationCalls
+     * const ptDeactivationCalls = await prisma.ptDeactivationCall.findMany()
+     * 
+     * // Get first 10 PtDeactivationCalls
+     * const ptDeactivationCalls = await prisma.ptDeactivationCall.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptDeactivationCallWithIdOnly = await prisma.ptDeactivationCall.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtDeactivationCallFindManyArgs>(args?: SelectSubset<T, PtDeactivationCallFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtDeactivationCall.
+     * @param {PtDeactivationCallCreateArgs} args - Arguments to create a PtDeactivationCall.
+     * @example
+     * // Create one PtDeactivationCall
+     * const PtDeactivationCall = await prisma.ptDeactivationCall.create({
+     *   data: {
+     *     // ... data to create a PtDeactivationCall
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtDeactivationCallCreateArgs>(args: SelectSubset<T, PtDeactivationCallCreateArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtDeactivationCalls.
+     * @param {PtDeactivationCallCreateManyArgs} args - Arguments to create many PtDeactivationCalls.
+     * @example
+     * // Create many PtDeactivationCalls
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtDeactivationCallCreateManyArgs>(args?: SelectSubset<T, PtDeactivationCallCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtDeactivationCalls and returns the data saved in the database.
+     * @param {PtDeactivationCallCreateManyAndReturnArgs} args - Arguments to create many PtDeactivationCalls.
+     * @example
+     * // Create many PtDeactivationCalls
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtDeactivationCalls and only return the `id`
+     * const ptDeactivationCallWithIdOnly = await prisma.ptDeactivationCall.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtDeactivationCallCreateManyAndReturnArgs>(args?: SelectSubset<T, PtDeactivationCallCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtDeactivationCall.
+     * @param {PtDeactivationCallDeleteArgs} args - Arguments to delete one PtDeactivationCall.
+     * @example
+     * // Delete one PtDeactivationCall
+     * const PtDeactivationCall = await prisma.ptDeactivationCall.delete({
+     *   where: {
+     *     // ... filter to delete one PtDeactivationCall
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtDeactivationCallDeleteArgs>(args: SelectSubset<T, PtDeactivationCallDeleteArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtDeactivationCall.
+     * @param {PtDeactivationCallUpdateArgs} args - Arguments to update one PtDeactivationCall.
+     * @example
+     * // Update one PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtDeactivationCallUpdateArgs>(args: SelectSubset<T, PtDeactivationCallUpdateArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtDeactivationCalls.
+     * @param {PtDeactivationCallDeleteManyArgs} args - Arguments to filter PtDeactivationCalls to delete.
+     * @example
+     * // Delete a few PtDeactivationCalls
+     * const { count } = await prisma.ptDeactivationCall.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtDeactivationCallDeleteManyArgs>(args?: SelectSubset<T, PtDeactivationCallDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtDeactivationCalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtDeactivationCalls
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtDeactivationCallUpdateManyArgs>(args: SelectSubset<T, PtDeactivationCallUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtDeactivationCall.
+     * @param {PtDeactivationCallUpsertArgs} args - Arguments to update or create a PtDeactivationCall.
+     * @example
+     * // Update or create a PtDeactivationCall
+     * const ptDeactivationCall = await prisma.ptDeactivationCall.upsert({
+     *   create: {
+     *     // ... data to create a PtDeactivationCall
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtDeactivationCall we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtDeactivationCallUpsertArgs>(args: SelectSubset<T, PtDeactivationCallUpsertArgs<ExtArgs>>): Prisma__PtDeactivationCallClient<$Result.GetResult<Prisma.$PtDeactivationCallPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtDeactivationCalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallCountArgs} args - Arguments to filter PtDeactivationCalls to count.
+     * @example
+     * // Count the number of PtDeactivationCalls
+     * const count = await prisma.ptDeactivationCall.count({
+     *   where: {
+     *     // ... the filter for the PtDeactivationCalls we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtDeactivationCallCountArgs>(
+      args?: Subset<T, PtDeactivationCallCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtDeactivationCallCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtDeactivationCall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtDeactivationCallAggregateArgs>(args: Subset<T, PtDeactivationCallAggregateArgs>): Prisma.PrismaPromise<GetPtDeactivationCallAggregateType<T>>
+
+    /**
+     * Group by PtDeactivationCall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDeactivationCallGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtDeactivationCallGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtDeactivationCallGroupByArgs['orderBy'] }
+        : { orderBy?: PtDeactivationCallGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtDeactivationCallGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtDeactivationCallGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtDeactivationCall model
+   */
+  readonly fields: PtDeactivationCallFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtDeactivationCall.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtDeactivationCallClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtDeactivationCall model
+   */ 
+  interface PtDeactivationCallFieldRefs {
+    readonly id: FieldRef<"PtDeactivationCall", 'String'>
+    readonly ptUserId: FieldRef<"PtDeactivationCall", 'String'>
+    readonly action: FieldRef<"PtDeactivationCall", 'PtDeactivationAction'>
+    readonly adminId: FieldRef<"PtDeactivationCall", 'String'>
+    readonly reason: FieldRef<"PtDeactivationCall", 'String'>
+    readonly status: FieldRef<"PtDeactivationCall", 'PtDeactivationCallStatus'>
+    readonly attempts: FieldRef<"PtDeactivationCall", 'Int'>
+    readonly lastError: FieldRef<"PtDeactivationCall", 'String'>
+    readonly createdAt: FieldRef<"PtDeactivationCall", 'DateTime'>
+    readonly updatedAt: FieldRef<"PtDeactivationCall", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtDeactivationCall findUnique
+   */
+  export type PtDeactivationCallFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter, which PtDeactivationCall to fetch.
+     */
+    where: PtDeactivationCallWhereUniqueInput
+  }
+
+  /**
+   * PtDeactivationCall findUniqueOrThrow
+   */
+  export type PtDeactivationCallFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter, which PtDeactivationCall to fetch.
+     */
+    where: PtDeactivationCallWhereUniqueInput
+  }
+
+  /**
+   * PtDeactivationCall findFirst
+   */
+  export type PtDeactivationCallFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter, which PtDeactivationCall to fetch.
+     */
+    where?: PtDeactivationCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDeactivationCalls to fetch.
+     */
+    orderBy?: PtDeactivationCallOrderByWithRelationInput | PtDeactivationCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDeactivationCalls.
+     */
+    cursor?: PtDeactivationCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDeactivationCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDeactivationCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDeactivationCalls.
+     */
+    distinct?: PtDeactivationCallScalarFieldEnum | PtDeactivationCallScalarFieldEnum[]
+  }
+
+  /**
+   * PtDeactivationCall findFirstOrThrow
+   */
+  export type PtDeactivationCallFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter, which PtDeactivationCall to fetch.
+     */
+    where?: PtDeactivationCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDeactivationCalls to fetch.
+     */
+    orderBy?: PtDeactivationCallOrderByWithRelationInput | PtDeactivationCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDeactivationCalls.
+     */
+    cursor?: PtDeactivationCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDeactivationCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDeactivationCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDeactivationCalls.
+     */
+    distinct?: PtDeactivationCallScalarFieldEnum | PtDeactivationCallScalarFieldEnum[]
+  }
+
+  /**
+   * PtDeactivationCall findMany
+   */
+  export type PtDeactivationCallFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter, which PtDeactivationCalls to fetch.
+     */
+    where?: PtDeactivationCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDeactivationCalls to fetch.
+     */
+    orderBy?: PtDeactivationCallOrderByWithRelationInput | PtDeactivationCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtDeactivationCalls.
+     */
+    cursor?: PtDeactivationCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDeactivationCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDeactivationCalls.
+     */
+    skip?: number
+    distinct?: PtDeactivationCallScalarFieldEnum | PtDeactivationCallScalarFieldEnum[]
+  }
+
+  /**
+   * PtDeactivationCall create
+   */
+  export type PtDeactivationCallCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PtDeactivationCall.
+     */
+    data: XOR<PtDeactivationCallCreateInput, PtDeactivationCallUncheckedCreateInput>
+  }
+
+  /**
+   * PtDeactivationCall createMany
+   */
+  export type PtDeactivationCallCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtDeactivationCalls.
+     */
+    data: PtDeactivationCallCreateManyInput | PtDeactivationCallCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtDeactivationCall createManyAndReturn
+   */
+  export type PtDeactivationCallCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtDeactivationCalls.
+     */
+    data: PtDeactivationCallCreateManyInput | PtDeactivationCallCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtDeactivationCall update
+   */
+  export type PtDeactivationCallUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PtDeactivationCall.
+     */
+    data: XOR<PtDeactivationCallUpdateInput, PtDeactivationCallUncheckedUpdateInput>
+    /**
+     * Choose, which PtDeactivationCall to update.
+     */
+    where: PtDeactivationCallWhereUniqueInput
+  }
+
+  /**
+   * PtDeactivationCall updateMany
+   */
+  export type PtDeactivationCallUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtDeactivationCalls.
+     */
+    data: XOR<PtDeactivationCallUpdateManyMutationInput, PtDeactivationCallUncheckedUpdateManyInput>
+    /**
+     * Filter which PtDeactivationCalls to update
+     */
+    where?: PtDeactivationCallWhereInput
+  }
+
+  /**
+   * PtDeactivationCall upsert
+   */
+  export type PtDeactivationCallUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PtDeactivationCall to update in case it exists.
+     */
+    where: PtDeactivationCallWhereUniqueInput
+    /**
+     * In case the PtDeactivationCall found by the `where` argument doesn't exist, create a new PtDeactivationCall with this data.
+     */
+    create: XOR<PtDeactivationCallCreateInput, PtDeactivationCallUncheckedCreateInput>
+    /**
+     * In case the PtDeactivationCall was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtDeactivationCallUpdateInput, PtDeactivationCallUncheckedUpdateInput>
+  }
+
+  /**
+   * PtDeactivationCall delete
+   */
+  export type PtDeactivationCallDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+    /**
+     * Filter which PtDeactivationCall to delete.
+     */
+    where: PtDeactivationCallWhereUniqueInput
+  }
+
+  /**
+   * PtDeactivationCall deleteMany
+   */
+  export type PtDeactivationCallDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDeactivationCalls to delete
+     */
+    where?: PtDeactivationCallWhereInput
+  }
+
+  /**
+   * PtDeactivationCall without action
+   */
+  export type PtDeactivationCallDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDeactivationCall
+     */
+    select?: PtDeactivationCallSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -5118,6 +6200,22 @@ export namespace Prisma {
   };
 
   export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+  export const PtDeactivationCallScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    action: 'action',
+    adminId: 'adminId',
+    reason: 'reason',
+    status: 'status',
+    attempts: 'attempts',
+    lastError: 'lastError',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PtDeactivationCallScalarFieldEnum = (typeof PtDeactivationCallScalarFieldEnum)[keyof typeof PtDeactivationCallScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -5233,6 +6331,34 @@ export namespace Prisma {
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtDeactivationAction'
+   */
+  export type EnumPtDeactivationActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDeactivationAction'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtDeactivationAction[]'
+   */
+  export type ListEnumPtDeactivationActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDeactivationAction[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtDeactivationCallStatus'
+   */
+  export type EnumPtDeactivationCallStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDeactivationCallStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtDeactivationCallStatus[]'
+   */
+  export type ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDeactivationCallStatus[]'>
     
 
 
@@ -5533,6 +6659,85 @@ export namespace Prisma {
     userAgent?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     metadata?: JsonNullableWithAggregatesFilter<"AuditLog">
     createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
+  }
+
+  export type PtDeactivationCallWhereInput = {
+    AND?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
+    OR?: PtDeactivationCallWhereInput[]
+    NOT?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
+    id?: StringFilter<"PtDeactivationCall"> | string
+    ptUserId?: StringFilter<"PtDeactivationCall"> | string
+    action?: EnumPtDeactivationActionFilter<"PtDeactivationCall"> | $Enums.PtDeactivationAction
+    adminId?: StringFilter<"PtDeactivationCall"> | string
+    reason?: StringNullableFilter<"PtDeactivationCall"> | string | null
+    status?: EnumPtDeactivationCallStatusFilter<"PtDeactivationCall"> | $Enums.PtDeactivationCallStatus
+    attempts?: IntFilter<"PtDeactivationCall"> | number
+    lastError?: StringNullableFilter<"PtDeactivationCall"> | string | null
+    createdAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
+    updatedAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
+  }
+
+  export type PtDeactivationCallOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    action?: SortOrder
+    adminId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtDeactivationCallWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
+    OR?: PtDeactivationCallWhereInput[]
+    NOT?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
+    ptUserId?: StringFilter<"PtDeactivationCall"> | string
+    action?: EnumPtDeactivationActionFilter<"PtDeactivationCall"> | $Enums.PtDeactivationAction
+    adminId?: StringFilter<"PtDeactivationCall"> | string
+    reason?: StringNullableFilter<"PtDeactivationCall"> | string | null
+    status?: EnumPtDeactivationCallStatusFilter<"PtDeactivationCall"> | $Enums.PtDeactivationCallStatus
+    attempts?: IntFilter<"PtDeactivationCall"> | number
+    lastError?: StringNullableFilter<"PtDeactivationCall"> | string | null
+    createdAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
+    updatedAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
+  }, "id">
+
+  export type PtDeactivationCallOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    action?: SortOrder
+    adminId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PtDeactivationCallCountOrderByAggregateInput
+    _avg?: PtDeactivationCallAvgOrderByAggregateInput
+    _max?: PtDeactivationCallMaxOrderByAggregateInput
+    _min?: PtDeactivationCallMinOrderByAggregateInput
+    _sum?: PtDeactivationCallSumOrderByAggregateInput
+  }
+
+  export type PtDeactivationCallScalarWhereWithAggregatesInput = {
+    AND?: PtDeactivationCallScalarWhereWithAggregatesInput | PtDeactivationCallScalarWhereWithAggregatesInput[]
+    OR?: PtDeactivationCallScalarWhereWithAggregatesInput[]
+    NOT?: PtDeactivationCallScalarWhereWithAggregatesInput | PtDeactivationCallScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtDeactivationCall"> | string
+    ptUserId?: StringWithAggregatesFilter<"PtDeactivationCall"> | string
+    action?: EnumPtDeactivationActionWithAggregatesFilter<"PtDeactivationCall"> | $Enums.PtDeactivationAction
+    adminId?: StringWithAggregatesFilter<"PtDeactivationCall"> | string
+    reason?: StringNullableWithAggregatesFilter<"PtDeactivationCall"> | string | null
+    status?: EnumPtDeactivationCallStatusWithAggregatesFilter<"PtDeactivationCall"> | $Enums.PtDeactivationCallStatus
+    attempts?: IntWithAggregatesFilter<"PtDeactivationCall"> | number
+    lastError?: StringNullableWithAggregatesFilter<"PtDeactivationCall"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PtDeactivationCall"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PtDeactivationCall"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -5847,6 +7052,97 @@ export namespace Prisma {
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtDeactivationCallCreateInput = {
+    id?: string
+    ptUserId: string
+    action: $Enums.PtDeactivationAction
+    adminId: string
+    reason?: string | null
+    status?: $Enums.PtDeactivationCallStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtDeactivationCallUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    action: $Enums.PtDeactivationAction
+    adminId: string
+    reason?: string | null
+    status?: $Enums.PtDeactivationCallStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtDeactivationCallUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    action?: EnumPtDeactivationActionFieldUpdateOperationsInput | $Enums.PtDeactivationAction
+    adminId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtDeactivationCallUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    action?: EnumPtDeactivationActionFieldUpdateOperationsInput | $Enums.PtDeactivationAction
+    adminId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtDeactivationCallCreateManyInput = {
+    id?: string
+    ptUserId: string
+    action: $Enums.PtDeactivationAction
+    adminId: string
+    reason?: string | null
+    status?: $Enums.PtDeactivationCallStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtDeactivationCallUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    action?: EnumPtDeactivationActionFieldUpdateOperationsInput | $Enums.PtDeactivationAction
+    adminId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtDeactivationCallUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    action?: EnumPtDeactivationActionFieldUpdateOperationsInput | $Enums.PtDeactivationAction
+    adminId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -6212,6 +7508,87 @@ export namespace Prisma {
     _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
+  export type EnumPtDeactivationActionFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationAction | EnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationActionFilter<$PrismaModel> | $Enums.PtDeactivationAction
+  }
+
+  export type EnumPtDeactivationCallStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationCallStatus | EnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
+  }
+
+  export type PtDeactivationCallCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    action?: SortOrder
+    adminId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtDeactivationCallAvgOrderByAggregateInput = {
+    attempts?: SortOrder
+  }
+
+  export type PtDeactivationCallMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    action?: SortOrder
+    adminId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtDeactivationCallMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    action?: SortOrder
+    adminId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    attempts?: SortOrder
+    lastError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtDeactivationCallSumOrderByAggregateInput = {
+    attempts?: SortOrder
+  }
+
+  export type EnumPtDeactivationActionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationAction | EnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationActionWithAggregatesFilter<$PrismaModel> | $Enums.PtDeactivationAction
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDeactivationActionFilter<$PrismaModel>
+    _max?: NestedEnumPtDeactivationActionFilter<$PrismaModel>
+  }
+
+  export type EnumPtDeactivationCallStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationCallStatus | EnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationCallStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
+  }
+
   export type RefreshTokenCreateNestedManyWithoutUserInput = {
     create?: XOR<RefreshTokenCreateWithoutUserInput, RefreshTokenUncheckedCreateWithoutUserInput> | RefreshTokenCreateWithoutUserInput[] | RefreshTokenUncheckedCreateWithoutUserInput[]
     connectOrCreate?: RefreshTokenCreateOrConnectWithoutUserInput | RefreshTokenCreateOrConnectWithoutUserInput[]
@@ -6350,6 +7727,14 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutAuditLogsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAuditLogsInput, UserUpdateWithoutAuditLogsInput>, UserUncheckedUpdateWithoutAuditLogsInput>
+  }
+
+  export type EnumPtDeactivationActionFieldUpdateOperationsInput = {
+    set?: $Enums.PtDeactivationAction
+  }
+
+  export type EnumPtDeactivationCallStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtDeactivationCallStatus
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -6538,6 +7923,40 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumPtDeactivationActionFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationAction | EnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationActionFilter<$PrismaModel> | $Enums.PtDeactivationAction
+  }
+
+  export type NestedEnumPtDeactivationCallStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationCallStatus | EnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
+  }
+
+  export type NestedEnumPtDeactivationActionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationAction | EnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationActionWithAggregatesFilter<$PrismaModel> | $Enums.PtDeactivationAction
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDeactivationActionFilter<$PrismaModel>
+    _max?: NestedEnumPtDeactivationActionFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtDeactivationCallStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDeactivationCallStatus | EnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDeactivationCallStatus[] | ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDeactivationCallStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
   }
 
   export type RefreshTokenCreateWithoutUserInput = {
@@ -6873,6 +8292,10 @@ export namespace Prisma {
      * @deprecated Use AuditLogDefaultArgs instead
      */
     export type AuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AuditLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtDeactivationCallDefaultArgs instead
+     */
+    export type PtDeactivationCallArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtDeactivationCallDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

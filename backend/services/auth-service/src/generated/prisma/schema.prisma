@@ -9,10 +9,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Money-flow redesign plan 5.1: GYM_STAFF removed. It only ever existed as an enum value and
+// a frontend route — no model, no business logic, no screen ever built for it — while the
+// frontend still routed a user with this role into a workspace where the backend rejected
+// every action with 403. Verified zero accounts held this role before removing it (see the
+// project's "Quyết định phát sinh" doc for the exact query). Gym owners operate everything
+// themselves now; a staff role is explicitly out of scope (see docs/money-flow.md's scope
+// section).
 enum Role {
   CUSTOMER
   PT
   ADMIN
+  GYM_OWNER
 }
 
 model User {
@@ -75,4 +83,40 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ── PT deactivation relay (money-flow redesign plan 2.6) ──────────────────────────────────
+//
+// Locking a PT's account here only ever flipped `isActive` — user-service's
+// ptDeactivationService.deactivatePT (which unwinds live contracts with prorated refunds and
+// hides the PT from discovery) already existed with a ready internal endpoint, but nothing in
+// auth-service ever called it. This table is the retry record for that cross-service call: if
+// it fails, the account lock itself still succeeds (the primary action must not be blocked by
+// a secondary one), but the failure is recorded here instead of silently swallowed, and
+// pt-deactivation-relay-sweep.service.ts retries it.
+enum PtDeactivationAction {
+  DEACTIVATE
+  REACTIVATE
+}
+
+enum PtDeactivationCallStatus {
+  PENDING
+  SETTLED
+  FAILED
+}
+
+model PtDeactivationCall {
+  id        String                   @id @default(uuid())
+  ptUserId  String                   @map("pt_user_id")
+  action    PtDeactivationAction
+  adminId   String                   @map("admin_id")
+  reason    String?
+  status    PtDeactivationCallStatus @default(PENDING)
+  attempts  Int                      @default(0)
+  lastError String?                  @map("last_error")
+  createdAt DateTime                 @default(now()) @map("created_at")
+  updatedAt DateTime                 @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("pt_deactivation_calls")
 }

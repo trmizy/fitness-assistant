@@ -4,6 +4,7 @@ import { Prisma } from '../generated/prisma';
 import { membershipRepository } from '../repositories/membership.repository';
 import { referralRepository } from '../repositories/referral.repository';
 import { planRepository } from '../repositories/plan.repository';
+import { gymRepository } from '../repositories/gym.repository';
 import { profileClient } from '../clients/profile.client';
 import { gymService } from './gym.service';
 import { collaborationService } from './collaboration.service';
@@ -86,6 +87,12 @@ export const membershipService = {
     // Re-check server-side: the client may have had this plan open in a tab since before a
     // marketing window closed. Never trust that what the browser is showing is still true.
     if (!isPlanOnSale(plan)) throw err('Gói này hiện không còn trong thời gian mở bán', 409);
+
+    // Money-flow plan 2.5 — the first of three status chokepoints: a gym that is not
+    // APPROVED (still under review, rejected, or suspended for a violation) must not accept
+    // new money. Without this, "suspended" was purely cosmetic on the purchase flow.
+    const gym = await gymRepository.findById(gymId);
+    if (!gym || gym.status !== 'APPROVED') throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
 
     const existingOpen = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
     if (existingOpen) {
@@ -220,6 +227,10 @@ export const membershipService = {
         clientId,
         ptUserId: contract.referral?.referrerPtUserId ?? null,
         label: `Membership ${contract.id} client self-cancel`,
+        // Same MEMBERSHIP_RELEASE:<id> key as the admin-refund and natural-expiry paths — a
+        // membership only ever reaches ONE of the three terminal release triggers, never more
+        // than one, so the shared key cannot conflate two different real events.
+        idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
       });
     }
 
@@ -234,12 +245,17 @@ export const membershipService = {
    * simply wrong. `reason` must be one of `ADMIN_REFUND_REASONS` — validated by the route's
    * zod schema before this is ever called.
    *
-   * KNOWN GAP (documented per "không được sửa lặng lẽ" — see docs/money-flow.md's "Quyết định
-   * phát sinh"): unlike self-cancel/natural-expiry, this operation is not safely retryable —
-   * if the clawback step succeeds but the release step then fails, re-running the whole
-   * function would claw back the referral commission a second time. This is an admin-only,
-   * low-frequency, manually-triggered action; a failure surfaces as a 5xx the admin can
-   * investigate via GET /admin/payments/reconciliation before retrying by hand.
+   * Money-flow plan 1.7 (closes what used to be a KNOWN GAP here — see docs/money-flow.md's
+   * "Quyết định phát sinh"): the clawback step's LOCAL bookkeeping
+   * (`GymMembershipReferral.clawedBack`) is not itself idempotent, even though the
+   * payment-service call behind it already is (plan 1.1) — a retry after the later release
+   * step fails would re-enter the clawback branch and increment `clawedBack` a second time
+   * for money that only ever moved once. `contract.refundClawbackDone` guards against that:
+   * set right after the clawback step's local write commits, checked before ever entering
+   * that branch again. This operation is otherwise still an admin-only, low-frequency, manual
+   * action — a failure surfaces as a 5xx the admin investigates via
+   * GET /admin/payments/reconciliation before retrying by hand; the guarantee this closes is
+   * only that the retry itself is now safe, not that failures become invisible.
    */
   async refundByAdmin(membershipId: string, adminId: string, reason: AdminRefundReason) {
     if (!ADMIN_REFUND_REASONS.includes(reason)) throw err('INVALID_REFUND_REASON', 400);
@@ -257,7 +273,7 @@ export const membershipService = {
     const price = Number(contract.priceAtPurchase);
 
     let clawback: { recovered: string; shortfall: string } | null = null;
-    if (contract.referral && refundAmount > 0) {
+    if (contract.referral && refundAmount > 0 && !contract.refundClawbackDone) {
       const remainingCommission = Number(contract.referral.amount) - Number(contract.referral.clawedBack);
       if (remainingCommission > 0) {
         const clawbackAmount = Math.round((refundAmount / price) * remainingCommission * 100) / 100;
@@ -268,10 +284,15 @@ export const membershipService = {
             ptUserId: contract.referral.referrerPtUserId,
             amount: String(clawbackAmount),
             label: `Membership ${contract.id} admin refund (${reason})`,
+            idempotencyKey: `REFERRAL_CLAWBACK:${contract.id}`,
           });
           await referralRepository.recordClawback(contract.id, clawback.recovered);
         }
       }
+      // Set regardless of whether an amount actually moved (remainingCommission or
+      // clawbackAmount could legitimately be 0) — the STEP is complete either way, and a
+      // retry must not re-evaluate it.
+      await membershipRepository.markClawbackDone(contract.id);
     }
 
     const release = await paymentClient.releaseMembershipPending({
@@ -282,6 +303,7 @@ export const membershipService = {
       refundToClient: String(refundAmount),
       membershipStatus: 'CANCELLED',
       label: `Membership ${contract.id} admin refund (${reason})`,
+      idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
     });
 
     const cancelled = await membershipRepository.cancelAfterRefund(contract.id);
@@ -339,6 +361,10 @@ export const membershipService = {
           ptUserId: withReferral.referral.referrerPtUserId,
           amount: withReferral.referral.amount.toString(),
           label: `Membership ${membershipId} referral`,
+          // Money-flow redesign plan 1.1: a membership settles its referral commission at
+          // most once, ever — a retry after this committed but the caller failed to record
+          // it (e.g. markReleased below throwing) must not move the commission twice.
+          idempotencyKey: `MEMBERSHIP_REFERRAL:${membershipId}`,
         });
         await referralRepository.markReleased(membershipId);
       } catch (e) {

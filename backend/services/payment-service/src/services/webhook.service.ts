@@ -2,8 +2,10 @@ import { logger } from '@gym-coach/shared';
 import { webhookRepository } from '../repositories/webhook.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { PaymentProviderType, Prisma } from '../generated/prisma';
+import type { PaymentTransaction } from '../generated/prisma';
 import { walletService } from './wallet.service';
 import { settleContractPayment } from './contract-ledger.service';
+import { getProvider } from './payment.service';
 
 interface IncomingWebhookEvent {
   provider: string;
@@ -166,4 +168,53 @@ async function settlePurchase(txn: {
   } catch (e) {
     logger.warn({ error: 'activation callback failed; reconciliation will retry', transactionId: txn.id, message: (e as Error).message });
   }
+}
+
+/**
+ * Actively confirms one PROCESSING transaction at its own gateway instead of waiting on a
+ * webhook.
+ *
+ * Every provider (VNPay querydr, ZaloPay /v2/query, MoMo /query, PayOS payment-requests)
+ * implements queryTransactionStatus() for exactly this "local/dev confirmation path" — see
+ * each provider file — but until now nothing ever called it. VNPay alone had a working
+ * confirmation route (the signed vnpay/return redirect); every other gateway's PROCESSING
+ * purchase just sat until sweepStaleProcessing marked it FAILED after
+ * NON_TOPUP_STALE_MINUTES, even when the gateway had genuinely captured the money. This is
+ * the function that closes that gap — called from the reconciliation sweep for every
+ * PROCESSING purchase, and from POST /me/payments/:id/sync for an immediate check.
+ *
+ * Reuses handleEvent for the actual settlement so a poll-confirmed payment goes through the
+ * exact same idempotent path a real webhook would (provider-match guard, already-PAID guard,
+ * frozen rate/party allocation) — this function only ever supplies the "PAID" signal.
+ */
+export async function pollAndSettle(txn: PaymentTransaction): Promise<'PAID' | 'FAILED' | 'PENDING' | 'UNSUPPORTED'> {
+  // A direct-to-gateway checkout (membership/contract purchase) is created with status
+  // PENDING and never moves to PROCESSING anywhere in this codebase — only the old
+  // wallet-topup path used PROCESSING. Gating on PROCESSING alone made this a no-op for
+  // every real purchase: it would report a brand-new, still-unpaid PENDING transaction as
+  // FAILED without ever asking the gateway. Anything not already terminal is worth polling.
+  const TERMINAL = new Set(['PAID', 'FAILED', 'CANCELLED', 'REFUNDED']);
+  if (TERMINAL.has(txn.status)) return txn.status === 'PAID' ? 'PAID' : 'FAILED';
+
+  const provider = getProvider(txn.provider);
+  if (!provider.queryTransactionStatus) return 'UNSUPPORTED';
+
+  const result = await provider.queryTransactionStatus({
+    id: txn.id,
+    providerTransactionId: txn.providerTransactionId,
+    amount: Number(txn.amount),
+    createdAt: txn.createdAt,
+    metadata: txn.metadata,
+  });
+
+  if (result === 'PAID') {
+    await handleEvent({
+      provider: txn.provider,
+      providerEventId: `poll_${txn.id}_${Date.now()}`,
+      providerTransactionId: txn.providerTransactionId ?? txn.id,
+      payload: {},
+      status: 'PAID',
+    });
+  }
+  return result;
 }

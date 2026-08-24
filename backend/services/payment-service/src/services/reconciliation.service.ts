@@ -3,6 +3,7 @@ import { logger } from '@gym-coach/shared';
 import { webhookRepository } from '../repositories/webhook.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
 import type { PaymentTransaction } from '../generated/prisma';
+import { pollAndSettle } from './webhook.service';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 10;
@@ -21,9 +22,34 @@ export function startReconciliationJob(): void {
 
 async function runReconciliation(): Promise<void> {
   await reconcileTopupWebhookBookkeeping();
+  await pollGatewayConfirmations();
   await reconcilePendingActivations();
   await reconcilePendingRefundCancellations();
   await sweepStaleProcessing();
+}
+
+/**
+ * Actively confirms every PROCESSING purchase at its own gateway before the stale sweep can
+ * mark it FAILED. Must run before sweepStaleProcessing: without this, ZaloPay/MoMo/PayOS
+ * purchases (no reachable IPN on this deployment) always time out at NON_TOPUP_STALE_MINUTES
+ * even when the gateway genuinely captured the money — see webhook.service.pollAndSettle.
+ */
+async function pollGatewayConfirmations(): Promise<void> {
+  try {
+    const processing = await transactionRepository.findProcessingNonTopup();
+    if (processing.length === 0) return;
+    logger.info(`[Reconciliation] Polling ${processing.length} PROCESSING transaction(s) at their gateway`);
+    for (const txn of processing) {
+      try {
+        const result = await pollAndSettle(txn);
+        if (result === 'PAID') logger.info(`[Reconciliation] Gateway confirmed ${txn.id} (${txn.provider}) as PAID`);
+      } catch (err) {
+        logger.error({ error: 'Gateway poll failed', transactionId: txn.id, provider: txn.provider, message: (err as Error).message });
+      }
+    }
+  } catch (err) {
+    logger.error({ error: 'Gateway confirmation polling failed', message: (err as Error).message });
+  }
 }
 
 /**

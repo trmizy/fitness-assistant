@@ -48,6 +48,11 @@ enum PurposeType {
   REFUND
   TRAINING_PACKAGE_PURCHASE
   PERSONALIZED_SERVICE_PURCHASE
+  /// Money-flow plan 5.3: the dedicated PaymentTransaction row markPaid creates for a
+  /// WithdrawalRequest payout. Outbound money has no originating gateway PaymentTransaction
+  /// to reuse the way REFUND reuses the original purchase's — WalletLedgerEntry.transactionId
+  /// is a hard FK, so a payout needs a row of its own to point at.
+  WITHDRAWAL
 }
 
 enum WalletOwnerType {
@@ -113,7 +118,8 @@ model Wallet {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  ledgerEntries WalletLedgerEntry[]
+  ledgerEntries      WalletLedgerEntry[]
+  withdrawalRequests WithdrawalRequest[]
 
   @@unique([ownerType, ownerId])
   @@map("wallets")
@@ -140,6 +146,46 @@ model WalletLedgerEntry {
   @@index([walletId, bucket, createdAt])
   @@index([transactionId])
   @@map("wallet_ledger_entries")
+}
+
+enum WithdrawalRequestStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+/// Money-flow redesign plan 5.3 — "luồng rút tiền bán thủ công". Deliberately minimal: no
+/// payout-API integration (chi ra ngoài vẫn thủ công, §5.3's explicit constraint). The ledger
+/// debit only happens at `markPaid`, when an admin confirms a real bank/e-wallet transfer
+/// already happened outside this system — this row exists to track that transfer, not to
+/// trigger it.
+model WithdrawalRequest {
+  id              String                  @id @default(uuid())
+  walletId        String                  @map("wallet_id")
+  ownerType       WalletOwnerType         @map("owner_type")
+  ownerId         String                  @map("owner_id")
+  amount          Decimal                 @db.Decimal(14, 2)
+  status          WithdrawalRequestStatus @default(PENDING)
+  /// Bank account / e-wallet details the requester provided — free text, no payout API to
+  /// validate a schema against.
+  payoutInfo      String                  @map("payout_info")
+  /// Filled in by the admin at markPaid — the paper trail for the transfer that happened
+  /// manually, outside this system.
+  bankReference   String?                 @map("bank_reference")
+  rejectionReason String?                 @map("rejection_reason")
+  reviewedBy      String?                 @map("reviewed_by")
+  reviewedAt      DateTime?               @map("reviewed_at")
+  paidAt          DateTime?               @map("paid_at")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  // The withdrawable-balance query (walletId, status) and the admin queue (status alone).
+  @@index([walletId, status])
+  @@index([status])
+  @@map("withdrawal_requests")
 }
 
 model PaymentTransaction {
@@ -234,6 +280,29 @@ model PartnerReceivable {
 
   @@index([partnerType, partnerId, settledAt])
   @@map("partner_receivables")
+}
+
+/// Business-key idempotency for financial ledger operations that are NOT a
+/// PaymentTransaction (money-flow redesign plan item 1.1) — release-session,
+/// no-show compensation, contract termination, membership referral settle/
+/// clawback, membership pending-release. Each is written inside the SAME DB
+/// transaction as the wallet movements it guards (see contract-ledger.service.ts's
+/// / membership-ledger.service.ts's `withIdempotentLedgerOp`), so a crash between
+/// "money moved" and "this row committed" is impossible: either both land or
+/// neither does. A retry with the same `key` finds this row and replays `result`
+/// instead of moving money again — the "gọi lại cùng khoá phải là thao tác vô hại"
+/// requirement.
+///
+/// `key` follows a fixed per-operation-type format so it is self-describing in an
+/// audit query, e.g. `SESSION_RELEASE:<sessionId>`, `CONTRACT_TERMINATE:<contractId>`,
+/// `MEMBERSHIP_RELEASE:<membershipId>` — see docs/money-flow.md for the full list.
+model LedgerOperation {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ledger_operations")
 }
 
 model PaymentWebhookEvent {

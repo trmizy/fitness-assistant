@@ -101,6 +101,16 @@ const SESSION_STATUS_CONFIG: Record<
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
   },
+  PENDING_CLIENT_CONFIRMATION: {
+    label: "Chờ bạn xác nhận",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  DISPUTED: {
+    label: "Đang khiếu nại",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
   COMPLETED: {
     label: "Hoàn thành",
     color: "text-blue-400",
@@ -116,14 +126,9 @@ const SESSION_STATUS_CONFIG: Record<
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
-  RESCHEDULE_PENDING: {
-    label: "Chờ dời lịch",
-    color: "text-amber-400",
-    bg: "bg-amber-500/10 border-amber-500/20",
-  },
 };
 
-type Tab = "book" | "upcoming" | "past";
+type Tab = "book" | "upcoming" | "confirm" | "past";
 
 export function BookingPage() {
   const queryClient = useQueryClient();
@@ -147,6 +152,10 @@ export function BookingPage() {
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [disputeId, setDisputeId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [noShowReportId, setNoShowReportId] = useState<string | null>(null);
+  const [noShowReportReason, setNoShowReportReason] = useState("");
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
@@ -221,6 +230,13 @@ export function BookingPage() {
     queryFn: () => sessionService.getMyUpcoming(),
   });
 
+  // Money-flow plan 4.1: sessions the PT reported as done and the client still has to
+  // confirm or dispute. Distinct from "upcoming" — these are already in the past.
+  const { data: pendingConfirmSessions = [], isLoading: loadingPendingConfirm } = useQuery({
+    queryKey: ["sessions-pending-confirmation"],
+    queryFn: () => sessionService.listPendingConfirmation(),
+  });
+
   // Fetch sessions for selected contract (for past tab)
   const { data: contractSessions = [], isLoading: loadingPast } = useQuery({
     queryKey: ["contract-sessions", selectedContractId],
@@ -244,16 +260,30 @@ export function BookingPage() {
       }),
   );
 
+  // Money-flow plan 4.3: a CONFIRMED session whose time has already passed and that the PT
+  // never touched (never reported complete, never no-showed) used to be invisible everywhere
+  // — dropped out of "upcoming" once its time passed, never counted as "past" either. Shown
+  // here so the client has a place to report it.
   const pastSessions = (contractSessions as Session[]).filter(
     (s) =>
       s.status === "COMPLETED" ||
       s.status === "CANCELLED" ||
-      s.status === "NO_SHOW",
+      s.status === "NO_SHOW" ||
+      s.status === "PT_NO_SHOW_REPORTED" ||
+      s.status === "DISPUTED" ||
+      (s.status === "CONFIRMED" && new Date(s.scheduledStartAt).getTime() < Date.now()),
   );
 
-  // Remaining sessions count
+  // Remaining sessions count — must also subtract compensatedSessions (PT no-shows already
+  // paid out in cash): those consume entitlement exactly like a used session, but totalSessions
+  // itself no longer shrinks to reflect them (money-flow plan 1.5).
   const remainingSessions = selectedContract
-    ? selectedContract.totalSessions - selectedContract.usedSessions
+    ? Math.max(
+        0,
+        selectedContract.totalSessions -
+          selectedContract.usedSessions -
+          (selectedContract.compensatedSessions ?? 0),
+      )
     : 0;
 
   // Fetch available slots for selected date + PT
@@ -323,6 +353,47 @@ export function BookingPage() {
     },
     onError: (err: any) =>
       toast.error(err?.response?.data?.error || "Không thể hủy lịch"),
+  });
+
+  // Money-flow plan 4.1 — client confirms the PT's report of a session, releasing the PT's
+  // money for it (backend already handled this correctly; only the UI to reach it was missing).
+  const confirmSessionMutation = useMutation({
+    mutationFn: (id: string) => sessionService.clientConfirmSession(id),
+    onSuccess: () => {
+      toast.success("Đã xác nhận buổi tập");
+      queryClient.invalidateQueries({ queryKey: ["sessions-pending-confirmation"] });
+      queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error || "Không thể xác nhận buổi tập"),
+  });
+
+  const disputeSessionMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      sessionService.disputeSession(id, reason),
+    onSuccess: () => {
+      toast.success("Đã gửi khiếu nại — quản trị viên sẽ xem xét");
+      setDisputeId(null);
+      setDisputeReason("");
+      queryClient.invalidateQueries({ queryKey: ["sessions-pending-confirmation"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error || "Không thể gửi khiếu nại"),
+  });
+
+  // Money-flow plan 4.3 — client reports the PT never showed up for a past CONFIRMED session.
+  const reportNoShowMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      sessionService.reportPtNoShow(id, reason),
+    onSuccess: () => {
+      toast.success("Đã gửi báo cáo — PT sẽ được yêu cầu phản hồi");
+      setNoShowReportId(null);
+      setNoShowReportReason("");
+      queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error || "Không thể gửi báo cáo"),
   });
 
   // Review mutation
@@ -401,6 +472,7 @@ export function BookingPage() {
   const tabLabels: Record<Tab, string> = {
     book: "Đặt lịch",
     upcoming: "Sắp tới",
+    confirm: "Chờ xác nhận",
     past: "Đã qua",
   };
 
@@ -501,13 +573,18 @@ export function BookingPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
-        {(["book", "upcoming", "past"] as Tab[]).map((t) => (
+        {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
           >
             {tabLabels[t]}
+            {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {(pendingConfirmSessions as Session[]).length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -545,7 +622,8 @@ export function BookingPage() {
                           : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
-                      {c.packageName} (còn {c.totalSessions - c.usedSessions})
+                      {c.packageName} (còn{" "}
+                      {Math.max(0, c.totalSessions - c.usedSessions - (c.compensatedSessions ?? 0))})
                     </button>
                   ))}
                 </div>
@@ -929,7 +1007,11 @@ export function BookingPage() {
                         Hủy lúc này sẽ tính là 1 buổi đã dùng (còn dưới 24 giờ)
                       </div>
                     )}
-                    {s.status === "RESCHEDULE_PENDING" && s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
+                    {/* Money-flow plan 3.3: gate on the actual pending-request list, not the
+                        "RESCHEDULE_PENDING" session status — that status was never set by the
+                        backend (the session deliberately stays CONFIRMED while a proposal is
+                        pending), so this condition never matched anything. */}
+                    {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "CLIENT" ? (
                           <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
@@ -959,6 +1041,159 @@ export function BookingPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── CONFIRM TAB ─── (money-flow plan 4.1) */}
+      {tab === "confirm" && (
+        <div>
+          {loadingPendingConfirm ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+            </div>
+          ) : (pendingConfirmSessions as Session[]).length === 0 ? (
+            <div className="max-w-md mx-auto py-10 text-center">
+              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700/60">
+                <CheckCircle className="w-8 h-8 text-zinc-600" />
+              </div>
+              <h3 className="text-zinc-200 font-bold mb-1">
+                Không có buổi tập nào chờ xác nhận
+              </h3>
+              <p className="text-sm text-zinc-500">
+                Khi PT báo cáo một buổi tập đã hoàn thành, buổi đó sẽ xuất hiện ở đây để bạn xác nhận hoặc khiếu nại.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(pendingConfirmSessions as Session[]).map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-zinc-900 rounded-xl border border-amber-500/30 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-200">
+                        {formatDateTime(s.scheduledStartAt)}
+                      </p>
+                      {s.ptNotes && (
+                        <p className="text-xs text-zinc-500 mt-1">
+                          PT ghi chú: {s.ptNotes}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-400 whitespace-nowrap">
+                      Chờ bạn xác nhận
+                    </span>
+                  </div>
+                  {s.clientConfirmDeadline && (
+                    <div className="text-xs text-zinc-500 bg-zinc-800/40 border border-zinc-700/40 rounded-lg px-3 py-1.5 mb-3 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      Nếu bạn không phản hồi trước{" "}
+                      <span className="text-zinc-300 font-medium">
+                        {formatDateTime(s.clientConfirmDeadline)}
+                      </span>
+                      , buổi tập sẽ tự động được xác nhận.
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => confirmSessionMutation.mutate(s.id)}
+                      disabled={confirmSessionMutation.isPending}
+                      className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" /> Xác nhận đã tập
+                    </button>
+                    <button
+                      onClick={() => setDisputeId(s.id)}
+                      className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5" /> Khiếu nại
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dispute reason modal */}
+      {disputeId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-zinc-100 font-bold mb-2">Khiếu nại buổi tập</h3>
+            <p className="text-xs text-zinc-500 mb-4">
+              Cho biết vì sao bạn không đồng ý với báo cáo của PT. Quản trị viên sẽ xem xét và
+              phân xử — buổi tập không bị trừ cho tới khi có kết luận.
+            </p>
+            <textarea
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Ví dụ: Tôi không tham gia buổi tập này..."
+              className="w-full bg-zinc-800/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-200 mb-4 min-h-[90px]"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setDisputeId(null);
+                  setDisputeReason("");
+                }}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={() =>
+                  disputeId &&
+                  disputeSessionMutation.mutate({ id: disputeId, reason: disputeReason })
+                }
+                disabled={!disputeReason.trim() || disputeSessionMutation.isPending}
+                className="px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
+              >
+                Gửi khiếu nại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report PT no-show modal (money-flow plan 4.3) */}
+      {noShowReportId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-zinc-100 font-bold mb-2">Báo huấn luyện viên vắng mặt</h3>
+            <p className="text-xs text-zinc-500 mb-4">
+              PT sẽ được yêu cầu phản hồi — nếu PT không đồng ý, quản trị viên sẽ phân xử. Buổi
+              tập không bị trừ cho tới khi có kết luận.
+            </p>
+            <textarea
+              value={noShowReportReason}
+              onChange={(e) => setNoShowReportReason(e.target.value)}
+              placeholder="Ví dụ: Tôi đã đợi 30 phút nhưng PT không đến..."
+              className="w-full bg-zinc-800/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-200 mb-4 min-h-[90px]"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setNoShowReportId(null);
+                  setNoShowReportReason("");
+                }}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={() =>
+                  noShowReportId &&
+                  reportNoShowMutation.mutate({ id: noShowReportId, reason: noShowReportReason })
+                }
+                disabled={!noShowReportReason.trim() || reportNoShowMutation.isPending}
+                className="px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
+              >
+                Gửi báo cáo
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1037,8 +1272,22 @@ export function BookingPage() {
                             Lý do: {s.cancellationReason}
                           </p>
                         )}
+                        {(s.status === "PT_NO_SHOW_REPORTED" || s.status === "DISPUTED") && s.disputeReason && (
+                          <p className="text-xs text-amber-400/80 mt-1">
+                            Báo cáo của bạn: {s.disputeReason}
+                          </p>
+                        )}
                       </div>
                       <div>
+                        {s.status === "CONFIRMED" &&
+                          new Date(s.scheduledStartAt).getTime() < Date.now() && (
+                            <button
+                              onClick={() => setNoShowReportId(s.id)}
+                              className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              <AlertCircle className="w-3.5 h-3.5" /> Báo PT vắng mặt
+                            </button>
+                          )}
                         {s.status === "COMPLETED" && !s.review && (
                           <button
                             onClick={() => setReviewId(s.id)}

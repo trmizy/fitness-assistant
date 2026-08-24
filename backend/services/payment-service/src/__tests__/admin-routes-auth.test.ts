@@ -100,7 +100,7 @@ test("SECURITY: GET /admin/payments/commissions with no auth is rejected", async
   assert.equal(res.status, 401);
 });
 
-test("SECURITY: PATCH .../commissions/:id/settle with no auth is rejected (before even reaching the 501 stub)", async () => {
+test("SECURITY: PATCH .../commissions/:id/settle with no auth is rejected (before even reaching the retired-endpoint handler)", async () => {
   const res = await fetch(`${baseUrl}/admin/payments/commissions/some-id/settle`, { method: "PATCH" });
   assert.equal(res.status, 401);
 });

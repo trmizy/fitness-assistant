@@ -138,6 +138,15 @@ export const contractRepository = {
       data: { usedSessions: { increment: 1 } },
     }),
 
+  /** Money-flow plan 1.5: a PT no-show consumes one entitlement WITHOUT touching
+   * totalSessions (immutable once signed) or usedSessions (reserved for sessions the client
+   * actually trained, or was charged for by cancelling late). */
+  incrementCompensatedSessions: (id: string, notes?: string) =>
+    prisma.contract.update({
+      where: { id },
+      data: { compensatedSessions: { increment: 1 }, ...(notes !== undefined && { notes }) },
+    }),
+
   /** Find all expired active contracts */
   findExpiredContracts: () =>
     prisma.contract.findMany({
@@ -210,9 +219,18 @@ export const contractRepository = {
     if (!contract) return null;
     if (contract.status === ContractStatus.ACTIVE) return contract; // already done — no-op
     if (contract.status !== ContractStatus.PENDING_PAYMENT) return contract;
+    const startDate = contract.startDate ?? new Date();
+    // Money-flow plan 3.6: validityDays (frozen at signing from the package) applies to
+    // endDate here, the moment the contract actually activates — not at signing time, when
+    // payment (and so the real start of the clock) has not happened yet. Null = no expiry,
+    // preserving today's behavior for every package that never declared one.
+    const endDate =
+      contract.validityDays != null
+        ? new Date(startDate.getTime() + contract.validityDays * 24 * 60 * 60 * 1000)
+        : contract.endDate;
     return prisma.contract.update({
       where: { id },
-      data: { status: ContractStatus.ACTIVE, startDate: contract.startDate ?? new Date(), paymentTransactionId },
+      data: { status: ContractStatus.ACTIVE, startDate, endDate, paymentTransactionId },
     });
   },
 

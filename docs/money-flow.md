@@ -63,9 +63,34 @@ biến ở §6 sống sót qua mọi thao tác.
 
 | Ký hiệu | Ý nghĩa | Ghi chú |
 |---|---|---|
-| `P` | `contract.price` — tổng giá trị hợp đồng | `Decimal(14,2)` |
-| `N` | `contract.totalSessions` | Có thể **giảm** khi PT vắng buổi |
+| `P` | `contract.price` — tổng giá trị hợp đồng | `Decimal(14,2)`, **bất biến** sau khi ký |
+| `N` | `contract.totalSessions` | **Bất biến** sau khi ký — xem cảnh báo bên dưới |
 | `u` | Số buổi tính là đã dùng | Xem §3 |
+
+> ⚠️ **Đã đổi từ thiết kế cũ (plan 1.5).** Trước đây PT vắng buổi thì `totalSessions` bị trừ đi
+> 1 — điều này khiến `unit = P/N` của MỌI buổi sau đó trôi giá trị, và một hợp đồng 1 buổi bị
+> PT vắng thì còn 0 buổi để trừ (khách vừa cầm tiền bồi thường, vừa còn quyền đặt lại buổi đó
+> — nhận **hai lần**). `totalSessions` và `price` giờ **bất biến tuyệt đối** kể từ lúc ký; số
+> buổi PT vắng được ghi vào một cột đếm riêng — xem mô hình quyền lợi §2.1.
+
+### 2.1 Mô hình quyền lợi (entitlements) — plan 1.5
+
+Ba trường trên `Contract`, không trường nào được tính lại từ trường khác:
+
+| Trường | Ý nghĩa |
+|---|---|
+| `totalSessions` | Tổng số buổi đã mua — **bất biến**, đây chính là "purchasedSessions" |
+| `usedSessions` | Số buổi khách đã thực sự tập, hoặc bị tính phí do huỷ trễ |
+| `compensatedSessions` | Số buổi PT vắng mà khách đã được bồi thường bằng tiền mặt |
+
+```
+getRemainingEntitlements(contract) = max(0, totalSessions − usedSessions − compensatedSessions)
+```
+
+Cài đặt duy nhất tại `user-service/src/services/contract.service.ts#getRemainingEntitlements`.
+**Mọi nơi cần biết "hợp đồng còn nợ bao nhiêu buổi" phải gọi hàm này** — cổng đặt lịch
+(`booking.service.ts`), điều kiện tự hoàn tất hợp đồng, đều đi qua một chỗ, để một lần đổi mô
+hình dữ liệu không phải sửa nhiều nơi khác nhau theo.
 | `unit` | `P / N` — giá trị một buổi | **Không làm tròn ở bước trung gian** |
 | `remaining` | `P × (N − u) / N` — giá trị phần chưa dùng | Luôn ≥ 0 |
 | `platformRate` | Phần nền tảng | ≥ 0.10, ảnh chụp lúc ký |
@@ -147,10 +172,13 @@ Gym bị trừ    = gymRate × unit
 Nền tảng trừ  = platformRate × unit         ← không được giữ hoa hồng của buổi không diễn ra
 ```
 
-**Bắt buộc giảm `totalSessions` đi 1.** Không giảm thì khách vừa cầm tiền của buổi đó, vừa
-còn quyền đặt lại buổi đó — tức được trả **hai lần**. Ghi chú tự động vào `contract.notes`.
+**Bắt buộc tăng `compensatedSessions` lên 1 — KHÔNG giảm `totalSessions` (đổi từ plan 1.5, xem
+§2.1).** Giảm `totalSessions` sẽ làm `unit = P/N` của mọi buổi sau đó trôi giá trị; tăng
+`compensatedSessions` đạt đúng hiệu quả tương đương (một quyền lợi đã được "trả bằng tiền mặt
+thay vì bằng buổi tập") mà không đụng tới con số mọi công thức khác đang chia cho.
 
-Buổi này **không** tính vào `u`.
+Buổi này **không** tính vào `u` (usedSessions), nhưng **có** tính vào quyền lợi đã tiêu thụ —
+xem `getRemainingEntitlements()` ở §2.1.
 
 ---
 
@@ -290,13 +318,14 @@ ngăn chờ vẫn hoàn đủ cho khách.
 Liệt kê thẳng để không ai tưởng đã xong:
 
 - **Chi trả tự động ra ngân hàng.** Cố ý không làm — cổng đang chạy môi trường thử nghiệm,
-  mọi lệnh chi ra ngoài là thao tác **thủ công** do quản trị viên xác nhận.
-- **Rút tiền (VĐ1).** Model `WithdrawalRequest` và luồng duyệt chưa có. Ngăn khả dụng hiện
-  chỉ tăng, chưa có đường ra.
+  mọi lệnh chi ra ngoài là thao tác **thủ công** do quản trị viên xác nhận (§16 — luồng rút
+  tiền tự nó ĐÃ xong, chỉ riêng bước "chuyển khoản thật" là vẫn thủ công, có chủ đích).
 - **Trừ tự động `PartnerReceivable`.** Bản ghi công nợ được tạo và ghi log cảnh báo, nhưng
-  chưa tự trừ vào các lần ghi có sau của PT. Hiện phải xử lý tay.
-- **Ký kết điện tử cho hợp đồng cộng tác.**
-- **Giao diện hiển thị hai ngăn ví.** API `/me/wallet` đã trả cả hai, trang ví chưa vẽ.
+  chưa tự trừ vào các lần ghi có sau của PT. Hiện phải xử lý tay. Quy tắc ưu tiên khi việc này
+  được cài — thu hồi thắng yêu cầu rút đang chờ — đã ghi ở §15.
+- **Giao diện hiển thị hai ngăn ví cho PT/khách.** Trang ví PT và khách hiện chỉ vẽ
+  `availableBalance` (giống trước), dù API đã trả cả `pendingBalance`. Trang ví phòng gym
+  (`GymManagePage`) đã vẽ cả hai từ trước.
 - **Giải phóng tiền gói hội viên theo ngày.** Hiện giữ toàn bộ tới khi gói kết thúc — xem §13
   để biết vì sao và vì sao cách đó không thực tế lâu dài.
 
@@ -469,6 +498,101 @@ khác hẳn thứ họ nhìn thấy lúc đặt.
 
 ---
 
+## 16. Rút tiền (VĐ1 — đã xong)
+
+Luồng thủ công tối thiểu: khách/PT/gym gửi yêu cầu → quản trị viên duyệt (tuỳ chọn) → quản trị
+viên **tự chuyển khoản bên ngoài hệ thống** → bấm "đã chi trả" kèm mã tham chiếu ngân hàng.
+**Không có tích hợp API chi hộ nào** — cố ý, giống mọi chỗ khác trong tài liệu này.
+
+| | |
+|---|---|
+| Model | `payment-service/prisma/schema.prisma` — `WithdrawalRequest`, enum `WithdrawalRequestStatus` |
+| Service | `payment-service/src/services/withdrawal.service.ts` |
+| Tự phục vụ (PT/khách) | `POST/GET /me/withdrawals` |
+| Nội bộ (gym-service gọi sau khi tự xác minh chủ sở hữu) | `POST/GET /internal/withdrawals/gym/:gymId` |
+| Chủ gym | `POST/GET /owner/gyms/:gymId/withdrawals` (gym-service, proxy sang payment-service) |
+| Quản trị viên | `GET/POST /admin/payments/withdrawals`, `.../:id/approve`, `.../:id/reject`, `.../:id/mark-paid` |
+
+**Trạng thái:** `PENDING → APPROVED (tuỳ chọn) → PAID`, hoặc `→ REJECTED` bất cứ lúc nào trước
+`PAID`. **`markPaid` là nơi DUY NHẤT tiền thực sự dịch chuyển** — request/approve/reject chỉ
+đổi trạng thái, không đụng sổ cái.
+
+**Số tiền được phép rút:**
+- **PT / phòng gym:** `availableBalance − Σ(các yêu cầu đang PENDING/APPROVED)`. Trừ đi các yêu
+  cầu đang chờ để hai yêu cầu liên tiếp không cùng rút một khoản tiền hai lần.
+- **Khách hàng:** chỉ được rút phần **có nguồn gốc hoàn trả/bồi thường** — nhận diện qua mô tả
+  bút toán chứa `"refund"` hoặc `"compensation"` (không phân biệt hoa thường). **Hạn chế đã
+  biết:** không có cột "lý do" có cấu trúc trên `WalletLedgerEntry`; một mô tả tự do nào đó
+  vô tình không chứa hai từ khoá này sẽ bị tính thiếu — **thiếu, không bao giờ thừa** (khách
+  mất quyền rút, không bao giờ được rút tiền không phải của mình), nên đây là hướng lỗi an
+  toàn nếu nó xảy ra.
+
+**Mỗi lần `markPaid` tạo một `PaymentTransaction` riêng, `purpose = WITHDRAWAL`.**
+`WalletLedgerEntry.transactionId` là FK thật tới `PaymentTransaction` — rút tiền không có giao
+dịch gốc nào để tái dùng (khác REFUND, vốn tái dùng transactionId của giao dịch mua ban đầu),
+nên cần một dòng riêng làm điểm neo FK và bằng chứng kiểm toán cho riêng lần chi trả đó.
+
+> ⚠️ **Lỗi P0 bắt được bằng chính quy trình TDD của tài liệu này, ngay trong lúc code.**
+> Bản đầu tiên của `markPaid` trừ đúng ví của PT/gym/khách nhưng **quên trừ ví ESCROW**.
+> ESCROW đại diện "mọi đồng đã nhận qua cổng và chưa chi ra" (§6) — mọi thao tác KHÁC trong
+> toàn hệ thống chỉ chuyển *quyền đòi* giữa các ngăn, nhưng rút tiền là thao tác ĐẦU TIÊN tiền
+> thật sự **rời khỏi nền tảng**. Thiếu dòng trừ ESCROW khiến `GET /admin/payments/reconciliation`
+> báo `drift` đúng bằng số tiền đã rút. Bắt được bằng một test gọi `assertInvariant()` sau
+> `markPaid` — RED thật (đã verify bằng cách bỏ dòng sửa và chạy lại), sửa xong GREEN. Một dữ
+> liệu lệch 100.000đ đã lỡ sinh ra trên CSDL dev trong lúc test sống trước khi vá kịp — đã sửa
+> bằng đúng cơ chế ghi sổ (`withWallets`/`applyDebit`), không sửa tay số dư.
+
+---
+
+## 17. Idempotency key — danh sách đầy đủ
+
+Mọi thao tác tiền không phải `PaymentTransaction` gốc (tức không tự nhiên có
+`idempotencyKey` unique của riêng nó) đi qua `withIdempotentLedgerOp` (payment-service) hoặc
+`settleTracked` (user-service/gym-service) với một khoá nghiệp vụ cố định. Gọi lại đúng khoá
+này thay tiền bằng cách replay kết quả cũ, **không bao giờ chạy lại lần hai**.
+
+| Khoá | Thao tác | Nơi cài |
+|---|---|---|
+| `SESSION_RELEASE:<sessionId>` | Giải phóng tiền một buổi từ ngăn chờ sang khả dụng | `contract-payout.service.ts` |
+| `PT_NO_SHOW:<sessionId>` | Bồi thường khách khi PT vắng | `contract-payout.service.ts` |
+| `CONTRACT_TERMINATE:<contractId>` | Chấm dứt hợp đồng PT (6 lý do, §4) | `contract-payout.service.ts`, `contract.service.ts` |
+| `MEMBERSHIP_RELEASE:<membershipId>` | Giải phóng/thu hồi ngăn chờ gói hội viên (hết hạn, huỷ, hoàn tiền) | `gym-service/membership.service.ts`, `membershipPayout.sweep.ts` |
+| `MEMBERSHIP_REFERRAL:<membershipId>` | Chuyển hoa hồng giới thiệu PT khi gói kích hoạt | `gym-service/membership.service.ts` |
+| `REFERRAL_CLAWBACK:<membershipId>` | Thu hồi hoa hồng giới thiệu khi admin hoàn tiền | `gym-service/membership.service.ts` |
+| `WITHDRAWAL:<withdrawalRequestId>` | `markPaid` — chi trả yêu cầu rút tiền (§16) | `payment-service/withdrawal.service.ts` |
+
+`WITHDRAWAL:<id>` được dùng **hai lần cho hai mục đích khác nhau** trong `markPaid`: làm
+`idempotencyKey` của `PaymentTransaction` mới (để một lần retry tái dùng đúng dòng thay vì tạo
+dòng mồ côi thứ hai) **và** làm business key cho `withIdempotentLedgerOp` (để hai lệnh gọi
+đồng thời chỉ một bên thắng debit — bên thua tìm thấy khoá đã bị chiếm và replay). Hai bộ ID
+này tồn tại độc lập, cùng giá trị chuỗi chỉ là trùng hợp có chủ đích, không phải cùng một cơ
+chế.
+
+---
+
+## 18. Thu hẹp phạm vi (Phase 5)
+
+Ghi lại những gì bị **loại khỏi phạm vi có chủ đích**, để không ai tưởng đó là thiếu sót:
+
+- **Vai trò `GYM_STAFF` đã bị xoá khỏi hệ thống** (enum, cả hai phía backend + frontend).
+  Xác nhận 0 tài khoản đang giữ vai trò này trước khi xoá. Chủ gym (`GYM_OWNER`) là vai trò
+  duy nhất quản lý một phòng gym.
+- **Ký điện tử (e-sign) tạm dừng.** `REQUIRE_CONTRACT_ESIGN=false` — hợp đồng đi thẳng sang
+  `PENDING_PAYMENT`, không qua bước ký. Route webhook Dropbox Sign bị gỡ đăng ký khỏi cả
+  user-service lẫn gateway khi cờ này tắt (trước đó chỉ user-service tắt, gateway vẫn đăng ký
+  route — hai phía không đồng bộ).
+- **Chi trả vẫn hoàn toàn thủ công** — không có API chi hộ/chuyển khoản tự động nào được tích
+  hợp, kể cả sau khi luồng rút tiền (§16) hoàn thành. Quản trị viên luôn là người bấm nút
+  chuyển khoản thật, ngoài hệ thống.
+- **Không có luồng đóng cửa hàng loạt cho phòng gym.** Một phòng gym bị khoá/đóng cửa được xử
+  lý từng trường hợp qua `refundByAdmin` (§13.1) — không có thao tác "đóng toàn bộ phòng gym,
+  hoàn tiền mọi hội viên cùng lúc".
+- **Endpoint quyết toán hoa hồng cũ đã nghỉ hưu.** `PATCH /admin/payments/commissions/:id/settle`
+  chưa từng có logic thật (luôn 501) và không có caller nào — trả về `410 ENDPOINT_RETIRED`,
+  trỏ sang luồng rút tiền (§16) là con đường thật để lấy hoa hồng ra khỏi ví.
+
+---
+
 ## 15. Quyết định phát sinh
 
 Ghi lại những quyết định khác với tài liệu yêu cầu ban đầu, kèm lý do — **không sửa lặng lẽ**.
@@ -476,9 +600,26 @@ Ghi lại những quyết định khác với tài liệu yêu cầu ban đầu,
 **Thu hồi hoa hồng ưu tiên cao hơn yêu cầu rút tiền đang chờ.** Nếu số dư khả dụng sau khi thu
 hồi không còn đủ cho một yêu cầu rút đang treo, phải giảm số tiền yêu cầu đó hoặc chuyển nó
 sang trạng thái cần xem xét lại và báo PT. Không được để cả hai cùng trừ vào một khoản tiền.
-**Chưa cài** — model `WithdrawalRequest` chưa tồn tại (VĐ1). Hàm thu hồi được viết sao cho chèn
-được bước kiểm tra này khi model ra đời, không phải sửa lõi. Ca kiểm thử tương ứng **hoãn tới
-VĐ1**, không giả vờ đã phủ.
+Model `WithdrawalRequest` **giờ đã tồn tại** (§16), nhưng bước tự động này (thu hồi tự tìm và
+điều chỉnh một yêu cầu rút đang treo) **vẫn chưa cài** — vẫn phải xử lý tay khi tình huống này
+xảy ra. Ca kiểm thử tương ứng vẫn hoãn.
+
+**`totalSessions` giữ nguyên tên trường dù ngữ nghĩa đã đổi (plan 1.5).** Đổi tên thành
+`purchasedSessions` sẽ đúng hơn về mặt đặt tên, nhưng kéo theo sửa mọi nơi tham chiếu trường
+này (nhiều hơn một service) chỉ để đổi tên — không đổi hành vi. Giữ tên cũ, **ngữ nghĩa mới
+(bất biến) được ghi rõ trong comment tại nơi khai báo và ở §2.1 tài liệu này.**
+
+**Mục 2.4 gốc của kế hoạch (một hạng mục Phase 2) bị bỏ qua** vì cách làm duy nhất hợp lý đòi
+hỏi đọc dữ liệu qua `ai-service` — vi phạm thẳng luật cấm tuyệt đối "không đụng ai-service".
+Người dùng xác nhận bỏ qua, giữ nguyên luật cấm.
+
+**Plan 5.1 mở rộng thêm việc relay `REACTIVATE`, không chỉ `DEACTIVATE`.** Kế hoạch gốc chỉ
+nói tới khoá tài khoản PT; mở khoá lại (admin bật lại một PT từng bị khoá) cũng cần đồng bộ
+sang user-service theo đúng cách — nếu không, một PT được mở khoá ở auth-service vẫn bị coi là
+đã khoá ở user-service, một trạng thái nửa vời không nơi nào chủ động sửa.
+
+**5.3 dùng heuristic dựa trên mô tả bút toán để nhận diện tiền hoàn trả của khách**, thay vì
+một cột "nguồn tiền" có cấu trúc — xem giải thích đầy đủ và hướng lỗi an toàn ở §16.
 
 **Bất biến đối soát khác đề bài** — xem ghi chú ở §6.
 
