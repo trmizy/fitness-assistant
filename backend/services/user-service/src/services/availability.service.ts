@@ -4,6 +4,7 @@ import { sessionRepository } from "../repositories/session.repository";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { compensateNoShowMoney } from "./contract-payout.service";
+import { resolveSessionOutcome } from "./session-outcome";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -414,19 +415,36 @@ export const availabilityService = {
     const reasonSuffix = reason ? `: ${reason}` : "";
     for (const session of conflicts) {
       if (session.status === SessionStatus.CONFIRMED) {
-        await sessionRepository.updateStatus(session.id, SessionStatus.NO_SHOW, {
-          sessionDeducted: false,
+        // Money-flow plan 3.1: routed through the single shared matrix instead of always
+        // treating a PT block as a compensated no-show — a block ≥24h out is just a
+        // reschedule, no money changes hands (see session-outcome.ts for the full table).
+        const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
+        const outcome = resolveSessionOutcome({ actor: "PT", event: "CANCEL", hoursBeforeStart });
+
+        await sessionRepository.updateStatus(session.id, outcome.sessionStatus, {
+          sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
           ptNotes: `PT chặn lịch ngày này${reasonSuffix}`,
         });
-        await compensateNoShowMoney(session.contractId, session.id);
+        if (outcome.clientCompensation) {
+          await compensateNoShowMoney(session.contractId, session.id);
+          // Money-flow plan 1.2/3.1: if this compensation was the contract's LAST remaining
+          // entitlement, the contract must be checked for natural completion here too — the
+          // same gap 1.2 fixed for the usual session-confirmation path also applies to a PT
+          // block landing on a contract's final session. Lazy import to avoid a circular
+          // dependency (contract.service.ts imports this module already).
+          const { contractService } = await import("./contract.service");
+          await contractService.checkAndCompleteContract(session.contractId);
+        }
         await notificationService
           .create({
             userId: session.clientUserId,
-            text: `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ và bạn được hoàn tiền một buổi vào ví.`,
-            eventType: "SESSION_NO_SHOW_PT",
+            text: outcome.clientCompensation
+              ? `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ và bạn được hoàn tiền một buổi vào ví.`
+              : `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ — vui lòng đặt lại lịch mới.`,
+            eventType: outcome.clientCompensation ? "SESSION_NO_SHOW_PT" : "SESSION_CANCELLED",
             entityType: "SESSION",
             entityId: session.id,
-            link: "/client/wallet",
+            link: outcome.clientCompensation ? "/client/wallet" : "/client/booking",
           })
           .catch(() => {});
       } else {

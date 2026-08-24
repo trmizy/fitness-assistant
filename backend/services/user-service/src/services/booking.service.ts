@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { logger } from "@gym-coach/shared";
 import {
   AuditEntityType,
   SessionStatus,
@@ -12,10 +13,11 @@ import {
   releaseSessionMoney,
   compensateNoShowMoney,
 } from "./contract-payout.service";
+import { resolveSessionOutcome } from "./session-outcome";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
-import { contractService } from "./contract.service";
+import { contractService, getRemainingEntitlements } from "./contract.service";
 import { auditService } from "./audit.service";
 
 const DAY_MAP: Record<number, DayOfWeek> = {
@@ -104,8 +106,13 @@ async function assertSlotBookable(
   );
   if (conflict) throw err("Khung giờ này trùng với một buổi tập khác", 409);
 
+  // Money-flow plan 3.5: same inversion as bookSession — no published hours now blocks
+  // rather than allowing anything, so a reschedule cannot land a PT in a slot outside what
+  // they have (or have not) published either.
   const ptAvailability = await availabilityRepository.findByPT(ptUserId);
-  if (ptAvailability.length === 0) return; // no published hours = no constraint
+  if (ptAvailability.length === 0) {
+    throw err("Huấn luyện viên chưa công bố lịch rảnh — chưa thể dời lịch", 400);
+  }
 
   const dayOfWeek = DAY_MAP[startAt.getDay()];
   const hhmm = (d: Date) =>
@@ -135,7 +142,6 @@ export const bookingService = {
     data: {
       scheduledDate: string; // "2026-03-25"
       scheduledTime: string; // "09:00"
-      durationMin?: number; // default 60
       sessionMode?: string;
       location?: string;
       notes?: string;
@@ -172,15 +178,19 @@ export const bookingService = {
       }
     }
 
-    // Check session limit: usedSessions + pending/confirmed < totalSessions
+    // Check session limit: consumed (used + PT-no-show compensated) + pending/confirmed must
+    // stay below the immutable purchased count (money-flow plan 1.5 — see
+    // getRemainingEntitlements for why this can no longer just compare usedSessions).
     const activeSessionCount =
       await sessionRepository.countActiveByContract(contractId);
-    if (contract.usedSessions + activeSessionCount >= contract.totalSessions) {
+    if (getRemainingEntitlements(contract) <= activeSessionCount) {
       throw err("Session limit reached for this contract", 400);
     }
 
-    // Parse datetime
-    const durationMin = data.durationMin || 60;
+    // Parse datetime. Money-flow plan 3.4: duration comes ONLY from the contract's own
+    // frozen snapshot, never the request body — a client calling the API directly used to be
+    // able to book e.g. 180 minutes against a package sold as 60.
+    const durationMin = contract.sessionDurationMinutes ?? 60;
     const startAt = new Date(`${data.scheduledDate}T${data.scheduledTime}:00`);
     if (isNaN(startAt.getTime())) {
       throw err("Invalid date/time", 400);
@@ -212,11 +222,17 @@ export const bookingService = {
       throw err("This time slot conflicts with another session", 409);
     }
 
-    // Check PT availability (if PT has set availability slots)
+    // Check PT availability. Money-flow plan 3.5: a PT who never published a weekly schedule
+    // used to be treated as bookable at ANY hour ("no published hours = no constraint") — the
+    // exact opposite of what an empty schedule should mean. Inverted: no published hours now
+    // blocks booking entirely, with a clear message telling the client why.
     const ptAvailability = await availabilityRepository.findByPT(
       contract.ptUserId,
     );
-    if (ptAvailability.length > 0) {
+    if (ptAvailability.length === 0) {
+      throw err("Huấn luyện viên chưa công bố lịch rảnh — chưa thể đặt lịch", 400);
+    }
+    {
       const dayOfWeek = DAY_MAP[startAt.getDay()];
       const timeStr = `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`;
       const endTimeStr = `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`;
@@ -479,6 +495,14 @@ export const bookingService = {
     ]);
   },
 
+  // Money-flow plan 4.3: sessions where a client reported this PT as a no-show, awaiting the
+  // PT's response.
+  async listNoShowReportsForPT(ptUserId: string) {
+    return sessionRepository.findByStatusForPT(ptUserId, [
+      SessionStatus.PT_NO_SHOW_REPORTED,
+    ]);
+  },
+
   async listDisputed() {
     return sessionRepository.findDisputed();
   },
@@ -500,40 +524,68 @@ export const bookingService = {
     }
 
     const isClient = userId === session.clientUserId;
-    const hoursUntilSession = session.scheduledStartAt.getTime() - Date.now();
+    const otherUserId = isClient ? session.ptUserId : session.clientUserId;
 
-    // Determine if session should be deducted
-    let shouldDeduct = false;
-    if (isClient && hoursUntilSession < CANCEL_WINDOW_MS) {
-      // Client cancels < 24h → lose session
-      shouldDeduct = true;
-    }
-    // PT cancels → never deducts
-
-    const updated = await sessionRepository.updateStatus(
-      sessionId,
-      SessionStatus.CANCELLED,
-      {
+    // REQUESTED (never confirmed) — nothing was ever committed, so matrix 0.1 does not apply
+    // (same distinction addException makes for a not-yet-confirmed session): just cancel, no
+    // money or quota either way.
+    if (session.status === SessionStatus.REQUESTED) {
+      const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.CANCELLED, {
         cancelledBy: userId,
         cancellationReason: reason.trim(),
-        sessionDeducted: shouldDeduct,
-      },
-    );
+        sessionDeducted: false,
+      });
+      await notificationService
+        .create({
+          userId: otherUserId,
+          text: isClient ? "Client cancelled a session" : "Trainer cancelled the session",
+          eventType: "SESSION_CANCELLED",
+          entityType: "SESSION",
+          entityId: sessionId,
+          link: isClient ? "/pt/contracts" : "/client/booking",
+        })
+        .catch(() => {});
+      return updated;
+    }
 
-    // If deducted, increment contract usedSessions
-    if (shouldDeduct) {
+    // CONFIRMED — money-flow plan 3.1: routed through the single shared matrix
+    // (session-outcome.ts) instead of deciding independently, so a PT cancelling directly
+    // here produces the SAME outcome as blocking the whole date via addException. Before this
+    // fix, a PT cancelling here NEVER compensated the client regardless of notice — the exact
+    // incentive problem the plan describes.
+    const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
+    const outcome = resolveSessionOutcome({
+      actor: isClient ? "CLIENT" : "PT",
+      event: "CANCEL",
+      hoursBeforeStart,
+    });
+
+    const updated = await sessionRepository.updateStatus(sessionId, outcome.sessionStatus, {
+      cancelledBy: userId,
+      cancellationReason: reason.trim(),
+      sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
+    });
+
+    // Same order deductQuotaOnce uses (charge, then release/compensate, then check
+    // completion) so a contract that finishes on its very last session settles with this
+    // session's money already moved.
+    if (outcome.clientQuotaEffect === "DEDUCT") {
       await contractRepository.incrementSession(session.contractId);
+    }
+    if (outcome.ptPayout) {
+      await releaseSessionMoney(session.contractId, sessionId);
+    }
+    if (outcome.clientCompensation) {
+      await compensateNoShowMoney(session.contractId, sessionId);
+    }
+    if (outcome.clientQuotaEffect === "DEDUCT" || outcome.ptPayout || outcome.clientCompensation) {
       await contractService.checkAndCompleteContract(session.contractId);
     }
 
-    // Notify the other party
-    const otherUserId = isClient ? session.ptUserId : session.clientUserId;
     await notificationService
       .create({
         userId: otherUserId,
-        text: isClient
-          ? "Client cancelled a session"
-          : "Trainer cancelled the session",
+        text: isClient ? "Client cancelled a session" : "Trainer cancelled the session",
         eventType: "SESSION_CANCELLED",
         entityType: "SESSION",
         entityId: sessionId,
@@ -557,7 +609,13 @@ export const bookingService = {
     if (session.ptUserId !== userId) {
       throw err("Only the PT can mark no-show", 403);
     }
-    if (session.status !== SessionStatus.CONFIRMED) {
+    // Money-flow plan 4.3: also reachable from PT_NO_SHOW_REPORTED — respondToNoShowReport
+    // calls straight into this same function when the PT agrees with the client's report,
+    // rather than re-implementing the exact same compensation logic a second time.
+    if (
+      session.status !== SessionStatus.CONFIRMED &&
+      session.status !== SessionStatus.PT_NO_SHOW_REPORTED
+    ) {
       throw err(
         `Cannot mark no-show for session in ${session.status} status`,
         400,
@@ -570,17 +628,32 @@ export const bookingService = {
     // away as NO_SHOW with no quota cost. Accusing the CLIENT of not showing up DOES cost
     // the client a session, so it goes through the same confirmation window as a completed
     // session rather than being charged on the PT's say-so.
+    //
+    // Money-flow plan 3.1: routed through the shared matrix (session-outcome.ts) — matrix row
+    // 5 always compensates a PT no-show regardless of notice, so the outcome here is fixed,
+    // but this call site must still go through the SAME function as addException/cancelSession
+    // rather than hardcoding the same values independently.
     if (!isClientNoShow) {
+      const outcome = resolveSessionOutcome({ actor: "PT", event: "NO_SHOW", hoursBeforeStart: 0 });
+
       const updated = await sessionRepository.updateStatus(
         sessionId,
-        SessionStatus.NO_SHOW,
-        { sessionDeducted: false, ptNotes: "PT no-show" },
+        outcome.sessionStatus,
+        { sessionDeducted: outcome.clientQuotaEffect === "DEDUCT", ptNotes: "PT no-show" },
       );
 
       // The client is owed one session's value in cash, charged back to the three parties.
-      // Not caught: if this fails the client is silently short-changed, which is worse than
-      // surfacing the error to the PT who is admitting the absence.
-      await compensateNoShowMoney(session.contractId, sessionId);
+      // Money-flow plan 1.6: this used to be uncaught on the theory that surfacing the error
+      // protects the client — but the session above is already NO_SHOW by the time this runs,
+      // and that status guard blocks every future retry attempt through this same endpoint. A
+      // thrown error here would not undo the status change, only hide a stuck-forever
+      // compensation behind a confusing "Cannot mark no-show for session in NO_SHOW status"
+      // on retry. compensateNoShowMoney now records a failure for the settlement sweep to
+      // retry instead of throwing — see session-settlement.service.ts.
+      if (outcome.clientCompensation) {
+        await compensateNoShowMoney(session.contractId, sessionId);
+        await contractService.checkAndCompleteContract(session.contractId);
+      }
 
       await notificationService
         .create({
@@ -613,6 +686,74 @@ export const bookingService = {
         link: "/client/booking",
       })
       .catch(() => {});
+
+    return updated;
+  },
+
+  // ── Client reports the PT never showed up (money-flow plan 4.3) ──────
+  // Before this, only the PT could ever call markNoShow — a client whose PT genuinely never
+  // showed had no way to report it at all. Parks the session in PT_NO_SHOW_REPORTED until the
+  // PT responds; nothing settles (quota untouched, no money moves) until then.
+  async reportPtNoShow(sessionId: string, clientUserId: string, reason: string) {
+    if (!reason?.trim()) throw err("Phải nêu lý do báo cáo", 400);
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.CONFIRMED) {
+      throw err(`Cannot report a no-show for a session in ${session.status} status`, 400);
+    }
+    if (session.scheduledStartAt.getTime() > Date.now()) {
+      throw err("Chưa tới giờ buổi tập — chưa thể báo huấn luyện viên vắng mặt", 400);
+    }
+
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.PT_NO_SHOW_REPORTED,
+      { disputeReason: reason.trim(), disputedAt: new Date() },
+    );
+
+    await notificationService
+      .create({
+        userId: session.ptUserId,
+        text: "Khách báo bạn vắng mặt buổi tập. Vui lòng phản hồi — xác nhận hoặc phản đối.",
+        eventType: "SESSION_PT_NO_SHOW_REPORTED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return updated;
+  },
+
+  // ── PT responds to a client's no-show report ──────────────────────────
+  async respondToNoShowReport(
+    sessionId: string,
+    ptUserId: string,
+    response: "AGREE" | "DENY",
+    note?: string,
+  ) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.PT_NO_SHOW_REPORTED) {
+      throw err(`Cannot respond to a no-show report on a session in ${session.status} status`, 400);
+    }
+
+    if (response === "AGREE") {
+      // The PT accepts the client's account — same outcome as a PT self-admitted no-show,
+      // reusing that exact logic (compensation, notification) rather than duplicating it.
+      return this.markNoShow(sessionId, ptUserId, "PT");
+    }
+
+    // DENY — escalate to an admin. Reuses the EXACT same DISPUTED state and admin-resolution
+    // flow money-flow plan 4.2 built for the client-confirmation dispute path; the admin
+    // screen there does not care which flow put a session into DISPUTED.
+    const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.DISPUTED, {
+      ptNotes: note?.trim() || "PT phản đối báo cáo vắng mặt của khách",
+      disputedAt: new Date(),
+    });
 
     return updated;
   },
@@ -858,7 +999,9 @@ export const bookingService = {
       eventType: "SESSION_RESCHEDULE_REQUESTED",
       entityType: "SESSION",
       entityId: sessionId
-    }).catch(console.error);
+    }).catch((err: unknown) =>
+      logger.error({ error: "booking.service reschedule-request notification failed", sessionId, message: (err as Error)?.message }),
+    );
 
     return request;
   },
@@ -939,6 +1082,18 @@ export const bookingService = {
     }
 
     if (action === "ACCEPT") {
+      // Money-flow plan 3.2: requestReschedule checked this SLOT was free at proposal time,
+      // but nothing re-checked it here — between the proposal and the accept, another session
+      // could have taken it, giving the PT two sessions at once with no error anywhere. Must
+      // run before either write below, so a conflict leaves the request PENDING and the
+      // session's time untouched, exactly as if this had failed at proposal time.
+      await assertSlotBookable(
+        session.ptUserId,
+        request.proposedStartAt,
+        request.proposedEndAt,
+        session.id,
+      );
+
       await sessionRepository.updateRescheduleRequestStatus(
         requestId,
         "ACCEPTED",
@@ -1008,7 +1163,9 @@ export const bookingService = {
             : "SESSION_RESCHEDULE_REJECTED",
         entityType: "SESSION",
         entityId: request.sessionId
-      }).catch(console.error);
+      }).catch((err: unknown) =>
+        logger.error({ error: "booking.service reschedule-response notification failed", requestId, message: (err as Error)?.message }),
+      );
 
     return sessionRepository.findRescheduleRequestById(requestId);
   },

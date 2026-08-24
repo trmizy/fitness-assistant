@@ -140,6 +140,57 @@ export const bookingController = {
     }
   },
 
+  // Money-flow plan 4.3 — client reports the PT never showed up
+  async reportPtNoShow(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers["x-user-id"] as string;
+      const { reason } = req.body ?? {};
+      const session = await bookingService.reportPtNoShow(
+        req.params.id,
+        clientUserId,
+        reason,
+      );
+      res.json(session);
+    } catch (error: any) {
+      logger.error(error, "Report PT no-show error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to report no-show" });
+    }
+  },
+
+  // PT responds to a client's no-show report (AGREE settles it exactly like a PT
+  // self-admitted no-show; DENY escalates to the same admin dispute flow as 4.2)
+  async respondToNoShowReport(req: any, res: Response) {
+    try {
+      const ptUserId = req.headers["x-user-id"] as string;
+      const { response, note } = req.body ?? {};
+      const session = await bookingService.respondToNoShowReport(
+        req.params.id,
+        ptUserId,
+        response,
+        note,
+      );
+      res.json(session);
+    } catch (error: any) {
+      logger.error(error, "Respond to no-show report error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to respond to no-show report" });
+    }
+  },
+
+  // Sessions where a client reported this PT as a no-show, awaiting the PT's response
+  async listNoShowReportsForPT(req: any, res: Response) {
+    try {
+      const ptUserId = req.headers["x-user-id"] as string;
+      res.json(await bookingService.listNoShowReportsForPT(ptUserId));
+    } catch (error: any) {
+      logger.error(error, "List no-show reports error");
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  },
+
   // Sessions this client still has to confirm or dispute
   async listPendingConfirmation(req: any, res: Response) {
     try {

@@ -143,12 +143,20 @@ export const contractController = {
     }
   },
 
-  // Get single contract by ID (with sessions)
+  // Get single contract by ID (with sessions) — either party may read it, nobody else
+  // (money-flow plan 2.1; same pattern moneyBreakdown/terminate below already use).
   async getById(req: any, res: Response) {
     try {
+      const userId = req.headers["x-user-id"] as string;
+      const role = req.headers["x-user-role"] as string;
       const contract = await contractService.getById(req.params.id);
       if (!contract) {
         res.status(404).json({ error: "Contract not found" });
+        return;
+      }
+      const isParty = contract.clientUserId === userId || contract.ptUserId === userId;
+      if (!isParty && role !== "ADMIN") {
+        res.status(403).json({ error: "Not authorized" });
         return;
       }
       res.json(contract);

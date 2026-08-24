@@ -211,6 +211,7 @@ exports.Prisma.PTApplicationScalarFieldEnum = {
   applicationTrainingLocations: 'applicationTrainingLocations',
   adminNote: 'adminNote',
   rejectionReason: 'rejectionReason',
+  reviewedByUserId: 'reviewedByUserId',
   submittedAt: 'submittedAt',
   reviewedAt: 'reviewedAt',
   approvedAt: 'approvedAt',
@@ -253,11 +254,13 @@ exports.Prisma.ContractScalarFieldEnum = {
   extraSessions: 'extraSessions',
   totalSessions: 'totalSessions',
   usedSessions: 'usedSessions',
+  compensatedSessions: 'compensatedSessions',
   price: 'price',
   pricePerSession: 'pricePerSession',
   startDate: 'startDate',
   endDate: 'endDate',
   completedAt: 'completedAt',
+  validityDays: 'validityDays',
   clientMessage: 'clientMessage',
   rejectionReason: 'rejectionReason',
   cancelledBy: 'cancelledBy',
@@ -478,6 +481,21 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SessionSettlementScalarFieldEnum = {
+  id: 'id',
+  kind: 'kind',
+  idempotencyKey: 'idempotencyKey',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  reason: 'reason',
+  status: 'status',
+  attempts: 'attempts',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  settledAt: 'settledAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -592,6 +610,7 @@ exports.SessionStatus = exports.$Enums.SessionStatus = {
   CONFIRMED: 'CONFIRMED',
   PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
   DISPUTED: 'DISPUTED',
+  PT_NO_SHOW_REPORTED: 'PT_NO_SHOW_REPORTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
@@ -649,6 +668,19 @@ exports.AuditEntityType = exports.$Enums.AuditEntityType = {
   PT_PROFILE: 'PT_PROFILE'
 };
 
+exports.SessionSettlementKind = exports.$Enums.SessionSettlementKind = {
+  PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
+  SESSION_RELEASE: 'SESSION_RELEASE',
+  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION'
+};
+
+exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SETTLED: 'SETTLED',
+  FAILED: 'FAILED'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -666,7 +698,8 @@ exports.Prisma.ModelName = {
   PTServicePackage: 'PTServicePackage',
   SessionRescheduleRequest: 'SessionRescheduleRequest',
   InBodyEntry: 'InBodyEntry',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  SessionSettlement: 'SessionSettlement'
 };
 
 /**

@@ -1942,6 +1942,18 @@ export const adminService = {
     return data;
   },
 
+  // Money-flow plan 4.2: sessions a client disputed (PT reported it, client objected) — the
+  // backend has had list + resolve endpoints since VĐ2, but no admin UI ever called them, so
+  // a disputed session's money stayed frozen indefinitely with nobody able to rule on it.
+  listDisputedSessions: async () => {
+    const { data } = await api.get("/admin/sessions/disputed");
+    return data;
+  },
+  resolveSessionDispute: async (id: string, resolution: "COMPLETED" | "CANCELLED", note: string) => {
+    const { data } = await api.post(`/admin/sessions/${id}/resolve`, { resolution, note });
+    return data;
+  },
+
   // Whole-platform money invariant (docs/money-flow.md §1.3): ESCROW.available must equal
   // the sum of every claim on it (client refunds, PT/gym pending+available, platform
   // revenue). balanced:false means the ledger created or destroyed money somewhere. The
@@ -1950,6 +1962,26 @@ export const adminService = {
   getReconciliation: async () => {
     const { data } = await api.get("/admin/payments/reconciliation");
     return data;
+  },
+
+  // Money-flow plan 5.3 — the manual withdrawal flow's admin side. approve/reject are optional
+  // review steps; markPaid is the only one that actually moves money, and only after the admin
+  // has already made a real bank/e-wallet transfer outside this system.
+  listPendingWithdrawals: async () => {
+    const { data } = await api.get("/admin/payments/withdrawals");
+    return data?.data ?? data;
+  },
+  approveWithdrawal: async (id: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/approve`);
+    return data?.data ?? data;
+  },
+  rejectWithdrawal: async (id: string, reason: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/reject`, { reason });
+    return data?.data ?? data;
+  },
+  markWithdrawalPaid: async (id: string, bankReference: string) => {
+    const { data } = await api.post(`/admin/payments/withdrawals/${id}/mark-paid`, { bankReference });
+    return data?.data ?? data;
   },
 
   getWorkflowMeta: async () => {
@@ -2521,6 +2553,33 @@ export const sessionService = {
     const { data } = await api.patch(`/sessions/${id}/confirm`);
     return data;
   },
+  // Money-flow plan 4.1: the CLIENT's side of confirming/disputing what the PT reported —
+  // distinct from confirmSession above (PT accepting a REQUESTED booking).
+  listPendingConfirmation: async () => {
+    const { data } = await api.get("/sessions/pending-confirmation");
+    return data;
+  },
+  clientConfirmSession: async (id: string) => {
+    const { data } = await api.post(`/sessions/${id}/confirm`);
+    return data;
+  },
+  disputeSession: async (id: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/dispute`, { reason });
+    return data;
+  },
+  // Money-flow plan 4.3 — client reports the PT never showed up, and the PT's response.
+  reportPtNoShow: async (id: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/report-no-show`, { reason });
+    return data;
+  },
+  respondToNoShowReport: async (id: string, response: "AGREE" | "DENY", note?: string) => {
+    const { data } = await api.post(`/sessions/${id}/respond-no-show`, { response, note });
+    return data;
+  },
+  listNoShowReports: async () => {
+    const { data } = await api.get("/sessions/no-show-reports");
+    return data;
+  },
   completeSession: async (id: string, ptNotes?: string) => {
     const { data } = await api.patch(`/sessions/${id}/complete`, { ptNotes });
     return data;
@@ -2749,6 +2808,16 @@ export const walletService = {
     const { data } = await api.get('/me/pt-wallet/transactions');
     return data?.data ?? data;
   },
+  // Money-flow plan 5.3 — self-service withdrawal requests. Works for both the CLIENT and PT
+  // wallet: payment-service infers which one from the caller's role.
+  requestWithdrawal: async (amount: string, payoutInfo: string) => {
+    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo });
+    return data?.data ?? data;
+  },
+  getMyWithdrawals: async () => {
+    const { data } = await api.get('/me/withdrawals');
+    return data?.data ?? data;
+  },
 };
 
 // ── Gym marketplace (Phase 4) ────────────────────────────────────────
@@ -2869,6 +2938,16 @@ export const gymService = {
   },
   getOwnedWallet: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/wallet`);
+    return data?.data ?? data;
+  },
+  // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
+  // payment-service, same shape as getOwnedWallet above.
+  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+    return data?.data ?? data;
+  },
+  listGymWithdrawals: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/withdrawals`);
     return data?.data ?? data;
   },
   createPlan: async (

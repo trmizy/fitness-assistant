@@ -112,6 +112,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      # Money-flow plan 5.2: same flag (and same hardcoded value) user-service uses below to
+      # decide whether to register its own /webhooks/dropbox-sign route — the gateway must not
+      # proxy to a route the target service no longer registers while e-signing is paused.
+      REQUIRE_CONTRACT_ESIGN: "false"
     env_file:
       - ../../.env
     volumes:
@@ -166,6 +170,10 @@ services:
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_SECURE: ${SMTP_SECURE:-true}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      # Money-flow plan 2.6: locking a PT's account relays to user-service's
+      # ptDeactivationService (unwind live contracts + hide from discovery). Without this the
+      # client falls back to localhost:3004 → ECONNREFUSED inside Docker on every PT lock/unlock.
+      USER_SERVICE_URL: http://user-service:3004
     env_file:
       - ../../.env
     volumes:

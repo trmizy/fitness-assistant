@@ -32,7 +32,13 @@ export const sessionRepository = {
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
       },
       orderBy: { scheduledStartAt: "asc" },
-      include: { contract: true },
+      include: {
+        contract: true,
+        // Money-flow plan 3.3: the accept/reject reschedule UI reads `s.rescheduleRequests`,
+        // but this list never included it — the field was always undefined, so the buttons
+        // silently never rendered for anyone. At most one PENDING request per session (VĐ4).
+        rescheduleRequests: { where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 1 },
+      },
     }),
 
   updateStatus: (
@@ -73,6 +79,16 @@ export const sessionRepository = {
   findByStatusForUser: (userId: string, statuses: SessionStatus[]) =>
     prisma.session.findMany({
       where: { clientUserId: userId, status: { in: statuses } },
+      orderBy: { scheduledStartAt: "desc" },
+      include: { contract: true },
+    }),
+
+  /** Money-flow plan 4.3: the PT-side equivalent of findByStatusForUser — a session waiting
+   * on the PT's response (e.g. PT_NO_SHOW_REPORTED) does not show in findUpcomingByUser once
+   * its scheduledStartAt has passed, so this is a separate, time-unfiltered lookup. */
+  findByStatusForPT: (ptUserId: string, statuses: SessionStatus[]) =>
+    prisma.session.findMany({
+      where: { ptUserId, status: { in: statuses } },
       orderBy: { scheduledStartAt: "desc" },
       include: { contract: true },
     }),

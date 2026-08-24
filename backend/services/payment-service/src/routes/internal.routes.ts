@@ -14,6 +14,7 @@ import {
   releaseMembershipPending,
 } from '../services/membership-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
+import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
@@ -402,6 +403,10 @@ const releaseSchema = z.object({
   rates: rateSchema,
   parties: partiesSchema,
   label: z.string().min(1),
+  // Money-flow redesign plan 1.1: SESSION_RELEASE:<sessionId> on /release-session,
+  // PT_NO_SHOW:<sessionId> on /no-show — a retry with the same key replays instead of
+  // moving money twice.
+  idempotencyKey: z.string().min(1),
 });
 
 // POST /internal/contracts/release-session — one confirmed session's worth of money moves
@@ -420,6 +425,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
       rates: toRates(d.rates),
       parties: d.parties,
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -444,6 +450,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
       rates: toRates(d.rates),
       parties: d.parties,
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -481,6 +488,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       },
       parties: d.parties,
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -527,6 +535,9 @@ const referralSettleSchema = z.object({
   ptUserId: z.string().min(1),
   amount: z.string().min(1),
   label: z.string().min(1),
+  // Money-flow redesign plan 1.1: MEMBERSHIP_REFERRAL:<membershipId> on /referral,
+  // REFERRAL_CLAWBACK:<membershipId> on /referral/clawback.
+  idempotencyKey: z.string().min(1),
 });
 
 // POST /internal/contracts/referral — ① move a referral commission from the gym's pending
@@ -544,6 +555,7 @@ router.post('/contracts/referral', async (req: Request, res: Response) => {
       ptUserId: d.ptUserId,
       amount: new Prisma.Decimal(d.amount),
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -567,6 +579,7 @@ router.post('/contracts/referral/clawback', async (req: Request, res: Response) 
       ptUserId: d.ptUserId,
       amount: new Prisma.Decimal(d.amount),
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -587,6 +600,10 @@ const membershipReleaseSchema = z.object({
   // the backstop the plan's F4 asked for (payment-service cannot see gym-service's own DB).
   membershipStatus: z.enum(['CANCELLED', 'EXPIRED']),
   label: z.string().min(1),
+  // Money-flow redesign plan 1.1: MEMBERSHIP_RELEASE:<membershipId> — shared by both
+  // /membership-release and /membership-cancel-forfeit, since a membership only ever
+  // reaches one of those two terminal release paths, never both.
+  idempotencyKey: z.string().min(1),
 });
 
 async function handleMembershipRelease(req: Request, res: Response) {
@@ -603,6 +620,7 @@ async function handleMembershipRelease(req: Request, res: Response) {
       ptUserId: d.ptUserId,
       refundToClient: new Prisma.Decimal(d.refundToClient),
       label: d.label,
+      idempotencyKey: d.idempotencyKey,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -645,6 +663,33 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
   }
   const wallet = await walletService.getOrCreateWallet(ownerType, req.params.ownerId);
   return res.json({ success: true, data: wallet });
+});
+
+// Money-flow plan 5.3 — gym-service has no ledger logic of its own; it verifies gym
+// ownership itself (see /owner/gyms/:gymId/withdrawals) and then calls straight through here,
+// mirroring the existing /internal/wallets/GYM/:ownerId pattern above.
+const internalWithdrawalRequestSchema = z.object({
+  amount: z.string().min(1),
+  payoutInfo: z.string().min(1),
+});
+
+router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
+  const parsed = internalWithdrawalRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  try {
+    const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
+    return res.status(201).json({ success: true, data: request });
+  } catch (e) {
+    const err = e as { status?: number; code?: string; message?: string };
+    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+router.get('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
+  const list = await withdrawalService.listMine('GYM', req.params.gymId);
+  return res.json({ success: true, data: list });
 });
 
 export default router;

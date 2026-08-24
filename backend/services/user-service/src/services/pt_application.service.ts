@@ -342,7 +342,7 @@ export const ptApplicationService = {
     return updated;
   },
 
-  async adminReviewAction(id: string, action: string, payload: any) {
+  async adminReviewAction(id: string, action: string, payload: any, reviewerUserId: string) {
     const app = await ptApplicationRepository.findById(id);
     if (!app) throw new Error("Application not found");
 
@@ -364,7 +364,11 @@ export const ptApplicationService = {
     const status = statusMap[normalizedAction];
     if (!status) throw new Error(`Invalid action: ${action}`);
 
-    const extra: any = { reviewedAt: new Date() };
+    // Money-flow plan 5.5: WHO acted, recorded on every review action — not just approval —
+    // so a rejection or a request-for-more-info carries the same accountability an approval
+    // does. reviewerUserId comes from the caller's own verified identity (req.user.id at the
+    // controller), never from the request body.
+    const extra: any = { reviewedAt: new Date(), reviewedByUserId: reviewerUserId };
 
     if (normalizedAction === "REJECTED") {
       if (!payload.rejectionReason)

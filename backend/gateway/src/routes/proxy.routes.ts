@@ -2068,15 +2068,20 @@ export const chatSocketProxy = createProxyMiddleware({
 });
 router.use("/chat-socket.io", chatSocketProxy);
 
-// Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly)
-router.post(
-  "/webhooks/dropbox-sign",
-  createProxyMiddleware({
-    target: USER_SERVICE_URL,
-    changeOrigin: true,
-    onError: serviceUnavailable("User service (Dropbox Sign webhook)"),
-  }),
-);
+// Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly).
+// Money-flow plan 5.2: only registered while e-signing is required — user-service itself
+// stops registering this route under the same flag, so proxying to it while off would just
+// be forwarding to a 404 at best; not registering it here closes the surface at the edge too.
+if (process.env.REQUIRE_CONTRACT_ESIGN !== "false") {
+  router.post(
+    "/webhooks/dropbox-sign",
+    createProxyMiddleware({
+      target: USER_SERVICE_URL,
+      changeOrigin: true,
+      onError: serviceUnavailable("User service (Dropbox Sign webhook)"),
+    }),
+  );
+}
 
 // Protected — Contracts (User Service)
 router.use(
@@ -2260,6 +2265,18 @@ router.post(
     target: PAYMENT_SERVICE_URL,
     changeOrigin: true,
     onError: serviceUnavailable('Payment service (webhook)'),
+  }),
+);
+
+// Withdrawal self-service (money-flow plan 5.3) — PT or CLIENT, payment-service infers which
+// wallet from the caller's role via the gateway-injected x-user-role header.
+router.use(
+  '/me/withdrawals',
+  authMiddleware,
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service'),
   }),
 );
 

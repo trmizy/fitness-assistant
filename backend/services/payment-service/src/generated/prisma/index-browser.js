@@ -147,6 +147,23 @@ exports.Prisma.WalletLedgerEntryScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WithdrawalRequestScalarFieldEnum = {
+  id: 'id',
+  walletId: 'walletId',
+  ownerType: 'ownerType',
+  ownerId: 'ownerId',
+  amount: 'amount',
+  status: 'status',
+  payoutInfo: 'payoutInfo',
+  bankReference: 'bankReference',
+  rejectionReason: 'rejectionReason',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  paidAt: 'paidAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PaymentTransactionScalarFieldEnum = {
   id: 'id',
   payerId: 'payerId',
@@ -208,6 +225,13 @@ exports.Prisma.PartnerReceivableScalarFieldEnum = {
   settledAt: 'settledAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LedgerOperationScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  result: 'result',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
@@ -274,13 +298,21 @@ exports.LedgerBucket = exports.$Enums.LedgerBucket = {
   AVAILABLE: 'AVAILABLE'
 };
 
+exports.WithdrawalRequestStatus = exports.$Enums.WithdrawalRequestStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  PAID: 'PAID',
+  REJECTED: 'REJECTED'
+};
+
 exports.PurposeType = exports.$Enums.PurposeType = {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
   GYM_PT_COMBO: 'GYM_PT_COMBO',
   WALLET_TOPUP: 'WALLET_TOPUP',
   REFUND: 'REFUND',
-  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE',
+  WITHDRAWAL: 'WITHDRAWAL'
 };
 
 exports.PaymentStatus = exports.$Enums.PaymentStatus = {
@@ -331,9 +363,11 @@ exports.CommissionStatus = exports.$Enums.CommissionStatus = {
 exports.Prisma.ModelName = {
   Wallet: 'Wallet',
   WalletLedgerEntry: 'WalletLedgerEntry',
+  WithdrawalRequest: 'WithdrawalRequest',
   PaymentTransaction: 'PaymentTransaction',
   PlatformCommission: 'PlatformCommission',
   PartnerReceivable: 'PartnerReceivable',
+  LedgerOperation: 'LedgerOperation',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

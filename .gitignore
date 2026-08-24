@@ -15,7 +15,14 @@ coverage/
 .cache/
 *.tsbuildinfo
 *.tmp
+*.tmp*
 *.temp
+
+# Prisma's own generate step leaves libquery_engine-*.so.node.tmp<pid> behind whenever the
+# target file is locked mid-write (e.g. generate running while the container that loaded the
+# old engine is still up) — these are junk, never a real build artifact, and *.tmp above
+# doesn't match them (the name ends in .tmp<pid>, not literal ".tmp").
+**/generated/prisma/*.tmp*
 
 # ------------------------------
 # Logs

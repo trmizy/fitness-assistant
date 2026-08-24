@@ -3,6 +3,7 @@ import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
 import { walletService, type LedgerOps } from './wallet.service';
 import { coverShortfall, recoverReceivables } from './contract-ledger.service';
+import { withIdempotentLedgerOp } from './ledger-idempotency';
 
 /**
  * Money movements for gym memberships: the referral commission a PT earns for bringing in a
@@ -60,8 +61,11 @@ export async function settleMembershipReferral(params: {
   ptUserId: string;
   amount: Prisma.Decimal;
   label: string;
+  /** Business key `MEMBERSHIP_REFERRAL:<membershipId>` — a retry with the same key replays
+   * the first call's result instead of moving the commission a second time (plan 1.1). */
+  idempotencyKey: string;
 }): Promise<ReferralSettleResult> {
-  const { transactionId, gymId, ptUserId, amount, label } = params;
+  const { transactionId, gymId, ptUserId, amount, label, idempotencyKey } = params;
   if (amount.lessThanOrEqualTo(0)) return { moved: '0.00', shortfall: '0.00' };
 
   const [gymWallet, ptWallet, revenueWallet] = await Promise.all([
@@ -70,28 +74,30 @@ export async function settleMembershipReferral(params: {
     walletService.getRevenueWallet(),
   ]);
 
-  return walletService.withWallets([gymWallet.id, ptWallet.id, revenueWallet.id], transactionId, async (ops) => {
-    const gymPendingForTxn = await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
-    const moving = gymPendingForTxn.lessThan(amount) ? gymPendingForTxn : amount;
-    if (moving.greaterThan(0)) {
-      await ops.debit(gymWallet.id, moving, `${label} — referral commission`, 'PENDING');
-      await ops.credit(ptWallet.id, moving, `${label} — referral commission`, 'PENDING');
-    }
-    // Should not happen — referral commission is always a slice of the gym's own settlement
-    // share — but if it does, the platform fronts the gap rather than shorting the PT, and
-    // books the debt against the gym whose commitment this was.
-    const shortfall = amount.minus(moving);
-    if (shortfall.greaterThan(0)) {
-      await coverShortfall(ops, revenueWallet.id, shortfall, {
-        partnerType: 'GYM',
-        partnerId: gymId,
-        reason: `Referral commission shortfall (${label})`,
-        transactionId,
-      });
-      await ops.credit(ptWallet.id, shortfall, `${label} — referral commission (platform-fronted)`, 'PENDING');
-    }
-    return { moved: moving.plus(shortfall).toFixed(2), shortfall: shortfall.toFixed(2) };
-  });
+  return walletService.withWallets([gymWallet.id, ptWallet.id, revenueWallet.id], transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const gymPendingForTxn = await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
+      const moving = gymPendingForTxn.lessThan(amount) ? gymPendingForTxn : amount;
+      if (moving.greaterThan(0)) {
+        await ops.debit(gymWallet.id, moving, `${label} — referral commission`, 'PENDING');
+        await ops.credit(ptWallet.id, moving, `${label} — referral commission`, 'PENDING');
+      }
+      // Should not happen — referral commission is always a slice of the gym's own settlement
+      // share — but if it does, the platform fronts the gap rather than shorting the PT, and
+      // books the debt against the gym whose commitment this was.
+      const shortfall = amount.minus(moving);
+      if (shortfall.greaterThan(0)) {
+        await coverShortfall(ops, revenueWallet.id, shortfall, {
+          partnerType: 'GYM',
+          partnerId: gymId,
+          reason: `Referral commission shortfall (${label})`,
+          transactionId,
+        });
+        await ops.credit(ptWallet.id, shortfall, `${label} — referral commission (platform-fronted)`, 'PENDING');
+      }
+      return { moved: moving.plus(shortfall).toFixed(2), shortfall: shortfall.toFixed(2) };
+    }),
+  );
 }
 
 export interface ClawbackResult {
@@ -115,8 +121,11 @@ export async function clawbackMembershipReferral(params: {
   ptUserId: string;
   amount: Prisma.Decimal;
   label: string;
+  /** Business key `REFERRAL_CLAWBACK:<membershipId>` — a retry with the same key replays the
+   * first call's result instead of reclaiming the commission a second time (plan 1.1). */
+  idempotencyKey: string;
 }): Promise<ClawbackResult> {
-  const { transactionId, gymId, ptUserId, amount, label } = params;
+  const { transactionId, gymId, ptUserId, amount, label, idempotencyKey } = params;
   if (amount.lessThanOrEqualTo(0)) return { recovered: '0.00', shortfall: '0.00' };
 
   const [gymWallet, ptWallet] = await Promise.all([
@@ -124,7 +133,8 @@ export async function clawbackMembershipReferral(params: {
     walletService.getOrCreateWallet('PT', ptUserId),
   ]);
 
-  return walletService.withWallets([gymWallet.id, ptWallet.id], transactionId, async (ops) => {
+  return walletService.withWallets([gymWallet.id, ptWallet.id], transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
     let outstanding = amount;
     let recovered = ZERO;
 
@@ -168,7 +178,8 @@ export async function clawbackMembershipReferral(params: {
     }
 
     return { recovered: recovered.toFixed(2), shortfall: shortfall.toFixed(2) };
-  });
+    }),
+  );
 }
 
 export interface MembershipReleaseResult {
@@ -207,8 +218,15 @@ export async function releaseMembershipPending(params: {
   ptUserId?: string | null;
   refundToClient: Prisma.Decimal;
   label: string;
+  /** Business key `MEMBERSHIP_RELEASE:<membershipId>` — a retry with the same key replays
+   * the first call's result instead of re-running the release (plan 1.1). This also closes
+   * the pre-existing wrinkle where a retry with `refundToClient > 0` on an already-drained
+   * membership used to THROW ("pending is already fully released") instead of replaying —
+   * exactly the retry a caller does when this committed but it crashed before recording
+   * that success locally. */
+  idempotencyKey: string;
 }): Promise<MembershipReleaseResult> {
-  const { transactionId, gymId, clientId, ptUserId, refundToClient, label } = params;
+  const { transactionId, gymId, clientId, ptUserId, refundToClient, label, idempotencyKey } = params;
 
   const [gymWallet, revenueWallet, clientWallet, ptWallet] = await Promise.all([
     walletService.getOrCreateWallet('GYM', gymId),
@@ -219,7 +237,8 @@ export async function releaseMembershipPending(params: {
 
   const walletIds = [gymWallet.id, revenueWallet.id, clientWallet.id, ...(ptWallet ? [ptWallet.id] : [])];
 
-  return walletService.withWallets(walletIds, transactionId, async (ops) => {
+  return walletService.withWallets(walletIds, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
     const gymPending = await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
     const platformPending = await pendingRemainingForTxn(ops, revenueWallet.id, transactionId);
     const ptPending = ptWallet ? await pendingRemainingForTxn(ops, ptWallet.id, transactionId) : ZERO;
@@ -314,5 +333,6 @@ export async function releaseMembershipPending(params: {
       forfeitedToRevenue: '0.00',
       shortfall: '0.00',
     };
-  });
+    }),
+  );
 }

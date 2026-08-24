@@ -54,7 +54,9 @@ export function LoginPage() {
         navigate(
           rawRole === "ADMIN"
             ? "/admin/dashboard"
-            : rawRole === "GYM_OWNER" || rawRole === "GYM_STAFF"
+            // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything
+            // themselves now.
+            : rawRole === "GYM_OWNER"
               ? "/gym-owner/dashboard"
               : storedUser.isPT
                 ? "/pt/dashboard"

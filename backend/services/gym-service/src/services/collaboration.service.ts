@@ -327,8 +327,11 @@ export const collaborationService = {
 
   /** The live rate table for a pair, or null when they have no agreement. */
   async activeRates(gymId: string, ptUserId: string) {
+    // Money-flow plan 2.5 — third chokepoint: a gym that is no longer APPROVED (suspended for
+    // a violation, or otherwise deactivated) must not hand out its frozen rate table for NEW
+    // contracts, even if the collaboration row itself is still ACCEPTED.
     const row = await prisma.gymPtCollaboration.findFirst({
-      where: { gymId, ptUserId, status: 'ACCEPTED' },
+      where: { gymId, ptUserId, status: 'ACCEPTED', gym: { status: 'APPROVED' } },
       orderBy: { acceptedAt: 'desc' },
     });
     if (!row) return null;

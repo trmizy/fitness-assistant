@@ -21,7 +21,12 @@ export const membershipRepository = {
    * gym" (money-flow plan §2.5/A2), which cancelled/expired history still counts against.
    */
   async hasEverHadMembershipAt(clientId: string, gymId: string): Promise<boolean> {
-    const count = await prisma.gymMembershipContract.count({ where: { clientId, gymId } });
+    // Money-flow plan 3.8: PENDING_PAYMENT excluded — a client who clicked "buy" and
+    // abandoned checkout never actually purchased anything here, and must not permanently
+    // lose the referral-code eligibility of their real first purchase over it.
+    const count = await prisma.gymMembershipContract.count({
+      where: { clientId, gymId, status: { not: 'PENDING_PAYMENT' } },
+    });
     return count > 0;
   },
 
@@ -108,6 +113,12 @@ export const membershipRepository = {
   /** Stamped once the pending-bucket payout has been released — guards against double-release. */
   async markPayoutReleased(id: string) {
     return prisma.gymMembershipContract.update({ where: { id }, data: { payoutReleasedAt: new Date() } });
+  },
+
+  /** Money-flow plan 1.7: guards refundByAdmin's referral-clawback step against re-applying
+   * its local `clawedBack` increment on a retry after a later step failed. */
+  async markClawbackDone(id: string) {
+    return prisma.gymMembershipContract.update({ where: { id }, data: { refundClawbackDone: true } });
   },
 
   /**

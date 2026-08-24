@@ -47,6 +47,8 @@ import { MarketplaceModeration } from "./pages/admin/MarketplaceModeration";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 import { AdminAIObservability } from "./pages/admin/AdminAIObservability";
+import { AdminDisputes } from "./pages/admin/AdminDisputes";
+import { AdminWithdrawals } from "./pages/admin/AdminWithdrawals";
 
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -157,7 +159,7 @@ export const router = createBrowserRouter([
       {
         path: "gym-owner",
         element: (
-          <RequireRole allow={["gym_owner", "gym_staff"]}>
+          <RequireRole allow={["gym_owner"]}>
             <AppShell />
           </RequireRole>
         ),
@@ -184,6 +186,8 @@ export const router = createBrowserRouter([
           { path: "pts", Component: PTManagement },
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "system", Component: SystemMonitoring },
+          { path: "disputes", Component: AdminDisputes },
+          { path: "withdrawals", Component: AdminWithdrawals },
           { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },
         ],

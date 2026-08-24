@@ -25,6 +25,7 @@ interface MembershipRow {
   gym_id: string;
   client_id: string;
   plan_id: string;
+  gym_status: string;
 }
 
 /**
@@ -70,16 +71,23 @@ export const checkinService = {
     const gymId = payload.gymId;
 
     const result = await prisma.$transaction(async (tx) => {
+      // Money-flow plan 2.5 — second chokepoint: joins to gyms so a SUSPENDED (or otherwise
+      // not-APPROVED) gym's "suspended" status actually means something at the one place that
+      // lets a member physically walk in, not just at the purchase flow.
       const rows = await tx.$queryRaw<MembershipRow[]>`
-        SELECT id, status, end_date, total_visits, used_visits, gym_id, client_id, plan_id
-        FROM gym_membership_contracts
-        WHERE gym_id = ${gymId} AND client_id = ${clientId}
-          AND status IN ('ACTIVE', 'EXPIRED')
-        ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, created_at DESC
+        SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
+               g.status AS gym_status
+        FROM gym_membership_contracts c
+        JOIN gyms g ON g.id = c.gym_id
+        WHERE c.gym_id = ${gymId} AND c.client_id = ${clientId}
+          AND c.status IN ('ACTIVE', 'EXPIRED')
+        ORDER BY CASE WHEN c.status = 'ACTIVE' THEN 0 ELSE 1 END, c.created_at DESC
         LIMIT 1
-        FOR UPDATE`;
+        FOR UPDATE OF c`;
       if (rows.length === 0) throw err('NO_MEMBERSHIP', 403);
       const m = rows[0];
+
+      if (m.gym_status !== 'APPROVED') throw err('GYM_NOT_ACTIVE', 409);
 
       // Lazy-expire a membership past its end date, then require ACTIVE.
       let status = m.status;
@@ -108,6 +116,21 @@ export const checkinService = {
         where: { id: m.id },
         data: { usedVisits: { increment: 1 } },
       });
+
+      // Money-flow plan 3.7: a membership that just used its last visit is done — flip it to
+      // EXPIRED right now instead of waiting for it to ALSO pass endDate (which the sweep's
+      // date check requires today, and which could be weeks away for a long membership). The
+      // existing membershipPayout.sweep.ts already releases the payout for any EXPIRED
+      // membership on its next tick via findExpiredNotReleased — it does not care WHY the
+      // membership expired, only that it did, so this flip alone is what "kích hoạt giải
+      // phóng tiền" needs; no separate release call to duplicate here.
+      if (updated.totalVisits != null && updated.usedVisits >= updated.totalVisits) {
+        await tx.gymMembershipContract.update({
+          where: { id: m.id },
+          data: { status: 'EXPIRED' },
+        });
+      }
+
       const checkin = await tx.gymCheckIn.create({
         // The member performed this themselves, so there is no staff member to credit.
         data: { membershipId: m.id, gymId, clientId, checkedInBy: clientId },

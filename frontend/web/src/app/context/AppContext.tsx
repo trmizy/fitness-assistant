@@ -12,7 +12,8 @@ import { User } from "../types";
 import { authService } from "../services/api";
 import { clearPendingAiState } from "../stores/pendingAiTasks";
 
-export type UserRole = "client" | "pt" | "gym_owner" | "gym_staff" | "admin";
+// Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
+export type UserRole = "client" | "pt" | "gym_owner" | "admin";
 export type WorkspaceView = "client" | "pt";
 
 interface AppContextType {
@@ -67,16 +68,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadAuth();
   }, []);
 
+  // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now.
   const role: UserRole =
     user?.role === "ADMIN"
       ? "admin"
       : user?.role === "GYM_OWNER"
         ? "gym_owner"
-        : user?.role === "GYM_STAFF"
-          ? "gym_staff"
-          : user?.isPT || user?.role === "PT"
-            ? "pt"
-            : "client";
+        : user?.isPT || user?.role === "PT"
+          ? "pt"
+          : "client";
   const isPT = role === "pt";
   const isAdmin = role === "admin";
 

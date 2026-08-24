@@ -166,6 +166,19 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PtDeactivationCallScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  action: 'action',
+  adminId: 'adminId',
+  reason: 'reason',
+  status: 'status',
+  attempts: 'attempts',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -195,15 +208,26 @@ exports.Role = exports.$Enums.Role = {
   CUSTOMER: 'CUSTOMER',
   PT: 'PT',
   ADMIN: 'ADMIN',
-  GYM_OWNER: 'GYM_OWNER',
-  GYM_STAFF: 'GYM_STAFF'
+  GYM_OWNER: 'GYM_OWNER'
+};
+
+exports.PtDeactivationAction = exports.$Enums.PtDeactivationAction = {
+  DEACTIVATE: 'DEACTIVATE',
+  REACTIVATE: 'REACTIVATE'
+};
+
+exports.PtDeactivationCallStatus = exports.$Enums.PtDeactivationCallStatus = {
+  PENDING: 'PENDING',
+  SETTLED: 'SETTLED',
+  FAILED: 'FAILED'
 };
 
 exports.Prisma.ModelName = {
   User: 'User',
   RefreshToken: 'RefreshToken',
   EmailVerification: 'EmailVerification',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  PtDeactivationCall: 'PtDeactivationCall'
 };
 
 /**

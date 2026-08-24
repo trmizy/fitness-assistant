@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
+import { withdrawalService } from '../services/withdrawal.service';
+import type { WalletOwnerType } from '../generated/prisma';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -64,6 +67,36 @@ router.get('/pt-wallet/transactions', async (req: Request, res: Response) => {
   if (!wallet) return res.json({ success: true, data: [] });
   const entries = await walletRepository.findLedgerEntries(wallet.id);
   return res.json({ success: true, data: entries });
+});
+
+// Money-flow plan 5.3 — self-service withdrawal requests for the two owner types payment-service
+// itself can authenticate: CLIENT (refund/compensation-sourced balance only) and PT (their
+// earnings wallet). GYM goes through gym-service's owner-verified proxy instead — see
+// internal.routes.ts's /withdrawals/gym/:gymId.
+const withdrawalRequestSchema = z.object({
+  amount: z.string().min(1),
+  payoutInfo: z.string().min(1),
+});
+
+router.post('/withdrawals', async (req: Request, res: Response) => {
+  const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
+  const parsed = withdrawalRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  try {
+    const request = await withdrawalService.requestWithdrawal(ownerType, req.user!.userId, parsed.data.amount, parsed.data.payoutInfo);
+    return res.status(201).json({ success: true, data: request });
+  } catch (e) {
+    const err = e as { status?: number; code?: string; message?: string };
+    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+router.get('/withdrawals', async (req: Request, res: Response) => {
+  const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
+  const list = await withdrawalService.listMine(ownerType, req.user!.userId);
+  return res.json({ success: true, data: list });
 });
 
 export default router;

@@ -1,9 +1,8 @@
 import { logger } from "@gym-coach/shared";
 import { SessionStatus } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
-import { contractRepository } from "../repositories/contract.repository";
 import { notificationService } from "./notification.service";
-import { contractService } from "./contract.service";
+import { deductQuotaOnce } from "./booking.service";
 
 const INTERVAL_MS = Number(
   process.env.SESSION_AUTO_CONFIRM_INTERVAL_MS ?? 10 * 60 * 1000,
@@ -16,6 +15,30 @@ const BATCH_SIZE = 100;
 // is recorded on the row (`autoConfirmed`) so it is never mistaken for an explicit "yes".
 let running = false;
 
+/** Collaborators of {@link runAutoConfirm}, injectable for testing (same pattern as
+ * `QuotaDeps`/`CompleteContractDeps`). `deductQuotaOnce` is reused, not re-implemented —
+ * money-flow plan 1.3 found this sweep had drifted from the manual-confirm path into its own
+ * claimDeduction → incrementSession → checkAndCompleteContract sequence that skipped
+ * releaseSessionMoney entirely. Routing both paths through the one function is what stops that
+ * drift from happening again, not just what fixes it once. */
+export interface AutoConfirmDeps {
+  findExpiredPendingConfirmation: (
+    before: Date,
+    limit: number,
+  ) => Promise<Array<{ id: string; contractId: string; clientUserId: string }>>;
+  deductQuotaOnce: (sessionId: string, contractId: string) => Promise<boolean>;
+  updateStatus: (id: string, status: SessionStatus, extra: Record<string, unknown>) => Promise<unknown>;
+  notify: (params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link: string }) => Promise<unknown>;
+}
+
+const defaultAutoConfirmDeps: AutoConfirmDeps = {
+  findExpiredPendingConfirmation: (before, limit) =>
+    sessionRepository.findExpiredPendingConfirmation(before, limit),
+  deductQuotaOnce: (sessionId, contractId) => deductQuotaOnce(sessionId, contractId),
+  updateStatus: (id, status, extra) => sessionRepository.updateStatus(id, status, extra),
+  notify: (params) => notificationService.create(params).catch(() => undefined),
+};
+
 export function startSessionAutoConfirmJob(): void {
   logger.info(
     `Session auto-confirm job started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`,
@@ -25,7 +48,9 @@ export function startSessionAutoConfirmJob(): void {
   }, INTERVAL_MS);
 }
 
-export async function runAutoConfirm(): Promise<{
+export async function runAutoConfirm(
+  deps: AutoConfirmDeps = defaultAutoConfirmDeps,
+): Promise<{
   scanned: number;
   confirmed: number;
 }> {
@@ -40,10 +65,7 @@ export async function runAutoConfirm(): Promise<{
   let scanned = 0;
   let confirmed = 0;
   try {
-    const due = await sessionRepository.findExpiredPendingConfirmation(
-      new Date(),
-      BATCH_SIZE,
-    );
+    const due = await deps.findExpiredPendingConfirmation(new Date(), BATCH_SIZE);
     scanned = due.length;
     if (scanned === 0) return { scanned, confirmed };
 
@@ -51,35 +73,27 @@ export async function runAutoConfirm(): Promise<{
 
     for (const session of due) {
       try {
-        // Same guarded deduction the manual confirm uses: if the client confirmed a
-        // moment ago, this claims nothing and the quota is not charged twice.
-        const claimed = await sessionRepository.claimDeduction(session.id);
-        if (claimed) {
-          await contractRepository.incrementSession(session.contractId);
-          await contractService.checkAndCompleteContract(session.contractId);
-        }
+        // Same guarded deduction the manual confirm uses — charges the quota, releases the
+        // PT's money, and checks contract completion, all in the one place that logic lives.
+        // If the client confirmed a moment ago, this claims nothing and nothing is charged
+        // or released twice.
+        await deps.deductQuotaOnce(session.id, session.contractId);
 
-        await sessionRepository.updateStatus(
-          session.id,
-          SessionStatus.COMPLETED,
-          {
-            completedAt: new Date(),
-            autoConfirmed: true,
-            resolutionNote: `Tự động xác nhận sau khi quá hạn phản hồi (${process.env.SESSION_AUTO_CONFIRM_DAYS ?? 3} ngày)`,
-          },
-        );
+        await deps.updateStatus(session.id, SessionStatus.COMPLETED, {
+          completedAt: new Date(),
+          autoConfirmed: true,
+          resolutionNote: `Tự động xác nhận sau khi quá hạn phản hồi (${process.env.SESSION_AUTO_CONFIRM_DAYS ?? 3} ngày)`,
+        });
         confirmed++;
 
-        await notificationService
-          .create({
-            userId: session.clientUserId,
-            text: "Buổi tập đã được tự động xác nhận do quá hạn phản hồi.",
-            eventType: "SESSION_AUTO_CONFIRMED",
-            entityType: "SESSION",
-            entityId: session.id,
-            link: "/client/booking",
-          })
-          .catch(() => {});
+        await deps.notify({
+          userId: session.clientUserId,
+          text: "Buổi tập đã được tự động xác nhận do quá hạn phản hồi.",
+          eventType: "SESSION_AUTO_CONFIRMED",
+          entityType: "SESSION",
+          entityId: session.id,
+          link: "/client/booking",
+        });
       } catch (err) {
         // One bad row must not stop the sweep — the rest still settle.
         logger.error({

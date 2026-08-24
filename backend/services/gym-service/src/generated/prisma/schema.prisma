@@ -141,6 +141,15 @@ model GymMembershipContract {
   /// hold an active membership at a different gym — evidence against "I didn't know I still
   /// had one elsewhere" disputes.
   multiGymWarned       Boolean                     @default(false) @map("multi_gym_warned")
+  /// Money-flow plan 1.7: set right after `refundByAdmin`'s referral-clawback step commits
+  /// its LOCAL bookkeeping (`GymMembershipReferral.clawedBack`). That local increment is not
+  /// itself idempotent — payment-service's own idempotency guard (plan 1.1) means a retried
+  /// `clawbackReferral` call just returns the FIRST attempt's cached amount rather than
+  /// re-debiting anything, but gym-service would still add that cached amount onto
+  /// `clawedBack` a second time if it re-entered the branch. `refundByAdmin` is one-shot per
+  /// membership (blocked once status flips to CANCELLED), so this flag only ever needs to
+  /// answer one question: did THIS refund's clawback step already run.
+  refundClawbackDone   Boolean                     @default(false) @map("refund_clawback_done")
   createdAt            DateTime                    @default(now()) @map("created_at")
   updatedAt            DateTime                    @updatedAt @map("updated_at")
 

@@ -1,3 +1,4 @@
+import { logger } from "@gym-coach/shared";
 import { inbodyRepository } from "../repositories/inbody.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
@@ -176,7 +177,7 @@ export const inbodyService = {
       ocrExtractionsTotal.inc({ status: "failure" });
       ocrExtractionDuration.observe(durationSec);
 
-      console.error("Extraction failed:", error);
+      logger.error({ error: "InBody extraction failed", message: error?.message });
       throw new Error(`Failed to extract data: ${error.message}`);
     }
   },

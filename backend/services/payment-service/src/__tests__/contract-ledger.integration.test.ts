@@ -177,6 +177,7 @@ test('Scenario A: a contract that runs to completion', skipOpts, async () => {
     await m.ledger.releaseSession({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `A session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`A session ${i + 1}`}`,
     });
     await m.reconcile.assertInvariant(`A after session ${i + 1}`);
   }
@@ -188,6 +189,7 @@ test('Scenario A: a contract that runs to completion', skipOpts, async () => {
     await m.ledger.releaseSession({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `A session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`A session ${i + 1}`}`,
     });
   }
   b = await balances(m, f);
@@ -213,6 +215,7 @@ test('Scenario B: client cancels after 2 of 10 sessions', skipOpts, async () => 
     const r = await m.ledger.releaseSession({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `B session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`B session ${i + 1}`}`,
     });
     released.pt = released.pt.plus(r.released.pt);
     released.platform = released.platform.plus(r.released.platform);
@@ -223,6 +226,7 @@ test('Scenario B: client cancels after 2 of 10 sessions', skipOpts, async () => 
     transactionId: await nextTxn(m, f, 'REFUND'), price: f.price, totalSessions: f.totalSessions,
     usedSessions: 2, rates: f.rates, reason: 'CLIENT_CANCELLED', alreadyReleased: released,
     parties: f.parties, label: 'B termination',
+    idempotencyKey: `CONTRACT_TERMINATE:${'B termination'}`,
   });
 
   const b = await balances(m, f);
@@ -251,6 +255,7 @@ test('Scenario C: the PT misses a session', skipOpts, async () => {
   const r = await m.ledger.compensateNoShow({
     transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'C no-show',
+    idempotencyKey: `PT_NO_SHOW:${'C no-show'}`,
   });
 
   const b = await balances(m, f);
@@ -278,6 +283,7 @@ test('Scenario D: 20 sessions, 19 used, then cancelled — no negative refund', 
     const r = await m.ledger.releaseSession({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `D session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`D session ${i + 1}`}`,
     });
     released.pt = released.pt.plus(r.released.pt);
     released.platform = released.platform.plus(r.released.platform);
@@ -287,6 +293,7 @@ test('Scenario D: 20 sessions, 19 used, then cancelled — no negative refund', 
     transactionId: await nextTxn(m, f, 'REFUND'), price: f.price, totalSessions: f.totalSessions,
     usedSessions: 19, rates: f.rates, reason: 'CLIENT_CANCELLED', alreadyReleased: released,
     parties: f.parties, label: 'D termination',
+    idempotencyKey: `CONTRACT_TERMINATE:${'D termination'}`,
   });
 
   const b = await balances(m, f);
@@ -318,6 +325,7 @@ test('Scenario E: three-way split with a gym, cancelled after 2 of 10', skipOpts
     const r = await m.ledger.releaseSession({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `E session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`E session ${i + 1}`}`,
     });
     released.pt = released.pt.plus(r.released.pt);
     released.gym = released.gym.plus(r.released.gym);
@@ -328,6 +336,7 @@ test('Scenario E: three-way split with a gym, cancelled after 2 of 10', skipOpts
     transactionId: await nextTxn(m, f, 'REFUND'), price: f.price, totalSessions: f.totalSessions,
     usedSessions: 2, rates: f.rates, reason: 'CLIENT_CANCELLED', alreadyReleased: released,
     parties: f.parties, label: 'E termination',
+    idempotencyKey: `CONTRACT_TERMINATE:${'E termination'}`,
   });
 
   b = await balances(m, f);
@@ -355,6 +364,7 @@ test('Scenario F: 1.000.000đ over 3 sessions — rounding loses nothing', skipO
   const r = await m.ledger.releaseSession({
     transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'F session 1',
+    idempotencyKey: `SESSION_RELEASE:${'F session 1'}`,
   });
   const released = {
     pt: new m.Prisma.Decimal(r.released.pt),
@@ -366,6 +376,7 @@ test('Scenario F: 1.000.000đ over 3 sessions — rounding loses nothing', skipO
     transactionId: await nextTxn(m, f, 'REFUND'), price: f.price, totalSessions: f.totalSessions,
     usedSessions: 1, rates: f.rates, reason: 'CLIENT_CANCELLED', alreadyReleased: released,
     parties: f.parties, label: 'F termination',
+    idempotencyKey: `CONTRACT_TERMINATE:${'F termination'}`,
   });
 
   const b = await balances(m, f);
@@ -408,6 +419,7 @@ test('Scenario G: five scenarios back to back in one database keep the invariant
       const r = await m.ledger.releaseSession({
         transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
         rates: f.rates, parties: f.parties, label: `G${step} s${i + 1}`,
+        idempotencyKey: `SESSION_RELEASE:${`G${step} s${i + 1}`}`,
       });
       released.pt = released.pt.plus(r.released.pt);
       released.gym = released.gym.plus(r.released.gym);
@@ -419,6 +431,7 @@ test('Scenario G: five scenarios back to back in one database keep the invariant
       transactionId: await nextTxn(m, f, 'REFUND'), price: f.price, totalSessions: f.totalSessions,
       usedSessions: c.use, rates: f.rates, reason: c.reason, alreadyReleased: released,
       parties: f.parties, label: `G${step} end`,
+      idempotencyKey: `CONTRACT_TERMINATE:${`G${step} end`}`,
     });
     await m.reconcile.assertInvariant(`G${step} after termination (${c.reason})`);
   }
@@ -482,6 +495,7 @@ test('a PT with an exhausted pending bucket still leaves the client whole', skip
     await m.ledger.compensateNoShow({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `S no-show ${i + 1}`,
+      idempotencyKey: `PT_NO_SHOW:${`S no-show ${i + 1}`}`,
     });
     await m.reconcile.assertInvariant(`S after no-show ${i + 1}`);
   }
@@ -525,6 +539,7 @@ test('a debt is withheld from the next session the PT earns', skipOpts, async ()
   await m.ledger.releaseSession({
     transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'R1 session 1',
+    idempotencyKey: `SESSION_RELEASE:${'R1 session 1'}`,
   });
 
   const b = await balances(m, f);
@@ -553,6 +568,7 @@ test('a debt larger than one session recovers gradually and never overdraws', sk
   await m.ledger.releaseSession({
     transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'R2 session 1',
+    idempotencyKey: `SESSION_RELEASE:${'R2 session 1'}`,
   });
 
   let b = await balances(m, f);
@@ -568,6 +584,7 @@ test('a debt larger than one session recovers gradually and never overdraws', sk
     await m.ledger.releaseSession({
       transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `R2 session ${i}`,
+      idempotencyKey: `SESSION_RELEASE:${`R2 session ${i}`}`,
     });
     await m.reconcile.assertInvariant(`R2 after session ${i}`);
   }
@@ -583,6 +600,7 @@ test('a debt larger than one session recovers gradually and never overdraws', sk
   await m.ledger.releaseSession({
     transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'R2 session 4',
+    idempotencyKey: `SESSION_RELEASE:${'R2 session 4'}`,
   });
   b = await balances(m, f);
   assert.equal(b.ptAvailable, '160000.00', 'once the debt is settled the PT is paid in full again');
@@ -609,6 +627,7 @@ test('older debts are recovered before newer ones', skipOpts, async () => {
   await m.ledger.releaseSession({
     transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'R3 session 1',
+    idempotencyKey: `SESSION_RELEASE:${'R3 session 1'}`,
   });
 
   const o = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: older.id } });
@@ -634,6 +653,7 @@ test('a shortfall the platform fronts comes back out of the PT later earnings', 
     await m.ledger.releaseSession({
       transactionId: funder.txnId, price: funder.price, totalSessions: funder.totalSessions,
       rates: funder.rates, parties: funder.parties, label: `R4 funder session ${i + 1}`,
+      idempotencyKey: `SESSION_RELEASE:${`R4 funder session ${i + 1}`}`,
     });
   }
 
@@ -648,6 +668,7 @@ test('a shortfall the platform fronts comes back out of the PT later earnings', 
     await m.ledger.compensateNoShow({
       transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
       rates: f.rates, parties: f.parties, label: `R4 no-show ${i + 1}`,
+      idempotencyKey: `PT_NO_SHOW:${`R4 no-show ${i + 1}`}`,
     });
     await m.reconcile.assertInvariant(`R4 after no-show ${i + 1}`);
   }
@@ -668,6 +689,7 @@ test('a shortfall the platform fronts comes back out of the PT later earnings', 
   await m.ledger.releaseSession({
     transactionId: next.txnId, price: next.price, totalSessions: next.totalSessions,
     rates: next.rates, parties: next.parties, label: 'R4 next session 1',
+    idempotencyKey: `SESSION_RELEASE:${'R4 next session 1'}`,
   });
 
   const collected = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debts[0].id } });

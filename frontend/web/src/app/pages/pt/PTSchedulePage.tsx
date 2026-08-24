@@ -73,6 +73,21 @@ const SESSION_STATUS_CFG: Record<
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
   },
+  PENDING_CLIENT_CONFIRMATION: {
+    label: "Awaiting client",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  DISPUTED: {
+    label: "Disputed",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  PT_NO_SHOW_REPORTED: {
+    label: "No-show reported",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
   COMPLETED: {
     label: "Completed",
     color: "text-blue-400",
@@ -141,6 +156,14 @@ export function PTSchedulePage() {
   const { data: upcomingSessions = [], isLoading: loadingSessions } = useQuery({
     queryKey: ["sessions-upcoming"],
     queryFn: () => sessionService.getMyUpcoming(),
+  });
+
+  // Money-flow plan 4.3: sessions a client reported this PT as a no-show for. A separate,
+  // time-unfiltered query — these are already in the past, so they never appear in
+  // sessions-upcoming above.
+  const { data: noShowReports = [] } = useQuery({
+    queryKey: ["sessions-no-show-reports"],
+    queryFn: () => sessionService.listNoShowReports(),
   });
 
   const { data: availability = [], isLoading: loadingAvail } = useQuery({
@@ -222,6 +245,37 @@ export function PTSchedulePage() {
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
   });
+
+  // Money-flow plan 3.3: the PT's schedule had no way at all to respond to a client's
+  // reschedule proposal (unlike the client side, which had a broken check — this side simply
+  // had nothing). Mirrors BookingPage.tsx's client-side handling of the same
+  // `respondToReschedule` endpoint.
+  const respondRescheduleMut = useMutation({
+    mutationFn: ({ requestId, action }: { requestId: string; action: "ACCEPT" | "REJECT" }) =>
+      sessionService.respondToReschedule(requestId, action),
+    onSuccess: (_data, variables) => {
+      toast.success(variables.action === "ACCEPT" ? "Reschedule accepted" : "Reschedule declined");
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+  });
+
+  // Money-flow plan 4.3 — PT responds to a client's no-show report.
+  const respondNoShowMut = useMutation({
+    mutationFn: ({ id, response, note }: { id: string; response: "AGREE" | "DENY"; note?: string }) =>
+      sessionService.respondToNoShowReport(id, response, note),
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.response === "AGREE"
+          ? "Đã xác nhận vắng mặt — khách sẽ được bồi thường"
+          : "Đã gửi phản đối — quản trị viên sẽ phân xử",
+      );
+      queryClient.invalidateQueries({ queryKey: ["sessions-no-show-reports"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Không thể phản hồi"),
+  });
+  const [denyNoShowId, setDenyNoShowId] = useState<string | null>(null);
+  const [denyNoShowNote, setDenyNoShowNote] = useState("");
 
   // ── Availability mutations ───────────────────────────────────────
   const saveAvailMut = useMutation({
@@ -324,6 +378,71 @@ export function PTSchedulePage() {
           </p>
         </div>
       </div>
+
+      {/* Money-flow plan 4.3: a client reported this PT as a no-show — needs a response */}
+      {(noShowReports as Session[]).length > 0 && (
+        <div className="space-y-3">
+          {(noShowReports as Session[]).map((s) => (
+            <div key={s.id} className="bg-red-500/5 border border-red-500/30 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <p className="text-sm font-bold text-red-400">
+                    Khách báo bạn vắng mặt — buổi {formatSessionTime(s.scheduledStartAt)}
+                  </p>
+                  {s.disputeReason && (
+                    <p className="text-xs text-zinc-400 mt-1">Lý do khách nêu: {s.disputeReason}</p>
+                  )}
+                </div>
+              </div>
+              {denyNoShowId === s.id ? (
+                <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3 mt-2">
+                  <textarea
+                    value={denyNoShowNote}
+                    onChange={(e) => setDenyNoShowNote(e.target.value)}
+                    placeholder="Giải trình của bạn — quản trị viên sẽ xem xét..."
+                    className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-200 mb-2 min-h-[70px]"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setDenyNoShowId(null)}
+                      className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      onClick={() => {
+                        respondNoShowMut.mutate({ id: s.id, response: "DENY", note: denyNoShowNote });
+                        setDenyNoShowId(null);
+                        setDenyNoShowNote("");
+                      }}
+                      disabled={!denyNoShowNote.trim() || respondNoShowMut.isPending}
+                      className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-all"
+                    >
+                      Gửi phản đối
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respondNoShowMut.mutate({ id: s.id, response: "AGREE" })}
+                    disabled={respondNoShowMut.isPending}
+                    className="flex items-center gap-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Xác nhận đúng — tôi vắng mặt
+                  </button>
+                  <button
+                    onClick={() => setDenyNoShowId(s.id)}
+                    className="flex items-center gap-1 border border-zinc-600 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" /> Phản đối
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
@@ -502,6 +621,39 @@ export function PTSchedulePage() {
                         </>
                       )}
                     </div>
+                    {/* Money-flow plan 3.3: gate on the pending-request list, not a session
+                        status — the session stays CONFIRMED while a proposal is pending. */}
+                    {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
+                      <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                        {s.rescheduleRequests[0].requestedBy === "PT" ? (
+                          <div className="text-amber-400 font-medium">
+                            Bạn đã gửi yêu cầu dời lịch sang {formatSessionTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">
+                              Khách yêu cầu dời lịch sang {formatSessionTime(s.rescheduleRequests[0].proposedStartAt)}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => respondRescheduleMut.mutate({ requestId: s.rescheduleRequests![0].id, action: "ACCEPT" })}
+                                disabled={respondRescheduleMut.isPending}
+                                className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Đồng ý
+                              </button>
+                              <button
+                                onClick={() => respondRescheduleMut.mutate({ requestId: s.rescheduleRequests![0].id, action: "REJECT" })}
+                                disabled={respondRescheduleMut.isPending}
+                                className="px-3 py-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })

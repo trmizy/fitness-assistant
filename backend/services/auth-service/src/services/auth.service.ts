@@ -2,7 +2,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
+import { logger } from "@gym-coach/shared";
 import { authRepository } from "../repositories/auth.repository";
+import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
   RegisterStartDto,
   RegisterVerifyDto,
@@ -220,10 +222,38 @@ export const authService = {
   },
 
   // Admin disable/enable. Returns the updated user (without password).
-  async setUserActive(userId: string, isActive: boolean) {
+  //
+  // Money-flow plan 2.6: locking a PT's account used to only ever flip this flag, leaving
+  // their live contracts, booked sessions, and searchable profile untouched — user-service's
+  // ptDeactivationService.deactivatePT existed with a ready internal endpoint for exactly this,
+  // but nothing called it. `deps.relay` (defaulting to the real cross-service call) is
+  // best-effort: a failure is recorded for retry (see pt-deactivation-relay.service.ts) rather
+  // than thrown here, because the account lock/unlock itself is the primary action and must
+  // not be blocked or rolled back by a secondary one failing.
+  async setUserActive(
+    userId: string,
+    isActive: boolean,
+    adminId: string,
+    reason?: string,
+    deps: { relay: typeof relayPtActiveStateChange } = { relay: relayPtActiveStateChange },
+  ) {
     const updated = await authRepository.updateUser(userId, {
       isActive,
     } as any);
+    if ((updated as any).role === "PT") {
+      try {
+        await deps.relay(userId, isActive ? "REACTIVATE" : "DEACTIVATE", adminId, reason);
+      } catch (e) {
+        // Defense in depth — the real relay already swallows its own failures internally
+        // (recording them for the sweep to retry), but a custom `deps.relay` must not be able
+        // to undo the account lock either.
+        logger.error({
+          error: "PT deactivation relay threw unexpectedly — account lock still applied",
+          userId,
+          message: (e as Error).message,
+        });
+      }
+    }
     return {
       id: updated.id,
       email: updated.email,

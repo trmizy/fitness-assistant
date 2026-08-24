@@ -108,13 +108,13 @@ export const paymentClient = {
   },
 
   /** ① Move a referral commission from the gym's pending bucket into the referring PT's. */
-  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string }) {
+  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral`, body, { headers, timeout: 15_000 });
     return data.data as { moved: string; shortfall: string };
   },
 
   /** ② Reclaim a proportional share of a referral commission when an admin refunds a membership. */
-  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string }) {
+  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral/clawback`, body, { headers, timeout: 15_000 });
     return data.data as { recovered: string; shortfall: string };
   },
@@ -128,6 +128,7 @@ export const paymentClient = {
     refundToClient?: string;
     membershipStatus: 'CANCELLED' | 'EXPIRED';
     label: string;
+    idempotencyKey: string;
   }) {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/membership-release`, body, { headers, timeout: 20_000 });
     return data.data as {
@@ -144,6 +145,7 @@ export const paymentClient = {
     clientId: string;
     ptUserId?: string | null;
     label: string;
+    idempotencyKey: string;
   }) {
     const { data } = await axios.post(
       `${PAYMENT_SERVICE_URL}/internal/contracts/membership-cancel-forfeit`,
@@ -190,6 +192,24 @@ export const paymentClient = {
 
   async getWallet(ownerType: 'GYM', ownerId: string): Promise<any> {
     const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/wallets/${ownerType}/${ownerId}`, { headers, timeout: 10_000 });
+    return data.data;
+  },
+
+  // Money-flow plan 5.3 — gym-service verifies gym ownership itself (see
+  // owner.routes.ts's /gyms/:gymId/withdrawals) before ever reaching here; payment-service
+  // trusts the gymId because this call only comes over the service-secret-gated /internal
+  // boundary, never from a browser.
+  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string): Promise<any> {
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/withdrawals/gym/${gymId}`,
+      { amount, payoutInfo },
+      { headers, timeout: 10_000 },
+    );
+    return data.data;
+  },
+
+  async listGymWithdrawals(gymId: string): Promise<any> {
+    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/withdrawals/gym/${gymId}`, { headers, timeout: 10_000 });
     return data.data;
   },
 };

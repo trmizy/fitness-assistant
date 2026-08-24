@@ -66,8 +66,20 @@ app.get("/metrics", async (_req, res) => {
   res.end(await register.metrics());
 });
 
-// Webhook: no auth (Dropbox Sign posts directly to this endpoint)
-app.use("/webhooks/dropbox-sign", dropboxSignWebhookRouter);
+// Money-flow plan 5.2: registered only while contract e-signing is actually required. The
+// e-sign feature is paused as a settled decision (REQUIRE_CONTRACT_ESIGN=false in
+// docker-compose.dev.yml) — this route has no auth of its own (Dropbox Sign posts directly to
+// it) and only fails closed on a missing API key (dropboxSignWebhook.controller.ts), not on
+// verifying the event's own signature (a TODO in dropboxSignWebhook.service.ts). Leaving it
+// reachable while nothing in the product uses it is an open surface for pushing a contract to
+// a signed state with no real signature behind it — unregistering it while the flag is off
+// closes that surface outright instead of relying only on the fail-closed check.
+const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
+if (REQUIRE_CONTRACT_ESIGN) {
+  app.use("/webhooks/dropbox-sign", dropboxSignWebhookRouter);
+} else {
+  logger.info("REQUIRE_CONTRACT_ESIGN=false — /webhooks/dropbox-sign is not registered");
+}
 
 app.use("/profile", profileRoutes);
 app.use("/inbody", inbodyRoutes);

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { profileRepository } from "../repositories/profile.repository";
+import { ptApplicationRepository } from "../repositories/pt_application.repository";
 import type { ProfileDto } from "../models/profile.models";
 
 const AUTH_SERVICE_URL =
@@ -98,11 +99,16 @@ async function syncRole(
 }
 
 /**
- * TODO (Phase 2): Replace with real checks — e.g. certificate uploaded,
- * admin approval, ptApplicationStatus === 'APPROVED', etc.
+ * Money-flow plan 5.5 — resolved TODO. PATCH /me/become-pt is a live, authenticated route any
+ * CUSTOMER can call directly, bypassing the UI — an unconditional `true` here meant anyone
+ * could self-elevate to PT with zero verification, sidestepping the entire PT-application
+ * review flow (submit -> admin review -> approve) that pt_application.service.ts otherwise
+ * enforces before ever calling profileRepository.setIsPT. The real gate is the same one that
+ * flow uses: an application on file with status APPROVED.
  */
-async function canBecomePT(_userId: string): Promise<boolean> {
-  return true;
+async function canBecomePT(userId: string): Promise<boolean> {
+  const application = await ptApplicationRepository.findByUserId(userId);
+  return application?.status === "APPROVED";
 }
 
 function computeAgeFromDob(dateOfBirth: string): number {

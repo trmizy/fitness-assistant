@@ -60,4 +60,34 @@ router.post('/gyms/:gymId/collaborations', asyncHandler(collaborationController.
 router.patch('/collaborations/:id', asyncHandler(collaborationController.respondAsGym));
 router.delete('/collaborations/:id', asyncHandler(collaborationController.terminateAsGym));
 
+// Money-flow plan 5.3 — same ownership-verify-then-proxy shape as /gyms/:gymId/wallet above.
+// gym-service has no ledger logic; it only confirms this caller actually owns the gym before
+// forwarding to payment-service's internal withdrawal endpoint.
+router.post('/gyms/:gymId/withdrawals', asyncHandler(async (req, res) => {
+  try {
+    const ownerId = req.user!.userId;
+    const gym = await gymService.getOwnedGym(req.params.gymId, ownerId);
+    const { amount, payoutInfo } = req.body ?? {};
+    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo);
+    res.status(201).json({ success: true, data: request });
+  } catch (e: any) {
+    const status = e.response?.status || e.status || 500;
+    const body = e.response?.data ?? { success: false, error: { message: e.message } };
+    res.status(status).json(body);
+  }
+}));
+
+router.get('/gyms/:gymId/withdrawals', asyncHandler(async (req, res) => {
+  try {
+    const ownerId = req.user!.userId;
+    const gym = await gymService.getOwnedGym(req.params.gymId, ownerId);
+    const list = await paymentClient.listGymWithdrawals(gym.id);
+    res.json({ success: true, data: list });
+  } catch (e: any) {
+    const status = e.response?.status || e.status || 500;
+    const body = e.response?.data ?? { success: false, error: { message: e.message } };
+    res.status(status).json(body);
+  }
+}));
+
 export default router;

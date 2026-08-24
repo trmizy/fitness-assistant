@@ -9,6 +9,7 @@ import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { Prisma } from '../generated/prisma';
 import { buildReconciliationReport } from '../services/reconcile.service';
+import { withdrawalService } from '../services/withdrawal.service';
 
 const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
@@ -51,16 +52,71 @@ router.get('/commissions', async (_req: Request, res: Response) => {
   res.json({ success: true, data: commissions });
 });
 
-// PATCH /admin/payments/commissions/:id/settle — genuinely not implemented
-// yet (no settlement state machine, no payout-transfer integration, no
-// audit trail for the actual bank/e-wallet payout). Returning 501 here is
-// the honest signal the frontend needs to keep this action disabled/hidden
-// rather than silently pretending to succeed — see PTWalletPage/admin
-// commission UI, which must not show this as a working button in the
-// meantime (§5.2's explicit requirement: no fake buttons for
-// unimplemented functionality).
+// PATCH /admin/payments/commissions/:id/settle — retired (money-flow plan 5.3). This route
+// predates the withdrawal flow below and was never wired to any real settlement logic (no
+// state machine, no payout-transfer integration, no audit trail) — grep confirmed no live
+// caller ever POSTs/PATCHes this path. Commission money already lives in each partner's
+// AVAILABLE bucket the moment it is earned (see wallet.service.ts); "settling" it is just
+// requesting it out via GET/POST /admin/withdrawals below, which is the real, tested flow.
+// Kept as a 410 rather than deleted outright so a stale cached bundle gets an explanation
+// instead of a bare 404.
 router.patch('/commissions/:id/settle', (_req, res) => {
-  res.status(501).json({ success: false, error: { code: 'NOT_IMPLEMENTED', message: 'Commission settlement is not implemented yet' } });
+  res.status(410).json({
+    success: false,
+    error: {
+      code: 'ENDPOINT_RETIRED',
+      message: 'Commission settlement now goes through the withdrawal flow — see /admin/withdrawals.',
+    },
+  });
+});
+
+// Money-flow plan 5.3 — admin side of the manual withdrawal flow. approve/reject are optional
+// review steps before the money actually moves; markPaid is the only one that touches the
+// ledger, and only after an admin confirms a real bank/e-wallet transfer already happened.
+router.get('/withdrawals', async (_req: Request, res: Response) => {
+  const list = await withdrawalService.listPending();
+  res.json({ success: true, data: list });
+});
+
+const reviewSchema = z.object({ reason: z.string().min(1).optional() });
+const markPaidSchema = z.object({ bankReference: z.string().min(1) });
+
+router.post('/withdrawals/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const updated = await withdrawalService.approve(req.params.id, req.user!.userId);
+    res.json({ success: true, data: updated });
+  } catch (e) {
+    const err = e as { status?: number; code?: string; message?: string };
+    res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+router.post('/withdrawals/:id/reject', async (req: Request, res: Response) => {
+  const parsed = reviewSchema.safeParse(req.body);
+  if (!parsed.success || !parsed.data.reason) {
+    return res.status(400).json({ success: false, error: { code: 'REASON_REQUIRED' } });
+  }
+  try {
+    const updated = await withdrawalService.reject(req.params.id, req.user!.userId, parsed.data.reason);
+    return res.json({ success: true, data: updated });
+  } catch (e) {
+    const err = e as { status?: number; code?: string; message?: string };
+    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+router.post('/withdrawals/:id/mark-paid', async (req: Request, res: Response) => {
+  const parsed = markPaidSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  try {
+    const updated = await withdrawalService.markPaid(req.params.id, req.user!.userId, parsed.data.bankReference);
+    return res.json({ success: true, data: updated });
+  } catch (e) {
+    const err = e as { status?: number; code?: string; message?: string };
+    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+  }
 });
 
 const refundSchema = z.object({

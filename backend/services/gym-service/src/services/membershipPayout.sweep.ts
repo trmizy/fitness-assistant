@@ -50,6 +50,11 @@ export async function runSweep(): Promise<{ expired: number; released: number; f
           ptUserId: m.referral?.referrerPtUserId ?? null,
           membershipStatus: 'EXPIRED',
           label: `Membership ${m.id} natural expiry`,
+          // Same MEMBERSHIP_RELEASE:<id> key as the admin-refund and self-cancel paths (plan
+          // 1.1) — this also makes a retried sweep tick safe: markPayoutReleased only stamps
+          // AFTER this call returns, so a crash between the two used to risk a second release
+          // on the next tick before this key existed.
+          idempotencyKey: `MEMBERSHIP_RELEASE:${m.id}`,
         });
         await membershipRepository.markPayoutReleased(m.id);
         released++;

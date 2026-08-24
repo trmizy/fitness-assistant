@@ -22,6 +22,8 @@ import {
   Workflow,
   Wallet,
   Store,
+  Gavel,
+  Banknote,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -109,6 +111,8 @@ const adminNav = [
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
   { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
+  { label: "Khiếu nại buổi tập", icon: Gavel, to: "/admin/disputes" },
+  { label: "Yêu cầu rút tiền", icon: Banknote, to: "/admin/withdrawals" },
   {
     label: "Workflows",
     icon: Workflow,
@@ -213,7 +217,7 @@ export function Sidebar() {
   let navItems: NavItem[];
   if (isAdmin) {
     navItems = adminNav;
-  } else if (role === "gym_owner" || role === "gym_staff") {
+  } else if (role === "gym_owner") {
     navItems = gymOwnerNav;
   } else if (isPT) {
     navItems = activeView === "pt" ? ptWorkspaceNav : ptClientNav;
@@ -358,9 +362,7 @@ export function Sidebar() {
                     ? "Huấn luyện viên"
                     : role === "gym_owner"
                       ? "Chủ phòng gym"
-                      : role === "gym_staff"
-                        ? "Nhân viên gym"
-                        : "Quản trị viên"}
+                      : "Quản trị viên"}
               </AutoText>
             </div>
           </div>

@@ -12,6 +12,12 @@ router.get(
   authMiddleware,
   bookingController.listPendingConfirmation as any,
 );
+// Money-flow plan 4.3 — PT's side: sessions a client reported them as a no-show for.
+router.get(
+  "/no-show-reports",
+  authMiddleware,
+  bookingController.listNoShowReportsForPT as any,
+);
 router.get(
   "/contract/:contractId",
   authMiddleware,
@@ -53,6 +59,17 @@ router.post(
   "/:id/dispute",
   authMiddleware,
   bookingController.disputeSession as any,
+);
+// Money-flow plan 4.3 — client reports the PT never showed up, and the PT's response to it.
+router.post(
+  "/:id/report-no-show",
+  authMiddleware,
+  bookingController.reportPtNoShow as any,
+);
+router.post(
+  "/:id/respond-no-show",
+  authMiddleware,
+  bookingController.respondToNoShowReport as any,
 );
 router.post(
   "/:id/review",

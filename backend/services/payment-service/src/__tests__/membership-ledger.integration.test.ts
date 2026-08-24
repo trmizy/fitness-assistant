@@ -144,6 +144,7 @@ test('Scenario H: referral commission moves from the gym to the PT', skipOpts, a
     ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000),
     label: 'H referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'H referral'}`,
   });
 
   b = await balances(m, f);
@@ -163,6 +164,7 @@ test('F1: a membership with a referral expires — the PT can withdraw the commi
   await m.membership.settleMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'F1 referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'F1 referral'}`,
   });
 
   // Natural expiry: nothing refunded, everything released.
@@ -173,6 +175,7 @@ test('F1: a membership with a referral expires — the PT can withdraw the commi
     ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(0),
     label: 'F1 expiry',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'F1 expiry'}`,
   });
 
   const b = await balances(m, f);
@@ -197,6 +200,7 @@ test('a membership with no referral releases cleanly', skipOpts, async () => {
   const r = await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId,
     ptUserId: null, refundToClient: new m.Prisma.Decimal(0), label: 'no-referral expiry',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'no-referral expiry'}`,
   });
 
   const b = await balances(m, f);
@@ -215,12 +219,14 @@ test('Scenario I: an admin refunds half — the referral is clawed back in propo
   await m.membership.settleMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'I referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'I referral'}`,
   });
 
   // Half the membership is refunded → half the commission comes back.
   const claw = await m.membership.clawbackMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(50_000), label: 'I clawback',
+    idempotencyKey: `REFERRAL_CLAWBACK:${'I clawback'}`,
   });
   assert.equal(claw.recovered, '50000.00', 'half the commission recovered');
   assert.equal(claw.shortfall, '0.00', 'nothing had to be fronted');
@@ -229,6 +235,7 @@ test('Scenario I: an admin refunds half — the referral is clawed back in propo
   const rel = await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId, ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(500_000), label: 'I admin refund',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'I admin refund'}`,
   });
 
   const b = await balances(m, f);
@@ -254,17 +261,20 @@ test('Scenario J: a full refund reclaims the whole commission', skipOpts, async 
   await m.membership.settleMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'J referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'J referral'}`,
   });
 
   const claw = await m.membership.clawbackMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'J clawback',
+    idempotencyKey: `REFERRAL_CLAWBACK:${'J clawback'}`,
   });
   assert.equal(claw.recovered, '100000.00', 'the entire commission comes back');
 
   await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId, ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(1_000_000), label: 'J full refund',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'J full refund'}`,
   });
 
   const b = await balances(m, f);
@@ -286,6 +296,7 @@ test('a client who cancels gets nothing back, and the PT keeps the commission', 
   await m.membership.settleMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'cancel referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'cancel referral'}`,
   });
 
   // Client-cancelled = release with refundToClient 0, and NO clawback call. The membership was
@@ -293,6 +304,7 @@ test('a client who cancels gets nothing back, and the PT keeps the commission', 
   await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId, ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(0), label: 'client cancelled',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'client cancelled'}`,
   });
 
   const b = await balances(m, f);
@@ -312,12 +324,14 @@ test('releasing the same membership twice does not pay out twice', skipOpts, asy
   await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId,
     ptUserId: null, refundToClient: new m.Prisma.Decimal(0), label: 'first release',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'first release'}`,
   });
   const after1 = await balances(m, f);
 
   const second = await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId,
     ptUserId: null, refundToClient: new m.Prisma.Decimal(0), label: 'second release',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'second release'}`,
   });
   const after2 = await balances(m, f);
 
@@ -336,6 +350,7 @@ test('a clawback the PT cannot cover raises a receivable and still funds the ref
   await m.membership.settleMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'shortfall referral',
+    idempotencyKey: `MEMBERSHIP_REFERRAL:${'shortfall referral'}`,
   });
 
   // Drain the PT's pending by releasing it to available, then spend it out of the system by
@@ -343,11 +358,13 @@ test('a clawback the PT cannot cover raises a receivable and still funds the ref
   await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId, ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(0), label: 'release before clawback',
+    idempotencyKey: `MEMBERSHIP_RELEASE:${'release before clawback'}`,
   });
 
   const claw = await m.membership.clawbackMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
     amount: new m.Prisma.Decimal(100_000), label: 'clawback after release',
+    idempotencyKey: `REFERRAL_CLAWBACK:${'clawback after release'}`,
   });
 
   assert.equal(claw.recovered, '100000.00', 'reclaimed from the PT available bucket');
