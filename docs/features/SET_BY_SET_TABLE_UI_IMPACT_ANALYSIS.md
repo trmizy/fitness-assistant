@@ -244,6 +244,22 @@ next exercise / shows the completion screen exactly as before. Full
 regression re-run of specs 29–35 to confirm the 1-set-per-exercise
 existing coverage is genuinely unaffected.
 
+## Follow-up (surfaced later, during the P1.2 reschedule pass's regression re-run)
+
+Pre-existing `27-future-schedule-lock.spec.ts` Scenario C seeds a 3-set
+exercise and expected ONE `complete-exercise-button` click to reach the
+whole-workout completion screen — true under the old bulk-complete model,
+no longer true now that each of the 3 sets completes independently. Not a
+real regression (the new per-set behavior is exactly what this pass built
+and is correct), but the pre-existing test needed updating: it now loops
+up to 3 completions (re-toggling "no weight" each time, since a fresh
+per-set prefill resets `noWeight` to its REPS_LOAD default of `false`)
+before expecting the completion screen. Fixed in the test file itself, no
+application code change. A useful reminder that this pass's behavior
+change is broad enough to affect any OTHER pre-existing test that assumed
+"1 click finishes any exercise regardless of its set count" — this was the
+only one that did.
+
 ## Verified results (2026-08-24)
 
 Backend integration (`gymcoach_fitness_test`,

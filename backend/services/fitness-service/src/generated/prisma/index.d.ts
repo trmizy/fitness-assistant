@@ -20843,6 +20843,9 @@ export namespace Prisma {
     sourceType: string | null
     notes: string | null
     trainingCycleId: string | null
+    originalPlannedDate: Date | null
+    rescheduledAt: Date | null
+    rescheduleReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20867,6 +20870,9 @@ export namespace Prisma {
     sourceType: string | null
     notes: string | null
     trainingCycleId: string | null
+    originalPlannedDate: Date | null
+    rescheduledAt: Date | null
+    rescheduleReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20891,6 +20897,9 @@ export namespace Prisma {
     sourceType: number
     notes: number
     trainingCycleId: number
+    originalPlannedDate: number
+    rescheduledAt: number
+    rescheduleReason: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -20937,6 +20946,9 @@ export namespace Prisma {
     sourceType?: true
     notes?: true
     trainingCycleId?: true
+    originalPlannedDate?: true
+    rescheduledAt?: true
+    rescheduleReason?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20961,6 +20973,9 @@ export namespace Prisma {
     sourceType?: true
     notes?: true
     trainingCycleId?: true
+    originalPlannedDate?: true
+    rescheduledAt?: true
+    rescheduleReason?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20985,6 +21000,9 @@ export namespace Prisma {
     sourceType?: true
     notes?: true
     trainingCycleId?: true
+    originalPlannedDate?: true
+    rescheduledAt?: true
+    rescheduleReason?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -21096,6 +21114,9 @@ export namespace Prisma {
     sourceType: string | null
     notes: string | null
     trainingCycleId: string | null
+    originalPlannedDate: Date | null
+    rescheduledAt: Date | null
+    rescheduleReason: string | null
     createdAt: Date
     updatedAt: Date
     _count: WorkoutScheduleCountAggregateOutputType | null
@@ -21139,6 +21160,9 @@ export namespace Prisma {
     sourceType?: boolean
     notes?: boolean
     trainingCycleId?: boolean
+    originalPlannedDate?: boolean
+    rescheduledAt?: boolean
+    rescheduleReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
@@ -21167,6 +21191,9 @@ export namespace Prisma {
     sourceType?: boolean
     notes?: boolean
     trainingCycleId?: boolean
+    originalPlannedDate?: boolean
+    rescheduledAt?: boolean
+    rescheduleReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
@@ -21194,6 +21221,9 @@ export namespace Prisma {
     sourceType?: boolean
     notes?: boolean
     trainingCycleId?: boolean
+    originalPlannedDate?: boolean
+    rescheduledAt?: boolean
+    rescheduleReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -21238,6 +21268,9 @@ export namespace Prisma {
       sourceType: string | null
       notes: string | null
       trainingCycleId: string | null
+      originalPlannedDate: Date | null
+      rescheduledAt: Date | null
+      rescheduleReason: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutSchedule"]>
@@ -21656,6 +21689,9 @@ export namespace Prisma {
     readonly sourceType: FieldRef<"WorkoutSchedule", 'String'>
     readonly notes: FieldRef<"WorkoutSchedule", 'String'>
     readonly trainingCycleId: FieldRef<"WorkoutSchedule", 'String'>
+    readonly originalPlannedDate: FieldRef<"WorkoutSchedule", 'DateTime'>
+    readonly rescheduledAt: FieldRef<"WorkoutSchedule", 'DateTime'>
+    readonly rescheduleReason: FieldRef<"WorkoutSchedule", 'String'>
     readonly createdAt: FieldRef<"WorkoutSchedule", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutSchedule", 'DateTime'>
   }
@@ -48886,6 +48922,9 @@ export namespace Prisma {
     sourceType: 'sourceType',
     notes: 'notes',
     trainingCycleId: 'trainingCycleId',
+    originalPlannedDate: 'originalPlannedDate',
+    rescheduledAt: 'rescheduledAt',
+    rescheduleReason: 'rescheduleReason',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -50920,6 +50959,9 @@ export namespace Prisma {
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
     trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    originalPlannedDate?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduledAt?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduleReason?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     programDay?: XOR<WorkoutProgramDayNullableRelationFilter, WorkoutProgramDayWhereInput> | null
@@ -50948,6 +50990,9 @@ export namespace Prisma {
     sourceType?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
     trainingCycleId?: SortOrderInput | SortOrder
+    originalPlannedDate?: SortOrderInput | SortOrder
+    rescheduledAt?: SortOrderInput | SortOrder
+    rescheduleReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     programDay?: WorkoutProgramDayOrderByWithRelationInput
@@ -50980,6 +51025,9 @@ export namespace Prisma {
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
     trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    originalPlannedDate?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduledAt?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduleReason?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     programDay?: XOR<WorkoutProgramDayNullableRelationFilter, WorkoutProgramDayWhereInput> | null
@@ -51008,6 +51056,9 @@ export namespace Prisma {
     sourceType?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
     trainingCycleId?: SortOrderInput | SortOrder
+    originalPlannedDate?: SortOrderInput | SortOrder
+    rescheduledAt?: SortOrderInput | SortOrder
+    rescheduleReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutScheduleCountOrderByAggregateInput
@@ -51040,6 +51091,9 @@ export namespace Prisma {
     sourceType?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     trainingCycleId?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
+    originalPlannedDate?: DateTimeNullableWithAggregatesFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduledAt?: DateTimeNullableWithAggregatesFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduleReason?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
   }
@@ -55060,6 +55114,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
@@ -55088,6 +55145,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
@@ -55110,6 +55170,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
@@ -55138,6 +55201,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
@@ -55163,6 +55229,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -55184,6 +55253,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -55208,6 +55280,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -59432,6 +59507,9 @@ export namespace Prisma {
     sourceType?: SortOrder
     notes?: SortOrder
     trainingCycleId?: SortOrder
+    originalPlannedDate?: SortOrder
+    rescheduledAt?: SortOrder
+    rescheduleReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -59466,6 +59544,9 @@ export namespace Prisma {
     sourceType?: SortOrder
     notes?: SortOrder
     trainingCycleId?: SortOrder
+    originalPlannedDate?: SortOrder
+    rescheduledAt?: SortOrder
+    rescheduleReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -59490,6 +59571,9 @@ export namespace Prisma {
     sourceType?: SortOrder
     notes?: SortOrder
     trainingCycleId?: SortOrder
+    originalPlannedDate?: SortOrder
+    rescheduledAt?: SortOrder
+    rescheduleReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -64437,6 +64521,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
@@ -64463,6 +64550,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
@@ -64533,6 +64623,9 @@ export namespace Prisma {
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
     trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    originalPlannedDate?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduledAt?: DateTimeNullableFilter<"WorkoutSchedule"> | Date | string | null
+    rescheduleReason?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
   }
@@ -65395,6 +65488,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workout?: WorkoutCreateNestedOneWithoutSchedulesInput
@@ -65421,6 +65517,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
@@ -66104,6 +66203,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
@@ -66130,6 +66232,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
@@ -66907,6 +67012,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
@@ -66934,6 +67042,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -67076,6 +67187,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
@@ -67103,6 +67217,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -69916,6 +70033,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -69981,6 +70101,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
@@ -70007,6 +70130,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
@@ -70031,6 +70157,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -70375,6 +70504,9 @@ export namespace Prisma {
     sourceType?: string | null
     notes?: string | null
     trainingCycleId?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -70435,6 +70567,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workout?: WorkoutUpdateOneWithoutSchedulesNestedInput
@@ -70461,6 +70596,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
@@ -70485,6 +70623,9 @@ export namespace Prisma {
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -70508,6 +70649,9 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    originalPlannedDate?: Date | string | null
+    rescheduledAt?: Date | string | null
+    rescheduleReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -70605,6 +70749,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
@@ -70631,6 +70778,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
@@ -70655,6 +70805,9 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    originalPlannedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rescheduleReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

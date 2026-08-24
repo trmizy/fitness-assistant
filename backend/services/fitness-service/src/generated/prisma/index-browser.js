@@ -352,6 +352,9 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   sourceType: 'sourceType',
   notes: 'notes',
   trainingCycleId: 'trainingCycleId',
+  originalPlannedDate: 'originalPlannedDate',
+  rescheduledAt: 'rescheduledAt',
+  rescheduleReason: 'rescheduleReason',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

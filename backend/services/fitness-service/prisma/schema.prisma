@@ -520,6 +520,16 @@ model WorkoutSchedule {
   sourceType      String?  @map("source_type")
   notes           String?
   trainingCycleId String?  @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
+  // Roadmap P1.2 "Reschedule workout" — pure audit-trail columns. The
+  // reschedule itself is a plain UPDATE of `date` above (same row, same id
+  // — see docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md for why no
+  // separate "logical session" id/row is needed given @@unique([userId,
+  // date]) below already rules out two rows per day, and computeAdherence
+  // already just range-queries `date`). originalPlannedDate is set once,
+  // on the FIRST reschedule only, and never overwritten by later ones.
+  originalPlannedDate DateTime? @map("original_planned_date")
+  rescheduledAt       DateTime? @map("rescheduled_at")
+  rescheduleReason    String?   @map("reschedule_reason")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 

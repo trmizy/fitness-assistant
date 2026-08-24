@@ -4,7 +4,7 @@ import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
-import { assertScheduleDateEditable, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate } from "../utils/schedule-lock.util";
 import { estimate1RM } from "../utils/estimated-1rm.util";
 import {
   evaluateExerciseProgression,
@@ -1822,6 +1822,85 @@ export const workoutService = {
       where: { id },
       data: { status: "CANCELLED", notes: reason },
     });
+  },
+
+  /**
+   * Roadmap P1.2 "Reschedule workout"
+   * (docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md) — moves the SAME
+   * logical session to a new date. Deliberately NOT built on
+   * assertScheduleDateEditable (which restricts every other mutation to
+   * "today only"): a missed (past) session must be reschedulable (case 3
+   * in the impact analysis), and a future session too (case 1) — only the
+   * TARGET date is restricted to today-or-future. This is a plain UPDATE
+   * of `date` on the existing row (never a new row) — see the impact
+   * analysis's "Audit findings" for why that is not just simpler but more
+   * correct than a two-row/logicalScheduleId design, given
+   * @@unique([userId, date]) already rules out two rows per day and
+   * computeAdherence already just range-queries the current `date`.
+   */
+  async rescheduleSchedule(
+    userId: string,
+    id: string,
+    newDateStr: string,
+    reason?: string | null,
+  ) {
+    if (!newDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(newDateStr)) {
+      throw { status: 400, message: "newDate must be YYYY-MM-DD" };
+    }
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    // Case 7 ("completed session cannot be casually moved") + the same
+    // trust boundary skip/cancel already use: workoutId set means a real
+    // session was started/logged. Also excludes SKIPPED/CANCELLED (both
+    // status !== "NOT_STARTED" with workoutId still null) — deliberate,
+    // see the impact analysis's "Scope boundary".
+    if (existing.workoutId || existing.status !== "NOT_STARTED") {
+      throw {
+        status: 409,
+        message: "Only a not-yet-started, not-skipped/cancelled session can be rescheduled",
+      };
+    }
+
+    const newDate = parseDateOnly(newDateStr);
+    if (compareScheduleDate(newDate, new Date()) === "past") {
+      throw { status: 400, message: "Cannot reschedule onto a date in the past" };
+    }
+    if (newDate.getTime() === existing.date.getTime()) {
+      throw { status: 409, message: "This session is already scheduled for that date" };
+    }
+
+    const conflict = await prisma.workoutSchedule.findFirst({
+      where: { userId, date: newDate, id: { not: id } },
+      include: { programDay: { select: { title: true } } },
+    });
+    if (conflict) {
+      throw {
+        status: 409,
+        message: `You already have "${conflict.programDay?.title ?? "a session"}" scheduled for that date`,
+      };
+    }
+
+    try {
+      return await prisma.workoutSchedule.update({
+        where: { id },
+        data: {
+          date: newDate,
+          // Set once, on the FIRST reschedule only — never overwritten by
+          // a later one, so it always points at the truly original plan.
+          originalPlannedDate: existing.originalPlannedDate ?? existing.date,
+          rescheduledAt: new Date(),
+          rescheduleReason: reason ?? null,
+        },
+      });
+    } catch (error: any) {
+      // Defensive: the explicit conflict check above already covers the
+      // common case, but a concurrent request could still race past it —
+      // the DB's own @@unique([userId, date]) is the real guarantee.
+      if (error?.code === "P2002") {
+        throw { status: 409, message: "You already have a session scheduled for that date" };
+      }
+      throw error;
+    }
   },
 
   async importAiPlanToSchedule(userId: string, input: ImportAiPlanDto) {

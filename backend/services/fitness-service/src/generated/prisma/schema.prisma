@@ -500,27 +500,37 @@ model WorkoutProgramExercise {
 
 // 📆 Calendar Scheduling (links user to program days on specific dates)
 model WorkoutSchedule {
-  id                 String    @id @default(uuid())
-  userId             String    @map("user_id")
-  date               DateTime
-  programDayId       String?   @map("program_day_id") // optional: which program day is scheduled
-  workoutId          String?   @map("workout_id") // optional: completed workout
-  status             String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
-  progressPercent    Int       @default(0) @map("progress_percent")
-  startedAt          DateTime? @map("started_at")
-  completedAt        DateTime? @map("completed_at")
-  totalExercises     Int?      @map("total_exercises")
-  completedExercises Int?      @map("completed_exercises")
-  totalSets          Int?      @map("total_sets")
-  completedSets      Int?      @map("completed_sets")
-  durationSeconds    Int?      @map("duration_seconds")
-  caloriesEstimate   Int?      @map("calories_estimate")
-  sourcePlanId       String?   @map("source_plan_id")
-  sourceType         String?   @map("source_type")
-  notes              String?
-  trainingCycleId    String?   @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid())
+  userId              String    @map("user_id")
+  date                DateTime
+  programDayId        String?   @map("program_day_id") // optional: which program day is scheduled
+  workoutId           String?   @map("workout_id") // optional: completed workout
+  status              String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
+  progressPercent     Int       @default(0) @map("progress_percent")
+  startedAt           DateTime? @map("started_at")
+  completedAt         DateTime? @map("completed_at")
+  totalExercises      Int?      @map("total_exercises")
+  completedExercises  Int?      @map("completed_exercises")
+  totalSets           Int?      @map("total_sets")
+  completedSets       Int?      @map("completed_sets")
+  durationSeconds     Int?      @map("duration_seconds")
+  caloriesEstimate    Int?      @map("calories_estimate")
+  sourcePlanId        String?   @map("source_plan_id")
+  sourceType          String?   @map("source_type")
+  notes               String?
+  trainingCycleId     String?   @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
+  // Roadmap P1.2 "Reschedule workout" — pure audit-trail columns. The
+  // reschedule itself is a plain UPDATE of `date` above (same row, same id
+  // — see docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md for why no
+  // separate "logical session" id/row is needed given @@unique([userId,
+  // date]) below already rules out two rows per day, and computeAdherence
+  // already just range-queries `date`). originalPlannedDate is set once,
+  // on the FIRST reschedule only, and never overwritten by later ones.
+  originalPlannedDate DateTime? @map("original_planned_date")
+  rescheduledAt       DateTime? @map("rescheduled_at")
+  rescheduleReason    String?   @map("reschedule_reason")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   programDay      WorkoutProgramDay?    @relation(fields: [programDayId], references: [id], onDelete: SetNull)
   workout         Workout?              @relation(fields: [workoutId], references: [id], onDelete: SetNull)

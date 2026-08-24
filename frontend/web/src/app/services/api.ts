@@ -665,6 +665,16 @@ export const workoutService = {
     return data?.data ?? data;
   },
 
+  // Roadmap P1.2 "Reschedule workout" — moves the same session to a new
+  // date. newDate is a YYYY-MM-DD string.
+  rescheduleSchedule: async (id: string, newDate: string, reason?: string) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/reschedule`, {
+      newDate,
+      reason,
+    });
+    return data?.data ?? data;
+  },
+
   createSchedule: async (input: {
     date: string;
     programDayId: string;

@@ -19,6 +19,7 @@ import {
   BarChart3,
   Zap,
   Calendar,
+  CalendarDays,
   TrendingUp,
   Play,
   GripVertical,
@@ -1298,6 +1299,108 @@ function SkipCancelFeedbackModal({
   );
 }
 
+/** Roadmap P1.2 "Reschedule workout"
+ * (docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md) — a simple date
+ * picker + optional reason, mirroring SkipCancelFeedbackModal's structural
+ * pattern above. The actual authorization (source not-started, target
+ * today-or-future, no conflict) is fully re-checked server-side; this
+ * modal's own `min` on the date input is just a UX nicety, never trusted
+ * as the real guard. */
+function RescheduleModal({
+  scheduleId,
+  currentDateLabel,
+  onClose,
+  onRescheduled,
+}: {
+  scheduleId: string;
+  currentDateLabel: string;
+  onClose: () => void;
+  onRescheduled: () => void;
+}) {
+  const [newDate, setNewDate] = useState("");
+  const [reason, setReason] = useState("");
+  const todayValue = toDateInputValue(new Date());
+
+  const submitMutation = useMutation({
+    mutationFn: () => {
+      if (!newDate) throw new Error("newDate required");
+      return workoutService.rescheduleSchedule(scheduleId, newDate, reason.trim() || undefined);
+    },
+    onSuccess: () => {
+      toast.success("Đã dời lịch buổi tập.");
+      onRescheduled();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Không thể dời lịch buổi tập này.");
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Dời lịch buổi tập</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-zinc-500">
+            Hiện đang lên lịch: <span className="text-zinc-300">{currentDateLabel}</span>
+          </p>
+
+          <div>
+            <p className="text-[11px] text-zinc-500 mb-1">Ngày mới (hôm nay hoặc sau)</p>
+            <input
+              type="date"
+              data-testid="reschedule-date-input"
+              value={newDate}
+              min={todayValue}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50"
+            />
+          </div>
+
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Lý do dời lịch (không bắt buộc)"
+            rows={2}
+            className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+          />
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              data-testid="reschedule-submit-button"
+              onClick={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending || !newDate}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+            >
+              {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Dời lịch
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Feedback status indicator for the day-detail view of a completed/partial
  * session — Phase 2 spec: "feedback status in history." Lets the user open
  * the same completion form again to add or edit their feedback. */
@@ -1382,7 +1485,17 @@ export function WorkoutLogPage() {
   >(null);
 
   // Dynamic Navigation & Stats
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  // Roadmap P1.2 "Reschedule workout" found this real, pre-existing gap:
+  // aiSchedules is only ever fetched for `calendarMonth`'s range
+  // (getMonthRange below), but this defaulted to `new Date()` (today's
+  // month) regardless of the URL's own `date` param — so deep-linking (or
+  // rescheduling) into a DIFFERENT month than the current one silently
+  // showed "nothing scheduled" even though a real schedule existed there,
+  // simply because it was never fetched. Mirrors selectedDate's own
+  // URL-restoration pattern immediately below.
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    initialWorkoutLogState.date ? parseApiDateOnly(initialWorkoutLogState.date) : new Date(),
+  );
   const [latestInBody, setLatestInBody] = useState<any>(null);
   const [inbodyHistory, setInbodyHistory] = useState<any[]>([]);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
@@ -2177,6 +2290,11 @@ export function WorkoutLogPage() {
   >({});
   const [feedbackPrompt, setFeedbackPrompt] = useState<{ scheduleId: string } | null>(null);
   const [skipCancelPrompt, setSkipCancelPrompt] = useState<{ scheduleId: string } | null>(null);
+  // Roadmap P1.2 "Reschedule workout".
+  const [reschedulePrompt, setReschedulePrompt] = useState<{
+    scheduleId: string;
+    currentDateLabel: string;
+  } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Wall-clock end-timestamp for the rest timer (gap analysis P0 "Rest
@@ -4839,6 +4957,38 @@ export function WorkoutLogPage() {
                       );
                     })()}
 
+                    {/* Reschedule — roadmap P1.2. Deliberately NOT gated on
+                     * isSelectedDayLocked (unlike skip/cancel above): a
+                     * missed PAST session must be reschedulable (the whole
+                     * point of the feature), and so must a future one.
+                     * Backend independently re-checks status==="NOT_STARTED"
+                     * — this is the same condition, just mirrored here so
+                     * the button doesn't invite an action the server will
+                     * reject anyway. */}
+                    {(() => {
+                      const hasExistingSession = Boolean(
+                        detailSchedule?.workoutId || detailSchedule?.workout?.id,
+                      );
+                      if (!detailSchedule?.id || hasExistingSession) return null;
+                      if (detailSchedule.status !== "NOT_STARTED") return null;
+                      return (
+                        <button
+                          data-testid="reschedule-trigger"
+                          onClick={() =>
+                            setReschedulePrompt({
+                              scheduleId: detailSchedule.id,
+                              currentDateLabel: parseApiDateOnly(
+                                detailSchedule.date,
+                              ).toLocaleDateString("vi-VN"),
+                            })
+                          }
+                          className="w-full mt-2 py-2 rounded-xl border border-zinc-700/40 text-[11px] text-zinc-500 hover:text-sky-300 hover:bg-zinc-800/40 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <CalendarDays className="w-3 h-3" /> Dời lịch buổi tập
+                        </button>
+                      );
+                    })()}
+
                     {detailSchedule?.id &&
                       (detailSchedule.status === "COMPLETED" || detailSchedule.status === "PARTIALLY_COMPLETED") && (
                         <SessionFeedbackStatusRow
@@ -6274,6 +6424,15 @@ export function WorkoutLogPage() {
         <SkipCancelFeedbackModal
           scheduleId={skipCancelPrompt.scheduleId}
           onClose={() => setSkipCancelPrompt(null)}
+        />
+      )}
+
+      {reschedulePrompt && (
+        <RescheduleModal
+          scheduleId={reschedulePrompt.scheduleId}
+          currentDateLabel={reschedulePrompt.currentDateLabel}
+          onClose={() => setReschedulePrompt(null)}
+          onRescheduled={() => void refetchProgramAndSchedules()}
         />
       )}
 

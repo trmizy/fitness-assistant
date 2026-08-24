@@ -609,6 +609,29 @@ export const workoutController = {
     }
   },
 
+  // Roadmap P1.2 "Reschedule workout" — moves the SAME logical session to
+  // a new date (see workoutService.rescheduleSchedule's own doc comment).
+  async rescheduleSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const newDate = typeof req.body?.newDate === "string" ? req.body.newDate : "";
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() || null : null;
+      const result = await workoutService.rescheduleSchedule(
+        req.user!.id,
+        req.params.id,
+        newDate,
+        reason,
+      );
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error rescheduling schedule");
+      res.status(500).json({ error: "Failed to reschedule schedule" });
+    }
+  },
+
   // Phase 2 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — session
   // feedback addressable directly by schedule id (works for sessions
   // outside a training cycle too, unlike the older cycle-nested endpoint).

@@ -79,6 +79,12 @@ router.post(
   authMiddleware,
   workoutController.skipSchedule as any,
 );
+// Roadmap P1.2 "Reschedule workout" — sibling of /skip and /cancel above.
+router.post(
+  "/schedules/:id/reschedule",
+  authMiddleware,
+  workoutController.rescheduleSchedule as any,
+);
 router.post(
   "/schedules/:id/cancel",
   authMiddleware,
