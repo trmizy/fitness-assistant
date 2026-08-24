@@ -780,6 +780,14 @@ exports.Prisma.ExerciseReviewDecisionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkoutMutationEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  result: 'result',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -886,7 +894,8 @@ exports.Prisma.ModelName = {
   RecipeIngredient: 'RecipeIngredient',
   ImportBatch: 'ImportBatch',
   ImportRecord: 'ImportRecord',
-  ExerciseReviewDecision: 'ExerciseReviewDecision'
+  ExerciseReviewDecision: 'ExerciseReviewDecision',
+  WorkoutMutationEvent: 'WorkoutMutationEvent'
 };
 
 /**

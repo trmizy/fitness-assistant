@@ -212,10 +212,16 @@ export const workoutController = {
   async updateSet(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = updateWorkoutSetSchema.parse(req.body);
+      // Roadmap P1.4 "Active-workout offline resilience" — read directly
+      // from the raw body (never part of the zod-validated `data`, which
+      // flows straight into a Prisma `data:` object and would otherwise
+      // leak an unknown field into it).
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
       const result = await workoutService.updateSet(
         req.params.setId,
         req.user!.id,
         data,
+        eventId,
       );
       res.json(result);
     } catch (error: any) {
@@ -316,11 +322,14 @@ export const workoutController = {
       // exists: it's the only way the actually-performed weight/reps/RPE/RIR
       // and a session-only exercise swap ever reach the persisted log.
       const body = completeScheduleExerciseSchema.parse(req.body ?? {});
+      // Roadmap P1.4 "Active-workout offline resilience".
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
       const result = await workoutService.completeScheduleExercise(
         req.user!.id,
         req.params.id,
         req.params.programExerciseId,
         body,
+        eventId,
       );
       res.json({ success: true, data: result });
     } catch (error: any) {
@@ -351,10 +360,13 @@ export const workoutController = {
     res: Response,
   ): Promise<void> {
     try {
+      // Roadmap P1.4 "Active-workout offline resilience".
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
       const result = await workoutService.undoCompleteScheduleExercise(
         req.user!.id,
         req.params.id,
         req.params.programExerciseId,
+        eventId,
       );
       res.json({ success: true, data: result });
     } catch (error: any) {

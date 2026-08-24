@@ -231,7 +231,8 @@ test(
       await service.createExerciseGroup(userId, programDayId, [A, B], "SUPERSET", 20, 90);
 
       const program = await service.getCurrentProgram(userId);
-      const day = program.days.find((d: any) => d.id === programDayId);
+      const day = program?.days.find((d: any) => d.id === programDayId);
+      assert.ok(day, "program day must be present in getCurrentProgram's response");
       assert.equal(day.exerciseGroups.length, 1);
       assert.equal(day.exerciseGroups[0].type, "SUPERSET");
       assert.equal(day.exerciseGroups[0].members.length, 2);

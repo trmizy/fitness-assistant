@@ -1425,3 +1425,25 @@ model ExerciseReviewDecision {
   @@index([decision])
   @@map("exercise_review_decisions")
 }
+
+// Roadmap P1.4 "Active-workout offline resilience"
+// (docs/features/ACTIVE_WORKOUT_OFFLINE_RESILIENCE_IMPACT_ANALYSIS.md) —
+// direct structural mirror of payment-service's LedgerOperation
+// (ledger-idempotency.ts): `id` IS the client-generated idempotency key
+// (eventId), `result` is the exact JSON response replayed on a retry
+// instead of re-executing the mutation. Scoped to the active-workout
+// mutation surface only (updateSet, completeScheduleExercise,
+// undoCompleteScheduleExercise) — see the impact analysis's audit
+// findings for why every OTHER active-workout mutation is already
+// idempotent by construction (an UPDATE by id, never an INSERT) and
+// doesn't need this.
+model WorkoutMutationEvent {
+  id        String   @id // client-generated eventId (UUID) — the idempotency key itself
+  userId    String   @map("user_id")
+  type      String   // SET_COMPLETED | SET_UNDONE | EXERCISE_COMPLETED
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("workout_mutation_events")
+}

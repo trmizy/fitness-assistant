@@ -228,6 +228,11 @@ export type ImportRecord = $Result.DefaultSelection<Prisma.$ImportRecordPayload>
  * 
  */
 export type ExerciseReviewDecision = $Result.DefaultSelection<Prisma.$ExerciseReviewDecisionPayload>
+/**
+ * Model WorkoutMutationEvent
+ * 
+ */
+export type WorkoutMutationEvent = $Result.DefaultSelection<Prisma.$WorkoutMutationEventPayload>
 
 /**
  * Enums
@@ -848,6 +853,16 @@ export class PrismaClient<
     * ```
     */
   get exerciseReviewDecision(): Prisma.ExerciseReviewDecisionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.workoutMutationEvent`: Exposes CRUD operations for the **WorkoutMutationEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkoutMutationEvents
+    * const workoutMutationEvents = await prisma.workoutMutationEvent.findMany()
+    * ```
+    */
+  get workoutMutationEvent(): Prisma.WorkoutMutationEventDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1331,7 +1346,8 @@ export namespace Prisma {
     RecipeIngredient: 'RecipeIngredient',
     ImportBatch: 'ImportBatch',
     ImportRecord: 'ImportRecord',
-    ExerciseReviewDecision: 'ExerciseReviewDecision'
+    ExerciseReviewDecision: 'ExerciseReviewDecision',
+    WorkoutMutationEvent: 'WorkoutMutationEvent'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1347,7 +1363,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "exerciseReviewDecision"
+      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "exerciseReviewDecision" | "workoutMutationEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4358,6 +4374,76 @@ export namespace Prisma {
           count: {
             args: Prisma.ExerciseReviewDecisionCountArgs<ExtArgs>
             result: $Utils.Optional<ExerciseReviewDecisionCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkoutMutationEvent: {
+        payload: Prisma.$WorkoutMutationEventPayload<ExtArgs>
+        fields: Prisma.WorkoutMutationEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkoutMutationEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkoutMutationEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkoutMutationEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkoutMutationEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          findMany: {
+            args: Prisma.WorkoutMutationEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>[]
+          }
+          create: {
+            args: Prisma.WorkoutMutationEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          createMany: {
+            args: Prisma.WorkoutMutationEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkoutMutationEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkoutMutationEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          update: {
+            args: Prisma.WorkoutMutationEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkoutMutationEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkoutMutationEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WorkoutMutationEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutMutationEventPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkoutMutationEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkoutMutationEvent>
+          }
+          groupBy: {
+            args: Prisma.WorkoutMutationEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutMutationEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkoutMutationEventCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutMutationEventCountAggregateOutputType> | number
           }
         }
       }
@@ -50887,6 +50973,880 @@ export namespace Prisma {
 
 
   /**
+   * Model WorkoutMutationEvent
+   */
+
+  export type AggregateWorkoutMutationEvent = {
+    _count: WorkoutMutationEventCountAggregateOutputType | null
+    _min: WorkoutMutationEventMinAggregateOutputType | null
+    _max: WorkoutMutationEventMaxAggregateOutputType | null
+  }
+
+  export type WorkoutMutationEventMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    type: string | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutMutationEventMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    type: string | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutMutationEventCountAggregateOutputType = {
+    id: number
+    userId: number
+    type: number
+    result: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type WorkoutMutationEventMinAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    createdAt?: true
+  }
+
+  export type WorkoutMutationEventMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    createdAt?: true
+  }
+
+  export type WorkoutMutationEventCountAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    result?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type WorkoutMutationEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutMutationEvent to aggregate.
+     */
+    where?: WorkoutMutationEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutMutationEvents to fetch.
+     */
+    orderBy?: WorkoutMutationEventOrderByWithRelationInput | WorkoutMutationEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkoutMutationEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutMutationEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutMutationEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkoutMutationEvents
+    **/
+    _count?: true | WorkoutMutationEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkoutMutationEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkoutMutationEventMaxAggregateInputType
+  }
+
+  export type GetWorkoutMutationEventAggregateType<T extends WorkoutMutationEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkoutMutationEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkoutMutationEvent[P]>
+      : GetScalarType<T[P], AggregateWorkoutMutationEvent[P]>
+  }
+
+
+
+
+  export type WorkoutMutationEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkoutMutationEventWhereInput
+    orderBy?: WorkoutMutationEventOrderByWithAggregationInput | WorkoutMutationEventOrderByWithAggregationInput[]
+    by: WorkoutMutationEventScalarFieldEnum[] | WorkoutMutationEventScalarFieldEnum
+    having?: WorkoutMutationEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkoutMutationEventCountAggregateInputType | true
+    _min?: WorkoutMutationEventMinAggregateInputType
+    _max?: WorkoutMutationEventMaxAggregateInputType
+  }
+
+  export type WorkoutMutationEventGroupByOutputType = {
+    id: string
+    userId: string
+    type: string
+    result: JsonValue
+    createdAt: Date
+    _count: WorkoutMutationEventCountAggregateOutputType | null
+    _min: WorkoutMutationEventMinAggregateOutputType | null
+    _max: WorkoutMutationEventMaxAggregateOutputType | null
+  }
+
+  type GetWorkoutMutationEventGroupByPayload<T extends WorkoutMutationEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkoutMutationEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkoutMutationEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkoutMutationEventGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkoutMutationEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkoutMutationEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutMutationEvent"]>
+
+  export type WorkoutMutationEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutMutationEvent"]>
+
+  export type WorkoutMutationEventSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    result?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $WorkoutMutationEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkoutMutationEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      type: string
+      result: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["workoutMutationEvent"]>
+    composites: {}
+  }
+
+  type WorkoutMutationEventGetPayload<S extends boolean | null | undefined | WorkoutMutationEventDefaultArgs> = $Result.GetResult<Prisma.$WorkoutMutationEventPayload, S>
+
+  type WorkoutMutationEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WorkoutMutationEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WorkoutMutationEventCountAggregateInputType | true
+    }
+
+  export interface WorkoutMutationEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkoutMutationEvent'], meta: { name: 'WorkoutMutationEvent' } }
+    /**
+     * Find zero or one WorkoutMutationEvent that matches the filter.
+     * @param {WorkoutMutationEventFindUniqueArgs} args - Arguments to find a WorkoutMutationEvent
+     * @example
+     * // Get one WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkoutMutationEventFindUniqueArgs>(args: SelectSubset<T, WorkoutMutationEventFindUniqueArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one WorkoutMutationEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WorkoutMutationEventFindUniqueOrThrowArgs} args - Arguments to find a WorkoutMutationEvent
+     * @example
+     * // Get one WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkoutMutationEventFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkoutMutationEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first WorkoutMutationEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventFindFirstArgs} args - Arguments to find a WorkoutMutationEvent
+     * @example
+     * // Get one WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkoutMutationEventFindFirstArgs>(args?: SelectSubset<T, WorkoutMutationEventFindFirstArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first WorkoutMutationEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventFindFirstOrThrowArgs} args - Arguments to find a WorkoutMutationEvent
+     * @example
+     * // Get one WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkoutMutationEventFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkoutMutationEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more WorkoutMutationEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkoutMutationEvents
+     * const workoutMutationEvents = await prisma.workoutMutationEvent.findMany()
+     * 
+     * // Get first 10 WorkoutMutationEvents
+     * const workoutMutationEvents = await prisma.workoutMutationEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workoutMutationEventWithIdOnly = await prisma.workoutMutationEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkoutMutationEventFindManyArgs>(args?: SelectSubset<T, WorkoutMutationEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a WorkoutMutationEvent.
+     * @param {WorkoutMutationEventCreateArgs} args - Arguments to create a WorkoutMutationEvent.
+     * @example
+     * // Create one WorkoutMutationEvent
+     * const WorkoutMutationEvent = await prisma.workoutMutationEvent.create({
+     *   data: {
+     *     // ... data to create a WorkoutMutationEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkoutMutationEventCreateArgs>(args: SelectSubset<T, WorkoutMutationEventCreateArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many WorkoutMutationEvents.
+     * @param {WorkoutMutationEventCreateManyArgs} args - Arguments to create many WorkoutMutationEvents.
+     * @example
+     * // Create many WorkoutMutationEvents
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkoutMutationEventCreateManyArgs>(args?: SelectSubset<T, WorkoutMutationEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkoutMutationEvents and returns the data saved in the database.
+     * @param {WorkoutMutationEventCreateManyAndReturnArgs} args - Arguments to create many WorkoutMutationEvents.
+     * @example
+     * // Create many WorkoutMutationEvents
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkoutMutationEvents and only return the `id`
+     * const workoutMutationEventWithIdOnly = await prisma.workoutMutationEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkoutMutationEventCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutMutationEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a WorkoutMutationEvent.
+     * @param {WorkoutMutationEventDeleteArgs} args - Arguments to delete one WorkoutMutationEvent.
+     * @example
+     * // Delete one WorkoutMutationEvent
+     * const WorkoutMutationEvent = await prisma.workoutMutationEvent.delete({
+     *   where: {
+     *     // ... filter to delete one WorkoutMutationEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkoutMutationEventDeleteArgs>(args: SelectSubset<T, WorkoutMutationEventDeleteArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one WorkoutMutationEvent.
+     * @param {WorkoutMutationEventUpdateArgs} args - Arguments to update one WorkoutMutationEvent.
+     * @example
+     * // Update one WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkoutMutationEventUpdateArgs>(args: SelectSubset<T, WorkoutMutationEventUpdateArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more WorkoutMutationEvents.
+     * @param {WorkoutMutationEventDeleteManyArgs} args - Arguments to filter WorkoutMutationEvents to delete.
+     * @example
+     * // Delete a few WorkoutMutationEvents
+     * const { count } = await prisma.workoutMutationEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkoutMutationEventDeleteManyArgs>(args?: SelectSubset<T, WorkoutMutationEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkoutMutationEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkoutMutationEvents
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkoutMutationEventUpdateManyArgs>(args: SelectSubset<T, WorkoutMutationEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one WorkoutMutationEvent.
+     * @param {WorkoutMutationEventUpsertArgs} args - Arguments to update or create a WorkoutMutationEvent.
+     * @example
+     * // Update or create a WorkoutMutationEvent
+     * const workoutMutationEvent = await prisma.workoutMutationEvent.upsert({
+     *   create: {
+     *     // ... data to create a WorkoutMutationEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkoutMutationEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkoutMutationEventUpsertArgs>(args: SelectSubset<T, WorkoutMutationEventUpsertArgs<ExtArgs>>): Prisma__WorkoutMutationEventClient<$Result.GetResult<Prisma.$WorkoutMutationEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of WorkoutMutationEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventCountArgs} args - Arguments to filter WorkoutMutationEvents to count.
+     * @example
+     * // Count the number of WorkoutMutationEvents
+     * const count = await prisma.workoutMutationEvent.count({
+     *   where: {
+     *     // ... the filter for the WorkoutMutationEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkoutMutationEventCountArgs>(
+      args?: Subset<T, WorkoutMutationEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkoutMutationEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkoutMutationEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkoutMutationEventAggregateArgs>(args: Subset<T, WorkoutMutationEventAggregateArgs>): Prisma.PrismaPromise<GetWorkoutMutationEventAggregateType<T>>
+
+    /**
+     * Group by WorkoutMutationEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutMutationEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkoutMutationEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkoutMutationEventGroupByArgs['orderBy'] }
+        : { orderBy?: WorkoutMutationEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkoutMutationEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkoutMutationEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkoutMutationEvent model
+   */
+  readonly fields: WorkoutMutationEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkoutMutationEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkoutMutationEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkoutMutationEvent model
+   */ 
+  interface WorkoutMutationEventFieldRefs {
+    readonly id: FieldRef<"WorkoutMutationEvent", 'String'>
+    readonly userId: FieldRef<"WorkoutMutationEvent", 'String'>
+    readonly type: FieldRef<"WorkoutMutationEvent", 'String'>
+    readonly result: FieldRef<"WorkoutMutationEvent", 'Json'>
+    readonly createdAt: FieldRef<"WorkoutMutationEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkoutMutationEvent findUnique
+   */
+  export type WorkoutMutationEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutMutationEvent to fetch.
+     */
+    where: WorkoutMutationEventWhereUniqueInput
+  }
+
+  /**
+   * WorkoutMutationEvent findUniqueOrThrow
+   */
+  export type WorkoutMutationEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutMutationEvent to fetch.
+     */
+    where: WorkoutMutationEventWhereUniqueInput
+  }
+
+  /**
+   * WorkoutMutationEvent findFirst
+   */
+  export type WorkoutMutationEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutMutationEvent to fetch.
+     */
+    where?: WorkoutMutationEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutMutationEvents to fetch.
+     */
+    orderBy?: WorkoutMutationEventOrderByWithRelationInput | WorkoutMutationEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutMutationEvents.
+     */
+    cursor?: WorkoutMutationEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutMutationEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutMutationEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutMutationEvents.
+     */
+    distinct?: WorkoutMutationEventScalarFieldEnum | WorkoutMutationEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutMutationEvent findFirstOrThrow
+   */
+  export type WorkoutMutationEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutMutationEvent to fetch.
+     */
+    where?: WorkoutMutationEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutMutationEvents to fetch.
+     */
+    orderBy?: WorkoutMutationEventOrderByWithRelationInput | WorkoutMutationEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutMutationEvents.
+     */
+    cursor?: WorkoutMutationEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutMutationEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutMutationEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutMutationEvents.
+     */
+    distinct?: WorkoutMutationEventScalarFieldEnum | WorkoutMutationEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutMutationEvent findMany
+   */
+  export type WorkoutMutationEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutMutationEvents to fetch.
+     */
+    where?: WorkoutMutationEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutMutationEvents to fetch.
+     */
+    orderBy?: WorkoutMutationEventOrderByWithRelationInput | WorkoutMutationEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkoutMutationEvents.
+     */
+    cursor?: WorkoutMutationEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutMutationEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutMutationEvents.
+     */
+    skip?: number
+    distinct?: WorkoutMutationEventScalarFieldEnum | WorkoutMutationEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutMutationEvent create
+   */
+  export type WorkoutMutationEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a WorkoutMutationEvent.
+     */
+    data: XOR<WorkoutMutationEventCreateInput, WorkoutMutationEventUncheckedCreateInput>
+  }
+
+  /**
+   * WorkoutMutationEvent createMany
+   */
+  export type WorkoutMutationEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkoutMutationEvents.
+     */
+    data: WorkoutMutationEventCreateManyInput | WorkoutMutationEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutMutationEvent createManyAndReturn
+   */
+  export type WorkoutMutationEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many WorkoutMutationEvents.
+     */
+    data: WorkoutMutationEventCreateManyInput | WorkoutMutationEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutMutationEvent update
+   */
+  export type WorkoutMutationEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a WorkoutMutationEvent.
+     */
+    data: XOR<WorkoutMutationEventUpdateInput, WorkoutMutationEventUncheckedUpdateInput>
+    /**
+     * Choose, which WorkoutMutationEvent to update.
+     */
+    where: WorkoutMutationEventWhereUniqueInput
+  }
+
+  /**
+   * WorkoutMutationEvent updateMany
+   */
+  export type WorkoutMutationEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkoutMutationEvents.
+     */
+    data: XOR<WorkoutMutationEventUpdateManyMutationInput, WorkoutMutationEventUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkoutMutationEvents to update
+     */
+    where?: WorkoutMutationEventWhereInput
+  }
+
+  /**
+   * WorkoutMutationEvent upsert
+   */
+  export type WorkoutMutationEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the WorkoutMutationEvent to update in case it exists.
+     */
+    where: WorkoutMutationEventWhereUniqueInput
+    /**
+     * In case the WorkoutMutationEvent found by the `where` argument doesn't exist, create a new WorkoutMutationEvent with this data.
+     */
+    create: XOR<WorkoutMutationEventCreateInput, WorkoutMutationEventUncheckedCreateInput>
+    /**
+     * In case the WorkoutMutationEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkoutMutationEventUpdateInput, WorkoutMutationEventUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkoutMutationEvent delete
+   */
+  export type WorkoutMutationEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+    /**
+     * Filter which WorkoutMutationEvent to delete.
+     */
+    where: WorkoutMutationEventWhereUniqueInput
+  }
+
+  /**
+   * WorkoutMutationEvent deleteMany
+   */
+  export type WorkoutMutationEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutMutationEvents to delete
+     */
+    where?: WorkoutMutationEventWhereInput
+  }
+
+  /**
+   * WorkoutMutationEvent without action
+   */
+  export type WorkoutMutationEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutMutationEvent
+     */
+    select?: WorkoutMutationEventSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -51685,6 +52645,17 @@ export namespace Prisma {
   };
 
   export type ExerciseReviewDecisionScalarFieldEnum = (typeof ExerciseReviewDecisionScalarFieldEnum)[keyof typeof ExerciseReviewDecisionScalarFieldEnum]
+
+
+  export const WorkoutMutationEventScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    type: 'type',
+    result: 'result',
+    createdAt: 'createdAt'
+  };
+
+  export type WorkoutMutationEventScalarFieldEnum = (typeof WorkoutMutationEventScalarFieldEnum)[keyof typeof WorkoutMutationEventScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -55972,6 +56943,58 @@ export namespace Prisma {
     reviewerId?: StringNullableWithAggregatesFilter<"ExerciseReviewDecision"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ExerciseReviewDecision"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ExerciseReviewDecision"> | Date | string
+  }
+
+  export type WorkoutMutationEventWhereInput = {
+    AND?: WorkoutMutationEventWhereInput | WorkoutMutationEventWhereInput[]
+    OR?: WorkoutMutationEventWhereInput[]
+    NOT?: WorkoutMutationEventWhereInput | WorkoutMutationEventWhereInput[]
+    id?: StringFilter<"WorkoutMutationEvent"> | string
+    userId?: StringFilter<"WorkoutMutationEvent"> | string
+    type?: StringFilter<"WorkoutMutationEvent"> | string
+    result?: JsonFilter<"WorkoutMutationEvent">
+    createdAt?: DateTimeFilter<"WorkoutMutationEvent"> | Date | string
+  }
+
+  export type WorkoutMutationEventOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutMutationEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkoutMutationEventWhereInput | WorkoutMutationEventWhereInput[]
+    OR?: WorkoutMutationEventWhereInput[]
+    NOT?: WorkoutMutationEventWhereInput | WorkoutMutationEventWhereInput[]
+    userId?: StringFilter<"WorkoutMutationEvent"> | string
+    type?: StringFilter<"WorkoutMutationEvent"> | string
+    result?: JsonFilter<"WorkoutMutationEvent">
+    createdAt?: DateTimeFilter<"WorkoutMutationEvent"> | Date | string
+  }, "id">
+
+  export type WorkoutMutationEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+    _count?: WorkoutMutationEventCountOrderByAggregateInput
+    _max?: WorkoutMutationEventMaxOrderByAggregateInput
+    _min?: WorkoutMutationEventMinOrderByAggregateInput
+  }
+
+  export type WorkoutMutationEventScalarWhereWithAggregatesInput = {
+    AND?: WorkoutMutationEventScalarWhereWithAggregatesInput | WorkoutMutationEventScalarWhereWithAggregatesInput[]
+    OR?: WorkoutMutationEventScalarWhereWithAggregatesInput[]
+    NOT?: WorkoutMutationEventScalarWhereWithAggregatesInput | WorkoutMutationEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkoutMutationEvent"> | string
+    userId?: StringWithAggregatesFilter<"WorkoutMutationEvent"> | string
+    type?: StringWithAggregatesFilter<"WorkoutMutationEvent"> | string
+    result?: JsonWithAggregatesFilter<"WorkoutMutationEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"WorkoutMutationEvent"> | Date | string
   }
 
   export type ExerciseCreateInput = {
@@ -60694,6 +61717,62 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WorkoutMutationEventCreateInput = {
+    id: string
+    userId: string
+    type: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutMutationEventUncheckedCreateInput = {
+    id: string
+    userId: string
+    type: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutMutationEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutMutationEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutMutationEventCreateManyInput = {
+    id: string
+    userId: string
+    type: string
+    result: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutMutationEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutMutationEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    result?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -63918,6 +64997,28 @@ export namespace Prisma {
     reviewerId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type WorkoutMutationEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutMutationEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutMutationEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type ExerciseCreatemuscleGroupsActivatedInput = {
@@ -74948,6 +76049,10 @@ export namespace Prisma {
      * @deprecated Use ExerciseReviewDecisionDefaultArgs instead
      */
     export type ExerciseReviewDecisionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ExerciseReviewDecisionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use WorkoutMutationEventDefaultArgs instead
+     */
+    export type WorkoutMutationEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutMutationEventDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

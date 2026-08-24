@@ -5,6 +5,7 @@ import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
 import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate } from "../utils/schedule-lock.util";
+import { withIdempotentEvent } from "../utils/workout-idempotency.util";
 import { estimate1RM } from "../utils/estimated-1rm.util";
 import {
   evaluateExerciseProgression,
@@ -891,7 +892,7 @@ export const workoutService = {
     };
   },
 
-  async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
+  async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto, eventId?: string | null) {
     const existing = await workoutRepository.findSetWithOwner(setId, userId);
     if (!existing) throw { status: 404, message: "Set not found" };
     const workoutExerciseForLock = await prisma.workoutExercise.findFirst({
@@ -901,40 +902,56 @@ export const workoutService = {
     if (workoutExerciseForLock?.workoutId) {
       await assertWorkoutEditableByWorkoutId(workoutExerciseForLock.workoutId);
     }
-    const updated = await workoutRepository.updateSet(setId, data);
-    const workoutExercise = await prisma.workoutExercise.findFirst({
-      where: { id: existing.workoutExerciseId, workout: { userId } },
-      select: { workoutId: true, exerciseId: true, programExerciseId: true },
-    });
-    // Roadmap P1.1 "true set-by-set table UI" — the recompute already ran
-    // here before this change, its result was just discarded. Returning it
-    // lets a caller completing the LAST remaining set of an exercise via
-    // this endpoint (instead of completeScheduleExercise, which would
-    // otherwise overwrite every SIBLING set's already-logged distinct
-    // values — see docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md)
-    // learn the same completedExercises/totalExercises/progressPercent/
-    // status/trainingCycleId completeScheduleExercise's response already
-    // carries, without a second network round-trip. `undefined` (the
-    // pre-existing behavior) when this set isn't linked to a schedule at
-    // all (the ad-hoc/freeform logging path).
-    let progress: Awaited<ReturnType<typeof recomputeScheduleProgress>> | undefined;
-    if (workoutExercise?.workoutId) {
-      const schedule = await prisma.workoutSchedule.findFirst({
-        where: { userId, workoutId: workoutExercise.workoutId },
-        select: { id: true },
-      });
-      if (schedule) {
-        progress = await prisma.$transaction((tx) =>
-          recomputeScheduleProgress(tx, schedule.id, userId, {
-            sessionId: workoutExercise.workoutId!,
-            workoutId: workoutExercise.workoutId!,
-            exerciseId: workoutExercise.exerciseId,
-            programExerciseId: workoutExercise.programExerciseId ?? undefined,
-          }),
-        );
-      }
-    }
-    return { ...updated, progress };
+
+    // Roadmap P1.4 "Active-workout offline resilience" — the update and
+    // its progress recompute now run in ONE transaction (previously two
+    // separate operations) specifically so the idempotency check below is
+    // atomic with the mutation: either both the ledger row and the write
+    // commit together, or a crash rolls back both and a retry starts
+    // clean. See workout-idempotency.util.ts's own doc comment.
+    return prisma.$transaction((tx) =>
+      withIdempotentEvent(
+        tx,
+        eventId,
+        userId,
+        data.completed === false ? "SET_UNDONE" : "SET_COMPLETED",
+        async () => {
+          const updated = await tx.workoutSet.update({ where: { id: setId }, data });
+          const workoutExercise = await tx.workoutExercise.findFirst({
+            where: { id: existing.workoutExerciseId, workout: { userId } },
+            select: { workoutId: true, exerciseId: true, programExerciseId: true },
+          });
+          // Roadmap P1.1 "true set-by-set table UI" — the recompute already
+          // ran here before that change, its result was just discarded.
+          // Returning it lets a caller completing the LAST remaining set of
+          // an exercise via this endpoint (instead of
+          // completeScheduleExercise, which would otherwise overwrite every
+          // SIBLING set's already-logged distinct values — see
+          // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md) learn the
+          // same completedExercises/totalExercises/progressPercent/status/
+          // trainingCycleId completeScheduleExercise's response already
+          // carries, without a second network round-trip. `undefined` (the
+          // pre-existing behavior) when this set isn't linked to a
+          // schedule at all (the ad-hoc/freeform logging path).
+          let progress: Awaited<ReturnType<typeof recomputeScheduleProgress>> | undefined;
+          if (workoutExercise?.workoutId) {
+            const schedule = await tx.workoutSchedule.findFirst({
+              where: { userId, workoutId: workoutExercise.workoutId },
+              select: { id: true },
+            });
+            if (schedule) {
+              progress = await recomputeScheduleProgress(tx, schedule.id, userId, {
+                sessionId: workoutExercise.workoutId!,
+                workoutId: workoutExercise.workoutId!,
+                exerciseId: workoutExercise.exerciseId,
+                programExerciseId: workoutExercise.programExerciseId ?? undefined,
+              });
+            }
+          }
+          return { ...updated, progress };
+        },
+      ),
+    );
   },
 
   // POST /workouts/:id/sets - append a single set to an existing workout. Finds or
@@ -1192,6 +1209,7 @@ export const workoutService = {
     scheduleId: string,
     programExerciseId: string,
     performed?: CompleteScheduleExerciseDto,
+    eventId?: string | null,
   ) {
     // performed carries what the user ACTUALLY logged in WorkoutLogPage's
     // "Ghi chép" card (weight/reps/RPE/RIR) and/or a session-only exercise
@@ -1203,7 +1221,10 @@ export const workoutService = {
     if (performed?.exerciseId) {
       await validateExerciseIds([performed.exerciseId]);
     }
-    return prisma.$transaction(async (tx) => {
+    // Roadmap P1.4 "Active-workout offline resilience" — see
+    // workout-idempotency.util.ts's own doc comment. Optional eventId,
+    // fully backward compatible with every existing caller.
+    return prisma.$transaction((tx) => withIdempotentEvent(tx, eventId, userId, "EXERCISE_COMPLETED", async () => {
       const schedule = await tx.workoutSchedule.findFirst({
         where: { id: scheduleId, userId },
         include: {
@@ -1377,7 +1398,7 @@ export const workoutService = {
         programExerciseId,
         exerciseCompleted: true,
       });
-    });
+    }));
   },
 
   // Roadmap P1.6 "undo last set" / Milestone P1-A exit criterion. Deliberately
@@ -1397,8 +1418,11 @@ export const workoutService = {
     userId: string,
     scheduleId: string,
     programExerciseId: string,
+    eventId?: string | null,
   ) {
-    return prisma.$transaction(async (tx) => {
+    // Roadmap P1.4 "Active-workout offline resilience" — same pattern as
+    // completeScheduleExercise above.
+    return prisma.$transaction((tx) => withIdempotentEvent(tx, eventId, userId, "EXERCISE_UNDONE", async () => {
       const schedule = await tx.workoutSchedule.findFirst({
         where: { id: scheduleId, userId },
       });
@@ -1428,7 +1452,7 @@ export const workoutService = {
         programExerciseId,
         exerciseCompleted: false,
       });
-    });
+    }));
   },
 
   async createManualProgram(userId: string, input: CreateManualProgramDto) {

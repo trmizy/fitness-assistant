@@ -66,6 +66,12 @@ import {
 } from "./active-log-draft.utils";
 import { computeNextExerciseRestSeconds } from "./exercise-group.utils";
 import {
+  enqueueWorkoutEvent,
+  getPendingWorkoutEvents,
+  removeWorkoutEvent,
+  buildQueuedSetEvent,
+} from "./active-workout-offline-queue.utils";
+import {
   computeMuscleGroupDistribution,
   computeActivityTypeDistribution,
 } from "./workout-analytics.utils";
@@ -79,6 +85,7 @@ import {
 } from "./schedule-lock.utils";
 import { requestWakeLockSafe, releaseWakeLockSafe } from "./wake-lock.utils";
 import {
+  api,
   workoutService,
   inbodyService,
   sessionFeedbackService,
@@ -1496,6 +1503,14 @@ export function WorkoutLogPage() {
   >({});
   const workoutSetsFetchedForWorkoutIdRef = useRef<string | null>(null);
   const workoutStartAttemptedForScheduleIdRef = useRef<string | null>(null);
+  // Roadmap P1.4 "Active-workout offline resilience" — how many set
+  // complete/undo events are sitting in the durable local queue, not yet
+  // confirmed synced. 0 = fully synced; the drain effect below keeps this
+  // current. Deliberately a count, not a boolean: distinguishes "nothing
+  // pending" from "syncing" from "queue not empty" for the UI indicator.
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+  const isDrainingOfflineQueueRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
@@ -1948,6 +1963,80 @@ export function WorkoutLogPage() {
     setCurrentProgram(program);
     setAiSchedules(Array.isArray(schedules) ? schedules : []);
   }, [calendarMonth]);
+
+  // Roadmap P1.4 "Active-workout offline resilience" — drains the durable
+  // local queue (see active-workout-offline-queue.utils.ts). Deliberately
+  // conservative: rather than trying to replay each event's exact UI
+  // side-effects (the user may have navigated to a different exercise/day
+  // by the time a queued event from minutes ago finally syncs, and
+  // blindly mutating CURRENT state from a stale event risks corrupting
+  // whatever is on screen NOW), it just replays each event's raw request,
+  // then does ONE refetch of program+schedules once the whole queue has
+  // drained — reconciling the UI with the true, authoritative server
+  // state rather than guessing it locally. This is also where a genuine
+  // whole-workout completion (if the queued event turns out to have been
+  // the one that finished the day) gets its real celebration/summary —
+  // never shown from an offline guess, only once actually confirmed
+  // synced (see the impact analysis's "Conflict strategy").
+  const drainOfflineQueue = useCallback(async () => {
+    if (isDrainingOfflineQueueRef.current) return;
+    const pending = await getPendingWorkoutEvents();
+    if (pending.length === 0) {
+      setPendingSyncCount(0);
+      return;
+    }
+    isDrainingOfflineQueueRef.current = true;
+    setIsSyncingOffline(true);
+    let syncedCount = 0;
+    let droppedCount = 0;
+    try {
+      for (const event of pending) {
+        try {
+          await api.request({ method: event.method, url: event.url, data: event.body });
+          await removeWorkoutEvent(event.eventId);
+          syncedCount += 1;
+        } catch (error: any) {
+          if (!error?.response) {
+            // Still offline (or the network dropped again mid-drain) —
+            // stop here, leave the rest queued, try again on the next
+            // 'online' event or mount.
+            break;
+          }
+          // A real server-side rejection (e.g. the schedule's day locked
+          // over while this sat queued) — can't safely retry this one
+          // forever. Drop it and keep draining the rest, surfacing what
+          // happened rather than silently discarding it.
+          await removeWorkoutEvent(event.eventId);
+          droppedCount += 1;
+          toast.error(
+            `Không thể đồng bộ một mục đã lưu offline: ${error?.response?.data?.error ?? "lỗi không xác định"}`,
+          );
+        }
+      }
+    } finally {
+      const remaining = await getPendingWorkoutEvents();
+      setPendingSyncCount(remaining.length);
+      setIsSyncingOffline(false);
+      isDrainingOfflineQueueRef.current = false;
+    }
+    if (syncedCount > 0) {
+      toast.success(`Đã đồng bộ ${syncedCount} thay đổi đã lưu offline.`);
+      await refetchProgramAndSchedules();
+      // A queued event may have been the one that finally finished the
+      // whole workout — re-derive completion state for whichever exercise
+      // is on screen now via the normal per-set skeleton refetch, rather
+      // than guessing here.
+      workoutSetsFetchedForWorkoutIdRef.current = null;
+    }
+    void droppedCount; // surfaced via the per-event toast above already
+  }, [refetchProgramAndSchedules]);
+
+  useEffect(() => {
+    void drainOfflineQueue();
+    const onOnline = () => void drainOfflineQueue();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [drainOfflineQueue]);
 
   const findScheduleForDate = useCallback(
     (date: Date) => {
@@ -3292,28 +3381,70 @@ export function WorkoutLogPage() {
           currentLog?.noWeight ? "Không dùng tạ" : undefined,
           swapNotes[activeExIdx],
         ].filter(Boolean);
-        const result = await workoutService.completeScheduleExercise(
-          scheduleForCompletion.id,
-          resolvedProgramExerciseId,
-          {
-            exerciseId: currentExercise.dbId || undefined,
-            weight: Number.isFinite(weight) ? weight : undefined,
-            reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
-            bodyWeightAtSetKg:
-              Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
-                ? bodyWeightAtSetKg
-                : undefined,
-            // TIME/TIME_LOAD/DISTANCE_TIME (openGym P0-completion pass) —
-            // real, separate fields, never folded into `weight`. See
-            // docs/OPENGYM_P0_COMPLETION_REPORT.md's "Bugs found" for the
-            // exact bug this replaces (duration silently stored as kg).
-            durationSeconds: Number.isFinite(durationSecondsValue) && durationSecondsValue > 0 ? durationSecondsValue : undefined,
-            distanceMeters: Number.isFinite(distanceMetersValue) && distanceMetersValue > 0 ? distanceMetersValue : undefined,
-            rpe: currentLog?.rpe,
-            rir: currentLog?.rir,
-            notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
-          },
-        );
+        const payload = {
+          exerciseId: currentExercise.dbId || undefined,
+          weight: Number.isFinite(weight) ? weight : undefined,
+          reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
+          bodyWeightAtSetKg:
+            Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+              ? bodyWeightAtSetKg
+              : undefined,
+          // TIME/TIME_LOAD/DISTANCE_TIME (openGym P0-completion pass) —
+          // real, separate fields, never folded into `weight`. See
+          // docs/OPENGYM_P0_COMPLETION_REPORT.md's "Bugs found" for the
+          // exact bug this replaces (duration silently stored as kg).
+          durationSeconds: Number.isFinite(durationSecondsValue) && durationSecondsValue > 0 ? durationSecondsValue : undefined,
+          distanceMeters: Number.isFinite(distanceMetersValue) && distanceMetersValue > 0 ? distanceMetersValue : undefined,
+          rpe: currentLog?.rpe,
+          rir: currentLog?.rir,
+          notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
+        };
+        let result: any;
+        try {
+          result = await workoutService.completeScheduleExercise(
+            scheduleForCompletion.id,
+            resolvedProgramExerciseId,
+            payload,
+          );
+        } catch (networkError: any) {
+          // Roadmap P1.4 "Active-workout offline resilience" — same
+          // offline-vs-real-error distinction as handleCompletePerSetRow.
+          // Covers the bulk completion path: a 1-set exercise, the
+          // exercise-closing set of a multi-set exercise's skeleton not
+          // having loaded yet, or the ad-hoc/freeform path all reach here.
+          if (networkError?.response) throw networkError;
+          const eventId = crypto.randomUUID();
+          await enqueueWorkoutEvent({
+            eventId,
+            type: "EXERCISE_COMPLETED",
+            createdAt: Date.now(),
+            method: "POST",
+            url: `/workouts/schedules/${scheduleForCompletion.id}/exercises/${resolvedProgramExerciseId}/complete`,
+            body: { ...payload, eventId },
+          });
+          setPendingSyncCount((n) => n + 1);
+          newCompleted.add(activeExIdx);
+          setCompletedExercises(newCompleted);
+          if (currentExercise?.dbId) {
+            clearPersistedActiveLogDraft(scheduleForCompletion.id, currentExercise.dbId);
+          }
+          setIsCompletingWorkout(false);
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          if (activeExIdx >= dayExercises.length - 1) {
+            // Deliberately NOT the completion screen/confetti/PR summary —
+            // see the impact analysis's "Conflict strategy".
+            toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
+          } else {
+            setRestSeconds(
+              computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
+            );
+            setRestTimerRunning(true);
+            setActiveExIdx(activeExIdx + 1);
+            toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
+          }
+          return;
+        }
         applyScheduleProgress(scheduleForCompletion.id, result);
         if (result.workoutId) setCurrentWorkoutId(result.workoutId);
         setSelectedScheduleId(scheduleForCompletion.id);
@@ -3438,7 +3569,7 @@ export function WorkoutLogPage() {
         exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS"
           ? Number(currentLog?.reps)
           : NaN;
-      const updated: any = await workoutService.updateSet(setRow.id, {
+      const patch = {
         weight: Number.isFinite(weight) ? weight : undefined,
         reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
         bodyWeightAtSetKg:
@@ -3456,7 +3587,67 @@ export function WorkoutLogPage() {
         rpe: currentLog?.rpe,
         rir: currentLog?.rir,
         completed: true,
-      });
+      };
+
+      let updated: any;
+      try {
+        updated = await workoutService.updateSet(setRow.id, patch);
+      } catch (networkError: any) {
+        // Roadmap P1.4 "Active-workout offline resilience" — `!response`
+        // means the request never reached the server at all (offline, DNS
+        // failure, timeout) as opposed to the server actively rejecting
+        // it (a real validation/lock/conflict error, which must still
+        // surface normally, never silently queued). Queue it durably,
+        // apply the SAME optimistic local state a successful call would
+        // have produced, and stop here — the drain effect confirms the
+        // real outcome (including any whole-workout celebration) once
+        // reconnected, never guessed from here.
+        if (networkError?.response) throw networkError;
+        const eventId = crypto.randomUUID();
+        await enqueueWorkoutEvent(
+          buildQueuedSetEvent({ eventId, setId: setRow.id, type: "SET_COMPLETED", patch }),
+        );
+        setPendingSyncCount((n) => n + 1);
+
+        setWorkoutSetsByExercise((prev) => {
+          const rows = prev[programExerciseId] ?? [];
+          return {
+            ...prev,
+            [programExerciseId]: rows.map((row) =>
+              row.id === setRow.id ? { ...row, completed: true, ...patch } : row,
+            ),
+          };
+        });
+        if (currentExercise?.dbId) clearPersistedActiveLogDraft(scheduleId, currentExercise.dbId);
+
+        if (isClosingSet) {
+          setCompletedExercises((prev) => new Set(prev).add(exIdx));
+          if (exIdx < dayExercises.length - 1) {
+            setTimerRunning(false);
+            setTimerSeconds(0);
+            setRestSeconds(
+              computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
+            );
+            setRestTimerRunning(true);
+            setActiveExIdx(exIdx + 1);
+            toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
+          } else {
+            // Deliberately NOT the completion screen/confetti/PR summary —
+            // those require the server's own numbers, never shown from an
+            // offline guess (see impact analysis's "Conflict strategy").
+            toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
+          }
+        } else {
+          const nextLogs = { ...activeExerciseLogsRef.current };
+          delete nextLogs[exIdx];
+          activeExerciseLogsRef.current = nextLogs;
+          setActiveExerciseLogs(nextLogs);
+          setRestSeconds(90);
+          setRestTimerRunning(true);
+          toast.success(`Đã lưu set ${setRow.setNumber} (offline) — sẽ đồng bộ khi có mạng.`);
+        }
+        return;
+      }
 
       setWorkoutSetsByExercise((prev) => {
         const rows = prev[programExerciseId] ?? [];
@@ -3580,7 +3771,20 @@ export function WorkoutLogPage() {
     wasClosingSet: boolean,
   ) => {
     try {
-      await workoutService.updateSet(setId, { completed: false });
+      let queuedOffline = false;
+      try {
+        await workoutService.updateSet(setId, { completed: false });
+      } catch (networkError: any) {
+        // Roadmap P1.4 — same offline-vs-real-error distinction as
+        // handleCompletePerSetRow above.
+        if (networkError?.response) throw networkError;
+        const eventId = crypto.randomUUID();
+        await enqueueWorkoutEvent(
+          buildQueuedSetEvent({ eventId, setId, type: "SET_UNDONE", patch: { completed: false } }),
+        );
+        setPendingSyncCount((n) => n + 1);
+        queuedOffline = true;
+      }
       setWorkoutSetsByExercise((prev) => {
         const rows = prev[programExerciseId] ?? [];
         return {
@@ -3608,7 +3812,11 @@ export function WorkoutLogPage() {
         activeExerciseLogsRef.current = nextLogs;
         setActiveExerciseLogs(nextLogs);
       }
-      toast.success("Đã hoàn tác set vừa hoàn thành.");
+      toast.success(
+        queuedOffline
+          ? "Đã hoàn tác (offline) — sẽ đồng bộ khi có mạng."
+          : "Đã hoàn tác set vừa hoàn thành.",
+      );
     } catch (error: any) {
       toast.error(
         error?.response?.data?.error || "Không thể hoàn tác. Bạn có thể sửa và hoàn thành lại set.",
@@ -5713,6 +5921,33 @@ export function WorkoutLogPage() {
                   {completedExercises.size}/{dayExercises.length}
                 </span>
               </div>
+
+              {/* Roadmap P1.4 "Active-workout offline resilience" — always
+                  visible sync state (acceptance criteria: "user knows
+                  whether workout is saved locally / syncing / synced").
+                  Rendered only when there's something to say — a fully
+                  synced session shows nothing extra here at all. */}
+              {(pendingSyncCount > 0 || isSyncingOffline) && (
+                <div
+                  data-testid="offline-sync-indicator"
+                  data-pending-count={pendingSyncCount}
+                  data-syncing={isSyncingOffline}
+                  className={`rounded-xl border p-2.5 flex items-center gap-2 text-xs ${
+                    isSyncingOffline
+                      ? "border-sky-500/20 bg-sky-500/5 text-sky-300"
+                      : "border-amber-500/20 bg-amber-500/5 text-amber-300"
+                  }`}
+                >
+                  {isSyncingOffline ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                  {isSyncingOffline
+                    ? "Đang đồng bộ..."
+                    : `${pendingSyncCount} thay đổi đã lưu offline, chờ đồng bộ`}
+                </div>
+              )}
 
               {/* "Previous performance" — reference context only, never a
                   recommendation/prefill (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
