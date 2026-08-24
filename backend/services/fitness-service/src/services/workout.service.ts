@@ -1048,6 +1048,11 @@ export const workoutService = {
               include: { exercise: true },
               orderBy: { order: "asc" },
             },
+            // Roadmap P1.3 "Superset / exercise grouping".
+            exerciseGroups: {
+              include: { members: true },
+              orderBy: { order: "asc" },
+            },
           },
         },
       },
@@ -1600,6 +1605,11 @@ export const workoutService = {
               include: { exercise: true },
               orderBy: { order: "asc" },
             },
+            // Roadmap P1.3 "Superset / exercise grouping".
+            exerciseGroups: {
+              include: { members: true },
+              orderBy: { order: "asc" },
+            },
           },
           orderBy: { dayNumber: "asc" },
         },
@@ -1757,6 +1767,141 @@ export const workoutService = {
     return prisma.workoutProgramExercise.delete({
       where: { id },
     });
+  },
+
+  /**
+   * Roadmap P1.3 "Superset / exercise grouping"
+   * (docs/features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md). Purely a
+   * program-day planning concept — never touches WorkoutExercise/
+   * WorkoutSet, so already-logged history is never at risk.
+   *
+   * Reorders the day's exercises so the selected members become a
+   * CONTIGUOUS block (in the order the caller selected them), inserted at
+   * the position of the earliest one. This is deliberate, not incidental:
+   * the active-session "is the next exercise a fellow group member" check
+   * (used to pick the right rest duration) only needs to compare adjacent
+   * entries if this invariant holds by construction, rather than search
+   * past unrelated exercises.
+   */
+  async createExerciseGroup(
+    userId: string,
+    programDayId: string,
+    programExerciseIds: string[],
+    type: string,
+    restBetweenExercisesSeconds?: number | null,
+    restAfterRoundSeconds?: number | null,
+  ) {
+    const VALID_TYPES = ["SUPERSET", "TRISET", "CIRCUIT"];
+    if (!VALID_TYPES.includes(type)) {
+      throw { status: 400, message: `type must be one of: ${VALID_TYPES.join(", ")}` };
+    }
+    const uniqueIds = [...new Set(programExerciseIds ?? [])];
+    if (uniqueIds.length < 2) {
+      throw { status: 400, message: "A group requires at least 2 exercises" };
+    }
+
+    const day = await prisma.workoutProgramDay.findFirst({
+      where: { id: programDayId, program: { userId } },
+      include: {
+        exercises: {
+          orderBy: { order: "asc" },
+          include: { groupMembership: true },
+        },
+      },
+    });
+    if (!day) throw { status: 404, message: "Program day not found" };
+
+    const dayExerciseIds = new Set(day.exercises.map((e) => e.id));
+    if (uniqueIds.some((id) => !dayExerciseIds.has(id))) {
+      throw { status: 400, message: "All exercises must belong to the same program day" };
+    }
+    const alreadyGrouped = day.exercises.filter(
+      (e) => uniqueIds.includes(e.id) && e.groupMembership,
+    );
+    if (alreadyGrouped.length > 0) {
+      throw { status: 409, message: "One or more exercises are already in a group" };
+    }
+
+    const selectedSet = new Set(uniqueIds);
+    const selectedInCallerOrder = uniqueIds.map((id) => day.exercises.find((e) => e.id === id)!);
+    const finalSequence: typeof day.exercises = [];
+    let groupInserted = false;
+    for (const ex of day.exercises) {
+      if (selectedSet.has(ex.id)) {
+        if (!groupInserted) {
+          finalSequence.push(...selectedInCallerOrder);
+          groupInserted = true;
+        }
+      } else {
+        finalSequence.push(ex);
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await Promise.all(
+        finalSequence.map((ex, idx) =>
+          tx.workoutProgramExercise.update({ where: { id: ex.id }, data: { order: idx } }),
+        ),
+      );
+      const group = await tx.workoutProgramExerciseGroup.create({
+        data: {
+          programDayId,
+          type,
+          restBetweenExercisesSeconds: restBetweenExercisesSeconds ?? null,
+          restAfterRoundSeconds: restAfterRoundSeconds ?? null,
+          members: {
+            create: selectedInCallerOrder.map((ex, idx) => ({
+              programExerciseId: ex.id,
+              order: idx,
+            })),
+          },
+        },
+        include: { members: true },
+      });
+      return group;
+    });
+  },
+
+  async updateExerciseGroup(
+    id: string,
+    userId: string,
+    data: {
+      restBetweenExercisesSeconds?: number | null;
+      restAfterRoundSeconds?: number | null;
+      type?: string;
+    },
+  ) {
+    const existing = await prisma.workoutProgramExerciseGroup.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: "Exercise group not found" };
+    const VALID_TYPES = ["SUPERSET", "TRISET", "CIRCUIT"];
+    if (data.type !== undefined && !VALID_TYPES.includes(data.type)) {
+      throw { status: 400, message: `type must be one of: ${VALID_TYPES.join(", ")}` };
+    }
+    const patch: any = {};
+    if (data.type !== undefined) patch.type = data.type;
+    if (data.restBetweenExercisesSeconds !== undefined)
+      patch.restBetweenExercisesSeconds = data.restBetweenExercisesSeconds;
+    if (data.restAfterRoundSeconds !== undefined)
+      patch.restAfterRoundSeconds = data.restAfterRoundSeconds;
+    return prisma.workoutProgramExerciseGroup.update({
+      where: { id },
+      data: patch,
+      include: { members: true },
+    });
+  },
+
+  /** Removes the group and its membership records only — the underlying
+   * WorkoutProgramExercise rows (and their current `order`) are untouched,
+   * so ungrouping never silently reshuffles the day again. */
+  async ungroupExercises(id: string, userId: string) {
+    const existing = await prisma.workoutProgramExerciseGroup.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: "Exercise group not found" };
+    await prisma.workoutProgramExerciseGroup.delete({ where: { id } });
+    return { success: true };
   },
 
   async deleteSchedule(id: string, userId: string) {

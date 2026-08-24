@@ -467,13 +467,51 @@ model WorkoutProgramDay {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  program   WorkoutProgram           @relation(fields: [programId], references: [id], onDelete: Cascade)
-  exercises WorkoutProgramExercise[]
-  schedules WorkoutSchedule[]
+  program        WorkoutProgram                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises      WorkoutProgramExercise[]
+  schedules      WorkoutSchedule[]
+  exerciseGroups WorkoutProgramExerciseGroup[]
 
   @@unique([programId, dayNumber])
   @@index([programId])
   @@map("workout_program_days")
+}
+
+// Roadmap P1.3 "Superset / exercise grouping"
+// (docs/features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md) — purely a
+// program-day planning concept. Deliberately does NOT touch WorkoutExercise
+// / WorkoutSet: every completion/undo/prefill/rest-timer mechanism is
+// already keyed by programExerciseId, so the active session derives
+// grouping by joining against these tables fresh each load, with zero risk
+// to already-logged history.
+model WorkoutProgramExerciseGroup {
+  id                          String   @id @default(uuid())
+  programDayId                String   @map("program_day_id")
+  type                        String // SUPERSET | TRISET | CIRCUIT
+  order                       Int      @default(0)
+  restBetweenExercisesSeconds Int?     @map("rest_between_exercises_seconds") // short/no rest between members
+  restAfterRoundSeconds       Int?     @map("rest_after_round_seconds") // real rest after finishing every member once
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  programDay WorkoutProgramDay                   @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  members    WorkoutProgramExerciseGroupMember[]
+
+  @@index([programDayId])
+  @@map("workout_program_exercise_groups")
+}
+
+model WorkoutProgramExerciseGroupMember {
+  id                String @id @default(uuid())
+  groupId           String @map("group_id")
+  programExerciseId String @unique @map("program_exercise_id") // at most ONE group per program exercise
+  order             Int    @default(0) // sequence within the group (A, B, C...)
+
+  group           WorkoutProgramExerciseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  programExercise WorkoutProgramExercise      @relation(fields: [programExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("workout_program_exercise_group_members")
 }
 
 // 🏋️ Exercises within a Program Day (with prescriptions)
@@ -490,8 +528,9 @@ model WorkoutProgramExercise {
   notes        String?
   createdAt    DateTime @default(now()) @map("created_at")
 
-  programDay WorkoutProgramDay @relation(fields: [programDayId], references: [id], onDelete: Cascade)
-  exercise   Exercise          @relation(fields: [exerciseId], references: [id])
+  programDay      WorkoutProgramDay                  @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  exercise        Exercise                           @relation(fields: [exerciseId], references: [id])
+  groupMembership WorkoutProgramExerciseGroupMember?
 
   @@index([programDayId])
   @@index([exerciseId])

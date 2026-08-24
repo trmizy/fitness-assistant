@@ -318,6 +318,24 @@ exports.Prisma.WorkoutProgramDayScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkoutProgramExerciseGroupScalarFieldEnum = {
+  id: 'id',
+  programDayId: 'programDayId',
+  type: 'type',
+  order: 'order',
+  restBetweenExercisesSeconds: 'restBetweenExercisesSeconds',
+  restAfterRoundSeconds: 'restAfterRoundSeconds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramExerciseGroupMemberScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  programExerciseId: 'programExerciseId',
+  order: 'order'
+};
+
 exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
   id: 'id',
   programDayId: 'programDayId',
@@ -840,6 +858,8 @@ exports.Prisma.ModelName = {
   BodyMetrics: 'BodyMetrics',
   WorkoutProgram: 'WorkoutProgram',
   WorkoutProgramDay: 'WorkoutProgramDay',
+  WorkoutProgramExerciseGroup: 'WorkoutProgramExerciseGroup',
+  WorkoutProgramExerciseGroupMember: 'WorkoutProgramExerciseGroupMember',
   WorkoutProgramExercise: 'WorkoutProgramExercise',
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',

@@ -650,6 +650,36 @@ export const workoutService = {
     return data;
   },
 
+  // Roadmap P1.3 "Superset / exercise grouping".
+  createExerciseGroup: async (
+    programDayId: string,
+    programExerciseIds: string[],
+    type: "SUPERSET" | "TRISET" | "CIRCUIT",
+    restBetweenExercisesSeconds?: number,
+    restAfterRoundSeconds?: number,
+  ) => {
+    const { data } = await api.post(`/workouts/program-days/${programDayId}/exercise-groups`, {
+      programExerciseIds,
+      type,
+      restBetweenExercisesSeconds,
+      restAfterRoundSeconds,
+    });
+    return data;
+  },
+
+  updateExerciseGroup: async (
+    id: string,
+    patch: { type?: string; restBetweenExercisesSeconds?: number | null; restAfterRoundSeconds?: number | null },
+  ) => {
+    const { data } = await api.patch(`/workouts/exercise-groups/${id}`, patch);
+    return data;
+  },
+
+  ungroupExercises: async (id: string) => {
+    const { data } = await api.delete(`/workouts/exercise-groups/${id}`);
+    return data;
+  },
+
   deleteSchedule: async (id: string) => {
     const { data } = await api.delete(`/workouts/schedules/${id}`);
     return data;

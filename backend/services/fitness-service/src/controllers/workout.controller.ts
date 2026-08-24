@@ -558,6 +558,66 @@ export const workoutController = {
     }
   },
 
+  // Roadmap P1.3 "Superset / exercise grouping".
+  async createExerciseGroup(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const group = await workoutService.createExerciseGroup(
+        req.user!.id,
+        req.params.id,
+        Array.isArray(req.body?.programExerciseIds) ? req.body.programExerciseIds : [],
+        typeof req.body?.type === "string" ? req.body.type : "",
+        typeof req.body?.restBetweenExercisesSeconds === "number" ? req.body.restBetweenExercisesSeconds : null,
+        typeof req.body?.restAfterRoundSeconds === "number" ? req.body.restAfterRoundSeconds : null,
+      );
+      res.status(201).json(group);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error creating exercise group");
+      res.status(500).json({ error: "Failed to create exercise group" });
+    }
+  },
+
+  async updateExerciseGroup(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const group = await workoutService.updateExerciseGroup(req.params.id, req.user!.id, {
+        type: typeof req.body?.type === "string" ? req.body.type : undefined,
+        restBetweenExercisesSeconds:
+          req.body?.restBetweenExercisesSeconds === null || typeof req.body?.restBetweenExercisesSeconds === "number"
+            ? req.body.restBetweenExercisesSeconds
+            : undefined,
+        restAfterRoundSeconds:
+          req.body?.restAfterRoundSeconds === null || typeof req.body?.restAfterRoundSeconds === "number"
+            ? req.body.restAfterRoundSeconds
+            : undefined,
+      });
+      res.json(group);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error updating exercise group");
+      res.status(500).json({ error: "Failed to update exercise group" });
+    }
+  },
+
+  async ungroupExercises(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.ungroupExercises(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error ungrouping exercises");
+      res.status(500).json({ error: "Failed to ungroup exercises" });
+    }
+  },
+
   async deleteSchedule(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await workoutService.deleteSchedule(

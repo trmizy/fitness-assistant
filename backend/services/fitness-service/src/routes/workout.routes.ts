@@ -156,6 +156,23 @@ router.delete(
   workoutController.deleteProgramExercise as any,
 );
 
+// Roadmap P1.3 "Superset / exercise grouping".
+router.post(
+  "/program-days/:id/exercise-groups",
+  authMiddleware,
+  workoutController.createExerciseGroup as any,
+);
+router.patch(
+  "/exercise-groups/:id",
+  authMiddleware,
+  workoutController.updateExerciseGroup as any,
+);
+router.delete(
+  "/exercise-groups/:id",
+  authMiddleware,
+  workoutController.ungroupExercises as any,
+);
+
 router.patch(
   "/sets/:setId",
   authMiddleware,

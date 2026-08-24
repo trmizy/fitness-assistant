@@ -64,6 +64,7 @@ import {
   readPersistedActiveLogDraft,
   clearPersistedActiveLogDraft,
 } from "./active-log-draft.utils";
+import { computeNextExerciseRestSeconds } from "./exercise-group.utils";
 import {
   computeMuscleGroupDistribution,
   computeActivityTypeDistribution,
@@ -383,6 +384,13 @@ function formatPerformanceSetLabel(set: {
   return pieces.filter(Boolean).join(" / ") || "Logged";
 }
 
+// Roadmap P1.3 "Superset / exercise grouping".
+const GROUP_TYPE_LABEL_VI: Record<string, string> = {
+  SUPERSET: "Superset",
+  TRISET: "Triset",
+  CIRCUIT: "Circuit",
+};
+
 function mapProgramExercise(ex: any) {
   const exercise = ex.exercise || {};
   const loggingMode = normalizeLoggingMode(exercise.loggingMode, exercise);
@@ -655,6 +663,18 @@ type ExerciseLoggingMode =
   | "TIME"
   | "TIME_LOAD"
   | "DISTANCE_TIME";
+
+// Roadmap P1.3 "Superset / exercise grouping" — attached to a dayExercises
+// entry when its programExerciseId is a member of some
+// WorkoutProgramExerciseGroup. See exercise-group.utils.ts for how this
+// drives rest-timer duration.
+type GroupMetadata = {
+  groupId: string;
+  groupType: string;
+  groupOrder: number;
+  restBetweenExercisesSeconds: number | null;
+  restAfterRoundSeconds: number | null;
+};
 
 // Roadmap P1.1 "true set-by-set table UI" — one row of the real, persisted
 // WorkoutSet skeleton startSchedule already pre-creates. Mirrors exactly
@@ -1710,6 +1730,27 @@ export function WorkoutLogPage() {
       programDays[0];
 
     const mapped = (selected.exercises || []).map(mapProgramExercise);
+    // Roadmap P1.3 "Superset / exercise grouping" — attach each exercise's
+    // group metadata (if any), derived fresh from `selected.exerciseGroups`
+    // every time this effect runs. Deliberately NOT baked into
+    // mapProgramExercise itself (which only sees one exercise at a time,
+    // not the day's group list).
+    const groupByProgramExerciseId = new Map<string, GroupMetadata>();
+    for (const group of (selected as any).exerciseGroups ?? []) {
+      for (const member of group.members ?? []) {
+        groupByProgramExerciseId.set(member.programExerciseId, {
+          groupId: group.id,
+          groupType: group.type,
+          groupOrder: member.order,
+          restBetweenExercisesSeconds: group.restBetweenExercisesSeconds ?? null,
+          restAfterRoundSeconds: group.restAfterRoundSeconds ?? null,
+        });
+      }
+    }
+    for (const ex of mapped as any[]) {
+      const meta = groupByProgramExerciseId.get(ex.programExerciseId);
+      if (meta) Object.assign(ex, meta);
+    }
 
     // mapProgramExercise only knows the PLAN template (sets/reps prescribed,
     // no actual numbers logged) — merge in the REAL weight/RPE/RIR from
@@ -1886,6 +1927,18 @@ export function WorkoutLogPage() {
   const [editMode, setEditMode] = useState(false);
   const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  // Roadmap P1.3 "Superset / exercise grouping" — a separate selection mode
+  // layered on top of the existing edit-mode list (createExerciseGroup is
+  // its own immediate backend call, not deferred to handleSaveWorkout's
+  // reorder/field-edit flow).
+  const [groupSelectionMode, setGroupSelectionMode] = useState(false);
+  const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  // Sensible real-world defaults (real, common superset practice: little to
+  // no rest between paired exercises, a real rest once the round is done) —
+  // editable before creating the group, not hidden/hardcoded.
+  const [groupRestBetween, setGroupRestBetween] = useState(30);
+  const [groupRestAfterRound, setGroupRestAfterRound] = useState(90);
 
   const refetchProgramAndSchedules = useCallback(async () => {
     const [program, schedules] = await Promise.all([
@@ -2081,6 +2134,46 @@ export function WorkoutLogPage() {
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [refetchProgramAndSchedules]);
+
+  // Roadmap P1.3 "Superset / exercise grouping" — an immediate backend
+  // call (not deferred to handleSaveWorkout), so grouping never gets
+  // silently lost if the user exits edit mode without hitting "Lưu ngay".
+  // Type is derived from how many were selected (2=SUPERSET, 3=TRISET,
+  // 4+=CIRCUIT) — no separate type-picker UI, keeping the selection flow
+  // to one action.
+  const handleCreateGroup = async () => {
+    if (!selectedProgramDayId || selectedForGroup.size < 2) return;
+    setIsCreatingGroup(true);
+    try {
+      const type = selectedForGroup.size === 2 ? "SUPERSET" : selectedForGroup.size === 3 ? "TRISET" : "CIRCUIT";
+      await workoutService.createExerciseGroup(
+        selectedProgramDayId,
+        [...selectedForGroup],
+        type,
+        groupRestBetween,
+        groupRestAfterRound,
+      );
+      toast.success(`Đã nhóm ${selectedForGroup.size} bài tập thành ${GROUP_TYPE_LABEL_VI[type]}.`);
+      setGroupSelectionMode(false);
+      setSelectedForGroup(new Set());
+      setEditMode(false);
+      await refetchProgramAndSchedules();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể nhóm các bài tập này.");
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  const handleUngroupExercises = async (groupId: string) => {
+    try {
+      await workoutService.ungroupExercises(groupId);
+      toast.success("Đã bỏ nhóm bài tập.");
+      await refetchProgramAndSchedules();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể bỏ nhóm bài tập này.");
+    }
+  };
 
   const handleSaveWorkout = async (silent = false) => {
     if (isSaving) return;
@@ -3280,7 +3373,12 @@ export function WorkoutLogPage() {
       const undoScheduleId = scheduleForCompletion?.id;
       const undoProgramExerciseId = resolvedProgramExerciseId;
       const undoExerciseName = currentExercise?.name;
-      setRestSeconds(90);
+      // Roadmap P1.3 "Superset / exercise grouping" — short rest advancing
+      // to a fellow group member, real rest once the group's last member
+      // is done; unchanged default-90 for an ungrouped exercise.
+      setRestSeconds(
+        computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
+      );
       setRestTimerRunning(true);
       setActiveExIdx(activeExIdx + 1);
       // Roadmap P1.6 "undo last set" — only offered right after completing a
@@ -3416,7 +3514,11 @@ export function WorkoutLogPage() {
         if (exIdx < dayExercises.length - 1) {
           setTimerRunning(false);
           setTimerSeconds(0);
-          setRestSeconds(90);
+          // Roadmap P1.3 "Superset / exercise grouping" — same group-aware
+          // rest as handleCompleteExercise's bulk path above.
+          setRestSeconds(
+            computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
+          );
           setRestTimerRunning(true);
           setActiveExIdx(exIdx + 1);
           toast(`Đã hoàn thành "${currentExercise?.name}"`, {
@@ -5013,10 +5115,27 @@ export function WorkoutLogPage() {
                             {isSaving ? "Đang lưu..." : "Đã lưu"}
                           </span>
                         )}
+                        {/* Roadmap P1.3 "Superset / exercise grouping". */}
+                        <button
+                          data-testid="group-selection-toggle"
+                          onClick={() => {
+                            setGroupSelectionMode((prev) => !prev);
+                            setSelectedForGroup(new Set());
+                          }}
+                          className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-lg border ${
+                            groupSelectionMode
+                              ? "text-sky-300 bg-sky-500/10 border-sky-500/25"
+                              : "text-zinc-400 hover:text-zinc-300 bg-zinc-800/40 border-zinc-700/25 hover:border-zinc-600/30"
+                          }`}
+                        >
+                          <Repeat className="w-3 h-3" /> {groupSelectionMode ? "Hủy nhóm bài" : "Nhóm bài"}
+                        </button>
                         <button
                           onClick={() => {
                             setDayExercises(editExercises);
                             setEditMode(false);
+                            setGroupSelectionMode(false);
+                            setSelectedForGroup(new Set());
                           }}
                           className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
                         >
@@ -5055,6 +5174,52 @@ export function WorkoutLogPage() {
                   {editMode ? (
                     /* ── Edit Mode: reorderable list ── */
                     <div className="space-y-2 mt-4">
+                      {groupSelectionMode && (
+                        <div
+                          data-testid="group-selection-bar"
+                          className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3 space-y-2.5"
+                        >
+                          <p className="text-xs text-sky-200">
+                            Chọn ít nhất 2 bài tập để nhóm thành superset/triset/circuit — đang chọn{" "}
+                            {selectedForGroup.size}.
+                          </p>
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <label className="flex items-center gap-1.5 text-[11px] text-sky-200/80">
+                              Nghỉ giữa các bài (s)
+                              <input
+                                type="number"
+                                data-testid="group-rest-between-input"
+                                min={0}
+                                max={300}
+                                value={groupRestBetween}
+                                onChange={(e) => setGroupRestBetween(Number(e.target.value) || 0)}
+                                className="w-16 rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                              />
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-sky-200/80">
+                              Nghỉ sau mỗi round (s)
+                              <input
+                                type="number"
+                                data-testid="group-rest-after-round-input"
+                                min={0}
+                                max={600}
+                                value={groupRestAfterRound}
+                                onChange={(e) => setGroupRestAfterRound(Number(e.target.value) || 0)}
+                                className="w-16 rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                              />
+                            </label>
+                            <button
+                              data-testid="create-group-button"
+                              onClick={handleCreateGroup}
+                              disabled={selectedForGroup.size < 2 || isCreatingGroup}
+                              className="ml-auto shrink-0 flex items-center gap-1.5 text-xs text-black bg-sky-400 hover:bg-sky-300 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-all"
+                            >
+                              {isCreatingGroup && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Tạo nhóm ({selectedForGroup.size})
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {isLoading ? (
                         <div className="py-12 flex flex-col items-center justify-center space-y-4">
                           <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
@@ -5084,6 +5249,27 @@ export function WorkoutLogPage() {
                                 : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
                             }`}
                           >
+                            {/* Roadmap P1.3 "Superset / exercise grouping"
+                                — checkbox only while actively selecting;
+                                an already-grouped exercise can't be
+                                selected again (must ungroup first). */}
+                            {groupSelectionMode && (
+                              <input
+                                type="checkbox"
+                                data-testid={`group-select-checkbox-${ex.id}`}
+                                checked={selectedForGroup.has(ex.id)}
+                                disabled={Boolean(ex.groupId)}
+                                onChange={(e) => {
+                                  setSelectedForGroup((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(ex.id);
+                                    else next.delete(ex.id);
+                                    return next;
+                                  });
+                                }}
+                                className="mt-1.5 w-4 h-4 rounded border-zinc-700 bg-zinc-800 accent-sky-500 disabled:opacity-30"
+                              />
+                            )}
                             <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors">
                               <GripVertical className="w-4 h-4" />
                             </div>
@@ -5108,6 +5294,26 @@ export function WorkoutLogPage() {
                               <p className="text-xs text-zinc-500 mt-0.5">
                                 {ex.prescription}
                               </p>
+                              {ex.groupId && (
+                                <div className="mt-1 flex items-center gap-1.5">
+                                  <span
+                                    data-testid={`edit-group-badge-${ex.id}`}
+                                    className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-300"
+                                  >
+                                    {GROUP_TYPE_LABEL_VI[ex.groupType] ?? "Nhóm bài"} · Bài {ex.groupOrder + 1}
+                                  </span>
+                                  {!groupSelectionMode && (
+                                    <button
+                                      type="button"
+                                      data-testid={`ungroup-button-${ex.id}`}
+                                      onClick={() => void handleUngroupExercises(ex.groupId)}
+                                      className="text-[10px] text-zinc-600 hover:text-amber-400 transition-colors"
+                                    >
+                                      Bỏ nhóm
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                               <div className="mt-3 w-full max-w-xs space-y-3">
                                 {(
                                   [
@@ -5436,8 +5642,25 @@ export function WorkoutLogPage() {
                       {curEx.name}
                     </span>
                   </h2>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+                    {/* Roadmap P1.3 "Superset / exercise grouping" — visual
+                        pairing indicator. Sequenced exercise-then-exercise
+                        this pass (see impact analysis's Scope decision),
+                        not truly interleaved — the badge communicates "you
+                        are doing a superset" without implying set-by-set
+                        alternation that doesn't happen yet. */}
+                    {(curEx as any).groupId && (
+                      <span
+                        data-testid="exercise-group-badge"
+                        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-300"
+                      >
+                        {GROUP_TYPE_LABEL_VI[(curEx as any).groupType] ?? "Nhóm bài"}
+                        {" · Bài "}
+                        {(curEx as any).groupOrder + 1}/
+                        {dayExercises.filter((e: any) => e.groupId === (curEx as any).groupId).length}
+                      </span>
+                    )}
                     {!isSelectedDayLocked && !isCompleted && (
                       <button
                         type="button"
