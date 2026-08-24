@@ -1428,6 +1428,254 @@ function RescheduleModal({
   );
 }
 
+/** Roadmap P1.5 "Custom exercises"
+ * (docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md) — a minimal creation
+ * form (reuses the SAME enums/options the catalog picker's own filters
+ * already fetch, so a custom exercise can never submit a value the
+ * backend's own validation would reject). A blocked (duplicate) response
+ * shows the real candidate(s) `detectDuplicate` found and requires an
+ * explicit "create anyway" to bypass — never silently allowed/merged. */
+function CreateCustomExerciseModal({
+  exerciseOptions,
+  onClose,
+  onCreated,
+}: {
+  exerciseOptions: any;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [exerciseName, setExerciseName] = useState("");
+  const [typeOfActivity, setTypeOfActivity] = useState("STRENGTH");
+  const [typeOfEquipment, setTypeOfEquipment] = useState("BODYWEIGHT");
+  const [bodyPart, setBodyPart] = useState("FULL_BODY");
+  const [type, setType] = useState("PUSH");
+  const [loggingMode, setLoggingMode] = useState("REPS_LOAD");
+  const [muscleGroupsText, setMuscleGroupsText] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [candidates, setCandidates] = useState<
+    Array<{ id: string; name: string; confidence: number; proposedAction: string }> | null
+  >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submit = async (confirmCreateAnyway: boolean) => {
+    if (!exerciseName.trim()) {
+      toast.error("Vui lòng nhập tên bài tập.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await workoutService.createCustomExercise({
+        exerciseName: exerciseName.trim(),
+        typeOfActivity,
+        typeOfEquipment,
+        bodyPart,
+        type,
+        muscleGroupsActivated: muscleGroupsText
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+        instructions: instructions.trim() || undefined,
+        loggingMode,
+        confirmCreateAnyway,
+      });
+      if (result.blocked) {
+        setCandidates(result.candidates);
+        return;
+      }
+      toast.success(`Đã tạo bài tập "${exerciseName}".`);
+      onCreated();
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể tạo bài tập tùy chỉnh.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Tạo bài tập tùy chỉnh</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          {candidates ? (
+            <>
+              <p className="text-xs text-amber-300">
+                Có thể trùng với bài tập đã có trong hệ thống:
+              </p>
+              <div className="space-y-2">
+                {candidates.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 text-xs text-zinc-300"
+                  >
+                    <p className="text-zinc-100">{c.name}</p>
+                    <p className="text-zinc-500 mt-0.5">{c.proposedAction}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCandidates(null)}
+                  className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+                >
+                  Sửa lại
+                </button>
+                <button
+                  type="button"
+                  data-testid="confirm-create-anyway-button"
+                  onClick={() => void submit(true)}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+                >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Vẫn tạo bài mới
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">Tên bài tập</span>
+                <input
+                  data-testid="custom-exercise-name-input"
+                  type="text"
+                  value={exerciseName}
+                  onChange={(e) => setExerciseName(e.target.value)}
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Nhóm cơ</span>
+                  <select
+                    value={bodyPart}
+                    onChange={(e) => setBodyPart(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.bodyParts || ["UPPER_BODY", "LOWER_BODY", "CORE", "FULL_BODY"]).map(
+                      (v: string) => (
+                        <option key={v} value={v}>
+                          {labelizeEnum(v)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Thiết bị</span>
+                  <select
+                    value={typeOfEquipment}
+                    onChange={(e) => setTypeOfEquipment(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.equipments || ["BODYWEIGHT"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Loại hoạt động</span>
+                  <select
+                    value={typeOfActivity}
+                    onChange={(e) => setTypeOfActivity(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.activityTypes || ["STRENGTH"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Kiểu chuyển động</span>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.types || ["PUSH", "PULL", "HOLD", "STRETCH"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">Cách ghi log</span>
+                <select
+                  data-testid="custom-exercise-logging-mode-select"
+                  value={loggingMode}
+                  onChange={(e) => setLoggingMode(e.target.value)}
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                >
+                  <option value="REPS_LOAD">Tạ × Reps</option>
+                  <option value="BODYWEIGHT_REPS">Reps (bodyweight)</option>
+                  <option value="TIME">Thời gian</option>
+                  <option value="TIME_LOAD">Tạ + Thời gian</option>
+                  <option value="DISTANCE_TIME">Quãng đường + Thời gian</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">
+                  Nhóm cơ tác động (phân tách bằng dấu phẩy)
+                </span>
+                <input
+                  type="text"
+                  value={muscleGroupsText}
+                  onChange={(e) => setMuscleGroupsText(e.target.value)}
+                  placeholder="chest, triceps"
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                />
+              </label>
+              <textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Hướng dẫn thực hiện (không bắt buộc)"
+                rows={2}
+                className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-sky-500/50"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  data-testid="submit-create-custom-exercise-button"
+                  onClick={() => void submit(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-400 hover:bg-sky-300 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+                >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Tạo bài tập
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Feedback status indicator for the day-detail view of a completed/partial
  * session — Phase 2 spec: "feedback status in history." Lets the user open
  * the same completion form again to add or edit their feedback. */
@@ -2488,6 +2736,10 @@ export function WorkoutLogPage() {
   const restEndAtRef = useRef<number | null>(null);
   const wakeLockRef = useRef<any>(null);
 
+  // Roadmap P1.5 "Custom exercises" — the create-form modal, layered on
+  // top of the existing Add Exercise picker (opened from within it).
+  const [showCreateCustomExercise, setShowCreateCustomExercise] = useState(false);
+
   // Add Exercise Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [dbSearch, setDbSearch] = useState("");
@@ -2630,6 +2882,22 @@ export function WorkoutLogPage() {
       }),
     enabled: showAddExercise,
     staleTime: 30_000,
+  });
+
+  // Roadmap P1.5 "Custom exercises" — the caller's own custom exercises,
+  // fetched separately from the public catalog search above (they're
+  // deliberately never returned by it — see the impact analysis's "no
+  // catalog contamination"). Shown as its own "Của tôi" section in the
+  // picker below, unfiltered by the catalog's own bodyPart/equipment/
+  // search filters — a disclosed simplification (a real user's own custom
+  // list stays small, so always showing all of it is a reasonable
+  // trade-off against the complexity of applying the same filters
+  // client-side to a differently-shaped query).
+  const myCustomExercisesQuery = useQuery({
+    queryKey: ["my-custom-exercises"],
+    queryFn: () => workoutService.listMyCustomExercises(),
+    enabled: showAddExercise,
+    staleTime: 10_000,
   });
 
   useEffect(() => {
@@ -6894,6 +7162,14 @@ export function WorkoutLogPage() {
         />
       )}
 
+      {showCreateCustomExercise && (
+        <CreateCustomExerciseModal
+          exerciseOptions={exerciseOptions}
+          onClose={() => setShowCreateCustomExercise(false)}
+          onCreated={() => void myCustomExercisesQuery.refetch()}
+        />
+      )}
+
       {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
       {showExerciseDetail && (
         <div
@@ -7685,6 +7961,15 @@ export function WorkoutLogPage() {
                     Dữ liệu lấy trực tiếp từ Exercise DB
                   </p>
                 </div>
+                {/* Roadmap P1.5 "Custom exercises". */}
+                <button
+                  type="button"
+                  data-testid="create-custom-exercise-trigger"
+                  onClick={() => setShowCreateCustomExercise(true)}
+                  className="shrink-0 flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200 px-3 py-2 rounded-lg border border-sky-500/25 bg-sky-500/10 hover:bg-sky-500/15 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tạo bài tập tùy chỉnh
+                </button>
                 <button
                   onClick={() => setShowAddExercise(false)}
                   className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0"
@@ -7791,6 +8076,70 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Roadmap P1.5 "Custom exercises" — always shown when the
+                  owner has any, regardless of the catalog's own search/
+                  filter state above (they're a separate query, never
+                  filtered the same way — see the impact analysis's
+                  disclosed simplification). */}
+              {Array.isArray(myCustomExercisesQuery.data) && myCustomExercisesQuery.data.length > 0 && (
+                <section data-testid="my-custom-exercises-section" className="space-y-2 mb-5">
+                  <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
+                    <div className="text-[11px] uppercase tracking-wider text-sky-300 font-semibold">
+                      Của tôi
+                    </div>
+                    <div className="h-px flex-1 bg-zinc-800" />
+                    <div className="text-[10px] text-zinc-500">
+                      {myCustomExercisesQuery.data.length} bài
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {myCustomExercisesQuery.data.map((ex: any) => (
+                      <div
+                        key={ex.id}
+                        data-testid={`my-custom-exercise-${ex.id}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleAddFromDB(ex)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") handleAddFromDB(ex);
+                        }}
+                        className="w-full text-left p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 hover:border-sky-500/40 transition-all flex items-center gap-4 group cursor-pointer"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                              {labelizeEnum(ex.bodyPart)}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                              {labelizeEnum(ex.typeOfEquipment)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid={`archive-custom-exercise-${ex.id}`}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await workoutService.archiveCustomExercise(ex.id);
+                              await myCustomExercisesQuery.refetch();
+                              toast.success("Đã lưu trữ bài tập tùy chỉnh.");
+                            } catch (error: any) {
+                              toast.error(error?.response?.data?.error || "Không thể lưu trữ bài tập này.");
+                            }
+                          }}
+                          className="shrink-0 text-zinc-600 hover:text-amber-400 transition-colors"
+                          aria-label={`Lưu trữ ${ex.exerciseName}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <Plus className="w-4 h-4 text-sky-500/0 group-hover:text-sky-400 transition-colors shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
               {dbLoading ? (
                 <div className="space-y-3">
                   {[0, 1, 2, 3, 4].map((item) => (

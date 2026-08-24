@@ -138,6 +138,9 @@ exports.Prisma.ExerciseScalarFieldEnum = {
   difficultyLevel: 'difficultyLevel',
   loggingMode: 'loggingMode',
   status: 'status',
+  source: 'source',
+  ownerId: 'ownerId',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

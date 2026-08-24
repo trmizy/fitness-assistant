@@ -5298,6 +5298,9 @@ export namespace Prisma {
     difficultyLevel: string | null
     loggingMode: string | null
     status: string | null
+    source: string | null
+    ownerId: string | null
+    archivedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5316,6 +5319,9 @@ export namespace Prisma {
     difficultyLevel: string | null
     loggingMode: string | null
     status: string | null
+    source: string | null
+    ownerId: string | null
+    archivedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5336,6 +5342,9 @@ export namespace Prisma {
     difficultyLevel: number
     loggingMode: number
     status: number
+    source: number
+    ownerId: number
+    archivedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -5356,6 +5365,9 @@ export namespace Prisma {
     difficultyLevel?: true
     loggingMode?: true
     status?: true
+    source?: true
+    ownerId?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5374,6 +5386,9 @@ export namespace Prisma {
     difficultyLevel?: true
     loggingMode?: true
     status?: true
+    source?: true
+    ownerId?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5394,6 +5409,9 @@ export namespace Prisma {
     difficultyLevel?: true
     loggingMode?: true
     status?: true
+    source?: true
+    ownerId?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -5487,6 +5505,9 @@ export namespace Prisma {
     difficultyLevel: string | null
     loggingMode: string
     status: string
+    source: string
+    ownerId: string | null
+    archivedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: ExerciseCountAggregateOutputType | null
@@ -5524,6 +5545,9 @@ export namespace Prisma {
     difficultyLevel?: boolean
     loggingMode?: boolean
     status?: boolean
+    source?: boolean
+    ownerId?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workoutExercises?: boolean | Exercise$workoutExercisesArgs<ExtArgs>
@@ -5552,6 +5576,9 @@ export namespace Prisma {
     difficultyLevel?: boolean
     loggingMode?: boolean
     status?: boolean
+    source?: boolean
+    ownerId?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["exercise"]>
@@ -5572,6 +5599,9 @@ export namespace Prisma {
     difficultyLevel?: boolean
     loggingMode?: boolean
     status?: boolean
+    source?: boolean
+    ownerId?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -5615,6 +5645,9 @@ export namespace Prisma {
       difficultyLevel: string | null
       loggingMode: string
       status: string
+      source: string
+      ownerId: string | null
+      archivedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["exercise"]>
@@ -6032,6 +6065,9 @@ export namespace Prisma {
     readonly difficultyLevel: FieldRef<"Exercise", 'String'>
     readonly loggingMode: FieldRef<"Exercise", 'String'>
     readonly status: FieldRef<"Exercise", 'String'>
+    readonly source: FieldRef<"Exercise", 'String'>
+    readonly ownerId: FieldRef<"Exercise", 'String'>
+    readonly archivedAt: FieldRef<"Exercise", 'DateTime'>
     readonly createdAt: FieldRef<"Exercise", 'DateTime'>
     readonly updatedAt: FieldRef<"Exercise", 'DateTime'>
   }
@@ -51876,6 +51912,9 @@ export namespace Prisma {
     difficultyLevel: 'difficultyLevel',
     loggingMode: 'loggingMode',
     status: 'status',
+    source: 'source',
+    ownerId: 'ownerId',
+    archivedAt: 'archivedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -52859,6 +52898,9 @@ export namespace Prisma {
     difficultyLevel?: StringNullableFilter<"Exercise"> | string | null
     loggingMode?: StringFilter<"Exercise"> | string
     status?: StringFilter<"Exercise"> | string
+    source?: StringFilter<"Exercise"> | string
+    ownerId?: StringNullableFilter<"Exercise"> | string | null
+    archivedAt?: DateTimeNullableFilter<"Exercise"> | Date | string | null
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
     workoutExercises?: WorkoutExerciseListRelationFilter
@@ -52886,6 +52928,9 @@ export namespace Prisma {
     difficultyLevel?: SortOrderInput | SortOrder
     loggingMode?: SortOrder
     status?: SortOrder
+    source?: SortOrder
+    ownerId?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     workoutExercises?: WorkoutExerciseOrderByRelationAggregateInput
@@ -52916,6 +52961,9 @@ export namespace Prisma {
     difficultyLevel?: StringNullableFilter<"Exercise"> | string | null
     loggingMode?: StringFilter<"Exercise"> | string
     status?: StringFilter<"Exercise"> | string
+    source?: StringFilter<"Exercise"> | string
+    ownerId?: StringNullableFilter<"Exercise"> | string | null
+    archivedAt?: DateTimeNullableFilter<"Exercise"> | Date | string | null
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
     workoutExercises?: WorkoutExerciseListRelationFilter
@@ -52943,6 +52991,9 @@ export namespace Prisma {
     difficultyLevel?: SortOrderInput | SortOrder
     loggingMode?: SortOrder
     status?: SortOrder
+    source?: SortOrder
+    ownerId?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ExerciseCountOrderByAggregateInput
@@ -52969,6 +53020,9 @@ export namespace Prisma {
     difficultyLevel?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
     loggingMode?: StringWithAggregatesFilter<"Exercise"> | string
     status?: StringWithAggregatesFilter<"Exercise"> | string
+    source?: StringWithAggregatesFilter<"Exercise"> | string
+    ownerId?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"Exercise"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
   }
@@ -57013,6 +57067,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -57040,6 +57097,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -57067,6 +57127,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -57094,6 +57157,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -57121,6 +57187,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -57141,6 +57210,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -57161,6 +57233,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -61839,6 +61914,17 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -61941,6 +62027,9 @@ export namespace Prisma {
     difficultyLevel?: SortOrder
     loggingMode?: SortOrder
     status?: SortOrder
+    source?: SortOrder
+    ownerId?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -61959,6 +62048,9 @@ export namespace Prisma {
     difficultyLevel?: SortOrder
     loggingMode?: SortOrder
     status?: SortOrder
+    source?: SortOrder
+    ownerId?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -61977,6 +62069,9 @@ export namespace Prisma {
     difficultyLevel?: SortOrder
     loggingMode?: SortOrder
     status?: SortOrder
+    source?: SortOrder
+    ownerId?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -62055,6 +62150,20 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -62740,17 +62849,6 @@ export namespace Prisma {
     fats?: SortOrder
   }
 
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type NutritionGoalCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -62819,20 +62917,6 @@ export namespace Prisma {
     carbs?: SortOrder
     fat?: SortOrder
     waterMl?: SortOrder
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type BodyMetricsCountOrderByAggregateInput = {
@@ -65161,6 +65245,10 @@ export namespace Prisma {
     push?: string | string[]
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -65880,10 +65968,6 @@ export namespace Prisma {
     upsert?: FoodUpsertWithoutAliasesInput
     connect?: FoodWhereUniqueInput
     update?: XOR<XOR<FoodUpdateToOneWithWhereWithoutAliasesInput, FoodUpdateWithoutAliasesInput>, FoodUncheckedUpdateWithoutAliasesInput>
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type WorkoutProgramDayCreateNestedManyWithoutProgramInput = {
@@ -67288,6 +67372,17 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -67393,6 +67488,20 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -67506,31 +67615,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -68142,6 +68226,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -68168,6 +68255,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -68241,6 +68331,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -68267,6 +68360,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -68595,6 +68691,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
@@ -68621,6 +68720,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -68750,6 +68852,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
@@ -68776,6 +68881,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -69893,6 +70001,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -69919,6 +70030,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -70015,6 +70129,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -70041,6 +70158,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -72793,6 +72913,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -72819,6 +72942,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -72861,6 +72987,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -72887,6 +73016,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -72913,6 +73045,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -72939,6 +73074,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -72981,6 +73119,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -73007,6 +73148,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -73196,6 +73340,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -73222,6 +73369,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -73291,6 +73441,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -73317,6 +73470,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -73810,6 +73966,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -73836,6 +73995,9 @@ export namespace Prisma {
     difficultyLevel?: string | null
     loggingMode?: string
     status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -73878,6 +74040,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -73904,6 +74069,9 @@ export namespace Prisma {
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
     loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput

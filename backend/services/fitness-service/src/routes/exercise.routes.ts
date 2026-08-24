@@ -10,6 +10,11 @@ router.get("/filter-options", exerciseController.getFilterOptions);
 // Gate 6 — must be registered BEFORE "/:id" or Express would treat
 // "muscles" as an :id value.
 router.get("/muscles", exerciseController.listMuscles);
+// Roadmap P1.5 "Custom exercises" — named routes, must stay before "/:id"
+// for the same reason as /muscles above.
+router.post("/custom", authMiddleware, exerciseController.createCustom as any);
+router.get("/custom", authMiddleware, exerciseController.listMyCustom as any);
+router.delete("/custom/:id", authMiddleware, exerciseController.archiveCustom as any);
 // Gate 7 — human review queue for duplicate/variant candidates. Also
 // registered before "/:id" for the same reason (":externalRef" would
 // otherwise be swallowed as an exercise id). Every handler enforces

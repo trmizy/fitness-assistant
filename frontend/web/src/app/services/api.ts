@@ -504,6 +504,34 @@ export const workoutService = {
     return data;
   },
 
+  // Roadmap P1.5 "Custom exercises".
+  createCustomExercise: async (input: {
+    exerciseName: string;
+    typeOfActivity: string;
+    typeOfEquipment: string;
+    bodyPart: string;
+    type: string;
+    muscleGroupsActivated: string[];
+    instructions?: string;
+    loggingMode: string;
+    confirmCreateAnyway?: boolean;
+  }) => {
+    const { data } = await api.post("/exercises/custom", input);
+    return data as
+      | { blocked: false; exercise: any }
+      | { blocked: true; candidates: Array<{ id: string; name: string; confidence: number; proposedAction: string }> };
+  },
+
+  listMyCustomExercises: async () => {
+    const { data } = await api.get("/exercises/custom");
+    return data?.exercises ?? [];
+  },
+
+  archiveCustomExercise: async (id: string) => {
+    const { data } = await api.delete(`/exercises/custom/${id}`);
+    return data;
+  },
+
   // Batch lookup by id — used to resolve muscle/equipment metadata for
   // exercises referenced (by exerciseId) from AI-generated plan content,
   // which only ever stores {exerciseId, order, name, sets, reps,

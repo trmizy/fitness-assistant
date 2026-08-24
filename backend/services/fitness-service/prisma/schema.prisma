@@ -88,6 +88,17 @@ model Exercise {
   // regardless of status), so a freshly-imported exercise never reaches a
   // real user until deliberately promoted.
   status                String         @default("PUBLISHED")
+  // Roadmap P1.5 "Custom exercises"
+  // (docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md) — additive.
+  // "SYSTEM" | "USER_CUSTOM" (PT_CUSTOM deliberately deferred — no PT/
+  // client visibility model exists yet to build it on safely). ownerId is
+  // set once at creation from the authenticated caller, never client-
+  // suppliable/changeable; null for every SYSTEM row. archivedAt is a
+  // soft-delete — the row (and every FK to it) stays intact, it just
+  // stops appearing in GET /exercises/custom.
+  source                String         @default("SYSTEM")
+  ownerId               String?        @map("owner_id")
+  archivedAt             DateTime?      @map("archived_at")
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
@@ -114,6 +125,7 @@ model Exercise {
 
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
+  @@index([ownerId])
   @@map("exercises")
 }
 
