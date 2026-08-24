@@ -91,6 +91,15 @@ export interface UserProfile {
   foodPreference?: string;
   training: TrainingConstraints;
   inBody?: InBodyMetrics;
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+  // FOLLOW_UP_SUGGESTED means the user flagged at least one pre-exercise safety concern
+  // (heart condition, chest pain, dizziness/fainting, bone/joint, doctor-prescribed
+  // medication) — never a hard block, but the response must suggest consulting a doctor
+  // before increasing training intensity. UNKNOWN (default) means never screened —
+  // pre-existing accounts, or the user skipped past the step — and must NOT be treated as
+  // "cleared".
+  safetyScreeningStatus?: "UNKNOWN" | "CLEARED" | "FOLLOW_UP_SUGGESTED";
+  safetyScreeningFlags?: string[];
 }
 
 export interface InputIntent {

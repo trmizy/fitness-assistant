@@ -69,6 +69,14 @@ interface SetRow {
   date: Date;
   exerciseName: string;
   muscleGroups: string[];
+  /** SET_TYPES from fitness.models.ts (WARMUP/WORKING/TOP/BACKOFF/FAILURE),
+   * null for pre-advanced-set-logging rows. Used to exclude warm-up sets
+   * from e1RM/PR/RPE/RIR (maximal-performance and effort signals a warm-up
+   * set, by definition, doesn't represent — industry convention per
+   * docs/OPENGYM_RESEARCH_SOURCES.md, not a scientific claim) — deliberately
+   * NOT excluded from volume (computeVolumeByWeek), since a warm-up set is
+   * still real performed work contributing to training load/fatigue. */
+  setType: string | null;
 }
 
 async function fetchCompletedSets(
@@ -97,7 +105,7 @@ async function fetchCompletedSets(
           exercise: { select: { exerciseName: true, muscleGroupsActivated: true } },
           workoutSets: {
             where: { completed: true },
-            select: { weight: true, reps: true, rpe: true, rir: true, completed: true },
+            select: { weight: true, reps: true, rpe: true, rir: true, completed: true, setType: true },
           },
         },
       },
@@ -117,6 +125,7 @@ async function fetchCompletedSets(
           date: w.date,
           exerciseName: ex.exercise.exerciseName,
           muscleGroups: ex.exercise.muscleGroupsActivated ?? [],
+          setType: set.setType,
         });
       }
     }
@@ -163,7 +172,7 @@ export function computeE1rmTrend(
 ): E1rmTrendPoint[] {
   const byExercise = new Map<string, SetRow[]>();
   for (const s of sets) {
-    if (s.weight == null || s.reps == null) continue;
+    if (s.weight == null || s.reps == null || s.setType === "WARMUP") continue;
     if (!byExercise.has(s.exerciseName)) byExercise.set(s.exerciseName, []);
     byExercise.get(s.exerciseName)!.push(s);
   }
@@ -196,6 +205,15 @@ export async function computeNewPRs(
   const priorBest = await prisma.workoutSet.findMany({
     where: {
       completed: true,
+      // Prisma's `setType: { not: "WARMUP" }` alone would exclude every
+      // NULL-setType row too (standard SQL three-valued logic — verified
+      // empirically against the real dev DB before writing this: with all
+      // 485,741 existing rows at setType=null, that filter alone matched
+      // ZERO of them). The vast majority of real rows predate the advanced-
+      // set-logging UI and are null, so this OR is not optional polish —
+      // without it, PR detection would have silently gone dark for
+      // virtually every user.
+      OR: [{ setType: null }, { setType: { not: "WARMUP" } }],
       workoutExercise: {
         exercise: { exerciseName: { in: exerciseNames } },
         workout: { userId, date: { lt: cycleStart } },
@@ -216,7 +234,7 @@ export async function computeNewPRs(
 
   const cycleMax = new Map<string, number>();
   for (const s of cycleSets) {
-    if (s.weight == null) continue;
+    if (s.weight == null || s.setType === "WARMUP") continue;
     cycleMax.set(s.exerciseName, Math.max(cycleMax.get(s.exerciseName) ?? 0, s.weight));
   }
 

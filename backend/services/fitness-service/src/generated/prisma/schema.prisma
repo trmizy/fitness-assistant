@@ -68,6 +68,17 @@ model Exercise {
   // Advisory only — never a hard filter, just an input the generator can
   // weight for beginner-appropriate exercise selection.
   difficultyLevel       String?       @map("difficulty_level")
+  // Exercise logging-mode taxonomy (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §6.2, gap analysis "Timed / cardio logging" row) — REPS_LOAD |
+  // BODYWEIGHT_REPS | TIME | TIME_LOAD | DISTANCE_TIME. Free-text like
+  // movementPattern/mechanics above rather than a Prisma enum, for the same
+  // reason: derived/correctable per-row without a schema migration. Every
+  // existing row is backfilled by this migration's own UPDATE from
+  // typeOfEquipment/typeOfActivity/type (heuristic, not guaranteed 100%
+  // correct for all 883+ rows — flagged, not silently assumed perfect; see
+  // ExerciseReviewDecision for the existing "flag for human review" pattern
+  // a follow-up correction pass can reuse).
+  loggingMode           String        @default("REPS_LOAD") @map("logging_mode")
   // Gate 6/12 (exercise/anatomy data-expansion roadmap) — rollout status.
   // "STAGING" | "REVIEW_REQUIRED" | "APPROVED" | "PUBLISHED" | "DEPRECATED" | "REJECTED".
   // Every one of the 883 pre-existing rows is explicitly backfilled to
@@ -263,6 +274,17 @@ model WorkoutSet {
   side           String? // LEFT | RIGHT | BOTH — unilateral exercises only
   painScore      Int?    @map("pain_score") // 0-10 subjective pain/discomfort during this set
   techniqueNotes String? @map("technique_notes")
+
+  // Bodyweight/timed/cardio semantics (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §6.1, gap analysis "Bodyweight exercise semantics" + "Timed / cardio
+  // logging" rows). Purely additive — NOT a reinterpretation of `weight`
+  // above, which keeps meaning exactly what it always meant (external load,
+  // null when none was added). Every pre-migration row reads these as null
+  // ("explicit unknown, not silently guessed" — this repo's established
+  // pattern, see exerciseNameSnapshot in WorkoutExercise below).
+  bodyWeightAtSetKg Float? @map("body_weight_at_set_kg") // captured body weight at the time of this set — BODYWEIGHT_REPS exercises only, left null when not captured, never guessed/copied from an unrelated InBody reading
+  durationSeconds   Int?   @map("duration_seconds") // per-set duration — TIME / TIME_LOAD exercises (plank, carry, timed hold)
+  distanceMeters    Float? @map("distance_meters") // per-set distance — DISTANCE_TIME exercises (running, rowing, cycling)
 
   workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
 

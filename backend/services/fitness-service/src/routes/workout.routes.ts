@@ -19,6 +19,30 @@ router.post(
   workoutController.importAiPlan as any,
 );
 router.get("/prs", authMiddleware, workoutController.getPRs as any);
+// "Previous performance" prefill — see workout.service.ts getPreviousPerformance.
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/previous-performance",
+  authMiddleware,
+  workoutController.getPreviousPerformance as any,
+);
+// Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md).
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/progression",
+  authMiddleware,
+  workoutController.getExerciseProgression as any,
+);
+// openGym FINAL P0 CLOSURE PASS — OPTIONAL AI-explanation sibling of the
+// deterministic /progression route above. Separate endpoint (not a query
+// param on /progression) so the fast, always-available, purely-deterministic
+// route is structurally never coupled to ai-service being reachable.
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/progression/explanation",
+  authMiddleware,
+  workoutController.getExerciseProgressionExplanation as any,
+);
 router.get(
   "/schedules",
   authMiddleware,

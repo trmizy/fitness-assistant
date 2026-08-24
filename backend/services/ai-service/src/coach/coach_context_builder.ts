@@ -322,6 +322,8 @@ export function buildCoachContext(
         ? String(profile.activityLevel)
         : null,
       experience_level: experience,
+      safety_screening_status: profile.safetyScreeningStatus ?? null,
+      safety_screening_flags: profile.safetyScreeningFlags ?? [],
     },
     journey: {
       starting_weight_kg: startingWeight,

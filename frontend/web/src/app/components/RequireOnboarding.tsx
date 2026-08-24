@@ -31,6 +31,14 @@ export function RequireOnboarding({ children }: { children: ReactNode }) {
   // first profile fetch is in flight — render nothing rather than guess.
   if (profileQuery.isLoading) return null;
 
+  // A failed profile fetch is not evidence that onboarding is incomplete.
+  // In the E2E harness this showed up under gateway rate limiting: the
+  // backend profile was already complete, but a transient failed guard query
+  // redirected the user into the wizard anyway. Onboarding is a UX gate, not
+  // an authorization boundary, so fail open and let the page's own API calls
+  // surface any real auth/server error.
+  if (profileQuery.isError) return <>{children}</>;
+
   const profile = profileQuery.data;
   const needsOnboarding = !profile || profile.hasCompletedOnboarding !== true;
   if (needsOnboarding) return <Navigate to={ONBOARDING_PATH} replace />;

@@ -17,22 +17,24 @@
  *    internal /workouts/manual-program endpoint, to commit an ACCEPTED
  *    draft into the buyer's real training cycle — the same commit path
  *    Contract-based PT coaching already uses.
- *  - paymentClient.walletTransfer, the same real wallet-transfer primitive
- *    TrainingPackagePurchase already uses — settles to the receiver's
- *    AVAILABLE balance immediately (payment-service's `transferInternal`
- *    defaults every credit to the AVAILABLE bucket unless a caller passes
- *    bucket:'PENDING' explicitly). payment-service DOES have a real
- *    pending-balance/ESCROW mechanism (see wallets.pending_balance,
- *    contract-ledger.service.ts, membership-ledger.service.ts) — it is just
- *    wired to PT_CONTRACT/GYM_MEMBERSHIP specifically, not to the generic
- *    wallet-transfer path this and TrainingPackagePurchase both call. Using
- *    it here for real would mean either changing that shared endpoint's
- *    default bucket (risk: affects every other caller) or adding a third,
- *    Personalized-Service-specific ledger-release service mirroring
- *    contract-ledger.service.ts's pattern — real, scoped follow-up work,
- *    not something this pass fabricates a shortcut for.
+ *  - paymentClient.holdPersonalizedServicePayment (P1-FIN-001/002 — this WAS
+ *    a real gap: purchases used to settle to the receiver's AVAILABLE
+ *    balance immediately via the generic walletTransfer/transferInternal
+ *    primitive, same as TrainingPackagePurchase, with no hold and no
+ *    milestone release). Now holds the price in payment-service's existing
+ *    ESCROW/PENDING mechanism (contract-ledger.service.ts,
+ *    membership-ledger.service.ts) via the new, purpose-built
+ *    personalized-service-ledger.service.ts — a third ledger service
+ *    mirroring that same pattern, not a change to the shared
+ *    wallet-transfer endpoint (which TrainingPackagePurchase still uses
+ *    untouched). startReview/deliverDraft/acceptOrder/completeOrder each
+ *    release their milestone's share (10/30/40/20%, see
+ *    personalized-service-ledger.service.ts) after their status update
+ *    commits; adminResolveRefund draws PENDING first, then released
+ *    AVAILABLE, instead of reversing an immediate AVAILABLE credit.
  */
 import { randomUUID } from "crypto";
+import { logger } from "@gym-coach/shared";
 import { prisma } from "../repositories/conversation.repository";
 import { ApiError } from "../errors/api-error";
 import { fetchPtMarketplaceEligibility } from "../clients/user.client";
@@ -41,15 +43,68 @@ import { paymentClient, PaymentClientError } from "../clients/payment.client";
 import { commitPersonalizedPlan } from "../clients/fitness.client";
 
 /** Indirection point for tests — same rationale as marketplaceDeps
- * (marketplace.service.ts). walletTransfer included here too (unlike
- * marketplace.service.ts, which calls paymentClient directly and has no
- * purchase-path tests) so tests never depend on a real funded wallet. */
+ * (marketplace.service.ts). The payment/ledger calls are included here too
+ * (unlike marketplace.service.ts, which calls paymentClient directly and has
+ * no purchase-path tests) so tests never depend on a real funded wallet. */
 export const personalizedServiceDeps = {
   fetchPtMarketplaceEligibility,
   createMarketplaceContract,
   commitPersonalizedPlan,
-  walletTransfer: paymentClient.walletTransfer,
+  holdPersonalizedServicePayment: paymentClient.holdPersonalizedServicePayment,
+  releasePersonalizedServiceMilestone: paymentClient.releasePersonalizedServiceMilestone,
+  refundPersonalizedServiceHeld: paymentClient.refundPersonalizedServiceHeld,
+  getPersonalizedServiceLedgerSummary: paymentClient.getPersonalizedServiceLedgerSummary,
 };
+
+/**
+ * Best-effort milestone release — called AFTER the domain state transition already committed,
+ * and returns `base` (that transition's own return value) merged with the release's own
+ * timestamp so callers can just `return releaseMilestoneBestEffort({..., base: updated})`
+ * without a second re-fetch. A payment-service hiccup here must never block
+ * startReview/deliverDraft/acceptOrder/completeOrder from succeeding: the PT/buyer action
+ * already happened, and a missed release just leaves that slice sitting in PENDING
+ * (recoverable later, never lost, never fabricated — see
+ * personalized-service-ledger.service.ts). Logged as an error, not swallowed silently, so a
+ * real reconciliation sweep has something to find; `base` is returned unmodified on failure —
+ * the caller must never see a stamped timestamp for a release that didn't actually happen.
+ */
+async function releaseMilestoneBestEffort<T extends Record<string, unknown>>(params: {
+  orderId: string;
+  transactionId: string | null;
+  sellerId: string;
+  price: number;
+  milestone: "INTAKE_REVIEWED" | "DRAFT_DELIVERED" | "ACCEPTED" | "COMPLETED";
+  releasedAtField:
+    | "milestoneIntakeReleasedAt"
+    | "milestoneDraftReleasedAt"
+    | "milestoneAcceptedReleasedAt"
+    | "milestoneCompletedReleasedAt";
+  base: T;
+}): Promise<T> {
+  const { orderId, transactionId, sellerId, price, milestone, releasedAtField, base } = params;
+  if (!transactionId) return base; // order never had a payment transaction (e.g. legacy/edge state) — nothing to release
+  try {
+    await personalizedServiceDeps.releasePersonalizedServiceMilestone({
+      transactionId,
+      sellerId,
+      price,
+      milestone,
+      label: `Personalized Service order ${orderId} — ${milestone}`,
+    });
+    const releasedAt = new Date();
+    await prisma.personalizedServiceOrder.update({
+      where: { id: orderId },
+      data: { [releasedAtField]: releasedAt },
+    });
+    return { ...base, [releasedAtField]: releasedAt };
+  } catch (err) {
+    logger.error(
+      { orderId, milestone, error: (err as Error).message },
+      "[PersonalizedService] milestone release failed — that slice stays in PENDING, recoverable later",
+    );
+    return base;
+  }
+}
 
 async function assertApprovedPt(sellerId: string) {
   const eligibility = await personalizedServiceDeps.fetchPtMarketplaceEligibility(sellerId);
@@ -265,15 +320,14 @@ export const personalizedServiceService = {
     });
 
     const idempotencyKey = `personalized-service:${order.id}:attempt:${randomUUID()}`;
-    const result = await personalizedServiceDeps.walletTransfer({
-      payerOwnerId: buyerId,
-      receiverOwnerId: service.sellerId,
-      amount: service.price,
+    const result = await personalizedServiceDeps.holdPersonalizedServicePayment({
+      buyerId,
+      sellerId: service.sellerId,
+      price: service.price,
       relatedEntityId: order.id,
       idempotencyKey,
       initiatedBy: buyerId,
-      purpose: "PERSONALIZED_SERVICE_PURCHASE",
-      relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE",
+      label: `Personalized Service order ${order.id}`,
     });
 
     if (result.status !== "PAID") {
@@ -371,7 +425,18 @@ export const personalizedServiceService = {
     if (order.status !== "INTAKE_SUBMITTED") {
       throw new ApiError("PERSONALIZED_SERVICE_ORDER_INVALID_STATE", `Cannot start review in status ${order.status}`, 409);
     }
-    return prisma.personalizedServiceOrder.update({ where: { id: orderId }, data: { status: "PT_REVIEWING" } });
+    const updated = await prisma.personalizedServiceOrder.update({ where: { id: orderId }, data: { status: "PT_REVIEWING" } });
+    // P1-FIN-002 milestone 1/4 (10%) — "the PT has engaged with the Intake". Best-effort,
+    // never blocks the transition above — see releaseMilestoneBestEffort's doc comment.
+    return releaseMilestoneBestEffort({
+      orderId,
+      transactionId: order.paymentTransactionId,
+      sellerId,
+      price: order.priceAtPurchase,
+      milestone: "INTAKE_REVIEWED",
+      releasedAtField: "milestoneIntakeReleasedAt",
+      base: updated,
+    });
   },
 
   async assertSellerOwnsOrder(orderId: string, sellerId: string) {
@@ -437,6 +502,23 @@ export const personalizedServiceService = {
       await prisma.personalizedServiceRevisionRequest.update({
         where: { id: pendingRevision.id },
         data: { resolvedAt: new Date() },
+      });
+    }
+
+    // P1-FIN-002 milestone 2/4 (30%) — "the PT delivered a draft". deliverDraft fires on
+    // EVERY revision redelivery too, but this milestone must only pay out once — guarded by
+    // milestoneDraftReleasedAt, checked BEFORE the release call (not just relying on
+    // releasePersonalizedServiceMilestone's own PENDING-clamp) so a revision redelivery
+    // doesn't even attempt a network round-trip.
+    if (!order.milestoneDraftReleasedAt) {
+      return releaseMilestoneBestEffort({
+        orderId,
+        transactionId: order.paymentTransactionId,
+        sellerId,
+        price: order.priceAtPurchase,
+        milestone: "DRAFT_DELIVERED",
+        releasedAtField: "milestoneDraftReleasedAt",
+        base: updated,
       });
     }
 
@@ -514,7 +596,17 @@ export const personalizedServiceService = {
         },
       }),
     ]);
-    return updated;
+    // P1-FIN-002 milestone 3/4 (40%) — "the buyer accepted the plan". Covers both the
+    // ACCEPTED and ACTIVE (ongoing-coaching) outcomes above — both mean the buyer committed.
+    return releaseMilestoneBestEffort({
+      orderId,
+      transactionId: order.paymentTransactionId,
+      sellerId: order.sellerId,
+      price: order.priceAtPurchase,
+      milestone: "ACCEPTED",
+      releasedAtField: "milestoneAcceptedReleasedAt",
+      base: updated,
+    });
   },
 
   async completeOrder(orderId: string, requesterId: string) {
@@ -526,7 +618,18 @@ export const personalizedServiceService = {
     if (!["ACCEPTED", "ACTIVE"].includes(order.status)) {
       throw new ApiError("PERSONALIZED_SERVICE_ORDER_INVALID_STATE", `Cannot complete an order in status ${order.status}`, 409);
     }
-    return prisma.personalizedServiceOrder.update({ where: { id: orderId }, data: { status: "COMPLETED" } });
+    const updated = await prisma.personalizedServiceOrder.update({ where: { id: orderId }, data: { status: "COMPLETED" } });
+    // P1-FIN-002 milestone 4/4 — drains whatever remains in PENDING rather than computing its
+    // own 20% (see releasePersonalizedServiceMilestone's doc comment for why).
+    return releaseMilestoneBestEffort({
+      orderId,
+      transactionId: order.paymentTransactionId,
+      sellerId: order.sellerId,
+      price: order.priceAtPurchase,
+      milestone: "COMPLETED",
+      releasedAtField: "milestoneCompletedReleasedAt",
+      base: updated,
+    });
   },
 
   // ── Cancellation (§XXXI/§XXXII — UI must say "Huỷ đơn"/"Yêu cầu hoàn
@@ -561,9 +664,9 @@ export const personalizedServiceService = {
     // Recorded as a request, not an automatic instant refund — §XXXII: once
     // the PT has started (PT_REVIEWING onward), a refund is a policy/dispute
     // decision, not a self-serve button. Actually crediting the wallet back
-    // reuses payment-service's existing generic POST /internal/payments/:id/refund
-    // (see final report) — an explicit admin action (adminResolveRefund
-    // below), since this codebase has no automated dispute-adjudication
+    // reuses the P1-FIN-001/002 escrow ledger via adminResolveRefund below
+    // (draws PENDING first, then released AVAILABLE) — an explicit admin
+    // action, since this codebase has no automated dispute-adjudication
     // workflow to decide the refund AMOUNT for partially-delivered work.
     // preRefundStatus records what to restore to if the admin denies.
     return prisma.personalizedServiceOrder.update({
@@ -588,17 +691,15 @@ export const personalizedServiceService = {
   },
 
   // §8/§9 of the refund spec — the numbers an admin needs to make an
-  // informed, auditable decision. Deliberately does NOT compute a
-  // suggested/auto refund amount: Personalized Service purchases settle
-  // through the generic wallet-transfer path (AVAILABLE bucket, immediate —
-  // see this file's header comment for why, and that payment-service DOES
-  // have a real pending/ESCROW mechanism for OTHER purposes), so there is no
-  // "amount already earned by the PT" the system can read off a ledger for
-  // THIS purchase type — "how much of the PT's work is billable" is a
-  // judgment call this system has no factual basis to make automatically
-  // yet. What IS shown is real: total paid, already refunded (so the admin
-  // can never approve past the ceiling), and delivery milestones reached
-  // (draft delivered? accepted?) as descriptive context only.
+  // informed, auditable decision. Still deliberately does NOT compute a
+  // suggested/auto refund amount ("how much of the PT's work is billable"
+  // stays a human judgment call) — but as of P1-FIN-001/002, `held` below IS
+  // a real ledger read, not just descriptive milestone booleans: it's
+  // exactly how much of this order's price is still sitting in PENDING,
+  // unearned, versus already released to the seller/platform. `held` reads
+  // as zero for a legacy pre-escrow order (nothing to show — see
+  // personalized-service-ledger.service.ts's header comment) rather than
+  // failing; the admin still has totalPaid/alreadyRefunded/milestones either way.
   async getRefundCalculation(orderId: string) {
     const order = await prisma.personalizedServiceOrder.findUnique({
       where: { id: orderId },
@@ -606,17 +707,32 @@ export const personalizedServiceService = {
     });
     if (!order) throw new ApiError("PERSONALIZED_SERVICE_ORDER_NOT_FOUND", "Order not found", 404);
     const refundableCeiling = Math.max(0, order.priceAtPurchase - order.cumulativeRefundedAmount);
+    const held = order.paymentTransactionId
+      ? await personalizedServiceDeps
+          .getPersonalizedServiceLedgerSummary(order.paymentTransactionId, order.sellerId)
+          .then((s) => s.held)
+          .catch((err) => {
+            logger.warn(
+              { orderId, error: (err as Error).message },
+              "[PersonalizedService] ledger summary read failed for getRefundCalculation — showing milestone booleans only",
+            );
+            return null;
+          })
+      : null;
     return {
       orderId: order.id,
       status: order.status,
       totalPaid: order.priceAtPurchase,
       alreadyRefunded: order.cumulativeRefundedAmount,
       refundableCeiling,
+      held,
       milestones: {
         intakeSubmitted: !!order.intakeSubmittedAt,
+        intakeReviewed: !!order.milestoneIntakeReleasedAt,
         draftDelivered: order.draftVersion > 0,
         latestVersionStatus: order.planVersions[0]?.status ?? null,
         accepted: !!order.acceptedAt,
+        completed: !!order.milestoneCompletedReleasedAt,
       },
       disputeReason: order.disputeReason,
     };
@@ -668,19 +784,21 @@ export const personalizedServiceService = {
       throw new ApiError("PERSONALIZED_SERVICE_REFUND_FAILED", "This order has no payment transaction to refund", 409);
     }
 
-    // Deterministic per (order, amount) — a duplicate click with the SAME
-    // amount replays payment-service's cached result instead of refunding
-    // twice; a genuinely different amount (e.g. an admin correcting a
-    // mistake) is treated as a new attempt, not silently blocked forever.
-    const idempotencyKey = `personalized-service-refund:${orderId}:${refundAmount}`;
-
+    // P1-FIN-001/002: draws PENDING first (unearned share), then pooled AVAILABLE (already
+    // released) — see personalized-service-ledger.service.ts's refundPersonalizedServiceHeld.
+    // No idempotency-key layer here (unlike the old generic refund path): a duplicate call
+    // for the same order just draws from PENDING/AVAILABLE again, which the ceiling check
+    // above already guards against ever exceeding priceAtPurchase in total.
     let result;
     try {
-      result = await paymentClient.refundTransaction(order.paymentTransactionId, {
+      result = await personalizedServiceDeps.refundPersonalizedServiceHeld({
+        transactionId: order.paymentTransactionId,
+        sellerId: order.sellerId,
+        buyerId: order.buyerId,
         refundAmount,
         initiatedBy: adminUserId,
         reason: input.note,
-        idempotencyKey,
+        label: `Personalized Service order ${orderId} — admin refund`,
       });
     } catch (err) {
       if (err instanceof PaymentClientError) {
@@ -701,7 +819,7 @@ export const personalizedServiceService = {
         refundDecision: isFullyRefunded ? "APPROVED_FULL" : "APPROVED_PARTIAL",
         refundResolvedBy: adminUserId,
         refundResolvedAt: new Date(),
-        refundResolutionNote: `${input.note} (txn ${result.transactionId}, amount ${result.refundAmount})`,
+        refundResolutionNote: `${input.note} (txn ${order.paymentTransactionId}, amount ${result.refunded}, shortfall ${result.shortfall})`,
       },
     });
   },

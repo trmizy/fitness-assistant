@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { todayAsScheduleDate } from "../utils/schedule-lock.util";
 
 // Real, pre-existing gap found while verifying an unrelated change (Gate
 // 10's postMigrationIntegrityCheck.ts run): WorkoutExercise
@@ -191,8 +192,15 @@ test(
         include: { days: { include: { exercises: true } } },
       });
       const programExerciseId = program.days[0].exercises[0].id;
-      const now = new Date();
-      const scheduleDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      // Must use the same VN-timezone-aware "today" helper the app itself
+      // uses (schedule-lock.util.ts's todayAsScheduleDate) — raw
+      // Date.UTC(now.getUTC*()) reads UTC calendar components, which is a
+      // different calendar day from APP_SCHEDULE_TIME_ZONE's "today" for
+      // roughly 7 hours of every real day (VN midnight-7am), and would make
+      // this fixture flakily seed a schedule dated "yesterday" during that
+      // window — exactly the class of bug this session found and fixed in
+      // workout.service.ts's createWorkout.
+      const scheduleDate = todayAsScheduleDate();
       const schedule = await db.workoutSchedule.create({
         data: { userId, date: scheduleDate, programDayId: program.days[0].id, sourceType: "INTEGRATION_TEST" },
       });

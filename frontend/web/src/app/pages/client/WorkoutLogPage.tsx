@@ -69,6 +69,7 @@ import {
   scheduleLockDirection,
   APP_SCHEDULE_TIME_ZONE,
 } from "./schedule-lock.utils";
+import { requestWakeLockSafe, releaseWakeLockSafe } from "./wake-lock.utils";
 import {
   workoutService,
   inbodyService,
@@ -84,6 +85,8 @@ import {
   type SessionSkipReason,
   type ExerciseSubstitute,
   type WorkoutSessionSummary,
+  type PreviousPerformance,
+  type ExerciseProgression,
 } from "../../services/api";
 import { StarRating } from "../../components/StarRating";
 import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
@@ -273,15 +276,127 @@ function goalLabel(goal?: string | null) {
   return GOAL_LABELS[goal] || goal;
 }
 
+function normalizeLoggingMode(value: unknown, exercise?: any): ExerciseLoggingMode {
+  if (
+    value === "REPS_LOAD" ||
+    value === "BODYWEIGHT_REPS" ||
+    value === "TIME" ||
+    value === "TIME_LOAD" ||
+    value === "DISTANCE_TIME"
+  ) {
+    return value;
+  }
+  if (exercise?.typeOfActivity === "CARDIO") return "DISTANCE_TIME";
+  if (exercise?.type === "HOLD") return "TIME";
+  if (exercise?.typeOfEquipment === "BODYWEIGHT") return "BODYWEIGHT_REPS";
+  return "REPS_LOAD";
+}
+
+function exerciseLoggingMode(exercise: any): ExerciseLoggingMode {
+  return normalizeLoggingMode(exercise?.loggingMode, {
+    typeOfActivity: exercise?.activityType,
+    typeOfEquipment: exercise?.equipment,
+    type: exercise?.movementType,
+  });
+}
+
+function exerciseRequiresExternalWeight(exercise: any) {
+  const mode = exerciseLoggingMode(exercise);
+  return mode === "REPS_LOAD" || mode === "TIME_LOAD";
+}
+
+function exerciseAllowsExternalWeight(exercise: any) {
+  const mode = exerciseLoggingMode(exercise);
+  return mode === "REPS_LOAD" || mode === "TIME_LOAD" || mode === "BODYWEIGHT_REPS";
+}
+
+function exerciseUsesExternalWeight(exercise: any) {
+  return exerciseRequiresExternalWeight(exercise);
+}
+
+function formatSecondsCompact(seconds?: number | null) {
+  if (seconds == null || !Number.isFinite(seconds)) return "";
+  const whole = Math.round(seconds);
+  if (whole < 60) return `${whole}s`;
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  return rest > 0 ? `${minutes}:${String(rest).padStart(2, "0")}` : `${minutes}m`;
+}
+
+function formatDistanceCompact(meters?: number | null) {
+  if (meters == null || !Number.isFinite(meters)) return "";
+  if (meters >= 1000) {
+    const km = Math.round((meters / 1000) * 100) / 100;
+    return `${Number.isInteger(km) ? km.toFixed(0) : km}km`;
+  }
+  return `${Math.round(meters)}m`;
+}
+
+function formatExercisePrescription(input: {
+  sets?: number | null;
+  reps?: number | null;
+  weight?: number | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+  restSeconds?: number | null;
+  loggingMode?: ExerciseLoggingMode;
+}) {
+  const sets = input.sets ?? 1;
+  const mode = input.loggingMode ?? "REPS_LOAD";
+  const parts: string[] = [];
+  if (mode === "TIME" || mode === "TIME_LOAD") {
+    parts.push(`${sets}x${formatSecondsCompact(input.durationSeconds) || "time"}`);
+  } else if (mode === "DISTANCE_TIME") {
+    const distance = formatDistanceCompact(input.distanceMeters) || "distance";
+    const duration = formatSecondsCompact(input.durationSeconds);
+    parts.push(duration ? `${distance} / ${duration}` : distance);
+  } else {
+    parts.push(`${sets}x${input.reps ?? 10}`);
+  }
+  if ((mode === "REPS_LOAD" || mode === "TIME_LOAD" || mode === "BODYWEIGHT_REPS") && input.weight) {
+    parts.push(`${input.weight} kg`);
+  }
+  if (input.restSeconds) parts.push(`nghi ${input.restSeconds}s`);
+  return parts.join(" · ");
+}
+
+function formatPerformanceSetLabel(set: {
+  weightKg?: number | null;
+  bodyWeightAtSetKg?: number | null;
+  reps?: number | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+}) {
+  const pieces: string[] = [];
+  if (set.distanceMeters != null) pieces.push(formatDistanceCompact(set.distanceMeters));
+  if (set.durationSeconds != null) pieces.push(formatSecondsCompact(set.durationSeconds));
+  if (set.bodyWeightAtSetKg != null) pieces.push(`BW ${set.bodyWeightAtSetKg}kg`);
+  if (set.weightKg != null) pieces.push(`${set.weightKg}kg`);
+  if (set.reps != null) pieces.push(`${set.reps} reps`);
+  return pieces.filter(Boolean).join(" / ") || "Logged";
+}
+
 function mapProgramExercise(ex: any) {
   const exercise = ex.exercise || {};
+  const loggingMode = normalizeLoggingMode(exercise.loggingMode, exercise);
+  const durationSeconds = ex.duration ?? null;
   return {
     id: ex.id,
     programExerciseId: ex.id,
     dbId: ex.exerciseId || exercise.id,
     name: exercise.exerciseName || "Bài tập",
-    prescription: `${ex.sets ?? 3}×${ex.reps ?? 10}${ex.restSeconds ? ` · nghỉ ${ex.restSeconds}s` : ""}`,
+    prescription: formatExercisePrescription({
+      sets: ex.sets ?? 3,
+      reps: ex.reps ?? null,
+      weight: ex.weight ?? null,
+      durationSeconds,
+      distanceMeters: null,
+      restSeconds: ex.restSeconds ?? null,
+      loggingMode,
+    }),
     sets: ex.sets ?? 3,
+    durationSeconds,
+    distanceMeters: null,
     reps: ex.reps ?? 10,
     restSeconds: ex.restSeconds ?? 90,
     notes: ex.notes ?? "",
@@ -292,6 +407,7 @@ function mapProgramExercise(ex: any) {
       | "strength",
     bodyPart: exercise.bodyPart,
     equipment: exercise.typeOfEquipment,
+    loggingMode,
     activityType: exercise.typeOfActivity,
     movementType: exercise.type,
     description: exercise.instructions,
@@ -514,10 +630,20 @@ type ManualBuilderDay = {
 
 type ActiveExerciseLog = {
   weightKg: string;
+  bodyWeightAtSetKg: string;
+  durationSeconds: string;
+  distanceMeters: string;
   noWeight: boolean;
   rpe: number;
   rir: number;
 };
+
+type ExerciseLoggingMode =
+  | "REPS_LOAD"
+  | "BODYWEIGHT_REPS"
+  | "TIME"
+  | "TIME_LOAD"
+  | "DISTANCE_TIME";
 
 const MANUAL_WEEKDAYS = [
   { value: 1, short: "T2", label: "Thứ 2" },
@@ -572,13 +698,6 @@ function lockedDayBadgeLabel(apiDateValue: string | Date | undefined | null): st
   if (!apiDateValue) return "Ngày đã qua";
   const direction = scheduleLockDirection(apiDateValue);
   return direction === "future" ? "Chưa đến ngày" : "Ngày đã qua";
-}
-
-function exerciseUsesExternalWeight(exercise: any) {
-  if (exercise?.type === "cardio") return false;
-  const equipment = String(exercise?.equipment || "").toUpperCase();
-  if (!equipment) return true;
-  return !["BODYWEIGHT", "FOAM_ROLLER", "RESISTANCE_BAND"].includes(equipment);
 }
 
 function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
@@ -1413,7 +1532,21 @@ export function WorkoutLogPage() {
   }, [calendarMonth, applyInBodyHistory]);
 
   useEffect(() => {
-    const programDays = currentProgram?.days;
+    const scheduleForSelectedDate = aiSchedules.find((schedule) => {
+      if (!schedule?.date) return false;
+      const sameDate = isSameCalendarDay(parseApiDateOnly(schedule.date), selectedDate);
+      const sameDay =
+        schedule.programDay?.dayNumber == null ||
+        Number(schedule.programDay.dayNumber) === Number(selectedDay);
+      return sameDate && sameDay;
+    });
+    const scheduleProgramDay = scheduleForSelectedDate?.programDay;
+    const programDays =
+      Array.isArray(currentProgram?.days) && currentProgram.days.length > 0
+        ? currentProgram.days
+        : scheduleProgramDay
+          ? [scheduleProgramDay]
+          : [];
     if (!Array.isArray(programDays) || programDays.length === 0) {
       setSelectedProgramDayId(null);
       return;
@@ -1469,7 +1602,7 @@ export function WorkoutLogPage() {
       }
       pendingExerciseIdRef.current = null;
     }
-  }, [currentProgram, selectedDay, planView, selectedDate, workoutCache]);
+  }, [currentProgram, selectedDay, planView, selectedDate, workoutCache, aiSchedules]);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -1965,6 +2098,10 @@ export function WorkoutLogPage() {
   const [activeExerciseLogs, setActiveExerciseLogs] = useState<
     Record<number, ActiveExerciseLog>
   >({});
+  const activeExerciseLogsRef = useRef<Record<number, ActiveExerciseLog>>({});
+  useEffect(() => {
+    activeExerciseLogsRef.current = activeExerciseLogs;
+  }, [activeExerciseLogs]);
   const [isCompletingWorkout, setIsCompletingWorkout] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(
     null,
@@ -1979,10 +2116,34 @@ export function WorkoutLogPage() {
   // Non-critical: if this fails to load the completion screen still works,
   // it just skips the PR/volume block (see loadCompletionSummary's catch).
   const [completionSummary, setCompletionSummary] = useState<WorkoutSessionSummary | null>(null);
+  // "Previous performance" reference context (gap analysis P0 #1) — keyed by
+  // exercise dbId so it's cached across navigating back/forth between
+  // exercises in the same session. Deliberately never mixed into
+  // activeExerciseLogs (the user's actual input) — this is read-only
+  // reference, never a prefilled/editable value.
+  const [previousPerformanceByExercise, setPreviousPerformanceByExercise] = useState<
+    Record<string, PreviousPerformance | null>
+  >({});
+  // Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md)
+  // — same caching-by-exercise-dbId pattern as previousPerformanceByExercise
+  // above, and equally never fed back into activeExerciseLogs: this is the
+  // engine's committed target/explanation, shown as reference, never a
+  // silently-applied prefill.
+  const [progressionByExercise, setProgressionByExercise] = useState<
+    Record<string, ExerciseProgression | null>
+  >({});
   const [feedbackPrompt, setFeedbackPrompt] = useState<{ scheduleId: string } | null>(null);
   const [skipCancelPrompt, setSkipCancelPrompt] = useState<{ scheduleId: string } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Wall-clock end-timestamp for the rest timer (gap analysis P0 "Rest
+  // timer — fragile": setInterval alone drifts under background-tab
+  // throttling because it just decrements a counter once per tick instead
+  // of checking real elapsed time). Ticking against this instead of blindly
+  // decrementing keeps the displayed time accurate even if a tick or two
+  // gets throttled/delayed.
+  const restEndAtRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
 
   // Add Exercise Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -2273,18 +2434,186 @@ export function WorkoutLogPage() {
     };
   }, [timerRunning]);
 
-  // Rest timer effect
-  useEffect(() => {
-    if (restTimerRunning && restSeconds > 0) {
-      restRef.current = setInterval(() => setRestSeconds((s) => s - 1), 1000);
-    } else {
-      if (restRef.current) clearInterval(restRef.current);
-      if (restTimerRunning && restSeconds <= 0) setRestTimerRunning(false);
+  // Rest timer persistence — survives navigating away/back within the SPA
+  // AND a full page reload (gap flagged in review: the earlier wall-clock
+  // fix made the countdown ACCURATE but not persisted across a remount).
+  // Scoped per schedule so a stale timer from a different session never
+  // bleeds into a new one. localStorage access is defensively wrapped —
+  // private-browsing/storage-blocked contexts must never break the timer,
+  // just silently skip persistence.
+  const restTimerStorageKey = (scheduleId: string | null) =>
+    `fitness-assistant:rest-timer:${scheduleId ?? "freeform"}`;
+
+  const persistRestTimer = (scheduleId: string | null, endAt: number) => {
+    try {
+      localStorage.setItem(
+        restTimerStorageKey(scheduleId),
+        JSON.stringify({ endAt, scheduleId }),
+      );
+    } catch {
+      // ignore — persistence is a convenience, never a hard dependency
     }
+  };
+
+  const clearPersistedRestTimer = (scheduleId: string | null) => {
+    try {
+      localStorage.removeItem(restTimerStorageKey(scheduleId));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Restore a still-running rest timer once, when we know which schedule
+  // we're looking at (covers both a fresh page load and navigating back
+  // into activeExercise view). Only ever resumes a timer that is still in
+  // the future and belongs to THIS schedule — a stale/expired/foreign entry
+  // is silently discarded, never resurrected.
+  const restTimerRestoredForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (planView !== "activeExercise") return;
+    // FINAL P0 CLOSURE PASS fix (BUG-03): a direct page load/reload landing
+    // straight in activeExercise view (via URL restoration) never runs any
+    // of the click handlers that call setSelectedScheduleId — that state
+    // stays null for the whole session unless the user has clicked through
+    // the calendar or just completed an exercise. selectedSchedule() is the
+    // one place this codebase already solves exactly this problem (falls
+    // back to a date-based lookup against aiSchedules when the id state
+    // isn't set yet — see its own definition above), so the rest timer must
+    // key off THAT, not the raw state, or a real (non-freeform) timer can
+    // never be found again after a reload even though it was persisted
+    // correctly under the real schedule id in the first place.
+    const key = selectedSchedule()?.id ?? null;
+    if (restTimerRestoredForRef.current === (key ?? "freeform")) return;
+    restTimerRestoredForRef.current = key ?? "freeform";
+    try {
+      const raw = localStorage.getItem(restTimerStorageKey(key));
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { endAt: number; scheduleId: string | null };
+      const remaining = Math.round((saved.endAt - Date.now()) / 1000);
+      if (remaining > 0) {
+        restEndAtRef.current = saved.endAt;
+        setRestSeconds(remaining);
+        setRestTimerRunning(true);
+      } else {
+        clearPersistedRestTimer(key);
+      }
+    } catch {
+      // ignore — corrupt/inaccessible storage just means no restore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planView, selectedScheduleId, aiSchedules, selectedDate]);
+
+  // Rest timer effect — ticks against a stored wall-clock end-timestamp
+  // (restEndAtRef) rather than blindly decrementing a counter, so the
+  // displayed time stays accurate even if a tick gets delayed/throttled
+  // (e.g. a backgrounded mobile tab), instead of silently drifting behind
+  // real elapsed time.
+  useEffect(() => {
+    if (!restTimerRunning) {
+      if (restRef.current) clearInterval(restRef.current);
+      restEndAtRef.current = null;
+      return;
+    }
+    if (restEndAtRef.current == null) {
+      restEndAtRef.current = Date.now() + restSeconds * 1000;
+    }
+    persistRestTimer(selectedSchedule()?.id ?? null, restEndAtRef.current);
+    const tick = () => {
+      const endAt = restEndAtRef.current;
+      const remaining = endAt == null ? 0 : Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      setRestSeconds(remaining);
+      if (remaining <= 0) {
+        setRestTimerRunning(false);
+        restEndAtRef.current = null;
+        clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      }
+    };
+    tick();
+    restRef.current = setInterval(tick, 1000);
     return () => {
       if (restRef.current) clearInterval(restRef.current);
     };
-  }, [restTimerRunning, restSeconds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restTimerRunning]);
+
+  // Screen Wake Lock — progressive enhancement (gap analysis P0 "Rest
+  // timer"). Feature-detected: on a browser without support, wakeLockRef
+  // just stays null and the timer/workout logging work exactly as before —
+  // this is never a hard dependency (task's own instruction: "Không để Wake
+  // Lock thành dependency"). Held while either timer is actively running.
+  useEffect(() => {
+    const nav = navigator as any;
+    const active = restTimerRunning || timerRunning;
+    if (active && !wakeLockRef.current) {
+      requestWakeLockSafe(nav).then((lock) => {
+        wakeLockRef.current = lock;
+      });
+    } else if (!active && wakeLockRef.current) {
+      releaseWakeLockSafe(wakeLockRef.current);
+      wakeLockRef.current = null;
+    }
+    return () => {
+      if (!restTimerRunning && !timerRunning && wakeLockRef.current) {
+        releaseWakeLockSafe(wakeLockRef.current);
+        wakeLockRef.current = null;
+      }
+    };
+  }, [restTimerRunning, timerRunning]);
+
+  // "Previous performance" fetch — gap analysis P0 #1. Loads once per
+  // exercise per session (cached in previousPerformanceByExercise), fires
+  // whenever the active exercise changes. Non-critical: a failed fetch just
+  // leaves the reference card absent, never blocks logging.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId || previousPerformanceByExercise[exerciseDbId] !== undefined) {
+      return;
+    }
+    let cancelled = false;
+    workoutService
+      .getPreviousPerformance(exerciseDbId)
+      .then((result) => {
+        if (!cancelled) {
+          setPreviousPerformanceByExercise((prev) => ({ ...prev, [exerciseDbId]: result }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviousPerformanceByExercise((prev) => ({ ...prev, [exerciseDbId]: null }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeExIdx, dayExercises, previousPerformanceByExercise]);
+
+  // Deterministic per-exercise progression fetch — same shape/caching
+  // pattern as the previous-performance effect above. Non-critical: a
+  // failed fetch just leaves the target/explanation card absent.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId || progressionByExercise[exerciseDbId] !== undefined) {
+      return;
+    }
+    let cancelled = false;
+    workoutService
+      .getExerciseProgression(exerciseDbId)
+      .then((result) => {
+        if (!cancelled) {
+          setProgressionByExercise((prev) => ({ ...prev, [exerciseDbId]: result }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProgressionByExercise((prev) => ({ ...prev, [exerciseDbId]: null }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeExIdx, dayExercises, progressionByExercise]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)
@@ -2354,8 +2683,11 @@ export function WorkoutLogPage() {
       date: toApiDateTime(saveDate),
       duration: Math.max(1, Math.ceil(timerSeconds / 60)),
       exercises: dayExercises.map((exercise, index) => {
-        const log = activeExerciseLogs[index];
+        const log = activeExerciseLogsRef.current[index] ?? activeExerciseLogs[index];
         const weight = log?.noWeight ? undefined : Number(log?.weightKg);
+        const bodyWeightAtSetKg = Number(log?.bodyWeightAtSetKg);
+        const durationSecondsValue = Number(log?.durationSeconds);
+        const distanceMetersValue = Number(log?.distanceMeters);
         // exercise.dbId already reflects any session-only swap (see
         // handleSelectSwap) — logging the substitute's real id here is the
         // ACCURATE record of what was actually performed, not a corruption
@@ -2369,10 +2701,22 @@ export function WorkoutLogPage() {
           sets: Number(exercise.sets) || 1,
           reps: Number(exercise.reps) || undefined,
           duration:
-            exercise.type === "cardio"
-              ? Number(exercise.duration) || undefined
+            Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+              ? durationSecondsValue
+              : exercise.durationSeconds ?? exercise.duration ?? undefined,
+          durationSeconds:
+            Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+              ? durationSecondsValue
+              : undefined,
+          distanceMeters:
+            Number.isFinite(distanceMetersValue) && distanceMetersValue > 0
+              ? distanceMetersValue
               : undefined,
           weight: Number.isFinite(weight) ? weight : undefined,
+          bodyWeightAtSetKg:
+            Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+              ? bodyWeightAtSetKg
+              : undefined,
           rpe: log?.rpe,
           rir: log?.rir,
           notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
@@ -2397,7 +2741,7 @@ export function WorkoutLogPage() {
       );
       return;
     }
-    const currentLog = activeExerciseLogs[activeExIdx];
+    const currentLog = activeExerciseLogsRef.current[activeExIdx] ?? activeExerciseLogs[activeExIdx];
     const needsWeight = exerciseUsesExternalWeight(dayExercises[activeExIdx]);
     if (needsWeight && !currentLog?.noWeight) {
       const weight = Number(currentLog?.weightKg);
@@ -2405,6 +2749,22 @@ export function WorkoutLogPage() {
         toast.error(
           "Vui lòng nhập tổng số kg tạ cho bài này hoặc chọn Không dùng tạ.",
         );
+        return;
+      }
+    }
+    const completingLoggingMode = exerciseLoggingMode(dayExercises[activeExIdx]);
+    if (completingLoggingMode === "TIME" || completingLoggingMode === "TIME_LOAD") {
+      const duration = Number(currentLog?.durationSeconds);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        toast.error("Vui lòng nhập thời gian thực hiện cho bài này.");
+        return;
+      }
+    }
+    if (completingLoggingMode === "DISTANCE_TIME") {
+      const distance = Number(currentLog?.distanceMeters);
+      const duration = Number(currentLog?.durationSeconds);
+      if ((!Number.isFinite(distance) || distance <= 0) && (!Number.isFinite(duration) || duration <= 0)) {
+        toast.error("Vui lòng nhập quãng đường hoặc thời gian cho bài cardio này.");
         return;
       }
     }
@@ -2454,6 +2814,9 @@ export function WorkoutLogPage() {
         // persistCompletedWorkout's ad-hoc-workout payload below, kept
         // consistent so both logging paths record the same thing.
         const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
+        const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
+        const durationSecondsValue = Number(currentLog?.durationSeconds);
+        const distanceMetersValue = Number(currentLog?.distanceMeters);
         const notesParts = [
           currentLog?.noWeight ? "Không dùng tạ" : undefined,
           swapNotes[activeExIdx],
@@ -2464,6 +2827,16 @@ export function WorkoutLogPage() {
           {
             exerciseId: currentExercise.dbId || undefined,
             weight: Number.isFinite(weight) ? weight : undefined,
+            bodyWeightAtSetKg:
+              Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+                ? bodyWeightAtSetKg
+                : undefined,
+            // TIME/TIME_LOAD/DISTANCE_TIME (openGym P0-completion pass) —
+            // real, separate fields, never folded into `weight`. See
+            // docs/OPENGYM_P0_COMPLETION_REPORT.md's "Bugs found" for the
+            // exact bug this replaces (duration silently stored as kg).
+            durationSeconds: Number.isFinite(durationSecondsValue) && durationSecondsValue > 0 ? durationSecondsValue : undefined,
+            distanceMeters: Number.isFinite(distanceMetersValue) && distanceMetersValue > 0 ? distanceMetersValue : undefined,
             rpe: currentLog?.rpe,
             rir: currentLog?.rir,
             notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
@@ -2539,11 +2912,14 @@ export function WorkoutLogPage() {
       setTimerRunning(false);
       setTimerSeconds(0);
       setRestTimerRunning(false);
+      clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      restTimerRestoredForRef.current = null;
       setShowCompletion(false);
       setCompletionSummary(null);
       setActiveExerciseLogs({});
       setIsCompletingWorkout(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planView]);
 
   const bodyMetricHistoryAsc = useMemo(() => {
@@ -4206,26 +4582,58 @@ export function WorkoutLogPage() {
           const progressPct =
             (completedExercises.size / dayExercises.length) * 100;
           const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
+          const curExLoggingMode = exerciseLoggingMode(curEx);
+          const allowsExternalWeight = exerciseAllowsExternalWeight(curEx);
+          const needsDuration =
+            curExLoggingMode === "TIME" ||
+            curExLoggingMode === "TIME_LOAD" ||
+            curExLoggingMode === "DISTANCE_TIME";
+          const needsDistance = curExLoggingMode === "DISTANCE_TIME";
           const activeLog = activeExerciseLogs[activeExIdx] || {
             weightKg: curEx?.weight != null ? String(curEx.weight) : "",
+            bodyWeightAtSetKg:
+              curEx?.bodyWeightAtSetKg != null
+                ? String(curEx.bodyWeightAtSetKg)
+                : userProfile?.currentWeight != null
+                  ? String(userProfile.currentWeight)
+                  : "",
+            durationSeconds: curEx?.durationSeconds != null ? String(curEx.durationSeconds) : "",
+            distanceMeters: curEx?.distanceMeters != null ? String(curEx.distanceMeters) : "",
             noWeight: !requiresExternalWeight,
             rpe: curEx?.rpe ?? 7,
             rir: curEx?.rir ?? 2,
           };
           const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
-            setActiveExerciseLogs((prev) => ({
-              ...prev,
-              [activeExIdx]: {
+            const prev = activeExerciseLogsRef.current;
+            const nextLog = {
                 weightKg:
                   prev[activeExIdx]?.weightKg ??
                   (curEx?.weight != null ? String(curEx.weight) : ""),
+                bodyWeightAtSetKg:
+                  prev[activeExIdx]?.bodyWeightAtSetKg ??
+                  (curEx?.bodyWeightAtSetKg != null
+                    ? String(curEx.bodyWeightAtSetKg)
+                    : userProfile?.currentWeight != null
+                      ? String(userProfile.currentWeight)
+                      : ""),
+                durationSeconds:
+                  prev[activeExIdx]?.durationSeconds ??
+                  (curEx?.durationSeconds != null ? String(curEx.durationSeconds) : ""),
+                distanceMeters:
+                  prev[activeExIdx]?.distanceMeters ??
+                  (curEx?.distanceMeters != null ? String(curEx.distanceMeters) : ""),
                 noWeight:
                   prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
                 rpe: prev[activeExIdx]?.rpe ?? curEx?.rpe ?? 7,
                 rir: prev[activeExIdx]?.rir ?? curEx?.rir ?? 2,
                 ...patch,
-              },
-            }));
+              };
+            const next = {
+              ...prev,
+              [activeExIdx]: nextLog,
+            };
+            activeExerciseLogsRef.current = next;
+            setActiveExerciseLogs(next);
           };
           // Gym-onboarding project follow-up §9 — session-only swap: only
           // dayExercises[activeExIdx] changes (local state), never the
@@ -4344,12 +4752,108 @@ export function WorkoutLogPage() {
                 </span>
               </div>
 
+              {/* "Previous performance" — reference context only, never a
+                  recommendation/prefill (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+                  §3, §7: "previous performance" must stay visually distinct
+                  from any target). Absent while loading/failed/no-history —
+                  never a broken-looking placeholder. */}
+              {(() => {
+                const prevPerf = curEx?.dbId
+                  ? previousPerformanceByExercise[curEx.dbId]
+                  : undefined;
+                if (!prevPerf || !prevPerf.hasHistory) return null;
+                return (
+                  <div
+                    className="rounded-2xl bg-sky-500/5 border border-sky-500/15 p-4"
+                    data-testid="previous-performance-card"
+                  >
+                    <p className="text-xs text-sky-300 flex items-center gap-1.5 mb-2">
+                      <Clock className="w-3.5 h-3.5" /> Lần trước
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {prevPerf.sets.map((s) => (
+                        <span
+                          key={s.setNumber}
+                          className="px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/50 text-xs text-zinc-300"
+                        >
+                          {formatPerformanceSetLabel(s)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Deterministic per-exercise progression — "today's target" +
+                  "why", per docs/TRAINING_PROGRESSION_ARCHITECTURE.md §7.
+                  The WHY line is a template keyed by reasonCodes[0], never
+                  an LLM call — renders correctly with AI fully absent (no AI
+                  wiring exists yet for this feature at all, see the openGym
+                  implementation report's "AI interaction" section). Visually
+                  separate from the "Lần trước" card above: one is what
+                  happened, this is what the deterministic engine proposes
+                  next — never conflated into one block. */}
+              {(() => {
+                const progression = curEx?.dbId ? progressionByExercise[curEx.dbId] : undefined;
+                if (!progression || progression.status === "INSUFFICIENT_DATA") return null;
+                const REASON_TEXT: Record<string, string> = {
+                  COMPLETED_ALL_PRESCRIBED_REPS_WITHIN_TARGET_RIR:
+                    "Hoàn thành đủ số rep quy định trong ngưỡng nỗ lực mục tiêu.",
+                  TOP_OF_REP_RANGE_REACHED_ON_ALL_SETS: "Đã đạt mức rep cao nhất của khoảng quy định.",
+                  RIR_TARGET_MET_WITH_HEADROOM_TO_SPARE: "Vẫn còn dư sức theo RIR — có thể tăng tải.",
+                  BELOW_TOP_OF_REP_RANGE_ADD_A_REP_BEFORE_ADDING_LOAD:
+                    "Chưa đạt đỉnh khoảng rep — nên tăng rep trước khi tăng tải.",
+                  PERFORMANCE_DIPPED_SINGLE_SESSION_REVIEW_BEFORE_CHANGING_LOAD:
+                    "Hiệu suất giảm nhẹ 1 buổi — giữ nguyên, xem lại trước khi đổi tải.",
+                  MISSED_TARGET_TWO_OR_MORE_SESSIONS_IN_A_ROW:
+                    "Hụt mục tiêu 2 buổi liên tiếp — nên giảm tải để hồi phục.",
+                  BODYWEIGHT_REPS_IMPROVED_OR_HAD_HEADROOM: "Số rep bodyweight tăng — có thể tăng thêm rep.",
+                  BODYWEIGHT_REPS_STABLE_NOT_YET_READY_TO_ADD_REPS: "Số rep ổn định — giữ nguyên buổi tới.",
+                  TIMED_EXERCISE_DURATION_OR_DISTANCE_IMPROVED: "Thời gian/quãng đường đã cải thiện.",
+                  TIMED_EXERCISE_NO_IMPROVEMENT_YET: "Chưa cải thiện — giữ nguyên mục tiêu buổi tới.",
+                  REPEAT_SAME_LOAD_UNTIL_PRESCRIBED_REPS_MET_CLEANLY:
+                    "Lặp lại cùng mức tải đến khi hoàn thành đủ rep quy định.",
+                  CYCLE_DELOAD_OVERRIDES_LOCAL_SIGNAL:
+                    "Chu kỳ tập hiện đang ở giai đoạn giảm tải — ưu tiên hồi phục hơn tăng tải cục bộ.",
+                  CYCLE_REBUILD_BLOCKS_AUTOMATIC_LOCAL_INCREASE:
+                    "Chu kỳ tập cần xem lại tổng thể — chưa tự động tăng tải bài này.",
+                };
+                const why = REASON_TEXT[progression.reasonCodes[0]] ?? "Dựa trên hiệu suất buổi trước.";
+                const STATUS_LABEL: Record<string, string> = {
+                  INCREASE_LOAD: "Tăng tải",
+                  INCREASE_REPS: "Tăng rep",
+                  INCREASE_SETS: "Tăng set",
+                  DELOAD: "Giảm tải",
+                  REVIEW: "Xem lại",
+                  KEEP: "Giữ nguyên",
+                };
+                return (
+                  <div
+                    className="rounded-2xl bg-emerald-500/5 border border-emerald-500/15 p-4"
+                    data-testid="exercise-progression-card"
+                  >
+                    <p className="text-xs text-emerald-300 flex items-center gap-1.5 mb-2">
+                      <TrendingUp className="w-3.5 h-3.5" /> Hôm nay: {STATUS_LABEL[progression.status] ?? progression.status}
+                    </p>
+                    {progression.nextTarget && (
+                      <p className="text-sm text-zinc-200 mb-1">
+                        {progression.nextTarget.weightKg != null ? `${progression.nextTarget.weightKg}kg` : ""}
+                        {progression.nextTarget.weightKg != null && progression.nextTarget.reps != null ? " × " : ""}
+                        {progression.nextTarget.reps != null ? `${progression.nextTarget.reps} reps` : ""}
+                        {progression.nextTarget.durationSeconds != null ? `${progression.nextTarget.durationSeconds}s` : ""}
+                      </p>
+                    )}
+                    <p className="text-xs text-zinc-400">{why}</p>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Media + Info */}
                 <div className="space-y-5">
                   {/* Rest timer banner */}
                   {restTimerRunning && restSeconds > 0 && (
-                    <div className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
+                    <div data-testid="rest-timer-banner" className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center shrink-0">
                           <Timer className="w-4 h-4 text-amber-400" />
@@ -4364,13 +4868,14 @@ export function WorkoutLogPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl text-amber-300 tabular-nums">
+                        <span data-testid="rest-timer-remaining-seconds" data-remaining-seconds={restSeconds} className="text-2xl text-amber-300 tabular-nums">
                           {formatTime(restSeconds)}
                         </span>
                         <button
                           onClick={() => {
                             setRestTimerRunning(false);
                             setRestSeconds(90);
+                            clearPersistedRestTimer(selectedSchedule()?.id ?? null);
                           }}
                           className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all"
                         >
@@ -4566,54 +5071,131 @@ export function WorkoutLogPage() {
                         </p>
                       </div>
                     )}
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                      <RulerSlider
-                        className="min-w-0 flex-1"
-                        label={curEx.type === "cardio" ? "Thời gian (phút)" : "Khối lượng tạ"}
-                        min={0}
-                        max={300}
-                        step={0.5}
-                        majorTickInterval={10}
-                        unit={curEx.type === "cardio" ? "phút" : "kg"}
-                        disabled={isSelectedDayLocked || activeLog.noWeight}
-                        value={activeLog.noWeight ? 0 : Number(activeLog.weightKg) || 0}
-                        onChange={(next) =>
-                          updateActiveLog({
-                            weightKg: String(next),
-                            noWeight: false,
-                          })
-                        }
-                      />
-                      {/* h-16 matches RulerSlider's own track height exactly, so
-                          `sm:items-end` lines this button's bottom edge up with
-                          the track's bottom edge instead of floating vertically
-                          centered against the slider's full label+value+track
-                          block (which used to put it overlapping the value
-                          text and the top of the track — see git history). */}
-                      <button
-                        type="button"
-                        data-testid="no-weight-toggle"
-                        onClick={() =>
-                          updateActiveLog({
-                            noWeight: !activeLog.noWeight,
-                            weightKg: "",
-                          })
-                        }
-                        disabled={isSelectedDayLocked || !requiresExternalWeight}
-                        className={`h-16 shrink-0 rounded-xl border px-4 text-sm font-medium transition-all ${
-                          activeLog.noWeight
-                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                            : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
-                        } disabled:cursor-default`}
-                      >
-                        Không dùng tạ
-                      </button>
-                    </div>
+                    {/* Weight input — REPS_LOAD / TIME_LOAD / BODYWEIGHT_REPS
+                        only. TIME/DISTANCE_TIME never show this at all
+                        (openGym P0-completion pass — a plank/run has no
+                        weight to record); TIME_LOAD (e.g. weighted carry)
+                        shows both this AND the duration control below. */}
+                    {(curExLoggingMode === "REPS_LOAD" ||
+                      curExLoggingMode === "TIME_LOAD" ||
+                      curExLoggingMode === "BODYWEIGHT_REPS") && (
+                      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <RulerSlider
+                          className="min-w-0 flex-1"
+                          label="Khối lượng tạ"
+                          min={0}
+                          max={300}
+                          step={0.5}
+                          majorTickInterval={10}
+                          unit="kg"
+                          disabled={isSelectedDayLocked || activeLog.noWeight}
+                          value={activeLog.noWeight ? 0 : Number(activeLog.weightKg) || 0}
+                          onChange={(next) =>
+                            updateActiveLog({
+                              weightKg: String(next),
+                              noWeight: false,
+                            })
+                          }
+                        />
+                        {/* h-16 matches RulerSlider's own track height exactly, so
+                            `sm:items-end` lines this button's bottom edge up with
+                            the track's bottom edge instead of floating vertically
+                            centered against the slider's full label+value+track
+                            block (which used to put it overlapping the value
+                            text and the top of the track — see git history). */}
+                        <button
+                          type="button"
+                          data-testid="no-weight-toggle"
+                          onClick={() =>
+                            updateActiveLog({
+                              noWeight: !activeLog.noWeight,
+                              weightKg: "",
+                            })
+                          }
+                          disabled={isSelectedDayLocked || !allowsExternalWeight}
+                          className={`h-16 shrink-0 rounded-xl border px-4 text-sm font-medium transition-all ${
+                            activeLog.noWeight
+                              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                              : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
+                          } disabled:cursor-default`}
+                        >
+                          Không dùng tạ
+                        </button>
+                      </div>
+                    )}
                     {requiresExternalWeight && !activeLog.noWeight && (
                       <p className="text-[11px] text-amber-300/80">
                         Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.
                       </p>
                     )}
+
+                    {/* Duration input — TIME / TIME_LOAD / DISTANCE_TIME.
+                        Real, separate field (WorkoutSet.durationSeconds) —
+                        this replaces an earlier version of this screen that
+                        relabeled the WEIGHT slider as "Thời gian (phút)" and
+                        silently stored the value as kg (a real bug found and
+                        fixed this pass, see docs/OPENGYM_P0_COMPLETION_REPORT.md
+                        "Bugs found"). Minutes in the UI (familiar unit for a
+                        plank/carry/run), converted to whole seconds on write. */}
+                    {curExLoggingMode === "BODYWEIGHT_REPS" && (
+                      <label className="block">
+                        <span className="block text-[11px] text-zinc-500 mb-1">
+                          Body weight at set (kg)
+                        </span>
+                        <input
+                          data-testid="bodyweight-at-set-input"
+                          type="number"
+                          min="1"
+                          max="500"
+                          step="0.1"
+                          disabled={isSelectedDayLocked}
+                          value={activeLog.bodyWeightAtSetKg}
+                          onChange={(event) =>
+                            updateActiveLog({ bodyWeightAtSetKg: event.target.value })
+                          }
+                          className="w-full rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/40 disabled:opacity-50"
+                        />
+                      </label>
+                    )}
+
+                    {needsDuration && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Thời gian"
+                        min={0}
+                        max={180}
+                        step={0.25}
+                        majorTickInterval={5}
+                        unit="phút"
+                        disabled={isSelectedDayLocked}
+                        value={(Number(activeLog.durationSeconds) || 0) / 60}
+                        onChange={(nextMinutes) =>
+                          updateActiveLog({ durationSeconds: String(Math.round(nextMinutes * 60)) })
+                        }
+                      />
+                    )}
+                    {needsDistance && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Quãng đường"
+                        min={0}
+                        max={50}
+                        step={0.1}
+                        majorTickInterval={5}
+                        unit="km"
+                        disabled={isSelectedDayLocked}
+                        value={(Number(activeLog.distanceMeters) || 0) / 1000}
+                        onChange={(nextKm) =>
+                          updateActiveLog({ distanceMeters: String(Math.round(nextKm * 1000)) })
+                        }
+                      />
+                    )}
+                    {(curExLoggingMode === "TIME" || curExLoggingMode === "TIME_LOAD") &&
+                      !(Number(activeLog.durationSeconds) > 0) && (
+                        <p className="text-[11px] text-amber-300/80">
+                          Bắt buộc nhập thời gian trước khi hoàn thành bài này.
+                        </p>
+                      )}
 
                     {showRpeRirHint && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
@@ -4861,13 +5443,23 @@ export function WorkoutLogPage() {
                           className="flex items-center justify-between text-sm"
                         >
                           <span className="text-zinc-300 truncate pr-2">{pr.exerciseName}</span>
-                          <span className="text-emerald-400 shrink-0">
-                            {pr.weightKg}kg{pr.reps ? ` × ${pr.reps}` : ""}
-                            <span className="text-zinc-500 text-xs">
-                              {" "}
-                              (trước: {pr.previousBestWeightKg}kg)
+                          {pr.prType === "REPS" ? (
+                            <span className="text-emerald-400 shrink-0">
+                              {pr.reps} reps
+                              <span className="text-zinc-500 text-xs">
+                                {" "}
+                                (trước: {pr.previousBestReps} reps)
+                              </span>
                             </span>
-                          </span>
+                          ) : (
+                            <span className="text-emerald-400 shrink-0">
+                              {pr.weightKg}kg{pr.reps ? ` × ${pr.reps}` : ""}
+                              <span className="text-zinc-500 text-xs">
+                                {" "}
+                                (trước: {pr.previousBestWeightKg}kg)
+                              </span>
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>

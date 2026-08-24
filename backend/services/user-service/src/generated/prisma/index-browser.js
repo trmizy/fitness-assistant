@@ -139,6 +139,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   activityLevel: 'activityLevel',
   experienceLevel: 'experienceLevel',
   competesInSport: 'competesInSport',
+  safetyScreeningStatus: 'safetyScreeningStatus',
+  safetyScreeningFlags: 'safetyScreeningFlags',
   preferredTrainingDays: 'preferredTrainingDays',
   availableEquipment: 'availableEquipment',
   injuries: 'injuries',
@@ -530,6 +532,12 @@ exports.ExperienceLevel = exports.$Enums.ExperienceLevel = {
   BEGINNER: 'BEGINNER',
   INTERMEDIATE: 'INTERMEDIATE',
   ADVANCED: 'ADVANCED'
+};
+
+exports.SafetyScreeningStatus = exports.$Enums.SafetyScreeningStatus = {
+  UNKNOWN: 'UNKNOWN',
+  CLEARED: 'CLEARED',
+  FOLLOW_UP_SUGGESTED: 'FOLLOW_UP_SUGGESTED'
 };
 
 exports.PTApplicationStatus = exports.$Enums.PTApplicationStatus = {

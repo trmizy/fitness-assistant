@@ -4998,6 +4998,7 @@ export namespace Prisma {
     movementPattern: string | null
     mechanics: string | null
     difficultyLevel: string | null
+    loggingMode: string | null
     status: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -5015,6 +5016,7 @@ export namespace Prisma {
     movementPattern: string | null
     mechanics: string | null
     difficultyLevel: string | null
+    loggingMode: string | null
     status: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -5034,6 +5036,7 @@ export namespace Prisma {
     mechanics: number
     contraindications: number
     difficultyLevel: number
+    loggingMode: number
     status: number
     createdAt: number
     updatedAt: number
@@ -5053,6 +5056,7 @@ export namespace Prisma {
     movementPattern?: true
     mechanics?: true
     difficultyLevel?: true
+    loggingMode?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -5070,6 +5074,7 @@ export namespace Prisma {
     movementPattern?: true
     mechanics?: true
     difficultyLevel?: true
+    loggingMode?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -5089,6 +5094,7 @@ export namespace Prisma {
     mechanics?: true
     contraindications?: true
     difficultyLevel?: true
+    loggingMode?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -5181,6 +5187,7 @@ export namespace Prisma {
     mechanics: string | null
     contraindications: string[]
     difficultyLevel: string | null
+    loggingMode: string
     status: string
     createdAt: Date
     updatedAt: Date
@@ -5217,6 +5224,7 @@ export namespace Prisma {
     mechanics?: boolean
     contraindications?: boolean
     difficultyLevel?: boolean
+    loggingMode?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -5244,6 +5252,7 @@ export namespace Prisma {
     mechanics?: boolean
     contraindications?: boolean
     difficultyLevel?: boolean
+    loggingMode?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -5263,6 +5272,7 @@ export namespace Prisma {
     mechanics?: boolean
     contraindications?: boolean
     difficultyLevel?: boolean
+    loggingMode?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -5305,6 +5315,7 @@ export namespace Prisma {
       mechanics: string | null
       contraindications: string[]
       difficultyLevel: string | null
+      loggingMode: string
       status: string
       createdAt: Date
       updatedAt: Date
@@ -5721,6 +5732,7 @@ export namespace Prisma {
     readonly mechanics: FieldRef<"Exercise", 'String'>
     readonly contraindications: FieldRef<"Exercise", 'String[]'>
     readonly difficultyLevel: FieldRef<"Exercise", 'String'>
+    readonly loggingMode: FieldRef<"Exercise", 'String'>
     readonly status: FieldRef<"Exercise", 'String'>
     readonly createdAt: FieldRef<"Exercise", 'DateTime'>
     readonly updatedAt: FieldRef<"Exercise", 'DateTime'>
@@ -11240,6 +11252,9 @@ export namespace Prisma {
     rpe: number | null
     rir: number | null
     painScore: number | null
+    bodyWeightAtSetKg: number | null
+    durationSeconds: number | null
+    distanceMeters: number | null
   }
 
   export type WorkoutSetSumAggregateOutputType = {
@@ -11249,6 +11264,9 @@ export namespace Prisma {
     rpe: number | null
     rir: number | null
     painScore: number | null
+    bodyWeightAtSetKg: number | null
+    durationSeconds: number | null
+    distanceMeters: number | null
   }
 
   export type WorkoutSetMinAggregateOutputType = {
@@ -11267,6 +11285,9 @@ export namespace Prisma {
     side: string | null
     painScore: number | null
     techniqueNotes: string | null
+    bodyWeightAtSetKg: number | null
+    durationSeconds: number | null
+    distanceMeters: number | null
   }
 
   export type WorkoutSetMaxAggregateOutputType = {
@@ -11285,6 +11306,9 @@ export namespace Prisma {
     side: string | null
     painScore: number | null
     techniqueNotes: string | null
+    bodyWeightAtSetKg: number | null
+    durationSeconds: number | null
+    distanceMeters: number | null
   }
 
   export type WorkoutSetCountAggregateOutputType = {
@@ -11303,6 +11327,9 @@ export namespace Prisma {
     side: number
     painScore: number
     techniqueNotes: number
+    bodyWeightAtSetKg: number
+    durationSeconds: number
+    distanceMeters: number
     _all: number
   }
 
@@ -11314,6 +11341,9 @@ export namespace Prisma {
     rpe?: true
     rir?: true
     painScore?: true
+    bodyWeightAtSetKg?: true
+    durationSeconds?: true
+    distanceMeters?: true
   }
 
   export type WorkoutSetSumAggregateInputType = {
@@ -11323,6 +11353,9 @@ export namespace Prisma {
     rpe?: true
     rir?: true
     painScore?: true
+    bodyWeightAtSetKg?: true
+    durationSeconds?: true
+    distanceMeters?: true
   }
 
   export type WorkoutSetMinAggregateInputType = {
@@ -11341,6 +11374,9 @@ export namespace Prisma {
     side?: true
     painScore?: true
     techniqueNotes?: true
+    bodyWeightAtSetKg?: true
+    durationSeconds?: true
+    distanceMeters?: true
   }
 
   export type WorkoutSetMaxAggregateInputType = {
@@ -11359,6 +11395,9 @@ export namespace Prisma {
     side?: true
     painScore?: true
     techniqueNotes?: true
+    bodyWeightAtSetKg?: true
+    durationSeconds?: true
+    distanceMeters?: true
   }
 
   export type WorkoutSetCountAggregateInputType = {
@@ -11377,6 +11416,9 @@ export namespace Prisma {
     side?: true
     painScore?: true
     techniqueNotes?: true
+    bodyWeightAtSetKg?: true
+    durationSeconds?: true
+    distanceMeters?: true
     _all?: true
   }
 
@@ -11482,6 +11524,9 @@ export namespace Prisma {
     side: string | null
     painScore: number | null
     techniqueNotes: string | null
+    bodyWeightAtSetKg: number | null
+    durationSeconds: number | null
+    distanceMeters: number | null
     _count: WorkoutSetCountAggregateOutputType | null
     _avg: WorkoutSetAvgAggregateOutputType | null
     _sum: WorkoutSetSumAggregateOutputType | null
@@ -11519,6 +11564,9 @@ export namespace Prisma {
     side?: boolean
     painScore?: boolean
     techniqueNotes?: boolean
+    bodyWeightAtSetKg?: boolean
+    durationSeconds?: boolean
+    distanceMeters?: boolean
     workoutExercise?: boolean | WorkoutExerciseDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSet"]>
 
@@ -11538,6 +11586,9 @@ export namespace Prisma {
     side?: boolean
     painScore?: boolean
     techniqueNotes?: boolean
+    bodyWeightAtSetKg?: boolean
+    durationSeconds?: boolean
+    distanceMeters?: boolean
     workoutExercise?: boolean | WorkoutExerciseDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSet"]>
 
@@ -11557,6 +11608,9 @@ export namespace Prisma {
     side?: boolean
     painScore?: boolean
     techniqueNotes?: boolean
+    bodyWeightAtSetKg?: boolean
+    durationSeconds?: boolean
+    distanceMeters?: boolean
   }
 
   export type WorkoutSetInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -11587,6 +11641,9 @@ export namespace Prisma {
       side: string | null
       painScore: number | null
       techniqueNotes: string | null
+      bodyWeightAtSetKg: number | null
+      durationSeconds: number | null
+      distanceMeters: number | null
     }, ExtArgs["result"]["workoutSet"]>
     composites: {}
   }
@@ -11996,6 +12053,9 @@ export namespace Prisma {
     readonly side: FieldRef<"WorkoutSet", 'String'>
     readonly painScore: FieldRef<"WorkoutSet", 'Int'>
     readonly techniqueNotes: FieldRef<"WorkoutSet", 'String'>
+    readonly bodyWeightAtSetKg: FieldRef<"WorkoutSet", 'Float'>
+    readonly durationSeconds: FieldRef<"WorkoutSet", 'Int'>
+    readonly distanceMeters: FieldRef<"WorkoutSet", 'Float'>
   }
     
 
@@ -48565,6 +48625,7 @@ export namespace Prisma {
     mechanics: 'mechanics',
     contraindications: 'contraindications',
     difficultyLevel: 'difficultyLevel',
+    loggingMode: 'loggingMode',
     status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -48657,7 +48718,10 @@ export namespace Prisma {
     rangeOfMotion: 'rangeOfMotion',
     side: 'side',
     painScore: 'painScore',
-    techniqueNotes: 'techniqueNotes'
+    techniqueNotes: 'techniqueNotes',
+    bodyWeightAtSetKg: 'bodyWeightAtSetKg',
+    durationSeconds: 'durationSeconds',
+    distanceMeters: 'distanceMeters'
   };
 
   export type WorkoutSetScalarFieldEnum = (typeof WorkoutSetScalarFieldEnum)[keyof typeof WorkoutSetScalarFieldEnum]
@@ -49506,6 +49570,7 @@ export namespace Prisma {
     mechanics?: StringNullableFilter<"Exercise"> | string | null
     contraindications?: StringNullableListFilter<"Exercise">
     difficultyLevel?: StringNullableFilter<"Exercise"> | string | null
+    loggingMode?: StringFilter<"Exercise"> | string
     status?: StringFilter<"Exercise"> | string
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
@@ -49532,6 +49597,7 @@ export namespace Prisma {
     mechanics?: SortOrderInput | SortOrder
     contraindications?: SortOrder
     difficultyLevel?: SortOrderInput | SortOrder
+    loggingMode?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -49561,6 +49627,7 @@ export namespace Prisma {
     mechanics?: StringNullableFilter<"Exercise"> | string | null
     contraindications?: StringNullableListFilter<"Exercise">
     difficultyLevel?: StringNullableFilter<"Exercise"> | string | null
+    loggingMode?: StringFilter<"Exercise"> | string
     status?: StringFilter<"Exercise"> | string
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
@@ -49587,6 +49654,7 @@ export namespace Prisma {
     mechanics?: SortOrderInput | SortOrder
     contraindications?: SortOrder
     difficultyLevel?: SortOrderInput | SortOrder
+    loggingMode?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -49612,6 +49680,7 @@ export namespace Prisma {
     mechanics?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
     contraindications?: StringNullableListFilter<"Exercise">
     difficultyLevel?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
+    loggingMode?: StringWithAggregatesFilter<"Exercise"> | string
     status?: StringWithAggregatesFilter<"Exercise"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
@@ -50003,6 +50072,9 @@ export namespace Prisma {
     side?: StringNullableFilter<"WorkoutSet"> | string | null
     painScore?: IntNullableFilter<"WorkoutSet"> | number | null
     techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
+    bodyWeightAtSetKg?: FloatNullableFilter<"WorkoutSet"> | number | null
+    durationSeconds?: IntNullableFilter<"WorkoutSet"> | number | null
+    distanceMeters?: FloatNullableFilter<"WorkoutSet"> | number | null
     workoutExercise?: XOR<WorkoutExerciseRelationFilter, WorkoutExerciseWhereInput>
   }
 
@@ -50022,6 +50094,9 @@ export namespace Prisma {
     side?: SortOrderInput | SortOrder
     painScore?: SortOrderInput | SortOrder
     techniqueNotes?: SortOrderInput | SortOrder
+    bodyWeightAtSetKg?: SortOrderInput | SortOrder
+    durationSeconds?: SortOrderInput | SortOrder
+    distanceMeters?: SortOrderInput | SortOrder
     workoutExercise?: WorkoutExerciseOrderByWithRelationInput
   }
 
@@ -50044,6 +50119,9 @@ export namespace Prisma {
     side?: StringNullableFilter<"WorkoutSet"> | string | null
     painScore?: IntNullableFilter<"WorkoutSet"> | number | null
     techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
+    bodyWeightAtSetKg?: FloatNullableFilter<"WorkoutSet"> | number | null
+    durationSeconds?: IntNullableFilter<"WorkoutSet"> | number | null
+    distanceMeters?: FloatNullableFilter<"WorkoutSet"> | number | null
     workoutExercise?: XOR<WorkoutExerciseRelationFilter, WorkoutExerciseWhereInput>
   }, "id">
 
@@ -50063,6 +50141,9 @@ export namespace Prisma {
     side?: SortOrderInput | SortOrder
     painScore?: SortOrderInput | SortOrder
     techniqueNotes?: SortOrderInput | SortOrder
+    bodyWeightAtSetKg?: SortOrderInput | SortOrder
+    durationSeconds?: SortOrderInput | SortOrder
+    distanceMeters?: SortOrderInput | SortOrder
     _count?: WorkoutSetCountOrderByAggregateInput
     _avg?: WorkoutSetAvgOrderByAggregateInput
     _max?: WorkoutSetMaxOrderByAggregateInput
@@ -50089,6 +50170,9 @@ export namespace Prisma {
     side?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
     painScore?: IntNullableWithAggregatesFilter<"WorkoutSet"> | number | null
     techniqueNotes?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
+    bodyWeightAtSetKg?: FloatNullableWithAggregatesFilter<"WorkoutSet"> | number | null
+    durationSeconds?: IntNullableWithAggregatesFilter<"WorkoutSet"> | number | null
+    distanceMeters?: FloatNullableWithAggregatesFilter<"WorkoutSet"> | number | null
   }
 
   export type FoodWhereInput = {
@@ -53437,6 +53521,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53463,6 +53548,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53489,6 +53575,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53515,6 +53602,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53541,6 +53629,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53560,6 +53649,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53579,6 +53669,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53992,6 +54083,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
     workoutExercise: WorkoutExerciseCreateNestedOneWithoutWorkoutSetsInput
   }
 
@@ -54011,6 +54105,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
   }
 
   export type WorkoutSetUpdateInput = {
@@ -54028,6 +54125,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
     workoutExercise?: WorkoutExerciseUpdateOneRequiredWithoutWorkoutSetsNestedInput
   }
 
@@ -54047,6 +54147,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type WorkoutSetCreateManyInput = {
@@ -54065,6 +54168,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
   }
 
   export type WorkoutSetUpdateManyMutationInput = {
@@ -54082,6 +54188,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type WorkoutSetUncheckedUpdateManyInput = {
@@ -54100,6 +54209,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type FoodCreateInput = {
@@ -58125,6 +58237,7 @@ export namespace Prisma {
     mechanics?: SortOrder
     contraindications?: SortOrder
     difficultyLevel?: SortOrder
+    loggingMode?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -58142,6 +58255,7 @@ export namespace Prisma {
     movementPattern?: SortOrder
     mechanics?: SortOrder
     difficultyLevel?: SortOrder
+    loggingMode?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -58159,6 +58273,7 @@ export namespace Prisma {
     movementPattern?: SortOrder
     mechanics?: SortOrder
     difficultyLevel?: SortOrder
+    loggingMode?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -58613,6 +58728,9 @@ export namespace Prisma {
     side?: SortOrder
     painScore?: SortOrder
     techniqueNotes?: SortOrder
+    bodyWeightAtSetKg?: SortOrder
+    durationSeconds?: SortOrder
+    distanceMeters?: SortOrder
   }
 
   export type WorkoutSetAvgOrderByAggregateInput = {
@@ -58622,6 +58740,9 @@ export namespace Prisma {
     rpe?: SortOrder
     rir?: SortOrder
     painScore?: SortOrder
+    bodyWeightAtSetKg?: SortOrder
+    durationSeconds?: SortOrder
+    distanceMeters?: SortOrder
   }
 
   export type WorkoutSetMaxOrderByAggregateInput = {
@@ -58640,6 +58761,9 @@ export namespace Prisma {
     side?: SortOrder
     painScore?: SortOrder
     techniqueNotes?: SortOrder
+    bodyWeightAtSetKg?: SortOrder
+    durationSeconds?: SortOrder
+    distanceMeters?: SortOrder
   }
 
   export type WorkoutSetMinOrderByAggregateInput = {
@@ -58658,6 +58782,9 @@ export namespace Prisma {
     side?: SortOrder
     painScore?: SortOrder
     techniqueNotes?: SortOrder
+    bodyWeightAtSetKg?: SortOrder
+    durationSeconds?: SortOrder
+    distanceMeters?: SortOrder
   }
 
   export type WorkoutSetSumOrderByAggregateInput = {
@@ -58667,6 +58794,9 @@ export namespace Prisma {
     rpe?: SortOrder
     rir?: SortOrder
     painScore?: SortOrder
+    bodyWeightAtSetKg?: SortOrder
+    durationSeconds?: SortOrder
+    distanceMeters?: SortOrder
   }
 
   export type FloatFilter<$PrismaModel = never> = {
@@ -64008,6 +64138,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64033,6 +64164,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64105,6 +64237,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64130,6 +64263,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64448,6 +64582,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64473,6 +64608,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64504,6 +64640,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
   }
 
   export type WorkoutSetUncheckedCreateWithoutWorkoutExerciseInput = {
@@ -64521,6 +64660,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
   }
 
   export type WorkoutSetCreateOrConnectWithoutWorkoutExerciseInput = {
@@ -64595,6 +64737,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64620,6 +64763,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64666,6 +64810,9 @@ export namespace Prisma {
     side?: StringNullableFilter<"WorkoutSet"> | string | null
     painScore?: IntNullableFilter<"WorkoutSet"> | number | null
     techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
+    bodyWeightAtSetKg?: FloatNullableFilter<"WorkoutSet"> | number | null
+    durationSeconds?: IntNullableFilter<"WorkoutSet"> | number | null
+    distanceMeters?: FloatNullableFilter<"WorkoutSet"> | number | null
   }
 
   export type WorkoutExerciseCreateWithoutWorkoutSetsInput = {
@@ -65411,6 +65558,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -65436,6 +65584,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -65512,6 +65661,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -65537,6 +65687,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68243,6 +68394,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68268,6 +68420,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68309,6 +68462,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68334,6 +68488,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68359,6 +68514,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68384,6 +68540,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68425,6 +68582,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68450,6 +68608,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68638,6 +68797,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68663,6 +68823,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -68731,6 +68892,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -68756,6 +68918,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69248,6 +69411,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -69273,6 +69437,7 @@ export namespace Prisma {
     mechanics?: string | null
     contraindications?: ExerciseCreatecontraindicationsInput | string[]
     difficultyLevel?: string | null
+    loggingMode?: string
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -69314,6 +69479,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69339,6 +69505,7 @@ export namespace Prisma {
     mechanics?: NullableStringFieldUpdateOperationsInput | string | null
     contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69883,6 +70050,9 @@ export namespace Prisma {
     side?: string | null
     painScore?: number | null
     techniqueNotes?: string | null
+    bodyWeightAtSetKg?: number | null
+    durationSeconds?: number | null
+    distanceMeters?: number | null
   }
 
   export type WorkoutSetUpdateWithoutWorkoutExerciseInput = {
@@ -69900,6 +70070,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type WorkoutSetUncheckedUpdateWithoutWorkoutExerciseInput = {
@@ -69917,6 +70090,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type WorkoutSetUncheckedUpdateManyWithoutWorkoutExerciseInput = {
@@ -69934,6 +70110,9 @@ export namespace Prisma {
     side?: NullableStringFieldUpdateOperationsInput | string | null
     painScore?: NullableIntFieldUpdateOperationsInput | number | null
     techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    bodyWeightAtSetKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    distanceMeters?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type FoodAliasCreateManyFoodInput = {

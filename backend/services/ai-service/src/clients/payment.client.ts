@@ -25,6 +25,32 @@ export interface RefundResult {
   refundAmount: number;
 }
 
+export interface HoldPersonalizedServiceResult extends WalletTransferResult {
+  escrowAfter?: string;
+  pending?: { seller: string; platform: string };
+}
+
+export type PersonalizedServiceMilestone =
+  | "INTAKE_REVIEWED"
+  | "DRAFT_DELIVERED"
+  | "ACCEPTED"
+  | "COMPLETED";
+
+export interface ReleaseMilestoneResult {
+  milestone: PersonalizedServiceMilestone;
+  released: { seller: string; platform: string };
+}
+
+export interface RefundHeldResult {
+  refunded: string;
+  drawnFrom: { sellerPending: string; sellerAvailable: string; platformPending: string; platformAvailable: string };
+  shortfall: string;
+}
+
+export interface LedgerSummaryResult {
+  held: { seller: string; platform: string };
+}
+
 export class PaymentClientError extends Error {
   constructor(
     message: string,
@@ -98,5 +124,90 @@ export const paymentClient = {
         status,
       );
     }
+  },
+
+  // ── Personalized PT Service escrow (P1-FIN-001/002) ──────────────────────
+  // Deliberately a SEPARATE trio of calls from walletTransfer/refundTransaction
+  // above (which TrainingPackagePurchase still uses unchanged) — see
+  // personalized-service-ledger.service.ts (payment-service) for why this
+  // holds the price instead of crediting AVAILABLE immediately.
+
+  async holdPersonalizedServicePayment(params: {
+    buyerId: string;
+    sellerId: string;
+    price: number;
+    relatedEntityId: string;
+    idempotencyKey: string;
+    initiatedBy: string;
+    label: string;
+  }): Promise<HoldPersonalizedServiceResult> {
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/hold`,
+      {
+        buyerId: params.buyerId,
+        sellerId: params.sellerId,
+        price: params.price,
+        relatedEntityId: params.relatedEntityId,
+        idempotencyKey: params.idempotencyKey,
+        initiatedBy: params.initiatedBy,
+        sourceService: "ai-service",
+        label: params.label,
+      },
+      { headers, timeout: 15_000 },
+    );
+    return data.data as HoldPersonalizedServiceResult;
+  },
+
+  async releasePersonalizedServiceMilestone(params: {
+    transactionId: string;
+    sellerId: string;
+    price: number;
+    milestone: PersonalizedServiceMilestone;
+    label: string;
+  }): Promise<ReleaseMilestoneResult> {
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/release-milestone`,
+      params,
+      { headers, timeout: 15_000 },
+    );
+    return data.data as ReleaseMilestoneResult;
+  },
+
+  async refundPersonalizedServiceHeld(params: {
+    transactionId: string;
+    sellerId: string;
+    buyerId: string;
+    refundAmount: number;
+    initiatedBy: string;
+    reason: string;
+    label: string;
+  }): Promise<RefundHeldResult> {
+    try {
+      const { data } = await axios.post(
+        `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/refund`,
+        params,
+        { headers, timeout: 15_000 },
+      );
+      return data.data as RefundHeldResult;
+    } catch (err: any) {
+      const status = err?.response?.status ?? 500;
+      const code = err?.response?.data?.error?.code ?? "REFUND_FAILED";
+      throw new PaymentClientError(
+        err?.response?.data?.error?.message ?? code,
+        code,
+        status,
+      );
+    }
+  },
+
+  async getPersonalizedServiceLedgerSummary(
+    transactionId: string,
+    sellerId: string,
+  ): Promise<LedgerSummaryResult> {
+    const { data } = await axios.get(
+      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/${transactionId}/${sellerId}/ledger-summary`,
+      { headers, timeout: 15_000 },
+    );
+    return data.data as LedgerSummaryResult;
   },
 };

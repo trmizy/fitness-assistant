@@ -136,6 +136,7 @@ exports.Prisma.ExerciseScalarFieldEnum = {
   mechanics: 'mechanics',
   contraindications: 'contraindications',
   difficultyLevel: 'difficultyLevel',
+  loggingMode: 'loggingMode',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -210,7 +211,10 @@ exports.Prisma.WorkoutSetScalarFieldEnum = {
   rangeOfMotion: 'rangeOfMotion',
   side: 'side',
   painScore: 'painScore',
-  techniqueNotes: 'techniqueNotes'
+  techniqueNotes: 'techniqueNotes',
+  bodyWeightAtSetKg: 'bodyWeightAtSetKg',
+  durationSeconds: 'durationSeconds',
+  distanceMeters: 'distanceMeters'
 };
 
 exports.Prisma.FoodScalarFieldEnum = {

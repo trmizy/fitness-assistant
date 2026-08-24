@@ -1,10 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computeRirTrend } from "../services/training-cycle-metrics.service";
+import { computeRirTrend, computeE1rmTrend } from "../services/training-cycle-metrics.service";
 
 type SetRowInput = Parameters<typeof computeRirTrend>[0][number];
 
-function set(dayOffset: number, rir: number | null): SetRowInput {
+function set(
+  dayOffset: number,
+  rir: number | null,
+  overrides: Partial<SetRowInput> = {},
+): SetRowInput {
   return {
     weight: 50,
     reps: 8,
@@ -14,6 +18,8 @@ function set(dayOffset: number, rir: number | null): SetRowInput {
     date: new Date(Date.UTC(2026, 0, 1 + dayOffset)),
     exerciseName: "Squat",
     muscleGroups: ["legs"],
+    setType: null,
+    ...overrides,
   };
 }
 
@@ -50,4 +56,34 @@ test("computeRirTrend: a rising RIR across 3+ weeks is flagged 'increasing' (mor
 test("computeRirTrend: ignores sets with a null rir alongside sets that do have one", () => {
   const result = computeRirTrend([set(0, 4), set(0, null)], cycleStart);
   assert.deepEqual(result.weeklyAvg, [4]);
+});
+
+// Warm-up exclusion (gap analysis P1 item, docs/OPENGYM_RESEARCH_SOURCES.md
+// "product heuristic" table). Critical regression coverage: a naive
+// Prisma-side `setType: { not: "WARMUP" }` filter would silently exclude
+// every NULL-setType row too (verified empirically against the real dev DB
+// before fixing — all 485,741 existing rows are setType=null, predating the
+// advanced-set-logging UI). These tests exercise the pure-JS side of the
+// same exclusion (computeE1rmTrend), which uses plain `===` and was never
+// at risk of the SQL three-valued-logic trap, but is exactly the behavior
+// that trap would have broken if copied here uncritically.
+test("computeE1rmTrend: a WARMUP-tagged set is excluded from the e1RM trend", () => {
+  const result = computeE1rmTrend(
+    [
+      set(0, null, { weight: 40, reps: 15, setType: "WARMUP" }), // would give a much lower e1RM if counted
+      set(0, null, { weight: 100, reps: 5, setType: "WORKING" }),
+    ],
+    cycleStart,
+  );
+  assert.equal(result.length, 1);
+  assert.equal(result[0].weeklyTop[0].e1rm, Math.round(100 * (1 + 5 / 30) * 10) / 10);
+});
+
+test("computeE1rmTrend: a null setType (pre-advanced-set-logging row, the overwhelming majority of real data) is still INCLUDED, not treated as a warm-up", () => {
+  const result = computeE1rmTrend(
+    [set(0, null, { weight: 100, reps: 5, setType: null })],
+    cycleStart,
+  );
+  assert.equal(result.length, 1);
+  assert.ok(result[0].weeklyTop.length > 0, "a null-setType set must still count toward the trend");
 });

@@ -8,6 +8,13 @@ export const profileSchema = z.object({
   goal: z
     .enum(["WEIGHT_LOSS", "MUSCLE_GAIN", "MAINTENANCE", "ATHLETIC_PERFORMANCE"])
     .optional(),
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.2. Same
+  // .nullable() reasoning as preferredSplit below: the DB column is nullable and the profile
+  // repository does a partial Prisma update (an omitted key leaves the column untouched), so
+  // an explicit `null` is the only way to clear a previously-set activityLevel back to unset
+  // — real bug found via the onboarding Playwright spec's own snapshot-restore step (the
+  // exact same failure mode preferredSplit already hit) once OnboardingWizardPage started
+  // actually asking for this field instead of leaving it permanently null/fabricated.
   activityLevel: z
     .enum([
       "SEDENTARY",
@@ -16,12 +23,21 @@ export const profileSchema = z.object({
       "VERY_ACTIVE",
       "EXTREMELY_ACTIVE",
     ])
-    .optional(),
+    .optional()
+    .nullable(),
   experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
   // Distinguishes a competing/professional athlete from an ADVANCED
   // recreational lifter — see docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0
   // for why this is a separate flag rather than a 5th experienceLevel value.
   competesInSport: z.boolean().optional(),
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+  // `safetyScreeningFlags` holds question KEYS (not question text) answered "Yes" — the
+  // OnboardingWizardPage computes `safetyScreeningStatus` itself (CLEARED if the flags array
+  // it's about to send is empty, FOLLOW_UP_SUGGESTED otherwise) rather than the backend
+  // re-deriving it, since the set of flag keys that count as "a Yes" is a UI/copy concern,
+  // not a business rule this service should own.
+  safetyScreeningStatus: z.enum(["UNKNOWN", "CLEARED", "FOLLOW_UP_SUGGESTED"]).optional(),
+  safetyScreeningFlags: z.array(z.string()).optional(),
   preferredTrainingDays: z.array(z.number().int().min(0).max(6)).optional(),
   availableEquipment: z.array(z.string()).optional(),
   injuries: z.array(z.string()).optional(),

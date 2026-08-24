@@ -120,6 +120,67 @@ export const workoutController = {
     }
   },
 
+  async getPreviousPerformance(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getPreviousPerformance(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error) {
+      logger.error("Error fetching previous performance:", error);
+      res.status(500).json({ error: "Failed to fetch previous performance" });
+    }
+  },
+
+  async getExerciseProgression(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getExerciseProgression(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise progression:", error);
+      res.status(500).json({ error: "Failed to fetch exercise progression" });
+    }
+  },
+
+  // openGym FINAL P0 CLOSURE PASS — optional, slower sibling of
+  // getExerciseProgression above. Never fails just because AI is down: the
+  // service layer always returns a real explanation (AI-written or a local
+  // deterministic fallback), so the only error paths here are "exercise not
+  // found" and genuine unexpected errors, same as getExerciseProgression.
+  async getExerciseProgressionExplanation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getExerciseProgressionExplanation(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise progression explanation:", error);
+      res.status(500).json({ error: "Failed to fetch exercise progression explanation" });
+    }
+  },
+
   async getPRs(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { exerciseId } = req.query as Record<string, string>;

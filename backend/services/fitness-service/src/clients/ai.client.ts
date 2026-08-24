@@ -6,11 +6,20 @@
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
 
-const AI_SERVICE_URL =
-  process.env.AI_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://ai-service:3003"
-    : "http://localhost:3003");
+// Resolved per-call (not frozen at import time) so a real running process
+// always reflects the current env var — behaviorally identical in
+// production (the env var never changes mid-process) but also lets
+// integration tests point different calls at different ai-service stand-ins
+// within a single test run (see exercise-progression-ai-explanation.
+// integration.test.ts), which a module-load-time constant could not do.
+function resolveAiServiceUrl(): string {
+  return (
+    process.env.AI_SERVICE_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "http://ai-service:3003"
+      : "http://localhost:3003")
+  );
+}
 
 function internalHeaders(userId: string) {
   return {
@@ -39,7 +48,7 @@ export async function analyzeCycle(
   payload: Record<string, unknown>,
 ): Promise<AnalyzeCycleResult> {
   const res = await axios.post(
-    `${AI_SERVICE_URL}/ai/analyze-cycle`,
+    `${resolveAiServiceUrl()}/ai/analyze-cycle`,
     payload,
     {
       headers: internalHeaders(userId),
@@ -100,7 +109,7 @@ export async function assessCycle(
   payload: Record<string, unknown>,
 ): Promise<AssessCycleResult> {
   const res = await axios.post(
-    `${AI_SERVICE_URL}/ai/assess-cycle`,
+    `${resolveAiServiceUrl()}/ai/assess-cycle`,
     payload,
     {
       headers: internalHeaders(userId),
@@ -120,6 +129,86 @@ export async function assessCycleSafe(
     logger.error(
       { err: (error as Error).message, userId },
       "[training-cycle] assess-cycle call failed",
+    );
+    return null;
+  }
+}
+
+/**
+ * openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+ * §5. Calls ai-service's new POST /ai/explain-exercise-progression. This is
+ * an OPTIONAL enrichment call: the deterministic progression decision and
+ * next target are already fully computed (by exercise-progression.engine.ts)
+ * *before* this is ever called, and the response shape below has no
+ * decision/target field at all — see ExplainExerciseProgressionOutputSchema
+ * in ai-service. Only explainExerciseProgressionSafe (below) is meant to be
+ * called from request-handling code; it never throws.
+ */
+export interface ExplainExerciseProgressionPayload {
+  userId: string;
+  exerciseName: string;
+  loggingMode: "REPS_LOAD" | "BODYWEIGHT_REPS" | "TIME" | "TIME_LOAD" | "DISTANCE_TIME";
+  experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "UNKNOWN";
+  status:
+    | "KEEP"
+    | "INCREASE_LOAD"
+    | "INCREASE_REPS"
+    | "INCREASE_SETS"
+    | "DELOAD"
+    | "REVIEW"
+    | "INSUFFICIENT_DATA";
+  currentPerformance: {
+    weightKg: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distanceMeters: number | null;
+  } | null;
+  nextTarget: {
+    weightKg: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+  } | null;
+  reasonCodes: string[];
+  cycleContext: string;
+}
+
+export interface ExplainExerciseProgressionResult {
+  explanation: string;
+  source: "ai" | "deterministic-fallback";
+}
+
+export async function explainExerciseProgression(
+  userId: string,
+  payload: ExplainExerciseProgressionPayload,
+): Promise<ExplainExerciseProgressionResult> {
+  const res = await axios.post(
+    `${resolveAiServiceUrl()}/ai/explain-exercise-progression`,
+    payload,
+    {
+      headers: internalHeaders(userId),
+      timeout: Number(process.env.EXERCISE_PROGRESSION_EXPLANATION_TIMEOUT_MS ?? 30_000),
+    },
+  );
+  return res.data.data as ExplainExerciseProgressionResult;
+}
+
+/**
+ * Fail-soft wrapper — returns null on ANY error (ai-service down, timeout,
+ * network error, malformed response). Callers MUST treat a null result as
+ * "no AI explanation available" and fall back to a local, non-AI message,
+ * never as a reason to fail the request: the deterministic progression
+ * decision itself does not depend on this call succeeding.
+ */
+export async function explainExerciseProgressionSafe(
+  userId: string,
+  payload: ExplainExerciseProgressionPayload,
+): Promise<ExplainExerciseProgressionResult | null> {
+  try {
+    return await explainExerciseProgression(userId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId, exerciseName: payload.exerciseName },
+      "[exercise-progression] explain-exercise-progression call failed",
     );
     return null;
   }
@@ -149,7 +238,7 @@ export async function analyzeFeedback(
   payload: Record<string, unknown>,
 ): Promise<AnalyzeFeedbackResult> {
   const res = await axios.post(
-    `${AI_SERVICE_URL}/ai/analyze-feedback`,
+    `${resolveAiServiceUrl()}/ai/analyze-feedback`,
     payload,
     {
       headers: internalHeaders(userId),
@@ -193,7 +282,7 @@ export async function generateClientPlanDraft(
   payload: Record<string, unknown>,
 ): Promise<GenerateClientPlanDraftResult> {
   const res = await axios.post(
-    `${AI_SERVICE_URL}/ai/generate-client-plan-draft`,
+    `${resolveAiServiceUrl()}/ai/generate-client-plan-draft`,
     payload,
     {
       headers: internalHeaders(ptUserId),

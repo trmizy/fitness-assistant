@@ -36,6 +36,18 @@ enum ExperienceLevel {
   ADVANCED
 }
 
+// Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+// Deliberately only 3 states, no hard-block state: this product has nobody (doctor/PT)
+// behind it who could ever move a user OUT of a blocking state, so a hard-block would be a
+// dead end, not a safety process. Matches the "warn, never hard-block, respect user
+// autonomy" principle already used everywhere else in this system (BEGINNER frequency
+// warnings, unsafe_weight_loss_request, etc.).
+enum SafetyScreeningStatus {
+  UNKNOWN              // never screened (pre-existing user from before this shipped, or skipped onboarding)
+  CLEARED               // screened, zero "Yes" answers
+  FOLLOW_UP_SUGGESTED   // screened, at least one "Yes" — AI must suggest consulting a doctor, never block
+}
+
 model UserProfile {
   id        String   @id @default(uuid())
   userId    String   @unique // References auth-service User.id
@@ -79,7 +91,16 @@ model UserProfile {
   // not a different training-load formula. See
   // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0.
   competesInSport   Boolean @default(false) @map("competes_in_sport")
-  
+
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6. Set by
+  // OnboardingWizardPage's Safety Screening step. `safetyScreeningFlags` stores the KEYS of
+  // the questions answered "Yes" (not the question text itself — so a future copy edit to
+  // the question wording never makes old stored data misleading), e.g.
+  // ["heart_condition", "chest_pain"]. Read by profile_extractor.ts -> coach_context_builder.ts
+  // the same path `injuries` already goes through.
+  safetyScreeningStatus  SafetyScreeningStatus @default(UNKNOWN) @map("safety_screening_status")
+  safetyScreeningFlags   String[]              @default([])       @map("safety_screening_flags")
+
   // Training preferences
   preferredTrainingDays Int[]  // [1, 3, 5] = Mon, Wed, Fri
   availableEquipment    String[] // ["barbell", "dumbbells", "machines"]

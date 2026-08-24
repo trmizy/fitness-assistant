@@ -39,6 +39,9 @@ type ProfileResponse = {
     // user-service) — distinct from currentWeight, which changes on every
     // InBody sync. May be absent for accounts that predate this field.
     startingWeight?: number;
+    // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+    safetyScreeningStatus?: "UNKNOWN" | "CLEARED" | "FOLLOW_UP_SUGGESTED";
+    safetyScreeningFlags?: string[];
   } | null;
 };
 
@@ -357,6 +360,8 @@ export const profileExtractor = {
       startingWeightKg: profileData?.startingWeight,
       training: mapTraining(profileData),
       inBody: latestInBody,
+      safetyScreeningStatus: profileData?.safetyScreeningStatus,
+      safetyScreeningFlags: profileData?.safetyScreeningFlags,
     };
 
     // Compact current workout program for context (avoid sending entire days[] array raw)

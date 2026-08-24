@@ -380,11 +380,18 @@ export const inbodyService = {
 export interface WorkoutSessionPr {
   exerciseId: string;
   exerciseName: string;
-  weightKg: number;
+  // "WEIGHT_E1RM" (existing) — weighted exercises, beaten by estimated 1RM.
+  // "REPS" (new) — bodyweight exercises (no added load), beaten by rep count
+  // alone since there's no weight to compute an e1RM from. Older API
+  // responses (pre-migration) omit this field entirely — treat missing as
+  // "WEIGHT_E1RM" for backward compatibility.
+  prType?: "WEIGHT_E1RM" | "REPS";
+  weightKg: number | null;
   reps: number | null;
-  estimated1RmKg: number;
-  previousBestWeightKg: number;
-  previousBestEstimated1RmKg: number;
+  estimated1RmKg: number | null;
+  previousBestWeightKg: number | null;
+  previousBestEstimated1RmKg: number | null;
+  previousBestReps?: number | null;
 }
 
 export interface WorkoutSessionSummary {
@@ -393,6 +400,53 @@ export interface WorkoutSessionSummary {
   totalSets: number;
   totalVolumeKg: number;
   prs: WorkoutSessionPr[];
+}
+
+export interface PreviousPerformanceSet {
+  setNumber: number;
+  weightKg: number | null;
+  bodyWeightAtSetKg?: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  setType: string | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+}
+
+export interface PreviousPerformance {
+  exerciseId: string;
+  hasHistory: boolean;
+  date: string | null;
+  sets: PreviousPerformanceSet[];
+}
+
+export type ExerciseProgressionStatus =
+  | "KEEP"
+  | "INCREASE_LOAD"
+  | "INCREASE_REPS"
+  | "INCREASE_SETS"
+  | "DELOAD"
+  | "REVIEW"
+  | "INSUFFICIENT_DATA";
+
+export interface ExerciseProgression {
+  exerciseId: string;
+  status: ExerciseProgressionStatus;
+  policyUsed: string | null;
+  currentPerformance: {
+    weightKg: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distanceMeters: number | null;
+    setCount: number;
+  } | null;
+  nextTarget: { weightKg: number | null; reps: number | null; durationSeconds: number | null } | null;
+  loadChangeKg: number | null;
+  repChange: number | null;
+  reasonCodes: string[];
+  cycleContext: string;
+  dataQuality: "SUFFICIENT" | "LOW_SAMPLE" | "NONE";
 }
 
 export const workoutService = {
@@ -510,6 +564,33 @@ export const workoutService = {
     return data;
   },
 
+  // "Previous performance" reference context (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §3, gap analysis P0 #1) — what the user actually logged last time for
+  // this exercise, per set. Never a recommendation — display only.
+  getPreviousPerformance: async (
+    exerciseId: string,
+    excludeWorkoutId?: string,
+  ): Promise<PreviousPerformance> => {
+    const qs = excludeWorkoutId ? `?excludeWorkoutId=${excludeWorkoutId}` : "";
+    const { data } = await api.get(
+      `/workouts/exercises/${exerciseId}/previous-performance${qs}`,
+    );
+    return data;
+  },
+
+  // Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md).
+  // The engine's committed decision — never something the UI/AI may override.
+  getExerciseProgression: async (
+    exerciseId: string,
+    excludeWorkoutId?: string,
+  ): Promise<ExerciseProgression> => {
+    const qs = excludeWorkoutId ? `?excludeWorkoutId=${excludeWorkoutId}` : "";
+    const { data } = await api.get(
+      `/workouts/exercises/${exerciseId}/progression${qs}`,
+    );
+    return data;
+  },
+
   updateSet: async (
     setId: string,
     patch: {
@@ -601,6 +682,9 @@ export const workoutService = {
       exerciseId?: string;
       weight?: number;
       reps?: number;
+      bodyWeightAtSetKg?: number;
+      durationSeconds?: number;
+      distanceMeters?: number;
       rpe?: number;
       rir?: number;
       notes?: string;
@@ -1954,7 +2038,12 @@ export interface WorkoutScheduleExerciseRecord {
     id: string;
     exerciseName: string;
     typeOfActivity?: string;
+    typeOfEquipment?: string;
+    type?: string;
+    loggingMode?: string;
     muscleGroupsActivated?: string[];
+    videoUrl?: string | null;
+    instructions?: string | null;
   };
 }
 

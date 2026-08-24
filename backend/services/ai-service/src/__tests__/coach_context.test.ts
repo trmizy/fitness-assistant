@@ -73,6 +73,52 @@ test("coach context builder sanitizes user identity and reports missing fields",
   assert.equal("user_id" in sanitized.profile, false);
 });
 
+// Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+test("coach context builder folds a FOLLOW_UP_SUGGESTED safety screening into safety_flags with a screening: prefix", () => {
+  const base = {
+    userId: "user-456",
+    profile: {
+      age: 40,
+      gender: "MALE" as const,
+      heightCm: 175,
+      currentWeightKg: 80,
+      goal: "MAINTENANCE" as const,
+      experienceLevel: "INTERMEDIATE" as const,
+      training: { availableEquipment: [], injuries: [], preferredTrainingDays: [] } as any,
+    },
+    workoutHistory: [],
+    nutritionHistory: [],
+  };
+
+  const flagged = buildCoachContext({
+    ...base,
+    profile: {
+      ...base.profile,
+      safetyScreeningStatus: "FOLLOW_UP_SUGGESTED",
+      safetyScreeningFlags: ["heart_condition", "chest_pain"],
+    },
+  });
+  assert.ok(flagged.safety_flags.includes("screening:heart_condition"));
+  assert.ok(flagged.safety_flags.includes("screening:chest_pain"));
+  assert.equal(flagged.profile.safety_screening_status, "FOLLOW_UP_SUGGESTED");
+
+  // CLEARED (zero concerns, but genuinely screened) contributes nothing — must not be
+  // conflated with UNKNOWN (never screened), but also must not fabricate a concern.
+  const cleared = buildCoachContext({
+    ...base,
+    profile: { ...base.profile, safetyScreeningStatus: "CLEARED", safetyScreeningFlags: [] },
+  });
+  assert.equal(cleared.safety_flags.some((f) => f.startsWith("screening:")), false);
+  assert.equal(cleared.profile.safety_screening_status, "CLEARED");
+
+  // UNKNOWN (never screened) — same as CLEARED for safety_flags purposes (nothing to add),
+  // but the status itself must stay distinguishable from CLEARED for any consumer that
+  // reads safety_screening_status directly instead of the derived flags list.
+  const unknown = buildCoachContext(base);
+  assert.equal(unknown.safety_flags.some((f) => f.startsWith("screening:")), false);
+  assert.equal(unknown.profile.safety_screening_status, null);
+});
+
 test("structured plan validator catches available-day and injury safety issues", () => {
   const context = buildCoachContext({
     profile: {

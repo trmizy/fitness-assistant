@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction, type ReactNode } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import {
   personalizedServiceApi,
   workoutService,
   chatService,
+  profileService,
   CONSENT_CATEGORY_LABELS,
   type PersonalizedServiceOrderStatus,
 } from "../../services/api";
@@ -37,20 +38,105 @@ const STATUS_LABEL: Record<PersonalizedServiceOrderStatus, string> = {
   DISPUTED: "Đang khiếu nại",
 };
 
+const GOAL_LABELS: Record<string, string> = {
+  MUSCLE_GAIN: "Tăng cơ",
+  WEIGHT_LOSS: "Giảm mỡ",
+  MAINTENANCE: "Duy trì vóc dáng",
+  ATHLETIC_PERFORMANCE: "Hiệu suất thể thao",
+};
+const EXPERIENCE_LABELS: Record<string, string> = {
+  BEGINNER: "Mới bắt đầu",
+  INTERMEDIATE: "Đã biết tập",
+  ADVANCED: "Nâng cao",
+};
+const GENDER_LABELS: Record<string, string> = { MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" };
+
+/**
+ * Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.4. A field the
+ * buyer already answered in Onboarding/Profile renders read-only with a "Sửa" button instead
+ * of a blank input the buyer has to fill in again — `hasSavedValue=false` (profile never had
+ * this field) falls straight through to the editable `children` since there's nothing to
+ * summarize yet.
+ */
+function IntakeField({
+  fieldKey,
+  label,
+  hasSavedValue,
+  editingFields,
+  setEditingFields,
+  displayValue,
+  children,
+}: {
+  fieldKey: string;
+  label: string;
+  hasSavedValue: boolean;
+  editingFields: Set<string>;
+  setEditingFields: Dispatch<SetStateAction<Set<string>>>;
+  displayValue: string;
+  children: ReactNode;
+}) {
+  const editing = !hasSavedValue || editingFields.has(fieldKey);
+  if (editing) return <>{children}</>;
+  return (
+    <div data-testid={`intake-field-${fieldKey}`} className="flex items-center justify-between gap-2 bg-zinc-800/40 rounded-lg px-3 py-2">
+      <div>
+        <div className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</div>
+        <div className="text-sm text-zinc-200">{displayValue}</div>
+      </div>
+      <button
+        type="button"
+        data-testid={`intake-field-${fieldKey}-edit`}
+        onClick={() => setEditingFields((prev) => new Set(prev).add(fieldKey))}
+        className="text-[11px] text-green-400 hover:text-green-300 flex-shrink-0"
+      >
+        Sửa
+      </button>
+    </div>
+  );
+}
+
 function IntakeForm({ orderId }: { orderId: string }) {
   const queryClient = useQueryClient();
+
+  // §3.4 — read the buyer's existing profile once, ONLY to pre-fill the fields below (never
+  // sent as-is: submitIntake still snapshots whatever these local states hold at submit
+  // time, exactly like before — pre-filling just means the buyer doesn't have to retype
+  // what Onboarding/Profile already collected).
+  const profileQuery = useQuery({
+    queryKey: ["profile", "for-intake-prefill"],
+    queryFn: () => profileService.getProfile().then((r) => r.profile),
+  });
+  const profile = profileQuery.data;
+
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [heightCm, setHeightCm] = useState("");
   const [weight, setWeight] = useState("");
   const [targetWeight, setTargetWeight] = useState("");
-  const [goal, setGoal] = useState("MUSCLE_GAIN");
-  const [experienceLevel, setExperienceLevel] = useState("INTERMEDIATE");
+  const [goal, setGoal] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+  const [injuries, setInjuries] = useState("");
+  // Genuinely NEW to this context — not asked at Onboarding, so always a plain editable
+  // input, never gated through IntakeField/editingFields.
   const [daysPerWeek, setDaysPerWeek] = useState("4");
   const [trainingLocation, setTrainingLocation] = useState("GYM");
-  const [injuries, setInjuries] = useState("");
   const [notes, setNotes] = useState("");
   const [consent, setConsent] = useState<Set<string>>(new Set(["basic_info", "training_goals", "experience"]));
+  const [editingFields, setEditingFields] = useState<Set<string>>(new Set());
+  const [prefilled, setPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (prefilled || !profile) return;
+    if (profile.age) setAge(String(profile.age));
+    if (profile.gender) setGender(profile.gender);
+    if (profile.heightCm) setHeightCm(String(profile.heightCm));
+    if (profile.currentWeight) setWeight(String(profile.currentWeight));
+    if (profile.targetWeight) setTargetWeight(String(profile.targetWeight));
+    if (profile.goal) setGoal(profile.goal);
+    if (profile.experienceLevel) setExperienceLevel(profile.experienceLevel);
+    if (Array.isArray(profile.injuries)) setInjuries(profile.injuries.join(", "));
+    setPrefilled(true);
+  }, [profile, prefilled]);
 
   const toggleConsent = (key: string) => {
     setConsent((prev) => {
@@ -70,8 +156,8 @@ function IntakeForm({ orderId }: { orderId: string }) {
           heightCm: heightCm ? Number(heightCm) : undefined,
           weight: weight ? Number(weight) : undefined,
           targetWeight: targetWeight ? Number(targetWeight) : undefined,
-          goal,
-          experienceLevel,
+          goal: goal || undefined,
+          experienceLevel: experienceLevel || undefined,
           daysPerWeek: Number(daysPerWeek),
           trainingLocation,
           injuries: injuries ? injuries.split(",").map((s) => s.trim()).filter(Boolean) : [],
@@ -86,43 +172,74 @@ function IntakeForm({ orderId }: { orderId: string }) {
     onError: (err: any) => toast.error(err?.response?.data?.error?.message ?? "Không thể gửi Intake."),
   });
 
+  if (profileQuery.isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      {prefilled && (age || gender || heightCm || weight || goal || experienceLevel) && (
+        <p className="text-[11px] text-zinc-500 -mb-2">
+          Đã tự động điền từ hồ sơ của bạn — bấm "Sửa" ở mục nào cần thay đổi cho riêng dịch vụ này.
+        </p>
+      )}
       <div>
         <h3 className="text-sm font-bold text-zinc-200 mb-2">Cơ thể</h3>
         <div className="grid grid-cols-2 gap-2">
-          <input value={age} onChange={(e) => setAge(e.target.value)} type="number" placeholder="Tuổi" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
-          <select value={gender} onChange={(e) => setGender(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200">
-            <option value="">Giới tính</option>
-            <option value="MALE">Nam</option>
-            <option value="FEMALE">Nữ</option>
-            <option value="OTHER">Khác</option>
-          </select>
-          <input value={heightCm} onChange={(e) => setHeightCm(e.target.value)} type="number" placeholder="Chiều cao (cm)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
-          <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" placeholder="Cân nặng (kg)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
-          <input value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} type="number" placeholder="Cân nặng mục tiêu (kg)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 col-span-2" />
+          <IntakeField fieldKey="age" label="Tuổi" hasSavedValue={!!profile?.age} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={`${age} tuổi`}>
+            <input value={age} onChange={(e) => setAge(e.target.value)} type="number" placeholder="Tuổi" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full" />
+          </IntakeField>
+          <IntakeField fieldKey="gender" label="Giới tính" hasSavedValue={!!profile?.gender} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={GENDER_LABELS[gender] ?? gender}>
+            <select value={gender} onChange={(e) => setGender(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full">
+              <option value="">Giới tính</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
+            </select>
+          </IntakeField>
+          <IntakeField fieldKey="heightCm" label="Chiều cao" hasSavedValue={!!profile?.heightCm} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={`${heightCm} cm`}>
+            <input value={heightCm} onChange={(e) => setHeightCm(e.target.value)} type="number" placeholder="Chiều cao (cm)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full" />
+          </IntakeField>
+          <IntakeField fieldKey="weight" label="Cân nặng" hasSavedValue={!!profile?.currentWeight} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={`${weight} kg`}>
+            <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" placeholder="Cân nặng (kg)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full" />
+          </IntakeField>
+          <div className="col-span-2">
+            <IntakeField fieldKey="targetWeight" label="Cân nặng mục tiêu" hasSavedValue={!!profile?.targetWeight} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={`${targetWeight} kg`}>
+              <input value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} type="number" placeholder="Cân nặng mục tiêu (kg)" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full" />
+            </IntakeField>
+          </div>
         </div>
       </div>
 
       <div>
         <h3 className="text-sm font-bold text-zinc-200 mb-2">Mục tiêu & Trình độ</h3>
         <div className="grid grid-cols-2 gap-2">
-          <select value={goal} onChange={(e) => setGoal(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200">
-            <option value="MUSCLE_GAIN">Tăng cơ</option>
-            <option value="WEIGHT_LOSS">Giảm mỡ</option>
-            <option value="MAINTENANCE">Duy trì</option>
-            <option value="ATHLETIC_PERFORMANCE">Hiệu suất thể thao</option>
-          </select>
-          <select value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200">
-            <option value="BEGINNER">Mới bắt đầu</option>
-            <option value="INTERMEDIATE">Đã biết tập</option>
-            <option value="ADVANCED">Nâng cao</option>
-          </select>
+          <IntakeField fieldKey="goal" label="Mục tiêu" hasSavedValue={!!profile?.goal} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={GOAL_LABELS[goal] ?? goal}>
+            <select value={goal} onChange={(e) => setGoal(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full">
+              <option value="">Chọn mục tiêu</option>
+              <option value="MUSCLE_GAIN">Tăng cơ</option>
+              <option value="WEIGHT_LOSS">Giảm mỡ</option>
+              <option value="MAINTENANCE">Duy trì vóc dáng</option>
+              <option value="ATHLETIC_PERFORMANCE">Hiệu suất thể thao</option>
+            </select>
+          </IntakeField>
+          <IntakeField fieldKey="experienceLevel" label="Trình độ" hasSavedValue={!!profile?.experienceLevel} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={EXPERIENCE_LABELS[experienceLevel] ?? experienceLevel}>
+            <select value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 w-full">
+              <option value="">Chọn trình độ</option>
+              <option value="BEGINNER">Mới bắt đầu</option>
+              <option value="INTERMEDIATE">Đã biết tập</option>
+              <option value="ADVANCED">Nâng cao</option>
+            </select>
+          </IntakeField>
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-bold text-zinc-200 mb-2">Tập luyện</h3>
+        <h3 className="text-sm font-bold text-zinc-200 mb-2">Tập luyện cho dịch vụ này</h3>
         <div className="grid grid-cols-2 gap-2">
           <input value={daysPerWeek} onChange={(e) => setDaysPerWeek(e.target.value)} type="number" min={1} max={7} placeholder="Ngày/tuần" className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
           <select value={trainingLocation} onChange={(e) => setTrainingLocation(e.target.value)} className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200">
@@ -135,12 +252,14 @@ function IntakeForm({ orderId }: { orderId: string }) {
 
       <div>
         <h3 className="text-sm font-bold text-zinc-200 mb-2">Sức khỏe & Hạn chế</h3>
-        <input value={injuries} onChange={(e) => setInjuries(e.target.value)} placeholder="Chấn thương (cách nhau bằng dấu phẩy)" className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
+        <IntakeField fieldKey="injuries" label="Chấn thương" hasSavedValue={!!(profile?.injuries && profile.injuries.length > 0)} editingFields={editingFields} setEditingFields={setEditingFields} displayValue={injuries || "Không có"}>
+          <input value={injuries} onChange={(e) => setInjuries(e.target.value)} placeholder="Chấn thương (cách nhau bằng dấu phẩy)" className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
+        </IntakeField>
       </div>
 
       <div>
-        <h3 className="text-sm font-bold text-zinc-200 mb-2">Ghi chú thêm</h3>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
+        <h3 className="text-sm font-bold text-zinc-200 mb-2">Ghi chú thêm cho PT</h3>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Kỳ vọng cụ thể với dịch vụ này..." className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
       </div>
 
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 space-y-2">

@@ -16,26 +16,52 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/conversation.repository";
 import { personalizedServiceService, personalizedServiceDeps } from "../services/personalized-service.service";
-import { paymentClient } from "../clients/payment.client";
 
 const originalFetchEligibility = personalizedServiceDeps.fetchPtMarketplaceEligibility;
 const originalCreateContract = personalizedServiceDeps.createMarketplaceContract;
 const originalCommitPlan = personalizedServiceDeps.commitPersonalizedPlan;
-const originalWalletTransfer = personalizedServiceDeps.walletTransfer;
+const originalHoldPayment = personalizedServiceDeps.holdPersonalizedServicePayment;
+const originalReleaseMilestone = personalizedServiceDeps.releasePersonalizedServiceMilestone;
+const originalRefundHeld = personalizedServiceDeps.refundPersonalizedServiceHeld;
+const originalLedgerSummary = personalizedServiceDeps.getPersonalizedServiceLedgerSummary;
+
+function stubHoldSucceeds() {
+  personalizedServiceDeps.holdPersonalizedServicePayment = async () => ({ status: "PAID", transactionId: `mock-txn-${randomUUID()}` });
+}
+function stubReleaseMilestoneSucceeds() {
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => ({
+    milestone: params.milestone,
+    released: { seller: "0.00", platform: "0.00" },
+  });
+}
+function stubRefundHeldSucceeds() {
+  personalizedServiceDeps.refundPersonalizedServiceHeld = async (params) => ({
+    refunded: params.refundAmount.toFixed(2),
+    drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" },
+    shortfall: "0.00",
+  });
+}
 
 test.before(() => {
   // Every test purchases against a freshly-random buyerId with no real
-  // wallet/balance — stub the payment primitive to always succeed so these
-  // tests exercise ORDER lifecycle logic, not payment-service's real wallet
-  // balance rules (those are payment-service's own test suite's job).
-  personalizedServiceDeps.walletTransfer = async () => ({ status: "PAID", transactionId: `mock-txn-${randomUUID()}` });
+  // wallet/balance — stub every payment/ledger primitive to always succeed
+  // so these tests exercise ORDER lifecycle logic, not payment-service's
+  // real wallet balance rules (those are payment-service's own test
+  // suite's job — see personalized-service-ledger.integration.test.ts).
+  stubHoldSucceeds();
+  stubReleaseMilestoneSucceeds();
+  stubRefundHeldSucceeds();
+  personalizedServiceDeps.getPersonalizedServiceLedgerSummary = async () => ({ held: { seller: "0.00", platform: "0.00" } });
 });
 
 test.after(async () => {
   personalizedServiceDeps.fetchPtMarketplaceEligibility = originalFetchEligibility;
   personalizedServiceDeps.createMarketplaceContract = originalCreateContract;
   personalizedServiceDeps.commitPersonalizedPlan = originalCommitPlan;
-  personalizedServiceDeps.walletTransfer = originalWalletTransfer;
+  personalizedServiceDeps.holdPersonalizedServicePayment = originalHoldPayment;
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = originalReleaseMilestone;
+  personalizedServiceDeps.refundPersonalizedServiceHeld = originalRefundHeld;
+  personalizedServiceDeps.getPersonalizedServiceLedgerSummary = originalLedgerSummary;
   await prisma.$disconnect();
 });
 
@@ -114,7 +140,7 @@ test("purchaseService: a failed payment leaves the order CANCELLED, never unlock
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
 
-  personalizedServiceDeps.walletTransfer = async () => ({ status: "FAILED", transactionId: "x", failureReason: "Insufficient balance" });
+  personalizedServiceDeps.holdPersonalizedServicePayment = async () => ({ status: "FAILED", transactionId: "x", failureReason: "Insufficient balance" });
   try {
     await assert.rejects(
       () => personalizedServiceService.purchaseService(service.id, buyerId),
@@ -127,7 +153,7 @@ test("purchaseService: a failed payment leaves the order CANCELLED, never unlock
     assert.equal(orders.length, 1);
     assert.equal(orders[0].status, "CANCELLED");
   } finally {
-    personalizedServiceDeps.walletTransfer = async () => ({ status: "PAID", transactionId: `mock-txn-${randomUUID()}` });
+    stubHoldSucceeds();
   }
 });
 
@@ -381,6 +407,103 @@ test("deliverDraft: succeeds after startReview, sets status DRAFT_DELIVERED and 
   assert.equal(delivered.status, "DRAFT_DELIVERED");
   assert.equal(delivered.draftVersion, 1);
   assert.deepEqual(delivered.draftContent, sampleDraft as any);
+});
+
+// ── P1-FIN-001/002: milestone-based escrow release ─────────────────────────
+// releasePersonalizedServiceMilestone is best-effort (see
+// releaseMilestoneBestEffort's doc comment) — these tests verify it fires
+// at the right moment with the right milestone, that deliverDraft's
+// idempotency guard actually prevents a second payout on revision
+// redelivery, and that a release FAILURE never blocks the domain
+// transition it's attached to.
+
+test("milestone release: startReview releases INTAKE_REVIEWED and stamps milestoneIntakeReleasedAt", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order, buyerId } = await purchaseAndIntake(sellerId);
+  void buyerId;
+
+  const calls: string[] = [];
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
+    calls.push(params.milestone);
+    assert.equal(params.transactionId, order.paymentTransactionId);
+    assert.equal(params.sellerId, sellerId);
+    assert.equal(params.price, 100000);
+    return { milestone: params.milestone, released: { seller: "9000.00", platform: "1000.00" } };
+  };
+  try {
+    const reviewing = await personalizedServiceService.startReview(order.id, sellerId);
+    assert.equal(reviewing.status, "PT_REVIEWING");
+    assert.deepEqual(calls, ["INTAKE_REVIEWED"]);
+    assert.ok(reviewing.milestoneIntakeReleasedAt);
+  } finally {
+    stubReleaseMilestoneSucceeds();
+  }
+});
+
+test("milestone release: deliverDraft releases DRAFT_DELIVERED on the FIRST delivery only — a revision redelivery does not pay out twice", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order, buyerId } = await purchaseAndIntake(sellerId);
+  await personalizedServiceService.startReview(order.id, sellerId);
+
+  const calls: string[] = [];
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
+    calls.push(params.milestone);
+    return { milestone: params.milestone, released: { seller: "0.00", platform: "0.00" } };
+  };
+  try {
+    let current = await personalizedServiceService.deliverDraft(order.id, sellerId, sampleDraft);
+    assert.deepEqual(calls, ["DRAFT_DELIVERED"]);
+    assert.ok(current.milestoneDraftReleasedAt);
+    const firstStampedAt = current.milestoneDraftReleasedAt;
+
+    current = await personalizedServiceService.requestRevision(current.id, buyerId, { category: "OTHER", comment: "x" });
+    await personalizedServiceService.startRevisionWork(current.id, sellerId);
+    current = await personalizedServiceService.deliverDraft(current.id, sellerId, { ...sampleDraft, name: "v2" });
+
+    assert.deepEqual(calls, ["DRAFT_DELIVERED"]); // still just one call — redelivery did not release again
+    assert.deepEqual(current.milestoneDraftReleasedAt, firstStampedAt); // unchanged
+  } finally {
+    stubReleaseMilestoneSucceeds();
+  }
+});
+
+test("milestone release: acceptOrder releases ACCEPTED, completeOrder releases COMPLETED", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order, buyerId } = await deliverToDraft(sellerId);
+  personalizedServiceDeps.commitPersonalizedPlan = async () => ({ createdProgramId: "p-milestone-test", createdScheduleCount: 1 });
+
+  const calls: string[] = [];
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
+    calls.push(params.milestone);
+    return { milestone: params.milestone, released: { seller: "0.00", platform: "0.00" } };
+  };
+  try {
+    const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
+    assert.ok(accepted.milestoneAcceptedReleasedAt);
+
+    const completed = await personalizedServiceService.completeOrder(order.id, buyerId);
+    assert.ok(completed.milestoneCompletedReleasedAt);
+
+    assert.deepEqual(calls, ["ACCEPTED", "COMPLETED"]);
+  } finally {
+    stubReleaseMilestoneSucceeds();
+  }
+});
+
+test("milestone release: a payment-service failure never blocks the domain transition (best-effort)", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order } = await purchaseAndIntake(sellerId);
+
+  personalizedServiceDeps.releasePersonalizedServiceMilestone = async () => {
+    throw new Error("payment-service unreachable (simulated)");
+  };
+  try {
+    const reviewing = await personalizedServiceService.startReview(order.id, sellerId);
+    assert.equal(reviewing.status, "PT_REVIEWING"); // transition still succeeded
+    assert.equal(reviewing.milestoneIntakeReleasedAt, null); // but the release genuinely did not happen — not fabricated
+  } finally {
+    stubReleaseMilestoneSucceeds();
+  }
 });
 
 // ── Revision limit enforcement (§XX) ───────────────────────────────────────
@@ -713,11 +836,12 @@ test("review: getSellerReviewSummary aggregates average rating and count", async
 });
 
 // ── Admin refund resolution — real money movement, ceiling enforcement,
-// idempotency. paymentClient.refundTransaction is a plain object method
-// (not routed through personalizedServiceDeps, same as walletTransfer's
-// underlying paymentClient import elsewhere) — stub it directly. ──────────
+// idempotency. refundPersonalizedServiceHeld IS routed through
+// personalizedServiceDeps (P1-FIN-001/002 — unlike the old generic
+// refundTransaction it replaced) — stub it there, same indirection as
+// holdPersonalizedServicePayment above. ────────────────────────────────────
 
-test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableCeiling correctly", async () => {
+test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableCeiling/held correctly", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "changed my mind");
@@ -726,6 +850,7 @@ test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableC
   assert.equal(calc.totalPaid, 100000);
   assert.equal(calc.alreadyRefunded, 0);
   assert.equal(calc.refundableCeiling, 100000);
+  assert.deepEqual(calc.held, { seller: "0.00", platform: "0.00" }); // stubbed ledger summary
   assert.equal(calc.milestones.draftDelivered, true);
   assert.equal(calc.milestones.accepted, false);
 });
@@ -740,16 +865,15 @@ test("refund: a non-ADMIN-gated call path is enforced at the controller, not the
   assert.ok(true);
 });
 
-test("refund: APPROVE moves real money via paymentClient.refundTransaction and marks the order REFUNDED when fully refunded", async () => {
+test("refund: APPROVE moves real money via refundPersonalizedServiceHeld and marks the order REFUNDED when fully refunded", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "PT unresponsive");
 
   let refundCalledWith: any = null;
-  const originalRefund = paymentClient.refundTransaction;
-  paymentClient.refundTransaction = async (txnId: string, params: any) => {
-    refundCalledWith = { txnId, params };
-    return { transactionId: `refund-${randomUUID()}`, status: "PAID", refundAmount: params.refundAmount };
+  personalizedServiceDeps.refundPersonalizedServiceHeld = async (params) => {
+    refundCalledWith = params;
+    return { refunded: params.refundAmount.toFixed(2), drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" }, shortfall: "0.00" };
   };
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
@@ -761,9 +885,11 @@ test("refund: APPROVE moves real money via paymentClient.refundTransaction and m
     assert.equal(resolved.cumulativeRefundedAmount, 100000);
     assert.equal(resolved.refundDecision, "APPROVED_FULL");
     assert.ok(resolved.refundedAt);
-    assert.equal(refundCalledWith.params.refundAmount, 100000);
+    assert.equal(refundCalledWith.refundAmount, 100000);
+    assert.equal(refundCalledWith.sellerId, sellerId);
+    assert.equal(refundCalledWith.buyerId, buyerId);
   } finally {
-    paymentClient.refundTransaction = originalRefund;
+    stubRefundHeldSucceeds();
   }
 });
 
@@ -772,10 +898,6 @@ test("refund: a partial APPROVE keeps the order out of REFUNDED and restores its
   const { order, buyerId } = await deliverToDraft(sellerId); // status DRAFT_DELIVERED before refund request
   await personalizedServiceService.requestRefund(order.id, buyerId, "partial issue");
 
-  const originalRefund = paymentClient.refundTransaction;
-  paymentClient.refundTransaction = async (_txnId: string, params: any) => ({
-    transactionId: `refund-${randomUUID()}`, status: "PAID", refundAmount: params.refundAmount,
-  });
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
       decision: "APPROVE",
@@ -786,7 +908,7 @@ test("refund: a partial APPROVE keeps the order out of REFUNDED and restores its
     assert.equal(resolved.cumulativeRefundedAmount, 30000);
     assert.equal(resolved.refundDecision, "APPROVED_PARTIAL");
   } finally {
-    paymentClient.refundTransaction = originalRefund;
+    stubRefundHeldSucceeds();
   }
 });
 
@@ -795,10 +917,6 @@ test("refund: cannot approve an amount exceeding the refundable ceiling (double-
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "x");
 
-  const originalRefund = paymentClient.refundTransaction;
-  paymentClient.refundTransaction = async (_txnId: string, params: any) => ({
-    transactionId: `refund-${randomUUID()}`, status: "PAID", refundAmount: params.refundAmount,
-  });
   try {
     // First partial approval: 70000 of 100000
     await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
@@ -822,7 +940,7 @@ test("refund: cannot approve an amount exceeding the refundable ceiling (double-
       },
     );
   } finally {
-    paymentClient.refundTransaction = originalRefund;
+    stubRefundHeldSucceeds();
   }
 });
 
@@ -832,8 +950,10 @@ test("refund: DENY restores the order to its pre-refund-request status and moves
   await personalizedServiceService.requestRefund(order.id, buyerId, "buyer changed mind");
 
   let refundCalled = false;
-  const originalRefund = paymentClient.refundTransaction;
-  paymentClient.refundTransaction = async () => { refundCalled = true; return { transactionId: "x", status: "PAID", refundAmount: 0 }; };
+  personalizedServiceDeps.refundPersonalizedServiceHeld = async () => {
+    refundCalled = true;
+    return { refunded: "0.00", drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" }, shortfall: "0.00" };
+  };
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
       decision: "DENY",
@@ -844,7 +964,7 @@ test("refund: DENY restores the order to its pre-refund-request status and moves
     assert.equal(resolved.refundDecision, "DENIED");
     assert.equal(refundCalled, false); // no payment call was ever made
   } finally {
-    paymentClient.refundTransaction = originalRefund;
+    stubRefundHeldSucceeds();
   }
 });
 

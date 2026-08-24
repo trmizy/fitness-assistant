@@ -157,7 +157,9 @@ test(
       assert.equal(summary.prs[0].weightKg, 90);
       assert.equal(summary.prs[0].reps, 5);
       assert.equal(summary.prs[0].previousBestWeightKg, 80);
-      assert.ok(summary.prs[0].estimated1RmKg > summary.prs[0].previousBestEstimated1RmKg);
+      assert.equal(summary.prs[0].prType, "WEIGHT_E1RM");
+      assert.ok(summary.prs[0].estimated1RmKg != null && summary.prs[0].previousBestEstimated1RmKg != null);
+      assert.ok(summary.prs[0].estimated1RmKg! > summary.prs[0].previousBestEstimated1RmKg!);
     } finally {
       await deleteSeed(db, userId);
     }
@@ -226,6 +228,78 @@ test(
 
       assert.equal(summary.prs.length, 0);
       assert.equal(summary.totalVolumeKg, 40 * 10 * 3);
+    } finally {
+      await deleteSeed(db, userId);
+    }
+  },
+);
+
+test(
+  "getSessionSummary flags a bodyweight (no added load) exercise PR by rep count, since e1RM cannot apply without a weight",
+  {
+    skip: canUseIntegrationDb
+      ? false
+      : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database.",
+  },
+  async () => {
+    const { prisma: db, workoutService: service } = await loadModules();
+    const userId = `session-summary-bw-it-${Date.now()}`;
+    await deleteSeed(db, userId);
+
+    try {
+      const exPullup = await seedExercise(db, `${userId}-ex-a`);
+
+      // Prior session: 8 bodyweight pull-up reps, no added load.
+      await seedWorkout(db, {
+        userId,
+        date: new Date(Date.UTC(2020, 0, 1)),
+        exercises: [{ exerciseId: exPullup.id, reps: 8, sets: 3 }],
+      });
+
+      // Today: 11 reps, still no added load — should register as a REPS PR.
+      const current = await seedWorkout(db, {
+        userId,
+        date: new Date(),
+        exercises: [{ exerciseId: exPullup.id, reps: 11, sets: 3 }],
+      });
+
+      const summary = await service.getSessionSummary(userId, current.id);
+
+      assert.equal(summary.prs.length, 1);
+      assert.equal(summary.prs[0].exerciseId, exPullup.id);
+      assert.equal(summary.prs[0].prType, "REPS");
+      assert.equal(summary.prs[0].reps, 11);
+      assert.equal(summary.prs[0].previousBestReps, 8);
+      assert.equal(summary.prs[0].weightKg, null);
+    } finally {
+      await deleteSeed(db, userId);
+    }
+  },
+);
+
+test(
+  "getSessionSummary does not flag a bodyweight PR on a user's first-ever session for that exercise",
+  {
+    skip: canUseIntegrationDb
+      ? false
+      : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database.",
+  },
+  async () => {
+    const { prisma: db, workoutService: service } = await loadModules();
+    const userId = `session-summary-bw-first-it-${Date.now()}`;
+    await deleteSeed(db, userId);
+
+    try {
+      const exPullup = await seedExercise(db, `${userId}-ex-a`);
+      const current = await seedWorkout(db, {
+        userId,
+        date: new Date(),
+        exercises: [{ exerciseId: exPullup.id, reps: 6, sets: 3 }],
+      });
+
+      const summary = await service.getSessionSummary(userId, current.id);
+
+      assert.equal(summary.prs.length, 0);
     } finally {
       await deleteSeed(db, userId);
     }

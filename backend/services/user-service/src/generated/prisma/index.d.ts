@@ -142,6 +142,15 @@ export const ExperienceLevel: {
 export type ExperienceLevel = (typeof ExperienceLevel)[keyof typeof ExperienceLevel]
 
 
+export const SafetyScreeningStatus: {
+  UNKNOWN: 'UNKNOWN',
+  CLEARED: 'CLEARED',
+  FOLLOW_UP_SUGGESTED: 'FOLLOW_UP_SUGGESTED'
+};
+
+export type SafetyScreeningStatus = (typeof SafetyScreeningStatus)[keyof typeof SafetyScreeningStatus]
+
+
 export const PTApplicationStatus: {
   DRAFT: 'DRAFT',
   SUBMITTED: 'SUBMITTED',
@@ -323,6 +332,10 @@ export const ActivityLevel: typeof $Enums.ActivityLevel
 export type ExperienceLevel = $Enums.ExperienceLevel
 
 export const ExperienceLevel: typeof $Enums.ExperienceLevel
+
+export type SafetyScreeningStatus = $Enums.SafetyScreeningStatus
+
+export const SafetyScreeningStatus: typeof $Enums.SafetyScreeningStatus
 
 export type PTApplicationStatus = $Enums.PTApplicationStatus
 
@@ -2774,6 +2787,7 @@ export namespace Prisma {
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
     competesInSport: boolean | null
+    safetyScreeningStatus: $Enums.SafetyScreeningStatus | null
     preferredSplit: string | null
     hasCompletedOnboarding: boolean | null
     currentWeight: number | null
@@ -2812,6 +2826,7 @@ export namespace Prisma {
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
     competesInSport: boolean | null
+    safetyScreeningStatus: $Enums.SafetyScreeningStatus | null
     preferredSplit: string | null
     hasCompletedOnboarding: boolean | null
     currentWeight: number | null
@@ -2850,6 +2865,8 @@ export namespace Prisma {
     activityLevel: number
     experienceLevel: number
     competesInSport: number
+    safetyScreeningStatus: number
+    safetyScreeningFlags: number
     preferredTrainingDays: number
     availableEquipment: number
     injuries: number
@@ -2914,6 +2931,7 @@ export namespace Prisma {
     activityLevel?: true
     experienceLevel?: true
     competesInSport?: true
+    safetyScreeningStatus?: true
     preferredSplit?: true
     hasCompletedOnboarding?: true
     currentWeight?: true
@@ -2952,6 +2970,7 @@ export namespace Prisma {
     activityLevel?: true
     experienceLevel?: true
     competesInSport?: true
+    safetyScreeningStatus?: true
     preferredSplit?: true
     hasCompletedOnboarding?: true
     currentWeight?: true
@@ -2990,6 +3009,8 @@ export namespace Prisma {
     activityLevel?: true
     experienceLevel?: true
     competesInSport?: true
+    safetyScreeningStatus?: true
+    safetyScreeningFlags?: true
     preferredTrainingDays?: true
     availableEquipment?: true
     injuries?: true
@@ -3119,6 +3140,8 @@ export namespace Prisma {
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
     competesInSport: boolean
+    safetyScreeningStatus: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags: string[]
     preferredTrainingDays: number[]
     availableEquipment: string[]
     injuries: string[]
@@ -3180,6 +3203,8 @@ export namespace Prisma {
     activityLevel?: boolean
     experienceLevel?: boolean
     competesInSport?: boolean
+    safetyScreeningStatus?: boolean
+    safetyScreeningFlags?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
@@ -3226,6 +3251,8 @@ export namespace Prisma {
     activityLevel?: boolean
     experienceLevel?: boolean
     competesInSport?: boolean
+    safetyScreeningStatus?: boolean
+    safetyScreeningFlags?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
@@ -3268,6 +3295,8 @@ export namespace Prisma {
     activityLevel?: boolean
     experienceLevel?: boolean
     competesInSport?: boolean
+    safetyScreeningStatus?: boolean
+    safetyScreeningFlags?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
@@ -3325,6 +3354,8 @@ export namespace Prisma {
       activityLevel: $Enums.ActivityLevel | null
       experienceLevel: $Enums.ExperienceLevel | null
       competesInSport: boolean
+      safetyScreeningStatus: $Enums.SafetyScreeningStatus
+      safetyScreeningFlags: string[]
       preferredTrainingDays: number[]
       availableEquipment: string[]
       injuries: string[]
@@ -3760,6 +3791,8 @@ export namespace Prisma {
     readonly activityLevel: FieldRef<"UserProfile", 'ActivityLevel'>
     readonly experienceLevel: FieldRef<"UserProfile", 'ExperienceLevel'>
     readonly competesInSport: FieldRef<"UserProfile", 'Boolean'>
+    readonly safetyScreeningStatus: FieldRef<"UserProfile", 'SafetyScreeningStatus'>
+    readonly safetyScreeningFlags: FieldRef<"UserProfile", 'String[]'>
     readonly preferredTrainingDays: FieldRef<"UserProfile", 'Int[]'>
     readonly availableEquipment: FieldRef<"UserProfile", 'String[]'>
     readonly injuries: FieldRef<"UserProfile", 'String[]'>
@@ -21768,6 +21801,8 @@ export namespace Prisma {
     activityLevel: 'activityLevel',
     experienceLevel: 'experienceLevel',
     competesInSport: 'competesInSport',
+    safetyScreeningStatus: 'safetyScreeningStatus',
+    safetyScreeningFlags: 'safetyScreeningFlags',
     preferredTrainingDays: 'preferredTrainingDays',
     availableEquipment: 'availableEquipment',
     injuries: 'injuries',
@@ -22326,6 +22361,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'SafetyScreeningStatus'
+   */
+  export type EnumSafetyScreeningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SafetyScreeningStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'SafetyScreeningStatus[]'
+   */
+  export type ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SafetyScreeningStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PTApplicationStatus'
    */
   export type EnumPTApplicationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PTApplicationStatus'>
@@ -22579,6 +22628,8 @@ export namespace Prisma {
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
     competesInSport?: BoolFilter<"UserProfile"> | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFilter<"UserProfile"> | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: StringNullableListFilter<"UserProfile">
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
@@ -22624,6 +22675,8 @@ export namespace Prisma {
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
     competesInSport?: SortOrder
+    safetyScreeningStatus?: SortOrder
+    safetyScreeningFlags?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
@@ -22672,6 +22725,8 @@ export namespace Prisma {
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
     competesInSport?: BoolFilter<"UserProfile"> | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFilter<"UserProfile"> | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: StringNullableListFilter<"UserProfile">
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
@@ -22717,6 +22772,8 @@ export namespace Prisma {
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
     competesInSport?: SortOrder
+    safetyScreeningStatus?: SortOrder
+    safetyScreeningFlags?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
@@ -22767,6 +22824,8 @@ export namespace Prisma {
     activityLevel?: EnumActivityLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ExperienceLevel | null
     competesInSport?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusWithAggregatesFilter<"UserProfile"> | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: StringNullableListFilter<"UserProfile">
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
@@ -24661,6 +24720,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -24706,6 +24767,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -24751,6 +24814,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -24796,6 +24861,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -24841,6 +24908,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -24883,6 +24952,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -24925,6 +24996,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -27282,12 +27355,11 @@ export namespace Prisma {
     not?: NestedEnumExperienceLevelNullableFilter<$PrismaModel> | $Enums.ExperienceLevel | null
   }
 
-  export type IntNullableListFilter<$PrismaModel = never> = {
-    equals?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    has?: number | IntFieldRefInput<$PrismaModel> | null
-    hasEvery?: number[] | ListIntFieldRefInput<$PrismaModel>
-    hasSome?: number[] | ListIntFieldRefInput<$PrismaModel>
-    isEmpty?: boolean
+  export type EnumSafetyScreeningStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SafetyScreeningStatus | EnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel> | $Enums.SafetyScreeningStatus
   }
 
   export type StringNullableListFilter<$PrismaModel = never> = {
@@ -27295,6 +27367,14 @@ export namespace Prisma {
     has?: string | StringFieldRefInput<$PrismaModel> | null
     hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
     hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
+  export type IntNullableListFilter<$PrismaModel = never> = {
+    equals?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    has?: number | IntFieldRefInput<$PrismaModel> | null
+    hasEvery?: number[] | ListIntFieldRefInput<$PrismaModel>
+    hasSome?: number[] | ListIntFieldRefInput<$PrismaModel>
     isEmpty?: boolean
   }
 
@@ -27367,6 +27447,8 @@ export namespace Prisma {
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
     competesInSport?: SortOrder
+    safetyScreeningStatus?: SortOrder
+    safetyScreeningFlags?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
@@ -27419,6 +27501,7 @@ export namespace Prisma {
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
     competesInSport?: SortOrder
+    safetyScreeningStatus?: SortOrder
     preferredSplit?: SortOrder
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
@@ -27457,6 +27540,7 @@ export namespace Prisma {
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
     competesInSport?: SortOrder
+    safetyScreeningStatus?: SortOrder
     preferredSplit?: SortOrder
     hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
@@ -27616,6 +27700,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
     _max?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
+  }
+
+  export type EnumSafetyScreeningStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SafetyScreeningStatus | EnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSafetyScreeningStatusWithAggregatesFilter<$PrismaModel> | $Enums.SafetyScreeningStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
+    _max?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -29232,6 +29326,10 @@ export namespace Prisma {
     _max?: NestedEnumAuditEntityTypeFilter<$PrismaModel>
   }
 
+  export type UserProfileCreatesafetyScreeningFlagsInput = {
+    set: string[]
+  }
+
   export type UserProfileCreatepreferredTrainingDaysInput = {
     set: number[]
   }
@@ -29334,6 +29432,15 @@ export namespace Prisma {
 
   export type NullableEnumExperienceLevelFieldUpdateOperationsInput = {
     set?: $Enums.ExperienceLevel | null
+  }
+
+  export type EnumSafetyScreeningStatusFieldUpdateOperationsInput = {
+    set?: $Enums.SafetyScreeningStatus
+  }
+
+  export type UserProfileUpdatesafetyScreeningFlagsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type UserProfileUpdatepreferredTrainingDaysInput = {
@@ -30209,6 +30316,13 @@ export namespace Prisma {
     not?: NestedEnumExperienceLevelNullableFilter<$PrismaModel> | $Enums.ExperienceLevel | null
   }
 
+  export type NestedEnumSafetyScreeningStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SafetyScreeningStatus | EnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel> | $Enums.SafetyScreeningStatus
+  }
+
   export type NestedIntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -30357,6 +30471,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
     _max?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumSafetyScreeningStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SafetyScreeningStatus | EnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SafetyScreeningStatus[] | ListEnumSafetyScreeningStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSafetyScreeningStatusWithAggregatesFilter<$PrismaModel> | $Enums.SafetyScreeningStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
+    _max?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -31238,6 +31362,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -31282,6 +31408,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -31402,6 +31530,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -31446,6 +31576,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -33198,6 +33330,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -33242,6 +33376,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -33372,6 +33508,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -33416,6 +33554,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -33460,6 +33600,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -33504,6 +33646,8 @@ export namespace Prisma {
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
     competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
@@ -33564,6 +33708,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
@@ -33608,6 +33754,8 @@ export namespace Prisma {
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
     competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]

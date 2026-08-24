@@ -31,6 +31,12 @@ export interface UserProfileContext {
   goal: CoachGoal;
   activity_level: string | null;
   experience_level: CoachExperienceLevel;
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6. Folded
+  // into `safety_flags` too (see buildSafetyFlags) so every consumer that already reads that
+  // one array picks this up for free — kept here as well for anything that wants the raw
+  // screening state specifically (e.g. a UI badge) without re-deriving it from the flags list.
+  safety_screening_status: "UNKNOWN" | "CLEARED" | "FOLLOW_UP_SUGGESTED" | null;
+  safety_screening_flags: string[];
 }
 
 /**

@@ -6,6 +6,18 @@ import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
 import { assertScheduleDateEditable, todayAsScheduleDate } from "../utils/schedule-lock.util";
 import { estimate1RM } from "../utils/estimated-1rm.util";
+import {
+  evaluateExerciseProgression,
+  type ExercisePerformanceSession,
+  type LoggingMode,
+  type ExperienceLevel,
+} from "./exercise-progression.engine";
+import type { CycleDecision } from "./cycle-decision.engine";
+import { fetchUserProfile } from "../clients/user.client";
+import {
+  explainExerciseProgressionSafe,
+  type ExplainExerciseProgressionPayload,
+} from "../clients/ai.client";
 import type {
   CompleteScheduleExerciseDto,
   CreateManualProgramDto,
@@ -418,6 +430,99 @@ export const workoutQueue = new Queue("workout-generation", {
   },
 });
 
+// Shared core of getExerciseProgression / getExerciseProgressionExplanation —
+// see docs/TRAINING_PROGRESSION_ARCHITECTURE.md §5. Every external lookup
+// (profile, active cycle, latest assessment) is independently fail-soft: a
+// missing profile/cycle/assessment degrades to the engine's own documented
+// defaults (UNKNOWN experience level, null cycle decision) rather than
+// erroring the whole request — this is reference/explanation, never a
+// blocker to logging a workout.
+async function computeExerciseProgressionInternal(
+  userId: string,
+  exerciseId: string,
+  excludeWorkoutId?: string,
+) {
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: exerciseId },
+    select: { exerciseName: true, loggingMode: true },
+  });
+  if (!exercise) throw { status: 404, message: "Exercise not found" };
+
+  const sessions = await workoutRepository.findRecentCompletedSessionsForExercise(
+    userId,
+    exerciseId,
+    5,
+    excludeWorkoutId,
+  );
+  const recentSessions: ExercisePerformanceSession[] = sessions.map((s) => ({
+    date: s.workout.date,
+    sets: s.workoutSets.map((set) => ({
+      weightKg: set.weight,
+      reps: set.reps,
+      rir: set.rir,
+      rpe: set.rpe,
+      durationSeconds: set.durationSeconds,
+      distanceMeters: set.distanceMeters,
+      completed: true, // repository already filters to completed:true
+      setType: set.setType,
+    })),
+  }));
+
+  const [profile, cycleDecision] = await Promise.all([
+    fetchUserProfile(userId).catch(() => null),
+    (async () => {
+      const activeCycle = await prisma.trainingCycle.findFirst({
+        where: { userId, status: "ACTIVE", archivedAt: null },
+        select: { id: true },
+      });
+      if (!activeCycle) return null;
+      const latestAssessment = await prisma.cycleAssessment.findFirst({
+        where: { cycleId: activeCycle.id, status: "COMPLETED" },
+        orderBy: { assessmentVersion: "desc" },
+        select: { decision: true },
+      });
+      return (latestAssessment?.decision as CycleDecision | undefined) ?? null;
+    })().catch(() => null),
+  ]);
+
+  const experienceLevel: ExperienceLevel = (profile?.experienceLevel as ExperienceLevel) ?? "UNKNOWN";
+
+  const result = evaluateExerciseProgression({
+    loggingMode: (exercise.loggingMode as LoggingMode) ?? "REPS_LOAD",
+    experienceLevel,
+    recentSessions,
+    cycleDecision,
+  });
+
+  return { exercise, experienceLevel, result };
+}
+
+const PROGRESSION_STATUS_LABEL_VI: Record<string, string> = {
+  KEEP: "giữ nguyên mức hiện tại",
+  INCREASE_LOAD: "tăng tải",
+  INCREASE_REPS: "tăng số rep",
+  INCREASE_SETS: "tăng số set",
+  DELOAD: "giảm tải để phục hồi",
+  REVIEW: "xem lại trước khi thay đổi",
+  INSUFFICIENT_DATA: "chưa đủ dữ liệu để kết luận",
+};
+
+// Local, non-AI fallback used only when ai-service itself is unreachable
+// (network error/timeout at the HTTP call level) — distinct from, and in
+// addition to, ai-service's OWN internal deterministic fallback (used when
+// ai-service is up but its LLM backend is not). Mirrors
+// exercise-progression-explanation.service.ts's buildDeterministicFallback
+// in ai-service so both fallback paths read the same regardless of which
+// layer produced them.
+function buildLocalDeterministicExplanation(
+  exerciseName: string,
+  result: { status: string; reasonCodes: string[] },
+): string {
+  const label = PROGRESSION_STATUS_LABEL_VI[result.status] ?? result.status;
+  const reasons = result.reasonCodes.length > 0 ? result.reasonCodes.join(", ") : "dữ liệu buổi tập gần đây";
+  return `Hệ thống đề xuất "${label}" cho ${exerciseName}, dựa trên: ${reasons}.`;
+}
+
 export const workoutService = {
   async listWorkouts(
     userId: string,
@@ -458,6 +563,25 @@ export const workoutService = {
       workoutData.date = schedule.date.toISOString();
     } else if (data.date) {
       assertScheduleDateEditable(new Date(data.date));
+    } else {
+      // Real bug found via this session's own regression testing (reproduces
+      // reliably every day roughly VN-midnight-to-7am, i.e. right now):
+      // leaving `date` unset here let Prisma's raw `Workout.date
+      // @default(now())` apply — a true UTC instant. Every OTHER date this
+      // codebase writes/compares (WorkoutSchedule.date, and every call site
+      // in this same file) is a UTC-midnight-anchored calendar-day LABEL in
+      // APP_SCHEDULE_TIME_ZONE (see schedule-lock.util.ts's own module doc
+      // comment) — a real instant is not the same value once VN-local-day
+      // has advanced past UTC-day, which happens for ~7 hours every single
+      // day. assertWorkoutEditableByWorkoutId's schedule-less fallback then
+      // read that "yesterday" UTC label and immediately locked a workout the
+      // user had just that moment created — a false SCHEDULE_DATE_LOCKED
+      // ("past") on brand-new data, for anyone logging a freeform/unscheduled
+      // workout during that window. Fixed by using the same
+      // todayAsScheduleDate() helper every other "what day is today" call
+      // site in this codebase already uses, instead of letting a raw instant
+      // default silently apply here.
+      workoutData.date = todayAsScheduleDate().toISOString();
     }
     return workoutRepository.create(userId, workoutData);
   },
@@ -492,6 +616,105 @@ export const workoutService = {
     await assertWorkoutEditableByWorkoutId(id);
     await workoutRepository.delete(id);
     return { message: "Workout deleted" };
+  },
+
+  // "Previous performance" prefill (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §3, gap analysis P0 #1: confirmed absent before this — no per-exercise
+  // history endpoint existed anywhere in this controller). Returns exactly
+  // what the user logged last time for this exercise, per set, with no
+  // recommendation attached — the caller (UI/AI) must never present this as
+  // a target, only as reference context ("last time you did...").
+  async getPreviousPerformance(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const prior = await workoutRepository.findLastCompletedSetsForExercise(
+      userId,
+      exerciseId,
+      excludeWorkoutId,
+    );
+    if (!prior) {
+      return { exerciseId, hasHistory: false, date: null, sets: [] };
+    }
+    return {
+      exerciseId,
+      hasHistory: true,
+      date: prior.workout.date,
+      sets: prior.workoutSets.map((s) => ({
+        setNumber: s.setNumber,
+        weightKg: s.weight,
+        bodyWeightAtSetKg: s.bodyWeightAtSetKg,
+        reps: s.reps,
+        rpe: s.rpe,
+        rir: s.rir,
+        setType: s.setType,
+        durationSeconds: s.durationSeconds,
+        distanceMeters: s.distanceMeters,
+      })),
+    };
+  },
+
+  // Wires exercise-progression.engine.ts (built and unit-tested earlier in
+  // this pass, but never actually reachable by a real user until this
+  // endpoint — a real, honestly-flagged gap this pass closes) to real data:
+  // recent session history, the exercise's loggingMode, the user's
+  // experienceLevel (via the existing fitness-service -> user-service
+  // client, never touching user-service's own files), and the current
+  // active cycle's latest decision (for the precedence envelope —
+  // docs/TRAINING_PROGRESSION_ARCHITECTURE.md §2). Every external lookup is
+  // independently fail-soft: a missing profile/cycle/assessment degrades to
+  // the engine's own documented defaults (UNKNOWN experience level, null
+  // cycle decision) rather than erroring the whole request — this is
+  // reference/explanation, never a blocker to logging a workout.
+  async getExerciseProgression(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const { result } = await computeExerciseProgressionInternal(userId, exerciseId, excludeWorkoutId);
+    return { exerciseId, ...result };
+  },
+
+  // openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §5. OPTIONAL, separate, slower sibling of getExerciseProgression above:
+  // that endpoint stays purely deterministic and MUST keep working with zero
+  // AI dependency; this one additionally asks ai-service to explain the
+  // already-computed decision in natural Vietnamese. explainExerciseProgressionSafe
+  // never throws (ai-service down/timeout -> null), and even then this method
+  // still returns a real, locally-built explanation — AI is never a
+  // dependency of this request succeeding, only of whether the explanation
+  // text happens to be LLM-written vs mechanically templated.
+  async getExerciseProgressionExplanation(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const { exercise, experienceLevel, result } = await computeExerciseProgressionInternal(
+      userId,
+      exerciseId,
+      excludeWorkoutId,
+    );
+
+    const payload: ExplainExerciseProgressionPayload = {
+      userId,
+      exerciseName: exercise.exerciseName,
+      loggingMode: (exercise.loggingMode as ExplainExerciseProgressionPayload["loggingMode"]) ?? "REPS_LOAD",
+      experienceLevel,
+      status: result.status,
+      currentPerformance: result.currentPerformance
+        ? {
+            weightKg: result.currentPerformance.weightKg,
+            reps: result.currentPerformance.reps,
+            durationSeconds: result.currentPerformance.durationSeconds,
+            distanceMeters: result.currentPerformance.distanceMeters,
+          }
+        : null,
+      nextTarget: result.nextTarget,
+      reasonCodes: result.reasonCodes,
+      cycleContext: result.cycleContext,
+    };
+
+    const aiResult = await explainExerciseProgressionSafe(userId, payload);
+    if (aiResult) {
+      return { exerciseId, ...aiResult };
+    }
+
+    // ai-service itself unreachable (not just its LLM backend) — local,
+    // non-AI fallback so this endpoint never errors just because AI is down.
+    return {
+      exerciseId,
+      explanation: buildLocalDeterministicExplanation(exercise.exerciseName, result),
+      source: "deterministic-fallback" as const,
+    };
   },
 
   async getPRs(userId: string, exerciseId?: string) {
@@ -564,11 +787,13 @@ export const workoutService = {
     const prs: Array<{
       exerciseId: string;
       exerciseName: string;
-      weightKg: number;
+      prType: "WEIGHT_E1RM" | "REPS";
+      weightKg: number | null;
       reps: number | null;
-      estimated1RmKg: number;
-      previousBestWeightKg: number;
-      previousBestEstimated1RmKg: number;
+      estimated1RmKg: number | null;
+      previousBestWeightKg: number | null;
+      previousBestEstimated1RmKg: number | null;
+      previousBestReps: number | null;
     }> = [];
     for (const [exerciseId, best] of sessionBestByExercise) {
       const prior = priorBestByExercise.get(exerciseId);
@@ -576,12 +801,75 @@ export const workoutService = {
         prs.push({
           exerciseId,
           exerciseName: best.exerciseName,
+          prType: "WEIGHT_E1RM",
           weightKg: best.weight,
           reps: best.reps,
           estimated1RmKg: Math.round(best.e1rm * 10) / 10,
           previousBestWeightKg: prior.weight,
           previousBestEstimated1RmKg: Math.round(prior.e1rm * 10) / 10,
+          previousBestReps: null,
         });
+      }
+    }
+
+    // Bodyweight exercises (no added load — weight is null): the e1RM
+    // comparison above never applies to these (estimate1RM needs a weight),
+    // so without this block a user doing only bodyweight work would never
+    // see a PR, ever. PR here is simply "more reps than your prior best for
+    // this exercise" — reps is the only performance axis available. A
+    // user's first time doing the exercise is not flagged, same rule as
+    // the weighted path above (nothing yet to have beaten).
+    const bodyweightExercises = workout.exercises.filter(
+      (ex: any) => ex.weight == null && ex.reps != null && ex.reps > 0,
+    );
+    if (bodyweightExercises.length > 0) {
+      const bwExerciseIds = [
+        ...new Set(bodyweightExercises.map((ex: any) => ex.exerciseId)),
+      ] as string[];
+      const priorBwSets = await workoutRepository.findPriorBodyweightRepsForExercises(
+        userId,
+        bwExerciseIds,
+        workoutId,
+      );
+      const priorBestRepsByExercise = new Map<string, number>();
+      for (const s of priorBwSets as any[]) {
+        if (s.reps == null) continue;
+        const current = priorBestRepsByExercise.get(s.exerciseId);
+        if (current == null || s.reps > current) {
+          priorBestRepsByExercise.set(s.exerciseId, s.reps);
+        }
+      }
+
+      const sessionBestRepsByExercise = new Map<
+        string,
+        { reps: number; exerciseName: string }
+      >();
+      for (const ex of bodyweightExercises as any[]) {
+        const current = sessionBestRepsByExercise.get(ex.exerciseId);
+        if (!current || ex.reps > current.reps) {
+          sessionBestRepsByExercise.set(ex.exerciseId, {
+            reps: ex.reps,
+            exerciseName:
+              ex.exerciseNameSnapshot || ex.exercise?.exerciseName || "Bài tập",
+          });
+        }
+      }
+
+      for (const [exerciseId, best] of sessionBestRepsByExercise) {
+        const priorBestReps = priorBestRepsByExercise.get(exerciseId);
+        if (priorBestReps != null && best.reps > priorBestReps) {
+          prs.push({
+            exerciseId,
+            exerciseName: best.exerciseName,
+            prType: "REPS",
+            weightKg: null,
+            reps: best.reps,
+            estimated1RmKg: null,
+            previousBestWeightKg: null,
+            previousBestEstimated1RmKg: null,
+            previousBestReps: priorBestReps,
+          });
+        }
       }
     }
 
@@ -953,6 +1241,9 @@ export const workoutService = {
         const actualWeight = performed?.weight ?? plannedExercise.weight ?? null;
         const actualReps = performed?.reps ?? plannedExercise.reps ?? null;
         const actualNotes = performed?.notes ?? plannedExercise.notes ?? null;
+        const actualBodyWeightAtSetKg = performed?.bodyWeightAtSetKg ?? null;
+        const actualDurationSeconds = performed?.durationSeconds ?? plannedExercise.duration ?? null;
+        const actualDistanceMeters = performed?.distanceMeters ?? null;
         finalExerciseId = actualExerciseId;
         // History-protection snapshot (see createStartedWorkoutForSchedule's
         // matching comment above) — the ACTUALLY performed exercise's name
@@ -971,7 +1262,7 @@ export const workoutService = {
             exerciseNameSnapshot: actualExerciseName,
             sets: Number(plannedExercise.sets) || 1,
             reps: actualReps,
-            duration: plannedExercise.duration ?? null,
+            duration: actualDurationSeconds,
             weight: actualWeight,
             notes: actualNotes,
             order: plannedExercise.order ?? 0,
@@ -984,6 +1275,9 @@ export const workoutService = {
                   weight: actualWeight,
                   rpe: performed?.rpe ?? null,
                   rir: performed?.rir ?? null,
+                  bodyWeightAtSetKg: actualBodyWeightAtSetKg,
+                  durationSeconds: actualDurationSeconds,
+                  distanceMeters: actualDistanceMeters,
                   completed: false,
                 }),
               ),
@@ -1007,6 +1301,10 @@ export const workoutService = {
         const existingSet = workoutExercise.workoutSets[0];
         const actualRpe = performed.rpe ?? existingSet?.rpe ?? null;
         const actualRir = performed.rir ?? existingSet?.rir ?? null;
+        const actualBodyWeightAtSetKg = performed.bodyWeightAtSetKg ?? existingSet?.bodyWeightAtSetKg ?? null;
+        const actualDurationSeconds =
+          performed.durationSeconds ?? existingSet?.durationSeconds ?? workoutExercise.duration ?? null;
+        const actualDistanceMeters = performed.distanceMeters ?? existingSet?.distanceMeters ?? null;
         finalExerciseId = actualExerciseId;
         // Only re-resolve the snapshot when the exercise itself actually
         // changed on this re-submit (a late swap) — avoids a needless
@@ -1022,13 +1320,22 @@ export const workoutService = {
             exerciseId: actualExerciseId,
             reps: actualReps,
             weight: actualWeight,
+            duration: actualDurationSeconds,
             notes: actualNotes,
             ...(exerciseNameSnapshotUpdate !== undefined ? { exerciseNameSnapshot: exerciseNameSnapshotUpdate } : {}),
           },
         });
         await tx.workoutSet.updateMany({
           where: { workoutExerciseId: workoutExercise.id },
-          data: { weight: actualWeight, reps: actualReps, rpe: actualRpe, rir: actualRir },
+          data: {
+            weight: actualWeight,
+            reps: actualReps,
+            rpe: actualRpe,
+            rir: actualRir,
+            bodyWeightAtSetKg: actualBodyWeightAtSetKg,
+            durationSeconds: actualDurationSeconds,
+            distanceMeters: actualDistanceMeters,
+          },
         });
       } else {
         // Row already existed and no `performed` override was sent (the old

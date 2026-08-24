@@ -137,6 +137,9 @@ export const createWorkoutSchema = z
             .max(L.REPS_MAX, `Reps cannot exceed ${L.REPS_MAX}`)
             .optional(),
           duration: z.number().int().positive().optional(),
+          bodyWeightAtSetKg: z.number().positive().max(500).optional(),
+          durationSeconds: z.number().int().positive().max(36000).optional(),
+          distanceMeters: z.number().nonnegative().max(1000000).optional(),
           weight: z
             .number()
             .min(L.WEIGHT_MIN, "Weight cannot be negative")
@@ -174,6 +177,9 @@ export const updateWorkoutSetSchema = z.object({
   weight: z.number().nonnegative().optional(),
   rpe: z.number().min(1).max(10).optional(),
   rir: z.number().int().min(0).max(5).optional(),
+  bodyWeightAtSetKg: z.number().positive().max(500).optional().nullable(),
+  durationSeconds: z.number().int().positive().max(36000).optional().nullable(),
+  distanceMeters: z.number().nonnegative().max(1000000).optional().nullable(),
   completed: z.boolean().optional(),
   ...advancedSetFields,
 });
@@ -193,7 +199,16 @@ export const completeScheduleExerciseSchema = z.object({
   reps: z.number().int().positive().optional(),
   rpe: z.number().min(1).max(10).optional(),
   rir: z.number().int().min(0).max(5).optional(),
+  bodyWeightAtSetKg: z.number().positive().max(500).optional(),
   notes: z.string().max(500).optional(),
+  // TIME / TIME_LOAD / DISTANCE_TIME logging modes (openGym P0-completion
+  // pass — docs/OPENGYM_P0_COMPLETION_REPORT.md). Additive, same pattern as
+  // every field above: omitting them preserves the exact old behavior.
+  // Genuinely separate columns from `weight`/`reps` — a plank's duration
+  // must never be silently stored as "kg" (a real bug this pass found and
+  // fixed; see the report's "Bugs found" section for the mechanism).
+  durationSeconds: z.number().int().positive().max(36000).optional(),
+  distanceMeters: z.number().nonnegative().max(1000000).optional(),
 });
 
 export const createNutritionSchema = z.object({
