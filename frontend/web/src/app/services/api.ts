@@ -4212,4 +4212,52 @@ export const exerciseReviewService = {
   },
 };
 
+// Roadmap P1.8 "Logging-mode catalog discoverability"
+// (docs/features/CATALOG_QUALITY_MATRIX_IMPACT_ANALYSIS.md).
+export interface CatalogQualityRow {
+  id: string;
+  exerciseName: string;
+  loggingMode: string;
+  publicationStatus: string;
+  equipment: string;
+  muscles: string[];
+  hasVideo: boolean;
+  dataLicense: string | null;
+  mediaLicense: string | null;
+  sourceName: string | null;
+  reviewStatus: string;
+}
+
+export interface CatalogQualitySummary {
+  total: number;
+  byPublicationStatus: Record<string, number>;
+  byLoggingMode: Record<string, number>;
+  missingVideo: number;
+  missingMediaLicense: number;
+  noReviewRecord: number;
+}
+
+export const catalogQualityService = {
+  getMatrix: async (params?: {
+    loggingMode?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    rows: CatalogQualityRow[];
+    pagination: { page: number; limit: number; total: number };
+    summary: CatalogQualitySummary;
+  }> => {
+    const qs = new URLSearchParams();
+    if (params?.loggingMode) qs.set("loggingMode", params.loggingMode);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.search) qs.set("search", params.search);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get(`/exercises/admin/catalog-quality-matrix?${qs.toString()}`);
+    return data;
+  },
+};
+
 export default api;

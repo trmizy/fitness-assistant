@@ -60,7 +60,7 @@ function normalizeEquipment(value?: string) {
   return normalized;
 }
 
-function boundedInt(
+export function boundedInt(
   value: unknown,
   fallback: number,
   min: number,

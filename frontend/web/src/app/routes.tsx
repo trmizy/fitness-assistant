@@ -46,6 +46,7 @@ import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { MarketplaceModeration } from "./pages/admin/MarketplaceModeration";
 import { AdminExerciseReview } from "./pages/admin/AdminExerciseReview";
+import { AdminCatalogQuality } from "./pages/admin/AdminCatalogQuality";
 import { PTServiceRefunds } from "./pages/admin/PTServiceRefunds";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
@@ -193,6 +194,7 @@ export const router = createBrowserRouter([
           { path: "pts", Component: PTManagement },
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "exercise-review", Component: AdminExerciseReview },
+          { path: "catalog-quality", Component: AdminCatalogQuality },
           { path: "pt-service-refunds", Component: PTServiceRefunds },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
