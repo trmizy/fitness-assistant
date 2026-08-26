@@ -4325,6 +4325,11 @@ export const importService = {
     const { data } = await api.post("/imports/hevy/preview", { fileName, csvContent });
     return data;
   },
+  // Roadmap P2.2 "Strong import" — same request/response shape as Hevy.
+  previewStrong: async (fileName: string, csvContent: string): Promise<ImportPreviewResult> => {
+    const { data } = await api.post("/imports/strong/preview", { fileName, csvContent });
+    return data;
+  },
   commit: async (batchId: string, resolutions: Record<string, ImportExerciseResolution>): Promise<ImportCommitResult> => {
     const { data } = await api.post(`/imports/${encodeURIComponent(batchId)}/commit`, { resolutions });
     return data;

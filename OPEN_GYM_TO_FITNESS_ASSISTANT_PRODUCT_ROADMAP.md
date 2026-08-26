@@ -1725,38 +1725,48 @@ each.
 not framework-only against a synthetic fixture). See § 46's "Canonical
 import framework" row for full evidence.
 
+~~The next implementation task is now: P2.2 — STRONG IMPORT (§ 16)~~ —
+**done.** Confirmed the framework's own design goal on first reuse
+(`commitImportBatch` needed zero changes) — see § 46's "Strong import"
+row for full evidence, including 3 previously Hevy-only utility modules
+that were extracted into shared, provider-agnostic files as part of this
+pass.
+
 **The next implementation task is now:**
 
-# P2.2 — STRONG IMPORT (§ 16)
+# P2.3 — FITNOTES IMPORT (§ 17)
 
-Why this one next: § 14/§16 both frame Strong (and FitNotes) as "a thin
-provider parser on top of the canonical framework" — the framework
-itself, the preview/commit UX, the exercise-name matcher, and the
-idempotency mechanism are all already built and proven by Hevy import.
-This pass should be scoped to: Strong's own CSV/export column format,
-its own parser (`strong-csv-parser.util.ts`, mirroring
-`hevy-csv-parser.util.ts`'s shape), and wiring it into the SAME
-`importService`/`/client/import-workouts` UI (a provider selector,
-rather than a second page) — not a second framework.
+Why this one next: completes the 3-provider trio § 14 anchors the whole
+canonical-framework investment on ("do not build four unrelated
+importers" — the 4th, hypothetical one was always the sign the framework
+paid for itself). Same shape as Strong: a `fitnotes-csv-parser.util.ts`
+built on the SAME shared `csv-parser.util.ts`/`import-date-parser.util.ts`/
+`import-source-hash.util.ts`/`import-canonical.types.ts` modules, a thin
+`previewFitNotesImport` wrapper, and a third option on the existing
+`/client/import-workouts` provider selector — not a second framework, not
+a second page. § 17 flags real format differences to watch for going in:
+"exercise naming differences; unit preferences; set-type conventions;
+historical timestamps" — audit FitNotes' actual documented export format
+before assuming it mirrors Hevy/Strong's shape.
 
 Before coding, create:
 
 ```text
-docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md
+docs/features/FITNOTES_IMPORT_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After Strong Import
+# 44. After FitNotes Import
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
-Visualization~~ — everything up to and including the Canonical Import
-Framework + Hevy import (plus Catalog Discoverability, not originally
-itemized in this list) is now **done**. Updated remaining order:
+Visualization~~ — everything up to and including Strong import (plus
+Catalog Discoverability, not originally itemized in this list) is now
+**done**. Updated remaining order:
 
 ```text
-Strong import / FitNotes import (thin parsers on the existing pipeline)
+FitNotes import (completes the 3-provider trio on the existing pipeline)
 → JSON/CSV export
 → Apple Health / Android Health Connect integration
 → Workout template sharing/import
@@ -1794,14 +1804,15 @@ When an agent is asked to "continue this roadmap":
 Agents should maintain this table as work progresses.
 
 **As of 2026-08-25: P0 is DONE/READY, all 9 P1-tier items are DONE, and
-P2 has started** — Canonical import framework + Hevy import (§14/§15)
-are DONE, built together end-to-end. Every DONE row below has a linked
-`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test evidence
-and disclosed scope decisions/known gaps — nothing below is marked DONE
-without that evidence. Remaining P2 items (Strong/FitNotes import,
-JSON/CSV export, Apple Health/Health Connect, template sharing), all of
-P3 (visualization), and all of P4 (polish) are still TODO — see § 43/§ 44
-for the recommended next task and ordering.
+P2 is 3/7 done** — Canonical import framework + Hevy import (§14/§15,
+built together end-to-end) and Strong import (§16, confirmed the
+framework needed zero changes on first reuse) are DONE. Every DONE row
+below has a linked `docs/features/*_IMPACT_ANALYSIS.md` with real
+backend/E2E test evidence and disclosed scope decisions/known gaps —
+nothing below is marked DONE without that evidence. Remaining P2 items
+(FitNotes import, JSON/CSV export, Apple Health/Health Connect, template
+sharing), all of P3 (visualization), and all of P4 (polish) are still
+TODO — see § 43/§ 44 for the recommended next task and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1816,7 +1827,7 @@ for the recommended next task and ordering.
 | TIME_LOAD catalog publishing review | P1 | **DONE (reviewed — deliberately NOT published)** | Full audit of the 3 real `TIME_LOAD` STAGING rows (Farmer/Suitcase/Front Rack Carry): content quality is genuinely good (correct classification, real Vietnamese instructions, sensible muscle/equipment mapping), but zero video/media and `media_license` unset. **Real finding that reframed the milestone**: comparing the `original_curated` cohort (145 rows, same import pipeline), `video_url` presence is a near-perfect (25/26) predictor of already being `PUBLISHED` — every one of the other 119 staging curated rows, TIME_LOAD or not, also lacks video. Gate 7's review workflow (`exercise-review.service.ts`) was checked and does NOT apply here by design — it only handles *unresolved* import candidates, and these 3 rows already have real `ExerciseSource` links, so it explicitly refuses any decision but `MARK_AS_DUPLICATE_SKIP` (which would be false) for them; there is also no admin action anywhere in this codebase to flip `Exercise.status` at all (the 883 pre-existing rows were published via a one-off backfill script, not reusable tooling). Given the roadmap's own explicit instruction — "do not publish rows just to claim feature availability" — and that these 3 rows fail the exact bar the rest of this cohort is held to, **they were deliberately left STAGING**, not published. What shipped instead is the tool the roadmap actually asked for: `GET /exercises/admin/catalog-quality-matrix` (admin-gated, matches the roadmap's own requested schema — loggingMode/publicationStatus/equipment/muscles/media-license/reviewStatus — catalog-wide and reusable, not scoped to just 3 rows) + a new read-only `/admin/catalog-quality` page (mirrors the existing Gate 7 admin page's conventions). See `docs/features/CATALOG_QUALITY_MATRIX_IMPACT_ANALYSIS.md`. Backend integration 5/5 (new), `tsc --noEmit` clean, E2E 1/1 (new, `41-catalog-quality-matrix.spec.ts`), regression: Gate 7's own admin spec 2/2 + a combined backend bundle (Gate 7 + custom exercises + catalog quality) 16/16, all still passing. The wider 116-row non-TIME_LOAD staging backlog this audit also surfaced is now visible through the new tool but deliberately not triaged in this pass — that's a separate, larger content-ops task. |
 | Canonical import framework | P2 | **DONE (built with Hevy end-to-end, scope confirmed with the user)** | Two-phase preview → commit user-facing workout-history import, new `WorkoutImportBatch` model (deliberately separate from Gate 5's admin/CLI-only `ImportBatch`/`ImportRecord` — different owner, different lifecycle, see impact analysis). `createWorkout`/`workoutRepository.create` could NOT be reused unchanged: it repeats ONE uniform weight/reps across all of an exercise's sets (imports need genuine per-set variation) and calls `assertScheduleDateEditable` (today-only lock, would reject any real historical import) — a new direct-Prisma commit path was written instead, mirroring the Gate-4 `exerciseNameSnapshot` convention, never creating a `WorkoutSchedule` row (imported history is pure "actual", no "planned" counterpart). `detectDuplicate` didn't fit exercise-name matching either (it needs full equipment/muscle records; a CSV row only has a name) — a dedicated exact/fuzzy name matcher was written, reusing `normalizeVietnamese` (see bugs below). Idempotent by construction: a `sourceHash` per parsed workout, checked against every past committed batch, means re-uploading the same export twice creates zero duplicate `Workout` rows — proven, not assumed, by a real test. No multipart/`multer` — the CSV is posted as a JSON string field through a route-scoped larger `express.json()` limit (both fitness-service and the gateway, which has no global body-parser at all in front of any proxy route). New `/client/import-workouts` page (upload → preview → per-exercise resolve → commit), reusing P1.5's `createCustomExercise` unchanged for "create as custom" resolutions. **Real bugs found and fixed**: (1) the name matcher's first version didn't handle Vietnamese `đ`/`Đ` (NFD doesn't decompose it — it's a distinct base letter, not base+diacritic), silently downgrading exact matches in this heavily-Vietnamese catalog to weak fuzzy ones — fixed by reusing the existing, already-correct `normalizeVietnamese` instead of a flawed reimplementation; (2) the date parser's non-ISO fallback delegated to `new Date(dateOnlyString)`, which JS treats as LOCAL midnight for non-ISO input — `.toISOString()` then silently shifted the date back a day on a positive-UTC-offset host, the same bug class this roadmap's own Smart Prefill entry already found for Prisma+naive-timestamps — fixed by never delegating to timezone-dependent `Date` parsing, building every date directly from regex-extracted digits. Both caught by this milestone's own unit tests before they could reach a real import. **Disclosed limitation**: Hevy's CSV column format is targeted from public/community documentation, not verified against a live Hevy export (no account available) — the parser is header-driven and defensive (a format drift surfaces as "0 workouts parsed, N row errors" for the user to see, never silent corruption), but may need adjustment against a real export file. Body-measurement import is scoped out this pass (Hevy's export format for it isn't confidently known) — revisit alongside P2.4. Strong/FitNotes (P2.2/P2.3) are separate follow-up passes, each meant to be a thin parser on top of this same pipeline. See `docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md`. Unit 18/18 (new), backend integration 8/8 (new, `import.service.integration.test.ts`), `tsc --noEmit` clean (fitness-service + gateway), E2E 1/1 (new, `42-import-hevy-workouts.spec.ts` — real file upload, real preview, real resolve-and-commit, real re-upload idempotency check), regression 13/13 (specs touching `ProfilePage`, where the new entry point was added). |
 | Hevy import | P2 | **DONE** | Shipped together with the canonical import framework above — see that row for full detail; this was deliberately not split into a separate pass (scope confirmed with the user: "framework + Hevy end-to-end" over "framework only against a synthetic fixture"). |
-| Strong import | P2 | TODO | Official export only |
+| Strong import | P2 | **DONE (thin parser on the existing pipeline)** | Confirms the canonical framework's own design goal on first reuse: `commitImportBatch` needed ZERO changes (it already only operated on the canonical `ImportedWorkout[]` shape), and `previewHevyImport` was refactored into a shared `previewFromParsed` + a thin `previewStrongImport` wrapper. The CSV tokenizer, timezone-safe date parser, and source-hash function — all previously living inside Hevy's own parser file despite being genuinely provider-agnostic — were extracted into shared `csv-parser.util.ts`/`import-date-parser.util.ts`/`import-source-hash.util.ts`/`import-canonical.types.ts` modules (Hevy's parser now imports these too, with a backward-compat re-export so its existing tests needed zero changes). The one genuinely Strong-specific piece: unit conversion — Strong exports weight/distance with a PER-ROW unit (`Weight Unit`: kg/lb, `Distance Unit`: km/mi/m), unlike Hevy's always-kg `weight_kg` column, so every value is normalized to this app's kg/meters convention before it ever reaches the shared commit path. Same page, provider selector (`/client/import-workouts` gained a Hevy/Strong toggle) — not a second page, per §16's own "same canonical pipeline" instruction. Small consistency fix made to Hevy's own parser while touching this shared code: `description` (Hevy's workout-level notes column) was in the targeted column list since P2.1 but was never actually mapped to `ImportedWorkout.notes` — fixed so both providers populate it consistently. See `docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md`. Unit 8/8 (new, `strong-csv-parser.util.test.ts`) + 18/18 pre-existing Hevy/matcher unit tests re-run unaffected by the extraction. Backend integration 1/1 (new, focused — the shared commit path itself is already covered 8/8 by Hevy's own suite and unchanged) — 35/35 across the full combined import test bundle. `tsc --noEmit` clean. E2E 1/1 (new, `43-import-strong-workouts.spec.ts` — real provider-selector click, real Strong-format CSV upload, real lb→kg conversion verified in the committed `WorkoutSet`). Regression: Hevy's own E2E (`42-import-hevy-workouts.spec.ts`, most at risk from the shared-pipeline refactor) 1/1 still passing. |
 | FitNotes import | P2 | TODO | Official export only |
 | JSON/CSV export | P2 | TODO | User portability |
 | Apple Health integration | P2 | TODO | Via provider layer |

@@ -238,9 +238,11 @@ export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
 export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
 export type CompleteScheduleExerciseDto = z.infer<typeof completeScheduleExerciseSchema>;
 
-// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
-// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
-export const previewHevyImportSchema = z.object({
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import" + P2.2
+// "Strong import" (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md,
+// docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md). One shape for every
+// provider's preview request — the body never varies by source.
+export const previewImportSchema = z.object({
   fileName: z.string().min(1).max(200),
   csvContent: z.string().min(1).max(15 * 1024 * 1024), // matches the route-scoped body-size limit
 });
@@ -269,7 +271,7 @@ export const commitImportBatchSchema = z.object({
   resolutions: z.record(z.string(), importExerciseResolutionSchema),
 });
 
-export type PreviewHevyImportDto = z.infer<typeof previewHevyImportSchema>;
+export type PreviewImportDto = z.infer<typeof previewImportSchema>;
 export type ImportExerciseResolution = z.infer<typeof importExerciseResolutionSchema>;
 export type CommitImportBatchDto = z.infer<typeof commitImportBatchSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;

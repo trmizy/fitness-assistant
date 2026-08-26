@@ -10,14 +10,25 @@ import {
 } from "../../services/api";
 
 /**
- * Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
- * (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
+ * Roadmap P2 "Canonical import framework" + P2.1 "Hevy import" + P2.2
+ * "Strong import" (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md,
+ * docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md).
  *
  * Upload -> preview (parsed workouts + per-exercise match candidates) ->
  * resolve each distinct exercise name (use existing / create custom /
  * skip) -> commit. No exercise is ever auto-mapped without an explicit
  * choice, matching the same rule Custom Exercises (P1.5) already follows.
+ *
+ * One page, one flow for every provider — a provider selector, not a
+ * second page, matching §14's own "do not build four unrelated
+ * importers" instruction.
  */
+
+const PROVIDERS = [
+  { value: "hevy", label: "Hevy" },
+  { value: "strong", label: "Strong" },
+] as const;
+type Provider = (typeof PROVIDERS)[number]["value"];
 
 // Same enum sets exercise.service.ts validates a custom exercise against
 // — hardcoded here (not fetched from /exercises/filter-options) so this
@@ -36,6 +47,7 @@ type ResolutionChoice = "SKIP" | "CREATE_CUSTOM" | `CANDIDATE:${number}`;
 
 export function ImportWorkoutsPage() {
   const navigate = useNavigate();
+  const [provider, setProvider] = useState<Provider>("hevy");
   const [file, setFile] = useState<File | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
@@ -59,7 +71,9 @@ export function ImportWorkoutsPage() {
     setIsPreviewing(true);
     try {
       const csvContent = await file.text();
-      const result = await importService.previewHevy(file.name, csvContent);
+      const result = provider === "hevy"
+        ? await importService.previewHevy(file.name, csvContent)
+        : await importService.previewStrong(file.name, csvContent);
       setPreview(result);
       if (result.blocked) {
         toast.error(result.reason || "Không thể xem trước file này.");
@@ -183,6 +197,23 @@ export function ImportWorkoutsPage() {
         </div>
       ) : !preview ? (
         <div className="rounded-2xl border border-dashed border-zinc-700/40 bg-zinc-900/30 p-8 text-center space-y-4">
+          <div className="flex justify-center gap-2" data-testid="import-provider-selector">
+            {PROVIDERS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                data-testid={`import-provider-${p.value}`}
+                onClick={() => setProvider(p.value)}
+                className={`px-4 py-1.5 rounded-lg text-xs border transition-colors ${
+                  provider === p.value
+                    ? "border-sky-500/40 bg-sky-500/15 text-sky-300"
+                    : "border-zinc-700/40 text-zinc-400 hover:bg-zinc-800/40"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <input
             type="file"
             accept=".csv,text/csv"

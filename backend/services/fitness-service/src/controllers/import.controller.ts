@@ -2,14 +2,14 @@ import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import { importService } from "../services/import.service";
-import { previewHevyImportSchema, commitImportBatchSchema } from "../models/fitness.models";
+import { previewImportSchema, commitImportBatchSchema } from "../models/fitness.models";
 
 // Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
 // (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
 export const importController = {
   async previewHevy(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const data = previewHevyImportSchema.parse(req.body);
+      const data = previewImportSchema.parse(req.body);
       const result = await importService.previewHevyImport(req.user!.id, data.fileName, data.csvContent);
       res.status(result.blocked ? 400 : 201).json(result);
     } catch (error: any) {
@@ -22,6 +22,27 @@ export const importController = {
         return;
       }
       logger.error({ err: error }, "Error previewing Hevy import");
+      res.status(500).json({ error: "Failed to preview import" });
+    }
+  },
+
+  // Roadmap P2.2 "Strong import" — same shared previewFromParsed/
+  // commitImportBatch pipeline as Hevy, only the parser differs.
+  async previewStrong(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = previewImportSchema.parse(req.body); // same {fileName, csvContent} shape, provider-agnostic
+      const result = await importService.previewStrongImport(req.user!.id, data.fileName, data.csvContent);
+      res.status(result.blocked ? 400 : 201).json(result);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        res.status(400).json({ error: "Invalid import request", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error previewing Strong import");
       res.status(500).json({ error: "Failed to preview import" });
     }
   },
