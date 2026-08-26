@@ -24,6 +24,7 @@ import { ServicesPage } from "./pages/client/ServicesPage";
 import { ChatCoachPage } from "./pages/client/ChatCoachPage";
 import { PersonalizedServiceOrderPage } from "./pages/client/PersonalizedServiceOrderPage";
 import { ImportWorkoutsPage } from "./pages/client/ImportWorkoutsPage";
+import { ExportDataPage } from "./pages/client/ExportDataPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -120,6 +121,7 @@ export const router = createBrowserRouter([
           { path: "onboarding", Component: OnboardingWizardPage },
           { path: "training-equipment", Component: TrainingEquipmentSettingsPage },
           { path: "import-workouts", Component: ImportWorkoutsPage },
+          { path: "export-data", Component: ExportDataPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },

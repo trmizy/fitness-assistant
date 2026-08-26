@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Target,
   Upload,
+  Download,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -668,6 +669,27 @@ export function ProfilePage() {
             <div className="text-sm font-semibold text-zinc-200">Nhập lịch sử tập luyện</div>
             <div className="text-xs text-zinc-600 mt-0.5">
               Nhập dữ liệu từ file export của Hevy — xem trước trước khi lưu
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
+
+      {/* Roadmap P2.5 "Export / data portability" */}
+      <button
+        type="button"
+        data-testid="export-data-link"
+        onClick={() => navigate("/client/export-data")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Download className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Xuất dữ liệu</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Tải lịch sử tập luyện và số đo cơ thể về máy (JSON hoặc CSV)
             </div>
           </div>
         </div>

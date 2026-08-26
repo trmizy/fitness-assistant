@@ -4349,4 +4349,36 @@ export const importService = {
   },
 };
 
+// Roadmap P2.5 "Export / data portability"
+// (docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md).
+export const exportService = {
+  downloadJson: async (): Promise<{ blob: Blob; fileName: string }> => {
+    const res = await api.get("/exports/json", { responseType: "blob" });
+    return { blob: res.data, fileName: extractFileName(res.headers["content-disposition"], "fitness-assistant-export.json") };
+  },
+  downloadCsv: async (): Promise<{ blob: Blob; fileName: string }> => {
+    const res = await api.get("/exports/csv", { responseType: "blob" });
+    return { blob: res.data, fileName: extractFileName(res.headers["content-disposition"], "fitness-assistant-workouts.csv") };
+  },
+};
+
+function extractFileName(contentDisposition: string | undefined, fallback: string): string {
+  const match = contentDisposition?.match(/filename="([^"]+)"/);
+  return match?.[1] ?? fallback;
+}
+
+/** Triggers a real browser download of a Blob — no server round trip
+ * beyond the fetch that already happened, no artifact-style sandboxing
+ * (this is the real product app, not a Claude Artifact). */
+export function triggerBrowserDownload(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default api;

@@ -1701,6 +1701,17 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (roadmap P2.5 JSON/CSV export). Read-only,
+// GET-only — no request body to worry about either way.
+router.use(
+  "/exports",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (stats)
 router.use(
   "/stats",

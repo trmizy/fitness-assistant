@@ -1742,26 +1742,45 @@ format itself) and a second round of shared-module extraction (unit
 conversion, first written for Strong, moved into its own file so
 FitNotes reuses it too).
 
-**The next implementation task is now:**
+~~The next implementation task is now: P2.5 — JSON/CSV EXPORT (§ 19)~~ —
+**done.** Read-only, two SELECT-shaped functions and a pure CSV
+serializer — see § 46's "JSON/CSV export" row for full evidence,
+including the real audit of what `userId`/`exerciseNameSnapshot` needed
+to be excluded as "internal/operational metadata" per §19's own
+instruction.
 
-# P2.5 — JSON/CSV EXPORT (§ 19)
+**Real blocker found for the next item in order (§18, Apple Health /
+Android Health Connect):** this environment has no Xcode/Android Studio,
+no iOS/Android device or simulator, and no ability to write or run
+native platform code — HealthKit and Health Connect are both native-only
+APIs with no web equivalent. The pre-existing `apps/` mobile directory is
+also explicitly off-limits to this session (a standing constraint from
+before this pass — never added to git, never modified). A *backend-only*
+ingestion endpoint (accept already-normalized health data a native app
+would push) could technically be written, but it would ship with **zero
+possibility of real E2E verification** in this session — directly against
+this whole session's own "no self-grading without evidence" discipline
+that's held for every one of the 13 milestones shipped so far today.
+**Not attempted without an explicit decision from the user** — this is
+exactly the kind of "impact analysis demonstrates a strong reason to
+reorder" § 44's own text anticipates, not a unilateral skip.
 
-Why this one next: the 3-provider import trio (§14/§15/§16/§17) is done
-— the remaining P2 items are Apple Health/Health Connect (§18, its own
-health-provider-abstraction design decision, materially different shape
-from a CSV importer) and template sharing (§20, needs its own
-Template/Plan/Schedule/Completed-Workout distinction worked out first).
-Export is comparatively small and low-risk: read-only, no new write
-path, no exercise-matching/idempotency concerns an import needs. §19's
-own requirements: stable identifiers, normalized units, and — critically
-— "do not expose internal secrets/operational metadata," which needs a
-real audit of what a `Workout`/`WorkoutExercise`/`WorkoutSet` row
-actually contains before deciding what ships in an export payload.
+**Recommended next implementation task, pending that decision:**
+
+# P2.6 — WORKOUT TEMPLATE SHARING/IMPORT (§ 20)
+
+Fully buildable and E2E-verifiable within this session (pure web +
+backend, no native dependency) — the next P2 item after Health
+Integration in § 44's own order, and the last one before P3
+Visualization. § 20's own note to resolve first: a clear
+Template/Plan/Schedule/Completed-Workout distinction, and a privacy
+audit (sharing a template must not leak health data/private notes/body
+measurements/account identifiers).
 
 Before coding, create:
 
 ```text
-docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md
+docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md
 ```
 
 ---
@@ -1771,13 +1790,15 @@ docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
 Visualization~~ — everything up to and including the full 3-provider
-import trio (plus Catalog Discoverability, not originally itemized in
-this list) is now **done**. Updated remaining order:
+import trio and JSON/CSV export (plus Catalog Discoverability, not
+originally itemized in this list) is now **done**. Health Integration
+(§18) is blocked in this environment (see above) — updated remaining
+order, pending the user's decision on how to handle that blocker:
 
 ```text
-JSON/CSV export
-→ Apple Health / Android Health Connect integration
-→ Workout template sharing/import
+Apple Health / Android Health Connect integration — BLOCKED in this
+  environment (no native mobile tooling to build or verify it; see above)
+→ Workout template sharing/import — recommended next task instead
 → P3 Visualization (muscle heatmap, activity heatmap, progress charts,
   planned-vs-actual, exercise-history detail)
 → P4 polish (notifications/reminders, PWA/installability)
@@ -1812,17 +1833,17 @@ When an agent is asked to "continue this roadmap":
 Agents should maintain this table as work progresses.
 
 **As of 2026-08-25: P0 is DONE/READY, all 9 P1-tier items are DONE, and
-P2 is 4/7 done** — the full 3-provider import trio (Canonical import
-framework + Hevy §14/§15, Strong §16, FitNotes §17) is DONE, built as one
-shared pipeline with each provider after the first being a genuinely
-thin parser (confirmed twice — neither Strong nor FitNotes needed any
-change to `commitImportBatch`/`previewFromParsed`). Every DONE row below
-has a linked `docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E
-test evidence and disclosed scope decisions/known gaps — nothing below
-is marked DONE without that evidence. Remaining P2 items (JSON/CSV
-export, Apple Health/Health Connect, template sharing), all of P3
-(visualization), and all of P4 (polish) are still TODO — see § 43/§ 44
-for the recommended next task and ordering.
+P2 is 5/7 done** — the full 3-provider import trio (Canonical import
+framework + Hevy §14/§15, Strong §16, FitNotes §17) plus JSON/CSV export
+(§19) are DONE. Every DONE row below has a linked
+`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test evidence
+and disclosed scope decisions/known gaps — nothing below is marked DONE
+without that evidence. **Apple Health/Health Connect (§18) is BLOCKED in
+this environment** (no native iOS/Android tooling to build or verify
+it — see § 43) — not silently skipped, flagged for an explicit user
+decision. Template sharing (§20), all of P3 (visualization), and all of
+P4 (polish) are still TODO — see § 43/§ 44 for the recommended next task
+and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1839,9 +1860,9 @@ for the recommended next task and ordering.
 | Hevy import | P2 | **DONE** | Shipped together with the canonical import framework above — see that row for full detail; this was deliberately not split into a separate pass (scope confirmed with the user: "framework + Hevy end-to-end" over "framework only against a synthetic fixture"). |
 | Strong import | P2 | **DONE (thin parser on the existing pipeline)** | Confirms the canonical framework's own design goal on first reuse: `commitImportBatch` needed ZERO changes (it already only operated on the canonical `ImportedWorkout[]` shape), and `previewHevyImport` was refactored into a shared `previewFromParsed` + a thin `previewStrongImport` wrapper. The CSV tokenizer, timezone-safe date parser, and source-hash function — all previously living inside Hevy's own parser file despite being genuinely provider-agnostic — were extracted into shared `csv-parser.util.ts`/`import-date-parser.util.ts`/`import-source-hash.util.ts`/`import-canonical.types.ts` modules (Hevy's parser now imports these too, with a backward-compat re-export so its existing tests needed zero changes). The one genuinely Strong-specific piece: unit conversion — Strong exports weight/distance with a PER-ROW unit (`Weight Unit`: kg/lb, `Distance Unit`: km/mi/m), unlike Hevy's always-kg `weight_kg` column, so every value is normalized to this app's kg/meters convention before it ever reaches the shared commit path. Same page, provider selector (`/client/import-workouts` gained a Hevy/Strong toggle) — not a second page, per §16's own "same canonical pipeline" instruction. Small consistency fix made to Hevy's own parser while touching this shared code: `description` (Hevy's workout-level notes column) was in the targeted column list since P2.1 but was never actually mapped to `ImportedWorkout.notes` — fixed so both providers populate it consistently. See `docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md`. Unit 8/8 (new, `strong-csv-parser.util.test.ts`) + 18/18 pre-existing Hevy/matcher unit tests re-run unaffected by the extraction. Backend integration 1/1 (new, focused — the shared commit path itself is already covered 8/8 by Hevy's own suite and unchanged) — 35/35 across the full combined import test bundle. `tsc --noEmit` clean. E2E 1/1 (new, `43-import-strong-workouts.spec.ts` — real provider-selector click, real Strong-format CSV upload, real lb→kg conversion verified in the committed `WorkoutSet`). Regression: Hevy's own E2E (`42-import-hevy-workouts.spec.ts`, most at risk from the shared-pipeline refactor) 1/1 still passing. |
 | FitNotes import | P2 | **DONE (thin parser, completes the 3-provider trio)** | Second consecutive provider added without touching `commitImportBatch` or `previewFromParsed` at all — confirms the shared pipeline extraction done for Strong (§16) was the right call. New `fitnotes-csv-parser.util.ts` reuses ALL 4 shared modules (`csv-parser.util.ts`, `import-date-parser.util.ts`, `import-source-hash.util.ts`, `import-canonical.types.ts`) plus the kg/meters unit-conversion functions first written for Strong (extracted into their own `import-unit-conversion.util.ts` this pass so Strong's parser reuses them too, not just FitNotes'). **Real structural finding**: FitNotes' export has NO workout-session concept at all — no title, no time-of-day, just a plain calendar `Date` per set-row (unlike Hevy's `title`/`start_time` or Strong's `Workout Name`/timestamped `Date`). This means the importer necessarily merges everything logged on one calendar date into a single workout — if a user trained twice in one day, FitNotes' own export cannot distinguish the two sessions, so neither can this importer; disclosed as a real limitation of the source format, not something to silently paper over or claim to solve. Proven, not just asserted: a unit test and an E2E test both construct two different exercises on the same date and confirm they land as one real `Workout` with both real `WorkoutSet` rows intact. `Time` format (plain seconds vs `MM:SS`/`HH:MM:SS`) handled defensively — tries each shape, leaves genuinely unparseable values `null` rather than guessing or blocking the row. Same page, third provider option (`/client/import-workouts`'s selector now has Hevy/Strong/FitNotes) — not a third page. **Disclosed limitation**: this is the least-verified of the three provider formats built this session — FitNotes' own documentation of its exact export schema is thinner than Hevy's or Strong's, so real-world adjustment may be needed sooner than the other two. See `docs/features/FITNOTES_IMPORT_IMPACT_ANALYSIS.md`. Unit 9/9 (new, `fitnotes-csv-parser.util.test.ts`) + 26/26 pre-existing Hevy/Strong/matcher unit tests re-run unaffected by the unit-conversion extraction. Backend integration 1/1 (new, focused) — 45/45 across the full combined 3-provider import test bundle. `tsc --noEmit` clean. E2E 1/1 (new, `44-import-fitnotes-workouts.spec.ts` — real provider-selector click, real FitNotes-format CSV with 2 same-date rows, verifies the real merge-into-one-workout behavior end to end). Regression: Hevy's and Strong's own E2E specs (both providers most at risk from the shared unit-conversion extraction) 2/2 still passing. |
-| JSON/CSV export | P2 | TODO | User portability |
-| Apple Health integration | P2 | TODO | Via provider layer |
-| Android Health Connect | P2 | TODO | Via provider layer |
+| JSON/CSV export | P2 | **DONE** | Followed §19's own wording literally — JSON export = everything exportable (full workout history + body metrics), CSV export = workout history only, one row per set (§19 explicitly says "JSON export, CSV **workout-history** export", not a generic CSV of everything). New `/exports` route family (`export.service.ts`/`export.controller.ts`/`export.routes.ts`), mirroring `/imports`' naming/structure exactly — same "data portability" concern, opposite direction. Strictly read-only: two SELECT-shaped functions and a pure CSV serializer, nothing more. Real audit of "do not expose internal secrets/operational metadata" (§19): neither `Workout`/`WorkoutExercise`/`WorkoutSet`/`BodyMetrics` contain anything resembling a secret (no tokens/payment data in this service's schema); `userId` is deliberately left out of every exported record (already implicit — the whole export belongs to one user, enforced by the query itself, so repeating it per-row is redundant plumbing not real data), and the internal Gate-4 `exerciseNameSnapshot` field is replaced with the live joined exercise name instead — while real row ids (`Workout.id`, `Exercise.id`) ARE included, since §19 explicitly asks for "stable identifiers," not their absence. New `/client/export-data` page (JSON/CSV download buttons) with an entry point on `ProfilePage.tsx`, mirroring the "Nhập lịch sử tập luyện" entry point P2.1 added. Nutrition logs deliberately out of scope — §14-§20's whole section is framed around workout-data portability only, nutrition export isn't mentioned anywhere in it. See `docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md`. Unit 5/5 (new, `export-csv.util.test.ts`). Backend integration 2/2 (new, `export.service.integration.test.ts` — proves strict per-user scoping, proves `userId`/`exerciseNameSnapshot` never leak into the payload). `tsc --noEmit` clean (fitness-service + gateway). E2E 1/1 (new, `45-export-data.spec.ts` — downloads both real files through the real UI and reads their actual content, not just checking a button exists, confirming real seeded data with correct values in both formats and zero `userId` leakage). Regression: `42-import-hevy-workouts.spec.ts` + `13-training-cycle-fixes.spec.ts` (both exercise `ProfilePage.tsx`, which this pass also touched) 3/3 still passing. |
+| Apple Health integration | P2 | **BLOCKED (this environment)** | No Xcode/iOS device/simulator available to build or verify HealthKit integration — see § 43. Not silently skipped; needs an explicit user decision (attempt a backend-only, unverifiable ingestion endpoint, defer to a session with native tooling, or reprioritize). |
+| Android Health Connect | P2 | **BLOCKED (this environment)** | No Android Studio/device/emulator available to build or verify Health Connect integration — same blocker and options as Apple Health above. |
 | Workout template sharing/import | P2 | TODO | Privacy-safe |
 | Exercise-history detail | P3 | TODO | Logging-mode aware |
 | Muscle heatmap | P3 | TODO | Product heuristic labeling |

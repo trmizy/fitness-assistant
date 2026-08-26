@@ -10,6 +10,7 @@ import trainingCycleRoutes from "./routes/training-cycle.routes";
 import coachRoutes from "./routes/coach.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import importRoutes from "./routes/import.routes";
+import exportRoutes from "./routes/export.routes";
 
 const app = express();
 
@@ -42,5 +43,6 @@ app.use("/training-cycles", trainingCycleRoutes);
 app.use("/coach", coachRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/imports", importRoutes);
+app.use("/exports", exportRoutes);
 
 export default app;
