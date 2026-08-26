@@ -4422,4 +4422,34 @@ export const templateService = {
   },
 };
 
+// Roadmap P3.1 "Muscle heatmap"
+// (docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md).
+export interface MuscleHeatmapEntry {
+  muscleId: string;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  anatomyRegion: string | null;
+  score: number;
+  intensity: number;
+}
+
+export interface MuscleHeatmapResult {
+  range: "7d" | "30d" | "cycle" | "custom";
+  from: string;
+  to: string;
+  noActiveCycle: boolean;
+  muscles: MuscleHeatmapEntry[];
+}
+
+export const statsService = {
+  getMuscleHeatmap: async (params: { range: "7d" | "30d" | "cycle" | "custom"; from?: string; to?: string }): Promise<MuscleHeatmapResult> => {
+    const qs = new URLSearchParams({ range: params.range });
+    if (params.from) qs.set("from", params.from);
+    if (params.to) qs.set("to", params.to);
+    const { data } = await api.get(`/stats/muscle-heatmap?${qs.toString()}`);
+    return data;
+  },
+};
+
 export default api;

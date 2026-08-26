@@ -1772,44 +1772,51 @@ this instead. See § 46's "Workout template sharing/import" row for full
 evidence. This closes out the entire P2 tier except the
 environment-blocked Health Integration item.
 
-**The next implementation task is now P3 — Visualization and retention
-(§ 21 onward), starting with:**
+~~The next implementation task is now P3 — Visualization and retention
+(§ 21 onward), starting with P3.1 — MUSCLE HEATMAP (§ 21)~~ — **done, all
+4 range modes**, per the user's explicit choice to build the full scope
+(not a smaller 7d+30d MVP). See § 46's "Muscle heatmap" row for full
+evidence, including a real test-database-only data-integrity bug found
+and fixed along the way.
 
-# P3.1 — MUSCLE HEATMAP (§ 21)
+**The next implementation task is now:**
 
-First P3 item in § 5's own listed order. Real judgment call to flag
-before implementing: §21 itself says the primary/secondary muscle-
-contribution weighting (e.g. "primary = 1.0, secondary = 0.5") is "a
-product heuristic unless validated otherwise" — this is exactly the kind
-of product decision worth a real user confirmation before committing to
-specific numbers, not something to pick unilaterally the way a pure
-engineering scope choice can be. Also needs a real audit of what muscle-
-mapping data already exists to build on (Gate 6's `ExerciseMuscle`
-primary/secondary links, referenced earlier this session's memory) before
-assuming what's available.
+# P3.2 — ACTIVITY HEATMAP (§ 22)
+
+Next P3 item in § 5's own listed order. A GitHub-style calendar view of
+training activity — §22 explicitly wants more than a binary "worked out
+yes/no": distinct day states (`completed`/`partial`/`rest`/`missed`/
+`rescheduled`), and click-through to real day detail (workout, duration,
+volume, PR, RPE/RIR, notes). Real infrastructure to audit before
+designing: `WorkoutSchedule.status` (already has `NOT_STARTED`/
+`IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED`/`SKIPPED`/`CANCELLED`)
+and P1.2's reschedule audit columns (`originalPlannedDate`,
+`rescheduledAt`) — likely already carry most of what §22's day-state
+model needs without inventing new fields.
 
 Before coding, create:
 
 ```text
-docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md
+docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After Workout Template Sharing
+# 44. After Muscle Heatmap
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
 Visualization~~ — everything through the full P2 tier except the
-environment-blocked Health Integration item is now **done**. Updated
+environment-blocked Health Integration item, plus P3.1 Muscle Heatmap,
+is now **done**. Updated
 remaining order:
 
 ```text
 Apple Health / Android Health Connect integration — still BLOCKED in
   this environment (no native mobile tooling to build or verify it)
-→ P3 Visualization — muscle heatmap (next) → activity heatmap →
-  exercise progress charts → training consistency/adherence →
-  planned-vs-actual → exercise-history detail
+→ P3 Visualization — activity heatmap (next) → exercise progress charts
+  → training consistency/adherence → planned-vs-actual →
+  exercise-history detail
 → P4 polish (notifications/reminders, PWA/installability)
 ```
 
@@ -1841,19 +1848,20 @@ When an agent is asked to "continue this roadmap":
 
 Agents should maintain this table as work progresses.
 
-**As of 2026-08-25: P0 is DONE/READY, all 9 P1-tier items are DONE, and
-P2 is 6/7 done — the entire P2 tier is complete except one item blocked
-by this environment.** The full 3-provider import trio (Canonical import
-framework + Hevy §14/§15, Strong §16, FitNotes §17), JSON/CSV export
-(§19), and Workout template sharing/import (§20) are all DONE. Every
-DONE row below has a linked `docs/features/*_IMPACT_ANALYSIS.md` with
-real backend/E2E test evidence and disclosed scope decisions/known
-gaps — nothing below is marked DONE without that evidence. **Apple
-Health/Health Connect (§18) is BLOCKED in this environment** (no native
-iOS/Android tooling to build or verify it — see § 43), confirmed by the
-user to skip rather than attempt unverifiably. All of P3 (visualization)
-and all of P4 (polish) are still TODO — see § 43/§ 44 for the
-recommended next task (P3.1 Muscle Heatmap) and ordering.
+**As of 2026-08-26: P0 is DONE/READY, all 9 P1-tier items are DONE, P2
+is 6/7 done (entire tier complete except one item blocked by this
+environment), and P3 has started (1/6).** The full 3-provider import
+trio (Canonical import framework + Hevy §14/§15, Strong §16, FitNotes
+§17), JSON/CSV export (§19), Workout template sharing/import (§20), and
+Muscle Heatmap (§21) are all DONE. Every DONE row below has a linked
+`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test evidence
+and disclosed scope decisions/known gaps — nothing below is marked DONE
+without that evidence. **Apple Health/Health Connect (§18) is BLOCKED in
+this environment** (no native iOS/Android tooling to build or verify
+it — see § 43), confirmed by the user to skip rather than attempt
+unverifiably. The rest of P3 (visualization) and all of P4 (polish) are
+still TODO — see § 43/§ 44 for the recommended next task (P3.2 Activity
+Heatmap) and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1875,7 +1883,7 @@ recommended next task (P3.1 Muscle Heatmap) and ordering.
 | Android Health Connect | P2 | **BLOCKED (this environment)** | No Android Studio/device/emulator available to build or verify Health Connect integration — same blocker and options as Apple Health above. |
 | Workout template sharing/import | P2 | **DONE (PT<->client scoped)** | Built on top of existing, already-proven infrastructure found by auditing `coach.service.ts` before designing anything new: `createManualProgram` (the exact write path that creates the recipient's new program + schedules on import), `isActivePtClientRelationship` (the exact same cross-service authorization check `coach.service.ts` already re-validates fresh per call, reused unchanged — checked in EITHER direction, so a PT can share to a client and a client can share back to their PT using the same real Contract), and `manualProgramDaySchema` (the exact validation shape a template snapshot's `daysJson` matches, so import is a direct pass-through into `createManualProgram`, not a second parallel creation path). New, additive-only `WorkoutProgramTemplate` model: a DETACHED structural snapshot (day titles + exercises + sets/reps/rest only) — editing or archiving the source program after a template is created never affects the template or anyone who already imported it (verified directly, not assumed). **Privacy audit finding**: `WorkoutProgramExercise.notes` is deliberately excluded from every template snapshot — free-text, PT-authored, attached to one specific client's program, could plausibly reference something personal (an injury, a body observation); §20 explicitly calls out "private notes" as something sharing must never leak, so this is excluded by construction, proven by a real test that seeds a note referencing a private health detail and asserts it never appears anywhere in the snapshot. Scoped to PT↔client sharing only this pass (the one relationship this app already has a real, authorized trust boundary for) — arbitrary user↔user sharing and a public/community template marketplace are disclosed, larger follow-ups needing their own relationship/discovery/moderation model, not silently dropped. New `/client/templates` page (Của tôi / Được chia sẻ tabs), reusing the real `contractService.getByPT`/`getByClient` endpoints to populate the share-recipient picker from the caller's actual active relationships — never an open/hardcoded list. See `docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md`. Backend integration 4/4 (new, `template.service.integration.test.ts`, cross-service check stubbed via the same `coachDeps`-style indirection convention `coach.service.ts`'s own tests already use). `tsc --noEmit` clean (fitness-service + gateway). E2E 1/1 (new, `46-template-sharing.spec.ts` — the most structurally complex test this session: two real isolated accounts connected by a real `ACTIVE` Contract row, full loop from real-program snapshot through share through import, verified directly against the DB on the recipient's own account, PT's original program confirmed untouched). Regression: 2 `ProfilePage.tsx`-touching specs (this pass added a third entry-point card there) 3/3 still passing (3 sub-tests across 2 files). This closes out the P2 tier except the environment-blocked Apple Health/Health Connect item (see § 43). |
 | Exercise-history detail | P3 | TODO | Logging-mode aware |
-| Muscle heatmap | P3 | TODO | Product heuristic labeling |
+| Muscle heatmap | P3 | **DONE (all 4 range modes)** | Scope confirmed with the user before implementation, per §21's own "product heuristic, unless validated otherwise" framing — weighting `primary=1.0/secondary=0.5` (the roadmap's own worked example) and all 4 time ranges (7d/30d/current-cycle/custom) built in this pass rather than a smaller 7d+30d MVP. Scored per completed WORKING set (§21's own explicit unit), `WARMUP`-tagged sets excluded per §21's own "Do not include... warm-ups as equal hard volume" instruction. Reuses the real, already-license-vetted `body-muscles` npm package this codebase already integrated for the per-exercise muscle map (Gate 6, `ExerciseMuscleMap.tsx`) — a real anatomical front/back SVG chart, not a second renderer built from scratch; intensity is normalized 1-9 relative to the result set's OWN max (no external absolute reference exists to compare against). New `GET /stats/muscle-heatmap` on the existing `stats` route family. **Real, disclosed data-integrity bug found and fixed**: while seeding real test fixtures, discovered `gymcoach_fitness_test`'s entire `exercise_muscles` table (2992 rows) referenced `muscle_id` values that didn't exist in that database's own `muscles` table (100% orphan rate) — the test DB's `muscles` table had drifted from dev's at some point (each row's id is a fresh UUID, so any reseed anywhere regenerates different ids). Confirmed via direct query that dev's own data was always fully valid (2992/2992 correctly joined) — this was a TEST-DATABASE-ONLY issue, never a live production bug, but it was the first test in this whole session's history to exercise that join at all. Fixed by re-running the existing, already-idempotent `exerciseMuscleMappingImporter.ts` (Gate 6's own importer) against the test DB and cleaning up the leftover orphaned rows. See `docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md`. Unit 7/7 (new, `muscle-heatmap.util.test.ts`). Backend integration 4/4 (new, `muscle-heatmap.service.integration.test.ts` — covers all 4 range modes with real seeded muscle-mapped exercises). `tsc --noEmit` clean. E2E 1/1 (new, `47-muscle-heatmap.spec.ts` — real seeded completed-set history rendered through the real chart+legend, correct across 7d/30d/custom range switches, verified against actual computed scores). Regression: Gate 6's own per-exercise muscle-map spec (shares the `body-muscles` library) + a `ProfilePage.tsx`-touching spec 4/4 still passing. |
 | Activity heatmap | P3 | TODO | Use rescheduled/missed semantics |
 | Exercise progress charts | P3 | TODO | Mode-aware |
 | Planned vs actual | P3 | TODO | Integrate cycle |

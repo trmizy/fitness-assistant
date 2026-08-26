@@ -10,5 +10,10 @@ router.get(
   authMiddleware,
   statsController.getNutritionStats as any,
 );
+router.get(
+  "/muscle-heatmap",
+  authMiddleware,
+  statsController.getMuscleHeatmap as any,
+);
 
 export default router;

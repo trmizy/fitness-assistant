@@ -25,4 +25,28 @@ export const statsController = {
       res.status(500).json({ error: "Failed to fetch nutrition stats" });
     }
   },
+
+  // Roadmap P3.1 "Muscle heatmap" (docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md).
+  async getMuscleHeatmap(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const range = (req.query.range as string) || "30d";
+      if (!["7d", "30d", "cycle", "custom"].includes(range)) {
+        res.status(400).json({ error: "range must be one of: 7d, 30d, cycle, custom" });
+        return;
+      }
+      const heatmap = await statsService.getMuscleHeatmap(req.user!.id, {
+        range: range as "7d" | "30d" | "cycle" | "custom",
+        from: req.query.from as string | undefined,
+        to: req.query.to as string | undefined,
+      });
+      res.json(heatmap);
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching muscle heatmap:", error);
+      res.status(500).json({ error: "Failed to fetch muscle heatmap" });
+    }
+  },
 };
