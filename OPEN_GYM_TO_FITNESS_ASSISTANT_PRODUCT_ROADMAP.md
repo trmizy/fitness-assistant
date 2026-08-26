@@ -101,7 +101,7 @@ Do **not** rewrite the existing progression engine, logging model, or cycle engi
 
 ### Known remaining baseline limitation
 
-`TIME_LOAD` catalog rows currently exist but are `STAGING`, so ordinary user-facing exercise search may not expose them yet. This is a **catalog/discoverability issue**, not a logging-engine failure.
+`TIME_LOAD` catalog rows currently exist but are `STAGING`, so ordinary user-facing exercise search may not expose them yet. This is a **catalog/discoverability issue**, not a logging-engine failure. Reviewed under P1.8 (see the status board, § 46) — deliberately left `STAGING` (they fail the same real, established publish bar every other still-staging curated row also fails: no video/media), with a reusable admin quality-matrix tool shipped instead of a status-flip shortcut.
 
 ---
 
@@ -1708,42 +1708,62 @@ Required:
 
 ---
 
-# 43. Recommended next task
+# 43. Recommended next task — UPDATED, see § 46 for full evidence
 
-The next implementation task should be:
+~~The next implementation task should be: SMART SET-BY-SET PREFILL~~ —
+**done.** All of P1 is now done (P0 baseline, then Smart Set-by-Set
+Prefill, Fast Active-Workout Interaction, Reschedule Workout, Superset/
+Grouping, Session Resume Hardening, Active-Workout Offline Resilience,
+Custom Exercises, and TIME_LOAD Catalog Publishing Review/Discoverability
+— 9/9 P1-tier items). See § 46 (Feature status board) for the full
+evidence trail (impact-analysis docs, real test counts, regressions) on
+each.
 
-# SMART SET-BY-SET PREFILL
+**The next implementation task is now:**
 
-Why:
+# P2 — CANONICAL IMPORT FRAMEWORK (§ 14)
 
-- lowest domain risk among major P1 features;
-- highest immediate active-workout UX value;
-- reuses P0 endpoints;
-- directly addresses the most obvious remaining gap vs openGym;
-- can make Fitness Assistant better than openGym by pre-filling the **recommended deterministic target**, not only copying previous values.
+Why this one first, among the remaining P2 items:
+
+- every other P2 import target (Hevy, Strong, FitNotes, Apple Health,
+  Android Health Connect) explicitly depends on it — § 14 itself says
+  "do not build four unrelated importers," build the canonical
+  provider-parser → normalization → exercise-matching → preview → commit
+  pipeline once;
+- it is a categorically larger/riskier unit of work than any single P1
+  item shipped so far (new import-record concepts, exercise-matching
+  against the live catalog, a preview/commit UX) — per § 45.13's own
+  caution against stacking multiple high-blast-radius milestones in one
+  pass, this deserves its own dedicated impact-analysis pass and an
+  explicit scope check with the user before implementation, the same way
+  P1.4's full-vs-MVP scope was confirmed before building it.
 
 Before coding, create:
 
 ```text
-docs/features/SMART_SET_PREFILL_IMPACT_ANALYSIS.md
+docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md
 ```
-
-Then implement and E2E it across all logging modes.
 
 ---
 
-# 44. After Smart Prefill
+# 44. After the Import Framework
 
-Next order:
+~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
+Custom Exercises → Import Framework → Health Integration →
+Visualization~~ — everything up to and including Custom Exercises (plus
+Catalog Discoverability, not originally itemized in this list) is now
+**done**. Updated remaining order:
 
 ```text
-Reschedule
-→ Superset
-→ Active Workout Offline Resilience
-→ Custom Exercises
-→ Import Framework
-→ Health Integration
-→ Visualization
+Canonical Import Framework
+→ Hevy import / Strong import / FitNotes import (each a thin provider
+  parser on top of the canonical framework, per § 14's own instruction)
+→ JSON/CSV export
+→ Apple Health / Android Health Connect integration
+→ Workout template sharing/import
+→ P3 Visualization (muscle heatmap, activity heatmap, progress charts,
+  planned-vs-actual, exercise-history detail)
+→ P4 polish (notifications/reminders, PWA/installability)
 ```
 
 Do not reorder simply because another feature looks easier unless impact analysis demonstrates a strong reason.
@@ -1773,6 +1793,16 @@ When an agent is asked to "continue this roadmap":
 # 46. Feature status board
 
 Agents should maintain this table as work progresses.
+
+**As of 2026-08-25: P0 is DONE/READY, and all 9 P1-tier items are DONE**
+(Smart Set-by-Set Prefill, Fast Active-Workout Interaction, Reschedule
+Workout, Superset/Grouping, Session Resume Hardening, Active-Workout
+Offline Resilience, Custom Exercises, TIME_LOAD Catalog Publishing
+Review). Every P1 row below has a linked `docs/features/*_IMPACT_ANALYSIS.md`
+with real backend/E2E test evidence and disclosed scope decisions/known
+gaps — nothing below is marked DONE without that evidence. P2 (import
+architecture), P3 (visualization), and P4 (polish) are all still TODO —
+see § 43/§ 44 for the recommended next task and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
