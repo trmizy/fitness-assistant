@@ -11,6 +11,7 @@ const router = Router();
 router.get("/", authMiddleware, importController.list as any);
 router.post("/hevy/preview", authMiddleware, importController.previewHevy as any);
 router.post("/strong/preview", authMiddleware, importController.previewStrong as any);
+router.post("/fitnotes/preview", authMiddleware, importController.previewFitNotes as any);
 router.post("/:batchId/commit", authMiddleware, importController.commit as any);
 router.post("/:batchId/cancel", authMiddleware, importController.cancel as any);
 

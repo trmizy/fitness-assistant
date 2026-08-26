@@ -27,6 +27,7 @@ import {
 const PROVIDERS = [
   { value: "hevy", label: "Hevy" },
   { value: "strong", label: "Strong" },
+  { value: "fitnotes", label: "FitNotes" },
 ] as const;
 type Provider = (typeof PROVIDERS)[number]["value"];
 
@@ -71,9 +72,10 @@ export function ImportWorkoutsPage() {
     setIsPreviewing(true);
     try {
       const csvContent = await file.text();
-      const result = provider === "hevy"
-        ? await importService.previewHevy(file.name, csvContent)
-        : await importService.previewStrong(file.name, csvContent);
+      const result =
+        provider === "hevy" ? await importService.previewHevy(file.name, csvContent)
+        : provider === "strong" ? await importService.previewStrong(file.name, csvContent)
+        : await importService.previewFitNotes(file.name, csvContent);
       setPreview(result);
       if (result.blocked) {
         toast.error(result.reason || "Không thể xem trước file này.");

@@ -47,6 +47,26 @@ export const importController = {
     }
   },
 
+  // Roadmap P2.3 "FitNotes import" — same shared pipeline again.
+  async previewFitNotes(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = previewImportSchema.parse(req.body);
+      const result = await importService.previewFitNotesImport(req.user!.id, data.fileName, data.csvContent);
+      res.status(result.blocked ? 400 : 201).json(result);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        res.status(400).json({ error: "Invalid import request", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error previewing FitNotes import");
+      res.status(500).json({ error: "Failed to preview import" });
+    }
+  },
+
   async commit(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = commitImportBatchSchema.parse(req.body);

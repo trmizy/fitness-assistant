@@ -28,10 +28,8 @@
 import { parseCsv } from "./csv-parser.util";
 import { parseFlexibleDateToLabel } from "./import-date-parser.util";
 import { computeImportSourceHash } from "./import-source-hash.util";
+import { convertWeightToKg, convertDistanceToMeters } from "./import-unit-conversion.util";
 import type { ImportedExercise, ImportedWorkout, ProviderParseResult, RowError } from "./import-canonical.types";
-
-const LB_TO_KG = 0.45359237;
-const MI_TO_M = 1609.344;
 
 function toNumberOrNull(value: string | undefined): number | null {
   if (value === undefined) return null;
@@ -39,21 +37,6 @@ function toNumberOrNull(value: string | undefined): number | null {
   if (trimmed === "") return null;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
-}
-
-function convertWeightToKg(value: number | null, unit: string | undefined): number | null {
-  if (value === null) return null;
-  const u = unit?.trim().toLowerCase();
-  if (u === "lb" || u === "lbs") return value * LB_TO_KG;
-  return value; // "kg" or unspecified — this app's own default unit
-}
-
-function convertDistanceToMeters(value: number | null, unit: string | undefined): number | null {
-  if (value === null) return null;
-  const u = unit?.trim().toLowerCase();
-  if (u === "mi" || u === "mile" || u === "miles") return value * MI_TO_M;
-  if (u === "m" || u === "meter" || u === "meters") return value;
-  return value * 1000; // "km" or unspecified — Strong's own default distance unit
 }
 
 export type StrongParseResult = ProviderParseResult;

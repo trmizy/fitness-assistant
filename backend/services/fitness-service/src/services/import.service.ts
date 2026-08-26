@@ -18,6 +18,7 @@
 import { prisma } from "../repositories/prisma";
 import { parseHevyCsv } from "../utils/hevy-csv-parser.util";
 import { parseStrongCsv } from "../utils/strong-csv-parser.util";
+import { parseFitNotesCsv } from "../utils/fitnotes-csv-parser.util";
 import { matchExerciseName, type MatchCandidate } from "../utils/exercise-name-matcher.util";
 import { exerciseService } from "./exercise.service";
 import { todayAsScheduleDate, scheduledDateLabel } from "../utils/schedule-lock.util";
@@ -27,6 +28,7 @@ import type { ImportedWorkout, ProviderParseResult } from "../utils/import-canon
 const SOURCE_LABEL: Record<string, string> = {
   HEVY: "Hevy",
   STRONG: "Strong",
+  FITNOTES: "FitNotes",
 };
 
 function partitionFutureWorkouts(workouts: ImportedWorkout[]) {
@@ -121,6 +123,10 @@ export const importService = {
 
   async previewStrongImport(userId: string, fileName: string, csvContent: string) {
     return previewFromParsed(userId, "STRONG", fileName, parseStrongCsv(csvContent));
+  },
+
+  async previewFitNotesImport(userId: string, fileName: string, csvContent: string) {
+    return previewFromParsed(userId, "FITNOTES", fileName, parseFitNotesCsv(csvContent));
   },
 
   async commitImportBatch(
