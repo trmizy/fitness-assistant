@@ -4381,4 +4381,45 @@ export function triggerBrowserDownload(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md).
+export interface WorkoutProgramTemplate {
+  id: string;
+  createdByUserId: string;
+  name: string;
+  description: string | null;
+  goal: string | null;
+  durationWeeks: number;
+  daysPerWeek: number;
+  daysJson: Array<{ dayNumber: number; title: string; exercises: Array<{ exerciseId: string; sets: number; reps: number; restSeconds: number }> }>;
+  sharedWithUserIds: string[];
+  createdAt: string;
+}
+
+export const templateService = {
+  createFromProgram: async (input: { programId: string; name?: string; description?: string }): Promise<{ template: WorkoutProgramTemplate }> => {
+    const { data } = await api.post("/templates", input);
+    return data;
+  },
+  share: async (templateId: string, recipientUserId: string): Promise<{ template: WorkoutProgramTemplate }> => {
+    const { data } = await api.post(`/templates/${templateId}/share`, { recipientUserId });
+    return data;
+  },
+  listMine: async (): Promise<{ templates: WorkoutProgramTemplate[] }> => {
+    const { data } = await api.get("/templates/mine");
+    return data;
+  },
+  listSharedWithMe: async (): Promise<{ templates: WorkoutProgramTemplate[] }> => {
+    const { data } = await api.get("/templates/shared-with-me");
+    return data;
+  },
+  importTemplate: async (
+    templateId: string,
+    placement: { startDate: string; selectedWeekdays: number[]; repeatWeeks?: number; replaceExisting?: boolean },
+  ): Promise<any> => {
+    const { data } = await api.post(`/templates/${templateId}/import`, placement);
+    return data;
+  },
+};
+
 export default api;

@@ -11,6 +11,7 @@ import coachRoutes from "./routes/coach.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import importRoutes from "./routes/import.routes";
 import exportRoutes from "./routes/export.routes";
+import templateRoutes from "./routes/template.routes";
 
 const app = express();
 
@@ -44,5 +45,6 @@ app.use("/coach", coachRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/imports", importRoutes);
 app.use("/exports", exportRoutes);
+app.use("/templates", templateRoutes);
 
 export default app;

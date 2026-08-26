@@ -1765,42 +1765,51 @@ that's held for every one of the 13 milestones shipped so far today.
 exactly the kind of "impact analysis demonstrates a strong reason to
 reorder" § 44's own text anticipates, not a unilateral skip.
 
-**Recommended next implementation task, pending that decision:**
+~~Recommended next implementation task, pending that decision: P2.6 —
+WORKOUT TEMPLATE SHARING/IMPORT (§ 20)~~ — **done**, per the user's
+explicit choice to skip the blocked Health Integration item and build
+this instead. See § 46's "Workout template sharing/import" row for full
+evidence. This closes out the entire P2 tier except the
+environment-blocked Health Integration item.
 
-# P2.6 — WORKOUT TEMPLATE SHARING/IMPORT (§ 20)
+**The next implementation task is now P3 — Visualization and retention
+(§ 21 onward), starting with:**
 
-Fully buildable and E2E-verifiable within this session (pure web +
-backend, no native dependency) — the next P2 item after Health
-Integration in § 44's own order, and the last one before P3
-Visualization. § 20's own note to resolve first: a clear
-Template/Plan/Schedule/Completed-Workout distinction, and a privacy
-audit (sharing a template must not leak health data/private notes/body
-measurements/account identifiers).
+# P3.1 — MUSCLE HEATMAP (§ 21)
+
+First P3 item in § 5's own listed order. Real judgment call to flag
+before implementing: §21 itself says the primary/secondary muscle-
+contribution weighting (e.g. "primary = 1.0, secondary = 0.5") is "a
+product heuristic unless validated otherwise" — this is exactly the kind
+of product decision worth a real user confirmation before committing to
+specific numbers, not something to pick unilaterally the way a pure
+engineering scope choice can be. Also needs a real audit of what muscle-
+mapping data already exists to build on (Gate 6's `ExerciseMuscle`
+primary/secondary links, referenced earlier this session's memory) before
+assuming what's available.
 
 Before coding, create:
 
 ```text
-docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md
+docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After JSON/CSV Export
+# 44. After Workout Template Sharing
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
-Visualization~~ — everything up to and including the full 3-provider
-import trio and JSON/CSV export (plus Catalog Discoverability, not
-originally itemized in this list) is now **done**. Health Integration
-(§18) is blocked in this environment (see above) — updated remaining
-order, pending the user's decision on how to handle that blocker:
+Visualization~~ — everything through the full P2 tier except the
+environment-blocked Health Integration item is now **done**. Updated
+remaining order:
 
 ```text
-Apple Health / Android Health Connect integration — BLOCKED in this
-  environment (no native mobile tooling to build or verify it; see above)
-→ Workout template sharing/import — recommended next task instead
-→ P3 Visualization (muscle heatmap, activity heatmap, progress charts,
-  planned-vs-actual, exercise-history detail)
+Apple Health / Android Health Connect integration — still BLOCKED in
+  this environment (no native mobile tooling to build or verify it)
+→ P3 Visualization — muscle heatmap (next) → activity heatmap →
+  exercise progress charts → training consistency/adherence →
+  planned-vs-actual → exercise-history detail
 → P4 polish (notifications/reminders, PWA/installability)
 ```
 
@@ -1833,17 +1842,18 @@ When an agent is asked to "continue this roadmap":
 Agents should maintain this table as work progresses.
 
 **As of 2026-08-25: P0 is DONE/READY, all 9 P1-tier items are DONE, and
-P2 is 5/7 done** — the full 3-provider import trio (Canonical import
-framework + Hevy §14/§15, Strong §16, FitNotes §17) plus JSON/CSV export
-(§19) are DONE. Every DONE row below has a linked
-`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test evidence
-and disclosed scope decisions/known gaps — nothing below is marked DONE
-without that evidence. **Apple Health/Health Connect (§18) is BLOCKED in
-this environment** (no native iOS/Android tooling to build or verify
-it — see § 43) — not silently skipped, flagged for an explicit user
-decision. Template sharing (§20), all of P3 (visualization), and all of
-P4 (polish) are still TODO — see § 43/§ 44 for the recommended next task
-and ordering.
+P2 is 6/7 done — the entire P2 tier is complete except one item blocked
+by this environment.** The full 3-provider import trio (Canonical import
+framework + Hevy §14/§15, Strong §16, FitNotes §17), JSON/CSV export
+(§19), and Workout template sharing/import (§20) are all DONE. Every
+DONE row below has a linked `docs/features/*_IMPACT_ANALYSIS.md` with
+real backend/E2E test evidence and disclosed scope decisions/known
+gaps — nothing below is marked DONE without that evidence. **Apple
+Health/Health Connect (§18) is BLOCKED in this environment** (no native
+iOS/Android tooling to build or verify it — see § 43), confirmed by the
+user to skip rather than attempt unverifiably. All of P3 (visualization)
+and all of P4 (polish) are still TODO — see § 43/§ 44 for the
+recommended next task (P3.1 Muscle Heatmap) and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1863,7 +1873,7 @@ and ordering.
 | JSON/CSV export | P2 | **DONE** | Followed §19's own wording literally — JSON export = everything exportable (full workout history + body metrics), CSV export = workout history only, one row per set (§19 explicitly says "JSON export, CSV **workout-history** export", not a generic CSV of everything). New `/exports` route family (`export.service.ts`/`export.controller.ts`/`export.routes.ts`), mirroring `/imports`' naming/structure exactly — same "data portability" concern, opposite direction. Strictly read-only: two SELECT-shaped functions and a pure CSV serializer, nothing more. Real audit of "do not expose internal secrets/operational metadata" (§19): neither `Workout`/`WorkoutExercise`/`WorkoutSet`/`BodyMetrics` contain anything resembling a secret (no tokens/payment data in this service's schema); `userId` is deliberately left out of every exported record (already implicit — the whole export belongs to one user, enforced by the query itself, so repeating it per-row is redundant plumbing not real data), and the internal Gate-4 `exerciseNameSnapshot` field is replaced with the live joined exercise name instead — while real row ids (`Workout.id`, `Exercise.id`) ARE included, since §19 explicitly asks for "stable identifiers," not their absence. New `/client/export-data` page (JSON/CSV download buttons) with an entry point on `ProfilePage.tsx`, mirroring the "Nhập lịch sử tập luyện" entry point P2.1 added. Nutrition logs deliberately out of scope — §14-§20's whole section is framed around workout-data portability only, nutrition export isn't mentioned anywhere in it. See `docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md`. Unit 5/5 (new, `export-csv.util.test.ts`). Backend integration 2/2 (new, `export.service.integration.test.ts` — proves strict per-user scoping, proves `userId`/`exerciseNameSnapshot` never leak into the payload). `tsc --noEmit` clean (fitness-service + gateway). E2E 1/1 (new, `45-export-data.spec.ts` — downloads both real files through the real UI and reads their actual content, not just checking a button exists, confirming real seeded data with correct values in both formats and zero `userId` leakage). Regression: `42-import-hevy-workouts.spec.ts` + `13-training-cycle-fixes.spec.ts` (both exercise `ProfilePage.tsx`, which this pass also touched) 3/3 still passing. |
 | Apple Health integration | P2 | **BLOCKED (this environment)** | No Xcode/iOS device/simulator available to build or verify HealthKit integration — see § 43. Not silently skipped; needs an explicit user decision (attempt a backend-only, unverifiable ingestion endpoint, defer to a session with native tooling, or reprioritize). |
 | Android Health Connect | P2 | **BLOCKED (this environment)** | No Android Studio/device/emulator available to build or verify Health Connect integration — same blocker and options as Apple Health above. |
-| Workout template sharing/import | P2 | TODO | Privacy-safe |
+| Workout template sharing/import | P2 | **DONE (PT<->client scoped)** | Built on top of existing, already-proven infrastructure found by auditing `coach.service.ts` before designing anything new: `createManualProgram` (the exact write path that creates the recipient's new program + schedules on import), `isActivePtClientRelationship` (the exact same cross-service authorization check `coach.service.ts` already re-validates fresh per call, reused unchanged — checked in EITHER direction, so a PT can share to a client and a client can share back to their PT using the same real Contract), and `manualProgramDaySchema` (the exact validation shape a template snapshot's `daysJson` matches, so import is a direct pass-through into `createManualProgram`, not a second parallel creation path). New, additive-only `WorkoutProgramTemplate` model: a DETACHED structural snapshot (day titles + exercises + sets/reps/rest only) — editing or archiving the source program after a template is created never affects the template or anyone who already imported it (verified directly, not assumed). **Privacy audit finding**: `WorkoutProgramExercise.notes` is deliberately excluded from every template snapshot — free-text, PT-authored, attached to one specific client's program, could plausibly reference something personal (an injury, a body observation); §20 explicitly calls out "private notes" as something sharing must never leak, so this is excluded by construction, proven by a real test that seeds a note referencing a private health detail and asserts it never appears anywhere in the snapshot. Scoped to PT↔client sharing only this pass (the one relationship this app already has a real, authorized trust boundary for) — arbitrary user↔user sharing and a public/community template marketplace are disclosed, larger follow-ups needing their own relationship/discovery/moderation model, not silently dropped. New `/client/templates` page (Của tôi / Được chia sẻ tabs), reusing the real `contractService.getByPT`/`getByClient` endpoints to populate the share-recipient picker from the caller's actual active relationships — never an open/hardcoded list. See `docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md`. Backend integration 4/4 (new, `template.service.integration.test.ts`, cross-service check stubbed via the same `coachDeps`-style indirection convention `coach.service.ts`'s own tests already use). `tsc --noEmit` clean (fitness-service + gateway). E2E 1/1 (new, `46-template-sharing.spec.ts` — the most structurally complex test this session: two real isolated accounts connected by a real `ACTIVE` Contract row, full loop from real-program snapshot through share through import, verified directly against the DB on the recipient's own account, PT's original program confirmed untouched). Regression: 2 `ProfilePage.tsx`-touching specs (this pass added a third entry-point card there) 3/3 still passing (3 sub-tests across 2 files). This closes out the P2 tier except the environment-blocked Apple Health/Health Connect item (see § 43). |
 | Exercise-history detail | P3 | TODO | Logging-mode aware |
 | Muscle heatmap | P3 | TODO | Product heuristic labeling |
 | Activity heatmap | P3 | TODO | Use rescheduled/missed semantics |

@@ -1712,6 +1712,16 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (roadmap P2.6 workout template sharing/import).
+router.use(
+  "/templates",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (stats)
 router.use(
   "/stats",

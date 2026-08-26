@@ -550,6 +550,35 @@ model WorkoutProgramExercise {
   @@map("workout_program_exercises")
 }
 
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md) — a
+// detached, reusable structural snapshot of a program (day titles +
+// exercises + sets/reps/rest only). Deliberately NOT a live reference to
+// WorkoutProgram/WorkoutProgramDay: editing or archiving the source
+// program after a template is created must never affect the template or
+// anyone who already imported it. daysJson deliberately never includes
+// `notes` (could carry something personal about the original client —
+// see the impact analysis's privacy audit) or exercise-group/superset
+// structure (disclosed simplification — see Scope decisions).
+model WorkoutProgramTemplate {
+  id              String   @id @default(uuid())
+  createdByUserId String   @map("created_by_user_id")
+  name            String
+  description     String?
+  goal            String?
+  durationWeeks   Int      @map("duration_weeks")
+  daysPerWeek     Int      @map("days_per_week")
+  daysJson        Json     @map("days_json") // manualProgramDaySchema[] shape — reused unchanged by importTemplate -> createManualProgram
+  // Explicit recipient allowlist — PT<->client sharing only this pass
+  // (see Scope decisions). A template with an empty list is a private
+  // draft only its creator can see/import.
+  sharedWithUserIds String[] @default([]) @map("shared_with_user_ids")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([createdByUserId])
+  @@map("workout_program_templates")
+}
+
 // 📆 Calendar Scheduling (links user to program days on specific dates)
 model WorkoutSchedule {
   id              String   @id @default(uuid())

@@ -99,6 +99,11 @@ export type WorkoutProgramExerciseGroupMember = $Result.DefaultSelection<Prisma.
  */
 export type WorkoutProgramExercise = $Result.DefaultSelection<Prisma.$WorkoutProgramExercisePayload>
 /**
+ * Model WorkoutProgramTemplate
+ * 
+ */
+export type WorkoutProgramTemplate = $Result.DefaultSelection<Prisma.$WorkoutProgramTemplatePayload>
+/**
  * Model WorkoutSchedule
  * 
  */
@@ -598,6 +603,16 @@ export class PrismaClient<
     * ```
     */
   get workoutProgramExercise(): Prisma.WorkoutProgramExerciseDelegate<ExtArgs>;
+
+  /**
+   * `prisma.workoutProgramTemplate`: Exposes CRUD operations for the **WorkoutProgramTemplate** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkoutProgramTemplates
+    * const workoutProgramTemplates = await prisma.workoutProgramTemplate.findMany()
+    * ```
+    */
+  get workoutProgramTemplate(): Prisma.WorkoutProgramTemplateDelegate<ExtArgs>;
 
   /**
    * `prisma.workoutSchedule`: Exposes CRUD operations for the **WorkoutSchedule** model.
@@ -1336,6 +1351,7 @@ export namespace Prisma {
     WorkoutProgramExerciseGroup: 'WorkoutProgramExerciseGroup',
     WorkoutProgramExerciseGroupMember: 'WorkoutProgramExerciseGroupMember',
     WorkoutProgramExercise: 'WorkoutProgramExercise',
+    WorkoutProgramTemplate: 'WorkoutProgramTemplate',
     WorkoutSchedule: 'WorkoutSchedule',
     TrainingCycle: 'TrainingCycle',
     CycleAssessment: 'CycleAssessment',
@@ -1379,7 +1395,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent"
+      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutProgramTemplate" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2570,6 +2586,76 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkoutProgramExerciseCountArgs<ExtArgs>
             result: $Utils.Optional<WorkoutProgramExerciseCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkoutProgramTemplate: {
+        payload: Prisma.$WorkoutProgramTemplatePayload<ExtArgs>
+        fields: Prisma.WorkoutProgramTemplateFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkoutProgramTemplateFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkoutProgramTemplateFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          findFirst: {
+            args: Prisma.WorkoutProgramTemplateFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkoutProgramTemplateFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          findMany: {
+            args: Prisma.WorkoutProgramTemplateFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>[]
+          }
+          create: {
+            args: Prisma.WorkoutProgramTemplateCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          createMany: {
+            args: Prisma.WorkoutProgramTemplateCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkoutProgramTemplateCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>[]
+          }
+          delete: {
+            args: Prisma.WorkoutProgramTemplateDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          update: {
+            args: Prisma.WorkoutProgramTemplateUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkoutProgramTemplateDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkoutProgramTemplateUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WorkoutProgramTemplateUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutProgramTemplatePayload>
+          }
+          aggregate: {
+            args: Prisma.WorkoutProgramTemplateAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkoutProgramTemplate>
+          }
+          groupBy: {
+            args: Prisma.WorkoutProgramTemplateGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutProgramTemplateGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkoutProgramTemplateCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutProgramTemplateCountAggregateOutputType> | number
           }
         }
       }
@@ -23249,6 +23335,974 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: WorkoutProgramExerciseInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkoutProgramTemplate
+   */
+
+  export type AggregateWorkoutProgramTemplate = {
+    _count: WorkoutProgramTemplateCountAggregateOutputType | null
+    _avg: WorkoutProgramTemplateAvgAggregateOutputType | null
+    _sum: WorkoutProgramTemplateSumAggregateOutputType | null
+    _min: WorkoutProgramTemplateMinAggregateOutputType | null
+    _max: WorkoutProgramTemplateMaxAggregateOutputType | null
+  }
+
+  export type WorkoutProgramTemplateAvgAggregateOutputType = {
+    durationWeeks: number | null
+    daysPerWeek: number | null
+  }
+
+  export type WorkoutProgramTemplateSumAggregateOutputType = {
+    durationWeeks: number | null
+    daysPerWeek: number | null
+  }
+
+  export type WorkoutProgramTemplateMinAggregateOutputType = {
+    id: string | null
+    createdByUserId: string | null
+    name: string | null
+    description: string | null
+    goal: string | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutProgramTemplateMaxAggregateOutputType = {
+    id: string | null
+    createdByUserId: string | null
+    name: string | null
+    description: string | null
+    goal: string | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutProgramTemplateCountAggregateOutputType = {
+    id: number
+    createdByUserId: number
+    name: number
+    description: number
+    goal: number
+    durationWeeks: number
+    daysPerWeek: number
+    daysJson: number
+    sharedWithUserIds: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type WorkoutProgramTemplateAvgAggregateInputType = {
+    durationWeeks?: true
+    daysPerWeek?: true
+  }
+
+  export type WorkoutProgramTemplateSumAggregateInputType = {
+    durationWeeks?: true
+    daysPerWeek?: true
+  }
+
+  export type WorkoutProgramTemplateMinAggregateInputType = {
+    id?: true
+    createdByUserId?: true
+    name?: true
+    description?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    createdAt?: true
+  }
+
+  export type WorkoutProgramTemplateMaxAggregateInputType = {
+    id?: true
+    createdByUserId?: true
+    name?: true
+    description?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    createdAt?: true
+  }
+
+  export type WorkoutProgramTemplateCountAggregateInputType = {
+    id?: true
+    createdByUserId?: true
+    name?: true
+    description?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    daysJson?: true
+    sharedWithUserIds?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type WorkoutProgramTemplateAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutProgramTemplate to aggregate.
+     */
+    where?: WorkoutProgramTemplateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutProgramTemplates to fetch.
+     */
+    orderBy?: WorkoutProgramTemplateOrderByWithRelationInput | WorkoutProgramTemplateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkoutProgramTemplateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutProgramTemplates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutProgramTemplates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkoutProgramTemplates
+    **/
+    _count?: true | WorkoutProgramTemplateCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: WorkoutProgramTemplateAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: WorkoutProgramTemplateSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkoutProgramTemplateMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkoutProgramTemplateMaxAggregateInputType
+  }
+
+  export type GetWorkoutProgramTemplateAggregateType<T extends WorkoutProgramTemplateAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkoutProgramTemplate]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkoutProgramTemplate[P]>
+      : GetScalarType<T[P], AggregateWorkoutProgramTemplate[P]>
+  }
+
+
+
+
+  export type WorkoutProgramTemplateGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkoutProgramTemplateWhereInput
+    orderBy?: WorkoutProgramTemplateOrderByWithAggregationInput | WorkoutProgramTemplateOrderByWithAggregationInput[]
+    by: WorkoutProgramTemplateScalarFieldEnum[] | WorkoutProgramTemplateScalarFieldEnum
+    having?: WorkoutProgramTemplateScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkoutProgramTemplateCountAggregateInputType | true
+    _avg?: WorkoutProgramTemplateAvgAggregateInputType
+    _sum?: WorkoutProgramTemplateSumAggregateInputType
+    _min?: WorkoutProgramTemplateMinAggregateInputType
+    _max?: WorkoutProgramTemplateMaxAggregateInputType
+  }
+
+  export type WorkoutProgramTemplateGroupByOutputType = {
+    id: string
+    createdByUserId: string
+    name: string
+    description: string | null
+    goal: string | null
+    durationWeeks: number
+    daysPerWeek: number
+    daysJson: JsonValue
+    sharedWithUserIds: string[]
+    createdAt: Date
+    _count: WorkoutProgramTemplateCountAggregateOutputType | null
+    _avg: WorkoutProgramTemplateAvgAggregateOutputType | null
+    _sum: WorkoutProgramTemplateSumAggregateOutputType | null
+    _min: WorkoutProgramTemplateMinAggregateOutputType | null
+    _max: WorkoutProgramTemplateMaxAggregateOutputType | null
+  }
+
+  type GetWorkoutProgramTemplateGroupByPayload<T extends WorkoutProgramTemplateGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkoutProgramTemplateGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkoutProgramTemplateGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkoutProgramTemplateGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkoutProgramTemplateGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkoutProgramTemplateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdByUserId?: boolean
+    name?: boolean
+    description?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    daysJson?: boolean
+    sharedWithUserIds?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutProgramTemplate"]>
+
+  export type WorkoutProgramTemplateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdByUserId?: boolean
+    name?: boolean
+    description?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    daysJson?: boolean
+    sharedWithUserIds?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutProgramTemplate"]>
+
+  export type WorkoutProgramTemplateSelectScalar = {
+    id?: boolean
+    createdByUserId?: boolean
+    name?: boolean
+    description?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    daysJson?: boolean
+    sharedWithUserIds?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $WorkoutProgramTemplatePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkoutProgramTemplate"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      createdByUserId: string
+      name: string
+      description: string | null
+      goal: string | null
+      durationWeeks: number
+      daysPerWeek: number
+      daysJson: Prisma.JsonValue
+      sharedWithUserIds: string[]
+      createdAt: Date
+    }, ExtArgs["result"]["workoutProgramTemplate"]>
+    composites: {}
+  }
+
+  type WorkoutProgramTemplateGetPayload<S extends boolean | null | undefined | WorkoutProgramTemplateDefaultArgs> = $Result.GetResult<Prisma.$WorkoutProgramTemplatePayload, S>
+
+  type WorkoutProgramTemplateCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WorkoutProgramTemplateFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WorkoutProgramTemplateCountAggregateInputType | true
+    }
+
+  export interface WorkoutProgramTemplateDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkoutProgramTemplate'], meta: { name: 'WorkoutProgramTemplate' } }
+    /**
+     * Find zero or one WorkoutProgramTemplate that matches the filter.
+     * @param {WorkoutProgramTemplateFindUniqueArgs} args - Arguments to find a WorkoutProgramTemplate
+     * @example
+     * // Get one WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkoutProgramTemplateFindUniqueArgs>(args: SelectSubset<T, WorkoutProgramTemplateFindUniqueArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one WorkoutProgramTemplate that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WorkoutProgramTemplateFindUniqueOrThrowArgs} args - Arguments to find a WorkoutProgramTemplate
+     * @example
+     * // Get one WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkoutProgramTemplateFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkoutProgramTemplateFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first WorkoutProgramTemplate that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateFindFirstArgs} args - Arguments to find a WorkoutProgramTemplate
+     * @example
+     * // Get one WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkoutProgramTemplateFindFirstArgs>(args?: SelectSubset<T, WorkoutProgramTemplateFindFirstArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first WorkoutProgramTemplate that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateFindFirstOrThrowArgs} args - Arguments to find a WorkoutProgramTemplate
+     * @example
+     * // Get one WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkoutProgramTemplateFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkoutProgramTemplateFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more WorkoutProgramTemplates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkoutProgramTemplates
+     * const workoutProgramTemplates = await prisma.workoutProgramTemplate.findMany()
+     * 
+     * // Get first 10 WorkoutProgramTemplates
+     * const workoutProgramTemplates = await prisma.workoutProgramTemplate.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workoutProgramTemplateWithIdOnly = await prisma.workoutProgramTemplate.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkoutProgramTemplateFindManyArgs>(args?: SelectSubset<T, WorkoutProgramTemplateFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a WorkoutProgramTemplate.
+     * @param {WorkoutProgramTemplateCreateArgs} args - Arguments to create a WorkoutProgramTemplate.
+     * @example
+     * // Create one WorkoutProgramTemplate
+     * const WorkoutProgramTemplate = await prisma.workoutProgramTemplate.create({
+     *   data: {
+     *     // ... data to create a WorkoutProgramTemplate
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkoutProgramTemplateCreateArgs>(args: SelectSubset<T, WorkoutProgramTemplateCreateArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many WorkoutProgramTemplates.
+     * @param {WorkoutProgramTemplateCreateManyArgs} args - Arguments to create many WorkoutProgramTemplates.
+     * @example
+     * // Create many WorkoutProgramTemplates
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkoutProgramTemplateCreateManyArgs>(args?: SelectSubset<T, WorkoutProgramTemplateCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkoutProgramTemplates and returns the data saved in the database.
+     * @param {WorkoutProgramTemplateCreateManyAndReturnArgs} args - Arguments to create many WorkoutProgramTemplates.
+     * @example
+     * // Create many WorkoutProgramTemplates
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkoutProgramTemplates and only return the `id`
+     * const workoutProgramTemplateWithIdOnly = await prisma.workoutProgramTemplate.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkoutProgramTemplateCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutProgramTemplateCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a WorkoutProgramTemplate.
+     * @param {WorkoutProgramTemplateDeleteArgs} args - Arguments to delete one WorkoutProgramTemplate.
+     * @example
+     * // Delete one WorkoutProgramTemplate
+     * const WorkoutProgramTemplate = await prisma.workoutProgramTemplate.delete({
+     *   where: {
+     *     // ... filter to delete one WorkoutProgramTemplate
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkoutProgramTemplateDeleteArgs>(args: SelectSubset<T, WorkoutProgramTemplateDeleteArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one WorkoutProgramTemplate.
+     * @param {WorkoutProgramTemplateUpdateArgs} args - Arguments to update one WorkoutProgramTemplate.
+     * @example
+     * // Update one WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkoutProgramTemplateUpdateArgs>(args: SelectSubset<T, WorkoutProgramTemplateUpdateArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more WorkoutProgramTemplates.
+     * @param {WorkoutProgramTemplateDeleteManyArgs} args - Arguments to filter WorkoutProgramTemplates to delete.
+     * @example
+     * // Delete a few WorkoutProgramTemplates
+     * const { count } = await prisma.workoutProgramTemplate.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkoutProgramTemplateDeleteManyArgs>(args?: SelectSubset<T, WorkoutProgramTemplateDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkoutProgramTemplates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkoutProgramTemplates
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkoutProgramTemplateUpdateManyArgs>(args: SelectSubset<T, WorkoutProgramTemplateUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one WorkoutProgramTemplate.
+     * @param {WorkoutProgramTemplateUpsertArgs} args - Arguments to update or create a WorkoutProgramTemplate.
+     * @example
+     * // Update or create a WorkoutProgramTemplate
+     * const workoutProgramTemplate = await prisma.workoutProgramTemplate.upsert({
+     *   create: {
+     *     // ... data to create a WorkoutProgramTemplate
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkoutProgramTemplate we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkoutProgramTemplateUpsertArgs>(args: SelectSubset<T, WorkoutProgramTemplateUpsertArgs<ExtArgs>>): Prisma__WorkoutProgramTemplateClient<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of WorkoutProgramTemplates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateCountArgs} args - Arguments to filter WorkoutProgramTemplates to count.
+     * @example
+     * // Count the number of WorkoutProgramTemplates
+     * const count = await prisma.workoutProgramTemplate.count({
+     *   where: {
+     *     // ... the filter for the WorkoutProgramTemplates we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkoutProgramTemplateCountArgs>(
+      args?: Subset<T, WorkoutProgramTemplateCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkoutProgramTemplateCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkoutProgramTemplate.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkoutProgramTemplateAggregateArgs>(args: Subset<T, WorkoutProgramTemplateAggregateArgs>): Prisma.PrismaPromise<GetWorkoutProgramTemplateAggregateType<T>>
+
+    /**
+     * Group by WorkoutProgramTemplate.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutProgramTemplateGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkoutProgramTemplateGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkoutProgramTemplateGroupByArgs['orderBy'] }
+        : { orderBy?: WorkoutProgramTemplateGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkoutProgramTemplateGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkoutProgramTemplateGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkoutProgramTemplate model
+   */
+  readonly fields: WorkoutProgramTemplateFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkoutProgramTemplate.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkoutProgramTemplateClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkoutProgramTemplate model
+   */ 
+  interface WorkoutProgramTemplateFieldRefs {
+    readonly id: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly createdByUserId: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly name: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly description: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly goal: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly durationWeeks: FieldRef<"WorkoutProgramTemplate", 'Int'>
+    readonly daysPerWeek: FieldRef<"WorkoutProgramTemplate", 'Int'>
+    readonly daysJson: FieldRef<"WorkoutProgramTemplate", 'Json'>
+    readonly sharedWithUserIds: FieldRef<"WorkoutProgramTemplate", 'String[]'>
+    readonly createdAt: FieldRef<"WorkoutProgramTemplate", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkoutProgramTemplate findUnique
+   */
+  export type WorkoutProgramTemplateFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutProgramTemplate to fetch.
+     */
+    where: WorkoutProgramTemplateWhereUniqueInput
+  }
+
+  /**
+   * WorkoutProgramTemplate findUniqueOrThrow
+   */
+  export type WorkoutProgramTemplateFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutProgramTemplate to fetch.
+     */
+    where: WorkoutProgramTemplateWhereUniqueInput
+  }
+
+  /**
+   * WorkoutProgramTemplate findFirst
+   */
+  export type WorkoutProgramTemplateFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutProgramTemplate to fetch.
+     */
+    where?: WorkoutProgramTemplateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutProgramTemplates to fetch.
+     */
+    orderBy?: WorkoutProgramTemplateOrderByWithRelationInput | WorkoutProgramTemplateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutProgramTemplates.
+     */
+    cursor?: WorkoutProgramTemplateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutProgramTemplates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutProgramTemplates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutProgramTemplates.
+     */
+    distinct?: WorkoutProgramTemplateScalarFieldEnum | WorkoutProgramTemplateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutProgramTemplate findFirstOrThrow
+   */
+  export type WorkoutProgramTemplateFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutProgramTemplate to fetch.
+     */
+    where?: WorkoutProgramTemplateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutProgramTemplates to fetch.
+     */
+    orderBy?: WorkoutProgramTemplateOrderByWithRelationInput | WorkoutProgramTemplateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutProgramTemplates.
+     */
+    cursor?: WorkoutProgramTemplateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutProgramTemplates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutProgramTemplates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutProgramTemplates.
+     */
+    distinct?: WorkoutProgramTemplateScalarFieldEnum | WorkoutProgramTemplateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutProgramTemplate findMany
+   */
+  export type WorkoutProgramTemplateFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutProgramTemplates to fetch.
+     */
+    where?: WorkoutProgramTemplateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutProgramTemplates to fetch.
+     */
+    orderBy?: WorkoutProgramTemplateOrderByWithRelationInput | WorkoutProgramTemplateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkoutProgramTemplates.
+     */
+    cursor?: WorkoutProgramTemplateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutProgramTemplates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutProgramTemplates.
+     */
+    skip?: number
+    distinct?: WorkoutProgramTemplateScalarFieldEnum | WorkoutProgramTemplateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutProgramTemplate create
+   */
+  export type WorkoutProgramTemplateCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * The data needed to create a WorkoutProgramTemplate.
+     */
+    data: XOR<WorkoutProgramTemplateCreateInput, WorkoutProgramTemplateUncheckedCreateInput>
+  }
+
+  /**
+   * WorkoutProgramTemplate createMany
+   */
+  export type WorkoutProgramTemplateCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkoutProgramTemplates.
+     */
+    data: WorkoutProgramTemplateCreateManyInput | WorkoutProgramTemplateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutProgramTemplate createManyAndReturn
+   */
+  export type WorkoutProgramTemplateCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many WorkoutProgramTemplates.
+     */
+    data: WorkoutProgramTemplateCreateManyInput | WorkoutProgramTemplateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutProgramTemplate update
+   */
+  export type WorkoutProgramTemplateUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * The data needed to update a WorkoutProgramTemplate.
+     */
+    data: XOR<WorkoutProgramTemplateUpdateInput, WorkoutProgramTemplateUncheckedUpdateInput>
+    /**
+     * Choose, which WorkoutProgramTemplate to update.
+     */
+    where: WorkoutProgramTemplateWhereUniqueInput
+  }
+
+  /**
+   * WorkoutProgramTemplate updateMany
+   */
+  export type WorkoutProgramTemplateUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkoutProgramTemplates.
+     */
+    data: XOR<WorkoutProgramTemplateUpdateManyMutationInput, WorkoutProgramTemplateUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkoutProgramTemplates to update
+     */
+    where?: WorkoutProgramTemplateWhereInput
+  }
+
+  /**
+   * WorkoutProgramTemplate upsert
+   */
+  export type WorkoutProgramTemplateUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * The filter to search for the WorkoutProgramTemplate to update in case it exists.
+     */
+    where: WorkoutProgramTemplateWhereUniqueInput
+    /**
+     * In case the WorkoutProgramTemplate found by the `where` argument doesn't exist, create a new WorkoutProgramTemplate with this data.
+     */
+    create: XOR<WorkoutProgramTemplateCreateInput, WorkoutProgramTemplateUncheckedCreateInput>
+    /**
+     * In case the WorkoutProgramTemplate was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkoutProgramTemplateUpdateInput, WorkoutProgramTemplateUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkoutProgramTemplate delete
+   */
+  export type WorkoutProgramTemplateDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
+    /**
+     * Filter which WorkoutProgramTemplate to delete.
+     */
+    where: WorkoutProgramTemplateWhereUniqueInput
+  }
+
+  /**
+   * WorkoutProgramTemplate deleteMany
+   */
+  export type WorkoutProgramTemplateDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutProgramTemplates to delete
+     */
+    where?: WorkoutProgramTemplateWhereInput
+  }
+
+  /**
+   * WorkoutProgramTemplate without action
+   */
+  export type WorkoutProgramTemplateDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutProgramTemplate
+     */
+    select?: WorkoutProgramTemplateSelect<ExtArgs> | null
   }
 
 
@@ -53198,6 +54252,22 @@ export namespace Prisma {
   export type WorkoutProgramExerciseScalarFieldEnum = (typeof WorkoutProgramExerciseScalarFieldEnum)[keyof typeof WorkoutProgramExerciseScalarFieldEnum]
 
 
+  export const WorkoutProgramTemplateScalarFieldEnum: {
+    id: 'id',
+    createdByUserId: 'createdByUserId',
+    name: 'name',
+    description: 'description',
+    goal: 'goal',
+    durationWeeks: 'durationWeeks',
+    daysPerWeek: 'daysPerWeek',
+    daysJson: 'daysJson',
+    sharedWithUserIds: 'sharedWithUserIds',
+    createdAt: 'createdAt'
+  };
+
+  export type WorkoutProgramTemplateScalarFieldEnum = (typeof WorkoutProgramTemplateScalarFieldEnum)[keyof typeof WorkoutProgramTemplateScalarFieldEnum]
+
+
   export const WorkoutScheduleScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -53742,19 +54812,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -55409,6 +56479,85 @@ export namespace Prisma {
     restSeconds?: IntNullableWithAggregatesFilter<"WorkoutProgramExercise"> | number | null
     notes?: StringNullableWithAggregatesFilter<"WorkoutProgramExercise"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutProgramExercise"> | Date | string
+  }
+
+  export type WorkoutProgramTemplateWhereInput = {
+    AND?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    OR?: WorkoutProgramTemplateWhereInput[]
+    NOT?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    id?: StringFilter<"WorkoutProgramTemplate"> | string
+    createdByUserId?: StringFilter<"WorkoutProgramTemplate"> | string
+    name?: StringFilter<"WorkoutProgramTemplate"> | string
+    description?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
+    goal?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
+    durationWeeks?: IntFilter<"WorkoutProgramTemplate"> | number
+    daysPerWeek?: IntFilter<"WorkoutProgramTemplate"> | number
+    daysJson?: JsonFilter<"WorkoutProgramTemplate">
+    sharedWithUserIds?: StringNullableListFilter<"WorkoutProgramTemplate">
+    createdAt?: DateTimeFilter<"WorkoutProgramTemplate"> | Date | string
+  }
+
+  export type WorkoutProgramTemplateOrderByWithRelationInput = {
+    id?: SortOrder
+    createdByUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    daysJson?: SortOrder
+    sharedWithUserIds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutProgramTemplateWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    OR?: WorkoutProgramTemplateWhereInput[]
+    NOT?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    createdByUserId?: StringFilter<"WorkoutProgramTemplate"> | string
+    name?: StringFilter<"WorkoutProgramTemplate"> | string
+    description?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
+    goal?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
+    durationWeeks?: IntFilter<"WorkoutProgramTemplate"> | number
+    daysPerWeek?: IntFilter<"WorkoutProgramTemplate"> | number
+    daysJson?: JsonFilter<"WorkoutProgramTemplate">
+    sharedWithUserIds?: StringNullableListFilter<"WorkoutProgramTemplate">
+    createdAt?: DateTimeFilter<"WorkoutProgramTemplate"> | Date | string
+  }, "id">
+
+  export type WorkoutProgramTemplateOrderByWithAggregationInput = {
+    id?: SortOrder
+    createdByUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    daysJson?: SortOrder
+    sharedWithUserIds?: SortOrder
+    createdAt?: SortOrder
+    _count?: WorkoutProgramTemplateCountOrderByAggregateInput
+    _avg?: WorkoutProgramTemplateAvgOrderByAggregateInput
+    _max?: WorkoutProgramTemplateMaxOrderByAggregateInput
+    _min?: WorkoutProgramTemplateMinOrderByAggregateInput
+    _sum?: WorkoutProgramTemplateSumOrderByAggregateInput
+  }
+
+  export type WorkoutProgramTemplateScalarWhereWithAggregatesInput = {
+    AND?: WorkoutProgramTemplateScalarWhereWithAggregatesInput | WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
+    OR?: WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
+    NOT?: WorkoutProgramTemplateScalarWhereWithAggregatesInput | WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
+    createdByUserId?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
+    name?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
+    description?: StringNullableWithAggregatesFilter<"WorkoutProgramTemplate"> | string | null
+    goal?: StringNullableWithAggregatesFilter<"WorkoutProgramTemplate"> | string | null
+    durationWeeks?: IntWithAggregatesFilter<"WorkoutProgramTemplate"> | number
+    daysPerWeek?: IntWithAggregatesFilter<"WorkoutProgramTemplate"> | number
+    daysJson?: JsonWithAggregatesFilter<"WorkoutProgramTemplate">
+    sharedWithUserIds?: StringNullableListFilter<"WorkoutProgramTemplate">
+    createdAt?: DateTimeWithAggregatesFilter<"WorkoutProgramTemplate"> | Date | string
   }
 
   export type WorkoutScheduleWhereInput = {
@@ -59859,6 +61008,97 @@ export namespace Prisma {
     duration?: NullableIntFieldUpdateOperationsInput | number | null
     restSeconds?: NullableIntFieldUpdateOperationsInput | number | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutProgramTemplateCreateInput = {
+    id?: string
+    createdByUserId: string
+    name: string
+    description?: string | null
+    goal?: string | null
+    durationWeeks: number
+    daysPerWeek: number
+    daysJson: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateCreatesharedWithUserIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type WorkoutProgramTemplateUncheckedCreateInput = {
+    id?: string
+    createdByUserId: string
+    name: string
+    description?: string | null
+    goal?: string | null
+    durationWeeks: number
+    daysPerWeek: number
+    daysJson: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateCreatesharedWithUserIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type WorkoutProgramTemplateUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    daysJson?: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateUpdatesharedWithUserIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutProgramTemplateUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    daysJson?: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateUpdatesharedWithUserIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutProgramTemplateCreateManyInput = {
+    id?: string
+    createdByUserId: string
+    name: string
+    description?: string | null
+    goal?: string | null
+    durationWeeks: number
+    daysPerWeek: number
+    daysJson: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateCreatesharedWithUserIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type WorkoutProgramTemplateUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    daysJson?: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateUpdatesharedWithUserIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutProgramTemplateUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    daysJson?: JsonNullValueInput | InputJsonValue
+    sharedWithUserIds?: WorkoutProgramTemplateUpdatesharedWithUserIdsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -64498,6 +65738,98 @@ export namespace Prisma {
     duration?: SortOrder
     restSeconds?: SortOrder
   }
+  export type JsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type WorkoutProgramTemplateCountOrderByAggregateInput = {
+    id?: SortOrder
+    createdByUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    daysJson?: SortOrder
+    sharedWithUserIds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutProgramTemplateAvgOrderByAggregateInput = {
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+  }
+
+  export type WorkoutProgramTemplateMaxOrderByAggregateInput = {
+    id?: SortOrder
+    createdByUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutProgramTemplateMinOrderByAggregateInput = {
+    id?: SortOrder
+    createdByUserId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutProgramTemplateSumOrderByAggregateInput = {
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
 
   export type WorkoutProgramDayNullableRelationFilter = {
     is?: WorkoutProgramDayWhereInput | null
@@ -64898,28 +66230,6 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     dataQualityScore?: SortOrder
   }
-  export type JsonFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type RecommendationAuditCountOrderByAggregateInput = {
     id?: SortOrder
@@ -64977,31 +66287,6 @@ export namespace Prisma {
     aiFeedbackAnalysisId?: SortOrder
     complaintValidity?: SortOrder
     decisionInfluenceFromFeedback?: SortOrder
-  }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type CoachClientActionAuditCountOrderByAggregateInput = {
@@ -67547,6 +68832,15 @@ export namespace Prisma {
     update?: XOR<XOR<WorkoutProgramExerciseGroupMemberUpdateToOneWithWhereWithoutProgramExerciseInput, WorkoutProgramExerciseGroupMemberUpdateWithoutProgramExerciseInput>, WorkoutProgramExerciseGroupMemberUncheckedUpdateWithoutProgramExerciseInput>
   }
 
+  export type WorkoutProgramTemplateCreatesharedWithUserIdsInput = {
+    set: string[]
+  }
+
+  export type WorkoutProgramTemplateUpdatesharedWithUserIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
   export type WorkoutProgramDayCreateNestedOneWithoutSchedulesInput = {
     create?: XOR<WorkoutProgramDayCreateWithoutSchedulesInput, WorkoutProgramDayUncheckedCreateWithoutSchedulesInput>
     connectOrCreate?: WorkoutProgramDayCreateOrConnectWithoutSchedulesInput
@@ -68885,14 +70179,14 @@ export namespace Prisma {
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
   }
-  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+  export type NestedJsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
       >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     string_contains?: string | StringFieldRefInput<$PrismaModel>
@@ -68907,14 +70201,14 @@ export namespace Prisma {
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
-  export type NestedJsonFilter<$PrismaModel = never> = 
+  export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
       >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     string_contains?: string | StringFieldRefInput<$PrismaModel>
@@ -77382,6 +78676,10 @@ export namespace Prisma {
      * @deprecated Use WorkoutProgramExerciseDefaultArgs instead
      */
     export type WorkoutProgramExerciseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramExerciseDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use WorkoutProgramTemplateDefaultArgs instead
+     */
+    export type WorkoutProgramTemplateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramTemplateDefaultArgs<ExtArgs>
     /**
      * @deprecated Use WorkoutScheduleDefaultArgs instead
      */

@@ -274,5 +274,28 @@ export const commitImportBatchSchema = z.object({
 export type PreviewImportDto = z.infer<typeof previewImportSchema>;
 export type ImportExerciseResolution = z.infer<typeof importExerciseResolutionSchema>;
 export type CommitImportBatchDto = z.infer<typeof commitImportBatchSchema>;
+
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md).
+export const createTemplateFromProgramSchema = z.object({
+  programId: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(500).optional(),
+});
+
+export const shareTemplateSchema = z.object({
+  recipientUserId: z.string().min(1),
+});
+
+export const importTemplateSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  selectedWeekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+  repeatWeeks: z.number().int().min(1).max(52).optional(),
+  replaceExisting: z.boolean().optional(),
+});
+
+export type CreateTemplateFromProgramDto = z.infer<typeof createTemplateFromProgramSchema>;
+export type ShareTemplateDto = z.infer<typeof shareTemplateSchema>;
+export type ImportTemplateDto = z.infer<typeof importTemplateSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;
 export type UpsertNutritionGoalDto = z.infer<typeof upsertNutritionGoalSchema>;

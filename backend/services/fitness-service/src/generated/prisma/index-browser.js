@@ -353,6 +353,19 @@ exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutProgramTemplateScalarFieldEnum = {
+  id: 'id',
+  createdByUserId: 'createdByUserId',
+  name: 'name',
+  description: 'description',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  daysPerWeek: 'daysPerWeek',
+  daysJson: 'daysJson',
+  sharedWithUserIds: 'sharedWithUserIds',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -810,12 +823,12 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -886,6 +899,7 @@ exports.Prisma.ModelName = {
   WorkoutProgramExerciseGroup: 'WorkoutProgramExerciseGroup',
   WorkoutProgramExerciseGroupMember: 'WorkoutProgramExerciseGroupMember',
   WorkoutProgramExercise: 'WorkoutProgramExercise',
+  WorkoutProgramTemplate: 'WorkoutProgramTemplate',
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',
   CycleAssessment: 'CycleAssessment',
