@@ -224,6 +224,11 @@ export type ImportBatch = $Result.DefaultSelection<Prisma.$ImportBatchPayload>
  */
 export type ImportRecord = $Result.DefaultSelection<Prisma.$ImportRecordPayload>
 /**
+ * Model WorkoutImportBatch
+ * 
+ */
+export type WorkoutImportBatch = $Result.DefaultSelection<Prisma.$WorkoutImportBatchPayload>
+/**
  * Model ExerciseReviewDecision
  * 
  */
@@ -845,6 +850,16 @@ export class PrismaClient<
   get importRecord(): Prisma.ImportRecordDelegate<ExtArgs>;
 
   /**
+   * `prisma.workoutImportBatch`: Exposes CRUD operations for the **WorkoutImportBatch** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkoutImportBatches
+    * const workoutImportBatches = await prisma.workoutImportBatch.findMany()
+    * ```
+    */
+  get workoutImportBatch(): Prisma.WorkoutImportBatchDelegate<ExtArgs>;
+
+  /**
    * `prisma.exerciseReviewDecision`: Exposes CRUD operations for the **ExerciseReviewDecision** model.
     * Example usage:
     * ```ts
@@ -1346,6 +1361,7 @@ export namespace Prisma {
     RecipeIngredient: 'RecipeIngredient',
     ImportBatch: 'ImportBatch',
     ImportRecord: 'ImportRecord',
+    WorkoutImportBatch: 'WorkoutImportBatch',
     ExerciseReviewDecision: 'ExerciseReviewDecision',
     WorkoutMutationEvent: 'WorkoutMutationEvent'
   };
@@ -1363,7 +1379,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "exerciseReviewDecision" | "workoutMutationEvent"
+      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4304,6 +4320,76 @@ export namespace Prisma {
           count: {
             args: Prisma.ImportRecordCountArgs<ExtArgs>
             result: $Utils.Optional<ImportRecordCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkoutImportBatch: {
+        payload: Prisma.$WorkoutImportBatchPayload<ExtArgs>
+        fields: Prisma.WorkoutImportBatchFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkoutImportBatchFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkoutImportBatchFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkoutImportBatchFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkoutImportBatchFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          findMany: {
+            args: Prisma.WorkoutImportBatchFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>[]
+          }
+          create: {
+            args: Prisma.WorkoutImportBatchCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          createMany: {
+            args: Prisma.WorkoutImportBatchCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkoutImportBatchCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkoutImportBatchDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          update: {
+            args: Prisma.WorkoutImportBatchUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkoutImportBatchDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkoutImportBatchUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WorkoutImportBatchUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutImportBatchPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkoutImportBatchAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkoutImportBatch>
+          }
+          groupBy: {
+            args: Prisma.WorkoutImportBatchGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutImportBatchGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkoutImportBatchCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutImportBatchCountAggregateOutputType> | number
           }
         }
       }
@@ -49981,6 +50067,940 @@ export namespace Prisma {
 
 
   /**
+   * Model WorkoutImportBatch
+   */
+
+  export type AggregateWorkoutImportBatch = {
+    _count: WorkoutImportBatchCountAggregateOutputType | null
+    _min: WorkoutImportBatchMinAggregateOutputType | null
+    _max: WorkoutImportBatchMaxAggregateOutputType | null
+  }
+
+  export type WorkoutImportBatchMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    source: string | null
+    fileName: string | null
+    status: string | null
+    createdAt: Date | null
+    committedAt: Date | null
+  }
+
+  export type WorkoutImportBatchMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    source: string | null
+    fileName: string | null
+    status: string | null
+    createdAt: Date | null
+    committedAt: Date | null
+  }
+
+  export type WorkoutImportBatchCountAggregateOutputType = {
+    id: number
+    userId: number
+    source: number
+    fileName: number
+    status: number
+    parsedWorkoutsJson: number
+    matchSummaryJson: number
+    createdWorkoutIds: number
+    committedSourceHashes: number
+    createdAt: number
+    committedAt: number
+    _all: number
+  }
+
+
+  export type WorkoutImportBatchMinAggregateInputType = {
+    id?: true
+    userId?: true
+    source?: true
+    fileName?: true
+    status?: true
+    createdAt?: true
+    committedAt?: true
+  }
+
+  export type WorkoutImportBatchMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    source?: true
+    fileName?: true
+    status?: true
+    createdAt?: true
+    committedAt?: true
+  }
+
+  export type WorkoutImportBatchCountAggregateInputType = {
+    id?: true
+    userId?: true
+    source?: true
+    fileName?: true
+    status?: true
+    parsedWorkoutsJson?: true
+    matchSummaryJson?: true
+    createdWorkoutIds?: true
+    committedSourceHashes?: true
+    createdAt?: true
+    committedAt?: true
+    _all?: true
+  }
+
+  export type WorkoutImportBatchAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutImportBatch to aggregate.
+     */
+    where?: WorkoutImportBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutImportBatches to fetch.
+     */
+    orderBy?: WorkoutImportBatchOrderByWithRelationInput | WorkoutImportBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkoutImportBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutImportBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutImportBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkoutImportBatches
+    **/
+    _count?: true | WorkoutImportBatchCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkoutImportBatchMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkoutImportBatchMaxAggregateInputType
+  }
+
+  export type GetWorkoutImportBatchAggregateType<T extends WorkoutImportBatchAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkoutImportBatch]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkoutImportBatch[P]>
+      : GetScalarType<T[P], AggregateWorkoutImportBatch[P]>
+  }
+
+
+
+
+  export type WorkoutImportBatchGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkoutImportBatchWhereInput
+    orderBy?: WorkoutImportBatchOrderByWithAggregationInput | WorkoutImportBatchOrderByWithAggregationInput[]
+    by: WorkoutImportBatchScalarFieldEnum[] | WorkoutImportBatchScalarFieldEnum
+    having?: WorkoutImportBatchScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkoutImportBatchCountAggregateInputType | true
+    _min?: WorkoutImportBatchMinAggregateInputType
+    _max?: WorkoutImportBatchMaxAggregateInputType
+  }
+
+  export type WorkoutImportBatchGroupByOutputType = {
+    id: string
+    userId: string
+    source: string
+    fileName: string
+    status: string
+    parsedWorkoutsJson: JsonValue
+    matchSummaryJson: JsonValue
+    createdWorkoutIds: string[]
+    committedSourceHashes: string[]
+    createdAt: Date
+    committedAt: Date | null
+    _count: WorkoutImportBatchCountAggregateOutputType | null
+    _min: WorkoutImportBatchMinAggregateOutputType | null
+    _max: WorkoutImportBatchMaxAggregateOutputType | null
+  }
+
+  type GetWorkoutImportBatchGroupByPayload<T extends WorkoutImportBatchGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkoutImportBatchGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkoutImportBatchGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkoutImportBatchGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkoutImportBatchGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkoutImportBatchSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    source?: boolean
+    fileName?: boolean
+    status?: boolean
+    parsedWorkoutsJson?: boolean
+    matchSummaryJson?: boolean
+    createdWorkoutIds?: boolean
+    committedSourceHashes?: boolean
+    createdAt?: boolean
+    committedAt?: boolean
+  }, ExtArgs["result"]["workoutImportBatch"]>
+
+  export type WorkoutImportBatchSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    source?: boolean
+    fileName?: boolean
+    status?: boolean
+    parsedWorkoutsJson?: boolean
+    matchSummaryJson?: boolean
+    createdWorkoutIds?: boolean
+    committedSourceHashes?: boolean
+    createdAt?: boolean
+    committedAt?: boolean
+  }, ExtArgs["result"]["workoutImportBatch"]>
+
+  export type WorkoutImportBatchSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    source?: boolean
+    fileName?: boolean
+    status?: boolean
+    parsedWorkoutsJson?: boolean
+    matchSummaryJson?: boolean
+    createdWorkoutIds?: boolean
+    committedSourceHashes?: boolean
+    createdAt?: boolean
+    committedAt?: boolean
+  }
+
+
+  export type $WorkoutImportBatchPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkoutImportBatch"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      source: string
+      fileName: string
+      status: string
+      parsedWorkoutsJson: Prisma.JsonValue
+      matchSummaryJson: Prisma.JsonValue
+      createdWorkoutIds: string[]
+      committedSourceHashes: string[]
+      createdAt: Date
+      committedAt: Date | null
+    }, ExtArgs["result"]["workoutImportBatch"]>
+    composites: {}
+  }
+
+  type WorkoutImportBatchGetPayload<S extends boolean | null | undefined | WorkoutImportBatchDefaultArgs> = $Result.GetResult<Prisma.$WorkoutImportBatchPayload, S>
+
+  type WorkoutImportBatchCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WorkoutImportBatchFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WorkoutImportBatchCountAggregateInputType | true
+    }
+
+  export interface WorkoutImportBatchDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkoutImportBatch'], meta: { name: 'WorkoutImportBatch' } }
+    /**
+     * Find zero or one WorkoutImportBatch that matches the filter.
+     * @param {WorkoutImportBatchFindUniqueArgs} args - Arguments to find a WorkoutImportBatch
+     * @example
+     * // Get one WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkoutImportBatchFindUniqueArgs>(args: SelectSubset<T, WorkoutImportBatchFindUniqueArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one WorkoutImportBatch that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WorkoutImportBatchFindUniqueOrThrowArgs} args - Arguments to find a WorkoutImportBatch
+     * @example
+     * // Get one WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkoutImportBatchFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkoutImportBatchFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first WorkoutImportBatch that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchFindFirstArgs} args - Arguments to find a WorkoutImportBatch
+     * @example
+     * // Get one WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkoutImportBatchFindFirstArgs>(args?: SelectSubset<T, WorkoutImportBatchFindFirstArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first WorkoutImportBatch that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchFindFirstOrThrowArgs} args - Arguments to find a WorkoutImportBatch
+     * @example
+     * // Get one WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkoutImportBatchFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkoutImportBatchFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more WorkoutImportBatches that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkoutImportBatches
+     * const workoutImportBatches = await prisma.workoutImportBatch.findMany()
+     * 
+     * // Get first 10 WorkoutImportBatches
+     * const workoutImportBatches = await prisma.workoutImportBatch.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workoutImportBatchWithIdOnly = await prisma.workoutImportBatch.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkoutImportBatchFindManyArgs>(args?: SelectSubset<T, WorkoutImportBatchFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a WorkoutImportBatch.
+     * @param {WorkoutImportBatchCreateArgs} args - Arguments to create a WorkoutImportBatch.
+     * @example
+     * // Create one WorkoutImportBatch
+     * const WorkoutImportBatch = await prisma.workoutImportBatch.create({
+     *   data: {
+     *     // ... data to create a WorkoutImportBatch
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkoutImportBatchCreateArgs>(args: SelectSubset<T, WorkoutImportBatchCreateArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many WorkoutImportBatches.
+     * @param {WorkoutImportBatchCreateManyArgs} args - Arguments to create many WorkoutImportBatches.
+     * @example
+     * // Create many WorkoutImportBatches
+     * const workoutImportBatch = await prisma.workoutImportBatch.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkoutImportBatchCreateManyArgs>(args?: SelectSubset<T, WorkoutImportBatchCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkoutImportBatches and returns the data saved in the database.
+     * @param {WorkoutImportBatchCreateManyAndReturnArgs} args - Arguments to create many WorkoutImportBatches.
+     * @example
+     * // Create many WorkoutImportBatches
+     * const workoutImportBatch = await prisma.workoutImportBatch.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkoutImportBatches and only return the `id`
+     * const workoutImportBatchWithIdOnly = await prisma.workoutImportBatch.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkoutImportBatchCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutImportBatchCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a WorkoutImportBatch.
+     * @param {WorkoutImportBatchDeleteArgs} args - Arguments to delete one WorkoutImportBatch.
+     * @example
+     * // Delete one WorkoutImportBatch
+     * const WorkoutImportBatch = await prisma.workoutImportBatch.delete({
+     *   where: {
+     *     // ... filter to delete one WorkoutImportBatch
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkoutImportBatchDeleteArgs>(args: SelectSubset<T, WorkoutImportBatchDeleteArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one WorkoutImportBatch.
+     * @param {WorkoutImportBatchUpdateArgs} args - Arguments to update one WorkoutImportBatch.
+     * @example
+     * // Update one WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkoutImportBatchUpdateArgs>(args: SelectSubset<T, WorkoutImportBatchUpdateArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more WorkoutImportBatches.
+     * @param {WorkoutImportBatchDeleteManyArgs} args - Arguments to filter WorkoutImportBatches to delete.
+     * @example
+     * // Delete a few WorkoutImportBatches
+     * const { count } = await prisma.workoutImportBatch.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkoutImportBatchDeleteManyArgs>(args?: SelectSubset<T, WorkoutImportBatchDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkoutImportBatches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkoutImportBatches
+     * const workoutImportBatch = await prisma.workoutImportBatch.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkoutImportBatchUpdateManyArgs>(args: SelectSubset<T, WorkoutImportBatchUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one WorkoutImportBatch.
+     * @param {WorkoutImportBatchUpsertArgs} args - Arguments to update or create a WorkoutImportBatch.
+     * @example
+     * // Update or create a WorkoutImportBatch
+     * const workoutImportBatch = await prisma.workoutImportBatch.upsert({
+     *   create: {
+     *     // ... data to create a WorkoutImportBatch
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkoutImportBatch we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkoutImportBatchUpsertArgs>(args: SelectSubset<T, WorkoutImportBatchUpsertArgs<ExtArgs>>): Prisma__WorkoutImportBatchClient<$Result.GetResult<Prisma.$WorkoutImportBatchPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of WorkoutImportBatches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchCountArgs} args - Arguments to filter WorkoutImportBatches to count.
+     * @example
+     * // Count the number of WorkoutImportBatches
+     * const count = await prisma.workoutImportBatch.count({
+     *   where: {
+     *     // ... the filter for the WorkoutImportBatches we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkoutImportBatchCountArgs>(
+      args?: Subset<T, WorkoutImportBatchCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkoutImportBatchCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkoutImportBatch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkoutImportBatchAggregateArgs>(args: Subset<T, WorkoutImportBatchAggregateArgs>): Prisma.PrismaPromise<GetWorkoutImportBatchAggregateType<T>>
+
+    /**
+     * Group by WorkoutImportBatch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutImportBatchGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkoutImportBatchGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkoutImportBatchGroupByArgs['orderBy'] }
+        : { orderBy?: WorkoutImportBatchGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkoutImportBatchGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkoutImportBatchGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkoutImportBatch model
+   */
+  readonly fields: WorkoutImportBatchFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkoutImportBatch.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkoutImportBatchClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkoutImportBatch model
+   */ 
+  interface WorkoutImportBatchFieldRefs {
+    readonly id: FieldRef<"WorkoutImportBatch", 'String'>
+    readonly userId: FieldRef<"WorkoutImportBatch", 'String'>
+    readonly source: FieldRef<"WorkoutImportBatch", 'String'>
+    readonly fileName: FieldRef<"WorkoutImportBatch", 'String'>
+    readonly status: FieldRef<"WorkoutImportBatch", 'String'>
+    readonly parsedWorkoutsJson: FieldRef<"WorkoutImportBatch", 'Json'>
+    readonly matchSummaryJson: FieldRef<"WorkoutImportBatch", 'Json'>
+    readonly createdWorkoutIds: FieldRef<"WorkoutImportBatch", 'String[]'>
+    readonly committedSourceHashes: FieldRef<"WorkoutImportBatch", 'String[]'>
+    readonly createdAt: FieldRef<"WorkoutImportBatch", 'DateTime'>
+    readonly committedAt: FieldRef<"WorkoutImportBatch", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkoutImportBatch findUnique
+   */
+  export type WorkoutImportBatchFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutImportBatch to fetch.
+     */
+    where: WorkoutImportBatchWhereUniqueInput
+  }
+
+  /**
+   * WorkoutImportBatch findUniqueOrThrow
+   */
+  export type WorkoutImportBatchFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutImportBatch to fetch.
+     */
+    where: WorkoutImportBatchWhereUniqueInput
+  }
+
+  /**
+   * WorkoutImportBatch findFirst
+   */
+  export type WorkoutImportBatchFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutImportBatch to fetch.
+     */
+    where?: WorkoutImportBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutImportBatches to fetch.
+     */
+    orderBy?: WorkoutImportBatchOrderByWithRelationInput | WorkoutImportBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutImportBatches.
+     */
+    cursor?: WorkoutImportBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutImportBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutImportBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutImportBatches.
+     */
+    distinct?: WorkoutImportBatchScalarFieldEnum | WorkoutImportBatchScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutImportBatch findFirstOrThrow
+   */
+  export type WorkoutImportBatchFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutImportBatch to fetch.
+     */
+    where?: WorkoutImportBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutImportBatches to fetch.
+     */
+    orderBy?: WorkoutImportBatchOrderByWithRelationInput | WorkoutImportBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutImportBatches.
+     */
+    cursor?: WorkoutImportBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutImportBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutImportBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutImportBatches.
+     */
+    distinct?: WorkoutImportBatchScalarFieldEnum | WorkoutImportBatchScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutImportBatch findMany
+   */
+  export type WorkoutImportBatchFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutImportBatches to fetch.
+     */
+    where?: WorkoutImportBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutImportBatches to fetch.
+     */
+    orderBy?: WorkoutImportBatchOrderByWithRelationInput | WorkoutImportBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkoutImportBatches.
+     */
+    cursor?: WorkoutImportBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutImportBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutImportBatches.
+     */
+    skip?: number
+    distinct?: WorkoutImportBatchScalarFieldEnum | WorkoutImportBatchScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutImportBatch create
+   */
+  export type WorkoutImportBatchCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * The data needed to create a WorkoutImportBatch.
+     */
+    data: XOR<WorkoutImportBatchCreateInput, WorkoutImportBatchUncheckedCreateInput>
+  }
+
+  /**
+   * WorkoutImportBatch createMany
+   */
+  export type WorkoutImportBatchCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkoutImportBatches.
+     */
+    data: WorkoutImportBatchCreateManyInput | WorkoutImportBatchCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutImportBatch createManyAndReturn
+   */
+  export type WorkoutImportBatchCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many WorkoutImportBatches.
+     */
+    data: WorkoutImportBatchCreateManyInput | WorkoutImportBatchCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutImportBatch update
+   */
+  export type WorkoutImportBatchUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * The data needed to update a WorkoutImportBatch.
+     */
+    data: XOR<WorkoutImportBatchUpdateInput, WorkoutImportBatchUncheckedUpdateInput>
+    /**
+     * Choose, which WorkoutImportBatch to update.
+     */
+    where: WorkoutImportBatchWhereUniqueInput
+  }
+
+  /**
+   * WorkoutImportBatch updateMany
+   */
+  export type WorkoutImportBatchUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkoutImportBatches.
+     */
+    data: XOR<WorkoutImportBatchUpdateManyMutationInput, WorkoutImportBatchUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkoutImportBatches to update
+     */
+    where?: WorkoutImportBatchWhereInput
+  }
+
+  /**
+   * WorkoutImportBatch upsert
+   */
+  export type WorkoutImportBatchUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * The filter to search for the WorkoutImportBatch to update in case it exists.
+     */
+    where: WorkoutImportBatchWhereUniqueInput
+    /**
+     * In case the WorkoutImportBatch found by the `where` argument doesn't exist, create a new WorkoutImportBatch with this data.
+     */
+    create: XOR<WorkoutImportBatchCreateInput, WorkoutImportBatchUncheckedCreateInput>
+    /**
+     * In case the WorkoutImportBatch was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkoutImportBatchUpdateInput, WorkoutImportBatchUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkoutImportBatch delete
+   */
+  export type WorkoutImportBatchDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+    /**
+     * Filter which WorkoutImportBatch to delete.
+     */
+    where: WorkoutImportBatchWhereUniqueInput
+  }
+
+  /**
+   * WorkoutImportBatch deleteMany
+   */
+  export type WorkoutImportBatchDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutImportBatches to delete
+     */
+    where?: WorkoutImportBatchWhereInput
+  }
+
+  /**
+   * WorkoutImportBatch without action
+   */
+  export type WorkoutImportBatchDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutImportBatch
+     */
+    select?: WorkoutImportBatchSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model ExerciseReviewDecision
    */
 
@@ -52666,6 +53686,23 @@ export namespace Prisma {
   };
 
   export type ImportRecordScalarFieldEnum = (typeof ImportRecordScalarFieldEnum)[keyof typeof ImportRecordScalarFieldEnum]
+
+
+  export const WorkoutImportBatchScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    source: 'source',
+    fileName: 'fileName',
+    status: 'status',
+    parsedWorkoutsJson: 'parsedWorkoutsJson',
+    matchSummaryJson: 'matchSummaryJson',
+    createdWorkoutIds: 'createdWorkoutIds',
+    committedSourceHashes: 'committedSourceHashes',
+    createdAt: 'createdAt',
+    committedAt: 'committedAt'
+  };
+
+  export type WorkoutImportBatchScalarFieldEnum = (typeof WorkoutImportBatchScalarFieldEnum)[keyof typeof WorkoutImportBatchScalarFieldEnum]
 
 
   export const ExerciseReviewDecisionScalarFieldEnum: {
@@ -56907,6 +57944,88 @@ export namespace Prisma {
     targetId?: StringNullableWithAggregatesFilter<"ImportRecord"> | string | null
     detail?: JsonNullableWithAggregatesFilter<"ImportRecord">
     createdAt?: DateTimeWithAggregatesFilter<"ImportRecord"> | Date | string
+  }
+
+  export type WorkoutImportBatchWhereInput = {
+    AND?: WorkoutImportBatchWhereInput | WorkoutImportBatchWhereInput[]
+    OR?: WorkoutImportBatchWhereInput[]
+    NOT?: WorkoutImportBatchWhereInput | WorkoutImportBatchWhereInput[]
+    id?: StringFilter<"WorkoutImportBatch"> | string
+    userId?: StringFilter<"WorkoutImportBatch"> | string
+    source?: StringFilter<"WorkoutImportBatch"> | string
+    fileName?: StringFilter<"WorkoutImportBatch"> | string
+    status?: StringFilter<"WorkoutImportBatch"> | string
+    parsedWorkoutsJson?: JsonFilter<"WorkoutImportBatch">
+    matchSummaryJson?: JsonFilter<"WorkoutImportBatch">
+    createdWorkoutIds?: StringNullableListFilter<"WorkoutImportBatch">
+    committedSourceHashes?: StringNullableListFilter<"WorkoutImportBatch">
+    createdAt?: DateTimeFilter<"WorkoutImportBatch"> | Date | string
+    committedAt?: DateTimeNullableFilter<"WorkoutImportBatch"> | Date | string | null
+  }
+
+  export type WorkoutImportBatchOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    source?: SortOrder
+    fileName?: SortOrder
+    status?: SortOrder
+    parsedWorkoutsJson?: SortOrder
+    matchSummaryJson?: SortOrder
+    createdWorkoutIds?: SortOrder
+    committedSourceHashes?: SortOrder
+    createdAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+  }
+
+  export type WorkoutImportBatchWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkoutImportBatchWhereInput | WorkoutImportBatchWhereInput[]
+    OR?: WorkoutImportBatchWhereInput[]
+    NOT?: WorkoutImportBatchWhereInput | WorkoutImportBatchWhereInput[]
+    userId?: StringFilter<"WorkoutImportBatch"> | string
+    source?: StringFilter<"WorkoutImportBatch"> | string
+    fileName?: StringFilter<"WorkoutImportBatch"> | string
+    status?: StringFilter<"WorkoutImportBatch"> | string
+    parsedWorkoutsJson?: JsonFilter<"WorkoutImportBatch">
+    matchSummaryJson?: JsonFilter<"WorkoutImportBatch">
+    createdWorkoutIds?: StringNullableListFilter<"WorkoutImportBatch">
+    committedSourceHashes?: StringNullableListFilter<"WorkoutImportBatch">
+    createdAt?: DateTimeFilter<"WorkoutImportBatch"> | Date | string
+    committedAt?: DateTimeNullableFilter<"WorkoutImportBatch"> | Date | string | null
+  }, "id">
+
+  export type WorkoutImportBatchOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    source?: SortOrder
+    fileName?: SortOrder
+    status?: SortOrder
+    parsedWorkoutsJson?: SortOrder
+    matchSummaryJson?: SortOrder
+    createdWorkoutIds?: SortOrder
+    committedSourceHashes?: SortOrder
+    createdAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+    _count?: WorkoutImportBatchCountOrderByAggregateInput
+    _max?: WorkoutImportBatchMaxOrderByAggregateInput
+    _min?: WorkoutImportBatchMinOrderByAggregateInput
+  }
+
+  export type WorkoutImportBatchScalarWhereWithAggregatesInput = {
+    AND?: WorkoutImportBatchScalarWhereWithAggregatesInput | WorkoutImportBatchScalarWhereWithAggregatesInput[]
+    OR?: WorkoutImportBatchScalarWhereWithAggregatesInput[]
+    NOT?: WorkoutImportBatchScalarWhereWithAggregatesInput | WorkoutImportBatchScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkoutImportBatch"> | string
+    userId?: StringWithAggregatesFilter<"WorkoutImportBatch"> | string
+    source?: StringWithAggregatesFilter<"WorkoutImportBatch"> | string
+    fileName?: StringWithAggregatesFilter<"WorkoutImportBatch"> | string
+    status?: StringWithAggregatesFilter<"WorkoutImportBatch"> | string
+    parsedWorkoutsJson?: JsonWithAggregatesFilter<"WorkoutImportBatch">
+    matchSummaryJson?: JsonWithAggregatesFilter<"WorkoutImportBatch">
+    createdWorkoutIds?: StringNullableListFilter<"WorkoutImportBatch">
+    committedSourceHashes?: StringNullableListFilter<"WorkoutImportBatch">
+    createdAt?: DateTimeWithAggregatesFilter<"WorkoutImportBatch"> | Date | string
+    committedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutImportBatch"> | Date | string | null
   }
 
   export type ExerciseReviewDecisionWhereInput = {
@@ -61688,6 +62807,104 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WorkoutImportBatchCreateInput = {
+    id?: string
+    userId: string
+    source: string
+    fileName: string
+    status?: string
+    parsedWorkoutsJson: JsonNullValueInput | InputJsonValue
+    matchSummaryJson: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchCreatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchCreatecommittedSourceHashesInput | string[]
+    createdAt?: Date | string
+    committedAt?: Date | string | null
+  }
+
+  export type WorkoutImportBatchUncheckedCreateInput = {
+    id?: string
+    userId: string
+    source: string
+    fileName: string
+    status?: string
+    parsedWorkoutsJson: JsonNullValueInput | InputJsonValue
+    matchSummaryJson: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchCreatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchCreatecommittedSourceHashesInput | string[]
+    createdAt?: Date | string
+    committedAt?: Date | string | null
+  }
+
+  export type WorkoutImportBatchUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    parsedWorkoutsJson?: JsonNullValueInput | InputJsonValue
+    matchSummaryJson?: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchUpdatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchUpdatecommittedSourceHashesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type WorkoutImportBatchUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    parsedWorkoutsJson?: JsonNullValueInput | InputJsonValue
+    matchSummaryJson?: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchUpdatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchUpdatecommittedSourceHashesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type WorkoutImportBatchCreateManyInput = {
+    id?: string
+    userId: string
+    source: string
+    fileName: string
+    status?: string
+    parsedWorkoutsJson: JsonNullValueInput | InputJsonValue
+    matchSummaryJson: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchCreatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchCreatecommittedSourceHashesInput | string[]
+    createdAt?: Date | string
+    committedAt?: Date | string | null
+  }
+
+  export type WorkoutImportBatchUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    parsedWorkoutsJson?: JsonNullValueInput | InputJsonValue
+    matchSummaryJson?: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchUpdatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchUpdatecommittedSourceHashesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type WorkoutImportBatchUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    parsedWorkoutsJson?: JsonNullValueInput | InputJsonValue
+    matchSummaryJson?: JsonNullValueInput | InputJsonValue
+    createdWorkoutIds?: WorkoutImportBatchUpdatecreatedWorkoutIdsInput | string[]
+    committedSourceHashes?: WorkoutImportBatchUpdatecommittedSourceHashesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type ExerciseReviewDecisionCreateInput = {
     id?: string
     externalRef: string
@@ -65035,6 +66252,40 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type WorkoutImportBatchCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    source?: SortOrder
+    fileName?: SortOrder
+    status?: SortOrder
+    parsedWorkoutsJson?: SortOrder
+    matchSummaryJson?: SortOrder
+    createdWorkoutIds?: SortOrder
+    committedSourceHashes?: SortOrder
+    createdAt?: SortOrder
+    committedAt?: SortOrder
+  }
+
+  export type WorkoutImportBatchMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    source?: SortOrder
+    fileName?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    committedAt?: SortOrder
+  }
+
+  export type WorkoutImportBatchMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    source?: SortOrder
+    fileName?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    committedAt?: SortOrder
+  }
+
   export type ExerciseNullableRelationFilter = {
     is?: ExerciseWhereInput | null
     isNot?: ExerciseWhereInput | null
@@ -67298,6 +68549,24 @@ export namespace Prisma {
     upsert?: ImportBatchUpsertWithoutRecordsInput
     connect?: ImportBatchWhereUniqueInput
     update?: XOR<XOR<ImportBatchUpdateToOneWithWhereWithoutRecordsInput, ImportBatchUpdateWithoutRecordsInput>, ImportBatchUncheckedUpdateWithoutRecordsInput>
+  }
+
+  export type WorkoutImportBatchCreatecreatedWorkoutIdsInput = {
+    set: string[]
+  }
+
+  export type WorkoutImportBatchCreatecommittedSourceHashesInput = {
+    set: string[]
+  }
+
+  export type WorkoutImportBatchUpdatecreatedWorkoutIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type WorkoutImportBatchUpdatecommittedSourceHashesInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type ExerciseCreateNestedOneWithoutReviewDecisionsLinkedHereInput = {
@@ -76213,6 +77482,10 @@ export namespace Prisma {
      * @deprecated Use ImportRecordDefaultArgs instead
      */
     export type ImportRecordArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ImportRecordDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use WorkoutImportBatchDefaultArgs instead
+     */
+    export type WorkoutImportBatchArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutImportBatchDefaultArgs<ExtArgs>
     /**
      * @deprecated Use ExerciseReviewDecisionDefaultArgs instead
      */

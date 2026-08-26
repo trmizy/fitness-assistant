@@ -23,6 +23,7 @@ import { TrainingPage } from "./pages/client/TrainingPage";
 import { ServicesPage } from "./pages/client/ServicesPage";
 import { ChatCoachPage } from "./pages/client/ChatCoachPage";
 import { PersonalizedServiceOrderPage } from "./pages/client/PersonalizedServiceOrderPage";
+import { ImportWorkoutsPage } from "./pages/client/ImportWorkoutsPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -118,6 +119,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
           { path: "onboarding", Component: OnboardingWizardPage },
           { path: "training-equipment", Component: TrainingEquipmentSettingsPage },
+          { path: "import-workouts", Component: ImportWorkoutsPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },

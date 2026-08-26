@@ -768,6 +768,20 @@ exports.Prisma.ImportRecordScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutImportBatchScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  source: 'source',
+  fileName: 'fileName',
+  status: 'status',
+  parsedWorkoutsJson: 'parsedWorkoutsJson',
+  matchSummaryJson: 'matchSummaryJson',
+  createdWorkoutIds: 'createdWorkoutIds',
+  committedSourceHashes: 'committedSourceHashes',
+  createdAt: 'createdAt',
+  committedAt: 'committedAt'
+};
+
 exports.Prisma.ExerciseReviewDecisionScalarFieldEnum = {
   id: 'id',
   externalRef: 'externalRef',
@@ -897,6 +911,7 @@ exports.Prisma.ModelName = {
   RecipeIngredient: 'RecipeIngredient',
   ImportBatch: 'ImportBatch',
   ImportRecord: 'ImportRecord',
+  WorkoutImportBatch: 'WorkoutImportBatch',
   ExerciseReviewDecision: 'ExerciseReviewDecision',
   WorkoutMutationEvent: 'WorkoutMutationEvent'
 };

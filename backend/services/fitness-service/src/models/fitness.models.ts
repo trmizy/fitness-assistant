@@ -237,5 +237,40 @@ export const upsertNutritionGoalSchema = z.object({
 export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
 export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
 export type CompleteScheduleExerciseDto = z.infer<typeof completeScheduleExerciseSchema>;
+
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
+// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
+export const previewHevyImportSchema = z.object({
+  fileName: z.string().min(1).max(200),
+  csvContent: z.string().min(1).max(15 * 1024 * 1024), // matches the route-scoped body-size limit
+});
+
+const createCustomResolutionSchema = z.object({
+  action: z.literal("CREATE_CUSTOM"),
+  input: z.object({
+    exerciseName: z.string().min(1).max(200).optional(), // defaults to the imported exercise title if omitted
+    typeOfActivity: z.string().min(1),
+    typeOfEquipment: z.string().min(1),
+    bodyPart: z.string().min(1),
+    type: z.string().min(1),
+    loggingMode: z.string().min(1),
+    muscleGroupsActivated: z.array(z.string()).optional(),
+    instructions: z.string().max(2000).optional(),
+  }),
+});
+
+export const importExerciseResolutionSchema = z.union([
+  z.object({ action: z.literal("USE_EXISTING"), exerciseId: z.string().min(1) }),
+  createCustomResolutionSchema,
+  z.object({ action: z.literal("SKIP") }),
+]);
+
+export const commitImportBatchSchema = z.object({
+  resolutions: z.record(z.string(), importExerciseResolutionSchema),
+});
+
+export type PreviewHevyImportDto = z.infer<typeof previewHevyImportSchema>;
+export type ImportExerciseResolution = z.infer<typeof importExerciseResolutionSchema>;
+export type CommitImportBatchDto = z.infer<typeof commitImportBatchSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;
 export type UpsertNutritionGoalDto = z.infer<typeof upsertNutritionGoalSchema>;

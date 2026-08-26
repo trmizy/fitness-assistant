@@ -1719,45 +1719,44 @@ Custom Exercises, and TIME_LOAD Catalog Publishing Review/Discoverability
 evidence trail (impact-analysis docs, real test counts, regressions) on
 each.
 
+~~The next implementation task is now: P2 — CANONICAL IMPORT FRAMEWORK
+(§ 14)~~ — **done, built together with Hevy import (§15) end-to-end**
+(scope confirmed with the user: framework + one real provider working,
+not framework-only against a synthetic fixture). See § 46's "Canonical
+import framework" row for full evidence.
+
 **The next implementation task is now:**
 
-# P2 — CANONICAL IMPORT FRAMEWORK (§ 14)
+# P2.2 — STRONG IMPORT (§ 16)
 
-Why this one first, among the remaining P2 items:
-
-- every other P2 import target (Hevy, Strong, FitNotes, Apple Health,
-  Android Health Connect) explicitly depends on it — § 14 itself says
-  "do not build four unrelated importers," build the canonical
-  provider-parser → normalization → exercise-matching → preview → commit
-  pipeline once;
-- it is a categorically larger/riskier unit of work than any single P1
-  item shipped so far (new import-record concepts, exercise-matching
-  against the live catalog, a preview/commit UX) — per § 45.13's own
-  caution against stacking multiple high-blast-radius milestones in one
-  pass, this deserves its own dedicated impact-analysis pass and an
-  explicit scope check with the user before implementation, the same way
-  P1.4's full-vs-MVP scope was confirmed before building it.
+Why this one next: § 14/§16 both frame Strong (and FitNotes) as "a thin
+provider parser on top of the canonical framework" — the framework
+itself, the preview/commit UX, the exercise-name matcher, and the
+idempotency mechanism are all already built and proven by Hevy import.
+This pass should be scoped to: Strong's own CSV/export column format,
+its own parser (`strong-csv-parser.util.ts`, mirroring
+`hevy-csv-parser.util.ts`'s shape), and wiring it into the SAME
+`importService`/`/client/import-workouts` UI (a provider selector,
+rather than a second page) — not a second framework.
 
 Before coding, create:
 
 ```text
-docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md
+docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After the Import Framework
+# 44. After Strong Import
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
-Visualization~~ — everything up to and including Custom Exercises (plus
-Catalog Discoverability, not originally itemized in this list) is now
-**done**. Updated remaining order:
+Visualization~~ — everything up to and including the Canonical Import
+Framework + Hevy import (plus Catalog Discoverability, not originally
+itemized in this list) is now **done**. Updated remaining order:
 
 ```text
-Canonical Import Framework
-→ Hevy import / Strong import / FitNotes import (each a thin provider
-  parser on top of the canonical framework, per § 14's own instruction)
+Strong import / FitNotes import (thin parsers on the existing pipeline)
 → JSON/CSV export
 → Apple Health / Android Health Connect integration
 → Workout template sharing/import
@@ -1794,15 +1793,15 @@ When an agent is asked to "continue this roadmap":
 
 Agents should maintain this table as work progresses.
 
-**As of 2026-08-25: P0 is DONE/READY, and all 9 P1-tier items are DONE**
-(Smart Set-by-Set Prefill, Fast Active-Workout Interaction, Reschedule
-Workout, Superset/Grouping, Session Resume Hardening, Active-Workout
-Offline Resilience, Custom Exercises, TIME_LOAD Catalog Publishing
-Review). Every P1 row below has a linked `docs/features/*_IMPACT_ANALYSIS.md`
-with real backend/E2E test evidence and disclosed scope decisions/known
-gaps — nothing below is marked DONE without that evidence. P2 (import
-architecture), P3 (visualization), and P4 (polish) are all still TODO —
-see § 43/§ 44 for the recommended next task and ordering.
+**As of 2026-08-25: P0 is DONE/READY, all 9 P1-tier items are DONE, and
+P2 has started** — Canonical import framework + Hevy import (§14/§15)
+are DONE, built together end-to-end. Every DONE row below has a linked
+`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test evidence
+and disclosed scope decisions/known gaps — nothing below is marked DONE
+without that evidence. Remaining P2 items (Strong/FitNotes import,
+JSON/CSV export, Apple Health/Health Connect, template sharing), all of
+P3 (visualization), and all of P4 (polish) are still TODO — see § 43/§ 44
+for the recommended next task and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1815,8 +1814,8 @@ see § 43/§ 44 for the recommended next task and ordering.
 | Active-workout offline resilience | P1 | **DONE** | Full architecture per the roadmap's own description, confirmed with the user given the scale (chose full build over a smaller MVP). IndexedDB-backed durable event queue (`active-workout-offline-queue.utils.ts`) for the active-session mutation surface (set complete/undo); idempotency ledger (`WorkoutMutationEvent`, a direct structural port of payment-service's `LedgerOperation`/`withIdempotentLedgerOp` pattern) wraps `updateSet`/`completeScheduleExercise`/`undoCompleteScheduleExercise`, fully backward compatible (no `eventId` = today's exact behavior, proven by test). Audit found most active-workout mutations were ALREADY idempotent by construction (UPDATE-by-id, never INSERT) — the real gap was narrower than "every mutation," just the first-touch `WorkoutExercise` create. Offline completion applies the same optimistic local state a successful call would, queues durably, shows a visible sync-state indicator, and DELIBERATELY withholds the whole-workout completion celebration until the drain actually confirms it server-side (never guessed offline) — see the impact analysis's "Conflict strategy". Real finding during E2E testing: a literal "reload while fully offline" needs a service worker this app doesn't have yet (separately-scoped P4 PWA work) — the actual guarantee (IndexedDB durability, proven by direct inspection) holds regardless. Backend integration 40/40 (4 new idempotency-replay tests + every pre-existing suite touching the restructured transaction, unaffected). Unit 6/6 (new, pure queue-ordering/event-shape logic). E2E 1/1 new (`39-active-workout-offline-resilience.spec.ts`, real `context.setOffline`) + 6/6 targeted regression (specs 35,36,38,39). See `docs/features/ACTIVE_WORKOUT_OFFLINE_RESILIENCE_IMPACT_ANALYSIS.md`. Full 12-file bundle re-run deferred — gateway `/auth/*` rate limiter exhausted by this session's 5th milestone today; the targeted regression + deterministic backend suite give strong coverage of the restructured code path regardless. |
 | Custom exercises | P1 | **DONE (USER_CUSTOM scoped)** | `Exercise` gained `source`/`ownerId`/`archivedAt` (3 additive columns). Reuses `detectDuplicate` (the catalog's own bulk-import dedup pipeline) UNCHANGED — an `EXACT_SAME_SOURCE`/`EXACT_CROSS_SOURCE` match blocks creation and returns candidates, requiring an explicit "create anyway" to bypass, never silent. Scoped to `source: USER_CUSTOM` only this pass — `PT_CUSTOM` deferred (roadmap explicitly wants the PT-visibility model clarified first, no PT/client-relationship model exists yet to build it on). New `authMiddleware`-gated `/exercises/custom` route family; the public, unauthenticated `GET /exercises` is architecturally untouched, so "no catalog contamination" holds by construction, not by a filter that could be forgotten. `WorkoutExercise`/`WorkoutProgramExercise` already FK to `Exercise.id` with no assumption about its source, so logging/progression/PR-calculation needed ZERO changes — proven, not assumed, by a real E2E log-and-complete pass. Archive-only (never delete), owner-scoped, history stays resolvable after archiving. **Real bug found and fixed**: the general catalog search only ever gated on `status: "PUBLISHED"`; since a custom exercise is deliberately created `PUBLISHED` too (so its owner can use it immediately), this alone would have leaked every user's private custom exercises into everyone's public search — fixed by adding a `source: "SYSTEM"` filter alongside it. Caught by a real integration test whose first version correctly failed before the fix existed. See `docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md`. Backend integration 5/5 (new, `custom-exercise.integration.test.ts`), `tsc --noEmit` clean both sides, E2E 1/1 (new, `40-custom-exercises.spec.ts` — create via the real picker form, DB-verify, add to a program via API, log+complete it in an active session, archive via the real UI trigger, confirm history survives). Targeted regression re-run on specs touching the same Add Exercise picker/`WorkoutLogPage.tsx`: 25/37/38/39 all still passing (7/7). One pre-existing, unrelated finding surfaced and left unfixed (out of scope): `16-swap-exercise.spec.ts`'s own local helper waits on a `workout-tab-plan` testid that no longer exists anywhere in the frontend (stale before this milestone, most likely orphaned by the prior `355735f` production-hardening commit's navigation refactor) — disclosed rather than silently ignored. |
 | TIME_LOAD catalog publishing review | P1 | **DONE (reviewed — deliberately NOT published)** | Full audit of the 3 real `TIME_LOAD` STAGING rows (Farmer/Suitcase/Front Rack Carry): content quality is genuinely good (correct classification, real Vietnamese instructions, sensible muscle/equipment mapping), but zero video/media and `media_license` unset. **Real finding that reframed the milestone**: comparing the `original_curated` cohort (145 rows, same import pipeline), `video_url` presence is a near-perfect (25/26) predictor of already being `PUBLISHED` — every one of the other 119 staging curated rows, TIME_LOAD or not, also lacks video. Gate 7's review workflow (`exercise-review.service.ts`) was checked and does NOT apply here by design — it only handles *unresolved* import candidates, and these 3 rows already have real `ExerciseSource` links, so it explicitly refuses any decision but `MARK_AS_DUPLICATE_SKIP` (which would be false) for them; there is also no admin action anywhere in this codebase to flip `Exercise.status` at all (the 883 pre-existing rows were published via a one-off backfill script, not reusable tooling). Given the roadmap's own explicit instruction — "do not publish rows just to claim feature availability" — and that these 3 rows fail the exact bar the rest of this cohort is held to, **they were deliberately left STAGING**, not published. What shipped instead is the tool the roadmap actually asked for: `GET /exercises/admin/catalog-quality-matrix` (admin-gated, matches the roadmap's own requested schema — loggingMode/publicationStatus/equipment/muscles/media-license/reviewStatus — catalog-wide and reusable, not scoped to just 3 rows) + a new read-only `/admin/catalog-quality` page (mirrors the existing Gate 7 admin page's conventions). See `docs/features/CATALOG_QUALITY_MATRIX_IMPACT_ANALYSIS.md`. Backend integration 5/5 (new), `tsc --noEmit` clean, E2E 1/1 (new, `41-catalog-quality-matrix.spec.ts`), regression: Gate 7's own admin spec 2/2 + a combined backend bundle (Gate 7 + custom exercises + catalog quality) 16/16, all still passing. The wider 116-row non-TIME_LOAD staging backlog this audit also surfaced is now visible through the new tool but deliberately not triaged in this pass — that's a separate, larger content-ops task. |
-| Canonical import framework | P2 | TODO | Build once |
-| Hevy import | P2 | TODO | Official export only |
+| Canonical import framework | P2 | **DONE (built with Hevy end-to-end, scope confirmed with the user)** | Two-phase preview → commit user-facing workout-history import, new `WorkoutImportBatch` model (deliberately separate from Gate 5's admin/CLI-only `ImportBatch`/`ImportRecord` — different owner, different lifecycle, see impact analysis). `createWorkout`/`workoutRepository.create` could NOT be reused unchanged: it repeats ONE uniform weight/reps across all of an exercise's sets (imports need genuine per-set variation) and calls `assertScheduleDateEditable` (today-only lock, would reject any real historical import) — a new direct-Prisma commit path was written instead, mirroring the Gate-4 `exerciseNameSnapshot` convention, never creating a `WorkoutSchedule` row (imported history is pure "actual", no "planned" counterpart). `detectDuplicate` didn't fit exercise-name matching either (it needs full equipment/muscle records; a CSV row only has a name) — a dedicated exact/fuzzy name matcher was written, reusing `normalizeVietnamese` (see bugs below). Idempotent by construction: a `sourceHash` per parsed workout, checked against every past committed batch, means re-uploading the same export twice creates zero duplicate `Workout` rows — proven, not assumed, by a real test. No multipart/`multer` — the CSV is posted as a JSON string field through a route-scoped larger `express.json()` limit (both fitness-service and the gateway, which has no global body-parser at all in front of any proxy route). New `/client/import-workouts` page (upload → preview → per-exercise resolve → commit), reusing P1.5's `createCustomExercise` unchanged for "create as custom" resolutions. **Real bugs found and fixed**: (1) the name matcher's first version didn't handle Vietnamese `đ`/`Đ` (NFD doesn't decompose it — it's a distinct base letter, not base+diacritic), silently downgrading exact matches in this heavily-Vietnamese catalog to weak fuzzy ones — fixed by reusing the existing, already-correct `normalizeVietnamese` instead of a flawed reimplementation; (2) the date parser's non-ISO fallback delegated to `new Date(dateOnlyString)`, which JS treats as LOCAL midnight for non-ISO input — `.toISOString()` then silently shifted the date back a day on a positive-UTC-offset host, the same bug class this roadmap's own Smart Prefill entry already found for Prisma+naive-timestamps — fixed by never delegating to timezone-dependent `Date` parsing, building every date directly from regex-extracted digits. Both caught by this milestone's own unit tests before they could reach a real import. **Disclosed limitation**: Hevy's CSV column format is targeted from public/community documentation, not verified against a live Hevy export (no account available) — the parser is header-driven and defensive (a format drift surfaces as "0 workouts parsed, N row errors" for the user to see, never silent corruption), but may need adjustment against a real export file. Body-measurement import is scoped out this pass (Hevy's export format for it isn't confidently known) — revisit alongside P2.4. Strong/FitNotes (P2.2/P2.3) are separate follow-up passes, each meant to be a thin parser on top of this same pipeline. See `docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md`. Unit 18/18 (new), backend integration 8/8 (new, `import.service.integration.test.ts`), `tsc --noEmit` clean (fitness-service + gateway), E2E 1/1 (new, `42-import-hevy-workouts.spec.ts` — real file upload, real preview, real resolve-and-commit, real re-upload idempotency check), regression 13/13 (specs touching `ProfilePage`, where the new entry point was added). |
+| Hevy import | P2 | **DONE** | Shipped together with the canonical import framework above — see that row for full detail; this was deliberately not split into a separate pass (scope confirmed with the user: "framework + Hevy end-to-end" over "framework only against a synthetic fixture"). |
 | Strong import | P2 | TODO | Official export only |
 | FitNotes import | P2 | TODO | Official export only |
 | JSON/CSV export | P2 | TODO | User portability |

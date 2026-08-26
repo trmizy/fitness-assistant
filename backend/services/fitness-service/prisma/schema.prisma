@@ -1374,6 +1374,56 @@ model ImportRecord {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
+// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md) — a
+// user-facing, per-user two-phase (preview → commit) workout-history
+// import. Deliberately NOT built on ImportBatch/ImportRecord above: those
+// track Gate 5's *catalog* import pipeline (admin/CLI-driven, no userId,
+// a different status vocabulary and summary shape) — this is a different
+// job with a different owner and lifecycle.
+//
+// The preview's parsed-but-uncommitted data lives as JSON directly on the
+// batch row (a preview is a short-lived, single-user, single-flow
+// concept — not worth a full relational staging schema). Real
+// Workout/WorkoutExercise/WorkoutSet rows are only created at commit
+// time; committing never creates a WorkoutSchedule row (imported history
+// is pure "actual", no "planned" counterpart — see roadmap §25).
+// ══════════════════════════════════════════════════════════════════════
+
+model WorkoutImportBatch {
+  id       String @id @default(uuid())
+  userId   String @map("user_id")
+  source   String // "HEVY" (Strong/FitNotes are separate follow-up passes on the same shape)
+  fileName String @map("file_name")
+  status   String @default("PREVIEW") @map("status") // PREVIEW | COMMITTED | CANCELLED
+
+  // Canonical ImportedWorkout[] (roadmap §14's own naming) staged at
+  // preview time — never trusted again at commit time without
+  // re-validating against the live catalog/exercise-resolution choices
+  // the caller sends.
+  parsedWorkoutsJson Json @map("parsed_workouts_json")
+  // Per-distinct-exercise-name match candidates computed at preview time
+  // (exact/fuzzy/none) — shown to the user for resolution before commit.
+  matchSummaryJson   Json @map("match_summary_json")
+
+  // Audit trail: which real Workout rows this batch's commit produced.
+  createdWorkoutIds String[] @default([]) @map("created_workout_ids")
+  // Idempotency key set: sourceHash of every workout ACTUALLY committed
+  // by this batch (a subset of parsedWorkoutsJson's workouts — some may
+  // have been skipped as already-imported). A later batch's commit
+  // checks this field across ALL of the user's past COMMITTED batches
+  // before writing, so re-uploading the same export file twice can never
+  // create duplicate Workout rows.
+  committedSourceHashes String[] @default([]) @map("committed_source_hashes")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  committedAt DateTime? @map("committed_at")
+
+  @@index([userId, status])
+  @@map("workout_import_batches")
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // Gate 7 — human review queue for exercise duplicate/variant candidates
 // left un-actioned by Gate 5/6's automatic importers (exerciseLocalization
 // Importer only auto-links EXACT_SAME_SOURCE/EXACT_CROSS_SOURCE;

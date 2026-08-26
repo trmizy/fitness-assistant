@@ -4260,4 +4260,83 @@ export const catalogQualityService = {
   },
 };
 
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
+// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
+export interface ImportMatchCandidate {
+  id: string;
+  name: string;
+  confidence: number;
+}
+
+export interface ImportExerciseMatchSummary {
+  exerciseTitle: string;
+  candidates: ImportMatchCandidate[];
+  isExactMatch: boolean;
+}
+
+export interface ImportPreviewResult {
+  blocked: boolean;
+  reason?: string;
+  batchId?: string;
+  workoutCount?: number;
+  futureWorkoutCount?: number;
+  dateRange?: { earliest: string | null; latest: string | null };
+  alreadyImportedCount?: number;
+  exerciseMatchSummary?: ImportExerciseMatchSummary[];
+  rowErrors: Array<{ rowIndex: number; message: string }>;
+}
+
+export type ImportExerciseResolution =
+  | { action: "USE_EXISTING"; exerciseId: string }
+  | {
+      action: "CREATE_CUSTOM";
+      input: {
+        exerciseName?: string;
+        typeOfActivity: string;
+        typeOfEquipment: string;
+        bodyPart: string;
+        type: string;
+        loggingMode: string;
+        muscleGroupsActivated?: string[];
+        instructions?: string;
+      };
+    }
+  | { action: "SKIP" };
+
+export interface ImportCommitResult {
+  committedWorkoutCount: number;
+  alreadyImportedSkippedCount: number;
+  skippedExerciseSetCount: number;
+  createdWorkoutIds: string[];
+}
+
+export interface ImportBatchSummary {
+  id: string;
+  source: string;
+  fileName: string;
+  status: "PREVIEW" | "COMMITTED" | "CANCELLED";
+  createdAt: string;
+  committedAt: string | null;
+  createdWorkoutIds: string[];
+}
+
+export const importService = {
+  previewHevy: async (fileName: string, csvContent: string): Promise<ImportPreviewResult> => {
+    const { data } = await api.post("/imports/hevy/preview", { fileName, csvContent });
+    return data;
+  },
+  commit: async (batchId: string, resolutions: Record<string, ImportExerciseResolution>): Promise<ImportCommitResult> => {
+    const { data } = await api.post(`/imports/${encodeURIComponent(batchId)}/commit`, { resolutions });
+    return data;
+  },
+  cancel: async (batchId: string): Promise<{ status: string }> => {
+    const { data } = await api.post(`/imports/${encodeURIComponent(batchId)}/cancel`, {});
+    return data;
+  },
+  list: async (): Promise<{ batches: ImportBatchSummary[] }> => {
+    const { data } = await api.get("/imports");
+    return data;
+  },
+};
+
 export default api;
