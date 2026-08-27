@@ -22,6 +22,7 @@ import {
   Loader2,
   MessageSquare,
   RotateCw,
+  Scale,
   ShieldAlert,
   Sparkles,
   Trash2,
@@ -37,6 +38,7 @@ import {
   type CycleAlert,
   type CycleAssessment,
   type CycleDecision,
+  type CycleReport,
   type TrainingCycle,
 } from "../../services/api";
 
@@ -1114,6 +1116,26 @@ const REPORT_FLAG_LABELS: Record<string, string> = {
   RAPID_VOLUME_INCREASE: "Khối lượng tập tăng đột ngột (>50%) giữa 2 tuần liên tiếp",
 };
 
+// Roadmap P3.5 "Planned vs actual training volume" — mode-gated display,
+// mirroring the backend's own per-mode metric selection (never one
+// blended "volume" number across modes). Returns null when this
+// exercise's mode has no comparable planned/actual pair to show.
+function formatPlannedVsActualLine(ex: CycleReport["plannedVsActual"]["byExercise"][number]): string | null {
+  if (ex.plannedVolumeKg != null) {
+    return `${Math.round(ex.actualVolumeKg ?? 0)} / ${Math.round(ex.plannedVolumeKg)} kg`;
+  }
+  if (ex.plannedReps != null) {
+    return `${ex.actualReps ?? 0} / ${ex.plannedReps} reps`;
+  }
+  if (ex.plannedDurationSeconds != null) {
+    return `${ex.actualDurationSeconds ?? 0} / ${ex.plannedDurationSeconds}s`;
+  }
+  if (ex.actualDistanceMeters != null) {
+    return `${Math.round(ex.actualDistanceMeters)}m (chưa có mục tiêu quãng đường)`;
+  }
+  return null;
+}
+
 function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () => void }) {
   const reportQuery = useQuery({
     queryKey: ["training-cycle", "report", cycleId],
@@ -1214,6 +1236,42 @@ function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () =
                   </p>
                 )}
               </div>
+
+              {/* Roadmap P3.5 "Planned vs actual training volume" — mode-
+                  gated (§25's own warning against "volume = kg × reps"
+                  everywhere): each row shows whichever metric its own
+                  Exercise.loggingMode actually supports, never a blended
+                  number across modes. */}
+              {reportQuery.data.plannedVsActual.byExercise.length > 0 && (
+                <div data-testid="planned-vs-actual-section">
+                  <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-sky-400" /> Kế hoạch so với thực tế
+                  </h4>
+                  {reportQuery.data.plannedVsActual.totals.volumeAdherencePct != null && (
+                    <p className="text-xs text-zinc-400 mb-2" data-testid="planned-vs-actual-volume-pct">
+                      Khối lượng tạ: {reportQuery.data.plannedVsActual.totals.totalActualVolumeKg} /{" "}
+                      {reportQuery.data.plannedVsActual.totals.totalPlannedVolumeKg} kg (
+                      {reportQuery.data.plannedVsActual.totals.volumeAdherencePct}%)
+                    </p>
+                  )}
+                  <div className="space-y-1.5">
+                    {reportQuery.data.plannedVsActual.byExercise.map((ex) => {
+                      const line = formatPlannedVsActualLine(ex);
+                      if (!line) return null;
+                      return (
+                        <div
+                          key={ex.exerciseId}
+                          data-testid={`planned-vs-actual-row-${ex.exerciseId}`}
+                          className="flex items-center justify-between rounded-lg bg-zinc-800/60 px-2.5 py-1.5 text-xs"
+                        >
+                          <span className="text-zinc-300">{ex.exerciseName}</span>
+                          <span className="text-zinc-400">{line}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">

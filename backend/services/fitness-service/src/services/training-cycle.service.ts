@@ -24,6 +24,12 @@ import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScop
 import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE, scheduledDateLabel, todayAsScheduleDate } from "../utils/schedule-lock.util";
 import { classifyDayState } from "../utils/activity-heatmap.util";
 import { aggregateCycleAdherence, type CycleAdherenceDayInput } from "../utils/cycle-adherence.util";
+import {
+  computePlannedVsActual,
+  aggregateCyclePlannedVsActual,
+  type PlannedExerciseOccurrence,
+  type ActualCompletedSet,
+} from "../utils/planned-vs-actual.util";
 import { buildCycleBaselineMetrics, buildCycleTargetMetrics } from "./cycle-baseline-snapshot.util";
 import { computeWeightTrend } from "./weight-trend.util";
 import { evaluateNutritionAdaptive, type NutritionDecisionResult } from "./nutrition-decision.engine";
@@ -113,6 +119,94 @@ function buildCycleAdherenceDays(
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return days;
+}
+
+/**
+ * Roadmap P3.5 "Planned vs actual training volume" — builds the two
+ * flat input arrays `computePlannedVsActual` (planned-vs-actual.util.ts)
+ * needs, from real DB rows. Scoped to schedule rows that (a) have real
+ * logged data (COMPLETED or PARTIALLY_COMPLETED — §25: "completed
+ * sessions") and (b) actually link back to a real plan day
+ * (`programDayId`) and a real logged workout (`workoutId`) — a manually
+ * logged ad-hoc session with no plan link has nothing to compare
+ * against and is correctly excluded (matches
+ * `computePlannedVsActual`'s own "only plan-anchored exercises" rule).
+ * "Actual" is deliberately scoped to ONLY these same sessions' own
+ * logged sets (never the user's other, unrelated logged workouts for
+ * the same exercise) — keeps the comparison apples-to-apples.
+ */
+async function buildPlannedVsActualInputs(
+  schedules: Array<{ status: string; programDayId: string | null; workoutId: string | null }>,
+): Promise<{ plannedOccurrences: PlannedExerciseOccurrence[]; actualSets: ActualCompletedSet[] }> {
+  const qualifying = schedules.filter(
+    (s) => (s.status === "COMPLETED" || s.status === "PARTIALLY_COMPLETED") && s.programDayId && s.workoutId,
+  ) as Array<{ status: string; programDayId: string; workoutId: string }>;
+
+  if (qualifying.length === 0) return { plannedOccurrences: [], actualSets: [] };
+
+  const programDayIds = [...new Set(qualifying.map((s) => s.programDayId))];
+  const workoutIds = [...new Set(qualifying.map((s) => s.workoutId))];
+
+  const [planExercises, actualSetRows] = await Promise.all([
+    prisma.workoutProgramExercise.findMany({
+      where: { programDayId: { in: programDayIds } },
+      select: {
+        programDayId: true,
+        exerciseId: true,
+        sets: true,
+        reps: true,
+        weight: true,
+        duration: true,
+        exercise: { select: { exerciseName: true, loggingMode: true } },
+      },
+    }),
+    prisma.workoutSet.findMany({
+      where: { completed: true, workoutExercise: { workoutId: { in: workoutIds } } },
+      select: {
+        weight: true,
+        reps: true,
+        durationSeconds: true,
+        distanceMeters: true,
+        workoutExercise: { select: { exerciseId: true } },
+      },
+    }),
+  ]);
+
+  const planExercisesByDayId = new Map<string, typeof planExercises>();
+  for (const pe of planExercises) {
+    const list = planExercisesByDayId.get(pe.programDayId) ?? [];
+    list.push(pe);
+    planExercisesByDayId.set(pe.programDayId, list);
+  }
+
+  // One occurrence per (schedule row x planned exercise) — a program day
+  // reused across N real sessions this cycle correctly contributes N
+  // occurrences, not 1.
+  const plannedOccurrences: PlannedExerciseOccurrence[] = [];
+  for (const s of qualifying) {
+    const dayExercises = planExercisesByDayId.get(s.programDayId) ?? [];
+    for (const pe of dayExercises) {
+      plannedOccurrences.push({
+        exerciseId: pe.exerciseId,
+        exerciseName: pe.exercise.exerciseName,
+        loggingMode: pe.exercise.loggingMode,
+        sets: pe.sets,
+        reps: pe.reps,
+        weight: pe.weight,
+        duration: pe.duration,
+      });
+    }
+  }
+
+  const actualSets: ActualCompletedSet[] = actualSetRows.map((s) => ({
+    exerciseId: s.workoutExercise.exerciseId,
+    weight: s.weight,
+    reps: s.reps,
+    durationSeconds: s.durationSeconds,
+    distanceMeters: s.distanceMeters,
+  }));
+
+  return { plannedOccurrences, actualSets };
 }
 
 async function buildRollingSummary(
@@ -935,6 +1029,13 @@ export const trainingCycleService = {
       .filter((s) => s.originalPlannedDate)
       .map((s) => ({ from: s.originalPlannedDate as Date, to: s.date, status: s.status }));
 
+    // Roadmap P3.5 "Planned vs actual training volume" — mode-aware
+    // (§25's own explicit warning against a blanket "volume = kg × reps"),
+    // built from the current program/cycle plan and completed sessions.
+    const { plannedOccurrences, actualSets } = await buildPlannedVsActualInputs(schedules);
+    const plannedVsActualByExercise = computePlannedVsActual(plannedOccurrences, actualSets);
+    const plannedVsActualTotals = aggregateCyclePlannedVsActual(plannedVsActualByExercise);
+
     const flags: string[] = [];
     if (proteinAdherencePct != null && proteinAdherencePct < 85) flags.push("PROTEIN_BELOW_TARGET");
     if (proteinPerKg != null && proteinPerKg < PROTEIN_EVIDENCE_RANGE_G_PER_KG.min) flags.push("PROTEIN_BELOW_EVIDENCE_RANGE");
@@ -992,6 +1093,15 @@ export const trainingCycleService = {
         completedMeals,
         partialMeals,
         skippedMeals,
+      },
+      // Roadmap P3.5 "Planned vs actual training volume" — scoped to
+      // exercises that were actually part of the plan (§25: "Use current
+      // program/cycle plan and completed sessions"); mode-gated per
+      // exercise (never one blended "volume" number across modes — see
+      // planned-vs-actual.util.ts's own doc comment).
+      plannedVsActual: {
+        byExercise: plannedVsActualByExercise,
+        totals: plannedVsActualTotals,
       },
       bodyComposition: (cycle.summary as any)?.inBodySeries ?? [],
       volumeWeekOverWeekPct,

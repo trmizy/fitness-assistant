@@ -964,6 +964,31 @@ export interface CycleReport {
   alerts: CycleAlert[];
   newPRs: string[];
   flags: string[];
+  plannedVsActual: {
+    byExercise: Array<{
+      exerciseId: string;
+      exerciseName: string;
+      loggingMode: string;
+      sessionsPlanned: number;
+      plannedVolumeKg: number | null;
+      actualVolumeKg: number | null;
+      plannedReps: number | null;
+      actualReps: number | null;
+      plannedDurationSeconds: number | null;
+      actualDurationSeconds: number | null;
+      actualDistanceMeters: number | null;
+    }>;
+    totals: {
+      totalPlannedVolumeKg: number | null;
+      totalActualVolumeKg: number | null;
+      volumeAdherencePct: number | null;
+      totalPlannedReps: number | null;
+      totalActualReps: number | null;
+      totalPlannedDurationSeconds: number | null;
+      totalActualDurationSeconds: number | null;
+      totalActualDistanceMeters: number | null;
+    };
+  };
 }
 
 export interface CycleAnalysisDetails {
