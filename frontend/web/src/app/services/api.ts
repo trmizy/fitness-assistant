@@ -908,6 +908,17 @@ export interface CycleReportSessionDetail {
   notes: string | null;
 }
 
+// Roadmap P3.4 "Training consistency and adherence"
+// (docs/features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md).
+export interface CycleAdherenceBreakdown {
+  completed: number;
+  partial: number;
+  missed: number;
+  rescheduled: number;
+  planned: number;
+  adherencePct: number | null;
+}
+
 export interface CycleReport {
   cycle: TrainingCycle;
   window: { startDate: string; endDate: string };
@@ -920,6 +931,8 @@ export interface CycleReport {
     missedSessions: Array<{ date: string }>;
     sessionDetails: CycleReportSessionDetail[];
     highPainSessions: CycleReportSessionDetail[];
+    breakdown: CycleAdherenceBreakdown;
+    rescheduledSessions: Array<{ from: string; to: string; status: string }>;
   };
   trainingLoad: {
     hasData: boolean;

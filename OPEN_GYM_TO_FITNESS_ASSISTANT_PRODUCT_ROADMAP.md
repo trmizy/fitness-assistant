@@ -1790,42 +1790,55 @@ this pass's own integration test.
 rows, mode-gated in the frontend — see § 46's "Exercise progress
 charts" row for full evidence.
 
+~~The next implementation task is now: P3.4 — TRAINING CONSISTENCY AND
+ADHERENCE (§ 24)~~ — **done.** `getCycleReport` gained a real
+planned/completed/rescheduled/missed breakdown, reusing P3.2's
+`classifyDayState` unchanged — see § 46's "Training consistency and
+adherence" row for full evidence, including a real reschedule-visibility
+gap found in the pre-existing report fields.
+
 **The next implementation task is now:**
 
-# P3.4 — TRAINING CONSISTENCY AND ADHERENCE (§ 24)
+# P3.5 — PLANNED VS ACTUAL TRAINING VOLUME (§ 25)
 
-Next P3 item in § 5's own listed order. Real infrastructure to audit
-before designing: `computeAdherence`/the training-cycle metrics
-service (used by P3.1/P3.2's own range-mode work) likely already
-computes planned/completed/rescheduled/missed counts somewhere in the
-cycle-report path — audit before building a second parallel
-computation. `classifyDayState` (P3.2, `activity-heatmap.util.ts`)
-already derives the exact 4 states §24 asks for, per day — a cycle-wide
-adherence summary may be a straightforward aggregation over that
-existing function's output rather than new classification logic.
+Next P3 item in § 5's own listed order. §25's own explicit warning:
+avoid oversimplified "volume = always kg × reps" across all logging
+modes — weighted resistance can use volume/load metrics where valid,
+but timed/cardio/bodyweight need mode-appropriate metrics instead (the
+exact same mode-awareness P3.3 Exercise Progress Charts already had to
+solve for its own trend lines — audit whether any of that logic is
+directly reusable here rather than re-deriving mode-appropriate metrics
+a second time). Real infrastructure to audit before designing: this
+session's own P3.3 work already computes real per-session weight/
+duration/distance aggregates from `WorkoutSet` rows; the "planned" side
+needs the actual PROGRAM/plan targets (`WorkoutProgramExercise`'s
+sets/reps/weight fields) compared against what was actually logged —
+audit `cycle-metrics.engine.ts`'s `computeWorkoutMetrics`/
+`volumeByWeek` (already used by the cycle report P3.4 just extended) for
+whether a "planned" counterpart already exists there before building one.
 
 Before coding, create:
 
 ```text
-docs/features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md
+docs/features/PLANNED_VS_ACTUAL_VOLUME_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After Exercise Progress Charts
+# 44. After Training Consistency and Adherence
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
 Visualization~~ — everything through the full P2 tier except the
 environment-blocked Health Integration item, plus P3.1 Muscle Heatmap,
-P3.2 Activity Heatmap, and P3.3 Exercise Progress Charts, is now
-**done**. Updated remaining order:
+P3.2 Activity Heatmap, P3.3 Exercise Progress Charts, and P3.4 Training
+Consistency and Adherence, is now **done**. Updated remaining order:
 
 ```text
 Apple Health / Android Health Connect integration — still BLOCKED in
   this environment (no native mobile tooling to build or verify it)
-→ P3 Visualization — training consistency/adherence (next) →
-  planned-vs-actual → exercise-history detail
+→ P3 Visualization — planned-vs-actual training volume (next) →
+  exercise-history detail
 → P4 polish (notifications/reminders, PWA/installability)
 ```
 
@@ -1859,19 +1872,20 @@ Agents should maintain this table as work progresses.
 
 **As of 2026-08-27: P0 is DONE/READY, all 9 P1-tier items are DONE, P2
 is 6/7 done (entire tier complete except one item blocked by this
-environment), and P3 is 3/6 done.** The full 3-provider import trio
+environment), and P3 is 4/6 done.** The full 3-provider import trio
 (Canonical import framework + Hevy §14/§15, Strong §16, FitNotes §17),
 JSON/CSV export (§19), Workout template sharing/import (§20), Muscle
-Heatmap (§21), Activity Heatmap (§22), and Exercise Progress Charts
-(§23) are all DONE. Every DONE row below has a linked
-`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test
-evidence and disclosed scope decisions/known gaps — nothing below is
-marked DONE without that evidence. **Apple Health/ Health Connect (§18)
+Heatmap (§21), Activity Heatmap (§22), Exercise Progress Charts (§23),
+and Training Consistency and Adherence (§24) are all DONE. Every DONE
+row below has a linked `docs/features/*_IMPACT_ANALYSIS.md` with real
+backend/E2E test evidence and disclosed scope decisions/known gaps —
+nothing below is marked DONE without that evidence. **Apple Health/
+Health Connect (§18)
 is BLOCKED in this environment** (no native iOS/Android tooling to
 build or verify it — see § 43), confirmed by the user to skip rather
 than attempt unverifiably. The rest of P3 (visualization) and all of P4
 (polish) are still TODO — see § 43/§ 44 for the recommended next task
-(P3.4 Training Consistency and Adherence) and ordering.
+(P3.5 Planned vs Actual Training Volume) and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1896,6 +1910,7 @@ than attempt unverifiably. The rest of P3 (visualization) and all of P4
 | Muscle heatmap | P3 | **DONE (all 4 range modes)** | Scope confirmed with the user before implementation, per §21's own "product heuristic, unless validated otherwise" framing — weighting `primary=1.0/secondary=0.5` (the roadmap's own worked example) and all 4 time ranges (7d/30d/current-cycle/custom) built in this pass rather than a smaller 7d+30d MVP. Scored per completed WORKING set (§21's own explicit unit), `WARMUP`-tagged sets excluded per §21's own "Do not include... warm-ups as equal hard volume" instruction. Reuses the real, already-license-vetted `body-muscles` npm package this codebase already integrated for the per-exercise muscle map (Gate 6, `ExerciseMuscleMap.tsx`) — a real anatomical front/back SVG chart, not a second renderer built from scratch; intensity is normalized 1-9 relative to the result set's OWN max (no external absolute reference exists to compare against). New `GET /stats/muscle-heatmap` on the existing `stats` route family. **Real, disclosed data-integrity bug found and fixed**: while seeding real test fixtures, discovered `gymcoach_fitness_test`'s entire `exercise_muscles` table (2992 rows) referenced `muscle_id` values that didn't exist in that database's own `muscles` table (100% orphan rate) — the test DB's `muscles` table had drifted from dev's at some point (each row's id is a fresh UUID, so any reseed anywhere regenerates different ids). Confirmed via direct query that dev's own data was always fully valid (2992/2992 correctly joined) — this was a TEST-DATABASE-ONLY issue, never a live production bug, but it was the first test in this whole session's history to exercise that join at all. Fixed by re-running the existing, already-idempotent `exerciseMuscleMappingImporter.ts` (Gate 6's own importer) against the test DB and cleaning up the leftover orphaned rows. See `docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md`. Unit 7/7 (new, `muscle-heatmap.util.test.ts`). Backend integration 4/4 (new, `muscle-heatmap.service.integration.test.ts` — covers all 4 range modes with real seeded muscle-mapped exercises). `tsc --noEmit` clean. E2E 1/1 (new, `47-muscle-heatmap.spec.ts` — real seeded completed-set history rendered through the real chart+legend, correct across 7d/30d/custom range switches, verified against actual computed scores). Regression: Gate 6's own per-exercise muscle-map spec (shares the `body-muscles` library) + a `ProfilePage.tsx`-touching spec 4/4 still passing. |
 | Activity heatmap | P3 | **DONE** | Every one of §22's 5 real day states (`completed`/`partial`/`rest`/`missed`/`rescheduled`) maps directly onto columns that already existed — no new schema. `WorkoutSchedule.status` covers completed/partial/missed (SKIPPED and CANCELLED both collapse to the roadmap's simpler `missed` vocabulary); P1.2's own reschedule audit column `originalPlannedDate` (set once, on the FIRST reschedule only, never overwritten — re-confirmed by re-reading that column's own doc comment) is exactly what `rescheduled` needs: the day a session moved AWAY from, correctly distinguished from the day it moved TO (which always shows its OWN real current status, proven by a real test, never mislabeled). A future date is deliberately left unclassified — none of these 5 states are meaningful for a day that hasn't happened yet. Reuses `workoutService.getSessionSummary` UNCHANGED for real PR data in the click-through day detail — the exact same logic the end-of-session completion screen already uses, never a second, possibly-divergent PR implementation. New `GET /stats/activity-heatmap` (range) + `GET /stats/activity-heatmap/day/:date` (detail) on the existing `stats` route family. New `/client/activity-heatmap` page — a month-grid calendar (GitHub-style day coloring, month layout rather than a horizontal year scroller) with click-through detail. **Real bug found and fixed**: the day-detail's first version reused `getSessionSummary`'s own `totalVolumeKg`, which sums `WorkoutExercise`'s coarse aggregate weight/reps/sets fields rather than real per-set `WorkoutSet` data — a workout logged set-by-set (this app's actual current logging UX) never necessarily populates those aggregate fields, so the reused figure silently undercounted all the way to 0 for a genuinely-varying-per-set fixture in this pass's own integration test. Fixed by computing volume directly from real `WorkoutSet` rows instead (still reusing `getSessionSummary` unchanged for PRs specifically, since that comparison is unaffected). See `docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md`. Unit 9/9 (new, `activity-heatmap.util.test.ts`). Backend integration 2/2 (new, `activity-heatmap.service.integration.test.ts` — all 5 states + day-detail, after the volume fix). `tsc --noEmit` clean. E2E 1/1 (new, `48-activity-heatmap.spec.ts` — real seeded completed day renders correctly, click-through detail shows the real workout name and real computed volume, a real rest day shows no workout). Regression: `37-reschedule-workout.spec.ts` (shares the exact `originalPlannedDate` column this pass's `rescheduled` derivation reads) + a `ProfilePage.tsx`-touching spec 4/4 still passing. |
 | Exercise progress charts | P3 | **DONE (all 7 trend types)** | Every one of §23's 7 trend types (weight/rep/e1RM/best-set/duration/distance-pace/bodyweight-rep) computed from real completed `WorkoutSet` rows — never `WorkoutExercise`'s coarser aggregate fields, continuing this session's own established P3.1/P3.2 convention. A pure `computeSessionProgressPoint` (new `exercise-progress.util.ts`) returns every field per real session, always `null` (never guessed) when a dimension has no real data that session — §23's own explicit warning ("do not graph 'weight' for exercises where weight is not meaningful") is enforced by the FRONTEND chart component instead, gating which lines render by `Exercise.loggingMode` AND by whether any real session actually has that field populated, so a stale/incorrect `loggingMode` never hides genuinely-present real data. **Scope decisions**: "rep trend" and "bodyweight-rep trend" are the same underlying `maxReps` computation, exposed once and labeled per mode by the frontend, not duplicated; "best-set trend" is defined as the (weight, reps) pair of the session's highest-e1RM set — the same set the e1RM-trend line already tracks, exposed with its own weight/reps detail for a tooltip rather than a second independent metric. Range is optional `from`/`to`, defaulting to full history (unlike the heatmaps' fixed preset windows) — a progression chart's whole point is the long-run view. **Real audit finding**: `workoutService.getPRs`/`findExercisePRs` — despite the name — is NOT a real timeseries (exactly one row per exercise, the single all-time max off `WorkoutExercise`'s coarse aggregate `weight` field, no e1RM at all), so it was correctly NOT reused; new code reads real `WorkoutSet` rows grouped by workout instead. New `GET /stats/exercise-progress/:exerciseId` on the existing `stats` route family. No dedicated per-exercise history page exists yet (that's §26 P3.6, a later milestone) — this pass's entry point is a new "Xem tiến độ" link in `WorkoutLogPage.tsx`'s existing Exercise Detail modal (gated by a real DB exercise id, same as the muscle map already shown there), opening a new standalone `/client/exercise-progress/:exerciseId` page with mode-appropriate `recharts` line charts. Visibility follows the same `SYSTEM`-or-owned-`USER_CUSTOM` rule `import.service.ts`'s catalog lookup already uses — a private custom exercise owned by someone else 404s, never confirming existence. See `docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md`. Unit 10/10 (new, `exercise-progress.util.test.ts`). Backend integration 3/3 (new, `exercise-progress.service.integration.test.ts` — real chronological series incl. same-workout multi-row merge, range narrowing, and 404 privacy scoping for both a nonexistent id and another user's private custom exercise). `tsc --noEmit` clean, frontend `npm run build` clean. E2E 1/1 (new, `49-exercise-progress-charts.spec.ts` — real seeded 2-session weight progression renders the real weight/rep/e1RM charts). Regression: `33-smart-set-prefill.spec.ts` (5 sub-tests, shares the `WorkoutLogPage.tsx` this pass also touched) + `47-muscle-heatmap.spec.ts` + `48-activity-heatmap.spec.ts` (both share `stats.service.ts`, which gained a new sibling function this pass) — 7/7 still passing. No real bug found this pass — pure new-aggregation-read on already-correct data. |
+| Training consistency and adherence | P3 | **DONE** | §24: show `planned/completed/rescheduled/missed`, not raw count only. `getCycleReport`'s pre-existing `workouts` breakdown WAS exactly that raw-count-only shape — worse, a genuinely rescheduled session (P1.2's mechanism: same row, `date` column updated in place) simply reappeared under `completed`/`missed`/`upcoming` at its NEW date with zero trace a reschedule ever happened, real gap confirmed by re-reading against P1.2's own mechanism. Fixed additively: new `workouts.breakdown` (`{completed, partial, missed, rescheduled, planned, adherencePct}`) + `workouts.rescheduledSessions`, computed by a new pure `aggregateCycleAdherence` (`cycle-adherence.util.ts`) fed by a per-cycle-window day loop reusing P3.2's `classifyDayState` **completely unchanged** — the exact reuse this session's own roadmap note predicted. Every pre-existing field (`completed`/`missed`/`upcoming`/`completionRate`/`missedSessions`) is untouched, so no existing caller changes behavior. `computeAdherence` (used everywhere else — Decision Engine, classification, alerts, nutrition engine) is also untouched. **Disclosed, deliberate divergence**: the new `adherencePct` (day-based, reschedule-aware) can legitimately differ from the pre-existing `completionRate` (row-based, reschedule-blind) — documented in both the code and the impact analysis with a real worked example (25% vs 33% for the same seeded cycle) rather than silently reconciled or hidden. New `/client/workout` → "Chu kỳ tập luyện" tab → cycle report modal gains a 5-column Adherence/Completed/Rescheduled/Missed/Planned grid (was a 3-column Completed/Missed/Rate grid) plus a "Đã dời lịch: ..." line. See `docs/features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md`. Unit 8/8 (new, `cycle-adherence.util.test.ts`). Backend integration 1/1 (new, `cycle-adherence-breakdown.integration.test.ts` — a real cycle with all 5 states incl. a genuine reschedule, proving both the new breakdown AND the old fields' continued internal consistency under their own definitions, with real numbers showing the legitimate divergence). `tsc --noEmit` clean, frontend `npm run build` clean. E2E 1/1 (new, `50-training-cycle-adherence-breakdown.spec.ts` — real seeded closed cycle with a real reschedule, opened through the actual existing report-modal UI flow). Regression: `13-training-cycle-fixes.spec.ts` (2/2, same Training Cycle tab this pass touched) + `37-reschedule-workout.spec.ts` (2/2, shares the exact reschedule mechanism this pass's breakdown reads) — 4/4 still passing. |
 | Planned vs actual | P3 | TODO | Integrate cycle |
 | Notifications/reminders | P4 | TODO | Preference-controlled |
 | PWA/installability polish | P4 | TODO | After offline core |

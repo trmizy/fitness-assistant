@@ -21,7 +21,9 @@ import { cycleThresholds } from "../config/cycle-thresholds.config";
 import { computeCycleMetrics, type CycleMetricsResult } from "./cycle-metrics.engine";
 import { cycleFeedbackAggregator, type CycleFeedbackSummaryResult } from "./cycle-feedback-aggregator";
 import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScope } from "./cycle-decision.engine";
-import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE, scheduledDateLabel, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { classifyDayState } from "../utils/activity-heatmap.util";
+import { aggregateCycleAdherence, type CycleAdherenceDayInput } from "../utils/cycle-adherence.util";
 import { buildCycleBaselineMetrics, buildCycleTargetMetrics } from "./cycle-baseline-snapshot.util";
 import { computeWeightTrend } from "./weight-trend.util";
 import { evaluateNutritionAdaptive, type NutritionDecisionResult } from "./nutrition-decision.engine";
@@ -70,6 +72,47 @@ function isUniqueConstraintError(err: unknown): boolean {
 function weekOfCycle(startDate: Date, asOf: Date): number {
   const days = Math.floor((asOf.getTime() - startDate.getTime()) / 86_400_000);
   return Math.max(1, Math.floor(days / 7) + 1);
+}
+
+/**
+ * Roadmap P3.4 "Training consistency and adherence" — builds the per-day
+ * inputs `aggregateCycleAdherence` (cycle-adherence.util.ts) needs, over
+ * the cycle's own FULL planned window (`cycle.startDate` to
+ * `cycle.endDate` — deliberately not capped at "today" the way
+ * `getCycleReport`'s existing `windowEnd` is for nutrition, since a
+ * `planned` (upcoming) session is by definition still in the future).
+ * Reuses `classifyDayState` (P3.2, activity-heatmap.util.ts) UNCHANGED,
+ * per real calendar day — same reschedule-source-vs-destination logic
+ * Activity Heatmap already proved correct, applied here to one cycle's
+ * date range instead of an arbitrary [from,to].
+ */
+function buildCycleAdherenceDays(
+  schedules: Array<{ date: Date; status: string; originalPlannedDate: Date | null }>,
+  cycleStartDate: Date,
+  cycleEndDate: Date,
+  now: Date,
+): CycleAdherenceDayInput[] {
+  const todayLabel = scheduledDateLabel(todayAsScheduleDate(now));
+  const statusByDateLabel = new Map(schedules.map((s) => [scheduledDateLabel(s.date), s.status]));
+  const movedAwayDateLabels = new Set(
+    schedules.filter((s) => s.originalPlannedDate).map((s) => scheduledDateLabel(s.originalPlannedDate!)),
+  );
+
+  const days: CycleAdherenceDayInput[] = [];
+  const cursor = startOfUtcDay(cycleStartDate);
+  const end = startOfUtcDay(cycleEndDate);
+  while (cursor <= end) {
+    const dateLabel = scheduledDateLabel(cursor);
+    const state = classifyDayState({
+      dateLabel,
+      todayLabel,
+      scheduleStatusAtDate: statusByDateLabel.get(dateLabel) ?? null,
+      hasOriginalPlanMovedAway: movedAwayDateLabels.has(dateLabel),
+    });
+    days.push({ state, hasRealSchedule: statusByDateLabel.has(dateLabel) });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
 }
 
 async function buildRollingSummary(
@@ -881,6 +924,17 @@ export const trainingCycleService = {
 
     const totalDueSessions = completedSessions.length + missedSessions.length;
 
+    // Roadmap P3.4 "Training consistency and adherence" — the richer
+    // planned/completed/rescheduled/missed breakdown, built from the exact
+    // same `schedules` rows already fetched above (zero extra query).
+    // `completed`/`missed`/`upcoming`/`completionRate` above are left
+    // UNCHANGED (existing callers keep working) — this is purely additive.
+    const adherenceDays = buildCycleAdherenceDays(schedules, cycle.startDate, cycle.endDate, now);
+    const adherenceBreakdown = aggregateCycleAdherence(adherenceDays);
+    const rescheduledSessions = schedules
+      .filter((s) => s.originalPlannedDate)
+      .map((s) => ({ from: s.originalPlannedDate as Date, to: s.date, status: s.status }));
+
     const flags: string[] = [];
     if (proteinAdherencePct != null && proteinAdherencePct < 85) flags.push("PROTEIN_BELOW_TARGET");
     if (proteinPerKg != null && proteinPerKg < PROTEIN_EVIDENCE_RANGE_G_PER_KG.min) flags.push("PROTEIN_BELOW_EVIDENCE_RANGE");
@@ -902,6 +956,18 @@ export const trainingCycleService = {
         missedSessions: missedSessions.map((s) => ({ date: s.date })),
         sessionDetails,
         highPainSessions,
+        // Roadmap P3.4 — §24's own "planned / completed / rescheduled /
+        // missed" breakdown, over the cycle's FULL window (incl. future
+        // planned sessions, unlike the fields above). `adherencePct` can
+        // legitimately differ from `completionRate` above: completionRate
+        // is completed/(completed+missed) with NO reschedule visibility
+        // (a rescheduled-then-completed session just silently counts as
+        // completed, a rescheduled-then-still-pending one just vanishes
+        // from both numerator and denominator); adherencePct is
+        // completed/(completed+partial+missed+rescheduled) — every
+        // session that has already had its moment, reschedules included.
+        breakdown: adherenceBreakdown,
+        rescheduledSessions,
       },
       trainingLoad: {
         hasData: hasTrainingLoadData,

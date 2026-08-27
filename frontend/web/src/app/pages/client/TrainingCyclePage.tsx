@@ -1127,7 +1127,7 @@ function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () =
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+      <div data-testid="cycle-report-modal" className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800/60 sticky top-0 bg-zinc-900">
           <h3 className="text-zinc-100 font-bold flex items-center gap-2">
             <Flag className="w-4 h-4 text-green-400" />
@@ -1170,23 +1170,42 @@ function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () =
                 <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
                   <Dumbbell className="w-3.5 h-3.5 text-green-400" /> Buổi tập
                 </h4>
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-5 gap-2 text-center" data-testid="cycle-adherence-breakdown">
                   <div className="rounded-lg bg-zinc-800/60 p-2.5">
-                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.completed}</p>
+                    <p className="text-lg font-bold text-emerald-400" data-testid="adherence-pct">
+                      {reportQuery.data.workouts.breakdown.adherencePct != null
+                        ? `${reportQuery.data.workouts.breakdown.adherencePct}%`
+                        : "—"}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">Tuân thủ</p>
+                  </div>
+                  <div className="rounded-lg bg-zinc-800/60 p-2.5">
+                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.breakdown.completed}</p>
                     <p className="text-[11px] text-zinc-500">Hoàn thành</p>
                   </div>
                   <div className="rounded-lg bg-zinc-800/60 p-2.5">
-                    <p className="text-lg font-bold text-red-400">{reportQuery.data.workouts.missed}</p>
+                    <p className="text-lg font-bold text-sky-400">{reportQuery.data.workouts.breakdown.rescheduled}</p>
+                    <p className="text-[11px] text-zinc-500">Đã dời lịch</p>
+                  </div>
+                  <div className="rounded-lg bg-zinc-800/60 p-2.5">
+                    <p className="text-lg font-bold text-red-400">{reportQuery.data.workouts.breakdown.missed}</p>
                     <p className="text-[11px] text-zinc-500">Bỏ lỡ</p>
                   </div>
                   <div className="rounded-lg bg-zinc-800/60 p-2.5">
-                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.completionRate}%</p>
-                    <p className="text-[11px] text-zinc-500">Tỷ lệ</p>
+                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.breakdown.planned}</p>
+                    <p className="text-[11px] text-zinc-500">Sắp tới</p>
                   </div>
                 </div>
                 {reportQuery.data.workouts.missedSessions.length > 0 && (
                   <p className="mt-2 text-xs text-zinc-500">
                     Ngày bỏ lỡ: {reportQuery.data.workouts.missedSessions.map((s) => formatDate(s.date)).join(", ")}
+                  </p>
+                )}
+                {reportQuery.data.workouts.rescheduledSessions.length > 0 && (
+                  <p className="mt-1.5 text-xs text-sky-400" data-testid="cycle-rescheduled-sessions">
+                    Đã dời lịch: {reportQuery.data.workouts.rescheduledSessions
+                      .map((s) => `${formatDate(s.from)} → ${formatDate(s.to)}`)
+                      .join(", ")}
                   </p>
                 )}
                 {reportQuery.data.workouts.highPainSessions.length > 0 && (
@@ -1314,6 +1333,7 @@ function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
   return (
     <>
       <div
+        data-testid={`cycle-history-row-${cycle.id}`}
         onClick={() => isClosed && setShowReport(true)}
         className={`flex flex-col gap-2 rounded-xl border border-zinc-800/60 bg-zinc-900 p-3.5 sm:flex-row sm:items-center sm:justify-between ${isClosed ? "cursor-pointer hover:border-zinc-700" : ""}`}
       >
