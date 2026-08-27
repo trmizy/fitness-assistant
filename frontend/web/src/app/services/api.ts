@@ -4464,6 +4464,33 @@ export interface ActivityDayDetail {
   notes: string | null;
 }
 
+// Roadmap P3.3 "Exercise progress charts"
+// (docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md).
+export type ExerciseLoggingMode = "REPS_LOAD" | "BODYWEIGHT_REPS" | "TIME" | "TIME_LOAD" | "DISTANCE_TIME";
+
+export interface ExerciseProgressSessionPoint {
+  date: string;
+  workoutId: string;
+  maxWeightKg: number | null;
+  repsAtMaxWeight: number | null;
+  maxReps: number | null;
+  bestEstimated1RmKg: number | null;
+  bestSetWeightKg: number | null;
+  bestSetReps: number | null;
+  maxDurationSeconds: number | null;
+  maxDistanceMeters: number | null;
+  bestPaceSecPerKm: number | null;
+}
+
+export interface ExerciseProgressResult {
+  exerciseId: string;
+  exerciseName: string;
+  loggingMode: ExerciseLoggingMode;
+  from: string | null;
+  to: string | null;
+  sessions: ExerciseProgressSessionPoint[];
+}
+
 export const statsService = {
   getMuscleHeatmap: async (params: { range: "7d" | "30d" | "cycle" | "custom"; from?: string; to?: string }): Promise<MuscleHeatmapResult> => {
     const qs = new URLSearchParams({ range: params.range });
@@ -4478,6 +4505,14 @@ export const statsService = {
   },
   getActivityDayDetail: async (date: string): Promise<ActivityDayDetail> => {
     const { data } = await api.get(`/stats/activity-heatmap/day/${date}`);
+    return data;
+  },
+  getExerciseProgress: async (exerciseId: string, params?: { from?: string; to?: string }): Promise<ExerciseProgressResult> => {
+    const qs = new URLSearchParams();
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const { data } = await api.get(`/stats/exercise-progress/${exerciseId}${suffix}`);
     return data;
   },
 };

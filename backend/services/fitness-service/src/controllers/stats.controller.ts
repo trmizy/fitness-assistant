@@ -80,4 +80,29 @@ export const statsController = {
       res.status(500).json({ error: "Failed to fetch activity day detail" });
     }
   },
+
+  // Roadmap P3.3 "Exercise progress charts" (docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md).
+  async getExerciseProgress(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const from = req.query.from as string | undefined;
+      const to = req.query.to as string | undefined;
+      if ((from && !to) || (!from && to)) {
+        res.status(400).json({ error: "from and to must both be provided together (YYYY-MM-DD)" });
+        return;
+      }
+      if (from && to && (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to))) {
+        res.status(400).json({ error: "from and to must be YYYY-MM-DD" });
+        return;
+      }
+      const progress = await statsService.getExerciseProgress(req.user!.id, req.params.exerciseId, { from, to });
+      res.json(progress);
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise progress:", error);
+      res.status(500).json({ error: "Failed to fetch exercise progress" });
+    }
+  },
 };

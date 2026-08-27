@@ -25,5 +25,10 @@ router.get(
   authMiddleware,
   statsController.getActivityDayDetail as any,
 );
+router.get(
+  "/exercise-progress/:exerciseId",
+  authMiddleware,
+  statsController.getExerciseProgress as any,
+);
 
 export default router;

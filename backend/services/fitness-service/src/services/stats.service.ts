@@ -8,6 +8,7 @@ import {
 } from "../utils/schedule-lock.util";
 import { computeMuscleScores, normalizeToIntensity, type MuscleLink } from "../utils/muscle-heatmap.util";
 import { classifyDayState, type ActivityDayState } from "../utils/activity-heatmap.util";
+import { computeSessionProgressPoint, type CompletedSetInput } from "../utils/exercise-progress.util";
 import { trainingCycleService } from "./training-cycle.service";
 import { workoutService } from "./workout.service";
 
@@ -369,6 +370,97 @@ export const statsService = {
       rpeAverage: average(rpeValues),
       rirAverage: average(rirValues),
       notes: workout.notes ?? schedule.notes ?? null,
+    };
+  },
+
+  /**
+   * Roadmap P3.3 "Exercise progress charts" (§ 23,
+   * docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md). One data
+   * point per real session (workout) this user has logged completed sets
+   * for this exercise, ordered oldest-to-newest. Every field is computed
+   * directly from real `WorkoutSet` rows via the pure
+   * `computeSessionProgressPoint` — see that util's own doc comment for
+   * why mode-gating ("do not graph weight where not meaningful") is left
+   * to the frontend rather than done here.
+   *
+   * Visibility follows the same rule `import.service.ts`'s catalog
+   * lookup already uses for "exercises this user may reference": a
+   * public `SYSTEM` exercise, or a `USER_CUSTOM` exercise owned by this
+   * user. A `USER_CUSTOM` exercise owned by someone else 404s — same
+   * "not found" response as a genuinely nonexistent id, never leaking
+   * that a private exercise exists.
+   */
+  async getExerciseProgress(
+    userId: string,
+    exerciseId: string,
+    params: { from?: string; to?: string },
+  ) {
+    const exercise = await prisma.exercise.findFirst({
+      where: {
+        id: exerciseId,
+        archivedAt: null,
+        OR: [{ source: "SYSTEM" }, { source: "USER_CUSTOM", ownerId: userId }],
+      },
+      select: { id: true, exerciseName: true, loggingMode: true },
+    });
+    if (!exercise) throw { status: 404, message: "Exercise not found" };
+
+    let from: Date | undefined;
+    let to: Date | undefined;
+    if (params.from || params.to) {
+      const parsedFrom = parseDateOnlyUtc(params.from);
+      const parsedTo = parseDateOnlyUtc(params.to);
+      if (!parsedFrom || !parsedTo) {
+        throw { status: 400, message: "from and to must both be provided as YYYY-MM-DD" };
+      }
+      from = parsedFrom;
+      to = parsedTo;
+    }
+
+    const workoutExercises = await prisma.workoutExercise.findMany({
+      where: {
+        exerciseId,
+        workout: {
+          userId,
+          ...(from && to ? { date: { gte: from, lte: to } } : {}),
+        },
+      },
+      select: {
+        workoutId: true,
+        workout: { select: { date: true } },
+        workoutSets: {
+          where: { completed: true },
+          select: { weight: true, reps: true, durationSeconds: true, distanceMeters: true },
+        },
+      },
+    });
+
+    // A single workout can carry more than one WorkoutExercise row for the
+    // same exercise (e.g. logged again later in the same session) —
+    // grouped by workoutId so every real completed set for this exercise
+    // this session feeds one combined session point, never split into two
+    // artificial "sessions" on the same real date.
+    const setsByWorkoutId = new Map<string, { date: Date; sets: CompletedSetInput[] }>();
+    for (const we of workoutExercises) {
+      const entry = setsByWorkoutId.get(we.workoutId) ?? { date: we.workout.date, sets: [] };
+      entry.sets.push(...we.workoutSets);
+      setsByWorkoutId.set(we.workoutId, entry);
+    }
+
+    const sessions = [...setsByWorkoutId.entries()]
+      .filter(([, entry]) => entry.sets.length > 0)
+      .map(([workoutId, entry]) =>
+        computeSessionProgressPoint(scheduledDateLabel(entry.date), workoutId, entry.sets),
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      exerciseId: exercise.id,
+      exerciseName: exercise.exerciseName,
+      loggingMode: exercise.loggingMode,
+      from: from ? scheduledDateLabel(from) : null,
+      to: to ? scheduledDateLabel(to) : null,
+      sessions,
     };
   },
 };

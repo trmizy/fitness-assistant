@@ -7290,6 +7290,21 @@ export function WorkoutLogPage() {
                   <ExerciseMuscleMap exerciseId={showExerciseDetail.dbId} />
                 </div>
               )}
+
+              {/* Roadmap P3.3 "Exercise progress charts" — only offered
+                  when a real DB exercise id is known, same gating the
+                  muscle map above already uses (a manually-typed custom
+                  exercise with no dbId has nothing to chart). */}
+              {showExerciseDetail.dbId && (
+                <button
+                  type="button"
+                  data-testid="view-exercise-progress-link"
+                  onClick={() => navigate(`/client/exercise-progress/${showExerciseDetail.dbId}`)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3 text-sm text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                >
+                  <TrendingUp className="w-4 h-4" /> Xem tiến độ theo thời gian
+                </button>
+              )}
             </div>
           </div>
         </div>
