@@ -43,6 +43,15 @@ router.get(
   authMiddleware,
   workoutController.getExerciseProgressionExplanation as any,
 );
+// Roadmap P3.6 "Exercise history detail page" — aggregates charts/PRs
+// (P3.3), recent sessions (pre-existing), and progression (above) into
+// one page-ready response. Named route, must stay before /:id (see note
+// above).
+router.get(
+  "/exercises/:exerciseId/history",
+  authMiddleware,
+  workoutController.getExerciseHistoryDetail as any,
+);
 router.get(
   "/schedules",
   authMiddleware,

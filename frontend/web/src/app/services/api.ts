@@ -454,6 +454,43 @@ export interface ExerciseProgression {
   dataQuality: "SUFFICIENT" | "LOW_SAMPLE" | "NONE";
 }
 
+// Roadmap P3.6 "Exercise history detail page"
+// (docs/features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md).
+export interface ExerciseHistoryPersonalRecord {
+  metric: "e1rm" | "reps" | "duration" | "distance" | "pace";
+  value: number;
+  weightKg: number | null;
+  reps: number | null;
+  date: string;
+}
+
+export interface ExerciseHistorySessionSet {
+  setNumber: number;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  setType: string | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+}
+
+export interface ExerciseHistoryRecentSession {
+  workoutId: string;
+  workoutName: string;
+  date: string;
+  notes: string | null;
+  sets: ExerciseHistorySessionSet[];
+}
+
+export interface ExerciseHistoryDetail {
+  exercise: { id: string; name: string; loggingMode: ExerciseLoggingMode };
+  personalRecord: ExerciseHistoryPersonalRecord | null;
+  progression: ExerciseProgression | null;
+  recentSessions: ExerciseHistoryRecentSession[];
+  chart: { sessions: ExerciseProgressSessionPoint[] };
+}
+
 export const workoutService = {
   logWorkout: async (workout: any) => {
     const { data } = await api.post("/workouts", workout);
@@ -621,6 +658,13 @@ export const workoutService = {
     const { data } = await api.get(
       `/workouts/exercises/${exerciseId}/progression${qs}`,
     );
+    return data;
+  },
+
+  // Roadmap P3.6 "Exercise history detail page" — one aggregated call
+  // powering the whole page (charts + PR + recent sessions + progression).
+  getExerciseHistory: async (exerciseId: string): Promise<ExerciseHistoryDetail> => {
+    const { data } = await api.get(`/workouts/exercises/${exerciseId}/history`);
     return data;
   },
 

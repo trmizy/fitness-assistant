@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { workoutService } from "../services/workout.service";
 import { sessionFeedbackService } from "../services/session-feedback.service";
+import { exerciseHistoryService } from "../services/exercise-history.service";
 import {
   completeScheduleExerciseSchema,
   createManualProgramSchema,
@@ -153,6 +154,23 @@ export const workoutController = {
       }
       logger.error("Error fetching exercise progression:", error);
       res.status(500).json({ error: "Failed to fetch exercise progression" });
+    }
+  },
+
+  // Roadmap P3.6 "Exercise history detail page"
+  // (docs/features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md).
+  async getExerciseHistoryDetail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const result = await exerciseHistoryService.getExerciseHistoryDetail(req.user!.id, exerciseId);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise history detail:", error);
+      res.status(500).json({ error: "Failed to fetch exercise history detail" });
     }
   },
 

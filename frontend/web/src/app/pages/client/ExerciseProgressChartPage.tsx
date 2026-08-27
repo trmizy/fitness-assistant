@@ -10,16 +10,30 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import { ArrowLeft, LineChart as LineChartIcon, Loader2 } from "lucide-react";
 import {
-  statsService,
+  ArrowLeft,
+  LineChart as LineChartIcon,
+  Loader2,
+  Trophy,
+  TrendingUp,
+  History,
+  Repeat,
+} from "lucide-react";
+import {
+  workoutService,
+  exerciseService,
   type ExerciseLoggingMode,
   type ExerciseProgressSessionPoint,
+  type ExerciseHistorySessionSet,
 } from "../../services/api";
 
 /**
- * Roadmap P3.3 "Exercise progress charts" (§ 23,
- * docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md).
+ * Roadmap P3.3 "Exercise progress charts" (§ 23) + P3.6 "Exercise
+ * history detail page" (§ 26,
+ * docs/features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md) — extended
+ * in place rather than split into a second page/URL, per §26's own "a
+ * better place for deep history" framing (one coherent destination per
+ * exercise, not two).
  *
  * Entry point: the "Xem tiến độ" link in WorkoutLogPage.tsx's existing
  * Exercise Detail modal.
@@ -27,11 +41,11 @@ import {
  * §23's explicit warning — "do not graph 'weight' for exercises where
  * weight is not meaningful" — is enforced here, in the one place that
  * decides which chart lines to render, per `Exercise.loggingMode`. The
- * backend deliberately does NOT pre-filter by mode (see
- * exercise-progress.util.ts's own doc comment) — every field is real or
- * null, and a chart is additionally only rendered when at least one real
- * session actually has that field populated, so a mode with genuinely no
- * matching data never shows an empty misleading chart either.
+ * backend deliberately does NOT pre-filter by mode — every field is real
+ * or null, and a chart is additionally only rendered when at least one
+ * real session actually has that field populated, so a mode with
+ * genuinely no matching data never shows an empty misleading chart
+ * either.
  */
 
 type ChartSpec = {
@@ -41,7 +55,6 @@ type ChartSpec = {
   color: string;
   unit: string;
   note?: string;
-  formatValue?: (v: number) => string;
 };
 
 const CHART_SPECS_BY_MODE: Record<ExerciseLoggingMode, ChartSpec[]> = {
@@ -81,27 +94,66 @@ const MODE_LABELS: Record<ExerciseLoggingMode, string> = {
   DISTANCE_TIME: "Quãng đường/thời gian",
 };
 
+const PROGRESSION_STATUS_LABELS: Record<string, string> = {
+  KEEP: "Giữ nguyên mức hiện tại",
+  INCREASE_LOAD: "Tăng tải",
+  INCREASE_REPS: "Tăng số rep",
+  INCREASE_SETS: "Tăng số set",
+  DELOAD: "Giảm tải để phục hồi",
+  REVIEW: "Xem lại trước khi thay đổi",
+  INSUFFICIENT_DATA: "Chưa đủ dữ liệu để kết luận",
+};
+
 const tooltipStyle = {
   contentStyle: { background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 },
   labelStyle: { color: "#a1a1aa" },
 };
+
+function formatPersonalRecordLine(pr: NonNullable<Awaited<ReturnType<typeof workoutService.getExerciseHistory>>["personalRecord"]>): string {
+  if (pr.metric === "e1rm") return `${pr.weightKg}kg × ${pr.reps} reps (~${Math.round(pr.value)}kg 1RM)`;
+  if (pr.metric === "reps") return `${pr.value} reps`;
+  if (pr.metric === "duration") return `${pr.value} giây`;
+  if (pr.metric === "distance") return `${Math.round(pr.value)}m`;
+  return `${pr.value}`;
+}
+
+// A generic, mode-agnostic per-set summary — shows whichever fields this
+// specific set actually has (never guesses/fabricates the others).
+function formatSetSummary(set: ExerciseHistorySessionSet): string {
+  const parts: string[] = [];
+  if (set.weight != null) parts.push(`${set.weight}kg`);
+  if (set.reps != null) parts.push(`${set.reps} reps`);
+  if (set.durationSeconds != null) parts.push(`${set.durationSeconds}s`);
+  if (set.distanceMeters != null) parts.push(`${Math.round(set.distanceMeters)}m`);
+  if (set.rpe != null) parts.push(`RPE ${set.rpe}`);
+  return parts.length > 0 ? parts.join(" · ") : "—";
+}
 
 export function ExerciseProgressChartPage() {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const navigate = useNavigate();
 
   const query = useQuery({
-    queryKey: ["exercise-progress", exerciseId],
-    queryFn: () => statsService.getExerciseProgress(exerciseId!),
+    queryKey: ["exercise-history", exerciseId],
+    queryFn: () => workoutService.getExerciseHistory(exerciseId!),
     enabled: !!exerciseId,
+  });
+
+  // Independent of the main query — a slow/failed substitute lookup must
+  // never block the rest of the page from rendering.
+  const substitutesQuery = useQuery({
+    queryKey: ["exercise-substitutes", exerciseId],
+    queryFn: () => exerciseService.getSubstitutes(exerciseId!, { limit: 3 }),
+    enabled: !!exerciseId,
+    retry: false,
   });
 
   const specs = useMemo(() => {
     if (!query.data) return [];
-    const all = CHART_SPECS_BY_MODE[query.data.loggingMode] ?? [];
+    const all = CHART_SPECS_BY_MODE[query.data.exercise.loggingMode] ?? [];
     // A spec is only worth rendering when at least one real session
     // actually has that dimension populated — never an empty chart.
-    return all.filter((spec) => query.data!.sessions.some((s) => s[spec.dataKey] != null));
+    return all.filter((spec) => query.data!.chart.sessions.some((s) => s[spec.dataKey] != null));
   }, [query.data]);
 
   return (
@@ -118,18 +170,31 @@ export function ExerciseProgressChartPage() {
         <>
           <div>
             <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold" data-testid="exercise-progress-title">
-              <LineChartIcon className="w-5 h-5 text-emerald-400" /> {query.data.exerciseName}
+              <LineChartIcon className="w-5 h-5 text-emerald-400" /> {query.data.exercise.name}
             </h1>
             <p className="text-zinc-500 text-sm mt-0.5">
-              Tiến độ theo thời gian · {MODE_LABELS[query.data.loggingMode] ?? query.data.loggingMode}
+              Lịch sử tập luyện · {MODE_LABELS[query.data.exercise.loggingMode] ?? query.data.exercise.loggingMode}
             </p>
           </div>
 
-          {query.data.sessions.length === 0 ? (
+          {query.data.personalRecord && (
+            <div
+              className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-3"
+              data-testid="exercise-history-pr"
+            >
+              <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
+              <div>
+                <p className="text-[10px] text-amber-300/80 uppercase tracking-wider">Kỷ lục cá nhân</p>
+                <p className="text-sm text-zinc-100 font-semibold">{formatPersonalRecordLine(query.data.personalRecord)}</p>
+              </div>
+            </div>
+          )}
+
+          {query.data.chart.sessions.length === 0 ? (
             <div className="glass-panel rounded-xl p-10 text-center" data-testid="exercise-progress-empty">
               <p className="text-zinc-400 font-semibold mb-1">Chưa có dữ liệu</p>
               <p className="text-zinc-600 text-sm">
-                Hoàn thành ít nhất một buổi tập với bài này để xem biểu đồ tiến độ.
+                Hoàn thành ít nhất một buổi tập với bài này để xem lịch sử.
               </p>
             </div>
           ) : (
@@ -145,7 +210,7 @@ export function ExerciseProgressChartPage() {
                     {spec.note && <p className="text-[10px] text-zinc-600">{spec.note}</p>}
                   </div>
                   <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={query.data!.sessions}>
+                    <LineChart data={query.data!.chart.sessions}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} />
                       <YAxis tick={{ fontSize: 10, fill: "#71717a" }} domain={["auto", "auto"]} />
@@ -185,6 +250,74 @@ export function ExerciseProgressChartPage() {
                   </ResponsiveContainer>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Roadmap P3.6 — progression decision, reused unchanged from the
+              deterministic /progression endpoint (never a second copy of
+              that logic). Fail-soft on the backend, so null here just
+              means "not shown", never a broken page. */}
+          {query.data.progression && query.data.progression.status !== "INSUFFICIENT_DATA" && (
+            <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4" data-testid="exercise-history-progression">
+              <p className="text-xs font-bold text-zinc-300 mb-1 flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-sky-400" /> Đề xuất tiến độ
+              </p>
+              <p className="text-sm text-sky-200">
+                {PROGRESSION_STATUS_LABELS[query.data.progression.status] ?? query.data.progression.status}
+              </p>
+            </div>
+          )}
+
+          {/* Recent sessions — real per-set breakdown, mirrors what the
+              user actually logged (never a recommendation). */}
+          {query.data.recentSessions.length > 0 && (
+            <div data-testid="exercise-history-recent-sessions">
+              <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-zinc-400" /> Buổi tập gần đây
+              </h4>
+              <div className="space-y-2">
+                {query.data.recentSessions.map((session) => (
+                  <div
+                    key={session.workoutId}
+                    className="rounded-xl border border-zinc-700/40 bg-zinc-900/50 p-3"
+                    data-testid={`exercise-history-session-${session.workoutId}`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-xs text-zinc-300 font-semibold">{session.workoutName}</p>
+                      <p className="text-[10px] text-zinc-500">{session.date}</p>
+                    </div>
+                    <div className="space-y-1">
+                      {session.sets.map((set) => (
+                        <p key={set.setNumber} className="text-[11px] text-zinc-400">
+                          Set {set.setNumber}: {formatSetSummary(set)}
+                        </p>
+                      ))}
+                    </div>
+                    {session.notes && <p className="mt-1.5 text-[11px] text-zinc-500 italic">"{session.notes}"</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Substitutions "if available" (§26) — a separate, independent
+              request against the existing equipment-aware /substitute
+              endpoint, never blocking the rest of the page. */}
+          {substitutesQuery.data && substitutesQuery.data.length > 0 && (
+            <div data-testid="exercise-history-substitutes">
+              <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5 text-zinc-400" /> Bài tập thay thế
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {substitutesQuery.data.map((sub) => (
+                  <span
+                    key={sub.id}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-xs text-zinc-300"
+                  >
+                    {sub.exerciseName}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </>

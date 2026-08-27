@@ -395,7 +395,12 @@ export const workoutRepository = {
       orderBy: { workout: { date: "desc" } },
       take: limit,
       select: {
-        workout: { select: { date: true } },
+        workout: { select: { id: true, date: true, name: true } },
+        // Roadmap P3.6 "Exercise history detail page" — §26's own "notes"
+        // bullet reads this per real logged instance. Purely additive
+        // (existing callers, e.g. exercise-progression.engine.ts's input
+        // mapping, only ever destructure the fields they already used).
+        notes: true,
         workoutSets: {
           where: { completed: true },
           orderBy: { setNumber: "asc" },
