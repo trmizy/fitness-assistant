@@ -6,6 +6,7 @@ import { profileService } from "../services/profile.service";
 import { profileRepository } from "../repositories/profile.repository";
 import { inbodyService } from "../services/inbody.service";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
+import { notificationService } from "../services/notification.service";
 
 const router = Router();
 
@@ -154,5 +155,26 @@ router.post(
   "/contracts/:id/cancel-after-refund",
   contractController.cancelAfterRefund as any,
 );
+
+// Roadmap P4.1 "Notifications/reminders" (§27) — fitness-service calls
+// this to persist a real, listable notification (never had a write path
+// into this table before — see notification.client.ts's own doc comment
+// in fitness-service for the disclosed gap this closes). Reuses
+// notificationService.create UNCHANGED — same preference-gating,
+// same real-time push, as every other notification source in this app.
+router.post("/notifications", async (req, res) => {
+  const { userId, text, eventType, entityType, entityId, link } = req.body ?? {};
+  if (!userId || !text || !eventType || !entityType || !entityId) {
+    res.status(400).json({ error: "userId, text, eventType, entityType, entityId are required" });
+    return;
+  }
+  try {
+    const notification = await notificationService.create({ userId, text, eventType, entityType, entityId, link });
+    res.json({ notification });
+  } catch (error: any) {
+    logger.error(error, "Internal notification create failed");
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

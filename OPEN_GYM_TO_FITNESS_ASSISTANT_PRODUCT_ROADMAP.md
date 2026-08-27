@@ -1811,58 +1811,58 @@ second page for the same exercise — almost every §26 bullet was already
 served by prior work, composed rather than re-implemented (see § 46's
 "Exercise history detail" row).
 
+~~The next implementation task is now: P4.1 — NOTIFICATIONS/REMINDERS
+(§ 27)~~ — **done.** Scope confirmed with the user via `AskUserQuestion`
+before implementing (architecture: extend user-service's existing
+`Notification` model rather than a fitness-service-local store; type
+scope: all 6 types including PT feedback, which required building a
+real PT-feedback-sending mechanism from scratch). See § 46's
+"Notifications/reminders" row for full evidence, including a real
+authorization bug this pass's own E2E test found and fixed.
+
 **The next implementation task is now:**
 
-# P4.1 — NOTIFICATIONS/REMINDERS (§ 27)
+# P4.2 — PWA / INSTALLABILITY (§ 28)
 
-First P4 (polish) item — the only tier left besides the
-environment-blocked Apple Health/Health Connect item. §27's own
-potential notification types: upcoming workout, rescheduled workout,
-rest timer, unfinished active workout, PT feedback, plan update. Needs
-preference controls; must not spam; rest-timer notification must stay
-session-scoped (never a push notification that outlives the tab/session
-it was started in). This is real, meaningfully NEW infrastructure (no
-prior notification-delivery mechanism to audit-and-reuse the way P3.1-
-P3.6 each found) — audit `notification.routes.ts`/`Notification` model
-in user-service first (P2.6/earlier sessions already built a real
-in-app notification list — `NotificationEventType`/`NotificationEntityType`
-enums exist there), since it may already be the right delivery
-substrate for several of these 6 types (rescheduled workout, PT
-feedback, plan update) rather than needing a new mechanism. Browser
-push/service-worker-based delivery (for "upcoming workout"/"rest timer"
-specifically) is a genuinely different, PWA-adjacent concern from
-in-app notifications — do not conflate the two without first confirming
-which of the 6 types actually need which delivery channel. Given the
-real scope (6 notification types × preference controls × anti-spam
-logic × possibly 2 delivery channels), this is a strong candidate for
-an `AskUserQuestion` scope check before implementing, per this
-roadmap's own § 45.13 ("do not implement multiple high-blast-radius
-milestones in one overnight pass") — the same discipline already
-applied before P2/P3.1/P3.6-adjacent big-scope decisions this session.
+Final roadmap item besides the environment-blocked Apple Health/Health
+Connect item. After active-workout offline resilience is proven (P1.7,
+already DONE this session — see its own IndexedDB-backed durable event
+queue), improve: manifest, service worker, asset caching, update
+strategy, installability, offline shell. Explicit warning: do not let
+stale service-worker caches trap users on an old app version — need
+version/update UX. Real infrastructure to audit before designing: P1.7's
+own impact analysis already flagged that a literal "reload while fully
+offline" needs a service worker this app doesn't have yet — this
+milestone is that follow-up. Also audit whether a manifest/PWA
+scaffold already exists in `frontend/web/public/` or the Vite config
+(a `vite-plugin-pwa`-style setup may already be partially present) before
+building one from scratch. Given real scope (manifest + service worker +
+caching strategy + versioned update UX, each with real user-facing
+failure modes if done carelessly — the roadmap's own explicit warning),
+treat this the same as P4.1: audit first, then a scope check before
+implementing broadly.
 
 Before coding, create:
 
 ```text
-docs/features/NOTIFICATIONS_REMINDERS_IMPACT_ANALYSIS.md
+docs/features/PWA_INSTALLABILITY_IMPACT_ANALYSIS.md
 ```
 
 ---
 
-# 44. After Exercise History Detail Page — P3 fully DONE, entering P4
+# 44. After Notifications/Reminders
 
 ~~Next order: Reschedule → Superset → Active Workout Offline Resilience →
 Custom Exercises → Import Framework → Health Integration →
 Visualization~~ — everything through the full P2 tier except the
-environment-blocked Health Integration item, plus the ENTIRE P3
-visualization tier (Muscle Heatmap, Activity Heatmap, Exercise Progress
-Charts, Training Consistency and Adherence, Planned vs Actual Training
-Volume, Exercise History Detail Page), is now **done**. Updated
+environment-blocked Health Integration item, the ENTIRE P3 visualization
+tier, and P4.1 Notifications/Reminders, is now **done**. Updated
 remaining order:
 
 ```text
 Apple Health / Android Health Connect integration — still BLOCKED in
   this environment (no native mobile tooling to build or verify it)
-→ P4 polish — notifications/reminders (next) → PWA/installability
+→ P4 polish — PWA/installability (next, LAST roadmap item)
 ```
 
 Do not reorder simply because another feature looks easier unless impact analysis demonstrates a strong reason.
@@ -1895,22 +1895,23 @@ Agents should maintain this table as work progresses.
 
 **As of 2026-08-27: P0 is DONE/READY, all 9 P1-tier items are DONE, P2
 is 6/7 done (entire tier complete except one item blocked by this
-environment), and P3 is 6/6 DONE — the entire visualization tier is
-complete.** The full 3-provider import trio (Canonical import framework
-+ Hevy §14/§15, Strong §16, FitNotes §17), JSON/CSV export (§19),
-Workout template sharing/import (§20), Muscle Heatmap (§21), Activity
-Heatmap (§22), Exercise Progress Charts (§23), Training Consistency and
-Adherence (§24), Planned vs Actual Training Volume (§25), and Exercise
-History Detail Page (§26) are all DONE. Every DONE row below has a
-linked `docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test
+environment), P3 is 6/6 DONE — the entire visualization tier is
+complete — and P4 is 1/2 done.** The full 3-provider import trio
+(Canonical import framework + Hevy §14/§15, Strong §16, FitNotes §17),
+JSON/CSV export (§19), Workout template sharing/import (§20), Muscle
+Heatmap (§21), Activity Heatmap (§22), Exercise Progress Charts (§23),
+Training Consistency and Adherence (§24), Planned vs Actual Training
+Volume (§25), Exercise History Detail Page (§26), and Notifications/
+Reminders (§27) are all DONE. Every DONE row below has a linked
+`docs/features/*_IMPACT_ANALYSIS.md` with real backend/E2E test
 evidence and disclosed scope decisions/known gaps — nothing below is
 marked DONE without that evidence. **Apple Health/
 Health Connect (§18)
 is BLOCKED in this environment** (no native iOS/Android tooling to
 build or verify it — see § 43), confirmed by the user to skip rather
-than attempt unverifiably. All of P4 (polish) is still TODO — see
-§ 43/§ 44 for the recommended next task (P4.1 Notifications/Reminders)
-and ordering.
+than attempt unverifiably. P4 (polish) has one item left — see § 43/§ 44
+for the recommended next task (P4.2 PWA/Installability, the LAST
+roadmap item) and ordering.
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
@@ -1937,7 +1938,7 @@ and ordering.
 | Exercise progress charts | P3 | **DONE (all 7 trend types)** | Every one of §23's 7 trend types (weight/rep/e1RM/best-set/duration/distance-pace/bodyweight-rep) computed from real completed `WorkoutSet` rows — never `WorkoutExercise`'s coarser aggregate fields, continuing this session's own established P3.1/P3.2 convention. A pure `computeSessionProgressPoint` (new `exercise-progress.util.ts`) returns every field per real session, always `null` (never guessed) when a dimension has no real data that session — §23's own explicit warning ("do not graph 'weight' for exercises where weight is not meaningful") is enforced by the FRONTEND chart component instead, gating which lines render by `Exercise.loggingMode` AND by whether any real session actually has that field populated, so a stale/incorrect `loggingMode` never hides genuinely-present real data. **Scope decisions**: "rep trend" and "bodyweight-rep trend" are the same underlying `maxReps` computation, exposed once and labeled per mode by the frontend, not duplicated; "best-set trend" is defined as the (weight, reps) pair of the session's highest-e1RM set — the same set the e1RM-trend line already tracks, exposed with its own weight/reps detail for a tooltip rather than a second independent metric. Range is optional `from`/`to`, defaulting to full history (unlike the heatmaps' fixed preset windows) — a progression chart's whole point is the long-run view. **Real audit finding**: `workoutService.getPRs`/`findExercisePRs` — despite the name — is NOT a real timeseries (exactly one row per exercise, the single all-time max off `WorkoutExercise`'s coarse aggregate `weight` field, no e1RM at all), so it was correctly NOT reused; new code reads real `WorkoutSet` rows grouped by workout instead. New `GET /stats/exercise-progress/:exerciseId` on the existing `stats` route family. No dedicated per-exercise history page exists yet (that's §26 P3.6, a later milestone) — this pass's entry point is a new "Xem tiến độ" link in `WorkoutLogPage.tsx`'s existing Exercise Detail modal (gated by a real DB exercise id, same as the muscle map already shown there), opening a new standalone `/client/exercise-progress/:exerciseId` page with mode-appropriate `recharts` line charts. Visibility follows the same `SYSTEM`-or-owned-`USER_CUSTOM` rule `import.service.ts`'s catalog lookup already uses — a private custom exercise owned by someone else 404s, never confirming existence. See `docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md`. Unit 10/10 (new, `exercise-progress.util.test.ts`). Backend integration 3/3 (new, `exercise-progress.service.integration.test.ts` — real chronological series incl. same-workout multi-row merge, range narrowing, and 404 privacy scoping for both a nonexistent id and another user's private custom exercise). `tsc --noEmit` clean, frontend `npm run build` clean. E2E 1/1 (new, `49-exercise-progress-charts.spec.ts` — real seeded 2-session weight progression renders the real weight/rep/e1RM charts). Regression: `33-smart-set-prefill.spec.ts` (5 sub-tests, shares the `WorkoutLogPage.tsx` this pass also touched) + `47-muscle-heatmap.spec.ts` + `48-activity-heatmap.spec.ts` (both share `stats.service.ts`, which gained a new sibling function this pass) — 7/7 still passing. No real bug found this pass — pure new-aggregation-read on already-correct data. |
 | Training consistency and adherence | P3 | **DONE** | §24: show `planned/completed/rescheduled/missed`, not raw count only. `getCycleReport`'s pre-existing `workouts` breakdown WAS exactly that raw-count-only shape — worse, a genuinely rescheduled session (P1.2's mechanism: same row, `date` column updated in place) simply reappeared under `completed`/`missed`/`upcoming` at its NEW date with zero trace a reschedule ever happened, real gap confirmed by re-reading against P1.2's own mechanism. Fixed additively: new `workouts.breakdown` (`{completed, partial, missed, rescheduled, planned, adherencePct}`) + `workouts.rescheduledSessions`, computed by a new pure `aggregateCycleAdherence` (`cycle-adherence.util.ts`) fed by a per-cycle-window day loop reusing P3.2's `classifyDayState` **completely unchanged** — the exact reuse this session's own roadmap note predicted. Every pre-existing field (`completed`/`missed`/`upcoming`/`completionRate`/`missedSessions`) is untouched, so no existing caller changes behavior. `computeAdherence` (used everywhere else — Decision Engine, classification, alerts, nutrition engine) is also untouched. **Disclosed, deliberate divergence**: the new `adherencePct` (day-based, reschedule-aware) can legitimately differ from the pre-existing `completionRate` (row-based, reschedule-blind) — documented in both the code and the impact analysis with a real worked example (25% vs 33% for the same seeded cycle) rather than silently reconciled or hidden. New `/client/workout` → "Chu kỳ tập luyện" tab → cycle report modal gains a 5-column Adherence/Completed/Rescheduled/Missed/Planned grid (was a 3-column Completed/Missed/Rate grid) plus a "Đã dời lịch: ..." line. See `docs/features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md`. Unit 8/8 (new, `cycle-adherence.util.test.ts`). Backend integration 1/1 (new, `cycle-adherence-breakdown.integration.test.ts` — a real cycle with all 5 states incl. a genuine reschedule, proving both the new breakdown AND the old fields' continued internal consistency under their own definitions, with real numbers showing the legitimate divergence). `tsc --noEmit` clean, frontend `npm run build` clean. E2E 1/1 (new, `50-training-cycle-adherence-breakdown.spec.ts` — real seeded closed cycle with a real reschedule, opened through the actual existing report-modal UI flow). Regression: `13-training-cycle-fixes.spec.ts` (2/2, same Training Cycle tab this pass touched) + `37-reschedule-workout.spec.ts` (2/2, shares the exact reschedule mechanism this pass's breakdown reads) — 4/4 still passing. |
 | Planned vs actual | P3 | **DONE (mode-gated)** | §25's own explicit warning: avoid oversimplified "volume = always kg × reps" across all logging modes. Real audit finding: `computeVolumeByWeek` (used elsewhere for training-load/monotony) already does exactly that oversimplification, silently skipping every bodyweight/timed/distance set — left completely unchanged (still correct for its own existing purpose), NOT reused here. New mode-gated comparison instead, continuing P3.3's own established "exactly one metric per `loggingMode`, never blended" discipline: `REPS_LOAD`→volume (Σweight×reps), `BODYWEIGHT_REPS`→reps, `TIME`/`TIME_LOAD`→duration (`TIME_LOAD`'s weight target deliberately not folded into a volume number — weight×duration isn't an established metric), `DISTANCE_TIME`→actual-only. **Real schema gap found**: `WorkoutProgramExercise` has no `distance` column at all — a `DISTANCE_TIME` exercise can never have a planned distance target in this schema today; disclosed explicitly rather than guessed at. Built on `WorkoutSchedule.programDayId`/`workoutId` (both pre-existing) — the plan a completed session was FOR and what was actually logged are each one hop away, no new schema. Scoped to plan-anchored exercises only (§25: "current program/cycle plan AND completed sessions") — an ad-hoc substitution never part of the plan has nothing to compare against and is excluded. Continues this session's own P3.4 pattern of additively extending the one existing `getCycleReport` endpoint rather than adding a parallel one — new top-level `plannedVsActual: {byExercise, totals}`, every pre-existing field untouched. New "Kế hoạch so với thực tế" section in `TrainingCyclePage.tsx`'s report modal. See `docs/features/PLANNED_VS_ACTUAL_VOLUME_IMPACT_ANALYSIS.md`. Unit 11/11 (new, `planned-vs-actual.util.test.ts`). Backend integration 1/1 (new, `planned-vs-actual.integration.test.ts` — a real seeded program day with a REPS_LOAD + a BODYWEIGHT_REPS exercise, a real matching completed workout, proving correct mode-gated per-exercise AND cycle-total numbers with cross-mode fields correctly null). `tsc --noEmit` clean, frontend `npm run build` clean. E2E 1/1 (new, `51-planned-vs-actual-volume.spec.ts` — real seeded program+session renders the real 680/1200kg (57%) comparison through the actual report-modal UI flow). Regression: `13-training-cycle-fixes.spec.ts` (2/2) + `50-training-cycle-adherence-breakdown.spec.ts` (1/1, P3.4's own spec, shares the same extended endpoint/modal) — 3/3 still passing. |
-| Notifications/reminders | P4 | TODO | Preference-controlled |
+| Notifications/reminders | P4 | **DONE (all 6 types, scope confirmed with user)** | §27: upcoming workout, rescheduled workout, rest timer, unfinished active workout, PT feedback, plan update — preference-controlled, must not spam, rest timer stays session-scoped. Real audit finding: a full, real, working notification system already existed in user-service (`Notification` model + real-time push via chat-service + a real generic Topbar bell) but scoped ENTIRELY to PT/contract/booking events, zero workout-domain types; fitness-service already had a real-time-ONLY push mechanism with a disclosed, undisclosed-until-now-closed gap (no persistence, offline users lost notifications forever). Scope confirmed via `AskUserQuestion` before implementing: extend the existing `Notification` model (2 new enum sets + a new `NotificationPreference` model, both purely additive) rather than a fitness-service-local store (would have fragmented the notification UX across two systems); all 6 types including PT feedback, which had **no existing send mechanism anywhere in this codebase** — built as a deliberately minimal, real feature (a free-text message anchored to an ACTIVE `Contract`, delivered as a `Notification`, not a new threaded-reply system). New cross-service WRITE path (fitness-service → user-service's new internal `/internal/notifications`) — the first time fitness-service has ever written into user-service (every prior cross-service call was a read). Real schema constraint disclosed: `WorkoutSchedule.date` is day-granularity only (no time-of-day column anywhere), so "upcoming workout" is necessarily "scheduled today, not yet started," not a precise "in N hours" reminder. Two new background jobs (fitness-service's first ever) mirror user-service's own proven `setInterval`+overlap-guard+injectable-deps sweep-job pattern exactly, with idempotency via 2 new nullable tracking columns (never fire the same reminder twice for the same row). "Rescheduled workout" and "plan update" hook into the existing, already-proven `rescheduleSchedule`/`createAndAssignPlan` functions, both unchanged otherwise. Topbar's generic bell needed no structural change at all. **Real bug found and fixed**: the new PT-feedback controller initially copied this file's pre-existing `x-user-id`-header convention (only populated by the gateway's own proxy-time injection) instead of `req.user!.id` (set correctly by `authMiddleware` regardless of path) — a request reaching the service directly read `undefined`, silently 403'ing the real PT; caught by this pass's own E2E test, not assumed correct, then fixed and re-verified. See `docs/features/NOTIFICATIONS_REMINDERS_IMPACT_ANALYSIS.md`. Unit 5/5 (new, fitness-service `workout-reminder.service.test.ts`). Backend integration: user-service 8/8 (new, preference gating + PT feedback, full suite 184/184 with zero regressions) + fitness-service 3/3 (new, real sweep queries against real seeded data). `tsc --noEmit` clean both services, frontend `npm run build` clean. E2E 3/3 (new, `53-notifications-reminders.spec.ts` — real reschedule → real bell notification, real 2-account PT feedback → real bell notification, real preference toggle survives a real reload). Regression: `37-reschedule-workout.spec.ts` (2/2) + `coach.service.integration.test.ts` (5/5) + `reschedule-schedule.integration.test.ts` (8/8) — all still passing. |
 | PWA/installability polish | P4 | TODO | After offline core |
 
 ---

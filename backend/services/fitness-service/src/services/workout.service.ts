@@ -4,7 +4,8 @@ import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
-import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate, scheduledDateLabel } from "../utils/schedule-lock.util";
+import { createPersistentNotification } from "../clients/notification.client";
 import { withIdempotentEvent } from "../utils/workout-idempotency.util";
 import { estimate1RM } from "../utils/estimated-1rm.util";
 import {
@@ -2050,7 +2051,7 @@ export const workoutService = {
     }
 
     try {
-      return await prisma.workoutSchedule.update({
+      const updated = await prisma.workoutSchedule.update({
         where: { id },
         data: {
           date: newDate,
@@ -2061,6 +2062,21 @@ export const workoutService = {
           rescheduleReason: reason ?? null,
         },
       });
+
+      // Roadmap P4.1 "Notifications/reminders" (§27) — a real, listable
+      // confirmation record of the reschedule (same "you just did X, here's
+      // a record of it" convention as e.g. an order confirmation), not a
+      // blocker to the reschedule itself succeeding (best-effort, see
+      // createPersistentNotification's own doc comment).
+      void createPersistentNotification({
+        userId,
+        text: `Đã dời lịch buổi tập từ ${scheduledDateLabel(existing.date)} sang ${scheduledDateLabel(newDate)}`,
+        eventType: "WORKOUT_RESCHEDULED",
+        entityId: id,
+        link: "/client/workout",
+      });
+
+      return updated;
     } catch (error: any) {
       // Defensive: the explicit conflict check above already covers the
       // common case, but a concurrent request could still race past it —

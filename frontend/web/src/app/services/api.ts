@@ -3633,6 +3633,12 @@ export const contractService = {
     const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
     return data;
   },
+  // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
+  // message to their client on an active contract.
+  sendFeedback: async (contractId: string, text: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/feedback`, { text });
+    return data;
+  },
 };
 
 // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — PT/coach access to
@@ -3857,7 +3863,25 @@ export const notificationService = {
     const { data } = await api.get("/notifications/unread-count");
     return data;
   },
+  // Roadmap P4.1 "Notifications/reminders" (§27) — preference controls.
+  getPreferences: async (): Promise<NotificationPreferences> => {
+    const { data } = await api.get("/notifications/preferences");
+    return data;
+  },
+  updatePreferences: async (patch: Partial<NotificationPreferences>): Promise<NotificationPreferences> => {
+    const { data } = await api.put("/notifications/preferences", patch);
+    return data;
+  },
 };
+
+// Roadmap P4.1 "Notifications/reminders" (§27).
+export interface NotificationPreferences {
+  workoutUpcomingEnabled: boolean;
+  workoutRescheduledEnabled: boolean;
+  workoutUnfinishedEnabled: boolean;
+  planUpdatedEnabled: boolean;
+  ptFeedbackEnabled: boolean;
+}
 
 export const ptPlanReviewService = {
   getPendingReviews: async () => {

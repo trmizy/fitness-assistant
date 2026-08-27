@@ -795,6 +795,41 @@ export const contractService = {
     return contractRepository.findByIdWithSessions(id);
   },
 
+  // Roadmap P4.1 "Notifications/reminders" (§27) — "PT feedback" is one
+  // of §27's own listed notification types, but no PT-sends-feedback
+  // mechanism existed anywhere in this codebase before this pass (real
+  // audit finding, not assumed). Scoped minimally and deliberately: a
+  // single free-text message a PT sends about a specific ACTIVE
+  // contract, delivered as a real, listable Notification — not a new
+  // threaded conversation/reply feature (that already exists separately,
+  // via chat). Anchored to Contract (not a specific workout) since that
+  // is the one relationship this service already has a real, verified
+  // trust boundary for — no cross-service call into fitness-service
+  // needed at all.
+  async sendFeedback(contractId: string, ptUserId: string, text: string) {
+    const trimmed = text?.trim();
+    if (!trimmed) throw err("Feedback text is required", 400);
+    if (trimmed.length > 1000) throw err("Feedback text must be 1000 characters or fewer", 400);
+
+    const contract = await contractRepository.findById(contractId);
+    if (!contract) throw err("Contract not found", 404);
+    if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (contract.status !== ContractStatus.ACTIVE) {
+      throw err("Feedback can only be sent on an active contract", 409);
+    }
+
+    const notification = await notificationService.create({
+      userId: contract.clientUserId,
+      text: `PT gửi phản hồi: ${trimmed}`,
+      eventType: "PT_FEEDBACK_RECEIVED",
+      entityType: "CONTRACT",
+      entityId: contractId,
+      link: `/client/services`,
+    });
+
+    return { notification };
+  },
+
   async updateStatus(
     id: string,
     userId: string,

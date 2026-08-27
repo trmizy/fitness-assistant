@@ -29,6 +29,7 @@ import { TemplatesPage } from "./pages/client/TemplatesPage";
 import { MuscleHeatmapPage } from "./pages/client/MuscleHeatmapPage";
 import { ActivityHeatmapPage } from "./pages/client/ActivityHeatmapPage";
 import { ExerciseProgressChartPage } from "./pages/client/ExerciseProgressChartPage";
+import { NotificationPreferencesPage } from "./pages/client/NotificationPreferencesPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -130,6 +131,7 @@ export const router = createBrowserRouter([
           { path: "muscle-heatmap", Component: MuscleHeatmapPage },
           { path: "activity-heatmap", Component: ActivityHeatmapPage },
           { path: "exercise-progress/:exerciseId", Component: ExerciseProgressChartPage },
+          { path: "notification-preferences", Component: NotificationPreferencesPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },

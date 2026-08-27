@@ -166,6 +166,9 @@ export function PTContractsPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
+  // Roadmap P4.1 "Notifications/reminders" (§27) — PT feedback.
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ["pt-contracts", tab],
@@ -193,6 +196,16 @@ export function PTContractsPage() {
     },
     onError: (err: any) =>
       toast.error(err?.response?.data?.error || "Failed to reject"),
+  });
+
+  const feedbackMutation = useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) => contractService.sendFeedback(id, text),
+    onSuccess: () => {
+      toast.success("Đã gửi phản hồi cho khách hàng");
+      setFeedbackId(null);
+      setFeedbackText("");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Không thể gửi phản hồi"),
   });
 
   // This button only ever shows for status === "ACTIVE" (real, paid money already split into
@@ -745,12 +758,21 @@ export function PTContractsPage() {
                         </>
                       )}
                       {c.status === "ACTIVE" && (
-                        <button
-                          onClick={() => setCancelId(c.id)}
-                          className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <Ban className="w-3.5 h-3.5" /> Cancel Contract
-                        </button>
+                        <>
+                          <button
+                            data-testid={`send-feedback-${c.id}`}
+                            onClick={() => setFeedbackId(c.id)}
+                            className="flex items-center gap-1.5 border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" /> Gửi phản hồi
+                          </button>
+                          <button
+                            onClick={() => setCancelId(c.id)}
+                            className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Ban className="w-3.5 h-3.5" /> Cancel Contract
+                          </button>
+                        </>
                       )}
                       <div className="ml-auto text-xs text-zinc-600 self-center">
                         Created {formatDate(c.createdAt)}
@@ -761,6 +783,49 @@ export function PTContractsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Roadmap P4.1 "Notifications/reminders" — Send Feedback Dialog */}
+      {feedbackId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-5 border-b border-zinc-800/60">
+              <h3 className="text-zinc-100 font-bold">Gửi phản hồi cho khách hàng</h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-zinc-400">
+                Tin nhắn này sẽ xuất hiện trong danh sách thông báo của khách hàng.
+              </p>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={4}
+                maxLength={1000}
+                placeholder="Ví dụ: Tuần này bạn tiến bộ rõ rệt, tiếp tục duy trì nhé!"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-sky-500/50 resize-none"
+              />
+            </div>
+            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
+              <button
+                onClick={() => {
+                  setFeedbackId(null);
+                  setFeedbackText("");
+                }}
+                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                data-testid="send-feedback-submit"
+                onClick={() => feedbackMutation.mutate({ id: feedbackId, text: feedbackText })}
+                disabled={!feedbackText.trim() || feedbackMutation.isPending}
+                className="flex-1 py-2.5 bg-sky-500 text-black text-sm font-semibold rounded-lg hover:bg-sky-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {feedbackMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Gửi
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

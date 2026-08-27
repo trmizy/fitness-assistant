@@ -38,4 +38,27 @@ export const notificationRepository = {
     prisma.notification.count({
       where: { userId, unread: true },
     }),
+
+  // Roadmap P4.1 "Notifications/reminders" (§27) — preference controls.
+  // No row yet means "everything on" (see NotificationPreference's own
+  // schema doc comment) — getOrDefault never creates a row just to read
+  // it, only findPreference's caller (notificationService) decides that.
+  findPreference: (userId: string) =>
+    prisma.notificationPreference.findUnique({ where: { userId } }),
+
+  upsertPreference: (
+    userId: string,
+    data: Partial<{
+      workoutUpcomingEnabled: boolean;
+      workoutRescheduledEnabled: boolean;
+      workoutUnfinishedEnabled: boolean;
+      planUpdatedEnabled: boolean;
+      ptFeedbackEnabled: boolean;
+    }>,
+  ) =>
+    prisma.notificationPreference.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    }),
 };

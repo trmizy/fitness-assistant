@@ -517,6 +517,28 @@ export const contractController = {
     }
   },
 
+  // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
+  // message to their client on an active contract. Uses req.user (set by
+  // authMiddleware, applied directly to this route) rather than this
+  // file's other methods' `x-user-id` header convention — that header is
+  // only ever populated by the GATEWAY's own proxy-time injection, so a
+  // request that reaches this service directly (bypassing the gateway)
+  // would silently read undefined. req.user works correctly either way.
+  async sendFeedback(req: any, res: Response) {
+    try {
+      const ptUserId = req.user!.id as string;
+      const result = await contractService.sendFeedback(req.params.id, ptUserId, req.body?.text);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Contract sendFeedback error');
+      res.status(500).json({ error: 'Failed to send feedback' });
+    }
+  },
+
   // Money view of a contract — either party may read it, nobody else.
   async moneyBreakdown(req: any, res: Response) {
     try {

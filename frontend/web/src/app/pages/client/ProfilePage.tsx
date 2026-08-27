@@ -18,6 +18,7 @@ import {
   Share2,
   Flame,
   CalendarDays,
+  Bell,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -756,6 +757,27 @@ export function ProfilePage() {
             <div className="text-sm font-semibold text-zinc-200">Lịch hoạt động tập luyện</div>
             <div className="text-xs text-zinc-600 mt-0.5">
               Xem lịch sử tập theo tháng — hoàn thành, một phần, bỏ lỡ, dời lịch, nghỉ
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
+
+      {/* Roadmap P4.1 "Notifications/reminders" */}
+      <button
+        type="button"
+        data-testid="notification-preferences-link"
+        onClick={() => navigate("/client/notification-preferences")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-sky-500/10 border border-sky-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Bell className="w-5 h-5 text-sky-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Cài đặt thông báo</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Bật/tắt nhắc nhở buổi tập, dời lịch, cập nhật kế hoạch, phản hồi từ PT
             </div>
           </div>
         </div>

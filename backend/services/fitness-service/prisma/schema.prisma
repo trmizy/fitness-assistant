@@ -610,6 +610,13 @@ model WorkoutSchedule {
   originalPlannedDate DateTime? @map("original_planned_date")
   rescheduledAt       DateTime? @map("rescheduled_at")
   rescheduleReason    String?   @map("reschedule_reason")
+  // Roadmap P4.1 "Notifications/reminders" (§27) — idempotency tracking
+  // for the two new reminder background jobs (upcoming / unfinished),
+  // same pattern this schema already uses for one-time state elsewhere
+  // (rescheduledAt above). Never reset once set, so a job that runs every
+  // few minutes never re-sends the same reminder for the same row twice.
+  upcomingReminderSentAt   DateTime? @map("upcoming_reminder_sent_at")
+  unfinishedReminderSentAt DateTime? @map("unfinished_reminder_sent_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
