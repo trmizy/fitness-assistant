@@ -7,7 +7,9 @@ import {
   scheduledDateLabel,
 } from "../utils/schedule-lock.util";
 import { computeMuscleScores, normalizeToIntensity, type MuscleLink } from "../utils/muscle-heatmap.util";
+import { classifyDayState, type ActivityDayState } from "../utils/activity-heatmap.util";
 import { trainingCycleService } from "./training-cycle.service";
+import { workoutService } from "./workout.service";
 
 const STREAK_LOOKBACK_DAYS = 400;
 
@@ -242,5 +244,131 @@ export const statsService = {
       .sort((a, b) => b.score - a.score);
 
     return { range: params.range, from: scheduledDateLabel(from), to: scheduledDateLabel(to), noActiveCycle: false, muscles };
+  },
+
+  /**
+   * Roadmap P3.2 "Activity heatmap" (docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md).
+   * Returns every calendar day in [from, to] with its classified state
+   * (or null for a future day — see classifyDayState's own doc comment).
+   */
+  async getActivityHeatmap(userId: string, from: Date, to: Date) {
+    const todayLabel = scheduledDateLabel(todayAsScheduleDate());
+
+    const [schedulesAtDate, schedulesMovedAway] = await Promise.all([
+      prisma.workoutSchedule.findMany({
+        where: { userId, date: { gte: from, lte: to } },
+        select: { date: true, status: true },
+      }),
+      prisma.workoutSchedule.findMany({
+        where: { userId, originalPlannedDate: { gte: from, lte: to, not: null } },
+        select: { originalPlannedDate: true },
+      }),
+    ]);
+
+    const statusByDateLabel = new Map(schedulesAtDate.map((s) => [scheduledDateLabel(s.date), s.status]));
+    const movedAwayDateLabels = new Set(
+      schedulesMovedAway.filter((s) => s.originalPlannedDate).map((s) => scheduledDateLabel(s.originalPlannedDate!)),
+    );
+
+    const days: Array<{ date: string; state: ActivityDayState | null }> = [];
+    const cursor = new Date(from);
+    while (cursor <= to) {
+      const dateLabel = scheduledDateLabel(cursor);
+      const state = classifyDayState({
+        dateLabel,
+        todayLabel,
+        scheduleStatusAtDate: statusByDateLabel.get(dateLabel) ?? null,
+        hasOriginalPlanMovedAway: movedAwayDateLabels.has(dateLabel),
+      });
+      days.push({ date: dateLabel, state });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    return { from: scheduledDateLabel(from), to: scheduledDateLabel(to), days };
+  },
+
+  /**
+   * Roadmap P3.2 "Activity heatmap" — click-through day detail. Reuses
+   * workoutService.getSessionSummary UNCHANGED for real PR data (the
+   * exact same logic the end-of-session completion screen already
+   * uses) — never a second, possibly-divergent PR implementation.
+   */
+  async getActivityDayDetail(userId: string, dateLabel: string) {
+    const parsed = parseDateOnlyUtc(dateLabel);
+    if (!parsed) throw { status: 400, message: "date must be YYYY-MM-DD" };
+
+    const todayLabel = scheduledDateLabel(todayAsScheduleDate());
+    const schedule = await prisma.workoutSchedule.findFirst({
+      where: { userId, date: parsed },
+    });
+
+    const movedAway = schedule
+      ? false
+      : !!(await prisma.workoutSchedule.findFirst({ where: { userId, originalPlannedDate: parsed } }));
+
+    const state = classifyDayState({
+      dateLabel,
+      todayLabel,
+      scheduleStatusAtDate: schedule?.status ?? null,
+      hasOriginalPlanMovedAway: movedAway,
+    });
+
+    if (!schedule?.workoutId) {
+      return { date: dateLabel, state, workout: null, volumeKg: null, durationMinutes: null, prs: [], rpeAverage: null, rirAverage: null, notes: schedule?.notes ?? null };
+    }
+
+    const workout = await prisma.workout.findUnique({ where: { id: schedule.workoutId } });
+    if (!workout) {
+      return { date: dateLabel, state, workout: null, volumeKg: null, durationMinutes: null, prs: [], rpeAverage: null, rirAverage: null, notes: schedule.notes ?? null };
+    }
+
+    // Volume/RPE/RIR computed directly from real per-set WorkoutSet rows
+    // — NOT from getSessionSummary's own totalVolumeKg, which sums
+    // WorkoutExercise's coarse weight/reps/sets AGGREGATE fields (a
+    // single flat value per exercise, assuming every set was identical).
+    // Real finding while writing this feature's own integration test: a
+    // workout logged set-by-set (this app's actual, current logging UX
+    // — see roadmap's own P1.1 Smart Set-by-Set Prefill) never
+    // necessarily populates those coarse aggregate fields at all, so
+    // getSessionSummary's volume undercounts (in this test's case, all
+    // the way to 0) for exactly the genuinely-varying-per-set data this
+    // whole feature exists to visualize accurately. Summing real
+    // WorkoutSet rows directly is both more precise AND already this
+    // codebase's own established "set-by-set is the source of truth"
+    // convention (recomputeScheduleProgress, this session's own P2
+    // import commit path, etc.) — not a new pattern invented here.
+    const sets = await prisma.workoutSet.findMany({
+      where: { completed: true, workoutExercise: { workoutId: workout.id } },
+      select: { weight: true, reps: true, rpe: true, rir: true },
+    });
+    const exerciseCount = await prisma.workoutExercise.count({ where: { workoutId: workout.id } });
+    const volumeKg = sets.reduce((sum, s) => (s.weight != null && s.reps != null ? sum + s.weight * s.reps : sum), 0);
+    const rpeValues = sets.map((s) => s.rpe).filter((v): v is number => v != null);
+    const rirValues = sets.map((s) => s.rir).filter((v): v is number => v != null);
+    const average = (values: number[]) => (values.length ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10 : null);
+
+    // PRs are still reused UNCHANGED from getSessionSummary — that
+    // comparison (best single set vs prior best, by e1RM) is correct
+    // regardless of the aggregate-fields limitation above, since it only
+    // ever needs one best set, not a sum.
+    let prs: any[] = [];
+    try {
+      const summary = await workoutService.getSessionSummary(userId, workout.id);
+      prs = (summary as any)?.prs ?? [];
+    } catch {
+      // Never blocks the rest of the detail if the summary itself fails.
+    }
+
+    return {
+      date: dateLabel,
+      state,
+      workout: { id: workout.id, name: workout.name, exerciseCount },
+      volumeKg: Math.round(volumeKg * 10) / 10,
+      durationMinutes: workout.duration ?? null,
+      prs,
+      rpeAverage: average(rpeValues),
+      rirAverage: average(rirValues),
+      notes: workout.notes ?? schedule.notes ?? null,
+    };
   },
 };

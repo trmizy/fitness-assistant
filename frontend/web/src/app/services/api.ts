@@ -4442,12 +4442,42 @@ export interface MuscleHeatmapResult {
   muscles: MuscleHeatmapEntry[];
 }
 
+// Roadmap P3.2 "Activity heatmap"
+// (docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md).
+export type ActivityDayState = "completed" | "partial" | "missed" | "rescheduled" | "rest";
+
+export interface ActivityHeatmapResult {
+  from: string;
+  to: string;
+  days: Array<{ date: string; state: ActivityDayState | null }>;
+}
+
+export interface ActivityDayDetail {
+  date: string;
+  state: ActivityDayState | null;
+  workout: { id: string; name: string; exerciseCount: number | null } | null;
+  volumeKg: number | null;
+  durationMinutes: number | null;
+  prs: Array<{ exerciseId: string; exerciseName: string; prType: string; weightKg: number | null; reps: number | null; estimated1RmKg: number | null }>;
+  rpeAverage: number | null;
+  rirAverage: number | null;
+  notes: string | null;
+}
+
 export const statsService = {
   getMuscleHeatmap: async (params: { range: "7d" | "30d" | "cycle" | "custom"; from?: string; to?: string }): Promise<MuscleHeatmapResult> => {
     const qs = new URLSearchParams({ range: params.range });
     if (params.from) qs.set("from", params.from);
     if (params.to) qs.set("to", params.to);
     const { data } = await api.get(`/stats/muscle-heatmap?${qs.toString()}`);
+    return data;
+  },
+  getActivityHeatmap: async (from: string, to: string): Promise<ActivityHeatmapResult> => {
+    const { data } = await api.get(`/stats/activity-heatmap?from=${from}&to=${to}`);
+    return data;
+  },
+  getActivityDayDetail: async (date: string): Promise<ActivityDayDetail> => {
+    const { data } = await api.get(`/stats/activity-heatmap/day/${date}`);
     return data;
   },
 };

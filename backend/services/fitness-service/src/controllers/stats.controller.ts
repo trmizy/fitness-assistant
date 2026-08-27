@@ -49,4 +49,35 @@ export const statsController = {
       res.status(500).json({ error: "Failed to fetch muscle heatmap" });
     }
   },
+
+  // Roadmap P3.2 "Activity heatmap" (docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md).
+  async getActivityHeatmap(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const from = req.query.from as string | undefined;
+      const to = req.query.to as string | undefined;
+      if (!from || !to || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+        res.status(400).json({ error: "from and to are required (YYYY-MM-DD)" });
+        return;
+      }
+      const heatmap = await statsService.getActivityHeatmap(req.user!.id, new Date(`${from}T00:00:00.000Z`), new Date(`${to}T00:00:00.000Z`));
+      res.json(heatmap);
+    } catch (error: any) {
+      logger.error("Error fetching activity heatmap:", error);
+      res.status(500).json({ error: "Failed to fetch activity heatmap" });
+    }
+  },
+
+  async getActivityDayDetail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const detail = await statsService.getActivityDayDetail(req.user!.id, req.params.date);
+      res.json(detail);
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching activity day detail:", error);
+      res.status(500).json({ error: "Failed to fetch activity day detail" });
+    }
+  },
 };

@@ -17,6 +17,7 @@ import {
   Download,
   Share2,
   Flame,
+  CalendarDays,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -734,6 +735,27 @@ export function ProfilePage() {
             <div className="text-sm font-semibold text-zinc-200">Bản đồ nhiệt nhóm cơ</div>
             <div className="text-xs text-zinc-600 mt-0.5">
               Xem nhóm cơ nào bạn tập nhiều nhất theo tuần, tháng hoặc chu kỳ
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
+
+      {/* Roadmap P3.2 "Activity heatmap" */}
+      <button
+        type="button"
+        data-testid="activity-heatmap-link"
+        onClick={() => navigate("/client/activity-heatmap")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <CalendarDays className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Lịch hoạt động tập luyện</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Xem lịch sử tập theo tháng — hoàn thành, một phần, bỏ lỡ, dời lịch, nghỉ
             </div>
           </div>
         </div>
