@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Fitness AI</title>
+  <rect width="512" height="512" rx="112" fill="#0b1020"/>
+  <path d="M134 296h36v-80h-36c-18 0-32 14-32 32v16c0 18 14 32 32 32Z" fill="#16a34a"/>
+  <path d="M342 296h36c18 0 32-14 32-32v-16c0-18-14-32-32-32h-36v80Z" fill="#16a34a"/>
+  <path d="M174 200h44v112h-44zM294 200h44v112h-44z" fill="#bbf7d0"/>
+  <path d="M214 238h84v36h-84z" fill="#f8fafc"/>
+  <circle cx="256" cy="256" r="156" fill="none" stroke="#22c55e" stroke-width="22" opacity=".28"/>
+  <path d="M256 116v50M256 346v50M116 256h50M346 256h50" stroke="#38bdf8" stroke-width="20" stroke-linecap="round"/>
+</svg>
+

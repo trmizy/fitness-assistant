@@ -68,6 +68,7 @@ import { RequireRole } from "./components/RequireRole";
 import { RequireOnboarding } from "./components/RequireOnboarding";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
+import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,7 @@ function Root() {
         <SocketProvider>
           <CallProvider>
             <Toaster position="top-center" expand={false} richColors />
+            <PwaUpdatePrompt />
             <Outlet />
           </CallProvider>
         </SocketProvider>
