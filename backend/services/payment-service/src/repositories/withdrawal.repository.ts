@@ -17,9 +17,18 @@ export const withdrawalRepository = {
   findByWallet: (walletId: string) =>
     prisma.withdrawalRequest.findMany({ where: { walletId }, orderBy: { createdAt: 'desc' } }),
 
+  /**
+   * Backs the admin resolution queue (GET /admin/payments/withdrawals) — everything still
+   * awaiting a real bank transfer. APPROVED must stay included: "Duyệt" is an optional
+   * lock-it-for-later step (see withdrawal.service.ts#approve), not a terminal state, and an
+   * admin who approves now to pay later needs to be able to find the request again afterward.
+   * Originally PENDING-only, which silently dropped every approved-but-unpaid request from the
+   * admin's own queue the moment they clicked "Duyệt" — found live via TC-WD-007 in the E2E
+   * suite: an admin could approve a request and then never see it again to mark it paid.
+   */
   listPending: (limit = 100) =>
     prisma.withdrawalRequest.findMany({
-      where: { status: 'PENDING' },
+      where: { status: { in: ['PENDING', 'APPROVED'] } },
       orderBy: { createdAt: 'asc' },
       take: limit,
     }),
@@ -27,13 +36,31 @@ export const withdrawalRepository = {
   listByStatus: (status: WithdrawalRequestStatus, limit = 100) =>
     prisma.withdrawalRequest.findMany({ where: { status }, orderBy: { createdAt: 'asc' }, take: limit }),
 
-  /** Money-flow plan 5.3: "số dư khả dụng trừ đi các yêu cầu đang chờ" — PENDING and
-   * APPROVED both still owe this amount out of availableBalance; only PAID has actually
-   * left the wallet (that debit is a real ledger entry, already reflected in
-   * wallet.availableBalance itself). REJECTED never counted. */
+  /**
+   * Money-flow plan 5.3 — "số dư khả dụng trừ đi các yêu cầu đang chờ". Still needed for the
+   * CLIENT branch of requestWithdrawal, whose withdrawable amount is computed from summed
+   * ledger credits (refund/compensation-sourced), not from wallet.availableBalance directly —
+   * that formula has no other way to know about an APPROVED-but-unpaid request.
+   *
+   * P0 cluster F: everywhere else, use sumPendingAmount instead. Since approve() now actually
+   * moves an APPROVED request's amount out of availableBalance into lockedBalance,
+   * wallet.availableBalance already reflects that reduction on its own — subtracting it again
+   * here would double-count it. Only a still-PENDING request (nothing moved yet) needs
+   * subtracting from a raw availableBalance read.
+   */
   async sumOpenAmount(walletId: string): Promise<Prisma.Decimal> {
     const rows = await prisma.withdrawalRequest.aggregate({
       where: { walletId, status: { in: ['PENDING', 'APPROVED'] } },
+      _sum: { amount: true },
+    });
+    return rows._sum.amount ?? ZERO;
+  },
+
+  /** P0 cluster F — see sumOpenAmount's comment for why this is the one to use against
+   * wallet.availableBalance directly (the non-CLIENT branch of requestWithdrawal). */
+  async sumPendingAmount(walletId: string): Promise<Prisma.Decimal> {
+    const rows = await prisma.withdrawalRequest.aggregate({
+      where: { walletId, status: 'PENDING' },
       _sum: { amount: true },
     });
     return rows._sum.amount ?? ZERO;

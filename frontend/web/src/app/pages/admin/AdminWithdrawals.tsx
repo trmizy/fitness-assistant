@@ -85,8 +85,11 @@ export function AdminWithdrawals() {
           <Banknote className="w-5 h-5 text-green-400" /> Yêu cầu rút tiền
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Duyệt rồi tự chuyển khoản thủ công bên ngoài hệ thống, sau đó bấm "Đã chi trả" và nhập
-          mã tham chiếu — tiền chỉ thực sự bị trừ khỏi ví ở bước này.
+          Số dư đã đủ điều kiện rút ngay khi tạo yêu cầu — không có bước "duyệt xem có được rút
+          hay không" nào cả. "Duyệt" chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc
+          chuyển khoản thật sẽ mất thời gian; nếu chuyển được ngay, có thể bấm thẳng "Đã chi trả"
+          mà không cần Duyệt trước. Chuyển khoản thủ công bên ngoài hệ thống xong thì nhập mã
+          tham chiếu — tiền chỉ thực sự bị trừ khỏi ví ở bước "Đã chi trả".
         </p>
       </div>
 
@@ -100,9 +103,9 @@ export function AdminWithdrawals() {
           <p className="text-zinc-600 text-sm">Không có yêu cầu rút tiền nào đang chờ xử lý.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div data-testid="admin-withdrawal-requests-list" className="space-y-4">
           {requests.map((r) => (
-            <div key={r.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5">
+            <div key={r.id} data-testid="admin-withdrawal-request-card" data-request-id={r.id} data-status={r.status} data-owner-type={r.ownerType} data-amount={r.amount} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
                   <p className="text-sm font-semibold text-zinc-200">
@@ -136,6 +139,7 @@ export function AdminWithdrawals() {
                     Xác nhận đã chuyển khoản <span className="text-green-400 font-bold">{formatVND(Number(r.amount))}</span> thủ công, nhập mã tham chiếu ngân hàng:
                   </p>
                   <input
+                    data-testid="admin-withdrawal-bank-reference-input"
                     value={bankReference}
                     onChange={(e) => setBankReference(e.target.value)}
                     placeholder="VD: VCB-TXN-20260824-001"
@@ -149,6 +153,7 @@ export function AdminWithdrawals() {
                       Huỷ
                     </button>
                     <button
+                      data-testid="admin-withdrawal-confirm-paid-button"
                       onClick={() => markPaidMutation.mutate({ id: r.id, bankReference })}
                       disabled={!bankReference.trim() || markPaidMutation.isPending}
                       className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
@@ -160,6 +165,7 @@ export function AdminWithdrawals() {
               ) : rejectingId === r.id ? (
                 <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3">
                   <textarea
+                    data-testid="admin-withdrawal-reject-reason-input"
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="Lý do từ chối..."
@@ -173,6 +179,7 @@ export function AdminWithdrawals() {
                       Huỷ
                     </button>
                     <button
+                      data-testid="admin-withdrawal-confirm-reject-button"
                       onClick={() => rejectMutation.mutate({ id: r.id, reason: rejectReason })}
                       disabled={!rejectReason.trim() || rejectMutation.isPending}
                       className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-all"
@@ -185,20 +192,24 @@ export function AdminWithdrawals() {
                 <div className="flex gap-2 flex-wrap">
                   {r.status === "PENDING" && (
                     <button
+                      data-testid="admin-withdrawal-approve-button"
                       onClick={() => approveMutation.mutate(r.id)}
                       disabled={approveMutation.isPending}
+                      title="Tuỳ chọn: khoá số tiền này lại trước, để việc chuyển khoản có mất thời gian cũng không bị nghiệp vụ khác ăn vào số dư. Không bấm cũng được — bấm thẳng &quot;Đã chi trả&quot; khi chuyển khoản xong."
                       className="flex items-center gap-1 border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                     >
-                      <Check className="w-3.5 h-3.5" /> Duyệt
+                      <Check className="w-3.5 h-3.5" /> Duyệt (giữ chỗ trước, không bắt buộc)
                     </button>
                   )}
                   <button
+                    data-testid="admin-withdrawal-mark-paid-toggle"
                     onClick={() => setPayingId(r.id)}
                     className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
                     <Banknote className="w-3.5 h-3.5" /> Đã chi trả
                   </button>
                   <button
+                    data-testid="admin-withdrawal-reject-toggle"
                     onClick={() => setRejectingId(r.id)}
                     className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   >

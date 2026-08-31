@@ -86,9 +86,13 @@ export function GymManagePage() {
   });
 
   const openGymWithdrawals = gymWithdrawals.filter((w) => w.status === "PENDING" || w.status === "APPROVED");
+  // Money-flow §16: PENDING/APPROVED are not an eligibility gate — the balance was already
+  // withdrawable the moment the request was created. Both states just mean "an admin still
+  // has to physically send a bank transfer" (no payout API is integrated); APPROVED only
+  // means that transfer's amount has been reserved so nothing else can eat into it meanwhile.
   const WITHDRAWAL_STATUS_LABEL: Record<string, string> = {
-    PENDING: "Đang chờ duyệt",
-    APPROVED: "Đã duyệt — chờ chi trả",
+    PENDING: "Đang chờ xử lý — sẽ chuyển khoản thủ công",
+    APPROVED: "Đã giữ chỗ — đang chờ chuyển khoản",
     PAID: "Đã chi trả",
     REJECTED: "Bị từ chối",
   };
@@ -151,7 +155,7 @@ export function GymManagePage() {
           <WalletIcon className="w-5 h-5 text-green-400" />
           <div>
             <div className="text-xs text-zinc-400">Có thể rút</div>
-            <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+            <div data-testid="gym-wallet-available-balance" data-value={wallet?.availableBalance ?? "0"} className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
           </div>
         </div>
         <div>
@@ -159,6 +163,7 @@ export function GymManagePage() {
           <div className="text-base font-semibold text-amber-400">{formatVND(Number(wallet?.pendingBalance ?? 0))}</div>
         </div>
         <button
+          data-testid="gym-request-withdrawal-toggle"
           onClick={() => setShowWithdrawForm((v) => !v)}
           className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
         >
@@ -168,6 +173,7 @@ export function GymManagePage() {
         {showWithdrawForm && (
           <div className="w-full bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3.5 space-y-2">
             <input
+              data-testid="gym-withdraw-amount-input"
               type="number"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -175,6 +181,7 @@ export function GymManagePage() {
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
             <input
+              data-testid="gym-withdraw-payout-info-input"
               value={withdrawPayoutInfo}
               onChange={(e) => setWithdrawPayoutInfo(e.target.value)}
               placeholder="Số tài khoản / ngân hàng nhận tiền"
@@ -185,6 +192,7 @@ export function GymManagePage() {
                 Huỷ
               </button>
               <button
+                data-testid="gym-withdraw-submit-button"
                 onClick={() => withdrawMutation.mutate()}
                 disabled={!withdrawAmount || !withdrawPayoutInfo.trim() || withdrawMutation.isPending}
                 className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
@@ -196,9 +204,9 @@ export function GymManagePage() {
         )}
 
         {openGymWithdrawals.length > 0 && (
-          <div className="w-full space-y-1.5">
+          <div data-testid="gym-open-withdrawal-requests" className="w-full space-y-1.5">
             {openGymWithdrawals.map((w) => (
-              <div key={w.id} className="flex items-center justify-between text-xs bg-zinc-900/60 border border-zinc-800/60 rounded-lg px-3 py-2">
+              <div key={w.id} data-testid="gym-withdrawal-request-row" data-status={w.status} data-amount={w.amount} className="flex items-center justify-between text-xs bg-zinc-900/60 border border-zinc-800/60 rounded-lg px-3 py-2">
                 <span className="text-zinc-400">{formatVND(Number(w.amount))}</span>
                 <span className="text-amber-400 font-medium">{WITHDRAWAL_STATUS_LABEL[w.status] ?? w.status}</span>
               </div>

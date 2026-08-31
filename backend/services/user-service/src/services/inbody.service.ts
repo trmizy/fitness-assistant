@@ -70,7 +70,24 @@ export const inbodyService = {
     inbodyUploadsTotal.inc({ method: "manual" });
     const measuredDate = data.date ? new Date(data.date) : new Date();
     const dateOnly = startOfUtcDay(measuredDate);
-    const payload = { ...data, date: measuredDate, dateOnly };
+
+    // The manual-entry form only marks "Cân nặng" (weight) and "Ngày kiểm tra" (date) as
+    // required (*) — every other field, including "Mỡ cơ thể (kg)" (bodyFat), is presented as
+    // optional. But bodyFat is a non-nullable column, so a perfectly reasonable submission
+    // (weight + bodyFatPct, skipping the kg field many people don't know off-hand) used to hit
+    // an uncaught Prisma validation error and a raw 500 the frontend couldn't even show a
+    // message for — found live via TC-AI-001 in the E2E suite. Derive it from weight ×
+    // bodyFatPct/100 when it's missing but derivable; only reject (with a real 400, not a raw
+    // 500) when there's truly no way to know it.
+    let bodyFat = data.bodyFat;
+    if ((bodyFat === undefined || bodyFat === null) && data.weight != null && data.bodyFatPct != null) {
+      bodyFat = Math.round(Number(data.weight) * (Number(data.bodyFatPct) / 100) * 10) / 10;
+    }
+    if (bodyFat === undefined || bodyFat === null) {
+      throw err("Cần nhập Mỡ cơ thể (kg) hoặc % Mỡ cơ thể để tính ra được", 400);
+    }
+
+    const payload = { ...data, bodyFat, date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
       userId,

@@ -10,9 +10,13 @@ function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// Money-flow §16: PENDING/APPROVED are not an eligibility gate — the balance was already
+// withdrawable the moment the request was created. Both states just mean "an admin still has
+// to physically send a bank transfer" (no payout API is integrated); APPROVED only means that
+// transfer's amount has been reserved so nothing else can eat into it in the meantime.
 const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Đang chờ duyệt",
-  APPROVED: "Đã duyệt — chờ chi trả",
+  PENDING: "Đang chờ xử lý — sẽ chuyển khoản thủ công",
+  APPROVED: "Đã giữ chỗ — đang chờ chuyển khoản",
   PAID: "Đã chi trả",
   REJECTED: "Bị từ chối",
 };
@@ -74,9 +78,10 @@ export function WalletPage() {
         {walletLoading ? (
           <Loader2 className="w-6 h-6 text-green-500 animate-spin mt-2" />
         ) : (
-          <div className="text-3xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+          <div data-testid="client-wallet-available-balance" data-value={wallet?.availableBalance ?? "0"} className="text-3xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
         )}
         <button
+          data-testid="client-request-withdrawal-toggle"
           onClick={() => setShowForm((v) => !v)}
           className="mt-4 flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
         >
@@ -90,6 +95,7 @@ export function WalletPage() {
               dư.
             </p>
             <input
+              data-testid="client-withdraw-amount-input"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -97,6 +103,7 @@ export function WalletPage() {
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
             <input
+              data-testid="client-withdraw-payout-info-input"
               value={payoutInfo}
               onChange={(e) => setPayoutInfo(e.target.value)}
               placeholder="Số tài khoản / ngân hàng nhận tiền"
@@ -107,6 +114,7 @@ export function WalletPage() {
                 Huỷ
               </button>
               <button
+                data-testid="client-withdraw-submit-button"
                 onClick={() => withdrawMutation.mutate()}
                 disabled={!amount || !payoutInfo.trim() || withdrawMutation.isPending}
                 className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
@@ -118,9 +126,9 @@ export function WalletPage() {
         )}
 
         {openRequests.length > 0 && (
-          <div className="mt-4 space-y-1.5">
+          <div data-testid="client-open-withdrawal-requests" className="mt-4 space-y-1.5">
             {openRequests.map((w) => (
-              <div key={w.id} className="flex items-center justify-between text-xs bg-zinc-900/60 border border-zinc-800/60 rounded-lg px-3 py-2">
+              <div key={w.id} data-testid="client-withdrawal-request-row" data-status={w.status} data-amount={w.amount} className="flex items-center justify-between text-xs bg-zinc-900/60 border border-zinc-800/60 rounded-lg px-3 py-2">
                 <span className="text-zinc-400">{formatVND(Number(w.amount))}</span>
                 <span className="text-amber-400 font-medium">{STATUS_LABEL[w.status] ?? w.status}</span>
               </div>
