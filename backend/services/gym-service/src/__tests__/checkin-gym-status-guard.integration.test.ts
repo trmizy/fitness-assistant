@@ -1,4 +1,6 @@
 import test from 'node:test';
+
+const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
@@ -58,7 +60,7 @@ async function cleanup(gymId: string, planId: string, membershipId: string) {
   await prisma.gym.delete({ where: { id: gymId } }).catch(() => {});
 }
 
-test('a client with an ACTIVE membership cannot check in at a SUSPENDED gym', async () => {
+integrationTest('a client with an ACTIVE membership cannot check in at a SUSPENDED gym', async () => {
   const gym = await makeGym('SUSPENDED');
   const plan = await makePlan(gym.id);
   const clientId = randomUUID();
@@ -76,7 +78,7 @@ test('a client with an ACTIVE membership cannot check in at a SUSPENDED gym', as
   }
 });
 
-test('a client with an ACTIVE membership CAN check in at an APPROVED gym', async () => {
+integrationTest('a client with an ACTIVE membership CAN check in at an APPROVED gym', async () => {
   const gym = await makeGym('APPROVED');
   const plan = await makePlan(gym.id);
   const clientId = randomUUID();

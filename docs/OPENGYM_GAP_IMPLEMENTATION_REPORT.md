@@ -25,6 +25,57 @@ bundle three consecutive times, each **15/15 pass** in run
 user-service onboarding/safety schema tests passed **10/10**, and ai-service
 coach-context safety regression passed **4/4**.
 
+## 2026-08-28 Roadmap Closure Addendum
+
+P4.2 PWA/installability is now implemented and verified. `frontend/web` gained
+a dependency-free PWA layer: manifest, restored icon metadata, SVG + 192/512
+PNG install icons, production-only service-worker registration, offline
+navigation shell, same-origin static-asset runtime caching, explicit update
+toast, old-cache cleanup, and hard cache bypass for `/api`, `/socket.io`,
+`/chat-socket.io`, and non-GET requests.
+
+Evidence: `npx tsx --test src/app/pwa/__tests__/pwa-registration.utils.test.ts`
+passed 5/5, `npm run build` passed, `node --check public/sw.js` passed, build
+artifact presence was verified, and
+`PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npm run test:e2e -- tests/54-pwa-installability.spec.ts --workers=1`
+passed 1/1 in run `e2e_202608280704534` against a production preview. The
+roadmap's web/backend-trackable items are now complete; Apple Health and
+Android Health Connect remain blocked by missing native platform tooling in
+this environment.
+
+## 2026-08-28 Advanced Training Addendum
+
+The separate advanced-training-methods pass has upgraded superset execution
+from the earlier scoped sequential MVP to true interleaved active-session
+navigation. A 2x2 superset now runs `A1 -> B1 -> A2 -> B2`; a 3-member triset
+and 4-member circuit are also verified through the same planner. Grouped
+sessions show round labels, keep existing `WorkoutSet` rows, and use the
+existing group rest fields. A rest-timer restart bug was also fixed: starting a
+new rest while the old rest timer is still running now resets the wall-clock
+end timestamp. The active set form also now exposes actual `WorkoutSet.tempo`
+logging with four-part notation validation (`3-1-1-0`) through the existing
+`updateSet` path. The same advanced pass added a planned-set prescription
+foundation (`WorkoutProgramExerciseSetPrescription`) so future sessions can
+carry per-set planned reps/load/RPE/RIR/set-type/tempo/duration/distance/rest
+and AMRAP/min-rep intent separately from actual `WorkoutSet` logs. Planned
+AMRAP rows now expose editable achieved reps during active workout completion
+while leaving the planned prescription immutable.
+
+Evidence: planner unit tests passed 13/13; active draft / smart prefill /
+planner utility coverage passed 42/42; `frontend/web npm run build` passed;
+`55-true-interleaved-superset.spec.ts` passed 1/1 after set-type UI in run
+`e2e_202608281626382`; and the post set-type grouped-flow bundle
+(`38-superset-exercise-grouping.spec.ts`,
+`56-true-interleaved-triset.spec.ts`,
+`57-true-interleaved-circuit.spec.ts`) passed 4/4 in run
+`e2e_202608281630265`; the superset E2E also passed 1/1 with a tempo DB
+assertion in run `e2e_202608281641130`;
+`set-prescriptions.integration.test.ts` passed 1/1 against the test database;
+frontend utility coverage passed 42/42 again after AMRAP capture,
+`frontend/web npm run build` passed, Prisma schema validation passed, and
+`fitness-service` TypeScript passed. Full detail:
+`docs/ADVANCED_TRAINING_METHODS_IMPLEMENTATION_REPORT.md`.
+
 ## Executive Summary
 
 Audited Fitness Assistant's workout/training-progression domain against

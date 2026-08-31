@@ -1,5 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
-import { AuditEntityType, SessionMode } from "../generated/prisma";
+import { AuditEntityType, Prisma, SessionMode } from "../generated/prisma";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { auditService } from "./audit.service";
@@ -87,7 +86,7 @@ export const ptServicePackageService = {
       name: data.name.trim(),
       description: data.description?.trim(),
       sessionCount: data.sessionCount,
-      price: new Decimal(data.price),
+      price: new Prisma.Decimal(data.price),
       sessionMode: data.sessionMode,
       sessionDurationMinutes: data.sessionDurationMinutes ?? 60,
       validityDays: data.validityDays,
@@ -140,7 +139,7 @@ export const ptServicePackageService = {
     const updateData: any = { ...data };
     if (data.name) updateData.name = data.name.trim();
     if (data.description !== undefined) updateData.description = data.description?.trim() || null;
-    if (data.price !== undefined) updateData.price = new Decimal(data.price);
+    if (data.price !== undefined) updateData.price = new Prisma.Decimal(data.price);
 
     const updated = await ptServicePackageRepository.update(packageId, updateData);
 

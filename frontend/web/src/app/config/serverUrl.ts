@@ -15,6 +15,17 @@ function env(key: string): string {
   return (import.meta.env?.[key] as string | undefined)?.trim() || "";
 }
 
+function envFlag(key: string, defaultValue: boolean): boolean {
+  const value = env(key).toLowerCase();
+  if (!value) return defaultValue;
+  return ["1", "true", "yes", "on"].includes(value);
+}
+
+function isDevBuild(): boolean {
+  // @ts-ignore - ImportMeta.env is provided by Vite
+  return Boolean(import.meta.env?.DEV);
+}
+
 /** Strips a trailing slash so callers can concatenate paths safely, and ensures a protocol exists. */
 function normalize(url: string): string {
   let clean = url.trim().replace(/\/+$/, "");
@@ -51,6 +62,33 @@ export function clearServerOverride(): void {
 /** Base URL for REST calls (axios baseURL). */
 export function apiBaseUrl(): string {
   return getServerOverride() || env("VITE_API_URL") || "/api";
+}
+
+/**
+ * Phase 2 AWS deploy serves the frontend as static files from S3/CloudFront.
+ * Realtime backends are not deployed there yet, so production defaults to off
+ * unless explicitly enabled. Local Vite development keeps the old behavior.
+ */
+export function isRealtimeEnabled(): boolean {
+  return envFlag("VITE_ENABLE_REALTIME", isDevBuild());
+}
+
+export function isChatWsEnabled(): boolean {
+  const explicitChatWs = env("VITE_ENABLE_CHAT_WS");
+  if (explicitChatWs) return envFlag("VITE_ENABLE_CHAT_WS", isDevBuild());
+  return envFlag("VITE_ENABLE_CHAT", isDevBuild());
+}
+
+export function grafanaUrl(): string {
+  const configured = env("VITE_GRAFANA_URL");
+  if (configured) return configured;
+
+  // Keep the local Grafana shortcut only in Vite dev builds. Writing this check
+  // inline lets Vite remove the localhost URL from production bundles.
+  // @ts-ignore - ImportMeta.env is provided by Vite
+  if (import.meta.env?.DEV) return "http://localhost:3100";
+
+  return "";
 }
 
 /** Server URL for the gateway's own Socket.IO ("" = same origin). */

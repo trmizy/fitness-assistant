@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { locationRepository } from "../repositories/location.repository";
+import { logDbError } from "../utils/db-error.util";
 
 export const locationController = {
   getProvinces: async (_req: Request, res: Response) => {
@@ -7,6 +8,7 @@ export const locationController = {
       const provinces = await locationRepository.findAllProvinces();
       res.json(provinces);
     } catch (err) {
+      logDbError(err, "locationController.getProvinces");
       res.status(500).json({ error: "Failed to fetch provinces" });
     }
   },
@@ -31,6 +33,7 @@ export const locationController = {
       const wards = await locationRepository.findWardsByProvince(provinceCode);
       res.json(wards);
     } catch (err) {
+      logDbError(err, "locationController.getWardsByProvince");
       res.status(500).json({ error: "Failed to fetch wards" });
     }
   },
@@ -53,6 +56,7 @@ export const locationController = {
       }));
       res.json(results);
     } catch (err) {
+      logDbError(err, "locationController.searchLocations");
       res.status(500).json({ error: "Failed to search locations" });
     }
   },

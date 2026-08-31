@@ -1,32 +1,38 @@
-// Roadmap P1.3 "Superset / exercise grouping"
-// (docs/features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md). Pure, unit-testable
-// logic for picking the right rest duration when advancing between
-// exercises in the active-session view — the one piece of this feature
-// that touches shared, already-complex active-session state, kept in its
-// own file so it's testable without jsdom/RTL (this project's established
-// convention, see active-log-draft.utils.ts / smart-set-prefill.utils.ts).
+// Roadmap P1.3/P4 advanced-method audit: pure group execution helpers.
+// Grouping is exercise structure, not a set technique and not progression
+// history. These helpers operate on programExerciseId + setNumber only, so
+// WorkoutSet rows are never duplicated or merged.
 
 export interface GroupAwareExercise {
+  programExerciseId?: string | null;
   groupId?: string | null;
-  /** Short/no rest between this group's members — used ONLY when the
-   * exercise being advanced FROM belongs to a group and the NEXT exercise
-   * is a fellow member of that same group. */
+  groupOrder?: number | null;
+  sets?: number | null;
   restBetweenExercisesSeconds?: number | null;
-  /** Real rest after finishing every member of the group once — used when
-   * the exercise being advanced FROM was the group's last remaining
-   * member (next exercise is ungrouped, a different group, or there is no
-   * next exercise). */
   restAfterRoundSeconds?: number | null;
 }
 
-/** Roadmap P1.3's own deliberate MVP scope (see the impact analysis's
- * "Scope decision"): exercises within a group still complete SEQUENTIALLY
- * (all of A's sets before B's), not truly interleaved per-set — this
- * function only decides how long the rest timer runs once the CURRENT
- * exercise is fully done, mirroring exactly the two rest fields the
- * roadmap's own schema sketch defines. An ungrouped exercise, or a group
- * whose own rest fields were left unset, falls back to `defaultRestSeconds`
- * — the pre-existing hardcoded-90 behavior everywhere else, unchanged. */
+export interface InterleavedSetRow {
+  id?: string;
+  setNumber: number;
+  completed: boolean;
+}
+
+export interface InterleavedWorkoutStep {
+  exerciseIndex: number;
+  programExerciseId: string;
+  setNumber: number;
+  roundNumber: number;
+  memberPosition: number;
+  totalMembers: number;
+  totalRounds: number;
+}
+
+export interface NextInterleavedWorkoutStep extends InterleavedWorkoutStep {
+  restSeconds: number;
+  restKind: "between_exercises" | "after_round";
+}
+
 export function computeNextExerciseRestSeconds(
   currentExercise: GroupAwareExercise | null | undefined,
   nextExercise: GroupAwareExercise | null | undefined,
@@ -34,9 +40,132 @@ export function computeNextExerciseRestSeconds(
 ): number {
   if (!currentExercise?.groupId) return defaultRestSeconds;
 
-  const isNextSameGroup = Boolean(nextExercise?.groupId) && nextExercise!.groupId === currentExercise.groupId;
+  const isNextSameGroup =
+    Boolean(nextExercise?.groupId) && nextExercise!.groupId === currentExercise.groupId;
   if (isNextSameGroup) {
     return currentExercise.restBetweenExercisesSeconds ?? defaultRestSeconds;
   }
   return currentExercise.restAfterRoundSeconds ?? defaultRestSeconds;
+}
+
+function groupMembersFor(
+  exercises: GroupAwareExercise[],
+  groupId: string,
+): Array<GroupAwareExercise & { exerciseIndex: number; programExerciseId: string }> {
+  return exercises
+    .map((exercise, exerciseIndex) => ({ ...exercise, exerciseIndex }))
+    .filter(
+      (exercise): exercise is GroupAwareExercise & { exerciseIndex: number; programExerciseId: string } =>
+        exercise.groupId === groupId && Boolean(exercise.programExerciseId),
+    )
+    .sort((a, b) => {
+      const orderA = a.groupOrder ?? a.exerciseIndex;
+      const orderB = b.groupOrder ?? b.exerciseIndex;
+      return orderA - orderB || a.exerciseIndex - b.exerciseIndex;
+    });
+}
+
+export function buildInterleavedWorkoutSteps(
+  exercises: GroupAwareExercise[],
+  setRowsByProgramExerciseId: Record<string, InterleavedSetRow[] | undefined>,
+  groupId: string,
+): InterleavedWorkoutStep[] {
+  const members = groupMembersFor(exercises, groupId);
+  if (members.length < 2) return [];
+
+  const rowsByMember = new Map<string, InterleavedSetRow[]>();
+  let totalRounds = 0;
+
+  for (const member of members) {
+    const rows = [...(setRowsByProgramExerciseId[member.programExerciseId] ?? [])]
+      .filter((row) => Number.isFinite(row.setNumber) && row.setNumber > 0)
+      .sort((a, b) => a.setNumber - b.setNumber);
+    rowsByMember.set(member.programExerciseId, rows);
+    totalRounds = Math.max(totalRounds, rows.length, member.sets ?? 0);
+  }
+
+  const steps: InterleavedWorkoutStep[] = [];
+  for (let roundNumber = 1; roundNumber <= totalRounds; roundNumber += 1) {
+    members.forEach((member, memberIndex) => {
+      const rows = rowsByMember.get(member.programExerciseId) ?? [];
+      const row = rows.find((candidate) => candidate.setNumber === roundNumber);
+
+      if (!row && rows.length > 0) return;
+      if (!row && (member.sets ?? 0) < roundNumber) return;
+
+      steps.push({
+        exerciseIndex: member.exerciseIndex,
+        programExerciseId: member.programExerciseId,
+        setNumber: row?.setNumber ?? roundNumber,
+        roundNumber,
+        memberPosition: memberIndex + 1,
+        totalMembers: members.length,
+        totalRounds,
+      });
+    });
+  }
+
+  return steps;
+}
+
+export function findCurrentInterleavedWorkoutStep(
+  exercises: GroupAwareExercise[],
+  setRowsByProgramExerciseId: Record<string, InterleavedSetRow[] | undefined>,
+  currentExerciseIndex: number,
+  currentSetNumber: number | null | undefined,
+): InterleavedWorkoutStep | null {
+  const current = exercises[currentExerciseIndex];
+  if (!current?.groupId || !current.programExerciseId || !currentSetNumber) return null;
+
+  return (
+    buildInterleavedWorkoutSteps(exercises, setRowsByProgramExerciseId, current.groupId).find(
+      (step) =>
+        step.exerciseIndex === currentExerciseIndex &&
+        step.programExerciseId === current.programExerciseId &&
+        step.setNumber === currentSetNumber,
+    ) ?? null
+  );
+}
+
+export function computeNextInterleavedWorkoutStep(
+  exercises: GroupAwareExercise[],
+  setRowsByProgramExerciseId: Record<string, InterleavedSetRow[] | undefined>,
+  currentExerciseIndex: number,
+  completedSetNumber: number,
+  defaultRestSeconds: number = 90,
+): NextInterleavedWorkoutStep | null {
+  const current = exercises[currentExerciseIndex];
+  if (!current?.groupId || !current.programExerciseId) return null;
+
+  const steps = buildInterleavedWorkoutSteps(exercises, setRowsByProgramExerciseId, current.groupId);
+  const currentStepIndex = steps.findIndex(
+    (step) =>
+      step.exerciseIndex === currentExerciseIndex &&
+      step.programExerciseId === current.programExerciseId &&
+      step.setNumber === completedSetNumber,
+  );
+  if (currentStepIndex < 0) return null;
+
+  for (const nextStep of steps.slice(currentStepIndex + 1)) {
+    const rows = setRowsByProgramExerciseId[nextStep.programExerciseId] ?? [];
+    const row = rows.find((candidate) => candidate.setNumber === nextStep.setNumber);
+    if (row?.completed) continue;
+
+    const restKind =
+      nextStep.roundNumber > steps[currentStepIndex].roundNumber
+        ? "after_round"
+        : "between_exercises";
+    const restSeconds =
+      restKind === "after_round"
+        ? current.restAfterRoundSeconds ?? defaultRestSeconds
+        : current.restBetweenExercisesSeconds ?? defaultRestSeconds;
+
+    return {
+      ...nextStep,
+      restKind,
+      restSeconds,
+    };
+  }
+
+  return null;
 }

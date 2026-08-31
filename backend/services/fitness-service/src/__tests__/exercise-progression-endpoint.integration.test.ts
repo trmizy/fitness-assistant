@@ -73,6 +73,8 @@ async function seedWorkoutWithSets(
       rir?: number | null;
       durationSeconds?: number | null;
       distanceMeters?: number | null;
+      isAmrap?: boolean;
+      amrapMinReps?: number | null;
     }>;
   },
 ) {
@@ -95,6 +97,8 @@ async function seedWorkoutWithSets(
                 rir: s.rir ?? null,
                 durationSeconds: s.durationSeconds ?? null,
                 distanceMeters: s.distanceMeters ?? null,
+                isAmrap: s.isAmrap ?? false,
+                amrapMinReps: s.amrapMinReps ?? null,
                 completed: true,
               })),
             },
@@ -268,6 +272,43 @@ test(
       assert.ok(result.reasonCodes.includes("CYCLE_DELOAD_OVERRIDES_LOCAL_SIGNAL"));
       assert.equal(result.nextTarget?.weightKg, 54);
       assert.notEqual(result.status, "INCREASE_LOAD");
+    } finally {
+      await deleteSeed(db, userId);
+    }
+  },
+);
+
+test(
+  "getExerciseProgression reads persisted AMRAP snapshots and returns deterministic margin semantics",
+  { skip: canUseIntegrationDb ? false : "Requires a test database." },
+  async () => {
+    const { prisma: db, workoutService: service } = await loadModules();
+    const userId = `progression-endpoint-amrap-it-${Date.now()}`;
+    await deleteSeed(db, userId);
+    try {
+      const ex = await seedExercise(db, `${userId}-ex-a`);
+      await seedWorkoutWithSets(db, {
+        userId,
+        date: new Date(Date.UTC(2026, 0, 1)),
+        exerciseId: ex.id,
+        sets: [{ weight: 80, reps: 9, rir: 0, isAmrap: true, amrapMinReps: 8 }],
+      });
+      await seedWorkoutWithSets(db, {
+        userId,
+        date: new Date(Date.UTC(2026, 0, 8)),
+        exerciseId: ex.id,
+        sets: [{ weight: 80, reps: 11, rir: 0, isAmrap: true, amrapMinReps: 8 }],
+      });
+
+      const result = await service.getExerciseProgression(userId, ex.id);
+      assert.equal(result.policyUsed, "AMRAP_READINESS");
+      assert.equal(result.status, "INCREASE_LOAD");
+      assert.deepEqual(result.amrapPerformance, {
+        achievedReps: 11,
+        minimumReps: 8,
+        marginReps: 3,
+      });
+      assert.equal(result.nextTarget?.weightKg, 84);
     } finally {
       await deleteSeed(db, userId);
     }

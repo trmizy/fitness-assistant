@@ -64,7 +64,11 @@ import {
   readPersistedActiveLogDraft,
   clearPersistedActiveLogDraft,
 } from "./active-log-draft.utils";
-import { computeNextExerciseRestSeconds } from "./exercise-group.utils";
+import {
+  computeNextExerciseRestSeconds,
+  computeNextInterleavedWorkoutStep,
+  findCurrentInterleavedWorkoutStep,
+} from "./exercise-group.utils";
 import {
   enqueueWorkoutEvent,
   getPendingWorkoutEvents,
@@ -84,6 +88,13 @@ import {
   APP_SCHEDULE_TIME_ZONE,
 } from "./schedule-lock.utils";
 import { requestWakeLockSafe, releaseWakeLockSafe } from "./wake-lock.utils";
+import {
+  buildSetChainSegments,
+  isSetChainValid,
+  newSetChainSegment,
+  type SetChainSegmentDraft,
+  type SetChainTechnique,
+} from "./set-chain.utils";
 import {
   api,
   workoutService,
@@ -391,6 +402,21 @@ function formatPerformanceSetLabel(set: {
   return pieces.filter(Boolean).join(" / ") || "Logged";
 }
 
+function formatSetPrescriptionLabel(prescription: any): string {
+  const pieces = [
+    prescription?.targetSetType ? String(prescription.targetSetType).replace("_", "-") : null,
+    prescription?.targetWeight != null ? `${prescription.targetWeight}kg` : null,
+    prescription?.targetReps != null ? `${prescription.targetReps} reps` : null,
+    prescription?.isAmrap ? `AMRAP${prescription.minReps != null ? ` >=${prescription.minReps}` : ""}` : null,
+    prescription?.targetRpe != null ? `RPE ${prescription.targetRpe}` : null,
+    prescription?.targetRir != null ? `RIR ${prescription.targetRir}` : null,
+    prescription?.targetTempo ? `tempo ${prescription.targetTempo}` : null,
+    prescription?.targetDurationSeconds != null ? `${prescription.targetDurationSeconds}s` : null,
+    prescription?.targetDistanceMeters != null ? `${prescription.targetDistanceMeters}m` : null,
+  ];
+  return pieces.filter(Boolean).join(" × ") || "—";
+}
+
 // Roadmap P1.3 "Superset / exercise grouping".
 const GROUP_TYPE_LABEL_VI: Record<string, string> = {
   SUPERSET: "Superset",
@@ -416,6 +442,9 @@ function mapProgramExercise(ex: any) {
       restSeconds: ex.restSeconds ?? null,
       loggingMode,
     }),
+    setPrescriptions: Array.isArray(ex.setPrescriptions)
+      ? [...ex.setPrescriptions].sort((a: any, b: any) => a.setNumber - b.setNumber)
+      : [],
     sets: ex.sets ?? 3,
     durationSeconds,
     distanceMeters: null,
@@ -655,6 +684,7 @@ type ActiveExerciseLog = {
   bodyWeightAtSetKg: string;
   durationSeconds: string;
   distanceMeters: string;
+  tempo: string;
   /** Editable only for BODYWEIGHT_REPS (roadmap P1.1 "bodyweight reps
    * editable prefill") — other modes still derive reps from the fixed
    * program prescription at completion time. */
@@ -662,6 +692,9 @@ type ActiveExerciseLog = {
   noWeight: boolean;
   rpe: number;
   rir: number;
+  setType: string;
+  setTechnique: SetChainTechnique;
+  segments: SetChainSegmentDraft[];
 };
 
 type ExerciseLoggingMode =
@@ -695,9 +728,21 @@ type WorkoutSetRow = {
   reps: number | null;
   rpe: number | null;
   rir: number | null;
+  setType: string | null;
+  tempo: string | null;
   bodyWeightAtSetKg: number | null;
   durationSeconds: number | null;
   distanceMeters: number | null;
+  segments: Array<{
+    id: string;
+    segmentNumber: number;
+    technique: "DROP_SET" | "REST_PAUSE";
+    reps: number;
+    weight: number | null;
+    rpe: number | null;
+    rir: number | null;
+    restBeforeSeconds: number | null;
+  }>;
 };
 
 const MANUAL_WEEKDAYS = [
@@ -719,6 +764,30 @@ const DEFAULT_MANUAL_WEEKDAYS: Record<number, number[]> = {
   6: [1, 2, 3, 4, 5, 6],
   7: [1, 2, 3, 4, 5, 6, 0],
 };
+
+const SET_TYPE_OPTIONS = [
+  { value: "WARMUP", label: "Warm-up" },
+  { value: "WORKING", label: "Working" },
+  { value: "TOP", label: "Top set" },
+  { value: "BACKOFF", label: "Back-off" },
+  { value: "FAILURE", label: "Failure" },
+];
+
+const SET_TECHNIQUE_OPTIONS = [
+  { value: "STRAIGHT" as const, label: "Straight" },
+  { value: "DROP_SET" as const, label: "Drop set" },
+  { value: "REST_PAUSE" as const, label: "Rest-pause" },
+];
+
+function normalizeTempo(value: string | null | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function isValidTempo(value: string | null | undefined): boolean {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length === 0 || /^\d{1,2}-\d{1,2}-\d{1,2}-\d{1,2}$/.test(trimmed);
+}
 
 function buildManualDays(
   daysPerWeek: number,
@@ -2735,6 +2804,11 @@ export function WorkoutLogPage() {
   // gets throttled/delayed.
   const restEndAtRef = useRef<number | null>(null);
   const wakeLockRef = useRef<any>(null);
+  const startRestTimer = useCallback((seconds: number) => {
+    restEndAtRef.current = Date.now() + seconds * 1000;
+    setRestSeconds(seconds);
+    setRestTimerRunning(true);
+  }, []);
 
   // Roadmap P1.5 "Custom exercises" — the create-form modal, layered on
   // top of the existing Add Exercise picker (opened from within it).
@@ -3288,9 +3362,14 @@ export function WorkoutLogPage() {
               reps: set.reps ?? null,
               rpe: set.rpe ?? null,
               rir: set.rir ?? null,
+              setType: set.setType ?? null,
+              tempo: set.tempo ?? null,
               bodyWeightAtSetKg: set.bodyWeightAtSetKg ?? null,
               durationSeconds: set.durationSeconds ?? null,
               distanceMeters: set.distanceMeters ?? null,
+              segments: (set.segments ?? [])
+                .slice()
+                .sort((a: any, b: any) => a.segmentNumber - b.segmentNumber),
             }));
         }
         setWorkoutSetsByExercise((prev) => ({ ...prev, ...byProgramExerciseId }));
@@ -3328,7 +3407,13 @@ export function WorkoutLogPage() {
     if (restoredDraft) {
       const next = {
         ...activeExerciseLogsRef.current,
-        [activeExIdx]: restoredDraft,
+        [activeExIdx]: {
+          setType: "WORKING",
+          tempo: "",
+          setTechnique: "STRAIGHT",
+          segments: [],
+          ...restoredDraft,
+        },
       };
       activeExerciseLogsRef.current = next;
       setActiveExerciseLogs(next);
@@ -3348,6 +3433,9 @@ export function WorkoutLogPage() {
       ? workoutSetsByExercise[curEx.programExerciseId]
       : undefined;
     const targetSetNumber = setRows?.find((row) => !row.completed)?.setNumber;
+    const plannedSet = (curEx as any)?.setPrescriptions?.find(
+      (prescription: any) => prescription.setNumber === targetSetNumber,
+    );
 
     const selected = selectSmartSetPrefill({
       loggingMode: exerciseLoggingMode(curEx),
@@ -3372,7 +3460,21 @@ export function WorkoutLogPage() {
     }));
     const next = {
       ...activeExerciseLogsRef.current,
-      [activeExIdx]: selected.draft,
+      [activeExIdx]: {
+        ...selected.draft,
+        setType:
+          setRows?.find((row) => row.setNumber === targetSetNumber)?.setType ??
+          selected.draft.setType,
+        tempo:
+          setRows?.find((row) => row.setNumber === targetSetNumber)?.tempo ??
+          selected.draft.tempo,
+        reps:
+          plannedSet?.isAmrap === true
+            ? String(plannedSet.minReps ?? plannedSet.targetReps ?? curEx?.reps ?? "")
+            : selected.draft.reps,
+        setTechnique: "STRAIGHT",
+        segments: [],
+      },
     };
     activeExerciseLogsRef.current = next;
     setActiveExerciseLogs(next);
@@ -3704,10 +3806,9 @@ export function WorkoutLogPage() {
             // see the impact analysis's "Conflict strategy".
             toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
           } else {
-            setRestSeconds(
+            startRestTimer(
               computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
             );
-            setRestTimerRunning(true);
             setActiveExIdx(activeExIdx + 1);
             toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
           }
@@ -3775,10 +3876,9 @@ export function WorkoutLogPage() {
       // Roadmap P1.3 "Superset / exercise grouping" — short rest advancing
       // to a fellow group member, real rest once the group's last member
       // is done; unchanged default-90 for an ungrouped exercise.
-      setRestSeconds(
+      startRestTimer(
         computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
       );
-      setRestTimerRunning(true);
       setActiveExIdx(activeExIdx + 1);
       // Roadmap P1.6 "undo last set" — only offered right after completing a
       // NON-final exercise (see docs/features/UNDO_LAST_SET_IMPACT_ANALYSIS.md
@@ -3827,14 +3927,26 @@ export function WorkoutLogPage() {
   ) => {
     const programExerciseId = currentExercise.programExerciseId as string;
     const exIdx = activeExIdx;
+    const nextInterleavedStep = computeNextInterleavedWorkoutStep(
+      dayExercises as any,
+      workoutSetsByExercise,
+      exIdx,
+      setRow.setNumber,
+    );
     setIsCompletingWorkout(true);
     try {
       const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
       const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
       const durationSecondsValue = Number(currentLog?.durationSeconds);
       const distanceMetersValue = Number(currentLog?.distanceMeters);
+      const plannedSet = (currentExercise as any)?.setPrescriptions?.find(
+        (prescription: any) => prescription.setNumber === setRow.setNumber,
+      );
+      const acceptsEditableReps =
+        exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS" ||
+        plannedSet?.isAmrap === true;
       const repsValue =
-        exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS"
+        acceptsEditableReps
           ? Number(currentLog?.reps)
           : NaN;
       const patch = {
@@ -3854,6 +3966,9 @@ export function WorkoutLogPage() {
             : undefined,
         rpe: currentLog?.rpe,
         rir: currentLog?.rir,
+        tempo: normalizeTempo(currentLog?.tempo),
+        setType: currentLog?.setType || "WORKING",
+        segments: currentLog ? buildSetChainSegments(currentLog) : [],
         completed: true,
       };
 
@@ -3890,13 +4005,18 @@ export function WorkoutLogPage() {
 
         if (isClosingSet) {
           setCompletedExercises((prev) => new Set(prev).add(exIdx));
-          if (exIdx < dayExercises.length - 1) {
+          if (nextInterleavedStep) {
             setTimerRunning(false);
             setTimerSeconds(0);
-            setRestSeconds(
+            startRestTimer(nextInterleavedStep.restSeconds);
+            setActiveExIdx(nextInterleavedStep.exerciseIndex);
+            toast.success(`ÄÃ£ lÆ°u "${currentExercise?.name}" (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
+          } else if (exIdx < dayExercises.length - 1) {
+            setTimerRunning(false);
+            setTimerSeconds(0);
+            startRestTimer(
               computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
             );
-            setRestTimerRunning(true);
             setActiveExIdx(exIdx + 1);
             toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
           } else {
@@ -3905,13 +4025,22 @@ export function WorkoutLogPage() {
             // offline guess (see impact analysis's "Conflict strategy").
             toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
           }
+        } else if (nextInterleavedStep) {
+          const nextLogs = { ...activeExerciseLogsRef.current };
+          delete nextLogs[exIdx];
+          activeExerciseLogsRef.current = nextLogs;
+          setActiveExerciseLogs(nextLogs);
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          startRestTimer(nextInterleavedStep.restSeconds);
+          setActiveExIdx(nextInterleavedStep.exerciseIndex);
+          toast.success(`ÄÃ£ lÆ°u set ${setRow.setNumber} (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
         } else {
           const nextLogs = { ...activeExerciseLogsRef.current };
           delete nextLogs[exIdx];
           activeExerciseLogsRef.current = nextLogs;
           setActiveExerciseLogs(nextLogs);
-          setRestSeconds(90);
-          setRestTimerRunning(true);
+          startRestTimer(90);
           toast.success(`Đã lưu set ${setRow.setNumber} (offline) — sẽ đồng bộ khi có mạng.`);
         }
         return;
@@ -3930,9 +4059,12 @@ export function WorkoutLogPage() {
                   reps: updated?.reps ?? row.reps,
                   rpe: updated?.rpe ?? row.rpe,
                   rir: updated?.rir ?? row.rir,
+                  setType: updated?.setType ?? row.setType,
+                  tempo: updated?.tempo ?? row.tempo,
                   bodyWeightAtSetKg: updated?.bodyWeightAtSetKg ?? row.bodyWeightAtSetKg,
                   durationSeconds: updated?.durationSeconds ?? row.durationSeconds,
                   distanceMeters: updated?.distanceMeters ?? row.distanceMeters,
+                  segments: updated?.segments ?? row.segments,
                 }
               : row,
           ),
@@ -3970,15 +4102,28 @@ export function WorkoutLogPage() {
         // including resetting the elapsed-time ring for the new exercise
         // (deliberately NOT reset for an interior same-exercise set below —
         // it should keep running across a multi-set exercise's own sets).
-        if (exIdx < dayExercises.length - 1) {
+        if (nextInterleavedStep) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          startRestTimer(nextInterleavedStep.restSeconds);
+          setActiveExIdx(nextInterleavedStep.exerciseIndex);
+          toast(`ÄÃ£ hoÃ n thÃ nh "${currentExercise?.name}"`, {
+            action: {
+              label: "HoÃ n tÃ¡c",
+              onClick: () => {
+                void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, true);
+              },
+            },
+            duration: 8_000,
+          });
+        } else if (exIdx < dayExercises.length - 1) {
           setTimerRunning(false);
           setTimerSeconds(0);
           // Roadmap P1.3 "Superset / exercise grouping" — same group-aware
           // rest as handleCompleteExercise's bulk path above.
-          setRestSeconds(
+          startRestTimer(
             computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
           );
-          setRestTimerRunning(true);
           setActiveExIdx(exIdx + 1);
           toast(`Đã hoàn thành "${currentExercise?.name}"`, {
             action: {
@@ -4002,8 +4147,14 @@ export function WorkoutLogPage() {
       activeExerciseLogsRef.current = nextLogs;
       setActiveExerciseLogs(nextLogs);
 
-      setRestSeconds(90);
-      setRestTimerRunning(true);
+      if (nextInterleavedStep) {
+        setTimerRunning(false);
+        setTimerSeconds(0);
+        startRestTimer(nextInterleavedStep.restSeconds);
+        setActiveExIdx(nextInterleavedStep.exerciseIndex);
+      } else {
+        startRestTimer(90);
+      }
 
       toast(`Đã hoàn thành set ${setRow.setNumber}`, {
         action: {
@@ -4135,8 +4286,7 @@ export function WorkoutLogPage() {
     if (activeExIdx >= dayExercises.length - 1) return;
     setTimerRunning(false);
     setTimerSeconds(0);
-    setRestSeconds(90);
-    setRestTimerRunning(true);
+    startRestTimer(90);
     setActiveExIdx((index) => Math.min(index + 1, dayExercises.length - 1));
   };
 
@@ -5636,6 +5786,7 @@ export function WorkoutLogPage() {
                       </span>
                     ) : (
                       <button
+                        data-testid="exercise-list-edit-button"
                         onClick={() => {
                           setEditExercises([...dayExercises]);
                           setEditMode(true);
@@ -5979,10 +6130,14 @@ export function WorkoutLogPage() {
                   : "",
             durationSeconds: curEx?.durationSeconds != null ? String(curEx.durationSeconds) : "",
             distanceMeters: curEx?.distanceMeters != null ? String(curEx.distanceMeters) : "",
+            tempo: "",
             reps: curEx?.reps != null ? String(curEx.reps) : "",
             noWeight: !requiresExternalWeight,
             rpe: curEx?.rpe ?? 7,
             rir: curEx?.rir ?? 2,
+            setType: "WORKING",
+            setTechnique: "STRAIGHT" as const,
+            segments: [],
           };
           const smartPrefillSource = curEx?.dbId
             ? smartPrefillSourceByExercise[curEx.dbId]
@@ -5999,6 +6154,24 @@ export function WorkoutLogPage() {
             ? curExSetRows.findIndex((row) => !row.completed)
             : -1;
           const activeSetRow = activeSetRowIndex >= 0 ? curExSetRows![activeSetRowIndex] : undefined;
+          const activePlannedSet = activeSetRow
+            ? (curEx as any)?.setPrescriptions?.find(
+                (prescription: any) => prescription.setNumber === activeSetRow.setNumber,
+              )
+            : undefined;
+          const showsEditableReps =
+            curExLoggingMode === "BODYWEIGHT_REPS" ||
+            activePlannedSet?.isAmrap === true;
+          const tempoIsValid = isValidTempo(activeLog.tempo);
+          const setChainIsValid = isSetChainValid(activeLog);
+          const currentInterleavedStep = activeSetRow
+            ? findCurrentInterleavedWorkoutStep(
+                dayExercises as any,
+                workoutSetsByExercise,
+                activeExIdx,
+                activeSetRow.setNumber,
+              )
+            : null;
           const incompleteSetCount = curExSetRows
             ? curExSetRows.filter((row) => !row.completed).length
             : 0;
@@ -6032,6 +6205,7 @@ export function WorkoutLogPage() {
                 distanceMeters:
                   prev[activeExIdx]?.distanceMeters ??
                   (curEx?.distanceMeters != null ? String(curEx.distanceMeters) : ""),
+                tempo: prev[activeExIdx]?.tempo ?? activeSetRow?.tempo ?? "",
                 reps:
                   prev[activeExIdx]?.reps ??
                   (curEx?.reps != null ? String(curEx.reps) : ""),
@@ -6039,6 +6213,9 @@ export function WorkoutLogPage() {
                   prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
                 rpe: prev[activeExIdx]?.rpe ?? curEx?.rpe ?? 7,
                 rir: prev[activeExIdx]?.rir ?? curEx?.rir ?? 2,
+                setType: prev[activeExIdx]?.setType ?? activeSetRow?.setType ?? "WORKING",
+                setTechnique: prev[activeExIdx]?.setTechnique ?? "STRAIGHT",
+                segments: prev[activeExIdx]?.segments ?? [],
                 ...patch,
               };
             const next = {
@@ -6135,6 +6312,12 @@ export function WorkoutLogPage() {
                         {" · Bài "}
                         {(curEx as any).groupOrder + 1}/
                         {dayExercises.filter((e: any) => e.groupId === (curEx as any).groupId).length}
+                        {currentInterleavedStep && (
+                          <>
+                            {" · Round "}
+                            {currentInterleavedStep.roundNumber}/{currentInterleavedStep.totalRounds}
+                          </>
+                        )}
                       </span>
                     )}
                     {!isSelectedDayLocked && !isCompleted && (
@@ -6282,6 +6465,14 @@ export function WorkoutLogPage() {
                     "Chu kỳ tập hiện đang ở giai đoạn giảm tải — ưu tiên hồi phục hơn tăng tải cục bộ.",
                   CYCLE_REBUILD_BLOCKS_AUTOMATIC_LOCAL_INCREASE:
                     "Chu kỳ tập cần xem lại tổng thể — chưa tự động tăng tải bài này.",
+                  AMRAP_EXCEEDED_MIN_REPS_LOAD_READY:
+                    "AMRAP vượt minimum ít nhất 2 reps — đã sẵn sàng tăng tải.",
+                  AMRAP_EXCEEDED_MIN_REPS_RAISE_MINIMUM:
+                    "AMRAP bodyweight vượt minimum rõ ràng — tăng minimum thêm 1 rep.",
+                  AMRAP_MIN_REPS_MET_HOLD_CURRENT_TARGET:
+                    "AMRAP đã đạt minimum nhưng chưa đủ biên để tăng — giữ mục tiêu hiện tại.",
+                  AMRAP_MIN_REPS_MISSED_ONCE_REPEAT_BEFORE_DELOAD:
+                    "AMRAP hụt minimum một buổi — lặp lại mục tiêu trước khi cân nhắc giảm tải.",
                 };
                 const why = REASON_TEXT[progression.reasonCodes[0]] ?? "Dựa trên hiệu suất buổi trước.";
                 const STATUS_LABEL: Record<string, string> = {
@@ -6306,6 +6497,18 @@ export function WorkoutLogPage() {
                         {progression.nextTarget.weightKg != null && progression.nextTarget.reps != null ? " × " : ""}
                         {progression.nextTarget.reps != null ? `${progression.nextTarget.reps} reps` : ""}
                         {progression.nextTarget.durationSeconds != null ? `${progression.nextTarget.durationSeconds}s` : ""}
+                      </p>
+                    )}
+                    {progression.amrapPerformance && (
+                      <p
+                        data-testid="amrap-progression-margin"
+                        className="mb-1 text-xs text-amber-300/85"
+                      >
+                        AMRAP: {progression.amrapPerformance.achievedReps} reps / minimum{" "}
+                        {progression.amrapPerformance.minimumReps}
+                        {progression.amrapPerformance.marginReps >= 0
+                          ? ` (+${progression.amrapPerformance.marginReps})`
+                          : ` (${progression.amrapPerformance.marginReps})`}
                       </p>
                     )}
                     <p className="text-xs text-zinc-400">{why}</p>
@@ -6556,7 +6759,12 @@ export function WorkoutLogPage() {
                               const nextTarget = curEx?.dbId
                                 ? progressionByExercise[curEx.dbId]?.nextTarget
                                 : undefined;
-                              const recommendedLabel = nextTarget
+                              const plannedSet = (curEx as any)?.setPrescriptions?.find(
+                                (prescription: any) => prescription.setNumber === row.setNumber,
+                              );
+                              const recommendedLabel = plannedSet
+                                ? formatSetPrescriptionLabel(plannedSet)
+                                : nextTarget
                                 ? [
                                     nextTarget.weightKg != null ? `${nextTarget.weightKg}kg` : null,
                                     nextTarget.reps != null ? `${nextTarget.reps} reps` : null,
@@ -6747,20 +6955,10 @@ export function WorkoutLogPage() {
                       </label>
                     )}
 
-                    {/* Reps input — BODYWEIGHT_REPS only (roadmap P1.1
-                        "bodyweight reps editable prefill"). Reps is the
-                        actual progress axis for this mode (see
-                        exercise-progression.engine.ts's
-                        BODYWEIGHT_REP_CLIMB policy — reps go up, not load),
-                        so unlike REPS_LOAD/TIME_LOAD it needs a real editable
-                        control here rather than always trusting the fixed
-                        program prescription. Sent as `reps` in the
-                        completeScheduleExercise payload below; omitting it
-                        (blank) preserves the exact old behavior — the
-                        backend already falls back to the planned reps when
-                        none is supplied (workout.service.ts
-                        completeScheduleExercise, unchanged this pass). */}
-                    {curExLoggingMode === "BODYWEIGHT_REPS" && (
+                    {/* Reps input: BODYWEIGHT_REPS and planned AMRAP sets
+                        both need editable actual reps. Other set types keep
+                        the existing planned-reps fallback. */}
+                    {showsEditableReps && (
                       <RulerSlider
                         className="min-w-0"
                         label="Số reps"
@@ -6772,6 +6970,18 @@ export function WorkoutLogPage() {
                         value={Number(activeLog.reps) || 0}
                         onChange={(next) => updateActiveLog({ reps: String(Math.round(next)) })}
                       />
+                    )}
+                    {activePlannedSet?.isAmrap === true && (
+                      <p
+                        data-testid="active-amrap-hint"
+                        className="text-[11px] text-zinc-400"
+                      >
+                        AMRAP target: toi thieu{" "}
+                        {activePlannedSet.minReps ??
+                          activePlannedSet.targetReps ??
+                          "?"}{" "}
+                        reps, ghi so reps thuc te dat duoc.
+                      </p>
                     )}
 
                     {needsDuration && (
@@ -6826,6 +7036,193 @@ export function WorkoutLogPage() {
                             : "kế hoạch"}
                       </p>
                     )}
+
+                    <label className="block">
+                      <span className="block text-[11px] text-zinc-500 mb-1">
+                        Set type
+                      </span>
+                      <select
+                        data-testid="active-set-type-select"
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.setType || "WORKING"}
+                        onChange={(event) => updateActiveLog({ setType: event.target.value })}
+                        className="w-full rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/40 disabled:opacity-50"
+                      >
+                        {SET_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="space-y-3" data-testid="active-set-technique">
+                      <span className="block text-[11px] text-zinc-500">
+                        Kỹ thuật set
+                      </span>
+                      <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-950/50 p-1">
+                        {SET_TECHNIQUE_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={isSelectedDayLocked}
+                            onClick={() =>
+                              updateActiveLog({
+                                setTechnique: option.value,
+                                segments:
+                                  option.value === "STRAIGHT"
+                                    ? []
+                                    : activeLog.setTechnique === option.value &&
+                                        activeLog.segments.length > 0
+                                      ? activeLog.segments
+                                      : [newSetChainSegment(option.value, activeLog)],
+                              })
+                            }
+                            className={`min-h-9 px-2 text-xs transition-colors disabled:opacity-50 ${
+                              activeLog.setTechnique === option.value
+                                ? "rounded-md bg-emerald-500/15 text-emerald-300"
+                                : "text-zinc-500 hover:text-zinc-300"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {activeLog.setTechnique !== "STRAIGHT" && (
+                        <div className="divide-y divide-zinc-800/60 border-y border-zinc-800/60">
+                          {activeLog.segments.map((segment, segmentIndex) => (
+                            <div
+                              key={segmentIndex}
+                              className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-end gap-2 py-3"
+                            >
+                              <span className="pb-2 text-[11px] text-zinc-600">
+                                {segmentIndex + 1}
+                              </span>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Reps</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="500"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.reps}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, reps: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Kg</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.weightKg}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, weightKg: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Nghỉ (s)</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="600"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.restBeforeSeconds}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, restBeforeSeconds: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                aria-label={`Xóa effort ${segmentIndex + 1}`}
+                                disabled={isSelectedDayLocked || activeLog.segments.length === 1}
+                                onClick={() =>
+                                  updateActiveLog({
+                                    segments: activeLog.segments.filter(
+                                      (_item, index) => index !== segmentIndex,
+                                    ),
+                                  })
+                                }
+                                className="mb-1 p-2 text-zinc-600 hover:text-rose-400 disabled:opacity-30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            disabled={isSelectedDayLocked || activeLog.segments.length >= 10}
+                            onClick={() =>
+                              updateActiveLog({
+                                segments: [
+                                  ...activeLog.segments,
+                                  newSetChainSegment(activeLog.setTechnique, activeLog),
+                                ],
+                              })
+                            }
+                            className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs text-emerald-400 hover:text-emerald-300 disabled:opacity-40"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Thêm effort
+                          </button>
+                        </div>
+                      )}
+                      {!setChainIsValid && (
+                        <p className="text-[11px] text-rose-300/85">
+                          Mỗi effort cần reps hợp lệ và thời gian nghỉ từ 0 đến 600 giây.
+                        </p>
+                      )}
+                    </div>
+
+                    <label className="block">
+                      <span className="block text-[11px] text-zinc-500 mb-1">
+                        Tempo
+                      </span>
+                      <input
+                        data-testid="active-tempo-input"
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.tempo}
+                        onChange={(event) => updateActiveLog({ tempo: event.target.value })}
+                        placeholder="3-1-1-0"
+                        inputMode="numeric"
+                        className={`w-full rounded-xl border bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none disabled:opacity-50 ${
+                          tempoIsValid
+                            ? "border-zinc-700/40 focus:border-emerald-500/40"
+                            : "border-rose-500/60 focus:border-rose-400"
+                        }`}
+                      />
+                      {!tempoIsValid && (
+                        <p className="mt-1 text-[11px] text-rose-300/85">
+                          Nhập theo dạng 3-1-1-0 hoặc để trống.
+                        </p>
+                      )}
+                    </label>
 
                     {showRpeRirHint && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
@@ -6923,9 +7320,9 @@ export function WorkoutLogPage() {
                     <button
                       data-testid="complete-exercise-button"
                       onClick={handleCompleteExercise}
-                      disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout}
+                      disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout || !tempoIsValid || !setChainIsValid}
                       className={`min-w-0 py-3.5 px-1 rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                        isSelectedDayLocked || isCompleted || isCompletingWorkout
+                        isSelectedDayLocked || isCompleted || isCompletingWorkout || !tempoIsValid || !setChainIsValid
                           ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
                           : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
                       }`}

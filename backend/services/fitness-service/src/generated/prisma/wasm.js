@@ -217,7 +217,24 @@ exports.Prisma.WorkoutSetScalarFieldEnum = {
   techniqueNotes: 'techniqueNotes',
   bodyWeightAtSetKg: 'bodyWeightAtSetKg',
   durationSeconds: 'durationSeconds',
-  distanceMeters: 'distanceMeters'
+  distanceMeters: 'distanceMeters',
+  isAmrap: 'isAmrap',
+  amrapMinReps: 'amrapMinReps'
+};
+
+exports.Prisma.WorkoutSetSegmentScalarFieldEnum = {
+  id: 'id',
+  workoutSetId: 'workoutSetId',
+  segmentNumber: 'segmentNumber',
+  technique: 'technique',
+  reps: 'reps',
+  weight: 'weight',
+  rpe: 'rpe',
+  rir: 'rir',
+  restBeforeSeconds: 'restBeforeSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.FoodScalarFieldEnum = {
@@ -353,6 +370,26 @@ exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutProgramExerciseSetPrescriptionScalarFieldEnum = {
+  id: 'id',
+  programExerciseId: 'programExerciseId',
+  setNumber: 'setNumber',
+  targetReps: 'targetReps',
+  targetWeight: 'targetWeight',
+  targetRpe: 'targetRpe',
+  targetRir: 'targetRir',
+  targetSetType: 'targetSetType',
+  targetTempo: 'targetTempo',
+  targetDurationSeconds: 'targetDurationSeconds',
+  targetDistanceMeters: 'targetDistanceMeters',
+  isAmrap: 'isAmrap',
+  minReps: 'minReps',
+  restSeconds: 'restSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.WorkoutProgramTemplateScalarFieldEnum = {
   id: 'id',
   createdByUserId: 'createdByUserId',
@@ -389,6 +426,8 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   originalPlannedDate: 'originalPlannedDate',
   rescheduledAt: 'rescheduledAt',
   rescheduleReason: 'rescheduleReason',
+  upcomingReminderSentAt: 'upcomingReminderSentAt',
+  unfinishedReminderSentAt: 'unfinishedReminderSentAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -889,6 +928,7 @@ exports.Prisma.ModelName = {
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
   WorkoutSet: 'WorkoutSet',
+  WorkoutSetSegment: 'WorkoutSetSegment',
   Food: 'Food',
   FoodAlias: 'FoodAlias',
   NutritionLog: 'NutritionLog',
@@ -899,6 +939,7 @@ exports.Prisma.ModelName = {
   WorkoutProgramExerciseGroup: 'WorkoutProgramExerciseGroup',
   WorkoutProgramExerciseGroupMember: 'WorkoutProgramExerciseGroupMember',
   WorkoutProgramExercise: 'WorkoutProgramExercise',
+  WorkoutProgramExerciseSetPrescription: 'WorkoutProgramExerciseSetPrescription',
   WorkoutProgramTemplate: 'WorkoutProgramTemplate',
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',

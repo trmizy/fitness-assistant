@@ -21,6 +21,12 @@ export class DropboxSignProvider implements ESignProvider {
   }
 
   async send(req: ESignSendRequest): Promise<ESignSendResult> {
+    if (req.pdfPath.startsWith("s3://")) {
+      throw new Error(
+        "Dropbox Sign provider cannot read private S3 contract PDFs directly; keep REQUIRE_CONTRACT_ESIGN=false or add a /tmp download bridge before enabling e-sign on Lambda.",
+      );
+    }
+
     const absPath = path.isAbsolute(req.pdfPath)
       ? req.pdfPath
       : path.join(process.cwd(), req.pdfPath);

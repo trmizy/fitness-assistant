@@ -2,6 +2,17 @@
 
 Date: 2026-08-24. Roadmap: P1.3 "Superset / exercise grouping".
 
+## 2026-08-28 Addendum
+
+The original scoped-MVP decision below is superseded for active execution.
+The advanced-training pass now implements true interleaved superset execution
+in the active workout (`A1 -> B1 -> A2 -> B2`) with round labels and existing
+group rest fields. Regression evidence: `38-superset-exercise-grouping.spec.ts`
+passed 2/2 in run `e2e_202608280751230`, and
+`55-true-interleaved-superset.spec.ts` passed 1/1 in run
+`e2e_202608281626382` after set-type UI, and the post set-type grouped-flow
+bundle passed 4/4 in run `e2e_202608281630265`.
+
 ## Why
 
 Supersets are common and affect exercise navigation, rest behavior,

@@ -126,6 +126,7 @@ Greyskull chỉ vì openGym có"):
 | **Autoregulated (RIR-anchored)** | `loggingMode: REPS_LOAD`, `experienceLevel: ADVANCED`, sufficient RIR data logged | Compares actual RIR to prescribed target RIR rather than a fixed rep target — closer to how an advanced lifter actually autoregulates (per `gym-fitness-research.md` §3: RIR/RPE self-report is *more* reliable for this group). `REVIEW` (not an automatic change) when RIR data is sparse for this exercise. |
 | **Bodyweight rep-climbing** | `loggingMode: BODYWEIGHT_REPS` | Analogous to linear, but the axis of progress is reps, not load: hit the top of the target rep count on all sets → `INCREASE_REPS`; once a ceiling is reached (product-configured, e.g. 20 reps) → flag `REVIEW` (add external load — a data-model/UX decision outside this engine's scope, deferred). |
 | **Timed progression** | `loggingMode: TIME` / `TIME_LOAD` | Same shape as bodyweight rep-climbing, axis is duration instead of reps. |
+| **AMRAP readiness** | Latest reps-based session contains an immutable AMRAP/minimum snapshot | Below minimum once → repeat; below minimum twice → deload; minimum through minimum+1 → keep; minimum+2 or more → increase load. Bodyweight raises the minimum by one rep instead of inventing external load. RIR 0 is expected on AMRAP and is not a miss signal. Multiple AMRAP probes must all clear the readiness margin. Cycle precedence still applies afterward. |
 
 Every threshold above (5% load step, 2-miss deload trigger, 20-rep ceiling)
 is a **product heuristic**, explicitly labeled as such in the engine's own

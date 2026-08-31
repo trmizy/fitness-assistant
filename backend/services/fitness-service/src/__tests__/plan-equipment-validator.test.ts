@@ -13,8 +13,11 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/prisma";
 import { planEquipmentValidatorService, type PlanDayRef } from "../services/plan-equipment-validator.service";
 
+const hasDatabaseUrl = Boolean(process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL);
+const integrationTest = hasDatabaseUrl ? test : test.skip;
 const cleanupUserIds: string[] = [];
 test.after(async () => {
+  if (!hasDatabaseUrl) return;
   await prisma.userEquipment.deleteMany({ where: { userId: { in: cleanupUserIds } } });
   await prisma.$disconnect();
 });
@@ -37,7 +40,7 @@ function scheduleFor(exerciseIds: string[]): PlanDayRef[] {
   return [{ day: "Day 1", exercises: exerciseIds.map((exerciseId) => ({ exerciseId })) }];
 }
 
-test("a plan is valid when the user owns every required exercise's equipment", async () => {
+integrationTest("a plan is valid when the user owns every required exercise's equipment", async () => {
   const userId = `validator-${randomUUID()}`;
   cleanupUserIds.push(userId);
   await setEquipment(userId, ["barbell", "bench"]);
@@ -48,7 +51,7 @@ test("a plan is valid when the user owns every required exercise's equipment", a
   assert.deepEqual(result.violations, []);
 });
 
-test("a plan is INVALID when it contains an exercise the user's equipment doesn't cover", async () => {
+integrationTest("a plan is INVALID when it contains an exercise the user's equipment doesn't cover", async () => {
   const userId = `validator-${randomUUID()}`;
   cleanupUserIds.push(userId);
   await setEquipment(userId, ["bodyweight", "pull-up-bar"]); // no leg-press-machine
@@ -62,7 +65,7 @@ test("a plan is INVALID when it contains an exercise the user's equipment doesn'
   assert.deepEqual(result.violations[0].available.sort(), ["bodyweight", "pull-up-bar"].sort());
 });
 
-test("skips validation entirely (valid=true) when the user has no saved UserEquipment rows — matches the candidate-endpoint's own backward-compatible fallback", async () => {
+integrationTest("skips validation entirely (valid=true) when the user has no saved UserEquipment rows — matches the candidate-endpoint's own backward-compatible fallback", async () => {
   const userId = `validator-${randomUUID()}`; // deliberately never call setEquipment
   const legPressId = await idOf("Leg Press");
 
@@ -71,7 +74,7 @@ test("skips validation entirely (valid=true) when the user has no saved UserEqui
   assert.equal(result.skippedNoUserEquipment, true);
 });
 
-test("violation reports the correct day index for a multi-day plan", async () => {
+integrationTest("violation reports the correct day index for a multi-day plan", async () => {
   const userId = `validator-${randomUUID()}`;
   cleanupUserIds.push(userId);
   await setEquipment(userId, ["dumbbell", "bench"]); // Dumbbell Bench Press requires both — see seed_equipment.ts's impliedSecondaryEquipment
@@ -89,7 +92,7 @@ test("violation reports the correct day index for a multi-day plan", async () =>
   assert.equal(result.violations[0].day, "Day 2");
 });
 
-test("an ALTERNATIVE-family exercise (lat pulldown) passes when the user owns EITHER alternative", async () => {
+integrationTest("an ALTERNATIVE-family exercise (lat pulldown) passes when the user owns EITHER alternative", async () => {
   const userId = `validator-${randomUUID()}`;
   cleanupUserIds.push(userId);
   const pulldownId = await idOf("Wide-Grip Lat Pulldown");
@@ -107,7 +110,7 @@ test("an ALTERNATIVE-family exercise (lat pulldown) passes when the user owns EI
   assert.equal(result.valid, false, "neither alternative owned should fail");
 });
 
-test("a multi-required exercise (barbell bench press: barbell + bench) fails when only ONE of the two is owned", async () => {
+integrationTest("a multi-required exercise (barbell bench press: barbell + bench) fails when only ONE of the two is owned", async () => {
   const userId = `validator-${randomUUID()}`;
   cleanupUserIds.push(userId);
   const benchPressId = await idOf("Barbell Bench Press - Medium Grip");

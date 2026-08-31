@@ -197,6 +197,122 @@ test("TIME logging mode: improved duration -> INCREASE_LOAD (duration target)", 
   assert.equal(result.nextTarget?.durationSeconds, 50);
 });
 
+test("AMRAP readiness: exceeding minimum by 2+ reps increases load even when RIR is 0", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      recentSessions: [
+        session("2026-08-20", [set({ weightKg: 80, reps: 11, rir: 0, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 9, rir: 0, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.policyUsed, "AMRAP_READINESS");
+  assert.equal(result.status, "INCREASE_LOAD");
+  assert.equal(result.nextTarget?.weightKg, 84);
+  assert.equal(result.nextTarget?.reps, 8);
+  assert.deepEqual(result.amrapPerformance, { achievedReps: 11, minimumReps: 8, marginReps: 3 });
+  assert.ok(result.reasonCodes.includes("AMRAP_EXCEEDED_MIN_REPS_LOAD_READY"));
+});
+
+test("AMRAP readiness: meeting minimum without 2-rep margin keeps the target", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      recentSessions: [
+        session("2026-08-20", [set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 8, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.status, "KEEP");
+  assert.ok(result.reasonCodes.includes("AMRAP_MIN_REPS_MET_HOLD_CURRENT_TARGET"));
+});
+
+test("AMRAP readiness: one miss repeats, two consecutive misses deload", () => {
+  const oneMiss = evaluateExerciseProgression(
+    baseInput({
+      recentSessions: [
+        session("2026-08-20", [set({ weightKg: 80, reps: 7, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(oneMiss.status, "KEEP");
+  assert.ok(oneMiss.reasonCodes.includes("AMRAP_MIN_REPS_MISSED_ONCE_REPEAT_BEFORE_DELOAD"));
+
+  const twoMisses = evaluateExerciseProgression(
+    baseInput({
+      recentSessions: [
+        session("2026-08-20", [set({ weightKg: 80, reps: 6, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 7, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-06", [set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(twoMisses.status, "DELOAD");
+  assert.equal(twoMisses.nextTarget?.weightKg, 72);
+});
+
+test("bodyweight AMRAP raises the minimum by one instead of inventing a load", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      loggingMode: "BODYWEIGHT_REPS",
+      recentSessions: [
+        session("2026-08-20", [set({ reps: 12, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ reps: 10, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.status, "INCREASE_REPS");
+  assert.equal(result.nextTarget?.reps, 9);
+  assert.equal(result.nextTarget?.weightKg, null);
+  assert.ok(result.reasonCodes.includes("AMRAP_EXCEEDED_MIN_REPS_RAISE_MINIMUM"));
+});
+
+test("AMRAP markers cannot override timed-exercise progression semantics", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      loggingMode: "TIME",
+      recentSessions: [
+        session("2026-08-20", [set({ reps: 20, durationSeconds: 60, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ reps: 10, durationSeconds: 45, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.policyUsed, "TIMED_PROGRESSION");
+  assert.equal(result.nextTarget?.durationSeconds, 65);
+});
+
+test("multiple AMRAP probes require every probe to clear the readiness margin", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      recentSessions: [
+        session("2026-08-20", [
+          set({ weightKg: 80, reps: 12, isAmrap: true, amrapMinReps: 8 }),
+          set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 }),
+        ]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.status, "KEEP");
+  assert.equal(result.amrapPerformance?.marginReps, 1);
+});
+
+test("cycle REBUILD still blocks an AMRAP-derived automatic increase", () => {
+  const result = evaluateExerciseProgression(
+    baseInput({
+      cycleDecision: "REBUILD",
+      recentSessions: [
+        session("2026-08-20", [set({ weightKg: 80, reps: 12, isAmrap: true, amrapMinReps: 8 })]),
+        session("2026-08-13", [set({ weightKg: 80, reps: 9, isAmrap: true, amrapMinReps: 8 })]),
+      ],
+    }),
+  );
+  assert.equal(result.status, "REVIEW");
+  assert.equal(result.nextTarget, null);
+  assert.ok(result.reasonCodes.includes("CYCLE_REBUILD_BLOCKS_AUTOMATIC_LOCAL_INCREASE"));
+});
+
 test("cycle DELOAD envelope overrides a local INCREASE_LOAD signal", () => {
   const result = evaluateExerciseProgression(
     baseInput({

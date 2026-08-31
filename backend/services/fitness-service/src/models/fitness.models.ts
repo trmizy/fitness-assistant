@@ -69,14 +69,53 @@ export const importAiPlanSchema = z.object({
   replaceExisting: z.boolean().default(true).optional(),
 });
 
-export const manualProgramExerciseSchema = z.object({
-  exerciseId: z.string().min(1, "Exercise ID is required"),
-  order: z.number().int().min(1).max(30).optional(),
-  sets: z.number().int().min(1).max(10).default(3),
-  reps: z.number().int().min(1).max(100).default(10),
-  restSeconds: z.number().int().min(0).max(600).default(90),
+export const manualSetPrescriptionSchema = z.object({
+  setNumber: z.number().int().min(1).max(20),
+  targetReps: z.number().int().min(1).max(100).optional().nullable(),
+  targetWeight: z.number().nonnegative().max(L.WEIGHT_MAX).optional().nullable(),
+  targetRpe: z.number().min(1).max(10).optional().nullable(),
+  targetRir: z.number().int().min(0).max(5).optional().nullable(),
+  targetSetType: z.enum(SET_TYPES).optional().nullable(),
+  targetTempo: z.string().regex(/^\d{1,2}-\d{1,2}-\d{1,2}-\d{1,2}$/).max(20).optional().nullable(),
+  targetDurationSeconds: z.number().int().positive().max(36000).optional().nullable(),
+  targetDistanceMeters: z.number().nonnegative().max(1000000).optional().nullable(),
+  isAmrap: z.boolean().default(false).optional(),
+  minReps: z.number().int().min(1).max(100).optional().nullable(),
+  restSeconds: z.number().int().min(0).max(600).optional().nullable(),
   notes: z.string().max(300).optional().nullable(),
 });
+
+export const manualProgramExerciseSchema = z
+  .object({
+    exerciseId: z.string().min(1, "Exercise ID is required"),
+    order: z.number().int().min(1).max(30).optional(),
+    sets: z.number().int().min(1).max(10).default(3),
+    reps: z.number().int().min(1).max(100).default(10),
+    restSeconds: z.number().int().min(0).max(600).default(90),
+    notes: z.string().max(300).optional().nullable(),
+    setPrescriptions: z.array(manualSetPrescriptionSchema).max(20).optional(),
+  })
+  .superRefine((exercise, ctx) => {
+    const prescriptions = exercise.setPrescriptions ?? [];
+    const seen = new Set<number>();
+    for (const [index, prescription] of prescriptions.entries()) {
+      if (seen.has(prescription.setNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["setPrescriptions", index, "setNumber"],
+          message: "setNumber must be unique per exercise",
+        });
+      }
+      seen.add(prescription.setNumber);
+      if (prescription.setNumber > exercise.sets) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["setPrescriptions", index, "setNumber"],
+          message: "setNumber cannot exceed exercise sets",
+        });
+      }
+    }
+  });
 
 export const manualProgramDaySchema = z.object({
   dayNumber: z.number().int().min(1).max(7),
@@ -105,6 +144,7 @@ export type AiPlanExerciseDto = z.infer<typeof aiPlanExerciseSchema>;
 export type AiPlanDayDto = z.infer<typeof aiPlanDaySchema>;
 export type ImportAiPlanDto = z.infer<typeof importAiPlanSchema>;
 export type CreateManualProgramDto = z.infer<typeof createManualProgramSchema>;
+export type ManualSetPrescriptionDto = z.infer<typeof manualSetPrescriptionSchema>;
 
 export const createWorkoutSchema = z
   .object({
@@ -172,6 +212,17 @@ export const createWorkoutSchema = z
     }
   });
 
+export const workoutSetSegmentSchema = z.object({
+  segmentNumber: z.number().int().min(1).max(10),
+  technique: z.enum(["DROP_SET", "REST_PAUSE"]),
+  reps: z.number().int().positive().max(500),
+  weight: z.number().nonnegative().max(2000).optional().nullable(),
+  rpe: z.number().min(1).max(10).optional().nullable(),
+  rir: z.number().int().min(0).max(5).optional().nullable(),
+  restBeforeSeconds: z.number().int().min(0).max(600).optional().nullable(),
+  notes: z.string().trim().max(300).optional().nullable(),
+});
+
 export const updateWorkoutSetSchema = z.object({
   reps: z.number().int().positive().optional(),
   weight: z.number().nonnegative().optional(),
@@ -181,7 +232,26 @@ export const updateWorkoutSetSchema = z.object({
   durationSeconds: z.number().int().positive().max(36000).optional().nullable(),
   distanceMeters: z.number().nonnegative().max(1000000).optional().nullable(),
   completed: z.boolean().optional(),
+  segments: z.array(workoutSetSegmentSchema).max(10).optional(),
   ...advancedSetFields,
+}).superRefine((data, ctx) => {
+  if (!data.segments) return;
+  data.segments.forEach((segment, index) => {
+    if (segment.segmentNumber !== index + 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segments", index, "segmentNumber"],
+        message: "Segment numbers must be contiguous and start at 1",
+      });
+    }
+    if (index > 0 && segment.technique !== data.segments![0].technique) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segments", index, "technique"],
+        message: "All segments in one set chain must use the same technique",
+      });
+    }
+  });
 });
 
 // Hardening pass §3 — POST /workouts/schedules/:id/exercises/:programExerciseId/complete

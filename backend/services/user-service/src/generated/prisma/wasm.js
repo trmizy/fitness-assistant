@@ -354,6 +354,16 @@ exports.Prisma.NotificationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.NotificationPreferenceScalarFieldEnum = {
+  userId: 'userId',
+  workoutUpcomingEnabled: 'workoutUpcomingEnabled',
+  workoutRescheduledEnabled: 'workoutRescheduledEnabled',
+  workoutUnfinishedEnabled: 'workoutUnfinishedEnabled',
+  planUpdatedEnabled: 'planUpdatedEnabled',
+  ptFeedbackEnabled: 'ptFeedbackEnabled',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PTAvailabilityScalarFieldEnum = {
   id: 'id',
   ptUserId: 'ptUserId',
@@ -641,12 +651,19 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   SESSION_RESCHEDULE_REQUESTED: 'SESSION_RESCHEDULE_REQUESTED',
   SESSION_RESCHEDULE_ACCEPTED: 'SESSION_RESCHEDULE_ACCEPTED',
   SESSION_RESCHEDULE_REJECTED: 'SESSION_RESCHEDULE_REJECTED',
-  SESSION_RESCHEDULE_EXPIRED: 'SESSION_RESCHEDULE_EXPIRED'
+  SESSION_RESCHEDULE_EXPIRED: 'SESSION_RESCHEDULE_EXPIRED',
+  WORKOUT_UPCOMING: 'WORKOUT_UPCOMING',
+  WORKOUT_RESCHEDULED: 'WORKOUT_RESCHEDULED',
+  WORKOUT_UNFINISHED: 'WORKOUT_UNFINISHED',
+  TRAINING_PLAN_UPDATED: 'TRAINING_PLAN_UPDATED',
+  PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   CONTRACT: 'CONTRACT',
-  SESSION: 'SESSION'
+  SESSION: 'SESSION',
+  WORKOUT_SCHEDULE: 'WORKOUT_SCHEDULE',
+  TRAINING_PROGRAM: 'TRAINING_PROGRAM'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {
@@ -701,6 +718,7 @@ exports.Prisma.ModelName = {
   Session: 'Session',
   SessionReview: 'SessionReview',
   Notification: 'Notification',
+  NotificationPreference: 'NotificationPreference',
   PTAvailability: 'PTAvailability',
   PTScheduleException: 'PTScheduleException',
   VietnamProvince: 'VietnamProvince',

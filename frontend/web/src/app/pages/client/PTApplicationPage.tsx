@@ -37,6 +37,7 @@ import {
 import { formatVND } from "../../utils/currency";
 import { locationService } from "../../services/api";
 import { SPECIALTIES } from "../../constants/specialties";
+import { apiBaseUrl } from "../../config/serverUrl";
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
@@ -194,9 +195,8 @@ function UploadBox({
   const getFullUrl = (url: string) => {
     if (!url) return "";
     if (url.startsWith("http")) return url;
-    // @ts-ignore
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-    return `${baseUrl}${url}`;
+    const baseUrl = apiBaseUrl().replace(/\/$/, "");
+    return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

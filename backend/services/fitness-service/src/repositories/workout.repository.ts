@@ -5,7 +5,10 @@ const workoutInclude = {
   exercises: {
     include: {
       exercise: true,
-      workoutSets: { orderBy: { setNumber: "asc" as const } },
+      workoutSets: {
+        orderBy: { setNumber: "asc" as const },
+        include: { segments: { orderBy: { segmentNumber: "asc" as const } } },
+      },
     },
     orderBy: { order: "asc" as const },
   },
@@ -367,6 +370,8 @@ export const workoutRepository = {
             setType: true,
             durationSeconds: true,
             distanceMeters: true,
+            isAmrap: true,
+            amrapMinReps: true,
           },
         },
       },
@@ -413,6 +418,8 @@ export const workoutRepository = {
             setType: true,
             durationSeconds: true,
             distanceMeters: true,
+            isAmrap: true,
+            amrapMinReps: true,
           },
         },
       },

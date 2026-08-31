@@ -12,6 +12,7 @@ import {
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
+import { authServiceClient } from "../clients/auth-service.client";
 import { profileRepository } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
@@ -176,10 +177,6 @@ async function counterpartyProfiles(
   return byId;
 }
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || "";
-
 // Money-flow plan 5.2: e-signing is paused as a settled product decision (docs/money-flow.md's
 // scope section), set to "false" in docker-compose.dev.yml — not a temporary testing bypass
 // anymore. When off, a contract goes straight from PENDING_REVIEW to PENDING_PAYMENT on
@@ -191,11 +188,10 @@ const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
 /** Fire-and-forget: a notification email must never fail the flow that triggered it. */
 async function sendConfirmationEmail(to: string, subject: string, text: string): Promise<void> {
   try {
-    const { default: axios } = await import("axios");
-    await axios.post(
-      `${AUTH_SERVICE_URL}/auth/internal/send-email`,
+    await authServiceClient.internalPost(
+      "/auth/internal/send-email",
       { to, subject, text },
-      { headers: { "x-service-secret": INTERNAL_SERVICE_SECRET }, timeout: 5000 },
+      { timeoutMs: 5000 },
     );
   } catch (e: any) {
     logger.error({ to, err: e?.message }, "Failed to send contract confirmation email");
@@ -208,13 +204,9 @@ async function getUserInfo(userId: string): Promise<{
   lastName: string | null;
 } | null> {
   try {
-    const { default: axios } = await import("axios");
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+    const { data } = await authServiceClient.internalGet(
+      `/auth/internal/users/${userId}`,
+      { timeoutMs: 3000 },
     );
     const u = data?.user;
     if (!u?.email) return null;
@@ -251,13 +243,9 @@ function fullName(
  */
 async function isUserActive(userId: string): Promise<boolean> {
   try {
-    const { default: axios } = await import("axios");
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+    const { data } = await authServiceClient.internalGet(
+      `/auth/internal/users/${userId}`,
+      { timeoutMs: 3000 },
     );
     const u = data?.user;
     if (!u) return true;

@@ -176,6 +176,21 @@ describe("selectSmartSetPrefill", () => {
   // Roadmap P1.1 "true set-by-set table UI" — targetSetNumber lets a
   // multi-set table ask for set 3's OWN previous actual instead of always
   // reusing set 1's (the pre-existing, still-default behavior above).
+  it("prefills actual tempo from the matching previous set before exercise defaults", () => {
+    const result = selectSmartSetPrefill({
+      loggingMode: "REPS_LOAD",
+      previousSets: [
+        { weightKg: 60, reps: 8, tempo: "2-0-1-0", setNumber: 1 },
+        { weightKg: 60, reps: 8, tempo: "3-1-1-0", setNumber: 2 },
+      ],
+      exerciseDefaults: { weight: 50, reps: 8, tempo: "1-0-1-0" },
+      targetSetNumber: 2,
+    });
+
+    assert.equal(result.source, "previous");
+    assert.equal(result.draft.tempo, "3-1-1-0");
+  });
+
   it("targetSetNumber prefers the matching previous set's own actual over the first logged set", () => {
     const result = selectSmartSetPrefill({
       loggingMode: "REPS_LOAD",

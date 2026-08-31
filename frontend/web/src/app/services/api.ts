@@ -415,6 +415,7 @@ export interface PreviousPerformanceSet {
   rpe: number | null;
   rir: number | null;
   setType: string | null;
+  tempo?: string | null;
   durationSeconds?: number | null;
   distanceMeters?: number | null;
 }
@@ -452,6 +453,11 @@ export interface ExerciseProgression {
   reasonCodes: string[];
   cycleContext: string;
   dataQuality: "SUFFICIENT" | "LOW_SAMPLE" | "NONE";
+  amrapPerformance: {
+    achievedReps: number;
+    minimumReps: number;
+    marginReps: number;
+  } | null;
 }
 
 // Roadmap P3.6 "Exercise history detail page"
@@ -471,6 +477,7 @@ export interface ExerciseHistorySessionSet {
   rpe: number | null;
   rir: number | null;
   setType: string | null;
+  tempo: string | null;
   durationSeconds: number | null;
   distanceMeters: number | null;
 }
@@ -490,6 +497,22 @@ export interface ExerciseHistoryDetail {
   recentSessions: ExerciseHistoryRecentSession[];
   chart: { sessions: ExerciseProgressSessionPoint[] };
 }
+
+export type WorkoutSetPrescriptionInput = {
+  setNumber: number;
+  targetReps?: number | null;
+  targetWeight?: number | null;
+  targetRpe?: number | null;
+  targetRir?: number | null;
+  targetSetType?: string | null;
+  targetTempo?: string | null;
+  targetDurationSeconds?: number | null;
+  targetDistanceMeters?: number | null;
+  isAmrap?: boolean;
+  minReps?: number | null;
+  restSeconds?: number | null;
+  notes?: string | null;
+};
 
 export const workoutService = {
   logWorkout: async (workout: any) => {
@@ -681,6 +704,18 @@ export const workoutService = {
       bodyWeightAtSetKg?: number | null;
       durationSeconds?: number | null;
       distanceMeters?: number | null;
+      setType?: string | null;
+      tempo?: string | null;
+      segments?: Array<{
+        segmentNumber: number;
+        technique: "DROP_SET" | "REST_PAUSE";
+        reps: number;
+        weight?: number | null;
+        rpe?: number | null;
+        rir?: number | null;
+        restBeforeSeconds?: number | null;
+        notes?: string | null;
+      }>;
       completed?: boolean;
     },
   ) => {
@@ -855,6 +890,7 @@ export const workoutService = {
         reps?: number;
         restSeconds?: number;
         notes?: string | null;
+        setPrescriptions?: WorkoutSetPrescriptionInput[];
       }>;
     }>;
   }) => {
@@ -871,6 +907,7 @@ export const workoutService = {
       reps?: number;
       restSeconds?: number;
       notes?: string | null;
+      setPrescriptions?: WorkoutSetPrescriptionInput[];
     },
   ) => {
     const { data } = await api.post(
@@ -2208,8 +2245,24 @@ export interface WorkoutScheduleExerciseRecord {
   order: number;
   sets: number;
   reps: number | null;
+  weight?: number | null;
   restSeconds?: number | null;
   notes?: string | null;
+  setPrescriptions?: Array<WorkoutSetPrescriptionInput & {
+    id: string;
+    targetReps: number | null;
+    targetWeight: number | null;
+    targetRpe: number | null;
+    targetRir: number | null;
+    targetSetType: string | null;
+    targetTempo: string | null;
+    targetDurationSeconds: number | null;
+    targetDistanceMeters: number | null;
+    isAmrap: boolean;
+    minReps: number | null;
+    restSeconds: number | null;
+    notes: string | null;
+  }>;
   exercise?: {
     id: string;
     exerciseName: string;

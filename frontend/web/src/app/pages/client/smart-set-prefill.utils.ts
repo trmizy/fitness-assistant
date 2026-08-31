@@ -19,6 +19,7 @@ export interface SmartPrefillDraft {
   bodyWeightAtSetKg: string;
   durationSeconds: string;
   distanceMeters: string;
+  tempo: string;
   /** Editable only for BODYWEIGHT_REPS today — see the loggingMode switch
    * below. REPS_LOAD/TIME_LOAD sets reps from the fixed program
    * prescription elsewhere, matching the active-workout UI's existing
@@ -27,6 +28,7 @@ export interface SmartPrefillDraft {
   noWeight: boolean;
   rpe: number;
   rir: number;
+  setType: string;
 }
 
 export interface SmartPrefillPreviousSet {
@@ -37,6 +39,7 @@ export interface SmartPrefillPreviousSet {
   rir?: number | null;
   durationSeconds?: number | null;
   distanceMeters?: number | null;
+  tempo?: string | null;
   /** Roadmap P1.1 "true set-by-set table UI" — lets the caller ask for the
    * SAME set number's own previous actual (e.g. set 3's prefill should
    * reference set 3's own history, not set 1's) instead of always the
@@ -62,6 +65,7 @@ export interface SmartPrefillExerciseDefaults {
   distanceMeters?: number | null;
   rpe?: number | null;
   rir?: number | null;
+  tempo?: string | null;
 }
 
 export type SmartPrefillSource = "progression" | "previous" | "prescription";
@@ -162,10 +166,12 @@ export function selectSmartSetPrefill(input: {
     bodyWeightAtSetKg: "",
     durationSeconds: "",
     distanceMeters: "",
+    tempo: previous?.tempo ?? defaults.tempo ?? "",
     reps: "",
     noWeight: defaultNoWeight(input.loggingMode, weightKg),
     rpe: previous?.rpe ?? defaults.rpe ?? 7,
     rir: previous?.rir ?? defaults.rir ?? 2,
+    setType: "WORKING",
   };
 
   switch (input.loggingMode) {

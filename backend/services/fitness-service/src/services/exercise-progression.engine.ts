@@ -30,6 +30,7 @@ export type ProgressionPolicy =
   | "LINEAR"
   | "DOUBLE_PROGRESSION"
   | "AUTOREGULATED_RIR"
+  | "AMRAP_READINESS"
   | "BODYWEIGHT_REP_CLIMB"
   | "TIMED_PROGRESSION";
 
@@ -59,6 +60,10 @@ export interface PerformanceSetRow {
    * engine defensively (industry convention, see gap analysis + research
    * sources doc), even if the caller forgot to pre-filter them. */
   setType: string | null;
+  /** Immutable snapshot copied from the planned set when the workout starts.
+   * Optional keeps old callers/history fully backward compatible. */
+  isAmrap?: boolean;
+  amrapMinReps?: number | null;
 }
 
 export interface ExercisePerformanceSession {
@@ -102,6 +107,11 @@ export interface ExerciseProgressionResult {
   reasonCodes: string[];
   cycleContext: CycleDecision | "NONE";
   dataQuality: "SUFFICIENT" | "LOW_SAMPLE" | "NONE";
+  amrapPerformance: {
+    achievedReps: number;
+    minimumReps: number;
+    marginReps: number;
+  } | null;
 }
 
 // ---- Product-heuristic thresholds (NOT scientific claims — see
@@ -117,6 +127,8 @@ const CONSECUTIVE_MISSES_BEFORE_DELOAD = 2;
 const DELOAD_LOAD_REDUCTION_FRACTION = 0.1; // -10%, matches training-cycle-classification.service.ts's own deload-scale convention
 const LOW_RIR_MISS_THRESHOLD = 0; // RIR <= 0 on a set counts as "no room left" for that set
 const HIGH_RIR_HEADROOM_THRESHOLD = 2; // avg RIR >= 2 means there was room to add load
+const AMRAP_LOAD_READY_MARGIN_REPS = 2;
+const AMRAP_BODYWEIGHT_MINIMUM_STEP = 1;
 
 function isUsableSet(s: PerformanceSetRow): boolean {
   return s.completed && s.setType !== "WARMUP";
@@ -147,6 +159,9 @@ interface SessionSummary {
   maxDistanceMeters: number | null;
   setCount: number;
   anySetMissedRir: boolean;
+  amrapAchievedReps: number | null;
+  amrapMinReps: number | null;
+  amrapMinMarginReps: number | null;
 }
 
 function summarizeSession(session: ExercisePerformanceSession): SessionSummary | null {
@@ -159,6 +174,9 @@ function summarizeSession(session: ExercisePerformanceSession): SessionSummary |
   let maxDistanceMeters: number | null = null;
   const rirValues: number[] = [];
   let anySetMissedRir = false;
+  let amrapAchievedReps: number | null = null;
+  let amrapMinReps: number | null = null;
+  let amrapMinMarginReps: number | null = null;
 
   for (const s of sets) {
     if (s.weightKg != null) maxWeightKg = Math.max(maxWeightKg ?? -Infinity, s.weightKg);
@@ -171,7 +189,17 @@ function summarizeSession(session: ExercisePerformanceSession): SessionSummary |
     }
     if (s.rir != null) {
       rirValues.push(s.rir);
-      if (s.rir <= LOW_RIR_MISS_THRESHOLD) anySetMissedRir = true;
+      // RIR 0 is expected on a genuine AMRAP and must not masquerade as a
+      // failed straight-set prescription.
+      if (!s.isAmrap && s.rir <= LOW_RIR_MISS_THRESHOLD) anySetMissedRir = true;
+    }
+    if (s.isAmrap && s.reps != null && s.amrapMinReps != null) {
+      const margin = s.reps - s.amrapMinReps;
+      amrapAchievedReps = Math.max(amrapAchievedReps ?? -Infinity, s.reps);
+      amrapMinReps = Math.max(amrapMinReps ?? -Infinity, s.amrapMinReps);
+      // Multiple AMRAP probes in one session must all clear the prescription
+      // before an automatic increase is allowed.
+      amrapMinMarginReps = Math.min(amrapMinMarginReps ?? Infinity, margin);
     }
   }
 
@@ -183,7 +211,20 @@ function summarizeSession(session: ExercisePerformanceSession): SessionSummary |
     maxDistanceMeters,
     setCount: sets.length,
     anySetMissedRir,
+    amrapAchievedReps,
+    amrapMinReps,
+    amrapMinMarginReps,
   };
+}
+
+function sessionRegressed(current: SessionSummary, previous: SessionSummary): boolean {
+  if (current.amrapMinMarginReps != null) return current.amrapMinMarginReps < 0;
+  return (
+    (current.maxWeightKg ?? 0) < (previous.maxWeightKg ?? 0) ||
+    ((current.maxWeightKg ?? 0) === (previous.maxWeightKg ?? 0) &&
+      (current.totalReps ?? 0) < (previous.totalReps ?? 0)) ||
+    current.anySetMissedRir
+  );
 }
 
 function roundToStep(value: number, step = 0.5): number {
@@ -213,12 +254,26 @@ export function evaluateExerciseProgression(
       reasonCodes: ["NO_VALID_SET_HISTORY"],
       cycleContext,
       dataQuality,
+      amrapPerformance: null,
     };
   }
 
   const latest = summaries[0];
   const hasRirData = summaries.some((s) => s.avgRir != null);
-  const policyUsed = selectProgressionPolicy(input.loggingMode, input.experienceLevel, hasRirData);
+  const hasQualifiedAmrap =
+    latest.amrapMinMarginReps != null &&
+    (input.loggingMode === "REPS_LOAD" || input.loggingMode === "BODYWEIGHT_REPS");
+  const policyUsed: ProgressionPolicy = hasQualifiedAmrap
+    ? "AMRAP_READINESS"
+    : selectProgressionPolicy(input.loggingMode, input.experienceLevel, hasRirData);
+  const amrapPerformance =
+    hasQualifiedAmrap && latest.amrapAchievedReps != null && latest.amrapMinReps != null
+      ? {
+          achievedReps: latest.amrapAchievedReps,
+          minimumReps: latest.amrapMinReps,
+          marginReps: latest.amrapMinMarginReps ?? 0,
+        }
+      : null;
 
   const currentPerformance = {
     weightKg: latest.maxWeightKg,
@@ -239,6 +294,7 @@ export function evaluateExerciseProgression(
       reasonCodes: ["ONLY_ONE_SESSION_LOGGED_NEED_AT_LEAST_TWO_TO_COMPARE"],
       cycleContext,
       dataQuality,
+      amrapPerformance,
     };
   }
 
@@ -252,11 +308,7 @@ export function evaluateExerciseProgression(
     (latest.maxDurationSeconds ?? 0) > (previous.maxDurationSeconds ?? 0) ||
     (latest.maxDistanceMeters ?? 0) > (previous.maxDistanceMeters ?? 0);
 
-  const regressed =
-    (latest.maxWeightKg ?? 0) < (previous.maxWeightKg ?? 0) ||
-    ((latest.maxWeightKg ?? 0) === (previous.maxWeightKg ?? 0) &&
-      (latest.totalReps ?? 0) < (previous.totalReps ?? 0)) ||
-    latest.anySetMissedRir;
+  const regressed = sessionRegressed(latest, previous);
 
   // Count consecutive regressions walking back through history for the
   // deload trigger (needs >= CONSECUTIVE_MISSES_BEFORE_DELOAD sessions of
@@ -265,10 +317,7 @@ export function evaluateExerciseProgression(
   for (let i = 0; i < summaries.length - 1; i++) {
     const cur = summaries[i];
     const prev = summaries[i + 1];
-    const curRegressed =
-      (cur.maxWeightKg ?? 0) < (prev.maxWeightKg ?? 0) ||
-      ((cur.maxWeightKg ?? 0) === (prev.maxWeightKg ?? 0) && (cur.totalReps ?? 0) < (prev.totalReps ?? 0)) ||
-      cur.anySetMissedRir;
+    const curRegressed = sessionRegressed(cur, prev);
     if (curRegressed) consecutiveMisses++;
     else break;
   }
@@ -284,6 +333,36 @@ export function evaluateExerciseProgression(
     if (latest.maxWeightKg != null) {
       loadChangeKg = -roundToStep(latest.maxWeightKg * DELOAD_LOAD_REDUCTION_FRACTION);
       nextTarget = { weightKg: roundToStep(latest.maxWeightKg + loadChangeKg), reps: null, durationSeconds: null };
+    }
+  } else if (policyUsed === "AMRAP_READINESS") {
+    const margin = latest.amrapMinMarginReps ?? -Infinity;
+    if (margin >= AMRAP_LOAD_READY_MARGIN_REPS) {
+      if (input.loggingMode === "BODYWEIGHT_REPS") {
+        status = "INCREASE_REPS";
+        repChange = AMRAP_BODYWEIGHT_MINIMUM_STEP;
+        nextTarget = {
+          weightKg: null,
+          reps: (latest.amrapMinReps ?? 0) + AMRAP_BODYWEIGHT_MINIMUM_STEP,
+          durationSeconds: null,
+        };
+        reasonCodes.push("AMRAP_EXCEEDED_MIN_REPS_RAISE_MINIMUM");
+      } else {
+        status = "INCREASE_LOAD";
+        const base = latest.maxWeightKg ?? 0;
+        loadChangeKg = roundToStep(base * LINEAR_LOAD_STEP_FRACTION);
+        nextTarget = {
+          weightKg: roundToStep(base + loadChangeKg),
+          reps: latest.amrapMinReps,
+          durationSeconds: null,
+        };
+        reasonCodes.push("AMRAP_EXCEEDED_MIN_REPS_LOAD_READY");
+      }
+    } else if (margin >= 0) {
+      status = "KEEP";
+      reasonCodes.push("AMRAP_MIN_REPS_MET_HOLD_CURRENT_TARGET");
+    } else {
+      status = "KEEP";
+      reasonCodes.push("AMRAP_MIN_REPS_MISSED_ONCE_REPEAT_BEFORE_DELOAD");
     }
   } else if (policyUsed === "BODYWEIGHT_REP_CLIMB") {
     if (improved || (latest.avgRir ?? 0) >= HIGH_RIR_HEADROOM_THRESHOLD) {
@@ -369,6 +448,7 @@ export function evaluateExerciseProgression(
     reasonCodes,
     cycleContext,
     dataQuality,
+    amrapPerformance,
   };
 }
 

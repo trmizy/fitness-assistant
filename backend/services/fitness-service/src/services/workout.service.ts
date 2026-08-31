@@ -26,6 +26,7 @@ import type {
   CreateWorkoutDto,
   UpdateWorkoutSetDto,
   ImportAiPlanDto,
+  ManualSetPrescriptionDto,
 } from "../models/fitness.models";
 import { SET_TYPES, SET_SIDES } from "../models/fitness.models";
 
@@ -48,6 +49,10 @@ type MappedAiDay = {
   title: string;
   description?: string;
   exercises: MappedAiExercise[];
+};
+
+type SetPrescriptionLike = Partial<ManualSetPrescriptionDto> & {
+  setNumber: number;
 };
 
 const GOAL_LABELS: Record<string, string> = {
@@ -119,6 +124,65 @@ function sanitizeImportedExerciseNote(value?: string | null) {
     "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
   );
 }
+
+function buildSetPrescriptionsForExercise(exercise: {
+  sets?: number | null;
+  reps?: number | null;
+  weight?: number | null;
+  restSeconds?: number | null;
+  setPrescriptions?: SetPrescriptionLike[] | null;
+}) {
+  const setCount = Math.max(1, Number(exercise.sets) || 1);
+  const provided = new Map<number, SetPrescriptionLike>();
+  for (const prescription of exercise.setPrescriptions ?? []) {
+    if (prescription?.setNumber >= 1 && prescription.setNumber <= setCount) {
+      provided.set(prescription.setNumber, prescription);
+    }
+  }
+
+  return Array.from({ length: setCount }, (_unused, index) => {
+    const setNumber = index + 1;
+    const source = provided.get(setNumber);
+    return {
+      setNumber,
+      targetReps: source?.targetReps ?? exercise.reps ?? null,
+      targetWeight: source?.targetWeight ?? exercise.weight ?? null,
+      targetRpe: source?.targetRpe ?? null,
+      targetRir: source?.targetRir ?? null,
+      targetSetType: source?.targetSetType ?? null,
+      targetTempo: source?.targetTempo ?? null,
+      targetDurationSeconds: source?.targetDurationSeconds ?? null,
+      targetDistanceMeters: source?.targetDistanceMeters ?? null,
+      isAmrap: source?.isAmrap ?? false,
+      minReps: source?.minReps ?? null,
+      restSeconds: source?.restSeconds ?? exercise.restSeconds ?? null,
+      notes: source?.notes ?? null,
+    };
+  });
+}
+
+function prescriptionForSet(programExercise: any, setNumber: number) {
+  const prescriptions = Array.isArray(programExercise?.setPrescriptions)
+    ? programExercise.setPrescriptions
+    : [];
+  const matched = prescriptions.find((prescription: any) => prescription.setNumber === setNumber);
+  if (matched) return matched;
+  return {
+    targetReps: programExercise.reps ?? null,
+    targetWeight: programExercise.weight ?? null,
+    targetRpe: null,
+    targetRir: null,
+    targetSetType: null,
+    targetTempo: null,
+    targetDurationSeconds: programExercise.duration ?? null,
+    targetDistanceMeters: null,
+  };
+}
+
+const PROGRAM_EXERCISE_INCLUDE = {
+  exercise: true,
+  setPrescriptions: { orderBy: { setNumber: "asc" as const } },
+};
 
 type WorkoutProgressSummary = {
   sessionId: string | null;
@@ -194,12 +258,26 @@ async function createStartedWorkoutForSchedule(
             workoutSets: {
               create: Array.from(
                 { length: Number(programExercise.sets) || 1 },
-                (_unused, setIndex) => ({
-                  setNumber: setIndex + 1,
-                  reps: programExercise.reps ?? null,
-                  weight: programExercise.weight ?? null,
-                  completed: false,
-                }),
+                (_unused, setIndex) => {
+                  const prescription = prescriptionForSet(programExercise, setIndex + 1);
+                  return {
+                    setNumber: setIndex + 1,
+                    reps: prescription.targetReps ?? programExercise.reps ?? null,
+                    weight: prescription.targetWeight ?? programExercise.weight ?? null,
+                    rpe: prescription.targetRpe ?? null,
+                    rir: prescription.targetRir ?? null,
+                    setType: prescription.targetSetType ?? null,
+                    tempo: prescription.targetTempo ?? null,
+                    durationSeconds:
+                      prescription.targetDurationSeconds ??
+                      programExercise.duration ??
+                      null,
+                    distanceMeters: prescription.targetDistanceMeters ?? null,
+                    isAmrap: prescription.isAmrap,
+                    amrapMinReps: prescription.minReps,
+                    completed: false,
+                  };
+                },
               ),
             },
           }),
@@ -229,7 +307,7 @@ async function recomputeScheduleProgress(
       programDay: {
         include: {
           program: { select: { id: true } },
-          exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+          exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
         },
       },
     },
@@ -467,6 +545,8 @@ async function computeExerciseProgressionInternal(
       distanceMeters: set.distanceMeters,
       completed: true, // repository already filters to completed:true
       setType: set.setType,
+      isAmrap: set.isAmrap,
+      amrapMinReps: set.amrapMinReps,
     })),
   }));
 
@@ -917,7 +997,22 @@ export const workoutService = {
         userId,
         data.completed === false ? "SET_UNDONE" : "SET_COMPLETED",
         async () => {
-          const updated = await tx.workoutSet.update({ where: { id: setId }, data });
+          const { segments, ...setData } = data;
+          const updated = await tx.workoutSet.update({
+            where: { id: setId },
+            data: {
+              ...setData,
+              ...(segments !== undefined
+                ? {
+                    segments: {
+                      deleteMany: {},
+                      create: segments,
+                    },
+                  }
+                : {}),
+            },
+            include: { segments: { orderBy: { segmentNumber: "asc" } } },
+          });
           const workoutExercise = await tx.workoutExercise.findFirst({
             where: { id: existing.workoutExerciseId, workout: { userId } },
             select: { workoutId: true, exerciseId: true, programExerciseId: true },
@@ -1063,7 +1158,7 @@ export const workoutService = {
               },
             },
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
             // Roadmap P1.3 "Superset / exercise grouping".
@@ -1093,7 +1188,7 @@ export const workoutService = {
       include: {
         program: true,
         exercises: {
-          include: { exercise: true },
+          include: PROGRAM_EXERCISE_INCLUDE,
           orderBy: { order: "asc" },
         },
       },
@@ -1109,7 +1204,7 @@ export const workoutService = {
           include: {
             program: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -1138,7 +1233,7 @@ export const workoutService = {
           include: {
             program: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -1158,7 +1253,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+              exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
             },
           },
         },
@@ -1235,7 +1330,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+              exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
             },
           },
         },
@@ -1313,17 +1408,30 @@ export const workoutService = {
             workoutSets: {
               create: Array.from(
                 { length: Number(plannedExercise.sets) || 1 },
-                (_unused, index) => ({
-                  setNumber: index + 1,
-                  reps: actualReps,
-                  weight: actualWeight,
-                  rpe: performed?.rpe ?? null,
-                  rir: performed?.rir ?? null,
-                  bodyWeightAtSetKg: actualBodyWeightAtSetKg,
-                  durationSeconds: actualDurationSeconds,
-                  distanceMeters: actualDistanceMeters,
-                  completed: false,
-                }),
+                (_unused, index) => {
+                  const prescription = prescriptionForSet(plannedExercise, index + 1);
+                  return {
+                    setNumber: index + 1,
+                    reps: performed?.reps ?? prescription.targetReps ?? actualReps,
+                    weight: performed?.weight ?? prescription.targetWeight ?? actualWeight,
+                    rpe: performed?.rpe ?? prescription.targetRpe ?? null,
+                    rir: performed?.rir ?? prescription.targetRir ?? null,
+                    setType: prescription.targetSetType ?? null,
+                    tempo: prescription.targetTempo ?? null,
+                    bodyWeightAtSetKg: actualBodyWeightAtSetKg,
+                    durationSeconds:
+                      performed?.durationSeconds ??
+                      prescription.targetDurationSeconds ??
+                      actualDurationSeconds,
+                    distanceMeters:
+                      performed?.distanceMeters ??
+                      prescription.targetDistanceMeters ??
+                      actualDistanceMeters,
+                    isAmrap: prescription.isAmrap,
+                    amrapMinReps: prescription.minReps,
+                    completed: false,
+                  };
+                },
               ),
             },
           },
@@ -1532,6 +1640,9 @@ export const workoutService = {
                   reps: exercise.reps,
                   restSeconds: exercise.restSeconds,
                   notes: exercise.notes || null,
+                  setPrescriptions: {
+                    create: buildSetPrescriptionsForExercise(exercise),
+                  },
                 })),
               },
             })),
@@ -1541,7 +1652,7 @@ export const workoutService = {
           days: {
             include: {
               exercises: {
-                include: { exercise: true },
+                include: PROGRAM_EXERCISE_INCLUDE,
                 orderBy: { order: "asc" },
               },
               schedules: true,
@@ -1627,7 +1738,7 @@ export const workoutService = {
               include: { workout: true },
             },
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
             // Roadmap P1.3 "Superset / exercise grouping".
@@ -1655,7 +1766,7 @@ export const workoutService = {
         programDay: {
           include: {
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -1742,8 +1853,19 @@ export const workoutService = {
         restSeconds:
           typeof data.restSeconds === "number" ? data.restSeconds : 90,
         notes: typeof data.notes === "string" ? data.notes : undefined,
+        setPrescriptions: {
+          create: buildSetPrescriptionsForExercise({
+            sets: typeof data.sets === "number" ? data.sets : 3,
+            reps: typeof data.reps === "number" ? data.reps : 10,
+            restSeconds:
+              typeof data.restSeconds === "number" ? data.restSeconds : 90,
+            setPrescriptions: Array.isArray(data.setPrescriptions)
+              ? data.setPrescriptions
+              : undefined,
+          }),
+        },
       },
-      include: { exercise: true },
+      include: PROGRAM_EXERCISE_INCLUDE,
     });
   },
 
@@ -1766,12 +1888,39 @@ export const workoutService = {
       patch.reps = data.reps;
     if (typeof data.restSeconds === "number" || data.restSeconds === null)
       patch.restSeconds = data.restSeconds;
+    if (typeof data.weight === "number" || data.weight === null)
+      patch.weight = data.weight;
     if (typeof data.notes === "string" || data.notes === null)
       patch.notes = data.notes;
 
-    return prisma.workoutProgramExercise.update({
-      where: { id },
-      data: patch,
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.workoutProgramExercise.update({
+        where: { id },
+        data: patch,
+      });
+
+      if (Array.isArray(data.setPrescriptions)) {
+        await tx.workoutProgramExerciseSetPrescription.deleteMany({
+          where: { programExerciseId: id },
+        });
+        await tx.workoutProgramExerciseSetPrescription.createMany({
+          data: buildSetPrescriptionsForExercise({
+            sets: updated.sets,
+            reps: updated.reps,
+            weight: updated.weight,
+            restSeconds: updated.restSeconds,
+            setPrescriptions: data.setPrescriptions,
+          }).map((prescription) => ({
+            ...prescription,
+            programExerciseId: id,
+          })),
+        });
+      }
+
+      return tx.workoutProgramExercise.findUnique({
+        where: { id },
+        include: PROGRAM_EXERCISE_INCLUDE,
+      });
     });
   },
 
@@ -2099,7 +2248,7 @@ export const workoutService = {
           include: {
             schedules: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -2186,7 +2335,7 @@ export const workoutService = {
               include: {
                 schedules: true,
                 exercises: {
-                  include: { exercise: true },
+                  include: PROGRAM_EXERCISE_INCLUDE,
                   orderBy: { order: "asc" },
                 },
               },
@@ -2489,7 +2638,7 @@ export const workoutService = {
           days: {
             include: {
               exercises: {
-                include: { exercise: true },
+                include: PROGRAM_EXERCISE_INCLUDE,
                 orderBy: { order: "asc" },
               },
               schedules: true,

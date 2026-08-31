@@ -44,30 +44,30 @@ enum MovementType {
 }
 
 model Exercise {
-  id                    String         @id @default(uuid())
-  exerciseName          String         @map("exercise_name")
-  typeOfActivity        ExerciseType   @map("type_of_activity")
-  typeOfEquipment       EquipmentType  @map("type_of_equipment")
-  bodyPart              BodyPart       @map("body_part")
+  id                    String        @id @default(uuid())
+  exerciseName          String        @map("exercise_name")
+  typeOfActivity        ExerciseType  @map("type_of_activity")
+  typeOfEquipment       EquipmentType @map("type_of_equipment")
+  bodyPart              BodyPart      @map("body_part")
   type                  MovementType
-  muscleGroupsActivated String[]       @map("muscle_groups_activated")
+  muscleGroupsActivated String[]      @map("muscle_groups_activated")
   instructions          String
-  videoUrl              String?        @map("video_url")
+  videoUrl              String?       @map("video_url")
   // Additive fields bringing the production schema closer to the richer
   // curated catalog already in data/catalog/plans/gym_exercises.csv (see
   // docs/TRAINING_KNOWLEDGE_BASE_PLAN.md §1) — free-text/taxonomy-driven
   // rather than a hard Prisma enum since data/catalog/taxonomy/ref_*.csv
   // is the evolving source of truth for allowed values, not this schema.
-  movementPattern       String?        @map("movement_pattern") // e.g. "horizontal_push", "hip_hinge" — see ref_movement_patterns.csv
-  mechanics             String?        // "compound" | "isolation"
-  contraindications     String[]       @default([]) @map("contraindications")
+  movementPattern       String?       @map("movement_pattern") // e.g. "horizontal_push", "hip_hinge" — see ref_movement_patterns.csv
+  mechanics             String? // "compound" | "isolation"
+  contraindications     String[]      @default([]) @map("contraindications")
   // Onboarding/equipment-catalog integration (2026 gym-onboarding project) —
   // "beginner" | "intermediate" | "expert", sourced from the same raw
   // free-exercise-db dataset typeOfEquipment/mechanics already draw from
   // (prisma/raw_exercises.json `level` field) but never previously captured.
   // Advisory only — never a hard filter, just an input the generator can
   // weight for beginner-appropriate exercise selection.
-  difficultyLevel       String?        @map("difficulty_level")
+  difficultyLevel       String?       @map("difficulty_level")
   // Exercise logging-mode taxonomy (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
   // §6.2, gap analysis "Timed / cardio logging" row) — REPS_LOAD |
   // BODYWEIGHT_REPS | TIME | TIME_LOAD | DISTANCE_TIME. Free-text like
@@ -78,7 +78,7 @@ model Exercise {
   // correct for all 883+ rows — flagged, not silently assumed perfect; see
   // ExerciseReviewDecision for the existing "flag for human review" pattern
   // a follow-up correction pass can reuse).
-  loggingMode           String         @default("REPS_LOAD") @map("logging_mode")
+  loggingMode           String        @default("REPS_LOAD") @map("logging_mode")
   // Gate 6/12 (exercise/anatomy data-expansion roadmap) — rollout status.
   // "STAGING" | "REVIEW_REQUIRED" | "APPROVED" | "PUBLISHED" | "DEPRECATED" | "REJECTED".
   // Every one of the 883 pre-existing rows is explicitly backfilled to
@@ -87,7 +87,7 @@ model Exercise {
   // (never the by-id history-resolution path, which must keep resolving
   // regardless of status), so a freshly-imported exercise never reaches a
   // real user until deliberately promoted.
-  status                String         @default("PUBLISHED")
+  status                String        @default("PUBLISHED")
   // Roadmap P1.5 "Custom exercises"
   // (docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md) — additive.
   // "SYSTEM" | "USER_CUSTOM" (PT_CUSTOM deliberately deferred — no PT/
@@ -96,15 +96,15 @@ model Exercise {
   // suppliable/changeable; null for every SYSTEM row. archivedAt is a
   // soft-delete — the row (and every FK to it) stays intact, it just
   // stops appearing in GET /exercises/custom.
-  source                String         @default("SYSTEM")
-  ownerId               String?        @map("owner_id")
-  archivedAt             DateTime?      @map("archived_at")
-  createdAt             DateTime       @default(now()) @map("created_at")
-  updatedAt             DateTime       @updatedAt @map("updated_at")
+  source                String        @default("SYSTEM")
+  ownerId               String?       @map("owner_id")
+  archivedAt            DateTime?     @map("archived_at")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
 
-  workoutExercises        WorkoutExercise[]
-  workoutProgramExercises WorkoutProgramExercise[]
-  equipmentLinks           ExerciseEquipment[]
+  workoutExercises          WorkoutExercise[]
+  workoutProgramExercises   WorkoutProgramExercise[]
+  equipmentLinks            ExerciseEquipment[]
   // Gate 4 (exercise/anatomy data-expansion roadmap) — additive-only
   // provenance/localization/muscle-mapping, none of which changes this
   // row's own id or any existing column. See ExerciseSource/ExerciseAlias/
@@ -113,16 +113,15 @@ model Exercise {
   // (e.g. the same movement independently present in free-exercise-db AND
   // the curated Vietnamese catalog) and MULTIPLE aliases per language —
   // neither fits a single-valued column without data loss.
-  sources   ExerciseSource[]
-  aliases   ExerciseAlias[]
-  muscleLinks ExerciseMuscle[]
+  sources                   ExerciseSource[]
+  aliases                   ExerciseAlias[]
+  muscleLinks               ExerciseMuscle[]
   // Gate 7 — reverse side of ExerciseReviewDecision.targetExercise (a
   // LINK_AS_ALIAS_OF_EXISTING decision points back at whichever live
   // exercise it was linked onto).
   reviewDecisionsLinkedHere ExerciseReviewDecision[]
 
   @@index([status])
-
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
   @@index([ownerId])
@@ -140,8 +139,8 @@ model Exercise {
 model Equipment {
   id          String   @id @default(uuid())
   slug        String   @unique // stable identifier — e.g. "lat-pulldown-machine"
-  name        String   // display name — e.g. "Lat Pulldown Machine"
-  category    String   // FREE_WEIGHTS | BENCHES_RACKS | CABLE | CHEST_MACHINES | BACK_MACHINES | SHOULDER_MACHINES | LEG_MACHINES | ARM_MACHINES | CARDIO | OTHER
+  name        String // display name — e.g. "Lat Pulldown Machine"
+  category    String // FREE_WEIGHTS | BENCHES_RACKS | CABLE | CHEST_MACHINES | BACK_MACHINES | SHOULDER_MACHINES | LEG_MACHINES | ARM_MACHINES | CARDIO | OTHER
   // Alternate names this equipment is commonly known by — e.g.
   // ["Cable Stack","Functional Cable","Pulley","Cable Station"] for
   // "Cable Machine". Search/import matching only; never a source of truth.
@@ -210,30 +209,30 @@ model Workout {
   name        String
   description String?
   date        DateTime @default(now())
-  duration    Int?     // minutes
+  duration    Int? // minutes
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  exercises   WorkoutExercise[]
-  schedules   WorkoutSchedule[]
+  exercises WorkoutExercise[]
+  schedules WorkoutSchedule[]
 
   @@index([userId, date])
   @@map("workouts")
 }
 
 model WorkoutExercise {
-  id         String   @id @default(uuid())
-  workoutId  String   @map("workout_id")
-  exerciseId String   @map("exercise_id")
-  programExerciseId String? @map("program_exercise_id")
-  sets       Int
-  reps       Int?
-  duration   Int?     // seconds for holds/cardio
-  weight     Float?   // kg
-  notes      String?
-  order      Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid())
+  workoutId            String   @map("workout_id")
+  exerciseId           String   @map("exercise_id")
+  programExerciseId    String?  @map("program_exercise_id")
+  sets                 Int
+  reps                 Int?
+  duration             Int? // seconds for holds/cardio
+  weight               Float? // kg
+  notes                String?
+  order                Int      @default(0)
+  createdAt            DateTime @default(now()) @map("created_at")
   // Gate 4 — history-protection snapshot (impact map §2: Exercise is a
   // LIVE reference with no existing snapshot, flagged HIGH risk — a
   // renamed/reclassified exercise silently changes what a past log
@@ -247,29 +246,29 @@ model WorkoutExercise {
   // populated — always fall back to the live Exercise.exerciseName when
   // this is null, exactly the "explicit unknown, not silently guessed"
   // pattern used throughout this codebase.
-  exerciseNameSnapshot String? @map("exercise_name_snapshot")
+  exerciseNameSnapshot String?  @map("exercise_name_snapshot")
 
   workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise    Exercise     @relation(fields: [exerciseId], references: [id])
   workoutSets WorkoutSet[]
 
+  @@unique([workoutId, programExerciseId], map: "workout_exercises_workout_program_exercise_unique")
   @@index([workoutId])
   @@index([exerciseId])
   @@index([programExerciseId])
-  @@unique([workoutId, programExerciseId], map: "workout_exercises_workout_program_exercise_unique")
   @@map("workout_exercises")
 }
 
 model WorkoutSet {
-  id                String          @id @default(uuid())
-  workoutExerciseId String          @map("workout_exercise_id")
-  setNumber         Int             @map("set_number")
+  id                String   @id @default(uuid())
+  workoutExerciseId String   @map("workout_exercise_id")
+  setNumber         Int      @map("set_number")
   reps              Int?
-  weight            Float?          // kg
-  rpe               Float?          // Rate of Perceived Exertion (1-10)
-  rir               Int?            // Reps in Reserve (0-5)
-  completed         Boolean         @default(false)
-  createdAt         DateTime        @default(now()) @map("created_at")
+  weight            Float? // kg
+  rpe               Float? // Rate of Perceived Exertion (1-10)
+  rir               Int? // Reps in Reserve (0-5)
+  completed         Boolean  @default(false)
+  createdAt         DateTime @default(now()) @map("created_at")
 
   // Advanced/professional-athlete logging fields — all optional and
   // additive (existing rows read as null/"every set is an unclassified
@@ -281,12 +280,12 @@ model WorkoutSet {
   // powerlifting-coaching practice (e.g. Andy Baker/PowerliftingTechnique.com)
   // — a practitioner convention, NOT a peer-reviewed classification; see
   // docs/advanced-set-logging.md for the full evidence/inference split.
-  setType           String?         @map("set_type")       // WARMUP | WORKING | TOP | BACKOFF | FAILURE
-  tempo             String?                                 // free-text eccentric-pause-concentric-pause notation, e.g. "3-1-1-0"
-  rangeOfMotion     String?         @map("range_of_motion")  // FULL | PARTIAL | free text
-  side              String?                                 // LEFT | RIGHT | BOTH — unilateral exercises only
-  painScore         Int?            @map("pain_score")       // 0-10 subjective pain/discomfort during this set
-  techniqueNotes    String?         @map("technique_notes")
+  setType        String? @map("set_type") // WARMUP | WORKING | TOP | BACKOFF | FAILURE
+  tempo          String? // free-text eccentric-pause-concentric-pause notation, e.g. "3-1-1-0"
+  rangeOfMotion  String? @map("range_of_motion") // FULL | PARTIAL | free text
+  side           String? // LEFT | RIGHT | BOTH — unilateral exercises only
+  painScore      Int?    @map("pain_score") // 0-10 subjective pain/discomfort during this set
+  techniqueNotes String? @map("technique_notes")
 
   // Bodyweight/timed/cardio semantics (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
   // §6.1, gap analysis "Bodyweight exercise semantics" + "Timed / cardio
@@ -295,25 +294,55 @@ model WorkoutSet {
   // null when none was added). Every pre-migration row reads these as null
   // ("explicit unknown, not silently guessed" — this repo's established
   // pattern, see exerciseNameSnapshot in WorkoutExercise below).
-  bodyWeightAtSetKg Float?          @map("body_weight_at_set_kg") // captured body weight at the time of this set — BODYWEIGHT_REPS exercises only, left null when not captured, never guessed/copied from an unrelated InBody reading
-  durationSeconds   Int?            @map("duration_seconds")      // per-set duration — TIME / TIME_LOAD exercises (plank, carry, timed hold)
-  distanceMeters    Float?          @map("distance_meters")       // per-set distance — DISTANCE_TIME exercises (running, rowing, cycling)
+  bodyWeightAtSetKg Float? @map("body_weight_at_set_kg") // captured body weight at the time of this set — BODYWEIGHT_REPS exercises only, left null when not captured, never guessed/copied from an unrelated InBody reading
+  durationSeconds   Int?   @map("duration_seconds") // per-set duration — TIME / TIME_LOAD exercises (plank, carry, timed hold)
+  distanceMeters    Float? @map("distance_meters") // per-set distance — DISTANCE_TIME exercises (running, rowing, cycling)
+  // Snapshot of planned AMRAP intent at session materialization time. These
+  // actual-history fields never follow later edits to the live program.
+  isAmrap      Boolean @default(false) @map("is_amrap")
+  amrapMinReps Int?    @map("amrap_min_reps")
 
-  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  workoutExercise WorkoutExercise     @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  segments        WorkoutSetSegment[]
 
   @@index([workoutExerciseId])
   @@map("workout_sets")
 }
 
+// Actual mini-efforts performed after the main WorkoutSet effort. Drop sets
+// and rest-pause work are chains within one programmed set, so they must not
+// become sibling WorkoutSet rows (which would change set counts, PR inputs,
+// progression history, and offline event identity).
+model WorkoutSetSegment {
+  id                String   @id @default(uuid())
+  workoutSetId      String   @map("workout_set_id")
+  segmentNumber     Int      @map("segment_number")
+  technique         String // DROP_SET | REST_PAUSE
+  reps              Int
+  weight            Float? // external load in kg; null for bodyweight
+  rpe               Float?
+  rir               Int?
+  restBeforeSeconds Int?     @map("rest_before_seconds")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  workoutSet WorkoutSet @relation(fields: [workoutSetId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutSetId, segmentNumber])
+  @@index([workoutSetId])
+  @@map("workout_set_segments")
+}
+
 model Food {
-  id       String @id @default(uuid())
-  fdcId    Int    @unique @map("fdc_id")
+  id       String  @id @default(uuid())
+  fdcId    Int     @unique @map("fdc_id")
   name     String
   calories Float
-  protein  Float  @default(0)
-  carbs    Float  @default(0)
-  fats     Float  @default(0)
-  source   String  // 'sr_legacy' | 'survey_fndds'
+  protein  Float   @default(0)
+  carbs    Float   @default(0)
+  fats     Float   @default(0)
+  source   String // 'sr_legacy' | 'survey_fndds'
   imageUrl String? @map("image_url")
 
   // AI-nutrition-overhaul pass (Part 6 — food realism metadata). Scoped
@@ -325,12 +354,12 @@ model Food {
   // using the same name-keyword classification already proven in
   // ai-service's nutrition.processor.ts SERVING_CAP_RULES/excludedKeywords
   // — real, populated data, not empty columns.
-  foodForm             String?  @map("food_form") // 'whole' | 'powder' | 'dried' | 'oil' | 'cheese' | 'nuts_seeds' | null (unclassified/whole by default)
-  isSupplement         Boolean  @default(false) @map("is_supplement") // protein powder/isolate/concentrate — Part 8: never auto-added to a plan
-  realisticServingMaxG Float?   @map("realistic_serving_max_g") // caps AI-generated meal-plan quantities; null = use the default whole-food cap
+  foodForm             String? @map("food_form") // 'whole' | 'powder' | 'dried' | 'oil' | 'cheese' | 'nuts_seeds' | null (unclassified/whole by default)
+  isSupplement         Boolean @default(false) @map("is_supplement") // protein powder/isolate/concentrate — Part 8: never auto-added to a plan
+  realisticServingMaxG Float?  @map("realistic_serving_max_g") // caps AI-generated meal-plan quantities; null = use the default whole-food cap
 
-  aliases   FoodAlias[]
-  mealItems NutritionProgramMealItem[]
+  aliases            FoodAlias[]
+  mealItems          NutritionProgramMealItem[]
   // Gate 4 — additive provenance (see FoodSource below). The existing
   // `source`/`fdcId` columns above already give every one of the 13,159
   // live rows a lightweight, real provenance trail (USDA sr_legacy/
@@ -338,7 +367,7 @@ model Food {
   // FUTURE multi-sourced foods (a Vietnamese dish also cross-referenced
   // against Open Food Facts, a recipe versioned over time), not a
   // required backfill for the existing USDA rows.
-  additionalSources FoodSource[]
+  additionalSources  FoodSource[]
   recipeIngredientOf RecipeIngredient[]
 
   @@index([name])
@@ -367,18 +396,18 @@ model FoodAlias {
 }
 
 model NutritionLog {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  date        DateTime @default(now())
-  mealType    String   @map("meal_type") // breakfast, lunch, dinner, snack
-  foodName    String   @map("food_name")
-  calories    Int
-  protein     Float?   // grams
-  carbs       Float?   // grams
-  fats        Float?   // grams
-  notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @default(now())
+  mealType  String   @map("meal_type") // breakfast, lunch, dinner, snack
+  foodName  String   @map("food_name")
+  calories  Int
+  protein   Float? // grams
+  carbs     Float? // grams
+  fats      Float? // grams
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId, date])
   @@map("nutrition_logs")
@@ -394,13 +423,13 @@ model NutritionLog {
 // user (see migration add_nutrition_goal_versioning), same convention as
 // TrainingCycle's "one ACTIVE cycle per user" constraint just above.
 model NutritionGoal {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  calories  Int      @default(2000)
-  protein   Float    @default(150)
-  carbs     Float    @default(200)
-  fat       Float    @default(65)
-  waterMl   Int?     @map("water_ml")
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  calories     Int       @default(2000)
+  protein      Float     @default(150)
+  carbs        Float     @default(200)
+  fat          Float     @default(65)
+  waterMl      Int?      @map("water_ml")
   // "ACTIVE" | "SUPERSEDED"
   status       String    @default("ACTIVE") @map("status")
   validFrom    DateTime  @default(now()) @map("valid_from")
@@ -416,8 +445,8 @@ model NutritionGoal {
   // runs for both modes, this field only distinguishes UI presentation and
   // whether the frontend shows the "why" explanation.
   goalMode     String    @default("RECOMMENDED") @map("goal_mode")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@map("nutrition_goals")
@@ -425,16 +454,16 @@ model NutritionGoal {
 
 // 📊 Body Composition Tracking
 model BodyMetrics {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  date            DateTime @default(now())
-  weight          Float?   // kg
-  bodyFat         Float?   @map("body_fat") // percentage
-  muscleMass      Float?   @map("muscle_mass") // kg
-  bodyWater       Float?   @map("body_water") // percentage
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  date       DateTime @default(now())
+  weight     Float? // kg
+  bodyFat    Float?   @map("body_fat") // percentage
+  muscleMass Float?   @map("muscle_mass") // kg
+  bodyWater  Float?   @map("body_water") // percentage
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([userId, date])
   @@map("body_metrics")
@@ -442,48 +471,48 @@ model BodyMetrics {
 
 // 💪 Workout Program Templates
 model WorkoutProgram {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  name            String   // "Muscle Gain", "Cutting", etc.
-  description     String?
-  sourcePlanId    String?  @map("source_plan_id")
-  sourceType      String?  @map("source_type")
-  aiPlanVersion   Int?     @map("ai_plan_version")
+  id            String  @id @default(uuid())
+  userId        String  @map("user_id")
+  name          String // "Muscle Gain", "Cutting", etc.
+  description   String?
+  sourcePlanId  String? @map("source_plan_id")
+  sourceType    String? @map("source_type")
+  aiPlanVersion Int?    @map("ai_plan_version")
 
-  goal            String?
-  durationWeeks   Int?     @map("duration_weeks")
-  daysPerWeek     Int?     @map("days_per_week")
-  status          String   @default("ACTIVE")
-  archivedAt      DateTime? @map("archived_at")
-  version         Int      @default(1)
+  goal          String?
+  durationWeeks Int?      @map("duration_weeks")
+  daysPerWeek   Int?      @map("days_per_week")
+  status        String    @default("ACTIVE")
+  archivedAt    DateTime? @map("archived_at")
+  version       Int       @default(1)
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  days            WorkoutProgramDay[]
+  days WorkoutProgramDay[]
 
+  @@unique([userId, sourcePlanId])
   @@index([userId])
   @@index([userId, status])
   @@index([userId, sourcePlanId])
-  @@unique([userId, sourcePlanId])
   @@map("workout_programs")
 }
 
 // 📅 Individual Days within a Workout Program
 model WorkoutProgramDay {
-  id              String   @id @default(uuid())
-  programId       String   @map("program_id")
-  dayNumber       Int      @map("day_number") // 1, 2, 3...
-  title           String   // "Chest + Triceps", "Back + Biceps"
-  description     String?
-  duration        Int?     // minutes
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  programId   String   @map("program_id")
+  dayNumber   Int      @map("day_number") // 1, 2, 3...
+  title       String // "Chest + Triceps", "Back + Biceps"
+  description String?
+  duration    Int? // minutes
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  program         WorkoutProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
-  exercises       WorkoutProgramExercise[]
-  schedules       WorkoutSchedule[]
-  exerciseGroups  WorkoutProgramExerciseGroup[]
+  program        WorkoutProgram                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises      WorkoutProgramExercise[]
+  schedules      WorkoutSchedule[]
+  exerciseGroups WorkoutProgramExerciseGroup[]
 
   @@unique([programId, dayNumber])
   @@index([programId])
@@ -500,14 +529,14 @@ model WorkoutProgramDay {
 model WorkoutProgramExerciseGroup {
   id                          String   @id @default(uuid())
   programDayId                String   @map("program_day_id")
-  type                        String   // SUPERSET | TRISET | CIRCUIT
+  type                        String // SUPERSET | TRISET | CIRCUIT
   order                       Int      @default(0)
   restBetweenExercisesSeconds Int?     @map("rest_between_exercises_seconds") // short/no rest between members
-  restAfterRoundSeconds       Int?     @map("rest_after_round_seconds")       // real rest after finishing every member once
+  restAfterRoundSeconds       Int?     @map("rest_after_round_seconds") // real rest after finishing every member once
   createdAt                   DateTime @default(now()) @map("created_at")
   updatedAt                   DateTime @updatedAt @map("updated_at")
 
-  programDay WorkoutProgramDay                  @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  programDay WorkoutProgramDay                   @relation(fields: [programDayId], references: [id], onDelete: Cascade)
   members    WorkoutProgramExerciseGroupMember[]
 
   @@index([programDayId])
@@ -529,25 +558,55 @@ model WorkoutProgramExerciseGroupMember {
 
 // 🏋️ Exercises within a Program Day (with prescriptions)
 model WorkoutProgramExercise {
-  id              String   @id @default(uuid())
-  programDayId    String   @map("program_day_id")
-  exerciseId      String   @map("exercise_id")
-  order           Int      @default(0)
-  sets            Int?
-  reps            Int?
-  weight          Float?   // kg
-  duration        Int?     // seconds
-  restSeconds     Int?     @map("rest_seconds")
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  programDayId String   @map("program_day_id")
+  exerciseId   String   @map("exercise_id")
+  order        Int      @default(0)
+  sets         Int?
+  reps         Int?
+  weight       Float? // kg
+  duration     Int? // seconds
+  restSeconds  Int?     @map("rest_seconds")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  programDay      WorkoutProgramDay @relation(fields: [programDayId], references: [id], onDelete: Cascade)
-  exercise        Exercise          @relation(fields: [exerciseId], references: [id])
-  groupMembership WorkoutProgramExerciseGroupMember?
+  programDay       WorkoutProgramDay                       @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  exercise         Exercise                                @relation(fields: [exerciseId], references: [id])
+  groupMembership  WorkoutProgramExerciseGroupMember?
+  setPrescriptions WorkoutProgramExerciseSetPrescription[]
 
   @@index([programDayId])
   @@index([exerciseId])
   @@map("workout_program_exercises")
+}
+
+// Advanced Training Methods ATM-6 — planned set prescriptions. This is the
+// planned counterpart to WorkoutSet actuals: changing these rows changes
+// future sessions, never historical logged WorkoutSet rows already created.
+model WorkoutProgramExerciseSetPrescription {
+  id                    String   @id @default(uuid())
+  programExerciseId     String   @map("program_exercise_id")
+  setNumber             Int      @map("set_number")
+  targetReps            Int?     @map("target_reps")
+  targetWeight          Float?   @map("target_weight")
+  targetRpe             Float?   @map("target_rpe")
+  targetRir             Int?     @map("target_rir")
+  targetSetType         String?  @map("target_set_type") // WARMUP | WORKING | TOP | BACKOFF | FAILURE
+  targetTempo           String?  @map("target_tempo") // four-part notation, e.g. 3-1-1-0
+  targetDurationSeconds Int?     @map("target_duration_seconds")
+  targetDistanceMeters  Float?   @map("target_distance_meters")
+  isAmrap               Boolean  @default(false) @map("is_amrap")
+  minReps               Int?     @map("min_reps")
+  restSeconds           Int?     @map("rest_seconds")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  programExercise WorkoutProgramExercise @relation(fields: [programExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([programExerciseId, setNumber], map: "workout_program_exercise_set_prescriptions_unique")
+  @@index([programExerciseId])
+  @@map("workout_program_exercise_set_prescriptions")
 }
 
 // Roadmap P2.6 "Workout template sharing/import"
@@ -561,19 +620,19 @@ model WorkoutProgramExercise {
 // see the impact analysis's privacy audit) or exercise-group/superset
 // structure (disclosed simplification — see Scope decisions).
 model WorkoutProgramTemplate {
-  id              String   @id @default(uuid())
-  createdByUserId String   @map("created_by_user_id")
-  name            String
-  description     String?
-  goal            String?
-  durationWeeks   Int      @map("duration_weeks")
-  daysPerWeek     Int      @map("days_per_week")
-  daysJson        Json     @map("days_json") // manualProgramDaySchema[] shape — reused unchanged by importTemplate -> createManualProgram
+  id                String   @id @default(uuid())
+  createdByUserId   String   @map("created_by_user_id")
+  name              String
+  description       String?
+  goal              String?
+  durationWeeks     Int      @map("duration_weeks")
+  daysPerWeek       Int      @map("days_per_week")
+  daysJson          Json     @map("days_json") // manualProgramDaySchema[] shape — reused unchanged by importTemplate -> createManualProgram
   // Explicit recipient allowlist — PT<->client sharing only this pass
   // (see Scope decisions). A template with an empty list is a private
   // draft only its creator can see/import.
   sharedWithUserIds String[] @default([]) @map("shared_with_user_ids")
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   @@index([createdByUserId])
   @@map("workout_program_templates")
@@ -581,25 +640,25 @@ model WorkoutProgramTemplate {
 
 // 📆 Calendar Scheduling (links user to program days on specific dates)
 model WorkoutSchedule {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  date            DateTime
-  programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
-  workoutId       String?  @map("workout_id")     // optional: completed workout
-  status          String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
-  progressPercent Int      @default(0) @map("progress_percent")
-  startedAt       DateTime? @map("started_at")
-  completedAt     DateTime? @map("completed_at")
-  totalExercises  Int?     @map("total_exercises")
-  completedExercises Int?  @map("completed_exercises")
-  totalSets       Int?     @map("total_sets")
-  completedSets   Int?     @map("completed_sets")
-  durationSeconds Int?     @map("duration_seconds")
-  caloriesEstimate Int?    @map("calories_estimate")
-  sourcePlanId    String?  @map("source_plan_id")
-  sourceType      String?  @map("source_type")
-  notes           String?
-  trainingCycleId String?  @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
+  id                       String    @id @default(uuid())
+  userId                   String    @map("user_id")
+  date                     DateTime
+  programDayId             String?   @map("program_day_id") // optional: which program day is scheduled
+  workoutId                String?   @map("workout_id") // optional: completed workout
+  status                   String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
+  progressPercent          Int       @default(0) @map("progress_percent")
+  startedAt                DateTime? @map("started_at")
+  completedAt              DateTime? @map("completed_at")
+  totalExercises           Int?      @map("total_exercises")
+  completedExercises       Int?      @map("completed_exercises")
+  totalSets                Int?      @map("total_sets")
+  completedSets            Int?      @map("completed_sets")
+  durationSeconds          Int?      @map("duration_seconds")
+  caloriesEstimate         Int?      @map("calories_estimate")
+  sourcePlanId             String?   @map("source_plan_id")
+  sourceType               String?   @map("source_type")
+  notes                    String?
+  trainingCycleId          String?   @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
   // Roadmap P1.2 "Reschedule workout" — pure audit-trail columns. The
   // reschedule itself is a plain UPDATE of `date` above (same row, same id
   // — see docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md for why no
@@ -607,9 +666,9 @@ model WorkoutSchedule {
   // date]) below already rules out two rows per day, and computeAdherence
   // already just range-queries `date`). originalPlannedDate is set once,
   // on the FIRST reschedule only, and never overwritten by later ones.
-  originalPlannedDate DateTime? @map("original_planned_date")
-  rescheduledAt       DateTime? @map("rescheduled_at")
-  rescheduleReason    String?   @map("reschedule_reason")
+  originalPlannedDate      DateTime? @map("original_planned_date")
+  rescheduledAt            DateTime? @map("rescheduled_at")
+  rescheduleReason         String?   @map("reschedule_reason")
   // Roadmap P4.1 "Notifications/reminders" (§27) — idempotency tracking
   // for the two new reminder background jobs (upcoming / unfinished),
   // same pattern this schema already uses for one-time state elsewhere
@@ -617,12 +676,12 @@ model WorkoutSchedule {
   // few minutes never re-sends the same reminder for the same row twice.
   upcomingReminderSentAt   DateTime? @map("upcoming_reminder_sent_at")
   unfinishedReminderSentAt DateTime? @map("unfinished_reminder_sent_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
-  programDay      WorkoutProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
-  workout         Workout?           @relation(fields: [workoutId], references: [id], onDelete: SetNull)
-  trainingCycle   TrainingCycle?     @relation(fields: [trainingCycleId], references: [id], onDelete: SetNull)
+  programDay      WorkoutProgramDay?    @relation(fields: [programDayId], references: [id], onDelete: SetNull)
+  workout         Workout?              @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  trainingCycle   TrainingCycle?        @relation(fields: [trainingCycleId], references: [id], onDelete: SetNull)
   sessionFeedback CycleSessionFeedback?
 
   @@unique([userId, date])
@@ -641,15 +700,15 @@ model WorkoutSchedule {
 // (ACHIEVED/PARTIAL/NOT_ACHIEVED); status/decision are plain strings to match
 // this schema's existing house style (see WorkoutSchedule.status etc.).
 model TrainingCycle {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  planId       String?  @map("plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
-  cycleIndex   Int      @default(1) @map("cycle_index") // 1,2,3... sequential per user, across cycle lineage (nextPlanId chain)
-  startDate    DateTime @map("start_date")
-  endDate      DateTime @map("end_date") // planned close = startDate + durationDays; always set, unlike the old nullable endDate
-  durationDays Int      @default(30) @map("duration_days")
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  planId       String?   @map("plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
+  cycleIndex   Int       @default(1) @map("cycle_index") // 1,2,3... sequential per user, across cycle lineage (nextPlanId chain)
+  startDate    DateTime  @map("start_date")
+  endDate      DateTime  @map("end_date") // planned close = startDate + durationDays; always set, unlike the old nullable endDate
+  durationDays Int       @default(30) @map("duration_days")
   goal         String? // snapshot of UserProfile.goal at cycle start (real enum values: WEIGHT_LOSS | MUSCLE_GAIN | MAINTENANCE | ATHLETIC_PERFORMANCE)
-  status       String   @default("ACTIVE") @map("status") // ACTIVE | COMPLETED | ANALYZED | DRAFT | CANCELLED
+  status       String    @default("ACTIVE") @map("status") // ACTIVE | COMPLETED | ANALYZED | DRAFT | CANCELLED
   // Invariant "at most one ACTIVE cycle per user" is enforced by a raw-SQL
   // partial unique index (Prisma's schema DSL can't express a WHERE-
   // conditioned unique index): training_cycles_one_active_per_user ON
@@ -680,8 +739,8 @@ model TrainingCycle {
   // this schema's house style). goalType is NOT duplicated — `goal` above
   // already carries the same enum values (WEIGHT_LOSS/MUSCLE_GAIN/etc.) and
   // is reused as-is by the new Decision Engine.
-  name           String? // user-facing cycle name, e.g. "Bulk block 1"
-  actualEndDate  DateTime? @map("actual_end_date") // when the cycle was actually closed, vs. planned endDate above
+  name            String? // user-facing cycle name, e.g. "Bulk block 1"
+  actualEndDate   DateTime? @map("actual_end_date") // when the cycle was actually closed, vs. planned endDate above
   // Snapshot of APP_SCHEDULE_TIME_ZONE (schedule-lock.util.ts) at the moment
   // this cycle's startDate was set (creation for an immediately-ACTIVE
   // cycle, or activation time for a DRAFT->ACTIVE transition) — there is no
@@ -689,16 +748,16 @@ model TrainingCycle {
   // single app-wide zone, but stored per-row so a later change to that
   // app-wide default doesn't retroactively reinterpret historical cycles'
   // date-boundary decisions (adherence windows, day-lock comparisons).
-  timezoneAtStart String? @map("timezone_at_start")
-  baselineMetrics Json?    @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
-  targetMetrics   Json?    @map("target_metrics") // user/PT-set targets for this cycle, optional
-  configuration   Json?    // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring
+  timezoneAtStart String?   @map("timezone_at_start")
+  baselineMetrics Json?     @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
+  targetMetrics   Json?     @map("target_metrics") // user/PT-set targets for this cycle, optional
+  configuration   Json? // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring
 
-  sessions        WorkoutSchedule[]
-  sessionFeedback CycleSessionFeedback[]
-  inbodyLinks     CycleInBodyLink[]
-  assessments     CycleAssessment[]
-  feedbackSummary CycleFeedbackSummary?
+  sessions         WorkoutSchedule[]
+  sessionFeedback  CycleSessionFeedback[]
+  inbodyLinks      CycleInBodyLink[]
+  assessments      CycleAssessment[]
+  feedbackSummary  CycleFeedbackSummary?
   feedbackAnalyses CycleFeedbackAnalysisAudit[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -717,27 +776,27 @@ model TrainingCycle {
 // requests, regenerate-after-new-data); assessmentVersion is a per-cycle
 // sequence enforced by the unique index below for /evaluate idempotency.
 model CycleAssessment {
-  id               String   @id @default(uuid())
-  cycleId          String   @map("cycle_id")
-  assessmentVersion Int     @map("assessment_version") // 1,2,3... sequential per cycleId, computed in app code
-  status           String   @default("PENDING") @map("status") // PENDING | COMPLETED | FAILED
+  id                String @id @default(uuid())
+  cycleId           String @map("cycle_id")
+  assessmentVersion Int    @map("assessment_version") // 1,2,3... sequential per cycleId, computed in app code
+  status            String @default("PENDING") @map("status") // PENDING | COMPLETED | FAILED
 
-  decision         String?  // KEEP | PROGRESS | ADJUST | DELOAD | REBUILD | INSUFFICIENT_DATA
-  confidenceScore  Float?   @map("confidence_score") // 0-1, from CycleDecisionEngine
-  dataQualityScore Float?   @map("data_quality_score") // 0-1, from InBodyDataQualityEvaluator + engine data-completeness check
+  decision         String? // KEEP | PROGRESS | ADJUST | DELOAD | REBUILD | INSUFFICIENT_DATA
+  confidenceScore  Float?  @map("confidence_score") // 0-1, from CycleDecisionEngine
+  dataQualityScore Float?  @map("data_quality_score") // 0-1, from InBodyDataQualityEvaluator + engine data-completeness check
 
   // Decision Engine output (deterministic — see plan's design decision 7)
-  computedMetrics Json? @map("computed_metrics") // full CycleMetricsEngine output
-  reasonCodes     Json? @map("reason_codes") // string[] audit trail explaining the decision
-  conflictingSignals Json? @map("conflicting_signals")
-  safetyFlags     Json? @map("safety_flags")
+  computedMetrics        Json? @map("computed_metrics") // full CycleMetricsEngine output
+  reasonCodes            Json? @map("reason_codes") // string[] audit trail explaining the decision
+  conflictingSignals     Json? @map("conflicting_signals")
+  safetyFlags            Json? @map("safety_flags")
   recommendedActionScope Json? @map("recommended_action_scope")
 
   // LLM explanation layer (ai-service /ai/assess-cycle) — never overrides `decision` above
-  aiSummary       String?  @map("ai_summary")
-  proposedChanges Json?    @map("proposed_changes")
+  aiSummary       String? @map("ai_summary")
+  proposedChanges Json?   @map("proposed_changes")
 
-  userDecision String   @default("PENDING") @map("user_decision") // PENDING | ACCEPTED | REJECTED
+  userDecision String    @default("PENDING") @map("user_decision") // PENDING | ACCEPTED | REJECTED
   reviewedAt   DateTime? @map("reviewed_at")
 
   // Phase 2 — Adaptive Nutrition Decision Engine (nutrition-decision.engine.ts).
@@ -750,25 +809,25 @@ model CycleAssessment {
   // nutritionProposedChanges never happens here — it only ever creates a
   // new NutritionGoal version (fitness-service, versioned since Phase 1)
   // via an explicit confirm call; this row just records what was proposed.
-  nutritionDecision    String?  @map("nutrition_decision") // KEEP_PLAN | PROPOSE_ADJUSTMENT | REQUEST_MORE_DATA | EARLY_REVIEW | ESCALATE
-  nutritionConfidence  String?  @map("nutrition_confidence") // LOW | MEDIUM | HIGH
-  nutritionSignals     Json?    @map("nutrition_signals")
-  nutritionProposedChanges Json? @map("nutrition_proposed_changes")
-  nutritionReasonCodes Json?    @map("nutrition_reason_codes")
-  nutritionEvidenceIds Json?    @map("nutrition_evidence_ids")
-  nutritionRequiresConfirmation Boolean @default(false) @map("nutrition_requires_confirmation")
+  nutritionDecision             String?   @map("nutrition_decision") // KEEP_PLAN | PROPOSE_ADJUSTMENT | REQUEST_MORE_DATA | EARLY_REVIEW | ESCALATE
+  nutritionConfidence           String?   @map("nutrition_confidence") // LOW | MEDIUM | HIGH
+  nutritionSignals              Json?     @map("nutrition_signals")
+  nutritionProposedChanges      Json?     @map("nutrition_proposed_changes")
+  nutritionReasonCodes          Json?     @map("nutrition_reason_codes")
+  nutritionEvidenceIds          Json?     @map("nutrition_evidence_ids")
+  nutritionRequiresConfirmation Boolean   @default(false) @map("nutrition_requires_confirmation")
   // LLM explanation layer (ai-service /ai/assess-cycle's nutritionSummary) —
   // never overrides nutritionDecision above, same rule as aiSummary/decision.
-  nutritionAiHeadline    String?  @map("nutrition_ai_headline")
-  nutritionAiExplanation String?  @map("nutrition_ai_explanation")
-  nutritionUserDecision String  @default("PENDING") @map("nutrition_user_decision") // PENDING | ACCEPTED | REJECTED
-  nutritionReviewedAt  DateTime? @map("nutrition_reviewed_at")
+  nutritionAiHeadline           String?   @map("nutrition_ai_headline")
+  nutritionAiExplanation        String?   @map("nutrition_ai_explanation")
+  nutritionUserDecision         String    @default("PENDING") @map("nutrition_user_decision") // PENDING | ACCEPTED | REJECTED
+  nutritionReviewedAt           DateTime? @map("nutrition_reviewed_at")
   // Set only once nutritionUserDecision=ACCEPTED actually creates a new
   // NutritionGoal version — FK-by-value (no relation; NutritionGoal has no
   // back-reference to keep that model decoupled from the cycle-assessment
   // concept, matching this file's existing FK-by-value convention for
   // cross-concept references, e.g. RecommendationAudit.aiFeedbackAnalysisId).
-  appliedNutritionGoalId String? @map("applied_nutrition_goal_id")
+  appliedNutritionGoalId        String?   @map("applied_nutrition_goal_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -786,38 +845,38 @@ model CycleAssessment {
 // e.g. "what fraction of DELOAD recommendations do users actually reject?"
 // See docs/TRAINING_CYCLE_DECISION_ENGINE.md §4.
 model RecommendationAudit {
-  id            String    @id @default(uuid())
-  userId        String    @map("user_id")
-  cycleId       String    @map("cycle_id")
-  assessmentId  String?   @map("assessment_id") // null for the legacy /complete path
-  engineVersion String    @map("engine_version") // "legacy-v2" | "adaptive-v1" | "nutrition-adaptive-v1" (Phase 2 — nutrition-decision.engine.ts; reuses this same generic table, no schema change needed for it)
-  decision      String
-  reasonCodes   Json      @map("reason_codes")
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  cycleId         String    @map("cycle_id")
+  assessmentId    String?   @map("assessment_id") // null for the legacy /complete path
+  engineVersion   String    @map("engine_version") // "legacy-v2" | "adaptive-v1" | "nutrition-adaptive-v1" (Phase 2 — nutrition-decision.engine.ts; reuses this same generic table, no schema change needed for it)
+  decision        String
+  reasonCodes     Json      @map("reason_codes")
   // Full CycleMetricsResult (or the legacy summary) at decision time — a
   // debuggable/replayable snapshot, not just the trimmed supportingMetrics
   // already embedded in CycleAssessment.
-  metricsSnapshot Json    @map("metrics_snapshot")
-  aiSummary     String?   @map("ai_summary")
-  presentedAt   DateTime  @default(now()) @map("presented_at")
-  userAction    String?   @map("user_action") // "accepted" | "rejected" | null (not yet acted on)
-  userActionAt  DateTime? @map("user_action_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  metricsSnapshot Json      @map("metrics_snapshot")
+  aiSummary       String?   @map("ai_summary")
+  presentedAt     DateTime  @default(now()) @map("presented_at")
+  userAction      String?   @map("user_action") // "accepted" | "rejected" | null (not yet acted on)
+  userActionAt    DateTime? @map("user_action_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   // ── Phase 5 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — session
   // feedback signals used by the Decision Engine for this specific
   // decision, if any. All nullable/defaulted-false so this stays additive
   // over every pre-Phase-5 audit row (engineVersion="legacy-v2" or an
   // adaptive-v1 row from before this migration never had feedback signals).
-  feedbackSignalsUsed       Boolean @default(false) @map("feedback_signals_used")
-  feedbackSummarySnapshot   Json?   @map("feedback_summary_snapshot") // CycleFeedbackSummaryResult at decision time
-  aiFeedbackAnalysisId      String? @map("ai_feedback_analysis_id") // FK-by-value to CycleFeedbackAnalysisAudit.id (no relation — that table can be pruned independently)
+  feedbackSignalsUsed           Boolean @default(false) @map("feedback_signals_used")
+  feedbackSummarySnapshot       Json?   @map("feedback_summary_snapshot") // CycleFeedbackSummaryResult at decision time
+  aiFeedbackAnalysisId          String? @map("ai_feedback_analysis_id") // FK-by-value to CycleFeedbackAnalysisAudit.id (no relation — that table can be pruned independently)
   // The full merged reasonCodes (base engine + feedback rules) — same array
   // as `reasonCodes` above once feedback influenced the decision; kept as a
   // separate named field per spec so "what the engine concluded from
   // metrics alone" vs. "the actual final reasoning" stay independently
   // inspectable even though they're equal whenever feedbackSignalsUsed=false.
-  finalDecisionReasonCodes Json?   @map("final_decision_reason_codes")
-  complaintValidity         String? @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data | null (no AI analysis was available)
+  finalDecisionReasonCodes      Json?   @map("final_decision_reason_codes")
+  complaintValidity             String? @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data | null (no AI analysis was available)
   decisionInfluenceFromFeedback String? @map("decision_influence_from_feedback") // none | minor_adjust | adjust | deload | rebuild_consideration
 
   @@index([userId, cycleId])
@@ -856,11 +915,11 @@ model PlanGenerationAudit {
   ptUserId     String @map("pt_user_id")
   clientUserId String @map("client_user_id")
 
-  ptNotes   String? @map("pt_notes")
-  requestSnapshot Json @map("request_snapshot") // client profile/feedback/priorDecisions/daysPerWeek/durationWeeks sent to the AI
-  draftDays Json @map("draft_days") // the returned days[] (exerciseId/order/sets/reps/note)
-  dataGaps  Json @map("data_gaps")
-  warnings  Json
+  ptNotes         String? @map("pt_notes")
+  requestSnapshot Json    @map("request_snapshot") // client profile/feedback/priorDecisions/daysPerWeek/durationWeeks sent to the AI
+  draftDays       Json    @map("draft_days") // the returned days[] (exerciseId/order/sets/reps/note)
+  dataGaps        Json    @map("data_gaps")
+  warnings        Json
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -880,13 +939,13 @@ model PlanGenerationAudit {
 // exist outside any training cycle and still be worth collecting feedback
 // on; only cycle-linked feedback rolls into CycleFeedbackSummary.
 model CycleSessionFeedback {
-  id                String   @id @default(uuid())
-  cycleId           String?  @map("cycle_id")
-  workoutScheduleId String   @unique @map("workout_schedule_id")
+  id                String  @id @default(uuid())
+  cycleId           String? @map("cycle_id")
+  workoutScheduleId String  @unique @map("workout_schedule_id")
 
-  readinessScore Int?   @map("readiness_score") // 1-10, pre-session
-  sessionRpe     Float? @map("session_rpe") // 1-10, post-session overall RPE (effort scale)
-  painScore      Int?   @map("pain_score") // 0-10, 0 = no pain
+  readinessScore Int?    @map("readiness_score") // 1-10, pre-session
+  sessionRpe     Float?  @map("session_rpe") // 1-10, post-session overall RPE (effort scale)
+  painScore      Int?    @map("pain_score") // 0-10, 0 = no pain
   notes          String? // also serves as "sessionComment" free text
 
   // Completion feedback (COMPLETED / PARTIALLY_COMPLETED sessions)
@@ -894,9 +953,9 @@ model CycleSessionFeedback {
   difficulty          String? // too_easy | just_right | too_hard
   enjoyment           String? // low | medium | high
   fatigueAfterSession Int?    @map("fatigue_after_session") // 1-10, POST-session (readinessScore above is pre-session)
-  painLocation         String? @map("pain_location") // free text or muscle-group label
-  wouldRepeatSession   String? @map("would_repeat_session") // yes | no | unsure
-  perceivedProgress    String? @map("perceived_progress") // better_than_last_time | same | worse | unsure
+  painLocation        String? @map("pain_location") // free text or muscle-group label
+  wouldRepeatSession  String? @map("would_repeat_session") // yes | no | unsure
+  perceivedProgress   String? @map("perceived_progress") // better_than_last_time | same | worse | unsure
 
   // Explicit "prompted, user chose not to fill it in" sentinel — distinct
   // from "no row exists yet" (never prompted). Lets the UI/aggregator tell
@@ -905,15 +964,15 @@ model CycleSessionFeedback {
 
   // Skip/cancel feedback (only populated when the linked WorkoutSchedule's
   // status is SKIPPED or CANCELLED)
-  skipReason              String?   @map("skip_reason") // fatigue | pain | schedule_conflict | motivation | illness | equipment_unavailable | too_hard_previous_session | other
-  shouldAdjustPlan        Boolean?  @map("should_adjust_plan")
-  userAvailableMakeupDay  DateTime? @map("user_available_makeup_day")
+  skipReason             String?   @map("skip_reason") // fatigue | pain | schedule_conflict | motivation | illness | equipment_unavailable | too_hard_previous_session | other
+  shouldAdjustPlan       Boolean?  @map("should_adjust_plan")
+  userAvailableMakeupDay DateTime? @map("user_available_makeup_day")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  cycle           TrainingCycle?          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  workoutSchedule WorkoutSchedule         @relation(fields: [workoutScheduleId], references: [id], onDelete: Cascade)
+  cycle            TrainingCycle?            @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  workoutSchedule  WorkoutSchedule           @relation(fields: [workoutScheduleId], references: [id], onDelete: Cascade)
   exerciseFeedback ExerciseSessionFeedback[]
 
   @@index([cycleId])
@@ -926,13 +985,13 @@ model CycleSessionFeedback {
 // queryable (e.g. "which exercises get pain reports most often" for
 // PlanImprovementSuggestion in Phase 8).
 model ExerciseSessionFeedback {
-  id                 String  @id @default(uuid())
-  sessionFeedbackId  String  @map("session_feedback_id")
-  exerciseId         String  @map("exercise_id")
-  rating             Int?    // 1-5
-  issueType          String? // too_heavy | too_light | too_many_sets | too_few_sets | uncomfortable | pain | boring | liked | confusing | equipment_unavailable
-  note               String?
-  createdAt          DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  sessionFeedbackId String   @map("session_feedback_id")
+  exerciseId        String   @map("exercise_id")
+  rating            Int? // 1-5
+  issueType         String? // too_heavy | too_light | too_many_sets | too_few_sets | uncomfortable | pain | boring | liked | confusing | equipment_unavailable
+  note              String?
+  createdAt         DateTime @default(now()) @map("created_at")
 
   sessionFeedback CycleSessionFeedback @relation(fields: [sessionFeedbackId], references: [id], onDelete: Cascade)
 
@@ -949,45 +1008,45 @@ model ExerciseSessionFeedback {
 // data, not a point-in-time decision). AI (Phase 4) reads this; never
 // computes it.
 model CycleFeedbackSummary {
-  id     String @id @default(uuid())
+  id      String @id @default(uuid())
   cycleId String @unique @map("cycle_id")
 
-  totalSessions        Int @map("total_sessions")
-  completedSessions    Int @map("completed_sessions")
-  partialSessions      Int @map("partial_sessions")
-  skippedSessions      Int @map("skipped_sessions")
-  cancelledSessions    Int @map("cancelled_sessions")
-  feedbackSubmittedCount Int @map("feedback_submitted_count")
-  feedbackMissingCount   Int @map("feedback_missing_count")
+  totalSessions          Int   @map("total_sessions")
+  completedSessions      Int   @map("completed_sessions")
+  partialSessions        Int   @map("partial_sessions")
+  skippedSessions        Int   @map("skipped_sessions")
+  cancelledSessions      Int   @map("cancelled_sessions")
+  feedbackSubmittedCount Int   @map("feedback_submitted_count")
+  feedbackMissingCount   Int   @map("feedback_missing_count")
   feedbackCompletionRate Float @map("feedback_completion_rate") // 0-1
 
-  averageSessionRating Float? @map("average_session_rating")
+  averageSessionRating   Float? @map("average_session_rating")
   averageDifficultyScore Float? @map("average_difficulty_score") // too_easy=0, just_right=0.5, too_hard=1 — for trend purposes only
   averageEnjoymentScore  Float? @map("average_enjoyment_score") // low=0, medium=0.5, high=1
-  averageFatigue Float? @map("average_fatigue")
-  averagePain    Float? @map("average_pain")
+  averageFatigue         Float? @map("average_fatigue")
+  averagePain            Float? @map("average_pain")
 
-  mostCommonIssues      Json @map("most_common_issues") // [{issueType, count}]
-  mostLikedExercises    Json @map("most_liked_exercises") // exerciseId[]
-  mostDislikedExercises Json @map("most_disliked_exercises") // exerciseId[]
+  mostCommonIssues         Json @map("most_common_issues") // [{issueType, count}]
+  mostLikedExercises       Json @map("most_liked_exercises") // exerciseId[]
+  mostDislikedExercises    Json @map("most_disliked_exercises") // exerciseId[]
   exercisesWithPainReports Json @map("exercises_with_pain_reports") // exerciseId[]
 
-  sessionsMarkedTooHard Int @map("sessions_marked_too_hard")
-  sessionsMarkedTooEasy Int @map("sessions_marked_too_easy")
+  sessionsMarkedTooHard      Int @map("sessions_marked_too_hard")
+  sessionsMarkedTooEasy      Int @map("sessions_marked_too_easy")
   sessionsUserWouldNotRepeat Int @map("sessions_user_would_not_repeat")
 
-  positiveFeedbackCount Int @map("positive_feedback_count")
-  negativeFeedbackCount Int @map("negative_feedback_count")
-  neutralFeedbackCount  Int @map("neutral_feedback_count")
-  mixedFeedbackCount    Int @map("mixed_feedback_count")
+  positiveFeedbackCount    Int    @map("positive_feedback_count")
+  negativeFeedbackCount    Int    @map("negative_feedback_count")
+  neutralFeedbackCount     Int    @map("neutral_feedback_count")
+  mixedFeedbackCount       Int    @map("mixed_feedback_count")
   feedbackSentimentByRules String @map("feedback_sentiment_by_rules") // positive | neutral | negative | mixed | insufficient_feedback
 
   dataQualityScore Float @map("data_quality_score") // 0-1, from feedbackCompletionRate + sample size
 
-  safetyFlags                 Json @map("safety_flags") // string[]
-  equipmentMismatchFlags       Json @map("equipment_mismatch_flags")
+  safetyFlags                    Json @map("safety_flags") // string[]
+  equipmentMismatchFlags         Json @map("equipment_mismatch_flags")
   adherenceRelatedComplaintFlags Json @map("adherence_related_complaint_flags")
-  motivationOrBoredomFlags      Json @map("motivation_or_boredom_flags")
+  motivationOrBoredomFlags       Json @map("motivation_or_boredom_flags")
 
   computedAt DateTime @default(now()) @map("computed_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -1005,21 +1064,21 @@ model CycleFeedbackSummary {
 // table records what the AI SUGGESTED, never a decision by itself — Phase 5
 // wires recommendedDecisionInfluence into the Decision Engine as one signal.
 model CycleFeedbackAnalysisAudit {
-  id     String @id @default(uuid())
-  userId String @map("user_id")
+  id      String @id @default(uuid())
+  userId  String @map("user_id")
   cycleId String @map("cycle_id")
 
   cycleFeedbackSummarySnapshot Json @map("cycle_feedback_summary_snapshot")
 
-  feedbackInterpretation String @map("feedback_interpretation")
-  sentiment              String // positive | negative | neutral | mixed | insufficient_feedback
-  complaintValidity      String @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data
-  complaintCategories    Json   @map("complaint_categories") // string[]
-  suggestedImprovementAreas Json @map("suggested_improvement_areas") // string[]
-  riskFlags              Json   @map("risk_flags") // string[]
+  feedbackInterpretation       String @map("feedback_interpretation")
+  sentiment                    String // positive | negative | neutral | mixed | insufficient_feedback
+  complaintValidity            String @map("complaint_validity") // supported_by_data | partially_supported | not_supported | insufficient_data
+  complaintCategories          Json   @map("complaint_categories") // string[]
+  suggestedImprovementAreas    Json   @map("suggested_improvement_areas") // string[]
+  riskFlags                    Json   @map("risk_flags") // string[]
   recommendedDecisionInfluence String @map("recommended_decision_influence") // none | minor_adjust | adjust | deload | rebuild_consideration
-  explanationForUser      String @map("explanation_for_user")
-  explanationForCoach     String @map("explanation_for_coach")
+  explanationForUser           String @map("explanation_for_user")
+  explanationForCoach          String @map("explanation_for_coach")
 
   // true when the LLM call failed and the deterministic (rule-only)
   // fallback template was used instead — surfaced so Phase 5/UI can treat a
@@ -1040,10 +1099,10 @@ model CycleFeedbackAnalysisAudit {
 // cycle's body-composition trend — enables InBodyDataQualityEvaluator to use
 // more than just the two start/end snapshots when more measurements exist.
 model CycleInBodyLink {
-  id             String   @id @default(uuid())
-  cycleId        String   @map("cycle_id")
-  inbodyEntryId  String   @map("inbody_entry_id") // user-service InBodyEntry.id
-  linkedAt       DateTime @default(now()) @map("linked_at")
+  id            String   @id @default(uuid())
+  cycleId       String   @map("cycle_id")
+  inbodyEntryId String   @map("inbody_entry_id") // user-service InBodyEntry.id
+  linkedAt      DateTime @default(now()) @map("linked_at")
 
   cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
@@ -1054,18 +1113,18 @@ model CycleInBodyLink {
 
 // 🥗 Nutrition Program (from AI plan or manual, replaces mock data)
 model NutritionProgram {
-  id                   String    @id @default(uuid())
-  userId               String    @map("user_id")
-  name                 String
-  goal                 String?
-  durationWeeks        Int?      @map("duration_weeks")
-  mealsPerDay          Int?      @map("meals_per_day")
-  dailyCaloriesTarget  Int?      @map("daily_calories_target")
-  proteinTargetGrams   Float?    @map("protein_target_grams")
-  carbTargetGrams      Float?    @map("carb_target_grams")
-  fatTargetGrams       Float?    @map("fat_target_grams")
-  sourcePlanId         String?   @map("source_plan_id")   // ai-service NutritionPlan id
-  sourceType           String?   @map("source_type")      // "AI_PLAN" | "MANUAL"
+  id                  String    @id @default(uuid())
+  userId              String    @map("user_id")
+  name                String
+  goal                String?
+  durationWeeks       Int?      @map("duration_weeks")
+  mealsPerDay         Int?      @map("meals_per_day")
+  dailyCaloriesTarget Int?      @map("daily_calories_target")
+  proteinTargetGrams  Float?    @map("protein_target_grams")
+  carbTargetGrams     Float?    @map("carb_target_grams")
+  fatTargetGrams      Float?    @map("fat_target_grams")
+  sourcePlanId        String?   @map("source_plan_id") // ai-service NutritionPlan id
+  sourceType          String?   @map("source_type") // "AI_PLAN" | "MANUAL"
   // Which NutritionGoal (by id) was ACTIVE when this program was created —
   // purely a traceability link for "was this plan built from the goal
   // that's active now, or an older one". Never used as the source of truth
@@ -1075,17 +1134,17 @@ model NutritionProgram {
   // .service.ts falls back to a pure macro-value comparison when this is
   // null (legacy programs created before this column existed), so nothing
   // has to be backfilled for old rows to keep working.
-  sourceGoalId         String?   @map("source_goal_id")
-  status               String    @default("ACTIVE")        // "ACTIVE" | "ARCHIVED"
-  startDate            DateTime? @map("start_date")
-  endDate              DateTime? @map("end_date")           // last calendar day of the plan
-  repeatEnabled        Boolean   @default(false) @map("repeat_enabled") // cycle 7-day menu beyond endDate window
-  archivedAt           DateTime? @map("archived_at")
-  notes                String?
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  sourceGoalId        String?   @map("source_goal_id")
+  status              String    @default("ACTIVE") // "ACTIVE" | "ARCHIVED"
+  startDate           DateTime? @map("start_date")
+  endDate             DateTime? @map("end_date") // last calendar day of the plan
+  repeatEnabled       Boolean   @default(false) @map("repeat_enabled") // cycle 7-day menu beyond endDate window
+  archivedAt          DateTime? @map("archived_at")
+  notes               String?
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  days                 NutritionProgramDay[]
+  days NutritionProgramDay[]
 
   @@unique([userId, sourcePlanId])
   @@index([userId])
@@ -1095,19 +1154,19 @@ model NutritionProgram {
 
 // 📅 Daily breakdown within a NutritionProgram
 model NutritionProgramDay {
-  id             String   @id @default(uuid())
-  programId      String   @map("program_id")
-  dayNumber      Int      @map("day_number")
-  title          String?
-  totalCalories  Int?     @map("total_calories")
-  proteinGrams   Float?   @map("protein_grams")
-  carbGrams      Float?   @map("carb_grams")
-  fatGrams       Float?   @map("fat_grams")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  programId     String   @map("program_id")
+  dayNumber     Int      @map("day_number")
+  title         String?
+  totalCalories Int?     @map("total_calories")
+  proteinGrams  Float?   @map("protein_grams")
+  carbGrams     Float?   @map("carb_grams")
+  fatGrams      Float?   @map("fat_grams")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  program        NutritionProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
-  meals          NutritionProgramMeal[]
+  program NutritionProgram       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  meals   NutritionProgramMeal[]
 
   @@unique([programId, dayNumber])
   @@index([programId])
@@ -1118,7 +1177,7 @@ model NutritionProgramDay {
 model NutritionProgramMeal {
   id           String   @id @default(uuid())
   dayId        String   @map("day_id")
-  mealType     String   @map("meal_type")   // "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
+  mealType     String   @map("meal_type") // "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
   title        String?
   calories     Int?
   proteinGrams Float?   @map("protein_grams")
@@ -1128,9 +1187,9 @@ model NutritionProgramMeal {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  day          NutritionProgramDay        @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  items        NutritionProgramMealItem[]
-  completions  NutritionMealCompletion[]
+  day         NutritionProgramDay        @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  items       NutritionProgramMealItem[]
+  completions NutritionMealCompletion[]
 
   @@index([dayId])
   @@map("nutrition_program_meals")
@@ -1140,7 +1199,7 @@ model NutritionProgramMeal {
 model NutritionProgramMealItem {
   id             String   @id @default(uuid())
   mealId         String   @map("meal_id")
-  foodId         String?  @map("food_id")          // FK to Food (nullable if custom)
+  foodId         String?  @map("food_id") // FK to Food (nullable if custom)
   customFoodName String?  @map("custom_food_name") // fallback if no foodId
   quantity       Float    @default(100)
   unit           String   @default("g")
@@ -1152,8 +1211,8 @@ model NutritionProgramMealItem {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  meal           NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
-  food           Food?                @relation(fields: [foodId], references: [id], onDelete: SetNull)
+  meal NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food Food?                @relation(fields: [foodId], references: [id], onDelete: SetNull)
 
   @@index([mealId])
   @@index([foodId])
@@ -1165,8 +1224,8 @@ model NutritionMealCompletion {
   id               String    @id @default(uuid())
   userId           String    @map("user_id")
   mealId           String    @map("meal_id")
-  logDate          DateTime  @db.Date @map("log_date")  // The actual calendar date (date-only)
-  status           String    @default("PENDING")          // PENDING | COMPLETED | PARTIAL | SKIPPED
+  logDate          DateTime  @map("log_date") @db.Date // The actual calendar date (date-only)
+  status           String    @default("PENDING") // PENDING | COMPLETED | PARTIAL | SKIPPED
   percentConsumed  Int       @default(100) @map("percent_consumed") // 100 for full, 0-99 for partial
   consumedCalories Int?      @map("consumed_calories")
   consumedProtein  Float?    @map("consumed_protein")
@@ -1176,7 +1235,7 @@ model NutritionMealCompletion {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  meal             NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  meal NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
   @@unique([userId, mealId, logDate], name: "nutrition_meal_completion_unique")
   @@index([userId, logDate])
@@ -1254,12 +1313,12 @@ model ExerciseAlias {
 // (body-muscles, per the license review) and for a genuine primary/
 // secondary distinction, which the live schema has never had.
 model Muscle {
-  id             String  @id @default(uuid())
-  code           String  @unique // stable slug, matches ref_muscles.csv's muscle_code, e.g. "chest", "front_delts"
-  nameVi         String  @map("name_vi")
-  nameEn         String? @map("name_en")
-  anatomyRegion  String? @map("anatomy_region") // coarse grouping for filtering/legend — "upper_body" | "lower_body" | "core" | "full_body"
-  parentMuscleId String? @map("parent_muscle_id") // e.g. "upper_chest" -> parent "chest", for a collapsible legend
+  id             String   @id @default(uuid())
+  code           String   @unique // stable slug, matches ref_muscles.csv's muscle_code, e.g. "chest", "front_delts"
+  nameVi         String   @map("name_vi")
+  nameEn         String?  @map("name_en")
+  anatomyRegion  String?  @map("anatomy_region") // coarse grouping for filtering/legend — "upper_body" | "lower_body" | "core" | "full_body"
+  parentMuscleId String?  @map("parent_muscle_id") // e.g. "upper_chest" -> parent "chest", for a collapsible legend
   createdAt      DateTime @default(now()) @map("created_at")
 
   parentMuscle  Muscle?          @relation("MuscleHierarchy", fields: [parentMuscleId], references: [id])
@@ -1323,16 +1382,16 @@ model FoodSource {
 // RecipeIngredient's gramsEquivalent are what let a serving's macros be
 // COMPUTED from real ingredient data rather than guessed.
 model Recipe {
-  id             String   @id @default(uuid())
-  name           String
-  nameVi         String?  @map("name_vi")
-  version        Int      @default(1)
-  yieldServings  Float    @map("yield_servings") // how many servings the full recipe produces
-  preparationState String? @map("preparation_state") // "raw" | "cooked" — which state the ingredient amounts below assume
-  source         String? // e.g. "original_curated_vi", "user_submitted"
-  status         String   @default("STAGING") // Gate 12 rollout states: STAGING | REVIEW_REQUIRED | APPROVED | PUBLISHED | DEPRECATED | REJECTED
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  name             String
+  nameVi           String?  @map("name_vi")
+  version          Int      @default(1)
+  yieldServings    Float    @map("yield_servings") // how many servings the full recipe produces
+  preparationState String?  @map("preparation_state") // "raw" | "cooked" — which state the ingredient amounts below assume
+  source           String? // e.g. "original_curated_vi", "user_submitted"
+  status           String   @default("STAGING") // Gate 12 rollout states: STAGING | REVIEW_REQUIRED | APPROVED | PUBLISHED | DEPRECATED | REJECTED
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   ingredients RecipeIngredient[]
 
@@ -1341,14 +1400,14 @@ model Recipe {
 }
 
 model RecipeIngredient {
-  id               String  @id @default(uuid())
-  recipeId         String  @map("recipe_id")
-  foodId           String  @map("food_id")
-  amount           Float // in `unit` below
-  unit             String @default("g")
-  gramsEquivalent  Float  @map("grams_equivalent") // amount converted to grams — what the macro calculation actually uses, so unit conversions happen once at write time, not repeatedly at read time
-  note             String?
-  createdAt        DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  recipeId        String   @map("recipe_id")
+  foodId          String   @map("food_id")
+  amount          Float // in `unit` below
+  unit            String   @default("g")
+  gramsEquivalent Float    @map("grams_equivalent") // amount converted to grams — what the macro calculation actually uses, so unit conversions happen once at write time, not repeatedly at read time
+  note            String?
+  createdAt       DateTime @default(now()) @map("created_at")
 
   recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   food   Food   @relation(fields: [foodId], references: [id], onDelete: Restrict) // Restrict (not Cascade/SetNull): a recipe ingredient must always resolve to a real food — an accidental Food delete must not silently corrupt a recipe
@@ -1368,20 +1427,20 @@ model RecipeIngredient {
 // ══════════════════════════════════════════════════════════════════════
 
 model ImportBatch {
-  id              String    @id @default(uuid())
-  source          String // "curated_vi_food_aliases" | "curated_vi_exercise_catalog" | "wger" | ...
-  sourceVersion   String?   @map("source_version")
-  startedAt       DateTime  @default(now()) @map("started_at")
-  completedAt     DateTime? @map("completed_at")
-  status          String    @default("RUNNING") // RUNNING | COMPLETED | FAILED | ROLLED_BACK
-  dryRun          Boolean   @default(false) @map("dry_run")
-  insertedCount   Int       @default(0) @map("inserted_count")
-  updatedCount    Int       @default(0) @map("updated_count")
-  skippedCount    Int       @default(0) @map("skipped_count")
-  duplicateCount  Int       @default(0) @map("duplicate_count")
-  reviewCount     Int       @default(0) @map("review_count")
-  errorCount      Int       @default(0) @map("error_count")
-  checksum        String? // hash of the input source data, so two runs against the same input are provably comparable
+  id             String    @id @default(uuid())
+  source         String // "curated_vi_food_aliases" | "curated_vi_exercise_catalog" | "wger" | ...
+  sourceVersion  String?   @map("source_version")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  status         String    @default("RUNNING") // RUNNING | COMPLETED | FAILED | ROLLED_BACK
+  dryRun         Boolean   @default(false) @map("dry_run")
+  insertedCount  Int       @default(0) @map("inserted_count")
+  updatedCount   Int       @default(0) @map("updated_count")
+  skippedCount   Int       @default(0) @map("skipped_count")
+  duplicateCount Int       @default(0) @map("duplicate_count")
+  reviewCount    Int       @default(0) @map("review_count")
+  errorCount     Int       @default(0) @map("error_count")
+  checksum       String? // hash of the input source data, so two runs against the same input are provably comparable
 
   records ImportRecord[]
 
@@ -1393,14 +1452,14 @@ model ImportBatch {
 // record of "what did this run actually decide for this specific item",
 // independent of whatever the importer printed to stdout at the time.
 model ImportRecord {
-  id              String   @id @default(uuid())
-  batchId         String   @map("batch_id")
-  externalRef     String   @map("external_ref") // the source's own identifier for this item, e.g. a gym_exercises.csv exercise_id or a food_aliases.vi.json alias string
-  decision        String // "INSERTED" | "UPDATED" | "SKIPPED_DUPLICATE" | "REVIEW_QUEUED" | "ERROR"
-  targetTable     String?  @map("target_table") // e.g. "exercise_aliases", "food_aliases"
-  targetId        String?  @map("target_id") // the created/updated row's id, when applicable — this is the rollback manifest: DELETE FROM <targetTable> WHERE id = <targetId>
-  detail          Json? // decision-specific detail (e.g. the DuplicateMatchResult for a review-queued item)
-  createdAt       DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  batchId     String   @map("batch_id")
+  externalRef String   @map("external_ref") // the source's own identifier for this item, e.g. a gym_exercises.csv exercise_id or a food_aliases.vi.json alias string
+  decision    String // "INSERTED" | "UPDATED" | "SKIPPED_DUPLICATE" | "REVIEW_QUEUED" | "ERROR"
+  targetTable String?  @map("target_table") // e.g. "exercise_aliases", "food_aliases"
+  targetId    String?  @map("target_id") // the created/updated row's id, when applicable — this is the rollback manifest: DELETE FROM <targetTable> WHERE id = <targetId>
+  detail      Json? // decision-specific detail (e.g. the DuplicateMatchResult for a review-queued item)
+  createdAt   DateTime @default(now()) @map("created_at")
 
   batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
@@ -1443,7 +1502,7 @@ model WorkoutImportBatch {
   matchSummaryJson   Json @map("match_summary_json")
 
   // Audit trail: which real Workout rows this batch's commit produced.
-  createdWorkoutIds String[] @default([]) @map("created_workout_ids")
+  createdWorkoutIds     String[] @default([]) @map("created_workout_ids")
   // Idempotency key set: sourceHash of every workout ACTUALLY committed
   // by this batch (a subset of parsedWorkoutsJson's workouts — some may
   // have been skipped as already-imported). A later batch's commit
@@ -1482,7 +1541,7 @@ model WorkoutImportBatch {
 // row. The CURRENT decision for a candidate is always "the newest row for
 // this externalRef", which the service/queue queries compute directly.
 model ExerciseReviewDecision {
-  id     String @id @default(uuid())
+  id          String @id @default(uuid())
   // The catalog row's own external id (gym_exercises.csv's exercise_id) —
   // NOT a live Exercise.id, since a LIKELY_DUPLICATE/MANUAL_REVIEW/
   // POSSIBLE_VARIANT candidate that gets REJECTED or SKIPPED never becomes
@@ -1538,7 +1597,7 @@ model ExerciseReviewDecision {
 model WorkoutMutationEvent {
   id        String   @id // client-generated eventId (UUID) — the idempotency key itself
   userId    String   @map("user_id")
-  type      String   // SET_COMPLETED | SET_UNDONE | EXERCISE_COMPLETED
+  type      String // SET_COMPLETED | SET_UNDONE | EXERCISE_COMPLETED
   result    Json
   createdAt DateTime @default(now()) @map("created_at")
 

@@ -35,10 +35,12 @@ const SAMPLE_DRAFT: PersistableActiveLogDraft = {
   bodyWeightAtSetKg: "",
   durationSeconds: "",
   distanceMeters: "",
+  tempo: "3-1-1-0",
   reps: "",
   noWeight: false,
   rpe: 8,
   rir: 1,
+  setType: "TOP",
 };
 
 describe("activeLogDraftStorageKey", () => {

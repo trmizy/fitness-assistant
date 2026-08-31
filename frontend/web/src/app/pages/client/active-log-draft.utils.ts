@@ -54,10 +54,18 @@ export interface PersistableActiveLogDraft {
   bodyWeightAtSetKg: string;
   durationSeconds: string;
   distanceMeters: string;
+  tempo?: string;
   reps: string;
   noWeight: boolean;
   rpe: number;
   rir: number;
+  setType?: string;
+  setTechnique?: "STRAIGHT" | "DROP_SET" | "REST_PAUSE";
+  segments?: Array<{
+    reps: string;
+    weightKg: string;
+    restBeforeSeconds: string;
+  }>;
 }
 
 interface StoredActiveLogDraft {
