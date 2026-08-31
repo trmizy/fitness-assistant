@@ -5,6 +5,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
 import { cn } from "./utils";
+import { useBackDismissible, dismissViaEscapeKey } from "../../hooks/useBackDismissible";
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
@@ -52,6 +53,10 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
 }) {
+  // Radix only mounts this while the overlay is open, so registering unconditionally
+  // here is the same as "register while open" — Android Back closes the overlay instead
+  // of navigating the screen behind it.
+  useBackDismissible(true, dismissViaEscapeKey);
   return (
     <SheetPortal>
       <SheetOverlay />

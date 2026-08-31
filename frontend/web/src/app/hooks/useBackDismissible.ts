@@ -58,3 +58,18 @@ export function useBackDismissible(isOpen: boolean, onDismiss: Dismiss): void {
     };
   }, [isOpen]);
 }
+
+/**
+ * Closes a Radix-based overlay (Dialog, AlertDialog, Sheet, Drawer).
+ *
+ * Those primitives own their own open state, and our wrapper components only render the
+ * content — they never see the `onOpenChange` setter that lives on the Root. Radix's
+ * DismissableLayer listens for Escape on `document`, so synthesising that key is the one
+ * generic way to close any of them from the outside, and it goes through their normal close
+ * path (animations, focus restore, onOpenChange callbacks) rather than around it.
+ */
+export function dismissViaEscapeKey(): void {
+  document.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+  );
+}

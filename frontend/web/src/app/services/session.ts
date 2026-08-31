@@ -18,6 +18,7 @@ import { Preferences } from "@capacitor/preferences";
 import type { User } from "../types";
 import { api, refreshOnce, clearStoredSession, RefreshUnavailableError } from "./api";
 import { hasUsableToken, isAccessTokenExpiringSoon } from "./token";
+import { readRefreshToken } from "./secureStorage";
 
 export type BootstrapResult =
   | { status: "authenticated"; user: User | null }
@@ -71,9 +72,9 @@ async function verifySessionWithServer(): Promise<User | null> {
  */
 export async function bootstrapSession(): Promise<BootstrapResult> {
   try {
-    const [{ value: accessToken }, { value: refreshToken }] = await Promise.all([
+    const [{ value: accessToken }, refreshToken] = await Promise.all([
       Preferences.get({ key: "accessToken" }),
-      Preferences.get({ key: "refreshToken" }),
+      readRefreshToken(),
     ]);
 
     // The refresh token is what actually defines "there is a session here".
@@ -141,9 +142,9 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
  */
 export async function ensureFreshAccessToken(): Promise<boolean> {
   try {
-    const [{ value: accessToken }, { value: refreshToken }] = await Promise.all([
+    const [{ value: accessToken }, refreshToken] = await Promise.all([
       Preferences.get({ key: "accessToken" }),
-      Preferences.get({ key: "refreshToken" }),
+      readRefreshToken(),
     ]);
 
     if (!hasUsableToken(refreshToken)) return false;

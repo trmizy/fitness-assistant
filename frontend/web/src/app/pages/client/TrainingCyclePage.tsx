@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 import {
   BarChart,
   Bar,
@@ -1137,6 +1138,8 @@ function formatPlannedVsActualLine(ex: CycleReport["plannedVsActual"]["byExercis
 }
 
 function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () => void }) {
+  // Mounted only while the report modal is open.
+  useBackDismissible(true, onClose);
   const reportQuery = useQuery({
     queryKey: ["training-cycle", "report", cycleId],
     queryFn: () => trainingCycleService.getReport(cycleId),

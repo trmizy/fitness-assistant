@@ -10,6 +10,7 @@ import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymReviewsSection } from "../../components/gym/GymReviewsSection";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 export function GymDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export function GymDetailPage() {
   // A4 — the plan waiting on the "you already have a membership elsewhere" confirmation,
   // shown BEFORE the gateway picker when applicable. null while that dialog is closed.
   const [warningTarget, setWarningTarget] = useState<GymMembershipPlan | null>(null);
+  useBackDismissible(!!warningTarget, () => setWarningTarget(null));
   // Optional PT referral code — applies to whichever plan is bought. Backend already
   // supports it (membership.service.ts#purchase); nothing in the UI ever collected it.
   const [referralCode, setReferralCode] = useState("");

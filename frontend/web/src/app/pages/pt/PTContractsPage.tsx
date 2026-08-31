@@ -32,6 +32,7 @@ import type {
 } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -166,10 +167,13 @@ export function PTContractsPage() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
+  useBackDismissible(!!rejectId, () => setRejectId(null));
   const [rejectReason, setRejectReason] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
+  useBackDismissible(!!cancelId, () => setCancelId(null));
   // Roadmap P4.1 "Notifications/reminders" (§27) — PT feedback.
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  useBackDismissible(!!feedbackId, () => setFeedbackId(null));
   const [feedbackText, setFeedbackText] = useState("");
 
   const { data: contracts = [], isLoading } = useQuery({
@@ -289,6 +293,7 @@ export function PTContractsPage() {
   // Mirror-image of the client's session review (BookingPage.tsx) — PT rates the client
   // instead of the client rating the PT.
   const [reviewClientId, setReviewClientId] = useState<string | null>(null);
+  useBackDismissible(!!reviewClientId, () => setReviewClientId(null));
   const [reviewClientRating, setReviewClientRating] = useState(5);
   const [reviewClientComment, setReviewClientComment] = useState("");
   const reviewClientMut = useMutation({

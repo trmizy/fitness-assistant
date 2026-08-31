@@ -116,6 +116,7 @@ import {
 } from "../../services/api";
 import { StarRating } from "../../components/StarRating";
 import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 // Format helper
 const formatVideoUrlToImg = (
@@ -922,6 +923,7 @@ function SessionFeedbackModal({
   const [perceivedProgress, setPerceivedProgress] = useState<SessionFeedbackPerceivedProgress | undefined>();
   const [notes, setNotes] = useState("");
   const [showExerciseDetail, setShowExerciseDetail] = useState(false);
+  useBackDismissible(!!showExerciseDetail, () => setShowExerciseDetail(false));
   const [exerciseTags, setExerciseTags] = useState<Record<string, ExerciseFeedbackIssueType | undefined>>({});
 
   const toggleExerciseTag = (exerciseId: string, tag: ExerciseFeedbackIssueType) => {
@@ -2132,6 +2134,7 @@ export function WorkoutLogPage() {
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
+  useBackDismissible(!!showCalendarAdd, () => setShowCalendarAdd(false));
   const [scheduleDateInput, setScheduleDateInput] = useState(() =>
     toDateInputValue(new Date()),
   );
@@ -2151,6 +2154,7 @@ export function WorkoutLogPage() {
   const derivedMarkers: number[] = [];
 
   const [showManualBuilder, setShowManualBuilder] = useState(false);
+  useBackDismissible(!!showManualBuilder, () => setShowManualBuilder(false));
   const [savingManualProgram, setSavingManualProgram] = useState(false);
   const [manualProgramName, setManualProgramName] = useState(
     "Chương trình thủ công",
@@ -2248,6 +2252,7 @@ export function WorkoutLogPage() {
 
   // Log modal
   const [showLogModal, setShowLogModal] = useState(false);
+  useBackDismissible(!!showLogModal, () => setShowLogModal(false));
   const [logMetric, setLogMetric] = useState<MetricKey>("weight");
   const [logValue, setLogValue] = useState("");
   const [isSavingMetric, setIsSavingMetric] = useState(false);
@@ -2758,6 +2763,7 @@ export function WorkoutLogPage() {
   const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(
     null,
   );
+  useBackDismissible(!!showExerciseDetail, () => setShowExerciseDetail(null));
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [restTimerRunning, setRestTimerRunning] = useState(false);
@@ -2816,6 +2822,7 @@ export function WorkoutLogPage() {
 
   // Add Exercise Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
+  useBackDismissible(!!showAddExercise, () => setShowAddExercise(false));
   const [dbSearch, setDbSearch] = useState("");
   const [debouncedDbSearch, setDebouncedDbSearch] = useState("");
   const [dbExercises, setDbExercises] = useState<any[]>([]);

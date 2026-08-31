@@ -9,6 +9,7 @@ import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 /** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
  * so the badge here always matches what the public listing would actually show. */
@@ -30,6 +31,7 @@ export function GymManagePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  useBackDismissible(!!showCreatePlan, () => setShowCreatePlan(false));
   const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");

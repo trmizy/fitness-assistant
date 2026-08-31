@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { Preferences } from "@capacitor/preferences";
 import { gatewaySocketUrl } from "../config/serverUrl";
+import { ensureFreshAccessToken } from "../services/session";
 
 // Empty string tells socket.io-client to connect to the CURRENT page origin
 // (its documented default-URL behavior) at the default "/socket.io" path —
@@ -23,7 +24,14 @@ async function readAccessToken(): Promise<string | null> {
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      auth: async (cb) => cb({ token: await readAccessToken() }),
+      // Refresh BEFORE handing over the token. socket.io calls this on every connect and
+      // every reconnect, so without it an app resumed after a long background pause hands
+      // the server a dead token, gets rejected, and then retries with the same dead token
+      // until it gives up — realtime silently stays down for a session that was fine.
+      auth: async (cb) => {
+        await ensureFreshAccessToken();
+        cb({ token: await readAccessToken() });
+      },
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 8,
@@ -31,6 +39,20 @@ export function getSocket(): Socket {
       reconnectionDelayMax: 5000,
       timeout: 8000,
       transports: ["websocket", "polling"],
+    });
+
+    // An auth rejection mid-session: refresh once, then let socket.io reconnect with the
+    // new token. Guarded so a genuinely dead session cannot spin here.
+    let recovering = false;
+    socket.on("connect_error", async (err: Error) => {
+      if (recovering) return;
+      if (!/auth|token|unauthor/i.test(err?.message ?? "")) return;
+      recovering = true;
+      try {
+        if (await ensureFreshAccessToken()) socket?.connect();
+      } finally {
+        recovering = false;
+      }
     });
   }
 

@@ -39,6 +39,7 @@ import {
   PTApplication,
 } from "../../services/ptApplicationService";
 import { apiBaseUrl } from "../../config/serverUrl";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const API_URL = apiBaseUrl();
 
@@ -243,6 +244,8 @@ function DocThumb({
    DOCUMENT VIEWER MODAL
    ═══════════════════════════════════════════════════════════ */
 function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
+  // Mounted only while the viewer is open.
+  useBackDismissible(true, onClose);
   const [section, setSection] = useState<1 | 2 | 3>(1);
 
   return (

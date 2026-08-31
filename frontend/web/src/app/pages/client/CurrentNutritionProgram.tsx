@@ -22,6 +22,7 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 // ── Label helpers ────────────────────────────────────────────────────────────
 
@@ -240,7 +241,9 @@ export function CurrentNutritionProgram() {
   const queryClient = useQueryClient();
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  useBackDismissible(!!showGenerateModal, () => setShowGenerateModal(false));
   const [showAdjustModal, setShowAdjustModal] = useState<string | null>(null);
+  useBackDismissible(!!showAdjustModal, () => setShowAdjustModal(null));
   const [adjustText, setAdjustText] = useState("");
   const [showExplanation, setShowExplanation] = useState<
     Record<string, string>
@@ -301,6 +304,7 @@ export function CurrentNutritionProgram() {
     repeatEnabled: false,
     forceArchive: true,
   });
+  useBackDismissible(!!showSaveModal, () => setShowSaveModal(null));
 
   // ── Restriction presets ────────────────────────────────────────────────────
   const RESTRICTION_PRESETS = [

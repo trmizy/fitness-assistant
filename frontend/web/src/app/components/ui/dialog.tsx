@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
 import { cn } from "./utils";
+import { useBackDismissible, dismissViaEscapeKey } from "../../hooks/useBackDismissible";
 
 function Dialog({
   ...props
@@ -51,6 +52,10 @@ function DialogContent({
   children,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  // Radix only mounts this while the overlay is open, so registering unconditionally
+  // here is the same as "register while open" — Android Back closes the overlay instead
+  // of navigating the screen behind it.
+  useBackDismissible(true, dismissViaEscapeKey);
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />

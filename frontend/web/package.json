@@ -10,6 +10,7 @@
     "app:sync": "vite build --mode capacitor && cap sync android"
   },
   "dependencies": {
+    "@aparajita/capacitor-secure-storage": "8",
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "8",

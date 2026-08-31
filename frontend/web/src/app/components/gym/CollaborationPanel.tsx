@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Handshake, Loader2, Check, X, Repeat, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { collaborationService } from "../../services/api";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 type Party = "PT" | "GYM";
 
@@ -46,6 +47,8 @@ export function CollaborationPanel({ as, gymId }: { as: Party; gymId?: string })
   const [ptRate, setPtRate] = useState("55");
   const [gymRate, setGymRate] = useState("35");
   const [proposing, setProposing] = useState(false);
+  // One dialog serves both flows; Back closes whichever opened it.
+  useBackDismissible(proposing || !!counterFor, () => { setProposing(false); setCounterFor(null); });
   const [inviteePtId, setInviteePtId] = useState("");
 
   const queryKey = ["collaborations", as];

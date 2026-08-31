@@ -27,6 +27,7 @@ import type {
 } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const statusConfig: Record<
   ContractStatus,
@@ -129,6 +130,7 @@ export function ContractPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  useBackDismissible(!!showCancelDialog, () => setShowCancelDialog(false));
   const [copiedId, setCopiedId] = useState(false);
   // The contract awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<Contract | null>(null);

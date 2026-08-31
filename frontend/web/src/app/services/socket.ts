@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { chatSocketTarget } from "../config/serverUrl";
 import { Preferences } from "@capacitor/preferences";
+import { ensureFreshAccessToken } from "./session";
 
 // Empty string = same-origin (current page), proxied by Vite in dev under
 // "/chat-socket.io" (see vite.config.ts) to chat-service's real
@@ -21,7 +22,10 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(CHAT_WS_URL, {
       path: CHAT_WS_PATH,
+      // Same reasoning as the gateway socket: refresh first, so a reconnect after a long
+      // pause does not hand chat-service an expired token and then keep retrying with it.
       auth: async (cb) => {
+        await ensureFreshAccessToken();
         const { value: token } = await Preferences.get({ key: "accessToken" });
         cb({ token });
       },

@@ -10,6 +10,7 @@ import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
+import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -105,7 +106,7 @@ export const refreshOnce = makeRefreshOnce(refreshAccessToken);
 /** Clears only the session keys — theme, language and other preferences survive. */
 export async function clearStoredSession(): Promise<void> {
   await Preferences.remove({ key: "accessToken" });
-  await Preferences.remove({ key: "refreshToken" });
+  await clearRefreshToken();
   await Preferences.remove({ key: "user" });
 }
 
@@ -135,7 +136,7 @@ export class RefreshUnavailableError extends Error {
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
-  const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
+  const refreshToken = await readRefreshToken();
   if (!hasUsableToken(refreshToken)) return null;
 
   try {
@@ -145,7 +146,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     if (hasUsableToken(data?.accessToken)) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
       if (hasUsableToken(data?.refreshToken)) {
-        await Preferences.set({ key: "refreshToken", value: data.refreshToken });
+        await writeRefreshToken(data.refreshToken);
       }
       return data.accessToken;
     }
@@ -229,7 +230,7 @@ export const authService = {
     // Store tokens directly from auth service response
     if (data.accessToken) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
-      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
+      await writeRefreshToken(data.refreshToken);
       return { success: true, user: data.user };
     }
     return { success: false };
@@ -254,7 +255,7 @@ export const authService = {
     const { data } = await api.post("/auth/register/verify", { email, otp });
     if (data.accessToken) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
-      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
+      await writeRefreshToken(data.refreshToken);
       await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
       return { success: true, user: data.user };
     }
@@ -267,7 +268,7 @@ export const authService = {
     // Best-effort by design: a network failure here must not trap the user in a session they
     // asked to end, so we always fall through to clearing locally either way.
     try {
-      const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
+      const refreshToken = await readRefreshToken();
       if (hasUsableToken(refreshToken)) {
         await api.post("/auth/logout", { refreshToken });
       }

@@ -3,6 +3,7 @@ import { X, Loader2, Plus, Trash2, Search, Sparkles, AlertTriangle } from "lucid
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ptCoachService, workoutService } from "../../services/api";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const WEEKDAY_LABEL = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -49,6 +50,8 @@ export function AssignPlanModal({
   const [ptNotes, setPtNotes] = useState("");
   const [aiInfo, setAiInfo] = useState<{ dataGaps: string[]; warnings: string[]; summaryForPt: string } | null>(null);
 
+  // Mounted only while the modal is open.
+  useBackDismissible(true, onClose);
   const draftMutation = useMutation({
     mutationFn: () => ptCoachService.generatePlanDraft(clientUserId, { ptNotes: ptNotes.trim() || undefined, daysPerWeek: days.length, durationWeeks }),
     onSuccess: (result) => {

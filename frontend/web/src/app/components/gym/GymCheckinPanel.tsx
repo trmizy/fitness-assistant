@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { QrCode, Loader2, Maximize2, X, RefreshCw } from "lucide-react";
 import { gymService } from "../../services/api";
 import type { GymCheckIn } from "../../types";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const shortId = (id: string) => `${id.slice(0, 8)}…`;
 const timeAgo = (iso: string) =>
@@ -22,6 +23,7 @@ const timeAgo = (iso: string) =>
 export function GymCheckinPanel({ gymId }: { gymId: string }) {
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
+  useBackDismissible(!!fullscreen, () => setFullscreen(false));
 
   const { data: qr, isLoading, refetch, isRefetching } = useQuery<{
     token: string;

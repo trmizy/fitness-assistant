@@ -4,6 +4,7 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "./utils";
+import { useBackDismissible, dismissViaEscapeKey } from "../../hooks/useBackDismissible";
 
 function Drawer({
   ...props
@@ -50,6 +51,10 @@ function DrawerContent({
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  // Radix only mounts this while the overlay is open, so registering unconditionally
+  // here is the same as "register while open" — Android Back closes the overlay instead
+  // of navigating the screen behind it.
+  useBackDismissible(true, dismissViaEscapeKey);
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />

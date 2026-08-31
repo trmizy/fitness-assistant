@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymBrand, GymStatus } from "../../types";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   PENDING_REVIEW: { label: "Pending Review", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
@@ -95,7 +96,9 @@ export function MyGymsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreateGym, setShowCreateGym] = useState(false);
+  useBackDismissible(!!showCreateGym, () => setShowCreateGym(false));
   const [showCreateBrand, setShowCreateBrand] = useState(false);
+  useBackDismissible(!!showCreateBrand, () => setShowCreateBrand(false));
   const [gymForm, setGymForm] = useState({ name: "", address: "", city: "", description: "", brandId: "" });
   const [brandForm, setBrandForm] = useState({ name: "", description: "" });
 

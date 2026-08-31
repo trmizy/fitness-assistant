@@ -2,6 +2,16 @@ import { useEffect, useRef } from "react";
 import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
 import { useCall } from "../../context/CallContext";
 
+/**
+ * NOTE: the overlays in this file deliberately do NOT register with `useBackDismissible`.
+ *
+ * Every other overlay in the app treats Android Back as "close this". A call is different:
+ * dismissing it means rejecting or hanging up on a real person, and Back is pressed by
+ * reflex. Silently ending someone's call because they tried to go back is a far worse
+ * outcome than Back appearing to do nothing here. Hanging up stays an explicit, deliberate
+ * tap on the call controls.
+ */
+
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;

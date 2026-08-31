@@ -9,6 +9,7 @@ import type { GymMembershipContract, GymMembershipContractStatus } from "../../t
 import { formatVND } from "../../utils/currency";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 /** Days left on an ACTIVE membership, for the cancel-warning copy (no refund is computed —
  * money-flow plan §2.4: self-cancel forfeits the unused portion, it is not estimated). */
@@ -36,6 +37,7 @@ export function GymMembershipsPage() {
   // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
   const [scanning, setScanning] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<GymMembershipContract | null>(null);
+  useBackDismissible(!!cancelTarget, () => setCancelTarget(null));
   // The membership awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<GymMembershipContract | null>(null);
 

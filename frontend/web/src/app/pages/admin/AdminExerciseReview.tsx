@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 import {
   GitCompare,
   Search,
@@ -72,6 +73,7 @@ export function AdminExerciseReview() {
   const [decisionTier, setDecisionTier] = useState<string>("");
   const [search, setSearch] = useState("");
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  useBackDismissible(!!selectedRef, () => setSelectedRef(null));
   const [pendingDecision, setPendingDecision] = useState<(typeof DECISION_OPTIONS)[number] | null>(null);
   const [note, setNote] = useState("");
   const [targetExerciseId, setTargetExerciseId] = useState("");

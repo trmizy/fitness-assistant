@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { Stars } from "../../components/gym/Stars";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -103,6 +104,7 @@ export function PTDiscoveryPage() {
 
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
+  useBackDismissible(!!showRequestModal, () => setShowRequestModal(false));
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState("");
   // Which partner gym the sessions run at. "" means independent — the PT keeps the gym's

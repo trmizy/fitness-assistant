@@ -35,6 +35,7 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   PT_FEEDBACK_RECEIVED: "phản hồi từ PT",
 };
 import { useSocket } from "../../hooks/useSocket";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 export function Topbar() {
   const {
@@ -61,6 +62,11 @@ export function Topbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [aiTasksOpen, setAiTasksOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  // Dropdown panels are overlays too — Back should close the open one rather than
+  // navigate the page behind it. Closed newest-first is not needed: only one opens at a time.
+  useBackDismissible(notifOpen, () => setNotifOpen(false));
+  useBackDismissible(aiTasksOpen, () => setAiTasksOpen(false));
+  useBackDismissible(userOpen, () => setUserOpen(false));
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications"],

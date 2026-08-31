@@ -43,6 +43,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { adminService } from "../../services/api";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -434,6 +435,8 @@ function FallbackBadge({ used }: { used: boolean }) {
 // ─── Trace detail drawer ──────────────────────────────────────────────────────
 
 function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  // The whole component is the drawer, so it only exists while open.
+  useBackDismissible(true, onClose);
   const [detail, setDetail] = useState<RequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

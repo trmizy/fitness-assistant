@@ -25,6 +25,7 @@ import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import type { Contract, Session, SessionStatus } from "../../types";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -148,13 +149,17 @@ export function BookingPage() {
   const [bookingNotes, setBookingNotes] = useState("");
   const [tab, setTab] = useState<Tab>("book");
   const [cancelId, setCancelId] = useState<string | null>(null);
+  useBackDismissible(!!cancelId, () => setCancelId(null));
   const [cancelReason, setCancelReason] = useState("");
   const [reviewId, setReviewId] = useState<string | null>(null);
+  useBackDismissible(!!reviewId, () => setReviewId(null));
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [disputeId, setDisputeId] = useState<string | null>(null);
+  useBackDismissible(!!disputeId, () => setDisputeId(null));
   const [disputeReason, setDisputeReason] = useState("");
   const [noShowReportId, setNoShowReportId] = useState<string | null>(null);
+  useBackDismissible(!!noShowReportId, () => setNoShowReportId(null));
   const [noShowReportReason, setNoShowReportReason] = useState("");
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -418,6 +423,7 @@ export function BookingPage() {
   });
 
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  useBackDismissible(!!rescheduleId, () => setRescheduleId(null));
   const [rescheduleDate, setRescheduleDate] = useState<string>("");
   const [rescheduleTime, setRescheduleTime] = useState<string>("");
   const [rescheduleReason, setRescheduleReason] = useState<string>("");

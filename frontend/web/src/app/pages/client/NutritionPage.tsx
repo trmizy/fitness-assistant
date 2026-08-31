@@ -42,6 +42,7 @@ import { nutritionService, foodService } from "../../services/api";
 import type { NutritionGoalPlanConsistency } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -196,6 +197,7 @@ export function NutritionPage() {
 
   // Add Food modal
   const [showAddModal, setShowAddModal] = useState(false);
+  useBackDismissible(!!showAddModal, () => setShowAddModal(false));
   const [addMealType, setAddMealType] = useState<MealType>("breakfast");
   const [foodQuery, setFoodQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -205,6 +207,7 @@ export function NutritionPage() {
 
   // Edit Log modal
   const [editingLog, setEditingLog] = useState<NutritionLog | null>(null);
+  useBackDismissible(!!editingLog, () => setEditingLog(null));
   const [editForm, setEditForm] = useState<EditForm>({
     mealType: "breakfast",
     foodName: "",
@@ -218,9 +221,11 @@ export function NutritionPage() {
 
   // Delete confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  useBackDismissible(!!deletingId, () => setDeletingId(null));
 
   // Goal modal
   const [showGoalModal, setShowGoalModal] = useState(false);
+  useBackDismissible(!!showGoalModal, () => setShowGoalModal(false));
   const [goalForm, setGoalForm] = useState({
     calories: 2000,
     protein: 150,
@@ -404,7 +409,9 @@ export function NutritionPage() {
     mealId: string;
     mealName: string;
   } | null>(null);
+  useBackDismissible(!!confirmDeleteMeal, () => setConfirmDeleteMeal(null));
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  useBackDismissible(!!confirmDeactivate, () => setConfirmDeactivate(false));
 
   // ── Manual edit state ─────────────────────────────────────────────────────
   // Inline quantity edit for a plan item
@@ -412,6 +419,7 @@ export function NutritionPage() {
   const [editingQty, setEditingQty] = useState("");
   // Add-item modal
   const [addItemMealId, setAddItemMealId] = useState<string | null>(null);
+  useBackDismissible(!!addItemMealId, () => setAddItemMealId(null));
   const [foodSearch, setFoodSearch] = useState("");
   const [foodResults, setFoodResults] = useState<any[]>([]);
   const [foodSearchLoading, setFoodSearchLoading] = useState(false);

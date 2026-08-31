@@ -12,6 +12,10 @@ và **lý do**, không chỉ mô tả code — để lần sau sửa không vô 
 > viên, chủ phòng tập và hộp thoại. Phần 3.2 + 3.3 (hiệu ứng, trạng thái chờ) đã xong:
 > **7/7 trên máy ảo** + phép thử trễ mạng cho phần giữ dữ liệu cũ. Thời gian chuyển trang
 > giảm từ **trung vị 137 ms → 97 ms**. **Toàn bộ 4 phần đã hoàn thành.**
+> Ba việc từng ghi là hạn chế nay cũng đã làm nốt: đăng ký nút Back cho **toàn bộ 49 lớp
+> phủ** (chỉ chừa màn hình cuộc gọi, có chủ đích) — 4/4 trên máy ảo; **Socket.IO hưởng cơ
+> chế làm mới token** — 4/4; **refresh token chuyển sang kho bảo mật hệ điều hành** kèm di
+> trú — 4/4, trong đó có kịch bản nâng cấp thật (người đang đăng nhập không bị văng ra).
 
 ## Cách kiểm thử trên Android (dùng lại được)
 
@@ -416,17 +420,64 @@ nên mỗi lần đổi bộ lọc là dữ liệu về `undefined` và danh sá
 
 ---
 
-## 7. Hạn chế đã biết
+## 7. Nơi lưu token, và Socket.IO
 
-- **Refresh token lưu trong `@capacitor/preferences`, chưa dùng kho bảo mật của hệ điều
-  hành.** `Preferences` bền hơn `localStorage` nhưng **không phải kho bí mật được mã
-  hoá** — trên Android nó là `SharedPreferences` thường. Bản vận hành thật nên chuyển
-  sang Android Keystore / iOS Keychain. Cố ý chưa làm trong đợt này.
-- **Socket.IO không hưởng cơ chế làm mới token.** Hai file socket đọc `accessToken` một
-  lần lúc kết nối. Nếu token hết hạn giữa chừng, kết nối realtime có thể bị từ chối cho
-  tới lần kết nối lại. Chưa nằm trong phạm vi đợt này.
-- **`AdminWorkflowStudio.tsx`** nạp `accessToken` một lần lúc mount để ghép vào URL
-  studio; nếu token hết hạn sau đó, liên kết có thể mở ra trạng thái chưa đăng nhập.
+### Refresh token nằm trong kho bảo mật của hệ điều hành
+
+**File:** `src/app/services/secureStorage.ts` (plugin `@aparajita/capacitor-secure-storage`).
+
+`@capacitor/preferences` bền, nhưng **không phải kho bí mật được mã hoá** — trên Android nó
+là `SharedPreferences` thường, ai đọc được thư mục dữ liệu của app là đọc được (máy đã root,
+bản debug, sao lưu qua ADB). Refresh token sống lâu và sinh ra được access token, nên nó nằm
+trong keystore.
+
+**Access token cố ý vẫn ở `Preferences`**: nó ngắn hạn, dù sao cũng gửi đi trong mọi request,
+và để đó thì không phải gọi vào keystore trên đường đi nóng của mọi lần gắn token.
+
+**Hai đường lui, đều để một trục trặc lưu trữ không bao giờ khoá người dùng ở ngoài:**
+
+| Tình huống | Hành vi |
+|---|---|
+| Chạy web | Vẫn dùng `Preferences` — bản web của plugin cũng chỉ là `localStorage`, không an toàn hơn mà lại thêm một chỗ phải lo |
+| Keystore lỗi / không dùng được | Lùi về `Preferences` thay vì ném lỗi. Tụt về hành vi cũ vẫn hơn là không đăng nhập được |
+
+### Di trú: người đang đăng nhập không bị văng ra
+
+Người cài bản cũ đang có refresh token nằm ở `Preferences`. Lần đọc đầu tiên sau khi cập
+nhật, nếu keystore chưa có gì thì token được **chuyển sang keystore rồi xoá bản cũ** — chạy
+đúng một lần mỗi máy, không ai bị đăng xuất vì nâng cấp.
+
+*Đã kiểm chứng trên máy ảo bằng đúng kịch bản nâng cấp*: ghi bố cục cũ (token ở
+`CapacitorStorage.xml`) lúc app tắt hẳn → mở app → **vẫn đăng nhập**, token **biến mất khỏi
+kho phẳng**, và **lần mở kế tiếp vẫn khôi phục được phiên** — chi tiết cuối này mới là thứ
+chứng minh token thật sự nằm trong keystore chứ không phải bị xoá đi.
+
+> Ghi chú cho việc kiểm thử: từ nay `refreshToken` **không còn** trong
+> `CapacitorStorage.xml`. Script nào đọc file đó để lấy refresh token sẽ không thấy nữa —
+> đó là đúng, không phải lỗi.
+
+### Socket.IO có hưởng cơ chế làm mới token
+
+Hai socket (`realtime/socketClient.ts` cho gateway, `services/socket.ts` cho chat) gọi
+`ensureFreshAccessToken()` **trong `auth` callback**, tức là trước mỗi lần kết nối và mỗi lần
+kết nối lại. Trước đây chúng đọc thẳng `accessToken`: một app quay lại sau thời gian dài nghỉ
+sẽ đưa cho máy chủ token đã chết, bị từ chối, rồi **thử lại đúng token chết đó** cho tới khi
+bỏ cuộc — realtime lặng lẽ nằm im dù phiên vẫn tốt.
+
+Socket gateway còn bắt `connect_error`: nếu lỗi có dấu hiệu xác thực thì làm mới **một lần**
+rồi kết nối lại, có cờ chặn để phiên đã chết thật không quay vòng.
+
+> Lưu ý cấu hình: `.env.capacitor` **không đặt** `VITE_ENABLE_REALTIME`, mà bản APK là build
+> production nên `isDevBuild()` = false → **realtime mặc định TẮT trong APK**. Muốn kiểm thử
+> socket trên máy ảo phải thêm `VITE_ENABLE_REALTIME=1` vào `.env.capacitor.local`.
+
+## 8. Hạn chế còn lại
+
+- **`AdminWorkflowStudio.tsx`** nạp `accessToken` một lần lúc mount để ghép vào URL studio;
+  nếu token hết hạn sau đó, liên kết có thể mở ra trạng thái chưa đăng nhập.
+- **`CallOverlay`** cố ý **không** đăng ký với nút Back: Back là phản xạ, mà đóng lớp phủ
+  cuộc gọi nghĩa là từ chối hoặc cúp máy với một người thật. Cúp máy vẫn phải là thao tác
+  chạm có chủ đích.
 
 ---
 

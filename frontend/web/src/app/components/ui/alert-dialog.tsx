@@ -5,6 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
+import { useBackDismissible, dismissViaEscapeKey } from "../../hooks/useBackDismissible";
 
 function AlertDialog({
   ...props
@@ -48,6 +49,10 @@ function AlertDialogContent({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  // Radix only mounts this while the overlay is open, so registering unconditionally
+  // here is the same as "register while open" — Android Back closes the overlay instead
+  // of navigating the screen behind it.
+  useBackDismissible(true, dismissViaEscapeKey);
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
