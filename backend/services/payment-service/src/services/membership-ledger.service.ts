@@ -30,8 +30,11 @@ import { withIdempotentLedgerOp } from './ledger-idempotency';
  */
 
 /** Reads how much of a wallet's PENDING bucket is attributable to one transactionId — i.e.
- * one membership's own money, not the wallet's pooled total across every membership. */
-async function pendingRemainingForTxn(ops: LedgerOps, walletId: string, transactionId: string): Promise<Prisma.Decimal> {
+ * one membership's own money, not the wallet's pooled total across every membership.
+ * Exported for reuse by personalized-service-ledger.service.ts, which needs the exact same
+ * "this wallet's pooled PENDING minus every OTHER order's share" scoping (F2's reasoning
+ * applies identically: a PT/platform PENDING bucket is shared across every order they hold). */
+export async function pendingRemainingForTxn(ops: LedgerOps, walletId: string, transactionId: string): Promise<Prisma.Decimal> {
   const rows = await ops.tx.walletLedgerEntry.findMany({
     where: { walletId, transactionId, bucket: 'PENDING' },
     select: { entryType: true, amount: true },

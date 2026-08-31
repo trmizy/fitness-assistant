@@ -11,6 +11,11 @@ import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
+import {
+  createPresignedGetObject,
+  isS3Ref,
+  keyFromS3Ref,
+} from "../services/s3-upload.service";
 
 export const contractController = {
   // Client requests a contract with a PT
@@ -467,6 +472,13 @@ export const contractController = {
       }
 
       // Use only DB-stored path — never from request input (path traversal prevention)
+      if (isS3Ref(contract.contractPdfPath)) {
+        const key = keyFromS3Ref(contract.contractPdfPath);
+        const signedUrl = await createPresignedGetObject({ key });
+        res.redirect(302, signedUrl);
+        return;
+      }
+
       const absPath = path.isAbsolute(contract.contractPdfPath)
         ? contract.contractPdfPath
         : path.join(process.cwd(), contract.contractPdfPath);
@@ -514,6 +526,28 @@ export const contractController = {
       }
       logger.error(error, 'Contract pay error');
       res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+    }
+  },
+
+  // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
+  // message to their client on an active contract. Uses req.user (set by
+  // authMiddleware, applied directly to this route) rather than this
+  // file's other methods' `x-user-id` header convention — that header is
+  // only ever populated by the GATEWAY's own proxy-time injection, so a
+  // request that reaches this service directly (bypassing the gateway)
+  // would silently read undefined. req.user works correctly either way.
+  async sendFeedback(req: any, res: Response) {
+    try {
+      const ptUserId = req.user!.id as string;
+      const result = await contractService.sendFeedback(req.params.id, ptUserId, req.body?.text);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Contract sendFeedback error');
+      res.status(500).json({ error: 'Failed to send feedback' });
     }
   },
 

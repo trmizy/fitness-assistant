@@ -12,8 +12,9 @@ import {
 import { Button } from "../ui/button";
 import { Preferences } from "@capacitor/preferences";
 import axios from "axios";
+import { apiBaseUrl } from "../../config/serverUrl";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE = apiBaseUrl();
 
 interface AdminUser {
   id: string;

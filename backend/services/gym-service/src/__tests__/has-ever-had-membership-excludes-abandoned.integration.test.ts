@@ -1,4 +1,6 @@
 import test from 'node:test';
+
+const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
@@ -39,7 +41,7 @@ async function makeMembership(gymId: string, planId: string, clientId: string, s
   });
 }
 
-test('an abandoned PENDING_PAYMENT membership does not count as "ever had a membership here"', async () => {
+integrationTest('an abandoned PENDING_PAYMENT membership does not count as "ever had a membership here"', async () => {
   const gym = await makeGym();
   const plan = await makePlan(gym.id);
   const clientId = randomUUID();

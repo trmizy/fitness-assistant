@@ -1,5 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
-import { SessionMode } from "../generated/prisma";
+import { Prisma, SessionMode } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
 export const ptServicePackageRepository = {
@@ -34,7 +33,7 @@ export const ptServicePackageRepository = {
     name: string;
     description?: string;
     sessionCount: number;
-    price: Decimal;
+    price: Prisma.Decimal;
     sessionMode: SessionMode;
     sessionDurationMinutes?: number;
     validityDays?: number;
@@ -47,7 +46,7 @@ export const ptServicePackageRepository = {
       name?: string;
       description?: string;
       sessionCount?: number;
-      price?: Decimal;
+      price?: Prisma.Decimal;
       sessionMode?: SessionMode;
       sessionDurationMinutes?: number;
       validityDays?: number | null;

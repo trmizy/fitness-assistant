@@ -1,4 +1,6 @@
 import test from 'node:test';
+
+const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
@@ -40,7 +42,7 @@ async function makeAcceptedCollaboration(gymId: string, ptUserId: string) {
   });
 }
 
-test('activeRates returns null for an ACCEPTED collaboration at a SUSPENDED gym', async () => {
+integrationTest('activeRates returns null for an ACCEPTED collaboration at a SUSPENDED gym', async () => {
   const gym = await makeGym('SUSPENDED');
   const ptUserId = randomUUID();
   const row = await makeAcceptedCollaboration(gym.id, ptUserId);
@@ -54,7 +56,7 @@ test('activeRates returns null for an ACCEPTED collaboration at a SUSPENDED gym'
   }
 });
 
-test('activeRates still returns the frozen split at an APPROVED gym', async () => {
+integrationTest('activeRates still returns the frozen split at an APPROVED gym', async () => {
   const gym = await makeGym('APPROVED');
   const ptUserId = randomUUID();
   const row = await makeAcceptedCollaboration(gym.id, ptUserId);

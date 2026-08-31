@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Socket } from "socket.io-client";
 import { connectSocket, disconnectSocket, getSocket } from "../realtime/socketClient";
+import { isRealtimeEnabled } from "../config/serverUrl";
 import type { RealtimeConnectionStatus } from "../realtime/events";
 import { useApp } from "./AppContext";
 
@@ -24,9 +25,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useApp();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [status, setStatus] = useState<RealtimeConnectionStatus>("idle");
+  const realtimeEnabled = isRealtimeEnabled();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !realtimeEnabled) {
       disconnectSocket();
       setSocket(null);
       setStatus("idle");
@@ -65,7 +67,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       current.off("connect_error", handleConnectError);
       current.io.off("reconnect_attempt", handleReconnectAttempt);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, realtimeEnabled]);
 
   const value = useMemo<SocketContextValue>(
     () => ({
@@ -73,11 +75,16 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       status,
       connected: status === "connected",
       reconnect: () => {
+        if (!realtimeEnabled) {
+          setSocket(null);
+          setStatus("idle");
+          return;
+        }
         setSocket(connectSocket());
         setStatus(getSocket().connected ? "connected" : "connecting");
       },
     }),
-    [socket, status],
+    [socket, status, realtimeEnabled],
   );
 
   return (

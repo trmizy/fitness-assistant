@@ -68,6 +68,17 @@ model Exercise {
   // Advisory only — never a hard filter, just an input the generator can
   // weight for beginner-appropriate exercise selection.
   difficultyLevel       String?       @map("difficulty_level")
+  // Exercise logging-mode taxonomy (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §6.2, gap analysis "Timed / cardio logging" row) — REPS_LOAD |
+  // BODYWEIGHT_REPS | TIME | TIME_LOAD | DISTANCE_TIME. Free-text like
+  // movementPattern/mechanics above rather than a Prisma enum, for the same
+  // reason: derived/correctable per-row without a schema migration. Every
+  // existing row is backfilled by this migration's own UPDATE from
+  // typeOfEquipment/typeOfActivity/type (heuristic, not guaranteed 100%
+  // correct for all 883+ rows — flagged, not silently assumed perfect; see
+  // ExerciseReviewDecision for the existing "flag for human review" pattern
+  // a follow-up correction pass can reuse).
+  loggingMode           String        @default("REPS_LOAD") @map("logging_mode")
   // Gate 6/12 (exercise/anatomy data-expansion roadmap) — rollout status.
   // "STAGING" | "REVIEW_REQUIRED" | "APPROVED" | "PUBLISHED" | "DEPRECATED" | "REJECTED".
   // Every one of the 883 pre-existing rows is explicitly backfilled to
@@ -77,6 +88,17 @@ model Exercise {
   // regardless of status), so a freshly-imported exercise never reaches a
   // real user until deliberately promoted.
   status                String        @default("PUBLISHED")
+  // Roadmap P1.5 "Custom exercises"
+  // (docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md) — additive.
+  // "SYSTEM" | "USER_CUSTOM" (PT_CUSTOM deliberately deferred — no PT/
+  // client visibility model exists yet to build it on safely). ownerId is
+  // set once at creation from the authenticated caller, never client-
+  // suppliable/changeable; null for every SYSTEM row. archivedAt is a
+  // soft-delete — the row (and every FK to it) stays intact, it just
+  // stops appearing in GET /exercises/custom.
+  source                String        @default("SYSTEM")
+  ownerId               String?       @map("owner_id")
+  archivedAt            DateTime?     @map("archived_at")
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 
@@ -102,6 +124,7 @@ model Exercise {
   @@index([status])
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
+  @@index([ownerId])
   @@map("exercises")
 }
 
@@ -264,10 +287,51 @@ model WorkoutSet {
   painScore      Int?    @map("pain_score") // 0-10 subjective pain/discomfort during this set
   techniqueNotes String? @map("technique_notes")
 
-  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  // Bodyweight/timed/cardio semantics (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §6.1, gap analysis "Bodyweight exercise semantics" + "Timed / cardio
+  // logging" rows). Purely additive — NOT a reinterpretation of `weight`
+  // above, which keeps meaning exactly what it always meant (external load,
+  // null when none was added). Every pre-migration row reads these as null
+  // ("explicit unknown, not silently guessed" — this repo's established
+  // pattern, see exerciseNameSnapshot in WorkoutExercise below).
+  bodyWeightAtSetKg Float?  @map("body_weight_at_set_kg") // captured body weight at the time of this set — BODYWEIGHT_REPS exercises only, left null when not captured, never guessed/copied from an unrelated InBody reading
+  durationSeconds   Int?    @map("duration_seconds") // per-set duration — TIME / TIME_LOAD exercises (plank, carry, timed hold)
+  distanceMeters    Float?  @map("distance_meters") // per-set distance — DISTANCE_TIME exercises (running, rowing, cycling)
+  // Snapshot of planned AMRAP intent at session materialization time. These
+  // actual-history fields never follow later edits to the live program.
+  isAmrap           Boolean @default(false) @map("is_amrap")
+  amrapMinReps      Int?    @map("amrap_min_reps")
+
+  workoutExercise WorkoutExercise     @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  segments        WorkoutSetSegment[]
 
   @@index([workoutExerciseId])
   @@map("workout_sets")
+}
+
+// Actual mini-efforts performed after the main WorkoutSet effort. Drop sets
+// and rest-pause work are chains within one programmed set, so they must not
+// become sibling WorkoutSet rows (which would change set counts, PR inputs,
+// progression history, and offline event identity).
+model WorkoutSetSegment {
+  id                String   @id @default(uuid())
+  workoutSetId      String   @map("workout_set_id")
+  segmentNumber     Int      @map("segment_number")
+  technique         String // DROP_SET | REST_PAUSE
+  reps              Int
+  weight            Float? // external load in kg; null for bodyweight
+  rpe               Float?
+  rir               Int?
+  restBeforeSeconds Int?     @map("rest_before_seconds")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  workoutSet WorkoutSet @relation(fields: [workoutSetId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutSetId, segmentNumber])
+  @@index([workoutSetId])
+  @@map("workout_set_segments")
 }
 
 model Food {
@@ -445,13 +509,51 @@ model WorkoutProgramDay {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  program   WorkoutProgram           @relation(fields: [programId], references: [id], onDelete: Cascade)
-  exercises WorkoutProgramExercise[]
-  schedules WorkoutSchedule[]
+  program        WorkoutProgram                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises      WorkoutProgramExercise[]
+  schedules      WorkoutSchedule[]
+  exerciseGroups WorkoutProgramExerciseGroup[]
 
   @@unique([programId, dayNumber])
   @@index([programId])
   @@map("workout_program_days")
+}
+
+// Roadmap P1.3 "Superset / exercise grouping"
+// (docs/features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md) — purely a
+// program-day planning concept. Deliberately does NOT touch WorkoutExercise
+// / WorkoutSet: every completion/undo/prefill/rest-timer mechanism is
+// already keyed by programExerciseId, so the active session derives
+// grouping by joining against these tables fresh each load, with zero risk
+// to already-logged history.
+model WorkoutProgramExerciseGroup {
+  id                          String   @id @default(uuid())
+  programDayId                String   @map("program_day_id")
+  type                        String // SUPERSET | TRISET | CIRCUIT
+  order                       Int      @default(0)
+  restBetweenExercisesSeconds Int?     @map("rest_between_exercises_seconds") // short/no rest between members
+  restAfterRoundSeconds       Int?     @map("rest_after_round_seconds") // real rest after finishing every member once
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  programDay WorkoutProgramDay                   @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  members    WorkoutProgramExerciseGroupMember[]
+
+  @@index([programDayId])
+  @@map("workout_program_exercise_groups")
+}
+
+model WorkoutProgramExerciseGroupMember {
+  id                String @id @default(uuid())
+  groupId           String @map("group_id")
+  programExerciseId String @unique @map("program_exercise_id") // at most ONE group per program exercise
+  order             Int    @default(0) // sequence within the group (A, B, C...)
+
+  group           WorkoutProgramExerciseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  programExercise WorkoutProgramExercise      @relation(fields: [programExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("workout_program_exercise_group_members")
 }
 
 // 🏋️ Exercises within a Program Day (with prescriptions)
@@ -468,37 +570,114 @@ model WorkoutProgramExercise {
   notes        String?
   createdAt    DateTime @default(now()) @map("created_at")
 
-  programDay WorkoutProgramDay @relation(fields: [programDayId], references: [id], onDelete: Cascade)
-  exercise   Exercise          @relation(fields: [exerciseId], references: [id])
+  programDay       WorkoutProgramDay                       @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  exercise         Exercise                                @relation(fields: [exerciseId], references: [id])
+  groupMembership  WorkoutProgramExerciseGroupMember?
+  setPrescriptions WorkoutProgramExerciseSetPrescription[]
 
   @@index([programDayId])
   @@index([exerciseId])
   @@map("workout_program_exercises")
 }
 
+// Advanced Training Methods ATM-6 — planned set prescriptions. This is the
+// planned counterpart to WorkoutSet actuals: changing these rows changes
+// future sessions, never historical logged WorkoutSet rows already created.
+model WorkoutProgramExerciseSetPrescription {
+  id                    String   @id @default(uuid())
+  programExerciseId     String   @map("program_exercise_id")
+  setNumber             Int      @map("set_number")
+  targetReps            Int?     @map("target_reps")
+  targetWeight          Float?   @map("target_weight")
+  targetRpe             Float?   @map("target_rpe")
+  targetRir             Int?     @map("target_rir")
+  targetSetType         String?  @map("target_set_type") // WARMUP | WORKING | TOP | BACKOFF | FAILURE
+  targetTempo           String?  @map("target_tempo") // four-part notation, e.g. 3-1-1-0
+  targetDurationSeconds Int?     @map("target_duration_seconds")
+  targetDistanceMeters  Float?   @map("target_distance_meters")
+  isAmrap               Boolean  @default(false) @map("is_amrap")
+  minReps               Int?     @map("min_reps")
+  restSeconds           Int?     @map("rest_seconds")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  programExercise WorkoutProgramExercise @relation(fields: [programExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([programExerciseId, setNumber], map: "workout_program_exercise_set_prescriptions_unique")
+  @@index([programExerciseId])
+  @@map("workout_program_exercise_set_prescriptions")
+}
+
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md) — a
+// detached, reusable structural snapshot of a program (day titles +
+// exercises + sets/reps/rest only). Deliberately NOT a live reference to
+// WorkoutProgram/WorkoutProgramDay: editing or archiving the source
+// program after a template is created must never affect the template or
+// anyone who already imported it. daysJson deliberately never includes
+// `notes` (could carry something personal about the original client —
+// see the impact analysis's privacy audit) or exercise-group/superset
+// structure (disclosed simplification — see Scope decisions).
+model WorkoutProgramTemplate {
+  id                String   @id @default(uuid())
+  createdByUserId   String   @map("created_by_user_id")
+  name              String
+  description       String?
+  goal              String?
+  durationWeeks     Int      @map("duration_weeks")
+  daysPerWeek       Int      @map("days_per_week")
+  daysJson          Json     @map("days_json") // manualProgramDaySchema[] shape — reused unchanged by importTemplate -> createManualProgram
+  // Explicit recipient allowlist — PT<->client sharing only this pass
+  // (see Scope decisions). A template with an empty list is a private
+  // draft only its creator can see/import.
+  sharedWithUserIds String[] @default([]) @map("shared_with_user_ids")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([createdByUserId])
+  @@map("workout_program_templates")
+}
+
 // 📆 Calendar Scheduling (links user to program days on specific dates)
 model WorkoutSchedule {
-  id                 String    @id @default(uuid())
-  userId             String    @map("user_id")
-  date               DateTime
-  programDayId       String?   @map("program_day_id") // optional: which program day is scheduled
-  workoutId          String?   @map("workout_id") // optional: completed workout
-  status             String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
-  progressPercent    Int       @default(0) @map("progress_percent")
-  startedAt          DateTime? @map("started_at")
-  completedAt        DateTime? @map("completed_at")
-  totalExercises     Int?      @map("total_exercises")
-  completedExercises Int?      @map("completed_exercises")
-  totalSets          Int?      @map("total_sets")
-  completedSets      Int?      @map("completed_sets")
-  durationSeconds    Int?      @map("duration_seconds")
-  caloriesEstimate   Int?      @map("calories_estimate")
-  sourcePlanId       String?   @map("source_plan_id")
-  sourceType         String?   @map("source_type")
-  notes              String?
-  trainingCycleId    String?   @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  id                       String    @id @default(uuid())
+  userId                   String    @map("user_id")
+  date                     DateTime
+  programDayId             String?   @map("program_day_id") // optional: which program day is scheduled
+  workoutId                String?   @map("workout_id") // optional: completed workout
+  status                   String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
+  progressPercent          Int       @default(0) @map("progress_percent")
+  startedAt                DateTime? @map("started_at")
+  completedAt              DateTime? @map("completed_at")
+  totalExercises           Int?      @map("total_exercises")
+  completedExercises       Int?      @map("completed_exercises")
+  totalSets                Int?      @map("total_sets")
+  completedSets            Int?      @map("completed_sets")
+  durationSeconds          Int?      @map("duration_seconds")
+  caloriesEstimate         Int?      @map("calories_estimate")
+  sourcePlanId             String?   @map("source_plan_id")
+  sourceType               String?   @map("source_type")
+  notes                    String?
+  trainingCycleId          String?   @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
+  // Roadmap P1.2 "Reschedule workout" — pure audit-trail columns. The
+  // reschedule itself is a plain UPDATE of `date` above (same row, same id
+  // — see docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md for why no
+  // separate "logical session" id/row is needed given @@unique([userId,
+  // date]) below already rules out two rows per day, and computeAdherence
+  // already just range-queries `date`). originalPlannedDate is set once,
+  // on the FIRST reschedule only, and never overwritten by later ones.
+  originalPlannedDate      DateTime? @map("original_planned_date")
+  rescheduledAt            DateTime? @map("rescheduled_at")
+  rescheduleReason         String?   @map("reschedule_reason")
+  // Roadmap P4.1 "Notifications/reminders" (§27) — idempotency tracking
+  // for the two new reminder background jobs (upcoming / unfinished),
+  // same pattern this schema already uses for one-time state elsewhere
+  // (rescheduledAt above). Never reset once set, so a job that runs every
+  // few minutes never re-sends the same reminder for the same row twice.
+  upcomingReminderSentAt   DateTime? @map("upcoming_reminder_sent_at")
+  unfinishedReminderSentAt DateTime? @map("unfinished_reminder_sent_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   programDay      WorkoutProgramDay?    @relation(fields: [programDayId], references: [id], onDelete: SetNull)
   workout         Workout?              @relation(fields: [workoutId], references: [id], onDelete: SetNull)
@@ -705,7 +884,7 @@ model RecommendationAudit {
   @@map("recommendation_audits")
 }
 
-// 👥 Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md �� audit trail of
+// 👥 Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — audit trail of
 // every PT/coach action against a client's fitness data (view or write).
 // Authorization itself is never sourced from this table (that's always a
 // fresh call to user-service's Contract.status===ACTIVE check, per
@@ -1290,6 +1469,56 @@ model ImportRecord {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
+// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md) — a
+// user-facing, per-user two-phase (preview → commit) workout-history
+// import. Deliberately NOT built on ImportBatch/ImportRecord above: those
+// track Gate 5's *catalog* import pipeline (admin/CLI-driven, no userId,
+// a different status vocabulary and summary shape) — this is a different
+// job with a different owner and lifecycle.
+//
+// The preview's parsed-but-uncommitted data lives as JSON directly on the
+// batch row (a preview is a short-lived, single-user, single-flow
+// concept — not worth a full relational staging schema). Real
+// Workout/WorkoutExercise/WorkoutSet rows are only created at commit
+// time; committing never creates a WorkoutSchedule row (imported history
+// is pure "actual", no "planned" counterpart — see roadmap §25).
+// ══════════════════════════════════════════════════════════════════════
+
+model WorkoutImportBatch {
+  id       String @id @default(uuid())
+  userId   String @map("user_id")
+  source   String // "HEVY" (Strong/FitNotes are separate follow-up passes on the same shape)
+  fileName String @map("file_name")
+  status   String @default("PREVIEW") @map("status") // PREVIEW | COMMITTED | CANCELLED
+
+  // Canonical ImportedWorkout[] (roadmap §14's own naming) staged at
+  // preview time — never trusted again at commit time without
+  // re-validating against the live catalog/exercise-resolution choices
+  // the caller sends.
+  parsedWorkoutsJson Json @map("parsed_workouts_json")
+  // Per-distinct-exercise-name match candidates computed at preview time
+  // (exact/fuzzy/none) — shown to the user for resolution before commit.
+  matchSummaryJson   Json @map("match_summary_json")
+
+  // Audit trail: which real Workout rows this batch's commit produced.
+  createdWorkoutIds     String[] @default([]) @map("created_workout_ids")
+  // Idempotency key set: sourceHash of every workout ACTUALLY committed
+  // by this batch (a subset of parsedWorkoutsJson's workouts — some may
+  // have been skipped as already-imported). A later batch's commit
+  // checks this field across ALL of the user's past COMMITTED batches
+  // before writing, so re-uploading the same export file twice can never
+  // create duplicate Workout rows.
+  committedSourceHashes String[] @default([]) @map("committed_source_hashes")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  committedAt DateTime? @map("committed_at")
+
+  @@index([userId, status])
+  @@map("workout_import_batches")
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // Gate 7 — human review queue for exercise duplicate/variant candidates
 // left un-actioned by Gate 5/6's automatic importers (exerciseLocalization
 // Importer only auto-links EXACT_SAME_SOURCE/EXACT_CROSS_SOURCE;
@@ -1352,4 +1581,26 @@ model ExerciseReviewDecision {
   @@index([externalRef, source, createdAt])
   @@index([decision])
   @@map("exercise_review_decisions")
+}
+
+// Roadmap P1.4 "Active-workout offline resilience"
+// (docs/features/ACTIVE_WORKOUT_OFFLINE_RESILIENCE_IMPACT_ANALYSIS.md) —
+// direct structural mirror of payment-service's LedgerOperation
+// (ledger-idempotency.ts): `id` IS the client-generated idempotency key
+// (eventId), `result` is the exact JSON response replayed on a retry
+// instead of re-executing the mutation. Scoped to the active-workout
+// mutation surface only (updateSet, completeScheduleExercise,
+// undoCompleteScheduleExercise) — see the impact analysis's audit
+// findings for why every OTHER active-workout mutation is already
+// idempotent by construction (an UPDATE by id, never an INSERT) and
+// doesn't need this.
+model WorkoutMutationEvent {
+  id        String   @id // client-generated eventId (UUID) — the idempotency key itself
+  userId    String   @map("user_id")
+  type      String // SET_COMPLETED | SET_UNDONE | EXERCISE_COMPLETED
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("workout_mutation_events")
 }

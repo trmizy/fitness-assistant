@@ -146,6 +146,47 @@ export const exerciseController = {
     }
   },
 
+  // Roadmap P1.5 "Custom exercises" — any authenticated user (not
+  // admin-only, unlike create() above, which stays the existing
+  // catalog-curation path).
+  async createCustom(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await exerciseService.createCustomExercise(req.user!.id, req.body ?? {});
+      res.status(result.blocked ? 409 : 201).json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error creating custom exercise:", error);
+      res.status(500).json({ error: "Failed to create custom exercise" });
+    }
+  },
+
+  async listMyCustom(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const exercises = await exerciseService.listMyCustomExercises(req.user!.id);
+      res.json({ exercises });
+    } catch (error: any) {
+      logger.error("Error listing custom exercises:", error);
+      res.status(500).json({ error: "Failed to list custom exercises" });
+    }
+  },
+
+  async archiveCustom(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await exerciseService.archiveCustomExercise(req.user!.id, req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error archiving custom exercise:", error);
+      res.status(500).json({ error: "Failed to archive custom exercise" });
+    }
+  },
+
   // Gym-onboarding project §17 — "this exercise doesn't fit my equipment,
   // what else can I do instead?", scoped to the caller's own saved
   // equipment (Profile → Training Setup → Available Equipment).

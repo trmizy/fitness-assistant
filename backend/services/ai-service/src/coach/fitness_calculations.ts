@@ -325,6 +325,15 @@ export function buildSafetyFlags(
       ...(context.constraints.injuries.length > 0
         ? ["injury_constraints_present"]
         : []),
+      // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6. Each
+      // declared concern becomes its own `screening:<key>` flag (never a single generic
+      // "has concerns" flag) — prompt_builder.ts needs the SPECIFIC concerns to word its
+      // instruction correctly (e.g. a bone/joint flag shouldn't trigger cardiac-sounding
+      // caution language). UNKNOWN/CLEARED contribute nothing — only a genuinely declared
+      // "Yes" answer does.
+      ...(context.profile.safety_screening_status === "FOLLOW_UP_SUGGESTED"
+        ? context.profile.safety_screening_flags.map((f) => `screening:${f}`)
+        : []),
     ]),
   );
 }

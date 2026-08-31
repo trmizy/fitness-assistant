@@ -23,6 +23,17 @@ import { ThemeToggle } from "../settings/ThemeToggle";
 import { AutoText } from "../i18n/AutoText";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
+
+// Roadmap P4.1 "Notifications/reminders" (§27) — labels for the 5 new
+// event types this pass added; every pre-existing type keeps using the
+// generic fallback below (unchanged behavior for it).
+const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
+  WORKOUT_UPCOMING: "buổi tập hôm nay",
+  WORKOUT_RESCHEDULED: "đã dời lịch",
+  WORKOUT_UNFINISHED: "buổi tập dang dở",
+  TRAINING_PLAN_UPDATED: "cập nhật kế hoạch",
+  PT_FEEDBACK_RECEIVED: "phản hồi từ PT",
+};
 import { useSocket } from "../../hooks/useSocket";
 
 export function Topbar() {
@@ -257,6 +268,7 @@ export function Topbar() {
         {/* Notifications */}
         <div className="relative">
           <button
+            data-testid="notification-bell"
             className="relative p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
             onClick={() => {
               setNotifOpen(!notifOpen);
@@ -300,6 +312,7 @@ export function Topbar() {
                   {notifications.map((n: AppNotification) => (
                     <div
                       key={n.id}
+                      data-testid={`notification-item-${n.eventType}`}
                       onClick={() => {
                         if (n.unread) markReadMutation.mutate(n.id);
                         if (n.link) {
@@ -318,7 +331,7 @@ export function Topbar() {
                           })}
                         </span>
                         <span className="text-xs text-zinc-700">
-                          {n.eventType.replace(/_/g, " ").toLowerCase()}
+                          {EVENT_TYPE_LABELS_VI[n.eventType] ?? n.eventType.replace(/_/g, " ").toLowerCase()}
                         </span>
                       </div>
                     </div>

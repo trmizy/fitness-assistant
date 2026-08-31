@@ -385,11 +385,18 @@ export const inbodyService = {
 export interface WorkoutSessionPr {
   exerciseId: string;
   exerciseName: string;
-  weightKg: number;
+  // "WEIGHT_E1RM" (existing) — weighted exercises, beaten by estimated 1RM.
+  // "REPS" (new) — bodyweight exercises (no added load), beaten by rep count
+  // alone since there's no weight to compute an e1RM from. Older API
+  // responses (pre-migration) omit this field entirely — treat missing as
+  // "WEIGHT_E1RM" for backward compatibility.
+  prType?: "WEIGHT_E1RM" | "REPS";
+  weightKg: number | null;
   reps: number | null;
-  estimated1RmKg: number;
-  previousBestWeightKg: number;
-  previousBestEstimated1RmKg: number;
+  estimated1RmKg: number | null;
+  previousBestWeightKg: number | null;
+  previousBestEstimated1RmKg: number | null;
+  previousBestReps?: number | null;
 }
 
 export interface WorkoutSessionSummary {
@@ -399,6 +406,113 @@ export interface WorkoutSessionSummary {
   totalVolumeKg: number;
   prs: WorkoutSessionPr[];
 }
+
+export interface PreviousPerformanceSet {
+  setNumber: number;
+  weightKg: number | null;
+  bodyWeightAtSetKg?: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  setType: string | null;
+  tempo?: string | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+}
+
+export interface PreviousPerformance {
+  exerciseId: string;
+  hasHistory: boolean;
+  date: string | null;
+  sets: PreviousPerformanceSet[];
+}
+
+export type ExerciseProgressionStatus =
+  | "KEEP"
+  | "INCREASE_LOAD"
+  | "INCREASE_REPS"
+  | "INCREASE_SETS"
+  | "DELOAD"
+  | "REVIEW"
+  | "INSUFFICIENT_DATA";
+
+export interface ExerciseProgression {
+  exerciseId: string;
+  status: ExerciseProgressionStatus;
+  policyUsed: string | null;
+  currentPerformance: {
+    weightKg: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distanceMeters: number | null;
+    setCount: number;
+  } | null;
+  nextTarget: { weightKg: number | null; reps: number | null; durationSeconds: number | null } | null;
+  loadChangeKg: number | null;
+  repChange: number | null;
+  reasonCodes: string[];
+  cycleContext: string;
+  dataQuality: "SUFFICIENT" | "LOW_SAMPLE" | "NONE";
+  amrapPerformance: {
+    achievedReps: number;
+    minimumReps: number;
+    marginReps: number;
+  } | null;
+}
+
+// Roadmap P3.6 "Exercise history detail page"
+// (docs/features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md).
+export interface ExerciseHistoryPersonalRecord {
+  metric: "e1rm" | "reps" | "duration" | "distance" | "pace";
+  value: number;
+  weightKg: number | null;
+  reps: number | null;
+  date: string;
+}
+
+export interface ExerciseHistorySessionSet {
+  setNumber: number;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  setType: string | null;
+  tempo: string | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+}
+
+export interface ExerciseHistoryRecentSession {
+  workoutId: string;
+  workoutName: string;
+  date: string;
+  notes: string | null;
+  sets: ExerciseHistorySessionSet[];
+}
+
+export interface ExerciseHistoryDetail {
+  exercise: { id: string; name: string; loggingMode: ExerciseLoggingMode };
+  personalRecord: ExerciseHistoryPersonalRecord | null;
+  progression: ExerciseProgression | null;
+  recentSessions: ExerciseHistoryRecentSession[];
+  chart: { sessions: ExerciseProgressSessionPoint[] };
+}
+
+export type WorkoutSetPrescriptionInput = {
+  setNumber: number;
+  targetReps?: number | null;
+  targetWeight?: number | null;
+  targetRpe?: number | null;
+  targetRir?: number | null;
+  targetSetType?: string | null;
+  targetTempo?: string | null;
+  targetDurationSeconds?: number | null;
+  targetDistanceMeters?: number | null;
+  isAmrap?: boolean;
+  minReps?: number | null;
+  restSeconds?: number | null;
+  notes?: string | null;
+};
 
 export const workoutService = {
   logWorkout: async (workout: any) => {
@@ -447,6 +561,34 @@ export const workoutService = {
 
   getExerciseFilterOptions: async () => {
     const { data } = await api.get("/exercises/filter-options");
+    return data;
+  },
+
+  // Roadmap P1.5 "Custom exercises".
+  createCustomExercise: async (input: {
+    exerciseName: string;
+    typeOfActivity: string;
+    typeOfEquipment: string;
+    bodyPart: string;
+    type: string;
+    muscleGroupsActivated: string[];
+    instructions?: string;
+    loggingMode: string;
+    confirmCreateAnyway?: boolean;
+  }) => {
+    const { data } = await api.post("/exercises/custom", input);
+    return data as
+      | { blocked: false; exercise: any }
+      | { blocked: true; candidates: Array<{ id: string; name: string; confidence: number; proposedAction: string }> };
+  },
+
+  listMyCustomExercises: async () => {
+    const { data } = await api.get("/exercises/custom");
+    return data?.exercises ?? [];
+  },
+
+  archiveCustomExercise: async (id: string) => {
+    const { data } = await api.delete(`/exercises/custom/${id}`);
     return data;
   },
 
@@ -515,12 +657,65 @@ export const workoutService = {
     return data;
   },
 
+  // "Previous performance" reference context (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §3, gap analysis P0 #1) — what the user actually logged last time for
+  // this exercise, per set. Never a recommendation — display only.
+  getPreviousPerformance: async (
+    exerciseId: string,
+    excludeWorkoutId?: string,
+  ): Promise<PreviousPerformance> => {
+    const qs = excludeWorkoutId ? `?excludeWorkoutId=${excludeWorkoutId}` : "";
+    const { data } = await api.get(
+      `/workouts/exercises/${exerciseId}/previous-performance${qs}`,
+    );
+    return data;
+  },
+
+  // Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md).
+  // The engine's committed decision — never something the UI/AI may override.
+  getExerciseProgression: async (
+    exerciseId: string,
+    excludeWorkoutId?: string,
+  ): Promise<ExerciseProgression> => {
+    const qs = excludeWorkoutId ? `?excludeWorkoutId=${excludeWorkoutId}` : "";
+    const { data } = await api.get(
+      `/workouts/exercises/${exerciseId}/progression${qs}`,
+    );
+    return data;
+  },
+
+  // Roadmap P3.6 "Exercise history detail page" — one aggregated call
+  // powering the whole page (charts + PR + recent sessions + progression).
+  getExerciseHistory: async (exerciseId: string): Promise<ExerciseHistoryDetail> => {
+    const { data } = await api.get(`/workouts/exercises/${exerciseId}/history`);
+    return data;
+  },
+
   updateSet: async (
     setId: string,
     patch: {
       reps?: number;
       weight?: number;
       rpe?: number;
+      // Roadmap P1.1 "true set-by-set table UI" — the backend's
+      // updateWorkoutSetSchema already accepted every one of these; this
+      // type just never declared them for a caller to use.
+      rir?: number;
+      bodyWeightAtSetKg?: number | null;
+      durationSeconds?: number | null;
+      distanceMeters?: number | null;
+      setType?: string | null;
+      tempo?: string | null;
+      segments?: Array<{
+        segmentNumber: number;
+        technique: "DROP_SET" | "REST_PAUSE";
+        reps: number;
+        weight?: number | null;
+        rpe?: number | null;
+        rir?: number | null;
+        restBeforeSeconds?: number | null;
+        notes?: string | null;
+      }>;
       completed?: boolean;
     },
   ) => {
@@ -562,6 +757,36 @@ export const workoutService = {
     return data;
   },
 
+  // Roadmap P1.3 "Superset / exercise grouping".
+  createExerciseGroup: async (
+    programDayId: string,
+    programExerciseIds: string[],
+    type: "SUPERSET" | "TRISET" | "CIRCUIT",
+    restBetweenExercisesSeconds?: number,
+    restAfterRoundSeconds?: number,
+  ) => {
+    const { data } = await api.post(`/workouts/program-days/${programDayId}/exercise-groups`, {
+      programExerciseIds,
+      type,
+      restBetweenExercisesSeconds,
+      restAfterRoundSeconds,
+    });
+    return data;
+  },
+
+  updateExerciseGroup: async (
+    id: string,
+    patch: { type?: string; restBetweenExercisesSeconds?: number | null; restAfterRoundSeconds?: number | null },
+  ) => {
+    const { data } = await api.patch(`/workouts/exercise-groups/${id}`, patch);
+    return data;
+  },
+
+  ungroupExercises: async (id: string) => {
+    const { data } = await api.delete(`/workouts/exercise-groups/${id}`);
+    return data;
+  },
+
   deleteSchedule: async (id: string) => {
     const { data } = await api.delete(`/workouts/schedules/${id}`);
     return data;
@@ -574,6 +799,16 @@ export const workoutService = {
 
   cancelSchedule: async (id: string, reason: string) => {
     const { data } = await api.post(`/workouts/schedules/${id}/cancel`, { reason });
+    return data?.data ?? data;
+  },
+
+  // Roadmap P1.2 "Reschedule workout" — moves the same session to a new
+  // date. newDate is a YYYY-MM-DD string.
+  rescheduleSchedule: async (id: string, newDate: string, reason?: string) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/reschedule`, {
+      newDate,
+      reason,
+    });
     return data?.data ?? data;
   },
 
@@ -606,6 +841,9 @@ export const workoutService = {
       exerciseId?: string;
       weight?: number;
       reps?: number;
+      bodyWeightAtSetKg?: number;
+      durationSeconds?: number;
+      distanceMeters?: number;
       rpe?: number;
       rir?: number;
       notes?: string;
@@ -614,6 +852,20 @@ export const workoutService = {
     const { data } = await api.post(
       `/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/complete`,
       performed ?? {},
+    );
+    return data?.data ?? data;
+  },
+
+  // Roadmap P1.6 "undo last set" — sibling of completeScheduleExercise
+  // above. No body: this only ever flips the named exercise's completion
+  // flag back off.
+  undoCompleteScheduleExercise: async (
+    scheduleId: string,
+    programExerciseId: string,
+  ): Promise<WorkoutExerciseCompletionResponse> => {
+    const { data } = await api.post(
+      `/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/undo-complete`,
+      {},
     );
     return data?.data ?? data;
   },
@@ -638,6 +890,7 @@ export const workoutService = {
         reps?: number;
         restSeconds?: number;
         notes?: string | null;
+        setPrescriptions?: WorkoutSetPrescriptionInput[];
       }>;
     }>;
   }) => {
@@ -654,6 +907,7 @@ export const workoutService = {
       reps?: number;
       restSeconds?: number;
       notes?: string | null;
+      setPrescriptions?: WorkoutSetPrescriptionInput[];
     },
   ) => {
     const { data } = await api.post(
@@ -735,6 +989,17 @@ export interface CycleReportSessionDetail {
   notes: string | null;
 }
 
+// Roadmap P3.4 "Training consistency and adherence"
+// (docs/features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md).
+export interface CycleAdherenceBreakdown {
+  completed: number;
+  partial: number;
+  missed: number;
+  rescheduled: number;
+  planned: number;
+  adherencePct: number | null;
+}
+
 export interface CycleReport {
   cycle: TrainingCycle;
   window: { startDate: string; endDate: string };
@@ -747,6 +1012,8 @@ export interface CycleReport {
     missedSessions: Array<{ date: string }>;
     sessionDetails: CycleReportSessionDetail[];
     highPainSessions: CycleReportSessionDetail[];
+    breakdown: CycleAdherenceBreakdown;
+    rescheduledSessions: Array<{ from: string; to: string; status: string }>;
   };
   trainingLoad: {
     hasData: boolean;
@@ -778,6 +1045,31 @@ export interface CycleReport {
   alerts: CycleAlert[];
   newPRs: string[];
   flags: string[];
+  plannedVsActual: {
+    byExercise: Array<{
+      exerciseId: string;
+      exerciseName: string;
+      loggingMode: string;
+      sessionsPlanned: number;
+      plannedVolumeKg: number | null;
+      actualVolumeKg: number | null;
+      plannedReps: number | null;
+      actualReps: number | null;
+      plannedDurationSeconds: number | null;
+      actualDurationSeconds: number | null;
+      actualDistanceMeters: number | null;
+    }>;
+    totals: {
+      totalPlannedVolumeKg: number | null;
+      totalActualVolumeKg: number | null;
+      volumeAdherencePct: number | null;
+      totalPlannedReps: number | null;
+      totalActualReps: number | null;
+      totalPlannedDurationSeconds: number | null;
+      totalActualDurationSeconds: number | null;
+      totalActualDistanceMeters: number | null;
+    };
+  };
 }
 
 export interface CycleAnalysisDetails {
@@ -1953,13 +2245,34 @@ export interface WorkoutScheduleExerciseRecord {
   order: number;
   sets: number;
   reps: number | null;
+  weight?: number | null;
   restSeconds?: number | null;
   notes?: string | null;
+  setPrescriptions?: Array<WorkoutSetPrescriptionInput & {
+    id: string;
+    targetReps: number | null;
+    targetWeight: number | null;
+    targetRpe: number | null;
+    targetRir: number | null;
+    targetSetType: string | null;
+    targetTempo: string | null;
+    targetDurationSeconds: number | null;
+    targetDistanceMeters: number | null;
+    isAmrap: boolean;
+    minReps: number | null;
+    restSeconds: number | null;
+    notes: string | null;
+  }>;
   exercise?: {
     id: string;
     exerciseName: string;
     typeOfActivity?: string;
+    typeOfEquipment?: string;
+    type?: string;
+    loggingMode?: string;
     muscleGroupsActivated?: string[];
+    videoUrl?: string | null;
+    instructions?: string | null;
   };
 }
 
@@ -3373,6 +3686,12 @@ export const contractService = {
     const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
     return data;
   },
+  // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
+  // message to their client on an active contract.
+  sendFeedback: async (contractId: string, text: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/feedback`, { text });
+    return data;
+  },
 };
 
 // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — PT/coach access to
@@ -3597,7 +3916,25 @@ export const notificationService = {
     const { data } = await api.get("/notifications/unread-count");
     return data;
   },
+  // Roadmap P4.1 "Notifications/reminders" (§27) — preference controls.
+  getPreferences: async (): Promise<NotificationPreferences> => {
+    const { data } = await api.get("/notifications/preferences");
+    return data;
+  },
+  updatePreferences: async (patch: Partial<NotificationPreferences>): Promise<NotificationPreferences> => {
+    const { data } = await api.put("/notifications/preferences", patch);
+    return data;
+  },
 };
+
+// Roadmap P4.1 "Notifications/reminders" (§27).
+export interface NotificationPreferences {
+  workoutUpcomingEnabled: boolean;
+  workoutRescheduledEnabled: boolean;
+  workoutUnfinishedEnabled: boolean;
+  planUpdatedEnabled: boolean;
+  ptFeedbackEnabled: boolean;
+}
 
 export const ptPlanReviewService = {
   getPendingReviews: async () => {
@@ -4030,6 +4367,311 @@ export const exerciseReviewService = {
     },
   ): Promise<{ externalRef: string; decision: string; createdExerciseId: string | null; targetExerciseId: string | null; alreadyDecided: boolean }> => {
     const { data } = await api.post(`/exercises/admin/review/${encodeURIComponent(externalRef)}/decision`, input);
+    return data;
+  },
+};
+
+// Roadmap P1.8 "Logging-mode catalog discoverability"
+// (docs/features/CATALOG_QUALITY_MATRIX_IMPACT_ANALYSIS.md).
+export interface CatalogQualityRow {
+  id: string;
+  exerciseName: string;
+  loggingMode: string;
+  publicationStatus: string;
+  equipment: string;
+  muscles: string[];
+  hasVideo: boolean;
+  dataLicense: string | null;
+  mediaLicense: string | null;
+  sourceName: string | null;
+  reviewStatus: string;
+}
+
+export interface CatalogQualitySummary {
+  total: number;
+  byPublicationStatus: Record<string, number>;
+  byLoggingMode: Record<string, number>;
+  missingVideo: number;
+  missingMediaLicense: number;
+  noReviewRecord: number;
+}
+
+export const catalogQualityService = {
+  getMatrix: async (params?: {
+    loggingMode?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    rows: CatalogQualityRow[];
+    pagination: { page: number; limit: number; total: number };
+    summary: CatalogQualitySummary;
+  }> => {
+    const qs = new URLSearchParams();
+    if (params?.loggingMode) qs.set("loggingMode", params.loggingMode);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.search) qs.set("search", params.search);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get(`/exercises/admin/catalog-quality-matrix?${qs.toString()}`);
+    return data;
+  },
+};
+
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import"
+// (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md).
+export interface ImportMatchCandidate {
+  id: string;
+  name: string;
+  confidence: number;
+}
+
+export interface ImportExerciseMatchSummary {
+  exerciseTitle: string;
+  candidates: ImportMatchCandidate[];
+  isExactMatch: boolean;
+}
+
+export interface ImportPreviewResult {
+  blocked: boolean;
+  reason?: string;
+  batchId?: string;
+  workoutCount?: number;
+  futureWorkoutCount?: number;
+  dateRange?: { earliest: string | null; latest: string | null };
+  alreadyImportedCount?: number;
+  exerciseMatchSummary?: ImportExerciseMatchSummary[];
+  rowErrors: Array<{ rowIndex: number; message: string }>;
+}
+
+export type ImportExerciseResolution =
+  | { action: "USE_EXISTING"; exerciseId: string }
+  | {
+      action: "CREATE_CUSTOM";
+      input: {
+        exerciseName?: string;
+        typeOfActivity: string;
+        typeOfEquipment: string;
+        bodyPart: string;
+        type: string;
+        loggingMode: string;
+        muscleGroupsActivated?: string[];
+        instructions?: string;
+      };
+    }
+  | { action: "SKIP" };
+
+export interface ImportCommitResult {
+  committedWorkoutCount: number;
+  alreadyImportedSkippedCount: number;
+  skippedExerciseSetCount: number;
+  createdWorkoutIds: string[];
+}
+
+export interface ImportBatchSummary {
+  id: string;
+  source: string;
+  fileName: string;
+  status: "PREVIEW" | "COMMITTED" | "CANCELLED";
+  createdAt: string;
+  committedAt: string | null;
+  createdWorkoutIds: string[];
+}
+
+export const importService = {
+  previewHevy: async (fileName: string, csvContent: string): Promise<ImportPreviewResult> => {
+    const { data } = await api.post("/imports/hevy/preview", { fileName, csvContent });
+    return data;
+  },
+  // Roadmap P2.2 "Strong import" — same request/response shape as Hevy.
+  previewStrong: async (fileName: string, csvContent: string): Promise<ImportPreviewResult> => {
+    const { data } = await api.post("/imports/strong/preview", { fileName, csvContent });
+    return data;
+  },
+  // Roadmap P2.3 "FitNotes import" — same request/response shape again.
+  previewFitNotes: async (fileName: string, csvContent: string): Promise<ImportPreviewResult> => {
+    const { data } = await api.post("/imports/fitnotes/preview", { fileName, csvContent });
+    return data;
+  },
+  commit: async (batchId: string, resolutions: Record<string, ImportExerciseResolution>): Promise<ImportCommitResult> => {
+    const { data } = await api.post(`/imports/${encodeURIComponent(batchId)}/commit`, { resolutions });
+    return data;
+  },
+  cancel: async (batchId: string): Promise<{ status: string }> => {
+    const { data } = await api.post(`/imports/${encodeURIComponent(batchId)}/cancel`, {});
+    return data;
+  },
+  list: async (): Promise<{ batches: ImportBatchSummary[] }> => {
+    const { data } = await api.get("/imports");
+    return data;
+  },
+};
+
+// Roadmap P2.5 "Export / data portability"
+// (docs/features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md).
+export const exportService = {
+  downloadJson: async (): Promise<{ blob: Blob; fileName: string }> => {
+    const res = await api.get("/exports/json", { responseType: "blob" });
+    return { blob: res.data, fileName: extractFileName(res.headers["content-disposition"], "fitness-assistant-export.json") };
+  },
+  downloadCsv: async (): Promise<{ blob: Blob; fileName: string }> => {
+    const res = await api.get("/exports/csv", { responseType: "blob" });
+    return { blob: res.data, fileName: extractFileName(res.headers["content-disposition"], "fitness-assistant-workouts.csv") };
+  },
+};
+
+function extractFileName(contentDisposition: string | undefined, fallback: string): string {
+  const match = contentDisposition?.match(/filename="([^"]+)"/);
+  return match?.[1] ?? fallback;
+}
+
+/** Triggers a real browser download of a Blob — no server round trip
+ * beyond the fetch that already happened, no artifact-style sandboxing
+ * (this is the real product app, not a Claude Artifact). */
+export function triggerBrowserDownload(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md).
+export interface WorkoutProgramTemplate {
+  id: string;
+  createdByUserId: string;
+  name: string;
+  description: string | null;
+  goal: string | null;
+  durationWeeks: number;
+  daysPerWeek: number;
+  daysJson: Array<{ dayNumber: number; title: string; exercises: Array<{ exerciseId: string; sets: number; reps: number; restSeconds: number }> }>;
+  sharedWithUserIds: string[];
+  createdAt: string;
+}
+
+export const templateService = {
+  createFromProgram: async (input: { programId: string; name?: string; description?: string }): Promise<{ template: WorkoutProgramTemplate }> => {
+    const { data } = await api.post("/templates", input);
+    return data;
+  },
+  share: async (templateId: string, recipientUserId: string): Promise<{ template: WorkoutProgramTemplate }> => {
+    const { data } = await api.post(`/templates/${templateId}/share`, { recipientUserId });
+    return data;
+  },
+  listMine: async (): Promise<{ templates: WorkoutProgramTemplate[] }> => {
+    const { data } = await api.get("/templates/mine");
+    return data;
+  },
+  listSharedWithMe: async (): Promise<{ templates: WorkoutProgramTemplate[] }> => {
+    const { data } = await api.get("/templates/shared-with-me");
+    return data;
+  },
+  importTemplate: async (
+    templateId: string,
+    placement: { startDate: string; selectedWeekdays: number[]; repeatWeeks?: number; replaceExisting?: boolean },
+  ): Promise<any> => {
+    const { data } = await api.post(`/templates/${templateId}/import`, placement);
+    return data;
+  },
+};
+
+// Roadmap P3.1 "Muscle heatmap"
+// (docs/features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md).
+export interface MuscleHeatmapEntry {
+  muscleId: string;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  anatomyRegion: string | null;
+  score: number;
+  intensity: number;
+}
+
+export interface MuscleHeatmapResult {
+  range: "7d" | "30d" | "cycle" | "custom";
+  from: string;
+  to: string;
+  noActiveCycle: boolean;
+  muscles: MuscleHeatmapEntry[];
+}
+
+// Roadmap P3.2 "Activity heatmap"
+// (docs/features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md).
+export type ActivityDayState = "completed" | "partial" | "missed" | "rescheduled" | "rest";
+
+export interface ActivityHeatmapResult {
+  from: string;
+  to: string;
+  days: Array<{ date: string; state: ActivityDayState | null }>;
+}
+
+export interface ActivityDayDetail {
+  date: string;
+  state: ActivityDayState | null;
+  workout: { id: string; name: string; exerciseCount: number | null } | null;
+  volumeKg: number | null;
+  durationMinutes: number | null;
+  prs: Array<{ exerciseId: string; exerciseName: string; prType: string; weightKg: number | null; reps: number | null; estimated1RmKg: number | null }>;
+  rpeAverage: number | null;
+  rirAverage: number | null;
+  notes: string | null;
+}
+
+// Roadmap P3.3 "Exercise progress charts"
+// (docs/features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md).
+export type ExerciseLoggingMode = "REPS_LOAD" | "BODYWEIGHT_REPS" | "TIME" | "TIME_LOAD" | "DISTANCE_TIME";
+
+export interface ExerciseProgressSessionPoint {
+  date: string;
+  workoutId: string;
+  maxWeightKg: number | null;
+  repsAtMaxWeight: number | null;
+  maxReps: number | null;
+  bestEstimated1RmKg: number | null;
+  bestSetWeightKg: number | null;
+  bestSetReps: number | null;
+  maxDurationSeconds: number | null;
+  maxDistanceMeters: number | null;
+  bestPaceSecPerKm: number | null;
+}
+
+export interface ExerciseProgressResult {
+  exerciseId: string;
+  exerciseName: string;
+  loggingMode: ExerciseLoggingMode;
+  from: string | null;
+  to: string | null;
+  sessions: ExerciseProgressSessionPoint[];
+}
+
+export const statsService = {
+  getMuscleHeatmap: async (params: { range: "7d" | "30d" | "cycle" | "custom"; from?: string; to?: string }): Promise<MuscleHeatmapResult> => {
+    const qs = new URLSearchParams({ range: params.range });
+    if (params.from) qs.set("from", params.from);
+    if (params.to) qs.set("to", params.to);
+    const { data } = await api.get(`/stats/muscle-heatmap?${qs.toString()}`);
+    return data;
+  },
+  getActivityHeatmap: async (from: string, to: string): Promise<ActivityHeatmapResult> => {
+    const { data } = await api.get(`/stats/activity-heatmap?from=${from}&to=${to}`);
+    return data;
+  },
+  getActivityDayDetail: async (date: string): Promise<ActivityDayDetail> => {
+    const { data } = await api.get(`/stats/activity-heatmap/day/${date}`);
+    return data;
+  },
+  getExerciseProgress: async (exerciseId: string, params?: { from?: string; to?: string }): Promise<ExerciseProgressResult> => {
+    const qs = new URLSearchParams();
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const { data } = await api.get(`/stats/exercise-progress/${exerciseId}${suffix}`);
     return data;
   },
 };

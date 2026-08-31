@@ -49,3 +49,34 @@ test("profileSchema: rejects a non-boolean hasCompletedOnboarding", () => {
   const result = profileSchema.safeParse({ hasCompletedOnboarding: "yes" });
   assert.equal(result.success, false);
 });
+
+// Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+test("profileSchema: accepts all 3 safetyScreeningStatus values", () => {
+  for (const status of ["UNKNOWN", "CLEARED", "FOLLOW_UP_SUGGESTED"]) {
+    const result = profileSchema.safeParse({ safetyScreeningStatus: status });
+    assert.equal(result.success, true, `expected ${status} to be accepted`);
+  }
+});
+
+test("profileSchema: rejects a safetyScreeningStatus value outside the 3-state enum", () => {
+  const result = profileSchema.safeParse({ safetyScreeningStatus: "RESTRICTED" });
+  assert.equal(result.success, false);
+});
+
+test("profileSchema: accepts safetyScreeningFlags as an array of strings, empty array included", () => {
+  const withFlags = profileSchema.safeParse({ safetyScreeningFlags: ["heart_condition", "chest_pain"] });
+  assert.equal(withFlags.success, true);
+  if (withFlags.success) assert.deepEqual(withFlags.data.safetyScreeningFlags, ["heart_condition", "chest_pain"]);
+
+  const empty = profileSchema.safeParse({ safetyScreeningFlags: [] });
+  assert.equal(empty.success, true);
+});
+
+test("profileSchema: safetyScreeningStatus/safetyScreeningFlags are both optional — omitting them still validates", () => {
+  const result = profileSchema.safeParse({ age: 25 });
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.safetyScreeningStatus, undefined);
+    assert.equal(result.data.safetyScreeningFlags, undefined);
+  }
+});

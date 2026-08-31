@@ -11,10 +11,16 @@
     "db:seed": "tsx prisma/seed.ts",
     "dev:seed-inbody": "tsx src/scripts/seed-dev-inbody.ts",
     "test": "tsx --test src/__tests__/*.test.ts",
-    "clean": "rm -rf dist node_modules"
+    "clean": "rm -rf dist node_modules",
+    "build:lambda-zip": "node scripts/build-lambda-artifact.js",
+    "build:lambda-migrate": "node scripts/build-lambda-migrate-artifact.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
+    "@aws-sdk/client-lambda": "^3.1118.0",
+    "@aws-sdk/client-s3": "^3.1118.0",
+    "@aws-sdk/client-secrets-manager": "^3.1118.0",
+    "@aws-sdk/s3-request-presigner": "^3.1118.0",
     "@dropbox/sign": "^1.11.0",
     "@gym-coach/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
@@ -27,6 +33,7 @@
     "pdfkit": "^0.15.0",
     "pino": "^8.17.2",
     "pino-http": "^9.0.0",
+    "serverless-http": "^4.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

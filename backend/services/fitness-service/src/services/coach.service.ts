@@ -17,6 +17,7 @@ import { generateClientPlanDraftSafe } from "../clients/ai.client";
 import { trainingCycleService } from "./training-cycle.service";
 import { cycleFeedbackAggregator } from "./cycle-feedback-aggregator";
 import { workoutService } from "./workout.service";
+import { createPersistentNotification } from "../clients/notification.client";
 import type { CreateManualProgramDto } from "../models/fitness.models";
 
 /** Indirection point for tests — mutating this object's method (the same
@@ -112,6 +113,18 @@ export const coachService = {
     } catch (err) {
       logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] plan-assignment audit write failed");
     }
+
+    // Roadmap P4.1 "Notifications/reminders" (§27) — "plan update".
+    // Best-effort (see createPersistentNotification's own doc comment) —
+    // never blocks the real plan assignment above, which has already
+    // succeeded by this point.
+    void createPersistentNotification({
+      userId: clientUserId,
+      text: `PT của bạn vừa gán chương trình tập luyện mới: ${input.name}`,
+      eventType: "TRAINING_PLAN_UPDATED",
+      entityId: result.createdProgramId,
+      link: "/client/workout",
+    });
 
     return result;
   },

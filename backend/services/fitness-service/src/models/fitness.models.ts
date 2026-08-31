@@ -69,14 +69,53 @@ export const importAiPlanSchema = z.object({
   replaceExisting: z.boolean().default(true).optional(),
 });
 
-export const manualProgramExerciseSchema = z.object({
-  exerciseId: z.string().min(1, "Exercise ID is required"),
-  order: z.number().int().min(1).max(30).optional(),
-  sets: z.number().int().min(1).max(10).default(3),
-  reps: z.number().int().min(1).max(100).default(10),
-  restSeconds: z.number().int().min(0).max(600).default(90),
+export const manualSetPrescriptionSchema = z.object({
+  setNumber: z.number().int().min(1).max(20),
+  targetReps: z.number().int().min(1).max(100).optional().nullable(),
+  targetWeight: z.number().nonnegative().max(L.WEIGHT_MAX).optional().nullable(),
+  targetRpe: z.number().min(1).max(10).optional().nullable(),
+  targetRir: z.number().int().min(0).max(5).optional().nullable(),
+  targetSetType: z.enum(SET_TYPES).optional().nullable(),
+  targetTempo: z.string().regex(/^\d{1,2}-\d{1,2}-\d{1,2}-\d{1,2}$/).max(20).optional().nullable(),
+  targetDurationSeconds: z.number().int().positive().max(36000).optional().nullable(),
+  targetDistanceMeters: z.number().nonnegative().max(1000000).optional().nullable(),
+  isAmrap: z.boolean().default(false).optional(),
+  minReps: z.number().int().min(1).max(100).optional().nullable(),
+  restSeconds: z.number().int().min(0).max(600).optional().nullable(),
   notes: z.string().max(300).optional().nullable(),
 });
+
+export const manualProgramExerciseSchema = z
+  .object({
+    exerciseId: z.string().min(1, "Exercise ID is required"),
+    order: z.number().int().min(1).max(30).optional(),
+    sets: z.number().int().min(1).max(10).default(3),
+    reps: z.number().int().min(1).max(100).default(10),
+    restSeconds: z.number().int().min(0).max(600).default(90),
+    notes: z.string().max(300).optional().nullable(),
+    setPrescriptions: z.array(manualSetPrescriptionSchema).max(20).optional(),
+  })
+  .superRefine((exercise, ctx) => {
+    const prescriptions = exercise.setPrescriptions ?? [];
+    const seen = new Set<number>();
+    for (const [index, prescription] of prescriptions.entries()) {
+      if (seen.has(prescription.setNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["setPrescriptions", index, "setNumber"],
+          message: "setNumber must be unique per exercise",
+        });
+      }
+      seen.add(prescription.setNumber);
+      if (prescription.setNumber > exercise.sets) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["setPrescriptions", index, "setNumber"],
+          message: "setNumber cannot exceed exercise sets",
+        });
+      }
+    }
+  });
 
 export const manualProgramDaySchema = z.object({
   dayNumber: z.number().int().min(1).max(7),
@@ -105,6 +144,7 @@ export type AiPlanExerciseDto = z.infer<typeof aiPlanExerciseSchema>;
 export type AiPlanDayDto = z.infer<typeof aiPlanDaySchema>;
 export type ImportAiPlanDto = z.infer<typeof importAiPlanSchema>;
 export type CreateManualProgramDto = z.infer<typeof createManualProgramSchema>;
+export type ManualSetPrescriptionDto = z.infer<typeof manualSetPrescriptionSchema>;
 
 export const createWorkoutSchema = z
   .object({
@@ -137,6 +177,9 @@ export const createWorkoutSchema = z
             .max(L.REPS_MAX, `Reps cannot exceed ${L.REPS_MAX}`)
             .optional(),
           duration: z.number().int().positive().optional(),
+          bodyWeightAtSetKg: z.number().positive().max(500).optional(),
+          durationSeconds: z.number().int().positive().max(36000).optional(),
+          distanceMeters: z.number().nonnegative().max(1000000).optional(),
           weight: z
             .number()
             .min(L.WEIGHT_MIN, "Weight cannot be negative")
@@ -169,13 +212,46 @@ export const createWorkoutSchema = z
     }
   });
 
+export const workoutSetSegmentSchema = z.object({
+  segmentNumber: z.number().int().min(1).max(10),
+  technique: z.enum(["DROP_SET", "REST_PAUSE"]),
+  reps: z.number().int().positive().max(500),
+  weight: z.number().nonnegative().max(2000).optional().nullable(),
+  rpe: z.number().min(1).max(10).optional().nullable(),
+  rir: z.number().int().min(0).max(5).optional().nullable(),
+  restBeforeSeconds: z.number().int().min(0).max(600).optional().nullable(),
+  notes: z.string().trim().max(300).optional().nullable(),
+});
+
 export const updateWorkoutSetSchema = z.object({
   reps: z.number().int().positive().optional(),
   weight: z.number().nonnegative().optional(),
   rpe: z.number().min(1).max(10).optional(),
   rir: z.number().int().min(0).max(5).optional(),
+  bodyWeightAtSetKg: z.number().positive().max(500).optional().nullable(),
+  durationSeconds: z.number().int().positive().max(36000).optional().nullable(),
+  distanceMeters: z.number().nonnegative().max(1000000).optional().nullable(),
   completed: z.boolean().optional(),
+  segments: z.array(workoutSetSegmentSchema).max(10).optional(),
   ...advancedSetFields,
+}).superRefine((data, ctx) => {
+  if (!data.segments) return;
+  data.segments.forEach((segment, index) => {
+    if (segment.segmentNumber !== index + 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segments", index, "segmentNumber"],
+        message: "Segment numbers must be contiguous and start at 1",
+      });
+    }
+    if (index > 0 && segment.technique !== data.segments![0].technique) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segments", index, "technique"],
+        message: "All segments in one set chain must use the same technique",
+      });
+    }
+  });
 });
 
 // Hardening pass §3 — POST /workouts/schedules/:id/exercises/:programExerciseId/complete
@@ -193,7 +269,16 @@ export const completeScheduleExerciseSchema = z.object({
   reps: z.number().int().positive().optional(),
   rpe: z.number().min(1).max(10).optional(),
   rir: z.number().int().min(0).max(5).optional(),
+  bodyWeightAtSetKg: z.number().positive().max(500).optional(),
   notes: z.string().max(500).optional(),
+  // TIME / TIME_LOAD / DISTANCE_TIME logging modes (openGym P0-completion
+  // pass — docs/OPENGYM_P0_COMPLETION_REPORT.md). Additive, same pattern as
+  // every field above: omitting them preserves the exact old behavior.
+  // Genuinely separate columns from `weight`/`reps` — a plank's duration
+  // must never be silently stored as "kg" (a real bug this pass found and
+  // fixed; see the report's "Bugs found" section for the mechanism).
+  durationSeconds: z.number().int().positive().max(36000).optional(),
+  distanceMeters: z.number().nonnegative().max(1000000).optional(),
 });
 
 export const createNutritionSchema = z.object({
@@ -222,5 +307,65 @@ export const upsertNutritionGoalSchema = z.object({
 export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
 export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
 export type CompleteScheduleExerciseDto = z.infer<typeof completeScheduleExerciseSchema>;
+
+// Roadmap P2 "Canonical import framework" + P2.1 "Hevy import" + P2.2
+// "Strong import" (docs/features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md,
+// docs/features/STRONG_IMPORT_IMPACT_ANALYSIS.md). One shape for every
+// provider's preview request — the body never varies by source.
+export const previewImportSchema = z.object({
+  fileName: z.string().min(1).max(200),
+  csvContent: z.string().min(1).max(15 * 1024 * 1024), // matches the route-scoped body-size limit
+});
+
+const createCustomResolutionSchema = z.object({
+  action: z.literal("CREATE_CUSTOM"),
+  input: z.object({
+    exerciseName: z.string().min(1).max(200).optional(), // defaults to the imported exercise title if omitted
+    typeOfActivity: z.string().min(1),
+    typeOfEquipment: z.string().min(1),
+    bodyPart: z.string().min(1),
+    type: z.string().min(1),
+    loggingMode: z.string().min(1),
+    muscleGroupsActivated: z.array(z.string()).optional(),
+    instructions: z.string().max(2000).optional(),
+  }),
+});
+
+export const importExerciseResolutionSchema = z.union([
+  z.object({ action: z.literal("USE_EXISTING"), exerciseId: z.string().min(1) }),
+  createCustomResolutionSchema,
+  z.object({ action: z.literal("SKIP") }),
+]);
+
+export const commitImportBatchSchema = z.object({
+  resolutions: z.record(z.string(), importExerciseResolutionSchema),
+});
+
+export type PreviewImportDto = z.infer<typeof previewImportSchema>;
+export type ImportExerciseResolution = z.infer<typeof importExerciseResolutionSchema>;
+export type CommitImportBatchDto = z.infer<typeof commitImportBatchSchema>;
+
+// Roadmap P2.6 "Workout template sharing/import"
+// (docs/features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md).
+export const createTemplateFromProgramSchema = z.object({
+  programId: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(500).optional(),
+});
+
+export const shareTemplateSchema = z.object({
+  recipientUserId: z.string().min(1),
+});
+
+export const importTemplateSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  selectedWeekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+  repeatWeeks: z.number().int().min(1).max(52).optional(),
+  replaceExisting: z.boolean().optional(),
+});
+
+export type CreateTemplateFromProgramDto = z.infer<typeof createTemplateFromProgramSchema>;
+export type ShareTemplateDto = z.infer<typeof shareTemplateSchema>;
+export type ImportTemplateDto = z.infer<typeof importTemplateSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;
 export type UpsertNutritionGoalDto = z.infer<typeof upsertNutritionGoalSchema>;

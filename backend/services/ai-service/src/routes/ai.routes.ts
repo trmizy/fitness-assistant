@@ -4,6 +4,7 @@ import { cycleAnalysisController } from "../controllers/cycle-analysis.controlle
 import { cycleAssessmentController } from "../controllers/cycle-assessment.controller";
 import { feedbackAnalysisController } from "../controllers/feedback-analysis.controller";
 import { clientPlanDraftController } from "../controllers/client-plan-draft.controller";
+import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
@@ -78,5 +79,15 @@ router.post("/analyze-feedback", feedbackAnalysisController.analyzeFeedback);
 // real plan here; the PT must review/edit and explicitly submit via the
 // existing POST /coach/clients/:clientId/plans.
 router.post("/generate-client-plan-draft", clientPlanDraftController.generateDraft);
+
+// openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+// §5. Called by fitness-service's GET /workouts/exercises/:id/progression/
+// explanation, an OPTIONAL, separate, slower endpoint the frontend calls
+// on demand — never a dependency of the fast, always-available deterministic
+// /workouts/exercises/:id/progression endpoint itself. Explains an
+// already-computed exercise-progression decision; the response schema has
+// no field for a decision/target at all, so there is no code path by which
+// this could ever override the deterministic engine's output.
+router.post("/explain-exercise-progression", exerciseProgressionExplanationController.explain);
 
 export default router;

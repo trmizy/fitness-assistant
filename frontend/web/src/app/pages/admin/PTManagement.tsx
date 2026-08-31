@@ -38,8 +38,9 @@ import {
   ptApplicationService,
   PTApplication,
 } from "../../services/ptApplicationService";
-const API_URL =
-  (import.meta as any).env.VITE_API_URL || "http://localhost:3000";
+import { apiBaseUrl } from "../../config/serverUrl";
+
+const API_URL = apiBaseUrl();
 
 const getFullUrl = (url?: string) => {
   if (!url) return undefined;
@@ -496,7 +497,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     src={
                       app.portraitPhotoUrl.startsWith("http")
                         ? app.portraitPhotoUrl
-                        : `${import.meta.env.VITE_API_URL}${app.portraitPhotoUrl}`
+                        : getFullUrl(app.portraitPhotoUrl)
                     }
                     className="w-full h-full object-cover"
                     alt="Profile"

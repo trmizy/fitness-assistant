@@ -136,7 +136,11 @@ exports.Prisma.ExerciseScalarFieldEnum = {
   mechanics: 'mechanics',
   contraindications: 'contraindications',
   difficultyLevel: 'difficultyLevel',
+  loggingMode: 'loggingMode',
   status: 'status',
+  source: 'source',
+  ownerId: 'ownerId',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -210,7 +214,27 @@ exports.Prisma.WorkoutSetScalarFieldEnum = {
   rangeOfMotion: 'rangeOfMotion',
   side: 'side',
   painScore: 'painScore',
-  techniqueNotes: 'techniqueNotes'
+  techniqueNotes: 'techniqueNotes',
+  bodyWeightAtSetKg: 'bodyWeightAtSetKg',
+  durationSeconds: 'durationSeconds',
+  distanceMeters: 'distanceMeters',
+  isAmrap: 'isAmrap',
+  amrapMinReps: 'amrapMinReps'
+};
+
+exports.Prisma.WorkoutSetSegmentScalarFieldEnum = {
+  id: 'id',
+  workoutSetId: 'workoutSetId',
+  segmentNumber: 'segmentNumber',
+  technique: 'technique',
+  reps: 'reps',
+  weight: 'weight',
+  rpe: 'rpe',
+  rir: 'rir',
+  restBeforeSeconds: 'restBeforeSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.FoodScalarFieldEnum = {
@@ -314,6 +338,24 @@ exports.Prisma.WorkoutProgramDayScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkoutProgramExerciseGroupScalarFieldEnum = {
+  id: 'id',
+  programDayId: 'programDayId',
+  type: 'type',
+  order: 'order',
+  restBetweenExercisesSeconds: 'restBetweenExercisesSeconds',
+  restAfterRoundSeconds: 'restAfterRoundSeconds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramExerciseGroupMemberScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  programExerciseId: 'programExerciseId',
+  order: 'order'
+};
+
 exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
   id: 'id',
   programDayId: 'programDayId',
@@ -325,6 +367,39 @@ exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
   duration: 'duration',
   restSeconds: 'restSeconds',
   notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.WorkoutProgramExerciseSetPrescriptionScalarFieldEnum = {
+  id: 'id',
+  programExerciseId: 'programExerciseId',
+  setNumber: 'setNumber',
+  targetReps: 'targetReps',
+  targetWeight: 'targetWeight',
+  targetRpe: 'targetRpe',
+  targetRir: 'targetRir',
+  targetSetType: 'targetSetType',
+  targetTempo: 'targetTempo',
+  targetDurationSeconds: 'targetDurationSeconds',
+  targetDistanceMeters: 'targetDistanceMeters',
+  isAmrap: 'isAmrap',
+  minReps: 'minReps',
+  restSeconds: 'restSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramTemplateScalarFieldEnum = {
+  id: 'id',
+  createdByUserId: 'createdByUserId',
+  name: 'name',
+  description: 'description',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  daysPerWeek: 'daysPerWeek',
+  daysJson: 'daysJson',
+  sharedWithUserIds: 'sharedWithUserIds',
   createdAt: 'createdAt'
 };
 
@@ -348,6 +423,11 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   sourceType: 'sourceType',
   notes: 'notes',
   trainingCycleId: 'trainingCycleId',
+  originalPlannedDate: 'originalPlannedDate',
+  rescheduledAt: 'rescheduledAt',
+  rescheduleReason: 'rescheduleReason',
+  upcomingReminderSentAt: 'upcomingReminderSentAt',
+  unfinishedReminderSentAt: 'unfinishedReminderSentAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -740,6 +820,20 @@ exports.Prisma.ImportRecordScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutImportBatchScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  source: 'source',
+  fileName: 'fileName',
+  status: 'status',
+  parsedWorkoutsJson: 'parsedWorkoutsJson',
+  matchSummaryJson: 'matchSummaryJson',
+  createdWorkoutIds: 'createdWorkoutIds',
+  committedSourceHashes: 'committedSourceHashes',
+  createdAt: 'createdAt',
+  committedAt: 'committedAt'
+};
+
 exports.Prisma.ExerciseReviewDecisionScalarFieldEnum = {
   id: 'id',
   externalRef: 'externalRef',
@@ -755,17 +849,25 @@ exports.Prisma.ExerciseReviewDecisionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkoutMutationEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  result: 'result',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -826,6 +928,7 @@ exports.Prisma.ModelName = {
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
   WorkoutSet: 'WorkoutSet',
+  WorkoutSetSegment: 'WorkoutSetSegment',
   Food: 'Food',
   FoodAlias: 'FoodAlias',
   NutritionLog: 'NutritionLog',
@@ -833,7 +936,11 @@ exports.Prisma.ModelName = {
   BodyMetrics: 'BodyMetrics',
   WorkoutProgram: 'WorkoutProgram',
   WorkoutProgramDay: 'WorkoutProgramDay',
+  WorkoutProgramExerciseGroup: 'WorkoutProgramExerciseGroup',
+  WorkoutProgramExerciseGroupMember: 'WorkoutProgramExerciseGroupMember',
   WorkoutProgramExercise: 'WorkoutProgramExercise',
+  WorkoutProgramExerciseSetPrescription: 'WorkoutProgramExerciseSetPrescription',
+  WorkoutProgramTemplate: 'WorkoutProgramTemplate',
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',
   CycleAssessment: 'CycleAssessment',
@@ -859,7 +966,9 @@ exports.Prisma.ModelName = {
   RecipeIngredient: 'RecipeIngredient',
   ImportBatch: 'ImportBatch',
   ImportRecord: 'ImportRecord',
-  ExerciseReviewDecision: 'ExerciseReviewDecision'
+  WorkoutImportBatch: 'WorkoutImportBatch',
+  ExerciseReviewDecision: 'ExerciseReviewDecision',
+  WorkoutMutationEvent: 'WorkoutMutationEvent'
 };
 
 /**

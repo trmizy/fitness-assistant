@@ -12,6 +12,7 @@ import {
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
+import { authServiceClient } from "../clients/auth-service.client";
 import { profileRepository } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
@@ -176,10 +177,6 @@ async function counterpartyProfiles(
   return byId;
 }
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || "";
-
 // Money-flow plan 5.2: e-signing is paused as a settled product decision (docs/money-flow.md's
 // scope section), set to "false" in docker-compose.dev.yml — not a temporary testing bypass
 // anymore. When off, a contract goes straight from PENDING_REVIEW to PENDING_PAYMENT on
@@ -191,11 +188,10 @@ const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
 /** Fire-and-forget: a notification email must never fail the flow that triggered it. */
 async function sendConfirmationEmail(to: string, subject: string, text: string): Promise<void> {
   try {
-    const { default: axios } = await import("axios");
-    await axios.post(
-      `${AUTH_SERVICE_URL}/auth/internal/send-email`,
+    await authServiceClient.internalPost(
+      "/auth/internal/send-email",
       { to, subject, text },
-      { headers: { "x-service-secret": INTERNAL_SERVICE_SECRET }, timeout: 5000 },
+      { timeoutMs: 5000 },
     );
   } catch (e: any) {
     logger.error({ to, err: e?.message }, "Failed to send contract confirmation email");
@@ -208,13 +204,9 @@ async function getUserInfo(userId: string): Promise<{
   lastName: string | null;
 } | null> {
   try {
-    const { default: axios } = await import("axios");
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+    const { data } = await authServiceClient.internalGet(
+      `/auth/internal/users/${userId}`,
+      { timeoutMs: 3000 },
     );
     const u = data?.user;
     if (!u?.email) return null;
@@ -251,13 +243,9 @@ function fullName(
  */
 async function isUserActive(userId: string): Promise<boolean> {
   try {
-    const { default: axios } = await import("axios");
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+    const { data } = await authServiceClient.internalGet(
+      `/auth/internal/users/${userId}`,
+      { timeoutMs: 3000 },
     );
     const u = data?.user;
     if (!u) return true;
@@ -793,6 +781,41 @@ export const contractService = {
 
   async getById(id: string) {
     return contractRepository.findByIdWithSessions(id);
+  },
+
+  // Roadmap P4.1 "Notifications/reminders" (§27) — "PT feedback" is one
+  // of §27's own listed notification types, but no PT-sends-feedback
+  // mechanism existed anywhere in this codebase before this pass (real
+  // audit finding, not assumed). Scoped minimally and deliberately: a
+  // single free-text message a PT sends about a specific ACTIVE
+  // contract, delivered as a real, listable Notification — not a new
+  // threaded conversation/reply feature (that already exists separately,
+  // via chat). Anchored to Contract (not a specific workout) since that
+  // is the one relationship this service already has a real, verified
+  // trust boundary for — no cross-service call into fitness-service
+  // needed at all.
+  async sendFeedback(contractId: string, ptUserId: string, text: string) {
+    const trimmed = text?.trim();
+    if (!trimmed) throw err("Feedback text is required", 400);
+    if (trimmed.length > 1000) throw err("Feedback text must be 1000 characters or fewer", 400);
+
+    const contract = await contractRepository.findById(contractId);
+    if (!contract) throw err("Contract not found", 404);
+    if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (contract.status !== ContractStatus.ACTIVE) {
+      throw err("Feedback can only be sent on an active contract", 409);
+    }
+
+    const notification = await notificationService.create({
+      userId: contract.clientUserId,
+      text: `PT gửi phản hồi: ${trimmed}`,
+      eventType: "PT_FEEDBACK_RECEIVED",
+      entityType: "CONTRACT",
+      entityId: contractId,
+      link: `/client/services`,
+    });
+
+    return { notification };
   },
 
   async updateStatus(

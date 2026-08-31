@@ -4,6 +4,7 @@ import { logger } from "@gym-coach/shared";
 import {
   profileService,
   enrichProfilesWithAuthNames,
+  withSignedProfilePhoto,
 } from "../services/profile.service";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
@@ -16,6 +17,11 @@ import { auditService, auditMeta } from "../services/audit.service";
 import { AuditEntityType } from "../generated/prisma";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
+import {
+  createProfilePhotoUploadUrl,
+  isOwnProfilePhotoKey,
+  profilePhotoUrlForKey,
+} from "../services/s3-upload.service";
 
 export const profileController = {
   async getProfile(req: AuthRequest, res: Response): Promise<void> {
@@ -56,6 +62,59 @@ export const profileController = {
       res.json({ photoUrl });
     } catch (error) {
       logger.error(error, "Upload photo error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // AWS Lambda deployment prep (docs/features/USER_SERVICE_LAMBDA_IMPACT_ANALYSIS.md,
+  // Task 8) — additive S3 presigned-upload alternative to uploadPhoto above.
+  // Does not touch/replace the existing local-disk flow.
+  async presignPhotoUpload(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const contentType = req.body?.contentType;
+      if (typeof contentType !== "string" || !contentType) {
+        res.status(400).json({ error: "contentType is required" });
+        return;
+      }
+      const target = await createProfilePhotoUploadUrl(req.user!.id, contentType);
+      res.json(target);
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "Presign photo upload error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  async confirmPhotoUpload(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const key = req.body?.key;
+      if (typeof key !== "string" || !key) {
+        res.status(400).json({ error: "key is required" });
+        return;
+      }
+      if (!isOwnProfilePhotoKey(req.user!.id, key)) {
+        res.status(403).json({ error: "key does not belong to this user" });
+        return;
+      }
+      // Same downstream write uploadPhoto already makes — one convergent
+      // path for "a profile photo URL was just set", regardless of which
+      // upload mechanism produced it.
+      const photoUrl = profilePhotoUrlForKey(key);
+      const result = await profileService.upsertProfile(req.user!.id, { photoUrl });
+      res.json({
+        key,
+        storedPhotoUrl: photoUrl,
+        photoUrl: result.profile?.photoUrl ?? photoUrl,
+      });
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "Confirm photo upload error");
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -192,8 +251,11 @@ export const profileController = {
       // The viewer comes from the verified token, never from a query parameter — otherwise
       // anyone could ask "rank this list as if I were that user" and read their gym membership.
       const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
+      const signed = await Promise.all(
+        (enriched as any[]).map((profile) => withSignedProfilePhoto(profile)),
+      );
 
-      res.json({ pts: enriched });
+      res.json({ pts: signed });
     } catch (error) {
       logger.error(error, "List PTs error");
       res.status(500).json({ error: "Internal server error" });
@@ -216,7 +278,11 @@ export const profileController = {
         ptReviewRepository.recentCommentsForPt(userId, 5),
       ]);
 
-      res.json({ ...(profile as any), ...rating, recentReviews });
+      res.json({
+        ...((await withSignedProfilePhoto(profile as any)) as any),
+        ...rating,
+        recentReviews,
+      });
     } catch (error) {
       logger.error(error, "Get PT detail error");
       res.status(500).json({ error: "Internal server error" });

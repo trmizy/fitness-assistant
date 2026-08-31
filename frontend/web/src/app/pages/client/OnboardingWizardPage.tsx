@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Check,
   Loader2,
+  Activity,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { profileService, equipmentService, type EquipmentCatalogItem } from "../../services/api";
@@ -67,6 +68,30 @@ const weekdayOptions = [
 
 const splitOptions = ["Full Body", "Upper/Lower", "Push/Pull/Legs", "Bro Split", "Chưa xác định"];
 
+// Same 5-value enum/label mapping already used in ProfilePage.tsx — kept in sync manually
+// (both are small, static, unlikely to drift) since ProfilePage's version isn't exported.
+const activityLevels = [
+  { key: "SEDENTARY", label: "Ít vận động", desc: "Công việc/sinh hoạt ít di chuyển" },
+  { key: "LIGHTLY_ACTIVE", label: "Vận động nhẹ", desc: "Đi lại, đứng nhiều nhưng không gắng sức" },
+  { key: "MODERATELY_ACTIVE", label: "Vận động vừa", desc: "Đi bộ/công việc chân tay mức trung bình" },
+  { key: "VERY_ACTIVE", label: "Năng động", desc: "Công việc/sinh hoạt đòi hỏi thể lực đều đặn" },
+  { key: "EXTREMELY_ACTIVE", label: "Cực kỳ năng động", desc: "Lao động chân tay nặng hoặc vận động viên" },
+];
+
+// Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.5. Deliberately
+// NOT a verbatim copy of PAR-Q/PAR-Q+ (a copyrighted clinical tool whose proper use requires a
+// follow-up pathway this product doesn't have) — this is the product's own wording, inspired by
+// PAR-Q's 5 risk themes (heart condition, chest pain, dizziness/fainting, bone/joint, doctor-
+// prescribed medication). `key` is what actually gets stored (in safetyScreeningFlags), never
+// this label text, so a future copy edit here can never make old stored data misleading.
+const safetyQuestions = [
+  { key: "heart_condition", label: "Bạn từng được bác sĩ chẩn đoán mắc bệnh tim mạch, hoặc được khuyến cáo chỉ nên vận động theo chỉ định của bác sĩ?" },
+  { key: "chest_pain", label: "Bạn có từng thấy đau tức ngực khi vận động thể chất không?" },
+  { key: "dizziness_fainting", label: "Bạn có hay mất thăng bằng do chóng mặt, hoặc từng ngất xỉu không?" },
+  { key: "bone_joint", label: "Bạn có vấn đề xương khớp mà việc tăng cường độ tập luyện có thể khiến nặng hơn không?" },
+  { key: "doctor_medication", label: "Bạn có đang dùng thuốc theo chỉ định của bác sĩ liên quan đến tim mạch/huyết áp không?" },
+];
+
 export function OnboardingWizardPage() {
   const { user } = useApp();
   const navigate = useNavigate();
@@ -105,10 +130,24 @@ export function OnboardingWizardPage() {
   const [goal, setGoal] = useState("");
   const [trainingDays, setTrainingDays] = useState<number[]>([]);
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState("60");
+  // "auto" = don't send preferredSplit at all (same as the pre-existing "Chưa xác định"
+  // default — the system/AI decides) — default for everyone, not just BEGINNER: nobody
+  // should be shown Push/Pull/Legs/Bro Split jargon unless they specifically ask for manual
+  // control. See docs/ONBOARDING_INTAKE_QUESTIONNAIRE_REVIEW.md §6 and
+  // docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.7.
+  const [splitMode, setSplitMode] = useState<"auto" | "manual">("auto");
   const [preferredSplit, setPreferredSplit] = useState("");
   const [equipment, setEquipment] = useState<Set<string>>(new Set());
   const [injuriesText, setInjuriesText] = useState("");
   const [competesInSport, setCompetesInSport] = useState(false);
+  // §3.5/§3.6 — Safety Screening. `safetyStepReached` distinguishes "genuinely screened,
+  // zero concerns" (CLEARED) from "never saw the step at all" (skipped via the wizard's
+  // "Bỏ qua" escape hatch before reaching step 3) — an empty Set alone can't tell those
+  // apart, and conflating them would silently record CLEARED for someone never actually
+  // asked.
+  const [safetyFlags, setSafetyFlags] = useState<Set<string>>(new Set());
+  const [safetyStepReached, setSafetyStepReached] = useState(false);
+  const [activityLevel, setActivityLevel] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [heightCm, setHeightCm] = useState(""); // canonical — always cm, matches backend/UserProfile.heightCm
@@ -146,10 +185,14 @@ export function OnboardingWizardPage() {
       if (d.goal) setGoal(d.goal);
       if (Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays);
       if (d.sessionDurationMinutes) setSessionDurationMinutes(d.sessionDurationMinutes);
+      if (d.splitMode === "manual" || d.splitMode === "auto") setSplitMode(d.splitMode);
       if (d.preferredSplit) setPreferredSplit(d.preferredSplit);
       if (Array.isArray(d.equipment)) setEquipment(new Set(d.equipment));
       if (typeof d.injuriesText === "string") setInjuriesText(d.injuriesText);
       if (typeof d.competesInSport === "boolean") setCompetesInSport(d.competesInSport);
+      if (Array.isArray(d.safetyFlags)) setSafetyFlags(new Set(d.safetyFlags));
+      if (typeof d.safetyStepReached === "boolean") setSafetyStepReached(d.safetyStepReached);
+      if (d.activityLevel) setActivityLevel(d.activityLevel);
       if (d.age) setAge(d.age);
       if (d.gender) setGender(d.gender);
       if (d.heightCm) setHeightCm(d.heightCm);
@@ -172,8 +215,9 @@ export function OnboardingWizardPage() {
   useEffect(() => {
     if (!draftKey || !draftLoadAttempted) return; // wait for the restore attempt above to run first, so we never overwrite a not-yet-read draft with initial empty state
     const draft = {
-      experienceLevel, goal, trainingDays, sessionDurationMinutes, preferredSplit,
-      equipment: Array.from(equipment), injuriesText, competesInSport, age, gender,
+      experienceLevel, goal, trainingDays, sessionDurationMinutes, splitMode, preferredSplit,
+      equipment: Array.from(equipment), injuriesText, competesInSport,
+      safetyFlags: Array.from(safetyFlags), safetyStepReached, activityLevel, age, gender,
       heightCm, currentWeight, targetWeight, heightUnit, weightUnit, heightFt, heightIn,
       currentStep,
     };
@@ -184,9 +228,18 @@ export function OnboardingWizardPage() {
     }
   }, [
     draftKey, draftLoadAttempted, experienceLevel, goal, trainingDays, sessionDurationMinutes,
-    preferredSplit, equipment, injuriesText, competesInSport, age, gender, heightCm,
+    splitMode, preferredSplit, equipment, injuriesText, competesInSport, safetyFlags,
+    safetyStepReached, activityLevel, age, gender, heightCm,
     currentWeight, targetWeight, heightUnit, weightUnit, heightFt, heightIn, currentStep,
   ]);
+
+  // Marks the safety step as genuinely seen once the user's forward progress (via "Tiếp
+  // tục" — the stepper itself can only jump BACKWARD to already-visited steps, never ahead)
+  // reaches it, so a submit from any later step still correctly records CLEARED/
+  // FOLLOW_UP_SUGGESTED instead of leaving safetyScreeningStatus untouched.
+  useEffect(() => {
+    if (currentStep >= 3) setSafetyStepReached(true);
+  }, [currentStep]);
 
   // Pre-fill from any partial profile already saved (e.g. user filled some
   // of ProfilePage before the wizard existed, or came back after skipping).
@@ -200,9 +253,17 @@ export function OnboardingWizardPage() {
     if (p.goal) setGoal(p.goal);
     if (Array.isArray(p.preferredTrainingDays)) setTrainingDays(p.preferredTrainingDays);
     if (p.sessionDurationMinutes) setSessionDurationMinutes(String(p.sessionDurationMinutes));
-    if (p.preferredSplit) setPreferredSplit(p.preferredSplit);
+    if (p.preferredSplit) {
+      setPreferredSplit(p.preferredSplit);
+      setSplitMode("manual");
+    }
     if (Array.isArray(p.injuries)) setInjuriesText(p.injuries.join(", "));
     if (typeof p.competesInSport === "boolean") setCompetesInSport(p.competesInSport);
+    if (Array.isArray(p.safetyScreeningFlags) && p.safetyScreeningFlags.length > 0) {
+      setSafetyFlags(new Set(p.safetyScreeningFlags));
+    }
+    if (p.safetyScreeningStatus && p.safetyScreeningStatus !== "UNKNOWN") setSafetyStepReached(true);
+    if (p.activityLevel) setActivityLevel(p.activityLevel);
     if (p.age) setAge(String(p.age));
     if (p.gender) setGender(p.gender);
     if (p.heightCm) setHeightCm(String(p.heightCm));
@@ -227,7 +288,11 @@ export function OnboardingWizardPage() {
       goal: goal || undefined,
       preferredTrainingDays: trainingDays,
       sessionDurationMinutes: sessionDurationMinutes ? parseInt(sessionDurationMinutes, 10) : undefined,
-      preferredSplit: preferredSplit && preferredSplit !== "Chưa xác định" ? preferredSplit : undefined,
+      // "auto" always sends an explicit null (not undefined) — profileSchema's
+      // preferredSplit is .nullable() specifically so a client can clear a
+      // previously-set value; omitting the key here would leave a stale manual
+      // choice from an earlier visit in place after switching back to "auto".
+      preferredSplit: splitMode === "manual" && preferredSplit && preferredSplit !== "Chưa xác định" ? preferredSplit : null,
       // availableEquipment deliberately omitted — equipmentService.
       // setMyEquipment (called alongside this in submitMutation) is the one
       // write path for equipment, and syncs this legacy field itself.
@@ -236,6 +301,21 @@ export function OnboardingWizardPage() {
         .map((s) => s.trim())
         .filter(Boolean),
       competesInSport,
+      // Real value only — never a fabricated default. Omitted (not sent) when the user
+      // skipped past the body step without picking one; downstream nutrition calculations
+      // (checkCalorieEstimationInputs) already ask the user directly for this field in-chat
+      // when it's genuinely null, which is the correct behavior — a silent default here
+      // would defeat that safety net exactly the way RegisterPage's old hard-coded
+      // LIGHTLY_ACTIVE did (see docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §2).
+      activityLevel: activityLevel || undefined,
+      // §3.6 — only recorded if the user actually reached the safety step; see
+      // safetyStepReached's own doc comment for why an empty Set alone isn't enough.
+      ...(safetyStepReached
+        ? {
+            safetyScreeningStatus: safetyFlags.size > 0 ? "FOLLOW_UP_SUGGESTED" as const : "CLEARED" as const,
+            safetyScreeningFlags: Array.from(safetyFlags),
+          }
+        : {}),
       age: age ? parseInt(age, 10) : undefined,
       gender: gender || undefined,
       heightCm: heightCm ? parseFloat(heightCm) : undefined,
@@ -293,6 +373,10 @@ export function OnboardingWizardPage() {
   const isLastStep = currentStep === steps.length - 1;
   const canGoNext = () => {
     if (currentStep === 0) return !!experienceLevel && !!goal;
+    // Body step (index 4) — activityLevel is required here, not silently defaulted (§3.2).
+    // "Bỏ qua, thiết lập sau" always remains available as the real escape hatch, same as it
+    // already is for experienceLevel/goal above.
+    if (currentStep === 4) return !!activityLevel;
     return true;
   };
 
@@ -479,15 +563,45 @@ export function OnboardingWizardPage() {
                 />
               </div>
               <div>
-                <label className={lbl}>Kiểu chia lịch ưa thích (nếu có)</label>
-                <select value={preferredSplit} onChange={(e) => setPreferredSplit(e.target.value)} className={inp}>
-                  <option value="">Chưa có ý kiến</option>
-                  {splitOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <label className={lbl}>Kiểu chia lịch tập</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    data-testid="split-mode-auto"
+                    onClick={() => setSplitMode("auto")}
+                    className={`text-left p-3 rounded-xl border-2 transition-all ${
+                      splitMode === "auto" ? "border-green-500 bg-green-500/10" : "border-zinc-700/60 hover:border-zinc-600"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-zinc-200">Đề xuất cho tôi</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Hệ thống tự chọn kiểu chia lịch phù hợp</div>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="split-mode-manual"
+                    onClick={() => setSplitMode("manual")}
+                    className={`text-left p-3 rounded-xl border-2 transition-all ${
+                      splitMode === "manual" ? "border-green-500 bg-green-500/10" : "border-zinc-700/60 hover:border-zinc-600"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-zinc-200">Tôi tự chọn</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Bạn đã biết mình muốn tập theo kiểu nào</div>
+                  </button>
+                </div>
+                {splitMode === "manual" && (
+                  <select
+                    value={preferredSplit}
+                    onChange={(e) => setPreferredSplit(e.target.value)}
+                    className={`${inp} mt-2`}
+                  >
+                    <option value="">Chưa có ý kiến</option>
+                    {splitOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </>
           )}
@@ -528,6 +642,7 @@ export function OnboardingWizardPage() {
               <div>
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input
+                    data-testid="competes-in-sport-checkbox"
                     type="checkbox"
                     checked={competesInSport}
                     onChange={(e) => setCompetesInSport(e.target.checked)}
@@ -538,6 +653,42 @@ export function OnboardingWizardPage() {
                 <p className="text-[11px] text-zinc-600 mt-1">
                   Bật mục này để hệ thống áp dụng ngưỡng kiểm tra dữ liệu chặt chẽ hơn, không đưa lời khuyên đơn giản hoá.
                 </p>
+              </div>
+              <div>
+                <label className={lbl}>Sàng lọc an toàn trước khi tập</label>
+                <p className="text-[11px] text-zinc-600 mb-2">
+                  Đây không phải công cụ chẩn đoán y tế — chỉ giúp hệ thống đưa lời khuyên thận trọng hơn. Chọn "Có" cho bất kỳ mục nào phù hợp với bạn.
+                </p>
+                <div className="space-y-2">
+                  {safetyQuestions.map((q) => (
+                    <label
+                      key={q.key}
+                      className="flex items-start gap-2.5 text-sm text-zinc-300 bg-zinc-800/40 rounded-lg px-3 py-2.5"
+                    >
+                      <input
+                        data-testid={`safety-flag-${q.key}`}
+                        type="checkbox"
+                        checked={safetyFlags.has(q.key)}
+                        onChange={(e) => {
+                          setSafetyFlags((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(q.key);
+                            else next.delete(q.key);
+                            return next;
+                          });
+                          setSafetyStepReached(true);
+                        }}
+                        className="h-4 w-4 mt-0.5 rounded border-zinc-700 bg-zinc-800 accent-green-500 flex-shrink-0"
+                      />
+                      <span>{q.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {safetyFlags.size > 0 && (
+                  <p className="text-[11px] text-amber-400 mt-2">
+                    Bạn nên hỏi ý kiến bác sĩ trước khi bắt đầu hoặc thay đổi cường độ tập luyện. Chúng tôi vẫn cho bạn tiếp tục sử dụng ứng dụng — AI sẽ đưa khuyến nghị thận trọng hơn cho bạn.
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -556,6 +707,28 @@ export function OnboardingWizardPage() {
                   <option value="FEMALE">Nữ</option>
                   <option value="OTHER">Khác</option>
                 </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={lbl}>Mức độ vận động hằng ngày (ngoài giờ tập gym) *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {activityLevels.map((a) => (
+                    <button
+                      key={a.key}
+                      type="button"
+                      data-testid={`activity-level-${a.key}`}
+                      onClick={() => setActivityLevel(a.key)}
+                      className={`text-left p-2.5 rounded-xl border-2 transition-all ${
+                        activityLevel === a.key ? "border-green-500 bg-green-500/10" : "border-zinc-700/60 hover:border-zinc-600"
+                      }`}
+                    >
+                      <div className="text-sm font-semibold text-zinc-200">{a.label}</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">{a.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-zinc-600 mt-1.5">
+                  Đây là hoạt động NGOÀI buổi tập (công việc, đi lại...) — dùng để tính nhu cầu calo chính xác hơn.
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
@@ -641,7 +814,7 @@ export function OnboardingWizardPage() {
                 <ReviewRow label="Trình độ" value={experienceLevels.find((l) => l.key === experienceLevel)?.label} onEdit={() => setCurrentStep(0)} />
                 <ReviewRow label="Mục tiêu" value={goalOptions.find((g) => g.key === goal)?.label} onEdit={() => setCurrentStep(0)} />
                 <ReviewRow label="Ngày tập/tuần" value={`${trainingDays.length} ngày`} onEdit={() => setCurrentStep(1)} />
-                <ReviewRow label="Kiểu chia lịch" value={preferredSplit || "Chưa có ý kiến"} onEdit={() => setCurrentStep(1)} />
+                <ReviewRow label="Kiểu chia lịch" value={splitMode === "manual" ? preferredSplit || "Chưa có ý kiến" : "Hệ thống tự đề xuất"} onEdit={() => setCurrentStep(1)} />
                 <ReviewRow
                   label="Thiết bị"
                   value={
@@ -653,6 +826,12 @@ export function OnboardingWizardPage() {
                 />
                 <ReviewRow label="Chấn thương" value={injuriesText || "Không có"} onEdit={() => setCurrentStep(3)} />
                 <ReviewRow label="Thi đấu chuyên nghiệp" value={competesInSport ? "Có" : "Không"} onEdit={() => setCurrentStep(3)} />
+                <ReviewRow
+                  label="Sàng lọc an toàn"
+                  value={!safetyStepReached ? "Chưa thực hiện" : safetyFlags.size > 0 ? `${safetyFlags.size} lưu ý cần thận trọng` : "Không có lưu ý nào"}
+                  onEdit={() => setCurrentStep(3)}
+                />
+                <ReviewRow label="Mức độ vận động" value={activityLevels.find((a) => a.key === activityLevel)?.label || "Chưa chọn"} onEdit={() => setCurrentStep(4)} />
                 <ReviewRow label="Chỉ số cơ thể" value={[age && `${age} tuổi`, heightCm && `${heightCm}cm`, currentWeight && `${currentWeight}kg`].filter(Boolean).join(", ") || "Chưa nhập"} onEdit={() => setCurrentStep(4)} />
               </div>
             </div>

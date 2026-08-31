@@ -248,9 +248,15 @@ export type NotificationEventType =
   | "SESSION_COMPLETED"
   | "SESSION_CANCELLED"
   | "SESSION_NO_SHOW_CLIENT"
-  | "SESSION_NO_SHOW_PT";
+  | "SESSION_NO_SHOW_PT"
+  // Roadmap P4.1 "Notifications/reminders" (§27).
+  | "WORKOUT_UPCOMING"
+  | "WORKOUT_RESCHEDULED"
+  | "WORKOUT_UNFINISHED"
+  | "TRAINING_PLAN_UPDATED"
+  | "PT_FEEDBACK_RECEIVED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM";
 
 export interface AppNotification {
   id: string;

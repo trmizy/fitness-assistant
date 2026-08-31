@@ -48,4 +48,38 @@ export const notificationController = {
       res.status(500).json({ error: "Failed to get unread count" });
     }
   },
+
+  // Roadmap P4.1 "Notifications/reminders" (§27) — preference controls.
+  async getPreferences(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const preferences = await notificationService.getPreferences(userId);
+      res.json(preferences);
+    } catch (error: any) {
+      logger.error(error, "Get notification preferences error");
+      res.status(500).json({ error: "Failed to get notification preferences" });
+    }
+  },
+
+  async updatePreferences(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const allowedKeys = [
+        "workoutUpcomingEnabled",
+        "workoutRescheduledEnabled",
+        "workoutUnfinishedEnabled",
+        "planUpdatedEnabled",
+        "ptFeedbackEnabled",
+      ] as const;
+      const patch: Record<string, boolean> = {};
+      for (const key of allowedKeys) {
+        if (typeof req.body?.[key] === "boolean") patch[key] = req.body[key];
+      }
+      const preferences = await notificationService.updatePreferences(userId, patch);
+      res.json(preferences);
+    } catch (error: any) {
+      logger.error(error, "Update notification preferences error");
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  },
 };

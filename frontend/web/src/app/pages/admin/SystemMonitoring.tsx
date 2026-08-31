@@ -28,6 +28,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { adminService } from "../../services/api";
+import { grafanaUrl } from "../../config/serverUrl";
 import { formatVND } from "../../utils/currency";
 
 type ServiceProbe = {
@@ -71,7 +72,7 @@ const SERVICE_ICONS: Record<string, any> = {
   n8n: RefreshCw,
 };
 
-const GRAFANA_URL = "http://localhost:3100";
+const GRAFANA_URL = grafanaUrl();
 
 type ReconciliationReport = {
   escrow: string;
@@ -216,15 +217,17 @@ export function SystemMonitoring() {
             Refresh
           </button>
 
-          <a
-            href={`${GRAFANA_URL}/d/gym-platform-overview`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg border border-orange-500/20 transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Open Grafana
-          </a>
+          {GRAFANA_URL ? (
+            <a
+              href={`${GRAFANA_URL}/d/gym-platform-overview`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg border border-orange-500/20 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Open Grafana
+            </a>
+          ) : null}
 
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
@@ -529,6 +532,7 @@ export function SystemMonitoring() {
             Deep-dive into metrics with pre-configured Grafana dashboards
             powered by Prometheus.
           </p>
+          {GRAFANA_URL ? (
           <div className="space-y-2">
             <a
               href={`${GRAFANA_URL}/d/gym-platform-overview`}
@@ -579,6 +583,16 @@ export function SystemMonitoring() {
               <ExternalLink className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
             </a>
           </div>
+          ) : (
+            <div className="px-3 py-2.5 bg-zinc-800/40 border border-zinc-700/50 rounded-lg">
+              <div className="text-xs font-semibold text-zinc-300">
+                Grafana URL chưa cấu hình
+              </div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">
+                Set VITE_GRAFANA_URL nếu muốn mở dashboard từ S3 production.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error Log */}
@@ -639,8 +653,12 @@ export function SystemMonitoring() {
       <div className="text-center text-[10px] text-zinc-700 py-2">
         Data from{" "}
         <code className="text-zinc-600">GET /admin/system-monitor</code> ·
-        Prometheus scrape interval: 15s · Grafana at{" "}
-        <code className="text-zinc-600">{GRAFANA_URL}</code>
+        Prometheus scrape interval: 15s
+        {GRAFANA_URL ? (
+          <>
+            {" "}· Grafana at <code className="text-zinc-600">{GRAFANA_URL}</code>
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ import {
   Gavel,
   Banknote,
   GitCompare,
+  Table2,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -109,6 +110,7 @@ const adminNav = [
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
   { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
   { label: "Duyệt bài tập trùng lặp", icon: GitCompare, to: "/admin/exercise-review" },
+  { label: "Ma trận chất lượng catalog", icon: Table2, to: "/admin/catalog-quality" },
   { label: "Hoàn tiền dịch vụ PT", icon: Banknote, to: "/admin/pt-service-refunds" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
   { label: "Khiếu nại buổi tập", icon: Gavel, to: "/admin/disputes" },

@@ -53,6 +53,18 @@ test.after(async () => {
   } catch {
     // not connected / already closed — nothing to clean up
   }
+  // Second open handle, found via this session's own investigation (see
+  // coach.service.integration.test.ts's test.after for the full
+  // explanation): workout.service.ts's `workoutQueue` (BullMQ) opens its
+  // own separate ioredis connection as a module-level side effect on
+  // import — closing only `redisClient` above was not enough by itself to
+  // let the process exit.
+  const { workoutQueue } = await import("../services/workout.service");
+  try {
+    await workoutQueue.close();
+  } catch {
+    // already closed — nothing to clean up
+  }
 });
 
 test("generatePlanDraft: rejects (403) when there is no active PT-client relationship, and writes no audit row", skipOpts, async () => {

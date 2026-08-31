@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -34,6 +34,18 @@ enum ExperienceLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+// Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
+// Deliberately only 3 states, no hard-block state: this product has nobody (doctor/PT)
+// behind it who could ever move a user OUT of a blocking state, so a hard-block would be a
+// dead end, not a safety process. Matches the "warn, never hard-block, respect user
+// autonomy" principle already used everywhere else in this system (BEGINNER frequency
+// warnings, unsafe_weight_loss_request, etc.).
+enum SafetyScreeningStatus {
+  UNKNOWN // never screened (pre-existing user from before this shipped, or skipped onboarding)
+  CLEARED // screened, zero "Yes" answers
+  FOLLOW_UP_SUGGESTED // screened, at least one "Yes" — AI must suggest consulting a doctor, never block
 }
 
 model UserProfile {
@@ -79,6 +91,15 @@ model UserProfile {
   // not a different training-load formula. See
   // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0.
   competesInSport Boolean          @default(false) @map("competes_in_sport")
+
+  // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6. Set by
+  // OnboardingWizardPage's Safety Screening step. `safetyScreeningFlags` stores the KEYS of
+  // the questions answered "Yes" (not the question text itself — so a future copy edit to
+  // the question wording never makes old stored data misleading), e.g.
+  // ["heart_condition", "chest_pain"]. Read by profile_extractor.ts -> coach_context_builder.ts
+  // the same path `injuries` already goes through.
+  safetyScreeningStatus SafetyScreeningStatus @default(UNKNOWN) @map("safety_screening_status")
+  safetyScreeningFlags  String[]              @default([]) @map("safety_screening_flags")
 
   // Training preferences
   preferredTrainingDays Int[] // [1, 3, 5] = Mon, Wed, Fri
@@ -383,11 +404,29 @@ enum NotificationEventType {
   SESSION_RESCHEDULE_ACCEPTED
   SESSION_RESCHEDULE_REJECTED
   SESSION_RESCHEDULE_EXPIRED
+  // Roadmap P4.1 "Notifications/reminders" (§27) — fitness-service-
+  // originated events, written here via the new /internal/notifications
+  // endpoint (see notification.service.ts's own doc comment for why
+  // fitness-service never writes to this table directly).
+  WORKOUT_UPCOMING
+  WORKOUT_RESCHEDULED
+  WORKOUT_UNFINISHED
+  TRAINING_PLAN_UPDATED
+  PT_FEEDBACK_RECEIVED
 }
 
 enum NotificationEntityType {
   CONTRACT
   SESSION
+  // Roadmap P4.1 — WORKOUT_SCHEDULE for WORKOUT_UPCOMING/RESCHEDULED/
+  // UNFINISHED (entityId = fitness-service's WorkoutSchedule.id — a
+  // cross-service reference by convention, same pattern CONTRACT/SESSION
+  // above already establish for THIS service's own ids); TRAINING_PROGRAM
+  // for TRAINING_PLAN_UPDATED (entityId = WorkoutProgram.id). PT_FEEDBACK_RECEIVED
+  // reuses CONTRACT (the PT-client relationship it's anchored to already
+  // lives in this service — no new entity type needed).
+  WORKOUT_SCHEDULE
+  TRAINING_PROGRAM
 }
 
 enum RescheduleStatus {
@@ -609,6 +648,25 @@ model Notification {
   @@index([userId, createdAt])
   @@index([userId, unread])
   @@map("notifications")
+}
+
+// Roadmap P4.1 "Notifications/reminders" (§27) — "Need preference
+// controls." One row per user, all default `true` (existing users are
+// backfilled to "everything on", the same behavior they already had
+// before preferences existed — never silently opts anyone out).
+// Deliberately per-TYPE booleans, not one blanket on/off switch — §27
+// lists 6 distinct notification concepts and a user may reasonably want
+// some but not others (e.g. workout reminders but not PT feedback pings).
+model NotificationPreference {
+  userId                    String   @id @map("user_id")
+  workoutUpcomingEnabled    Boolean  @default(true) @map("workout_upcoming_enabled")
+  workoutRescheduledEnabled Boolean  @default(true) @map("workout_rescheduled_enabled")
+  workoutUnfinishedEnabled  Boolean  @default(true) @map("workout_unfinished_enabled")
+  planUpdatedEnabled        Boolean  @default(true) @map("plan_updated_enabled")
+  ptFeedbackEnabled         Boolean  @default(true) @map("pt_feedback_enabled")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
 }
 
 // ─── PT Availability ──────────────────────────────────────────────

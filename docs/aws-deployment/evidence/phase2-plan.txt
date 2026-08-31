@@ -1,0 +1,165 @@
+﻿
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # module.frontend_cdn.data.aws_iam_policy_document.bucket_read_from_cloudfront will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "bucket_read_from_cloudfront" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "s3:GetObject",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "arn:aws:s3:::fitness-assistant-frontend-dev-191798898985/*",
+            ]
+          + sid       = "AllowCloudFrontServicePrincipalReadOnly"
+
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "AWS:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "cloudfront.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+    }
+
+  # module.frontend_cdn.aws_cloudfront_distribution.this will be created
+  + resource "aws_cloudfront_distribution" "this" {
+      + arn                             = (known after apply)
+      + caller_reference                = (known after apply)
+      + comment                         = "fitness-assistant dev frontend"
+      + continuous_deployment_policy_id = (known after apply)
+      + default_root_object             = "index.html"
+      + domain_name                     = (known after apply)
+      + enabled                         = true
+      + etag                            = (known after apply)
+      + hosted_zone_id                  = (known after apply)
+      + http_version                    = "http2"
+      + id                              = (known after apply)
+      + in_progress_validation_batches  = (known after apply)
+      + is_ipv6_enabled                 = false
+      + last_modified_time              = (known after apply)
+      + logging_v1_enabled              = (known after apply)
+      + price_class                     = "PriceClass_100"
+      + retain_on_delete                = false
+      + staging                         = false
+      + status                          = (known after apply)
+      + tags_all                        = {
+          + "environment" = "dev"
+          + "managed-by"  = "terraform"
+          + "phase"       = "1"
+          + "project"     = "fitness-assistant"
+        }
+      + trusted_key_groups              = (known after apply)
+      + trusted_signers                 = (known after apply)
+      + wait_for_deployment             = true
+
+      + custom_error_response {
+          + error_code         = 403
+          + response_code      = 200
+          + response_page_path = "/index.html"
+        }
+      + custom_error_response {
+          + error_code         = 404
+          + response_code      = 200
+          + response_page_path = "/index.html"
+        }
+
+      + default_cache_behavior {
+          + allowed_methods        = [
+              + "GET",
+              + "HEAD",
+              + "OPTIONS",
+            ]
+          + cached_methods         = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress               = true
+          + default_ttl            = (known after apply)
+          + max_ttl                = (known after apply)
+          + min_ttl                = 0
+          + target_origin_id       = "s3-fitness-assistant-frontend-dev-191798898985"
+          + trusted_key_groups     = (known after apply)
+          + trusted_signers        = (known after apply)
+          + viewer_protocol_policy = "redirect-to-https"
+
+          + forwarded_values {
+              + headers                 = (known after apply)
+              + query_string            = false
+              + query_string_cache_keys = (known after apply)
+
+              + cookies {
+                  + forward           = "none"
+                  + whitelisted_names = (known after apply)
+                }
+            }
+
+          + grpc_config (known after apply)
+        }
+
+      + origin {
+          + connection_attempts         = 3
+          + connection_timeout          = 10
+          + domain_name                 = "fitness-assistant-frontend-dev-191798898985.s3.ap-southeast-1.amazonaws.com"
+          + origin_access_control_id    = (known after apply)
+          + origin_id                   = "s3-fitness-assistant-frontend-dev-191798898985"
+          + response_completion_timeout = (known after apply)
+            # (1 unchanged attribute hidden)
+        }
+
+      + restrictions {
+          + geo_restriction {
+              + locations        = (known after apply)
+              + restriction_type = "none"
+            }
+        }
+
+      + viewer_certificate {
+          + cloudfront_default_certificate = true
+          + minimum_protocol_version       = "TLSv1"
+        }
+    }
+
+  # module.frontend_cdn.aws_cloudfront_origin_access_control.this will be created
+  + resource "aws_cloudfront_origin_access_control" "this" {
+      + arn                               = (known after apply)
+      + description                       = "OAC for fitness-assistant dev frontend"
+      + etag                              = (known after apply)
+      + id                                = (known after apply)
+      + name                              = "fitness-assistant-dev-frontend-oac"
+      + origin_access_control_origin_type = "s3"
+      + signing_behavior                  = "always"
+      + signing_protocol                  = "sigv4"
+    }
+
+  # module.frontend_cdn.aws_s3_bucket_policy.frontend_cloudfront_read will be created
+  + resource "aws_s3_bucket_policy" "frontend_cloudfront_read" {
+      + bucket = "fitness-assistant-frontend-dev-191798898985"
+      + id     = (known after apply)
+      + policy = (known after apply)
+      + region = "ap-southeast-1"
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + cloudfront_distribution_id = (known after apply)
+  + frontend_url               = (known after apply)

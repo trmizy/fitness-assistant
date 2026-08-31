@@ -63,6 +63,23 @@ test.after(async () => {
   } catch {
     // not connected / already closed — nothing to clean up
   }
+  // Second, previously-missed open handle found via this session's own
+  // investigation (task instruction: "do not just exclude hanging tests
+  // indefinitely, root-cause them"): this file imports coach.service.ts,
+  // which imports workout.service.ts, whose `workoutQueue` (a BullMQ Queue)
+  // opens its OWN ioredis connection as a module-level side effect the
+  // moment it's imported — separate from repositories/redis.ts's
+  // `redisClient` above. Closing only `redisClient` left this second
+  // connection open, which alone was enough to keep Node's event loop
+  // alive indefinitely (confirmed empirically: all 5 real subtests in this
+  // file already pass in ~350ms combined — the "hang" was purely this
+  // process never exiting afterward, not a stuck test or a deadlock).
+  const { workoutQueue } = await import("../services/workout.service");
+  try {
+    await workoutQueue.close();
+  } catch {
+    // already closed — nothing to clean up
+  }
 });
 
 async function seedExercise(db: PrismaClientLike, id: string) {

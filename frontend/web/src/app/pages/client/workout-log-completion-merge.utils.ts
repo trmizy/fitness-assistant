@@ -21,12 +21,16 @@
 export interface ExerciseMergeTemplate {
   dbId: string;
   weight?: number | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
   rpe?: number | null;
   rir?: number | null;
 }
 
 interface LoggedWorkoutSet {
   completed?: boolean;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
   rpe?: number | null;
   rir?: number | null;
 }
@@ -34,6 +38,7 @@ interface LoggedWorkoutSet {
 interface LoggedWorkoutExercise {
   exerciseId: string;
   weight?: number | null;
+  duration?: number | null;
   workoutSets?: LoggedWorkoutSet[];
 }
 
@@ -78,6 +83,8 @@ export function mergeRealWorkoutData<T extends ExerciseMergeTemplate>(
     return {
       ...ex,
       weight: logged.weight ?? null,
+      durationSeconds: sets[0]?.durationSeconds ?? logged.duration ?? null,
+      distanceMeters: sets[0]?.distanceMeters ?? null,
       rpe: sets[0]?.rpe ?? null,
       rir: sets[0]?.rir ?? null,
     };

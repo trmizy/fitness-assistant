@@ -1687,6 +1687,41 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (roadmap P2 canonical import framework +
+// P2.1 Hevy import). No body-parser in front of this proxy (same as every
+// other fitness-service route above) — the raw request stream is
+// forwarded unconsumed, so fitness-service's own route-scoped 15mb
+// express.json() limit (app.ts) is the only size limit that applies.
+router.use(
+  "/imports",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
+// Protected — Fitness Service (roadmap P2.5 JSON/CSV export). Read-only,
+// GET-only — no request body to worry about either way.
+router.use(
+  "/exports",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
+// Protected — Fitness Service (roadmap P2.6 workout template sharing/import).
+router.use(
+  "/templates",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (stats)
 router.use(
   "/stats",

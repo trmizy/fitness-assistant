@@ -7,18 +7,13 @@ import { ptApplicationsTotal } from "@gym-coach/shared";
 import { signPtApplicationDocumentUrls } from "../utils/ptDocumentUrl.util";
 import { assignReferralCodeIfMissing } from "../utils/referralCode";
 import { availabilityService } from "./availability.service";
+import { authServiceClient } from "../clients/auth-service.client";
 
 const prisma = new PrismaClient();
 
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
-
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-const INTERNAL_SERVICE_SECRET =
-  process.env.INTERNAL_SERVICE_SECRET ||
-  "dev_internal_service_secret_change_in_production";
 
 /**
  * Fetch user basic info (firstName, lastName, email) from auth-service by userId.
@@ -30,12 +25,9 @@ async function fetchAuthUserInfo(userId: string): Promise<{
   email: string;
 } | null> {
   try {
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+    const { data } = await authServiceClient.internalGet(
+      `/auth/internal/users/${userId}`,
+      { timeoutMs: 3000 },
     );
     const u = data?.user ?? data;
     return {
@@ -164,13 +156,10 @@ async function validatePriceFields(data: any): Promise<void> {
 }
 
 async function syncRoleToPT(userId: string): Promise<void> {
-  await axios.patch(
-    `${AUTH_SERVICE_URL}/auth/internal/users/${userId}/role`,
+  await authServiceClient.internalPatch(
+    `/auth/internal/users/${userId}/role`,
     { role: "PT" },
-    {
-      headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-      timeout: 5000,
-    },
+    { timeoutMs: 5000 },
   );
 }
 

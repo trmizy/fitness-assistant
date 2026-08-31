@@ -19,6 +19,7 @@ import {
   BarChart3,
   Zap,
   Calendar,
+  CalendarDays,
   TrendingUp,
   Play,
   GripVertical,
@@ -57,6 +58,23 @@ import {
   computeWorkoutLogSearchParams,
 } from "./workout-log-url.utils";
 import { mergeRealWorkoutData } from "./workout-log-completion-merge.utils";
+import { selectSmartSetPrefill, type SmartPrefillSource } from "./smart-set-prefill.utils";
+import {
+  persistActiveLogDraft,
+  readPersistedActiveLogDraft,
+  clearPersistedActiveLogDraft,
+} from "./active-log-draft.utils";
+import {
+  computeNextExerciseRestSeconds,
+  computeNextInterleavedWorkoutStep,
+  findCurrentInterleavedWorkoutStep,
+} from "./exercise-group.utils";
+import {
+  enqueueWorkoutEvent,
+  getPendingWorkoutEvents,
+  removeWorkoutEvent,
+  buildQueuedSetEvent,
+} from "./active-workout-offline-queue.utils";
 import {
   computeMuscleGroupDistribution,
   computeActivityTypeDistribution,
@@ -69,7 +87,16 @@ import {
   scheduleLockDirection,
   APP_SCHEDULE_TIME_ZONE,
 } from "./schedule-lock.utils";
+import { requestWakeLockSafe, releaseWakeLockSafe } from "./wake-lock.utils";
 import {
+  buildSetChainSegments,
+  isSetChainValid,
+  newSetChainSegment,
+  type SetChainSegmentDraft,
+  type SetChainTechnique,
+} from "./set-chain.utils";
+import {
+  api,
   workoutService,
   inbodyService,
   sessionFeedbackService,
@@ -84,6 +111,8 @@ import {
   type SessionSkipReason,
   type ExerciseSubstitute,
   type WorkoutSessionSummary,
+  type PreviousPerformance,
+  type ExerciseProgression,
 } from "../../services/api";
 import { StarRating } from "../../components/StarRating";
 import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
@@ -273,15 +302,152 @@ function goalLabel(goal?: string | null) {
   return GOAL_LABELS[goal] || goal;
 }
 
+function normalizeLoggingMode(value: unknown, exercise?: any): ExerciseLoggingMode {
+  if (
+    value === "REPS_LOAD" ||
+    value === "BODYWEIGHT_REPS" ||
+    value === "TIME" ||
+    value === "TIME_LOAD" ||
+    value === "DISTANCE_TIME"
+  ) {
+    return value;
+  }
+  if (exercise?.typeOfActivity === "CARDIO") return "DISTANCE_TIME";
+  if (exercise?.type === "HOLD") return "TIME";
+  if (exercise?.typeOfEquipment === "BODYWEIGHT") return "BODYWEIGHT_REPS";
+  return "REPS_LOAD";
+}
+
+function exerciseLoggingMode(exercise: any): ExerciseLoggingMode {
+  return normalizeLoggingMode(exercise?.loggingMode, {
+    typeOfActivity: exercise?.activityType,
+    typeOfEquipment: exercise?.equipment,
+    type: exercise?.movementType,
+  });
+}
+
+function exerciseRequiresExternalWeight(exercise: any) {
+  const mode = exerciseLoggingMode(exercise);
+  return mode === "REPS_LOAD" || mode === "TIME_LOAD";
+}
+
+function exerciseAllowsExternalWeight(exercise: any) {
+  const mode = exerciseLoggingMode(exercise);
+  return mode === "REPS_LOAD" || mode === "TIME_LOAD" || mode === "BODYWEIGHT_REPS";
+}
+
+function exerciseUsesExternalWeight(exercise: any) {
+  return exerciseRequiresExternalWeight(exercise);
+}
+
+function formatSecondsCompact(seconds?: number | null) {
+  if (seconds == null || !Number.isFinite(seconds)) return "";
+  const whole = Math.round(seconds);
+  if (whole < 60) return `${whole}s`;
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  return rest > 0 ? `${minutes}:${String(rest).padStart(2, "0")}` : `${minutes}m`;
+}
+
+function formatDistanceCompact(meters?: number | null) {
+  if (meters == null || !Number.isFinite(meters)) return "";
+  if (meters >= 1000) {
+    const km = Math.round((meters / 1000) * 100) / 100;
+    return `${Number.isInteger(km) ? km.toFixed(0) : km}km`;
+  }
+  return `${Math.round(meters)}m`;
+}
+
+function formatExercisePrescription(input: {
+  sets?: number | null;
+  reps?: number | null;
+  weight?: number | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+  restSeconds?: number | null;
+  loggingMode?: ExerciseLoggingMode;
+}) {
+  const sets = input.sets ?? 1;
+  const mode = input.loggingMode ?? "REPS_LOAD";
+  const parts: string[] = [];
+  if (mode === "TIME" || mode === "TIME_LOAD") {
+    parts.push(`${sets}x${formatSecondsCompact(input.durationSeconds) || "time"}`);
+  } else if (mode === "DISTANCE_TIME") {
+    const distance = formatDistanceCompact(input.distanceMeters) || "distance";
+    const duration = formatSecondsCompact(input.durationSeconds);
+    parts.push(duration ? `${distance} / ${duration}` : distance);
+  } else {
+    parts.push(`${sets}x${input.reps ?? 10}`);
+  }
+  if ((mode === "REPS_LOAD" || mode === "TIME_LOAD" || mode === "BODYWEIGHT_REPS") && input.weight) {
+    parts.push(`${input.weight} kg`);
+  }
+  if (input.restSeconds) parts.push(`nghi ${input.restSeconds}s`);
+  return parts.join(" · ");
+}
+
+function formatPerformanceSetLabel(set: {
+  weightKg?: number | null;
+  bodyWeightAtSetKg?: number | null;
+  reps?: number | null;
+  durationSeconds?: number | null;
+  distanceMeters?: number | null;
+}) {
+  const pieces: string[] = [];
+  if (set.distanceMeters != null) pieces.push(formatDistanceCompact(set.distanceMeters));
+  if (set.durationSeconds != null) pieces.push(formatSecondsCompact(set.durationSeconds));
+  if (set.bodyWeightAtSetKg != null) pieces.push(`BW ${set.bodyWeightAtSetKg}kg`);
+  if (set.weightKg != null) pieces.push(`${set.weightKg}kg`);
+  if (set.reps != null) pieces.push(`${set.reps} reps`);
+  return pieces.filter(Boolean).join(" / ") || "Logged";
+}
+
+function formatSetPrescriptionLabel(prescription: any): string {
+  const pieces = [
+    prescription?.targetSetType ? String(prescription.targetSetType).replace("_", "-") : null,
+    prescription?.targetWeight != null ? `${prescription.targetWeight}kg` : null,
+    prescription?.targetReps != null ? `${prescription.targetReps} reps` : null,
+    prescription?.isAmrap ? `AMRAP${prescription.minReps != null ? ` >=${prescription.minReps}` : ""}` : null,
+    prescription?.targetRpe != null ? `RPE ${prescription.targetRpe}` : null,
+    prescription?.targetRir != null ? `RIR ${prescription.targetRir}` : null,
+    prescription?.targetTempo ? `tempo ${prescription.targetTempo}` : null,
+    prescription?.targetDurationSeconds != null ? `${prescription.targetDurationSeconds}s` : null,
+    prescription?.targetDistanceMeters != null ? `${prescription.targetDistanceMeters}m` : null,
+  ];
+  return pieces.filter(Boolean).join(" × ") || "—";
+}
+
+// Roadmap P1.3 "Superset / exercise grouping".
+const GROUP_TYPE_LABEL_VI: Record<string, string> = {
+  SUPERSET: "Superset",
+  TRISET: "Triset",
+  CIRCUIT: "Circuit",
+};
+
 function mapProgramExercise(ex: any) {
   const exercise = ex.exercise || {};
+  const loggingMode = normalizeLoggingMode(exercise.loggingMode, exercise);
+  const durationSeconds = ex.duration ?? null;
   return {
     id: ex.id,
     programExerciseId: ex.id,
     dbId: ex.exerciseId || exercise.id,
     name: exercise.exerciseName || "Bài tập",
-    prescription: `${ex.sets ?? 3}×${ex.reps ?? 10}${ex.restSeconds ? ` · nghỉ ${ex.restSeconds}s` : ""}`,
+    prescription: formatExercisePrescription({
+      sets: ex.sets ?? 3,
+      reps: ex.reps ?? null,
+      weight: ex.weight ?? null,
+      durationSeconds,
+      distanceMeters: null,
+      restSeconds: ex.restSeconds ?? null,
+      loggingMode,
+    }),
+    setPrescriptions: Array.isArray(ex.setPrescriptions)
+      ? [...ex.setPrescriptions].sort((a: any, b: any) => a.setNumber - b.setNumber)
+      : [],
     sets: ex.sets ?? 3,
+    durationSeconds,
+    distanceMeters: null,
     reps: ex.reps ?? 10,
     restSeconds: ex.restSeconds ?? 90,
     notes: ex.notes ?? "",
@@ -292,6 +458,7 @@ function mapProgramExercise(ex: any) {
       | "strength",
     bodyPart: exercise.bodyPart,
     equipment: exercise.typeOfEquipment,
+    loggingMode,
     activityType: exercise.typeOfActivity,
     movementType: exercise.type,
     description: exercise.instructions,
@@ -514,9 +681,68 @@ type ManualBuilderDay = {
 
 type ActiveExerciseLog = {
   weightKg: string;
+  bodyWeightAtSetKg: string;
+  durationSeconds: string;
+  distanceMeters: string;
+  tempo: string;
+  /** Editable only for BODYWEIGHT_REPS (roadmap P1.1 "bodyweight reps
+   * editable prefill") — other modes still derive reps from the fixed
+   * program prescription at completion time. */
+  reps: string;
   noWeight: boolean;
   rpe: number;
   rir: number;
+  setType: string;
+  setTechnique: SetChainTechnique;
+  segments: SetChainSegmentDraft[];
+};
+
+type ExerciseLoggingMode =
+  | "REPS_LOAD"
+  | "BODYWEIGHT_REPS"
+  | "TIME"
+  | "TIME_LOAD"
+  | "DISTANCE_TIME";
+
+// Roadmap P1.3 "Superset / exercise grouping" — attached to a dayExercises
+// entry when its programExerciseId is a member of some
+// WorkoutProgramExerciseGroup. See exercise-group.utils.ts for how this
+// drives rest-timer duration.
+type GroupMetadata = {
+  groupId: string;
+  groupType: string;
+  groupOrder: number;
+  restBetweenExercisesSeconds: number | null;
+  restAfterRoundSeconds: number | null;
+};
+
+// Roadmap P1.1 "true set-by-set table UI" — one row of the real, persisted
+// WorkoutSet skeleton startSchedule already pre-creates. Mirrors exactly
+// the fields PATCH /workouts/sets/:setId accepts, so a row can always be
+// sent back as-is.
+type WorkoutSetRow = {
+  id: string;
+  setNumber: number;
+  completed: boolean;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rir: number | null;
+  setType: string | null;
+  tempo: string | null;
+  bodyWeightAtSetKg: number | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+  segments: Array<{
+    id: string;
+    segmentNumber: number;
+    technique: "DROP_SET" | "REST_PAUSE";
+    reps: number;
+    weight: number | null;
+    rpe: number | null;
+    rir: number | null;
+    restBeforeSeconds: number | null;
+  }>;
 };
 
 const MANUAL_WEEKDAYS = [
@@ -538,6 +764,30 @@ const DEFAULT_MANUAL_WEEKDAYS: Record<number, number[]> = {
   6: [1, 2, 3, 4, 5, 6],
   7: [1, 2, 3, 4, 5, 6, 0],
 };
+
+const SET_TYPE_OPTIONS = [
+  { value: "WARMUP", label: "Warm-up" },
+  { value: "WORKING", label: "Working" },
+  { value: "TOP", label: "Top set" },
+  { value: "BACKOFF", label: "Back-off" },
+  { value: "FAILURE", label: "Failure" },
+];
+
+const SET_TECHNIQUE_OPTIONS = [
+  { value: "STRAIGHT" as const, label: "Straight" },
+  { value: "DROP_SET" as const, label: "Drop set" },
+  { value: "REST_PAUSE" as const, label: "Rest-pause" },
+];
+
+function normalizeTempo(value: string | null | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function isValidTempo(value: string | null | undefined): boolean {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length === 0 || /^\d{1,2}-\d{1,2}-\d{1,2}-\d{1,2}$/.test(trimmed);
+}
 
 function buildManualDays(
   daysPerWeek: number,
@@ -572,13 +822,6 @@ function lockedDayBadgeLabel(apiDateValue: string | Date | undefined | null): st
   if (!apiDateValue) return "Ngày đã qua";
   const direction = scheduleLockDirection(apiDateValue);
   return direction === "future" ? "Chưa đến ngày" : "Ngày đã qua";
-}
-
-function exerciseUsesExternalWeight(exercise: any) {
-  if (exercise?.type === "cardio") return false;
-  const equipment = String(exercise?.equipment || "").toUpperCase();
-  if (!equipment) return true;
-  return !["BODYWEIGHT", "FOAM_ROLLER", "RESISTANCE_BAND"].includes(equipment);
 }
 
 function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
@@ -1152,6 +1395,356 @@ function SkipCancelFeedbackModal({
   );
 }
 
+/** Roadmap P1.2 "Reschedule workout"
+ * (docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md) — a simple date
+ * picker + optional reason, mirroring SkipCancelFeedbackModal's structural
+ * pattern above. The actual authorization (source not-started, target
+ * today-or-future, no conflict) is fully re-checked server-side; this
+ * modal's own `min` on the date input is just a UX nicety, never trusted
+ * as the real guard. */
+function RescheduleModal({
+  scheduleId,
+  currentDateLabel,
+  onClose,
+  onRescheduled,
+}: {
+  scheduleId: string;
+  currentDateLabel: string;
+  onClose: () => void;
+  onRescheduled: () => void;
+}) {
+  const [newDate, setNewDate] = useState("");
+  const [reason, setReason] = useState("");
+  const todayValue = toDateInputValue(new Date());
+
+  const submitMutation = useMutation({
+    mutationFn: () => {
+      if (!newDate) throw new Error("newDate required");
+      return workoutService.rescheduleSchedule(scheduleId, newDate, reason.trim() || undefined);
+    },
+    onSuccess: () => {
+      toast.success("Đã dời lịch buổi tập.");
+      onRescheduled();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Không thể dời lịch buổi tập này.");
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Dời lịch buổi tập</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-zinc-500">
+            Hiện đang lên lịch: <span className="text-zinc-300">{currentDateLabel}</span>
+          </p>
+
+          <div>
+            <p className="text-[11px] text-zinc-500 mb-1">Ngày mới (hôm nay hoặc sau)</p>
+            <input
+              type="date"
+              data-testid="reschedule-date-input"
+              value={newDate}
+              min={todayValue}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50"
+            />
+          </div>
+
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Lý do dời lịch (không bắt buộc)"
+            rows={2}
+            className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+          />
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              data-testid="reschedule-submit-button"
+              onClick={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending || !newDate}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+            >
+              {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Dời lịch
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Roadmap P1.5 "Custom exercises"
+ * (docs/features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md) — a minimal creation
+ * form (reuses the SAME enums/options the catalog picker's own filters
+ * already fetch, so a custom exercise can never submit a value the
+ * backend's own validation would reject). A blocked (duplicate) response
+ * shows the real candidate(s) `detectDuplicate` found and requires an
+ * explicit "create anyway" to bypass — never silently allowed/merged. */
+function CreateCustomExerciseModal({
+  exerciseOptions,
+  onClose,
+  onCreated,
+}: {
+  exerciseOptions: any;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [exerciseName, setExerciseName] = useState("");
+  const [typeOfActivity, setTypeOfActivity] = useState("STRENGTH");
+  const [typeOfEquipment, setTypeOfEquipment] = useState("BODYWEIGHT");
+  const [bodyPart, setBodyPart] = useState("FULL_BODY");
+  const [type, setType] = useState("PUSH");
+  const [loggingMode, setLoggingMode] = useState("REPS_LOAD");
+  const [muscleGroupsText, setMuscleGroupsText] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [candidates, setCandidates] = useState<
+    Array<{ id: string; name: string; confidence: number; proposedAction: string }> | null
+  >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submit = async (confirmCreateAnyway: boolean) => {
+    if (!exerciseName.trim()) {
+      toast.error("Vui lòng nhập tên bài tập.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await workoutService.createCustomExercise({
+        exerciseName: exerciseName.trim(),
+        typeOfActivity,
+        typeOfEquipment,
+        bodyPart,
+        type,
+        muscleGroupsActivated: muscleGroupsText
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+        instructions: instructions.trim() || undefined,
+        loggingMode,
+        confirmCreateAnyway,
+      });
+      if (result.blocked) {
+        setCandidates(result.candidates);
+        return;
+      }
+      toast.success(`Đã tạo bài tập "${exerciseName}".`);
+      onCreated();
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể tạo bài tập tùy chỉnh.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Tạo bài tập tùy chỉnh</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          {candidates ? (
+            <>
+              <p className="text-xs text-amber-300">
+                Có thể trùng với bài tập đã có trong hệ thống:
+              </p>
+              <div className="space-y-2">
+                {candidates.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 text-xs text-zinc-300"
+                  >
+                    <p className="text-zinc-100">{c.name}</p>
+                    <p className="text-zinc-500 mt-0.5">{c.proposedAction}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCandidates(null)}
+                  className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+                >
+                  Sửa lại
+                </button>
+                <button
+                  type="button"
+                  data-testid="confirm-create-anyway-button"
+                  onClick={() => void submit(true)}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+                >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Vẫn tạo bài mới
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">Tên bài tập</span>
+                <input
+                  data-testid="custom-exercise-name-input"
+                  type="text"
+                  value={exerciseName}
+                  onChange={(e) => setExerciseName(e.target.value)}
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Nhóm cơ</span>
+                  <select
+                    value={bodyPart}
+                    onChange={(e) => setBodyPart(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.bodyParts || ["UPPER_BODY", "LOWER_BODY", "CORE", "FULL_BODY"]).map(
+                      (v: string) => (
+                        <option key={v} value={v}>
+                          {labelizeEnum(v)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Thiết bị</span>
+                  <select
+                    value={typeOfEquipment}
+                    onChange={(e) => setTypeOfEquipment(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.equipments || ["BODYWEIGHT"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Loại hoạt động</span>
+                  <select
+                    value={typeOfActivity}
+                    onChange={(e) => setTypeOfActivity(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.activityTypes || ["STRENGTH"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-[11px] text-zinc-500 mb-1">Kiểu chuyển động</span>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                  >
+                    {(exerciseOptions.types || ["PUSH", "PULL", "HOLD", "STRETCH"]).map((v: string) => (
+                      <option key={v} value={v}>
+                        {labelizeEnum(v)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">Cách ghi log</span>
+                <select
+                  data-testid="custom-exercise-logging-mode-select"
+                  value={loggingMode}
+                  onChange={(e) => setLoggingMode(e.target.value)}
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-xs text-zinc-200"
+                >
+                  <option value="REPS_LOAD">Tạ × Reps</option>
+                  <option value="BODYWEIGHT_REPS">Reps (bodyweight)</option>
+                  <option value="TIME">Thời gian</option>
+                  <option value="TIME_LOAD">Tạ + Thời gian</option>
+                  <option value="DISTANCE_TIME">Quãng đường + Thời gian</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-[11px] text-zinc-500 mb-1">
+                  Nhóm cơ tác động (phân tách bằng dấu phẩy)
+                </span>
+                <input
+                  type="text"
+                  value={muscleGroupsText}
+                  onChange={(e) => setMuscleGroupsText(e.target.value)}
+                  placeholder="chest, triceps"
+                  className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                />
+              </label>
+              <textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Hướng dẫn thực hiện (không bắt buộc)"
+                rows={2}
+                className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-sky-500/50"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  data-testid="submit-create-custom-exercise-button"
+                  onClick={() => void submit(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-400 hover:bg-sky-300 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+                >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Tạo bài tập
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Feedback status indicator for the day-detail view of a completed/partial
  * session — Phase 2 spec: "feedback status in history." Lets the user open
  * the same completion form again to add or edit their feedback. */
@@ -1214,6 +1807,27 @@ export function WorkoutLogPage() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
   );
+  // Roadmap P1.1 "true set-by-set table UI" — the real per-set skeleton
+  // (id, setNumber, completed, logged fields), keyed by programExerciseId,
+  // fetched once per workoutId via GET /workouts/:id (already returns
+  // exercises[].workoutSets[] ordered by setNumber — see
+  // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md). `undefined` for
+  // a given programExerciseId means "not loaded yet" — callers must treat
+  // that the same as "unknown, fall back to today's exercise-level
+  // completion" rather than assuming zero sets.
+  const [workoutSetsByExercise, setWorkoutSetsByExercise] = useState<
+    Record<string, WorkoutSetRow[]>
+  >({});
+  const workoutSetsFetchedForWorkoutIdRef = useRef<string | null>(null);
+  const workoutStartAttemptedForScheduleIdRef = useRef<string | null>(null);
+  // Roadmap P1.4 "Active-workout offline resilience" — how many set
+  // complete/undo events are sitting in the durable local queue, not yet
+  // confirmed synced. 0 = fully synced; the drain effect below keeps this
+  // current. Deliberately a count, not a boolean: distinguishes "nothing
+  // pending" from "syncing" from "queue not empty" for the UI indicator.
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+  const isDrainingOfflineQueueRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
@@ -1223,7 +1837,17 @@ export function WorkoutLogPage() {
   >(null);
 
   // Dynamic Navigation & Stats
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  // Roadmap P1.2 "Reschedule workout" found this real, pre-existing gap:
+  // aiSchedules is only ever fetched for `calendarMonth`'s range
+  // (getMonthRange below), but this defaulted to `new Date()` (today's
+  // month) regardless of the URL's own `date` param — so deep-linking (or
+  // rescheduling) into a DIFFERENT month than the current one silently
+  // showed "nothing scheduled" even though a real schedule existed there,
+  // simply because it was never fetched. Mirrors selectedDate's own
+  // URL-restoration pattern immediately below.
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    initialWorkoutLogState.date ? parseApiDateOnly(initialWorkoutLogState.date) : new Date(),
+  );
   const [latestInBody, setLatestInBody] = useState<any>(null);
   const [inbodyHistory, setInbodyHistory] = useState<any[]>([]);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
@@ -1413,7 +2037,21 @@ export function WorkoutLogPage() {
   }, [calendarMonth, applyInBodyHistory]);
 
   useEffect(() => {
-    const programDays = currentProgram?.days;
+    const scheduleForSelectedDate = aiSchedules.find((schedule) => {
+      if (!schedule?.date) return false;
+      const sameDate = isSameCalendarDay(parseApiDateOnly(schedule.date), selectedDate);
+      const sameDay =
+        schedule.programDay?.dayNumber == null ||
+        Number(schedule.programDay.dayNumber) === Number(selectedDay);
+      return sameDate && sameDay;
+    });
+    const scheduleProgramDay = scheduleForSelectedDate?.programDay;
+    const programDays =
+      Array.isArray(currentProgram?.days) && currentProgram.days.length > 0
+        ? currentProgram.days
+        : scheduleProgramDay
+          ? [scheduleProgramDay]
+          : [];
     if (!Array.isArray(programDays) || programDays.length === 0) {
       setSelectedProgramDayId(null);
       return;
@@ -1424,6 +2062,27 @@ export function WorkoutLogPage() {
       programDays[0];
 
     const mapped = (selected.exercises || []).map(mapProgramExercise);
+    // Roadmap P1.3 "Superset / exercise grouping" — attach each exercise's
+    // group metadata (if any), derived fresh from `selected.exerciseGroups`
+    // every time this effect runs. Deliberately NOT baked into
+    // mapProgramExercise itself (which only sees one exercise at a time,
+    // not the day's group list).
+    const groupByProgramExerciseId = new Map<string, GroupMetadata>();
+    for (const group of (selected as any).exerciseGroups ?? []) {
+      for (const member of group.members ?? []) {
+        groupByProgramExerciseId.set(member.programExerciseId, {
+          groupId: group.id,
+          groupType: group.type,
+          groupOrder: member.order,
+          restBetweenExercisesSeconds: group.restBetweenExercisesSeconds ?? null,
+          restAfterRoundSeconds: group.restAfterRoundSeconds ?? null,
+        });
+      }
+    }
+    for (const ex of mapped as any[]) {
+      const meta = groupByProgramExerciseId.get(ex.programExerciseId);
+      if (meta) Object.assign(ex, meta);
+    }
 
     // mapProgramExercise only knows the PLAN template (sets/reps prescribed,
     // no actual numbers logged) — merge in the REAL weight/RPE/RIR from
@@ -1469,7 +2128,7 @@ export function WorkoutLogPage() {
       }
       pendingExerciseIdRef.current = null;
     }
-  }, [currentProgram, selectedDay, planView, selectedDate, workoutCache]);
+  }, [currentProgram, selectedDay, planView, selectedDate, workoutCache, aiSchedules]);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -1600,6 +2259,18 @@ export function WorkoutLogPage() {
   const [editMode, setEditMode] = useState(false);
   const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  // Roadmap P1.3 "Superset / exercise grouping" — a separate selection mode
+  // layered on top of the existing edit-mode list (createExerciseGroup is
+  // its own immediate backend call, not deferred to handleSaveWorkout's
+  // reorder/field-edit flow).
+  const [groupSelectionMode, setGroupSelectionMode] = useState(false);
+  const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  // Sensible real-world defaults (real, common superset practice: little to
+  // no rest between paired exercises, a real rest once the round is done) —
+  // editable before creating the group, not hidden/hardcoded.
+  const [groupRestBetween, setGroupRestBetween] = useState(30);
+  const [groupRestAfterRound, setGroupRestAfterRound] = useState(90);
 
   const refetchProgramAndSchedules = useCallback(async () => {
     const [program, schedules] = await Promise.all([
@@ -1609,6 +2280,80 @@ export function WorkoutLogPage() {
     setCurrentProgram(program);
     setAiSchedules(Array.isArray(schedules) ? schedules : []);
   }, [calendarMonth]);
+
+  // Roadmap P1.4 "Active-workout offline resilience" — drains the durable
+  // local queue (see active-workout-offline-queue.utils.ts). Deliberately
+  // conservative: rather than trying to replay each event's exact UI
+  // side-effects (the user may have navigated to a different exercise/day
+  // by the time a queued event from minutes ago finally syncs, and
+  // blindly mutating CURRENT state from a stale event risks corrupting
+  // whatever is on screen NOW), it just replays each event's raw request,
+  // then does ONE refetch of program+schedules once the whole queue has
+  // drained — reconciling the UI with the true, authoritative server
+  // state rather than guessing it locally. This is also where a genuine
+  // whole-workout completion (if the queued event turns out to have been
+  // the one that finished the day) gets its real celebration/summary —
+  // never shown from an offline guess, only once actually confirmed
+  // synced (see the impact analysis's "Conflict strategy").
+  const drainOfflineQueue = useCallback(async () => {
+    if (isDrainingOfflineQueueRef.current) return;
+    const pending = await getPendingWorkoutEvents();
+    if (pending.length === 0) {
+      setPendingSyncCount(0);
+      return;
+    }
+    isDrainingOfflineQueueRef.current = true;
+    setIsSyncingOffline(true);
+    let syncedCount = 0;
+    let droppedCount = 0;
+    try {
+      for (const event of pending) {
+        try {
+          await api.request({ method: event.method, url: event.url, data: event.body });
+          await removeWorkoutEvent(event.eventId);
+          syncedCount += 1;
+        } catch (error: any) {
+          if (!error?.response) {
+            // Still offline (or the network dropped again mid-drain) —
+            // stop here, leave the rest queued, try again on the next
+            // 'online' event or mount.
+            break;
+          }
+          // A real server-side rejection (e.g. the schedule's day locked
+          // over while this sat queued) — can't safely retry this one
+          // forever. Drop it and keep draining the rest, surfacing what
+          // happened rather than silently discarding it.
+          await removeWorkoutEvent(event.eventId);
+          droppedCount += 1;
+          toast.error(
+            `Không thể đồng bộ một mục đã lưu offline: ${error?.response?.data?.error ?? "lỗi không xác định"}`,
+          );
+        }
+      }
+    } finally {
+      const remaining = await getPendingWorkoutEvents();
+      setPendingSyncCount(remaining.length);
+      setIsSyncingOffline(false);
+      isDrainingOfflineQueueRef.current = false;
+    }
+    if (syncedCount > 0) {
+      toast.success(`Đã đồng bộ ${syncedCount} thay đổi đã lưu offline.`);
+      await refetchProgramAndSchedules();
+      // A queued event may have been the one that finally finished the
+      // whole workout — re-derive completion state for whichever exercise
+      // is on screen now via the normal per-set skeleton refetch, rather
+      // than guessing here.
+      workoutSetsFetchedForWorkoutIdRef.current = null;
+    }
+    void droppedCount; // surfaced via the per-event toast above already
+  }, [refetchProgramAndSchedules]);
+
+  useEffect(() => {
+    void drainOfflineQueue();
+    const onOnline = () => void drainOfflineQueue();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [drainOfflineQueue]);
 
   const findScheduleForDate = useCallback(
     (date: Date) => {
@@ -1796,6 +2541,46 @@ export function WorkoutLogPage() {
     };
   }, [refetchProgramAndSchedules]);
 
+  // Roadmap P1.3 "Superset / exercise grouping" — an immediate backend
+  // call (not deferred to handleSaveWorkout), so grouping never gets
+  // silently lost if the user exits edit mode without hitting "Lưu ngay".
+  // Type is derived from how many were selected (2=SUPERSET, 3=TRISET,
+  // 4+=CIRCUIT) — no separate type-picker UI, keeping the selection flow
+  // to one action.
+  const handleCreateGroup = async () => {
+    if (!selectedProgramDayId || selectedForGroup.size < 2) return;
+    setIsCreatingGroup(true);
+    try {
+      const type = selectedForGroup.size === 2 ? "SUPERSET" : selectedForGroup.size === 3 ? "TRISET" : "CIRCUIT";
+      await workoutService.createExerciseGroup(
+        selectedProgramDayId,
+        [...selectedForGroup],
+        type,
+        groupRestBetween,
+        groupRestAfterRound,
+      );
+      toast.success(`Đã nhóm ${selectedForGroup.size} bài tập thành ${GROUP_TYPE_LABEL_VI[type]}.`);
+      setGroupSelectionMode(false);
+      setSelectedForGroup(new Set());
+      setEditMode(false);
+      await refetchProgramAndSchedules();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể nhóm các bài tập này.");
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  const handleUngroupExercises = async (groupId: string) => {
+    try {
+      await workoutService.ungroupExercises(groupId);
+      toast.success("Đã bỏ nhóm bài tập.");
+      await refetchProgramAndSchedules();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể bỏ nhóm bài tập này.");
+    }
+  };
+
   const handleSaveWorkout = async (silent = false) => {
     if (isSaving) return;
     setIsSaving(true);
@@ -1965,6 +2750,10 @@ export function WorkoutLogPage() {
   const [activeExerciseLogs, setActiveExerciseLogs] = useState<
     Record<number, ActiveExerciseLog>
   >({});
+  const activeExerciseLogsRef = useRef<Record<number, ActiveExerciseLog>>({});
+  useEffect(() => {
+    activeExerciseLogsRef.current = activeExerciseLogs;
+  }, [activeExerciseLogs]);
   const [isCompletingWorkout, setIsCompletingWorkout] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(
     null,
@@ -1979,10 +2768,51 @@ export function WorkoutLogPage() {
   // Non-critical: if this fails to load the completion screen still works,
   // it just skips the PR/volume block (see loadCompletionSummary's catch).
   const [completionSummary, setCompletionSummary] = useState<WorkoutSessionSummary | null>(null);
+  // "Previous performance" reference context (gap analysis P0 #1) — keyed by
+  // exercise dbId so it's cached across navigating back/forth between
+  // exercises in the same session. Deliberately never mixed into
+  // activeExerciseLogs (the user's actual input) — this is read-only
+  // reference, never a prefilled/editable value.
+  const [previousPerformanceByExercise, setPreviousPerformanceByExercise] = useState<
+    Record<string, PreviousPerformance | null>
+  >({});
+  // Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md)
+  // — same caching-by-exercise-dbId pattern as previousPerformanceByExercise
+  // above, and equally never fed back into activeExerciseLogs: this is the
+  // engine's committed target/explanation, shown as reference, never a
+  // silently-applied prefill.
+  const [progressionByExercise, setProgressionByExercise] = useState<
+    Record<string, ExerciseProgression | null>
+  >({});
+  const [smartPrefillSourceByExercise, setSmartPrefillSourceByExercise] = useState<
+    Record<string, SmartPrefillSource>
+  >({});
   const [feedbackPrompt, setFeedbackPrompt] = useState<{ scheduleId: string } | null>(null);
   const [skipCancelPrompt, setSkipCancelPrompt] = useState<{ scheduleId: string } | null>(null);
+  // Roadmap P1.2 "Reschedule workout".
+  const [reschedulePrompt, setReschedulePrompt] = useState<{
+    scheduleId: string;
+    currentDateLabel: string;
+  } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Wall-clock end-timestamp for the rest timer (gap analysis P0 "Rest
+  // timer — fragile": setInterval alone drifts under background-tab
+  // throttling because it just decrements a counter once per tick instead
+  // of checking real elapsed time). Ticking against this instead of blindly
+  // decrementing keeps the displayed time accurate even if a tick or two
+  // gets throttled/delayed.
+  const restEndAtRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
+  const startRestTimer = useCallback((seconds: number) => {
+    restEndAtRef.current = Date.now() + seconds * 1000;
+    setRestSeconds(seconds);
+    setRestTimerRunning(true);
+  }, []);
+
+  // Roadmap P1.5 "Custom exercises" — the create-form modal, layered on
+  // top of the existing Add Exercise picker (opened from within it).
+  const [showCreateCustomExercise, setShowCreateCustomExercise] = useState(false);
 
   // Add Exercise Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -2126,6 +2956,22 @@ export function WorkoutLogPage() {
       }),
     enabled: showAddExercise,
     staleTime: 30_000,
+  });
+
+  // Roadmap P1.5 "Custom exercises" — the caller's own custom exercises,
+  // fetched separately from the public catalog search above (they're
+  // deliberately never returned by it — see the impact analysis's "no
+  // catalog contamination"). Shown as its own "Của tôi" section in the
+  // picker below, unfiltered by the catalog's own bodyPart/equipment/
+  // search filters — a disclosed simplification (a real user's own custom
+  // list stays small, so always showing all of it is a reasonable
+  // trade-off against the complexity of applying the same filters
+  // client-side to a differently-shaped query).
+  const myCustomExercisesQuery = useQuery({
+    queryKey: ["my-custom-exercises"],
+    queryFn: () => workoutService.listMyCustomExercises(),
+    enabled: showAddExercise,
+    staleTime: 10_000,
   });
 
   useEffect(() => {
@@ -2273,18 +3119,374 @@ export function WorkoutLogPage() {
     };
   }, [timerRunning]);
 
-  // Rest timer effect
-  useEffect(() => {
-    if (restTimerRunning && restSeconds > 0) {
-      restRef.current = setInterval(() => setRestSeconds((s) => s - 1), 1000);
-    } else {
-      if (restRef.current) clearInterval(restRef.current);
-      if (restTimerRunning && restSeconds <= 0) setRestTimerRunning(false);
+  // Rest timer persistence — survives navigating away/back within the SPA
+  // AND a full page reload (gap flagged in review: the earlier wall-clock
+  // fix made the countdown ACCURATE but not persisted across a remount).
+  // Scoped per schedule so a stale timer from a different session never
+  // bleeds into a new one. localStorage access is defensively wrapped —
+  // private-browsing/storage-blocked contexts must never break the timer,
+  // just silently skip persistence.
+  const restTimerStorageKey = (scheduleId: string | null) =>
+    `fitness-assistant:rest-timer:${scheduleId ?? "freeform"}`;
+
+  const persistRestTimer = (scheduleId: string | null, endAt: number) => {
+    try {
+      localStorage.setItem(
+        restTimerStorageKey(scheduleId),
+        JSON.stringify({ endAt, scheduleId }),
+      );
+    } catch {
+      // ignore — persistence is a convenience, never a hard dependency
     }
+  };
+
+  const clearPersistedRestTimer = (scheduleId: string | null) => {
+    try {
+      localStorage.removeItem(restTimerStorageKey(scheduleId));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Restore a still-running rest timer once, when we know which schedule
+  // we're looking at (covers both a fresh page load and navigating back
+  // into activeExercise view). Only ever resumes a timer that is still in
+  // the future and belongs to THIS schedule — a stale/expired/foreign entry
+  // is silently discarded, never resurrected.
+  const restTimerRestoredForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (planView !== "activeExercise") return;
+    // FINAL P0 CLOSURE PASS fix (BUG-03): a direct page load/reload landing
+    // straight in activeExercise view (via URL restoration) never runs any
+    // of the click handlers that call setSelectedScheduleId — that state
+    // stays null for the whole session unless the user has clicked through
+    // the calendar or just completed an exercise. selectedSchedule() is the
+    // one place this codebase already solves exactly this problem (falls
+    // back to a date-based lookup against aiSchedules when the id state
+    // isn't set yet — see its own definition above), so the rest timer must
+    // key off THAT, not the raw state, or a real (non-freeform) timer can
+    // never be found again after a reload even though it was persisted
+    // correctly under the real schedule id in the first place.
+    const key = selectedSchedule()?.id ?? null;
+    if (restTimerRestoredForRef.current === (key ?? "freeform")) return;
+    restTimerRestoredForRef.current = key ?? "freeform";
+    try {
+      const raw = localStorage.getItem(restTimerStorageKey(key));
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { endAt: number; scheduleId: string | null };
+      const remaining = Math.round((saved.endAt - Date.now()) / 1000);
+      if (remaining > 0) {
+        restEndAtRef.current = saved.endAt;
+        setRestSeconds(remaining);
+        setRestTimerRunning(true);
+      } else {
+        clearPersistedRestTimer(key);
+      }
+    } catch {
+      // ignore — corrupt/inaccessible storage just means no restore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planView, selectedScheduleId, aiSchedules, selectedDate]);
+
+  // Rest timer effect — ticks against a stored wall-clock end-timestamp
+  // (restEndAtRef) rather than blindly decrementing a counter, so the
+  // displayed time stays accurate even if a tick gets delayed/throttled
+  // (e.g. a backgrounded mobile tab), instead of silently drifting behind
+  // real elapsed time.
+  useEffect(() => {
+    if (!restTimerRunning) {
+      if (restRef.current) clearInterval(restRef.current);
+      restEndAtRef.current = null;
+      return;
+    }
+    if (restEndAtRef.current == null) {
+      restEndAtRef.current = Date.now() + restSeconds * 1000;
+    }
+    persistRestTimer(selectedSchedule()?.id ?? null, restEndAtRef.current);
+    const tick = () => {
+      const endAt = restEndAtRef.current;
+      const remaining = endAt == null ? 0 : Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      setRestSeconds(remaining);
+      if (remaining <= 0) {
+        setRestTimerRunning(false);
+        restEndAtRef.current = null;
+        clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      }
+    };
+    tick();
+    restRef.current = setInterval(tick, 1000);
     return () => {
       if (restRef.current) clearInterval(restRef.current);
     };
-  }, [restTimerRunning, restSeconds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restTimerRunning]);
+
+  // Screen Wake Lock — progressive enhancement (gap analysis P0 "Rest
+  // timer"). Feature-detected: on a browser without support, wakeLockRef
+  // just stays null and the timer/workout logging work exactly as before —
+  // this is never a hard dependency (task's own instruction: "Không để Wake
+  // Lock thành dependency"). Held while either timer is actively running.
+  useEffect(() => {
+    const nav = navigator as any;
+    const active = restTimerRunning || timerRunning;
+    if (active && !wakeLockRef.current) {
+      requestWakeLockSafe(nav).then((lock) => {
+        wakeLockRef.current = lock;
+      });
+    } else if (!active && wakeLockRef.current) {
+      releaseWakeLockSafe(wakeLockRef.current);
+      wakeLockRef.current = null;
+    }
+    return () => {
+      if (!restTimerRunning && !timerRunning && wakeLockRef.current) {
+        releaseWakeLockSafe(wakeLockRef.current);
+        wakeLockRef.current = null;
+      }
+    };
+  }, [restTimerRunning, timerRunning]);
+
+  // "Previous performance" fetch — gap analysis P0 #1. Loads once per
+  // exercise per session (cached in previousPerformanceByExercise), fires
+  // whenever the active exercise changes. Non-critical: a failed fetch just
+  // leaves the reference card absent, never blocks logging.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId || previousPerformanceByExercise[exerciseDbId] !== undefined) {
+      return;
+    }
+    let cancelled = false;
+    workoutService
+      .getPreviousPerformance(exerciseDbId)
+      .then((result) => {
+        if (!cancelled) {
+          setPreviousPerformanceByExercise((prev) => ({ ...prev, [exerciseDbId]: result }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviousPerformanceByExercise((prev) => ({ ...prev, [exerciseDbId]: null }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeExIdx, dayExercises, previousPerformanceByExercise]);
+
+  // Deterministic per-exercise progression fetch — same shape/caching
+  // pattern as the previous-performance effect above. Non-critical: a
+  // failed fetch just leaves the target/explanation card absent.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId || progressionByExercise[exerciseDbId] !== undefined) {
+      return;
+    }
+    let cancelled = false;
+    workoutService
+      .getExerciseProgression(exerciseDbId)
+      .then((result) => {
+        if (!cancelled) {
+          setProgressionByExercise((prev) => ({ ...prev, [exerciseDbId]: result }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProgressionByExercise((prev) => ({ ...prev, [exerciseDbId]: null }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeExIdx, dayExercises, progressionByExercise]);
+
+  // Roadmap P1.1 "true set-by-set table UI" — the real per-set skeleton
+  // (see docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md's audit
+  // findings: startSchedule already pre-creates one WorkoutSet row per
+  // planned set the moment the session starts). Fetched once per workoutId
+  // via GET /workouts/:id, which already returns exercises[].workoutSets[]
+  // ordered by setNumber. Only applies to the schedule-linked path — the
+  // ad-hoc/freeform logging branch has no schedule/workoutId to key off and
+  // keeps its existing single-value-per-exercise behavior untouched.
+  useEffect(() => {
+    if (planView !== "activeExercise") return;
+    const schedule = selectedSchedule();
+    if (!schedule?.id) return;
+    const workoutId = schedule.workoutId || (schedule as any)?.workout?.id || currentWorkoutId;
+
+    if (!workoutId) {
+      // Reaching the active view via a direct/deep-link URL (rather than
+      // clicking "Bắt đầu tập") never calls startSchedule, so no
+      // WorkoutExercise/WorkoutSet skeleton exists yet — without eagerly
+      // creating it here, the table (and per-set undo/prefill) would never
+      // appear for that very common landing path; the first completion
+      // would silently fall straight to the old bulk-complete path instead,
+      // defeating this whole feature for it. Never attempted on a locked
+      // day (matches "Bắt đầu tập"'s own disabled state there — a locked
+      // day with no existing session must stay read-only) or more than
+      // once per schedule.
+      if (isSelectedDayLocked) return;
+      if (workoutStartAttemptedForScheduleIdRef.current === schedule.id) return;
+      workoutStartAttemptedForScheduleIdRef.current = schedule.id;
+      workoutService
+        .startSchedule(schedule.id)
+        .then((started: any) => {
+          applyScheduleProgress(schedule.id, started);
+          setSelectedScheduleId(schedule.id);
+          if (started?.workoutId) setCurrentWorkoutId(started.workoutId);
+        })
+        .catch(() => {
+          // Non-critical: same fallback as below — the table just won't
+          // appear, and completion falls back to the old bulk path.
+          workoutStartAttemptedForScheduleIdRef.current = null;
+        });
+      return;
+    }
+
+    if (workoutSetsFetchedForWorkoutIdRef.current === workoutId) return;
+    workoutSetsFetchedForWorkoutIdRef.current = workoutId;
+    workoutService
+      .getWorkout(workoutId)
+      .then((workout: any) => {
+        const byProgramExerciseId: Record<string, WorkoutSetRow[]> = {};
+        for (const exercise of workout?.exercises ?? []) {
+          if (!exercise.programExerciseId) continue;
+          byProgramExerciseId[exercise.programExerciseId] = (exercise.workoutSets ?? [])
+            .slice()
+            .sort((a: any, b: any) => a.setNumber - b.setNumber)
+            .map((set: any) => ({
+              id: set.id,
+              setNumber: set.setNumber,
+              completed: Boolean(set.completed),
+              weight: set.weight ?? null,
+              reps: set.reps ?? null,
+              rpe: set.rpe ?? null,
+              rir: set.rir ?? null,
+              setType: set.setType ?? null,
+              tempo: set.tempo ?? null,
+              bodyWeightAtSetKg: set.bodyWeightAtSetKg ?? null,
+              durationSeconds: set.durationSeconds ?? null,
+              distanceMeters: set.distanceMeters ?? null,
+              segments: (set.segments ?? [])
+                .slice()
+                .sort((a: any, b: any) => a.segmentNumber - b.segmentNumber),
+            }));
+        }
+        setWorkoutSetsByExercise((prev) => ({ ...prev, ...byProgramExerciseId }));
+      })
+      .catch(() => {
+        // Non-critical: falls back to today's exercise-level completion —
+        // see curExSetRows === undefined handling at every call site below.
+        workoutSetsFetchedForWorkoutIdRef.current = null;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkoutId, selectedScheduleId, currentProgram, aiSchedules, selectedDate, planView, isSelectedDayLocked]);
+
+  // Smart set prefill (roadmap P1.1), with session-resume draft restoration
+  // (roadmap P1.7) taking priority. This initializes the editable draft for
+  // the active exercise only after both async context calls have settled, so a
+  // slower deterministic target can still beat raw previous-performance data.
+  // It never marks a set/exercise complete and never overwrites a draft once
+  // the user has edited it.
+  useEffect(() => {
+    const curEx = dayExercises[activeExIdx];
+    const exerciseDbId = curEx?.dbId;
+    if (!exerciseDbId) return;
+    if (completedExercises.has(activeExIdx)) return;
+    if (activeExerciseLogsRef.current[activeExIdx]) return;
+
+    // A real, recent (<=12h old) draft the user already typed into THIS
+    // exact schedule+exercise pair — e.g. after a reload mid-set — always
+    // wins over recomputing a fresh prefill. Synchronous (no network
+    // round-trip needed), so it reappears immediately rather than waiting
+    // on previous-performance/progression to resolve.
+    const restoredDraft = readPersistedActiveLogDraft(
+      selectedSchedule()?.id ?? null,
+      exerciseDbId,
+    );
+    if (restoredDraft) {
+      const next = {
+        ...activeExerciseLogsRef.current,
+        [activeExIdx]: {
+          setType: "WORKING",
+          tempo: "",
+          setTechnique: "STRAIGHT",
+          segments: [],
+          ...restoredDraft,
+        },
+      };
+      activeExerciseLogsRef.current = next;
+      setActiveExerciseLogs(next);
+      return;
+    }
+
+    const previous = previousPerformanceByExercise[exerciseDbId];
+    const progression = progressionByExercise[exerciseDbId];
+    if (previous === undefined || progression === undefined) return;
+
+    // Roadmap P1.1 "true set-by-set table UI" — when the real per-set
+    // skeleton has loaded, prefer THIS set's own previous actual (set 3
+    // should reference set 3's own history) over always set 1's. Falls
+    // back to the pre-existing behavior (undefined targetSetNumber) when
+    // the skeleton hasn't loaded yet — never blocks prefill on it.
+    const setRows = curEx?.programExerciseId
+      ? workoutSetsByExercise[curEx.programExerciseId]
+      : undefined;
+    const targetSetNumber = setRows?.find((row) => !row.completed)?.setNumber;
+    const plannedSet = (curEx as any)?.setPrescriptions?.find(
+      (prescription: any) => prescription.setNumber === targetSetNumber,
+    );
+
+    const selected = selectSmartSetPrefill({
+      loggingMode: exerciseLoggingMode(curEx),
+      progression,
+      previousSets: previous?.hasHistory ? previous.sets : [],
+      exerciseDefaults: {
+        weight: curEx?.weight ?? null,
+        bodyWeightAtSetKg: curEx?.bodyWeightAtSetKg ?? null,
+        reps: curEx?.reps ?? null,
+        durationSeconds: curEx?.durationSeconds ?? null,
+        distanceMeters: curEx?.distanceMeters ?? null,
+        rpe: curEx?.rpe ?? null,
+        rir: curEx?.rir ?? null,
+      },
+      userCurrentWeightKg: userProfile?.currentWeight ?? null,
+      targetSetNumber,
+    });
+
+    setSmartPrefillSourceByExercise((prev) => ({
+      ...prev,
+      [exerciseDbId]: selected.source,
+    }));
+    const next = {
+      ...activeExerciseLogsRef.current,
+      [activeExIdx]: {
+        ...selected.draft,
+        setType:
+          setRows?.find((row) => row.setNumber === targetSetNumber)?.setType ??
+          selected.draft.setType,
+        tempo:
+          setRows?.find((row) => row.setNumber === targetSetNumber)?.tempo ??
+          selected.draft.tempo,
+        reps:
+          plannedSet?.isAmrap === true
+            ? String(plannedSet.minReps ?? plannedSet.targetReps ?? curEx?.reps ?? "")
+            : selected.draft.reps,
+        setTechnique: "STRAIGHT",
+        segments: [],
+      },
+    };
+    activeExerciseLogsRef.current = next;
+    setActiveExerciseLogs(next);
+  }, [
+    activeExIdx,
+    completedExercises,
+    dayExercises,
+    previousPerformanceByExercise,
+    progressionByExercise,
+    userProfile?.currentWeight,
+    workoutSetsByExercise,
+  ]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)
@@ -2354,8 +3556,17 @@ export function WorkoutLogPage() {
       date: toApiDateTime(saveDate),
       duration: Math.max(1, Math.ceil(timerSeconds / 60)),
       exercises: dayExercises.map((exercise, index) => {
-        const log = activeExerciseLogs[index];
+        const log = activeExerciseLogsRef.current[index] ?? activeExerciseLogs[index];
         const weight = log?.noWeight ? undefined : Number(log?.weightKg);
+        const bodyWeightAtSetKg = Number(log?.bodyWeightAtSetKg);
+        const durationSecondsValue = Number(log?.durationSeconds);
+        const distanceMetersValue = Number(log?.distanceMeters);
+        // Roadmap P1.1 "bodyweight reps editable prefill" — same gating as
+        // the completeScheduleExercise path above: only BODYWEIGHT_REPS has
+        // a real editable reps control, so only it can override the fixed
+        // program prescription here.
+        const repsValue =
+          exerciseLoggingMode(exercise) === "BODYWEIGHT_REPS" ? Number(log?.reps) : NaN;
         // exercise.dbId already reflects any session-only swap (see
         // handleSelectSwap) — logging the substitute's real id here is the
         // ACCURATE record of what was actually performed, not a corruption
@@ -2367,12 +3578,27 @@ export function WorkoutLogPage() {
         return {
           exerciseId: exercise.dbId,
           sets: Number(exercise.sets) || 1,
-          reps: Number(exercise.reps) || undefined,
+          reps:
+            Number.isFinite(repsValue) && repsValue > 0
+              ? repsValue
+              : Number(exercise.reps) || undefined,
           duration:
-            exercise.type === "cardio"
-              ? Number(exercise.duration) || undefined
+            Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+              ? durationSecondsValue
+              : exercise.durationSeconds ?? exercise.duration ?? undefined,
+          durationSeconds:
+            Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+              ? durationSecondsValue
+              : undefined,
+          distanceMeters:
+            Number.isFinite(distanceMetersValue) && distanceMetersValue > 0
+              ? distanceMetersValue
               : undefined,
           weight: Number.isFinite(weight) ? weight : undefined,
+          bodyWeightAtSetKg:
+            Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+              ? bodyWeightAtSetKg
+              : undefined,
           rpe: log?.rpe,
           rir: log?.rir,
           notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
@@ -2397,7 +3623,7 @@ export function WorkoutLogPage() {
       );
       return;
     }
-    const currentLog = activeExerciseLogs[activeExIdx];
+    const currentLog = activeExerciseLogsRef.current[activeExIdx] ?? activeExerciseLogs[activeExIdx];
     const needsWeight = exerciseUsesExternalWeight(dayExercises[activeExIdx]);
     if (needsWeight && !currentLog?.noWeight) {
       const weight = Number(currentLog?.weightKg);
@@ -2408,9 +3634,63 @@ export function WorkoutLogPage() {
         return;
       }
     }
+    const completingLoggingMode = exerciseLoggingMode(dayExercises[activeExIdx]);
+    if (completingLoggingMode === "TIME" || completingLoggingMode === "TIME_LOAD") {
+      const duration = Number(currentLog?.durationSeconds);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        toast.error("Vui lòng nhập thời gian thực hiện cho bài này.");
+        return;
+      }
+    }
+    if (completingLoggingMode === "DISTANCE_TIME") {
+      const distance = Number(currentLog?.distanceMeters);
+      const duration = Number(currentLog?.durationSeconds);
+      if ((!Number.isFinite(distance) || distance <= 0) && (!Number.isFinite(duration) || duration <= 0)) {
+        toast.error("Vui lòng nhập quãng đường hoặc thời gian cho bài cardio này.");
+        return;
+      }
+    }
 
     const scheduleForCompletion = selectedSchedule();
     const currentExercise = dayExercises[activeExIdx];
+
+    // Roadmap P1.1 "true set-by-set table UI" — a genuinely multi-set
+    // exercise (real skeleton loaded, >1 planned set) ALWAYS completes via
+    // the per-row PATCH /workouts/sets/:setId, for BOTH an interior set and
+    // the set that closes out the exercise. It must never fall through to
+    // completeScheduleExercise below: that call's "re-completion" branch
+    // unconditionally overwrites EVERY sibling WorkoutSet's weight/reps/etc
+    // with the one value it was given, which would silently corrupt the
+    // other already-independently-logged sets' distinct values — see
+    // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md. A genuine 1-set
+    // exercise (or the skeleton not having loaded yet, or the ad-hoc/
+    // freeform no-schedule path) keeps using the existing bulk path exactly
+    // as before — there is no sibling set to protect there.
+    const setRowsForCurEx = currentExercise?.programExerciseId
+      ? workoutSetsByExercise[currentExercise.programExerciseId]
+      : undefined;
+    const activeSetRowForCompletion = setRowsForCurEx?.find((row) => !row.completed);
+    // Computed BEFORE this completion, so it reflects "how many were still
+    // incomplete including the one about to be completed" — 1 means this
+    // IS the closing set. Passed explicitly rather than inferred from the
+    // server response, so there's no ambiguity about which set closed out.
+    const remainingSetCountBeforeThis = setRowsForCurEx?.filter((row) => !row.completed).length ?? 0;
+    if (
+      scheduleForCompletion?.id &&
+      setRowsForCurEx &&
+      setRowsForCurEx.length > 1 &&
+      activeSetRowForCompletion?.id
+    ) {
+      await handleCompletePerSetRow(
+        currentExercise,
+        activeSetRowForCompletion,
+        currentLog,
+        scheduleForCompletion.id,
+        remainingSetCountBeforeThis <= 1,
+      );
+      return;
+    }
+
     const previousCompleted = completedExercises;
     const newCompleted = new Set(completedExercises);
 
@@ -2454,26 +3734,96 @@ export function WorkoutLogPage() {
         // persistCompletedWorkout's ad-hoc-workout payload below, kept
         // consistent so both logging paths record the same thing.
         const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
+        const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
+        const durationSecondsValue = Number(currentLog?.durationSeconds);
+        const distanceMetersValue = Number(currentLog?.distanceMeters);
+        // Roadmap P1.1 "bodyweight reps editable prefill" — reps is only a
+        // real editable control for BODYWEIGHT_REPS today (see the RulerSlider
+        // gate above); every other mode omits it, exactly as before this
+        // change, so the backend keeps falling back to the fixed program
+        // prescription for them (workout.service.ts completeScheduleExercise,
+        // unchanged).
+        const repsValue =
+          exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS"
+            ? Number(currentLog?.reps)
+            : NaN;
         const notesParts = [
           currentLog?.noWeight ? "Không dùng tạ" : undefined,
           swapNotes[activeExIdx],
         ].filter(Boolean);
-        const result = await workoutService.completeScheduleExercise(
-          scheduleForCompletion.id,
-          resolvedProgramExerciseId,
-          {
-            exerciseId: currentExercise.dbId || undefined,
-            weight: Number.isFinite(weight) ? weight : undefined,
-            rpe: currentLog?.rpe,
-            rir: currentLog?.rir,
-            notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
-          },
-        );
+        const payload = {
+          exerciseId: currentExercise.dbId || undefined,
+          weight: Number.isFinite(weight) ? weight : undefined,
+          reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
+          bodyWeightAtSetKg:
+            Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+              ? bodyWeightAtSetKg
+              : undefined,
+          // TIME/TIME_LOAD/DISTANCE_TIME (openGym P0-completion pass) —
+          // real, separate fields, never folded into `weight`. See
+          // docs/OPENGYM_P0_COMPLETION_REPORT.md's "Bugs found" for the
+          // exact bug this replaces (duration silently stored as kg).
+          durationSeconds: Number.isFinite(durationSecondsValue) && durationSecondsValue > 0 ? durationSecondsValue : undefined,
+          distanceMeters: Number.isFinite(distanceMetersValue) && distanceMetersValue > 0 ? distanceMetersValue : undefined,
+          rpe: currentLog?.rpe,
+          rir: currentLog?.rir,
+          notes: notesParts.length > 0 ? notesParts.join(" · ") : undefined,
+        };
+        let result: any;
+        try {
+          result = await workoutService.completeScheduleExercise(
+            scheduleForCompletion.id,
+            resolvedProgramExerciseId,
+            payload,
+          );
+        } catch (networkError: any) {
+          // Roadmap P1.4 "Active-workout offline resilience" — same
+          // offline-vs-real-error distinction as handleCompletePerSetRow.
+          // Covers the bulk completion path: a 1-set exercise, the
+          // exercise-closing set of a multi-set exercise's skeleton not
+          // having loaded yet, or the ad-hoc/freeform path all reach here.
+          if (networkError?.response) throw networkError;
+          const eventId = crypto.randomUUID();
+          await enqueueWorkoutEvent({
+            eventId,
+            type: "EXERCISE_COMPLETED",
+            createdAt: Date.now(),
+            method: "POST",
+            url: `/workouts/schedules/${scheduleForCompletion.id}/exercises/${resolvedProgramExerciseId}/complete`,
+            body: { ...payload, eventId },
+          });
+          setPendingSyncCount((n) => n + 1);
+          newCompleted.add(activeExIdx);
+          setCompletedExercises(newCompleted);
+          if (currentExercise?.dbId) {
+            clearPersistedActiveLogDraft(scheduleForCompletion.id, currentExercise.dbId);
+          }
+          setIsCompletingWorkout(false);
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          if (activeExIdx >= dayExercises.length - 1) {
+            // Deliberately NOT the completion screen/confetti/PR summary —
+            // see the impact analysis's "Conflict strategy".
+            toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
+          } else {
+            startRestTimer(
+              computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
+            );
+            setActiveExIdx(activeExIdx + 1);
+            toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
+          }
+          return;
+        }
         applyScheduleProgress(scheduleForCompletion.id, result);
         if (result.workoutId) setCurrentWorkoutId(result.workoutId);
         setSelectedScheduleId(scheduleForCompletion.id);
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
+        // A completed exercise's draft is now a real persisted set — never
+        // resurrect it as an editable draft on some future re-visit.
+        if (currentExercise?.dbId) {
+          clearPersistedActiveLogDraft(scheduleForCompletion.id, currentExercise.dbId);
+        }
 
         if (
           result.progressPercent >= 100 ||
@@ -2494,6 +3844,9 @@ export function WorkoutLogPage() {
       } else {
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
+        if (currentExercise?.dbId) {
+          clearPersistedActiveLogDraft(selectedSchedule()?.id ?? null, currentExercise.dbId);
+        }
         if (newCompleted.size === dayExercises.length) {
           const savedWorkoutId = await persistCompletedWorkout();
           setShowCompletion(true);
@@ -2516,9 +3869,416 @@ export function WorkoutLogPage() {
       setTimerSeconds(0);
     }
     if (activeExIdx < dayExercises.length - 1) {
-      setRestSeconds(90);
-      setRestTimerRunning(true);
+      const undoExIdx = activeExIdx;
+      const undoScheduleId = scheduleForCompletion?.id;
+      const undoProgramExerciseId = resolvedProgramExerciseId;
+      const undoExerciseName = currentExercise?.name;
+      // Roadmap P1.3 "Superset / exercise grouping" — short rest advancing
+      // to a fellow group member, real rest once the group's last member
+      // is done; unchanged default-90 for an ungrouped exercise.
+      startRestTimer(
+        computeNextExerciseRestSeconds(currentExercise as any, dayExercises[activeExIdx + 1] as any),
+      );
       setActiveExIdx(activeExIdx + 1);
+      // Roadmap P1.6 "undo last set" — only offered right after completing a
+      // NON-final exercise (see docs/features/UNDO_LAST_SET_IMPACT_ANALYSIS.md
+      // for why the final exercise, which triggers the whole-workout
+      // completion screen/PR summary/cycle-feedback prompt, is deliberately
+      // out of scope). Undoing restores the exact values just submitted —
+      // never a blank input — so correcting a mistake is "undo, fix, submit
+      // again", not "undo, re-enter everything".
+      if (undoScheduleId && undoProgramExerciseId) {
+        toast(`Đã hoàn thành "${undoExerciseName}"`, {
+          action: {
+            label: "Hoàn tác",
+            onClick: () => {
+              void handleUndoExerciseCompletion(
+                undoExIdx,
+                undoScheduleId,
+                undoProgramExerciseId,
+                currentLog,
+              );
+            },
+          },
+          duration: 8_000,
+        });
+      }
+    }
+  };
+
+  // Roadmap P1.1 "true set-by-set table UI" — completes ONE interior set
+  // (interior OR the set that closes out the exercise — see
+  // handleCompleteExercise's own comment for why the closing set must ALSO
+  // go through this per-row path rather than completeScheduleExercise for
+  // a genuinely multi-set exercise). Uses updateSet's now-included
+  // `progress` field (see workout.service.ts's updateSet, same
+  // WorkoutProgressSummary shape completeScheduleExercise already
+  // returns) to learn whether that was the exercise's last remaining set,
+  // and if so runs the EXACT same advance/whole-workout-completion tail
+  // handleCompleteExercise's own bulk path already used — just reached via
+  // a safe per-row write instead of one that would have overwritten every
+  // sibling set's distinct values.
+  const handleCompletePerSetRow = async (
+    currentExercise: any,
+    setRow: WorkoutSetRow,
+    currentLog: ActiveExerciseLog | undefined,
+    scheduleId: string,
+    isClosingSet: boolean,
+  ) => {
+    const programExerciseId = currentExercise.programExerciseId as string;
+    const exIdx = activeExIdx;
+    const nextInterleavedStep = computeNextInterleavedWorkoutStep(
+      dayExercises as any,
+      workoutSetsByExercise,
+      exIdx,
+      setRow.setNumber,
+    );
+    setIsCompletingWorkout(true);
+    try {
+      const weight = currentLog?.noWeight ? undefined : Number(currentLog?.weightKg);
+      const bodyWeightAtSetKg = Number(currentLog?.bodyWeightAtSetKg);
+      const durationSecondsValue = Number(currentLog?.durationSeconds);
+      const distanceMetersValue = Number(currentLog?.distanceMeters);
+      const plannedSet = (currentExercise as any)?.setPrescriptions?.find(
+        (prescription: any) => prescription.setNumber === setRow.setNumber,
+      );
+      const acceptsEditableReps =
+        exerciseLoggingMode(currentExercise) === "BODYWEIGHT_REPS" ||
+        plannedSet?.isAmrap === true;
+      const repsValue =
+        acceptsEditableReps
+          ? Number(currentLog?.reps)
+          : NaN;
+      const patch = {
+        weight: Number.isFinite(weight) ? weight : undefined,
+        reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : undefined,
+        bodyWeightAtSetKg:
+          Number.isFinite(bodyWeightAtSetKg) && bodyWeightAtSetKg > 0
+            ? bodyWeightAtSetKg
+            : undefined,
+        durationSeconds:
+          Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+            ? durationSecondsValue
+            : undefined,
+        distanceMeters:
+          Number.isFinite(distanceMetersValue) && distanceMetersValue > 0
+            ? distanceMetersValue
+            : undefined,
+        rpe: currentLog?.rpe,
+        rir: currentLog?.rir,
+        tempo: normalizeTempo(currentLog?.tempo),
+        setType: currentLog?.setType || "WORKING",
+        segments: currentLog ? buildSetChainSegments(currentLog) : [],
+        completed: true,
+      };
+
+      let updated: any;
+      try {
+        updated = await workoutService.updateSet(setRow.id, patch);
+      } catch (networkError: any) {
+        // Roadmap P1.4 "Active-workout offline resilience" — `!response`
+        // means the request never reached the server at all (offline, DNS
+        // failure, timeout) as opposed to the server actively rejecting
+        // it (a real validation/lock/conflict error, which must still
+        // surface normally, never silently queued). Queue it durably,
+        // apply the SAME optimistic local state a successful call would
+        // have produced, and stop here — the drain effect confirms the
+        // real outcome (including any whole-workout celebration) once
+        // reconnected, never guessed from here.
+        if (networkError?.response) throw networkError;
+        const eventId = crypto.randomUUID();
+        await enqueueWorkoutEvent(
+          buildQueuedSetEvent({ eventId, setId: setRow.id, type: "SET_COMPLETED", patch }),
+        );
+        setPendingSyncCount((n) => n + 1);
+
+        setWorkoutSetsByExercise((prev) => {
+          const rows = prev[programExerciseId] ?? [];
+          return {
+            ...prev,
+            [programExerciseId]: rows.map((row) =>
+              row.id === setRow.id ? { ...row, completed: true, ...patch } : row,
+            ),
+          };
+        });
+        if (currentExercise?.dbId) clearPersistedActiveLogDraft(scheduleId, currentExercise.dbId);
+
+        if (isClosingSet) {
+          setCompletedExercises((prev) => new Set(prev).add(exIdx));
+          if (nextInterleavedStep) {
+            setTimerRunning(false);
+            setTimerSeconds(0);
+            startRestTimer(nextInterleavedStep.restSeconds);
+            setActiveExIdx(nextInterleavedStep.exerciseIndex);
+            toast.success(`ÄÃ£ lÆ°u "${currentExercise?.name}" (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
+          } else if (exIdx < dayExercises.length - 1) {
+            setTimerRunning(false);
+            setTimerSeconds(0);
+            startRestTimer(
+              computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
+            );
+            setActiveExIdx(exIdx + 1);
+            toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
+          } else {
+            // Deliberately NOT the completion screen/confetti/PR summary —
+            // those require the server's own numbers, never shown from an
+            // offline guess (see impact analysis's "Conflict strategy").
+            toast.success("Đã lưu buổi tập (offline) — sẽ đồng bộ và hiển thị kết quả khi có mạng.");
+          }
+        } else if (nextInterleavedStep) {
+          const nextLogs = { ...activeExerciseLogsRef.current };
+          delete nextLogs[exIdx];
+          activeExerciseLogsRef.current = nextLogs;
+          setActiveExerciseLogs(nextLogs);
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          startRestTimer(nextInterleavedStep.restSeconds);
+          setActiveExIdx(nextInterleavedStep.exerciseIndex);
+          toast.success(`ÄÃ£ lÆ°u set ${setRow.setNumber} (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
+        } else {
+          const nextLogs = { ...activeExerciseLogsRef.current };
+          delete nextLogs[exIdx];
+          activeExerciseLogsRef.current = nextLogs;
+          setActiveExerciseLogs(nextLogs);
+          startRestTimer(90);
+          toast.success(`Đã lưu set ${setRow.setNumber} (offline) — sẽ đồng bộ khi có mạng.`);
+        }
+        return;
+      }
+
+      setWorkoutSetsByExercise((prev) => {
+        const rows = prev[programExerciseId] ?? [];
+        return {
+          ...prev,
+          [programExerciseId]: rows.map((row) =>
+            row.id === setRow.id
+              ? {
+                  ...row,
+                  completed: true,
+                  weight: updated?.weight ?? row.weight,
+                  reps: updated?.reps ?? row.reps,
+                  rpe: updated?.rpe ?? row.rpe,
+                  rir: updated?.rir ?? row.rir,
+                  setType: updated?.setType ?? row.setType,
+                  tempo: updated?.tempo ?? row.tempo,
+                  bodyWeightAtSetKg: updated?.bodyWeightAtSetKg ?? row.bodyWeightAtSetKg,
+                  durationSeconds: updated?.durationSeconds ?? row.durationSeconds,
+                  distanceMeters: updated?.distanceMeters ?? row.distanceMeters,
+                  segments: updated?.segments ?? row.segments,
+                }
+              : row,
+          ),
+        };
+      });
+
+      if (currentExercise?.dbId) {
+        clearPersistedActiveLogDraft(scheduleId, currentExercise.dbId);
+      }
+
+      const result = updated?.progress;
+
+      if (isClosingSet && result) {
+        applyScheduleProgress(scheduleId, result);
+        if (result.workoutId) setCurrentWorkoutId(result.workoutId);
+        setSelectedScheduleId(scheduleId);
+        setCompletedExercises((prev) => new Set(prev).add(exIdx));
+
+        if (result.progressPercent >= 100 || result.completedExercises >= result.totalExercises) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          setShowCompletion(true);
+          if (result.workoutId) void loadCompletionSummary(result.workoutId);
+          if (result.trainingCycleId) {
+            setFeedbackPrompt({ scheduleId });
+          }
+          setTimeout(() => fireConfetti(), 300);
+          toast.success("Da luu hoan thanh buoi tap.");
+          void refetchProgramAndSchedules();
+          return;
+        }
+
+        // Exercise closed, more exercises remain — same advance/undo-toast
+        // tail as handleCompleteExercise's bulk path (roadmap P1.6),
+        // including resetting the elapsed-time ring for the new exercise
+        // (deliberately NOT reset for an interior same-exercise set below —
+        // it should keep running across a multi-set exercise's own sets).
+        if (nextInterleavedStep) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          startRestTimer(nextInterleavedStep.restSeconds);
+          setActiveExIdx(nextInterleavedStep.exerciseIndex);
+          toast(`ÄÃ£ hoÃ n thÃ nh "${currentExercise?.name}"`, {
+            action: {
+              label: "HoÃ n tÃ¡c",
+              onClick: () => {
+                void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, true);
+              },
+            },
+            duration: 8_000,
+          });
+        } else if (exIdx < dayExercises.length - 1) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          // Roadmap P1.3 "Superset / exercise grouping" — same group-aware
+          // rest as handleCompleteExercise's bulk path above.
+          startRestTimer(
+            computeNextExerciseRestSeconds(currentExercise as any, dayExercises[exIdx + 1] as any),
+          );
+          setActiveExIdx(exIdx + 1);
+          toast(`Đã hoàn thành "${currentExercise?.name}"`, {
+            action: {
+              label: "Hoàn tác",
+              onClick: () => {
+                void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, true);
+              },
+            },
+            duration: 8_000,
+          });
+        }
+        return;
+      }
+
+      // Interior set — stay on this exercise, advance to the next row.
+      // Force a fresh prefill for it — otherwise the smart-prefill effect's
+      // own "already have a draft, do nothing" guard would leave the
+      // just-submitted (now stale) values sitting there.
+      const nextLogs = { ...activeExerciseLogsRef.current };
+      delete nextLogs[exIdx];
+      activeExerciseLogsRef.current = nextLogs;
+      setActiveExerciseLogs(nextLogs);
+
+      if (nextInterleavedStep) {
+        setTimerRunning(false);
+        setTimerSeconds(0);
+        startRestTimer(nextInterleavedStep.restSeconds);
+        setActiveExIdx(nextInterleavedStep.exerciseIndex);
+      } else {
+        startRestTimer(90);
+      }
+
+      toast(`Đã hoàn thành set ${setRow.setNumber}`, {
+        action: {
+          label: "Hoàn tác",
+          onClick: () => {
+            void handleUndoSetRow(exIdx, programExerciseId, setRow.id, currentLog, false);
+          },
+        },
+        duration: 8_000,
+      });
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể lưu trạng thái hoàn thành set.",
+      );
+    } finally {
+      setIsCompletingWorkout(false);
+    }
+  };
+
+  // Roadmap P1.1 "true set-by-set table UI" — reverts ONE set via the same
+  // safe PATCH /workouts/sets/:setId, regardless of whether it was an
+  // interior set or the one that closed out the exercise. `wasClosingSet`
+  // gates the extra exercise-level state reversal (completedExercises,
+  // activeExIdx, and — for the rare case this was also the day's very last
+  // set — the whole-workout completion screen); every one of those setters
+  // is a safe no-op for an interior-set undo (it never changed them in the
+  // first place), so this stays correct without branching on it internally.
+  const handleUndoSetRow = async (
+    exIdx: number,
+    programExerciseId: string,
+    setId: string,
+    submittedLog: ActiveExerciseLog | undefined,
+    wasClosingSet: boolean,
+  ) => {
+    try {
+      let queuedOffline = false;
+      try {
+        await workoutService.updateSet(setId, { completed: false });
+      } catch (networkError: any) {
+        // Roadmap P1.4 — same offline-vs-real-error distinction as
+        // handleCompletePerSetRow above.
+        if (networkError?.response) throw networkError;
+        const eventId = crypto.randomUUID();
+        await enqueueWorkoutEvent(
+          buildQueuedSetEvent({ eventId, setId, type: "SET_UNDONE", patch: { completed: false } }),
+        );
+        setPendingSyncCount((n) => n + 1);
+        queuedOffline = true;
+      }
+      setWorkoutSetsByExercise((prev) => {
+        const rows = prev[programExerciseId] ?? [];
+        return {
+          ...prev,
+          [programExerciseId]: rows.map((row) =>
+            row.id === setId ? { ...row, completed: false } : row,
+          ),
+        };
+      });
+      if (wasClosingSet) {
+        setCompletedExercises((prev) => {
+          const next = new Set(prev);
+          next.delete(exIdx);
+          return next;
+        });
+        setShowCompletion(false);
+        setCompletionSummary(null);
+        setFeedbackPrompt(null);
+      }
+      setActiveExIdx(exIdx);
+      setRestTimerRunning(false);
+      clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      if (submittedLog) {
+        const nextLogs = { ...activeExerciseLogsRef.current, [exIdx]: submittedLog };
+        activeExerciseLogsRef.current = nextLogs;
+        setActiveExerciseLogs(nextLogs);
+      }
+      toast.success(
+        queuedOffline
+          ? "Đã hoàn tác (offline) — sẽ đồng bộ khi có mạng."
+          : "Đã hoàn tác set vừa hoàn thành.",
+      );
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể hoàn tác. Bạn có thể sửa và hoàn thành lại set.",
+      );
+    }
+  };
+
+  // Reverts one exercise's completion — see the toast action above for the
+  // only place this is wired up. Restores the just-submitted draft values
+  // (never blank) and cancels the rest timer that completion started.
+  const handleUndoExerciseCompletion = async (
+    exIdx: number,
+    scheduleId: string,
+    programExerciseId: string,
+    submittedLog: ActiveExerciseLog | undefined,
+  ) => {
+    try {
+      const result = await workoutService.undoCompleteScheduleExercise(
+        scheduleId,
+        programExerciseId,
+      );
+      applyScheduleProgress(scheduleId, result);
+      setCompletedExercises((prev) => {
+        const next = new Set(prev);
+        next.delete(exIdx);
+        return next;
+      });
+      setActiveExIdx(exIdx);
+      setRestTimerRunning(false);
+      clearPersistedRestTimer(scheduleId);
+      if (submittedLog) {
+        const nextLogs = {
+          ...activeExerciseLogsRef.current,
+          [exIdx]: submittedLog,
+        };
+        activeExerciseLogsRef.current = nextLogs;
+        setActiveExerciseLogs(nextLogs);
+      }
+      toast.success("Đã hoàn tác bài tập vừa hoàn thành.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error || "Không thể hoàn tác. Bạn có thể sửa và hoàn thành lại bài tập.",
+      );
     }
   };
 
@@ -2526,8 +4286,7 @@ export function WorkoutLogPage() {
     if (activeExIdx >= dayExercises.length - 1) return;
     setTimerRunning(false);
     setTimerSeconds(0);
-    setRestSeconds(90);
-    setRestTimerRunning(true);
+    startRestTimer(90);
     setActiveExIdx((index) => Math.min(index + 1, dayExercises.length - 1));
   };
 
@@ -2539,11 +4298,22 @@ export function WorkoutLogPage() {
       setTimerRunning(false);
       setTimerSeconds(0);
       setRestTimerRunning(false);
+      clearPersistedRestTimer(selectedSchedule()?.id ?? null);
+      restTimerRestoredForRef.current = null;
       setShowCompletion(false);
       setCompletionSummary(null);
       setActiveExerciseLogs({});
       setIsCompletingWorkout(false);
+      // Same "deliberate exit, not a transient blip" semantics as the rest
+      // timer just above — a user who intentionally backs out of the active
+      // view should not have their old drafts silently reappear on some
+      // later, unrelated visit to this same day.
+      const scheduleIdForCleanup = selectedSchedule()?.id ?? null;
+      dayExercises.forEach((ex) => {
+        if (ex?.dbId) clearPersistedActiveLogDraft(scheduleIdForCleanup, ex.dbId);
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planView]);
 
   const bodyMetricHistoryAsc = useMemo(() => {
@@ -3915,6 +5685,38 @@ export function WorkoutLogPage() {
                       );
                     })()}
 
+                    {/* Reschedule — roadmap P1.2. Deliberately NOT gated on
+                     * isSelectedDayLocked (unlike skip/cancel above): a
+                     * missed PAST session must be reschedulable (the whole
+                     * point of the feature), and so must a future one.
+                     * Backend independently re-checks status==="NOT_STARTED"
+                     * — this is the same condition, just mirrored here so
+                     * the button doesn't invite an action the server will
+                     * reject anyway. */}
+                    {(() => {
+                      const hasExistingSession = Boolean(
+                        detailSchedule?.workoutId || detailSchedule?.workout?.id,
+                      );
+                      if (!detailSchedule?.id || hasExistingSession) return null;
+                      if (detailSchedule.status !== "NOT_STARTED") return null;
+                      return (
+                        <button
+                          data-testid="reschedule-trigger"
+                          onClick={() =>
+                            setReschedulePrompt({
+                              scheduleId: detailSchedule.id,
+                              currentDateLabel: parseApiDateOnly(
+                                detailSchedule.date,
+                              ).toLocaleDateString("vi-VN"),
+                            })
+                          }
+                          className="w-full mt-2 py-2 rounded-xl border border-zinc-700/40 text-[11px] text-zinc-500 hover:text-sky-300 hover:bg-zinc-800/40 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <CalendarDays className="w-3 h-3" /> Dời lịch buổi tập
+                        </button>
+                      );
+                    })()}
+
                     {detailSchedule?.id &&
                       (detailSchedule.status === "COMPLETED" || detailSchedule.status === "PARTIALLY_COMPLETED") && (
                         <SessionFeedbackStatusRow
@@ -3939,10 +5741,27 @@ export function WorkoutLogPage() {
                             {isSaving ? "Đang lưu..." : "Đã lưu"}
                           </span>
                         )}
+                        {/* Roadmap P1.3 "Superset / exercise grouping". */}
+                        <button
+                          data-testid="group-selection-toggle"
+                          onClick={() => {
+                            setGroupSelectionMode((prev) => !prev);
+                            setSelectedForGroup(new Set());
+                          }}
+                          className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-lg border ${
+                            groupSelectionMode
+                              ? "text-sky-300 bg-sky-500/10 border-sky-500/25"
+                              : "text-zinc-400 hover:text-zinc-300 bg-zinc-800/40 border-zinc-700/25 hover:border-zinc-600/30"
+                          }`}
+                        >
+                          <Repeat className="w-3 h-3" /> {groupSelectionMode ? "Hủy nhóm bài" : "Nhóm bài"}
+                        </button>
                         <button
                           onClick={() => {
                             setDayExercises(editExercises);
                             setEditMode(false);
+                            setGroupSelectionMode(false);
+                            setSelectedForGroup(new Set());
                           }}
                           className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
                         >
@@ -3967,6 +5786,7 @@ export function WorkoutLogPage() {
                       </span>
                     ) : (
                       <button
+                        data-testid="exercise-list-edit-button"
                         onClick={() => {
                           setEditExercises([...dayExercises]);
                           setEditMode(true);
@@ -3981,6 +5801,52 @@ export function WorkoutLogPage() {
                   {editMode ? (
                     /* ── Edit Mode: reorderable list ── */
                     <div className="space-y-2 mt-4">
+                      {groupSelectionMode && (
+                        <div
+                          data-testid="group-selection-bar"
+                          className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3 space-y-2.5"
+                        >
+                          <p className="text-xs text-sky-200">
+                            Chọn ít nhất 2 bài tập để nhóm thành superset/triset/circuit — đang chọn{" "}
+                            {selectedForGroup.size}.
+                          </p>
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <label className="flex items-center gap-1.5 text-[11px] text-sky-200/80">
+                              Nghỉ giữa các bài (s)
+                              <input
+                                type="number"
+                                data-testid="group-rest-between-input"
+                                min={0}
+                                max={300}
+                                value={groupRestBetween}
+                                onChange={(e) => setGroupRestBetween(Number(e.target.value) || 0)}
+                                className="w-16 rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                              />
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-sky-200/80">
+                              Nghỉ sau mỗi round (s)
+                              <input
+                                type="number"
+                                data-testid="group-rest-after-round-input"
+                                min={0}
+                                max={600}
+                                value={groupRestAfterRound}
+                                onChange={(e) => setGroupRestAfterRound(Number(e.target.value) || 0)}
+                                className="w-16 rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/50"
+                              />
+                            </label>
+                            <button
+                              data-testid="create-group-button"
+                              onClick={handleCreateGroup}
+                              disabled={selectedForGroup.size < 2 || isCreatingGroup}
+                              className="ml-auto shrink-0 flex items-center gap-1.5 text-xs text-black bg-sky-400 hover:bg-sky-300 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-all"
+                            >
+                              {isCreatingGroup && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Tạo nhóm ({selectedForGroup.size})
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {isLoading ? (
                         <div className="py-12 flex flex-col items-center justify-center space-y-4">
                           <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
@@ -4010,6 +5876,27 @@ export function WorkoutLogPage() {
                                 : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
                             }`}
                           >
+                            {/* Roadmap P1.3 "Superset / exercise grouping"
+                                — checkbox only while actively selecting;
+                                an already-grouped exercise can't be
+                                selected again (must ungroup first). */}
+                            {groupSelectionMode && (
+                              <input
+                                type="checkbox"
+                                data-testid={`group-select-checkbox-${ex.id}`}
+                                checked={selectedForGroup.has(ex.id)}
+                                disabled={Boolean(ex.groupId)}
+                                onChange={(e) => {
+                                  setSelectedForGroup((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(ex.id);
+                                    else next.delete(ex.id);
+                                    return next;
+                                  });
+                                }}
+                                className="mt-1.5 w-4 h-4 rounded border-zinc-700 bg-zinc-800 accent-sky-500 disabled:opacity-30"
+                              />
+                            )}
                             <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors">
                               <GripVertical className="w-4 h-4" />
                             </div>
@@ -4034,6 +5921,26 @@ export function WorkoutLogPage() {
                               <p className="text-xs text-zinc-500 mt-0.5">
                                 {ex.prescription}
                               </p>
+                              {ex.groupId && (
+                                <div className="mt-1 flex items-center gap-1.5">
+                                  <span
+                                    data-testid={`edit-group-badge-${ex.id}`}
+                                    className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-300"
+                                  >
+                                    {GROUP_TYPE_LABEL_VI[ex.groupType] ?? "Nhóm bài"} · Bài {ex.groupOrder + 1}
+                                  </span>
+                                  {!groupSelectionMode && (
+                                    <button
+                                      type="button"
+                                      data-testid={`ungroup-button-${ex.id}`}
+                                      onClick={() => void handleUngroupExercises(ex.groupId)}
+                                      className="text-[10px] text-zinc-600 hover:text-amber-400 transition-colors"
+                                    >
+                                      Bỏ nhóm
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                               <div className="mt-3 w-full max-w-xs space-y-3">
                                 {(
                                   [
@@ -4206,26 +6113,125 @@ export function WorkoutLogPage() {
           const progressPct =
             (completedExercises.size / dayExercises.length) * 100;
           const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
+          const curExLoggingMode = exerciseLoggingMode(curEx);
+          const allowsExternalWeight = exerciseAllowsExternalWeight(curEx);
+          const needsDuration =
+            curExLoggingMode === "TIME" ||
+            curExLoggingMode === "TIME_LOAD" ||
+            curExLoggingMode === "DISTANCE_TIME";
+          const needsDistance = curExLoggingMode === "DISTANCE_TIME";
           const activeLog = activeExerciseLogs[activeExIdx] || {
             weightKg: curEx?.weight != null ? String(curEx.weight) : "",
+            bodyWeightAtSetKg:
+              curEx?.bodyWeightAtSetKg != null
+                ? String(curEx.bodyWeightAtSetKg)
+                : userProfile?.currentWeight != null
+                  ? String(userProfile.currentWeight)
+                  : "",
+            durationSeconds: curEx?.durationSeconds != null ? String(curEx.durationSeconds) : "",
+            distanceMeters: curEx?.distanceMeters != null ? String(curEx.distanceMeters) : "",
+            tempo: "",
+            reps: curEx?.reps != null ? String(curEx.reps) : "",
             noWeight: !requiresExternalWeight,
             rpe: curEx?.rpe ?? 7,
             rir: curEx?.rir ?? 2,
+            setType: "WORKING",
+            setTechnique: "STRAIGHT" as const,
+            segments: [],
           };
+          const smartPrefillSource = curEx?.dbId
+            ? smartPrefillSourceByExercise[curEx.dbId]
+            : undefined;
+          // Roadmap P1.1 "true set-by-set table UI" — curExSetRows is
+          // `undefined` until the real per-set skeleton has loaded (or for
+          // the ad-hoc/freeform path, which never has one); every call site
+          // below must treat that the same as "fall back to today's
+          // exercise-level completion", never assume zero sets.
+          const curExSetRows: WorkoutSetRow[] | undefined = curEx?.programExerciseId
+            ? workoutSetsByExercise[curEx.programExerciseId]
+            : undefined;
+          const activeSetRowIndex = curExSetRows
+            ? curExSetRows.findIndex((row) => !row.completed)
+            : -1;
+          const activeSetRow = activeSetRowIndex >= 0 ? curExSetRows![activeSetRowIndex] : undefined;
+          const activePlannedSet = activeSetRow
+            ? (curEx as any)?.setPrescriptions?.find(
+                (prescription: any) => prescription.setNumber === activeSetRow.setNumber,
+              )
+            : undefined;
+          const showsEditableReps =
+            curExLoggingMode === "BODYWEIGHT_REPS" ||
+            activePlannedSet?.isAmrap === true;
+          const tempoIsValid = isValidTempo(activeLog.tempo);
+          const setChainIsValid = isSetChainValid(activeLog);
+          const currentInterleavedStep = activeSetRow
+            ? findCurrentInterleavedWorkoutStep(
+                dayExercises as any,
+                workoutSetsByExercise,
+                activeExIdx,
+                activeSetRow.setNumber,
+              )
+            : null;
+          const incompleteSetCount = curExSetRows
+            ? curExSetRows.filter((row) => !row.completed).length
+            : 0;
+          // Defaults to true (today's single bulk-complete behavior) when
+          // the skeleton hasn't loaded yet or there's nothing to key off —
+          // safe because that's exactly what happens today for every
+          // exercise, never a regression.
+          const isLastRemainingSet = curExSetRows ? incompleteSetCount <= 1 : true;
+          const previousSetForRow = (setNumber: number) =>
+            curEx?.dbId
+              ? previousPerformanceByExercise[curEx.dbId]?.sets?.find(
+                  (s: any) => s.setNumber === setNumber,
+                )
+              : undefined;
           const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
-            setActiveExerciseLogs((prev) => ({
-              ...prev,
-              [activeExIdx]: {
+            const prev = activeExerciseLogsRef.current;
+            const nextLog = {
                 weightKg:
                   prev[activeExIdx]?.weightKg ??
                   (curEx?.weight != null ? String(curEx.weight) : ""),
+                bodyWeightAtSetKg:
+                  prev[activeExIdx]?.bodyWeightAtSetKg ??
+                  (curEx?.bodyWeightAtSetKg != null
+                    ? String(curEx.bodyWeightAtSetKg)
+                    : userProfile?.currentWeight != null
+                      ? String(userProfile.currentWeight)
+                      : ""),
+                durationSeconds:
+                  prev[activeExIdx]?.durationSeconds ??
+                  (curEx?.durationSeconds != null ? String(curEx.durationSeconds) : ""),
+                distanceMeters:
+                  prev[activeExIdx]?.distanceMeters ??
+                  (curEx?.distanceMeters != null ? String(curEx.distanceMeters) : ""),
+                tempo: prev[activeExIdx]?.tempo ?? activeSetRow?.tempo ?? "",
+                reps:
+                  prev[activeExIdx]?.reps ??
+                  (curEx?.reps != null ? String(curEx.reps) : ""),
                 noWeight:
                   prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
                 rpe: prev[activeExIdx]?.rpe ?? curEx?.rpe ?? 7,
                 rir: prev[activeExIdx]?.rir ?? curEx?.rir ?? 2,
+                setType: prev[activeExIdx]?.setType ?? activeSetRow?.setType ?? "WORKING",
+                setTechnique: prev[activeExIdx]?.setTechnique ?? "STRAIGHT",
+                segments: prev[activeExIdx]?.segments ?? [],
                 ...patch,
-              },
-            }));
+              };
+            const next = {
+              ...prev,
+              [activeExIdx]: nextLog,
+            };
+            activeExerciseLogsRef.current = next;
+            setActiveExerciseLogs(next);
+            // Session-resume draft persistence (roadmap P1.7) — only from
+            // real user edits (this function), never from the smart-prefill
+            // effect's own initial write, so a reload before the user has
+            // touched anything just re-computes the same deterministic
+            // prefill fresh instead of persisting a redundant copy of it.
+            if (curEx?.dbId) {
+              persistActiveLogDraft(selectedSchedule()?.id ?? null, curEx.dbId, nextLog);
+            }
           };
           // Gym-onboarding project follow-up §9 — session-only swap: only
           // dayExercises[activeExIdx] changes (local state), never the
@@ -4289,8 +6295,31 @@ export function WorkoutLogPage() {
                       {curEx.name}
                     </span>
                   </h2>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+                    {/* Roadmap P1.3 "Superset / exercise grouping" — visual
+                        pairing indicator. Sequenced exercise-then-exercise
+                        this pass (see impact analysis's Scope decision),
+                        not truly interleaved — the badge communicates "you
+                        are doing a superset" without implying set-by-set
+                        alternation that doesn't happen yet. */}
+                    {(curEx as any).groupId && (
+                      <span
+                        data-testid="exercise-group-badge"
+                        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-300"
+                      >
+                        {GROUP_TYPE_LABEL_VI[(curEx as any).groupType] ?? "Nhóm bài"}
+                        {" · Bài "}
+                        {(curEx as any).groupOrder + 1}/
+                        {dayExercises.filter((e: any) => e.groupId === (curEx as any).groupId).length}
+                        {currentInterleavedStep && (
+                          <>
+                            {" · Round "}
+                            {currentInterleavedStep.roundNumber}/{currentInterleavedStep.totalRounds}
+                          </>
+                        )}
+                      </span>
+                    )}
                     {!isSelectedDayLocked && !isCompleted && (
                       <button
                         type="button"
@@ -4344,12 +6373,155 @@ export function WorkoutLogPage() {
                 </span>
               </div>
 
+              {/* Roadmap P1.4 "Active-workout offline resilience" — always
+                  visible sync state (acceptance criteria: "user knows
+                  whether workout is saved locally / syncing / synced").
+                  Rendered only when there's something to say — a fully
+                  synced session shows nothing extra here at all. */}
+              {(pendingSyncCount > 0 || isSyncingOffline) && (
+                <div
+                  data-testid="offline-sync-indicator"
+                  data-pending-count={pendingSyncCount}
+                  data-syncing={isSyncingOffline}
+                  className={`rounded-xl border p-2.5 flex items-center gap-2 text-xs ${
+                    isSyncingOffline
+                      ? "border-sky-500/20 bg-sky-500/5 text-sky-300"
+                      : "border-amber-500/20 bg-amber-500/5 text-amber-300"
+                  }`}
+                >
+                  {isSyncingOffline ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                  {isSyncingOffline
+                    ? "Đang đồng bộ..."
+                    : `${pendingSyncCount} thay đổi đã lưu offline, chờ đồng bộ`}
+                </div>
+              )}
+
+              {/* "Previous performance" — reference context only, never a
+                  recommendation/prefill (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+                  §3, §7: "previous performance" must stay visually distinct
+                  from any target). Absent while loading/failed/no-history —
+                  never a broken-looking placeholder. */}
+              {(() => {
+                const prevPerf = curEx?.dbId
+                  ? previousPerformanceByExercise[curEx.dbId]
+                  : undefined;
+                if (!prevPerf || !prevPerf.hasHistory) return null;
+                return (
+                  <div
+                    className="rounded-2xl bg-sky-500/5 border border-sky-500/15 p-4"
+                    data-testid="previous-performance-card"
+                  >
+                    <p className="text-xs text-sky-300 flex items-center gap-1.5 mb-2">
+                      <Clock className="w-3.5 h-3.5" /> Lần trước
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {prevPerf.sets.map((s) => (
+                        <span
+                          key={s.setNumber}
+                          className="px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/50 text-xs text-zinc-300"
+                        >
+                          {formatPerformanceSetLabel(s)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Deterministic per-exercise progression — "today's target" +
+                  "why", per docs/TRAINING_PROGRESSION_ARCHITECTURE.md §7.
+                  The WHY line is a template keyed by reasonCodes[0], never
+                  an LLM call — renders correctly with AI fully absent. AI
+                  explanation is a separate optional endpoint and cannot
+                  override this deterministic target. Visually
+                  separate from the "Lần trước" card above: one is what
+                  happened, this is what the deterministic engine proposes
+                  next — never conflated into one block. */}
+              {(() => {
+                const progression = curEx?.dbId ? progressionByExercise[curEx.dbId] : undefined;
+                if (!progression || progression.status === "INSUFFICIENT_DATA") return null;
+                const REASON_TEXT: Record<string, string> = {
+                  COMPLETED_ALL_PRESCRIBED_REPS_WITHIN_TARGET_RIR:
+                    "Hoàn thành đủ số rep quy định trong ngưỡng nỗ lực mục tiêu.",
+                  TOP_OF_REP_RANGE_REACHED_ON_ALL_SETS: "Đã đạt mức rep cao nhất của khoảng quy định.",
+                  RIR_TARGET_MET_WITH_HEADROOM_TO_SPARE: "Vẫn còn dư sức theo RIR — có thể tăng tải.",
+                  BELOW_TOP_OF_REP_RANGE_ADD_A_REP_BEFORE_ADDING_LOAD:
+                    "Chưa đạt đỉnh khoảng rep — nên tăng rep trước khi tăng tải.",
+                  PERFORMANCE_DIPPED_SINGLE_SESSION_REVIEW_BEFORE_CHANGING_LOAD:
+                    "Hiệu suất giảm nhẹ 1 buổi — giữ nguyên, xem lại trước khi đổi tải.",
+                  MISSED_TARGET_TWO_OR_MORE_SESSIONS_IN_A_ROW:
+                    "Hụt mục tiêu 2 buổi liên tiếp — nên giảm tải để hồi phục.",
+                  BODYWEIGHT_REPS_IMPROVED_OR_HAD_HEADROOM: "Số rep bodyweight tăng — có thể tăng thêm rep.",
+                  BODYWEIGHT_REPS_STABLE_NOT_YET_READY_TO_ADD_REPS: "Số rep ổn định — giữ nguyên buổi tới.",
+                  TIMED_EXERCISE_DURATION_OR_DISTANCE_IMPROVED: "Thời gian/quãng đường đã cải thiện.",
+                  TIMED_EXERCISE_NO_IMPROVEMENT_YET: "Chưa cải thiện — giữ nguyên mục tiêu buổi tới.",
+                  REPEAT_SAME_LOAD_UNTIL_PRESCRIBED_REPS_MET_CLEANLY:
+                    "Lặp lại cùng mức tải đến khi hoàn thành đủ rep quy định.",
+                  CYCLE_DELOAD_OVERRIDES_LOCAL_SIGNAL:
+                    "Chu kỳ tập hiện đang ở giai đoạn giảm tải — ưu tiên hồi phục hơn tăng tải cục bộ.",
+                  CYCLE_REBUILD_BLOCKS_AUTOMATIC_LOCAL_INCREASE:
+                    "Chu kỳ tập cần xem lại tổng thể — chưa tự động tăng tải bài này.",
+                  AMRAP_EXCEEDED_MIN_REPS_LOAD_READY:
+                    "AMRAP vượt minimum ít nhất 2 reps — đã sẵn sàng tăng tải.",
+                  AMRAP_EXCEEDED_MIN_REPS_RAISE_MINIMUM:
+                    "AMRAP bodyweight vượt minimum rõ ràng — tăng minimum thêm 1 rep.",
+                  AMRAP_MIN_REPS_MET_HOLD_CURRENT_TARGET:
+                    "AMRAP đã đạt minimum nhưng chưa đủ biên để tăng — giữ mục tiêu hiện tại.",
+                  AMRAP_MIN_REPS_MISSED_ONCE_REPEAT_BEFORE_DELOAD:
+                    "AMRAP hụt minimum một buổi — lặp lại mục tiêu trước khi cân nhắc giảm tải.",
+                };
+                const why = REASON_TEXT[progression.reasonCodes[0]] ?? "Dựa trên hiệu suất buổi trước.";
+                const STATUS_LABEL: Record<string, string> = {
+                  INCREASE_LOAD: "Tăng tải",
+                  INCREASE_REPS: "Tăng rep",
+                  INCREASE_SETS: "Tăng set",
+                  DELOAD: "Giảm tải",
+                  REVIEW: "Xem lại",
+                  KEEP: "Giữ nguyên",
+                };
+                return (
+                  <div
+                    className="rounded-2xl bg-emerald-500/5 border border-emerald-500/15 p-4"
+                    data-testid="exercise-progression-card"
+                  >
+                    <p className="text-xs text-emerald-300 flex items-center gap-1.5 mb-2">
+                      <TrendingUp className="w-3.5 h-3.5" /> Hôm nay: {STATUS_LABEL[progression.status] ?? progression.status}
+                    </p>
+                    {progression.nextTarget && (
+                      <p className="text-sm text-zinc-200 mb-1">
+                        {progression.nextTarget.weightKg != null ? `${progression.nextTarget.weightKg}kg` : ""}
+                        {progression.nextTarget.weightKg != null && progression.nextTarget.reps != null ? " × " : ""}
+                        {progression.nextTarget.reps != null ? `${progression.nextTarget.reps} reps` : ""}
+                        {progression.nextTarget.durationSeconds != null ? `${progression.nextTarget.durationSeconds}s` : ""}
+                      </p>
+                    )}
+                    {progression.amrapPerformance && (
+                      <p
+                        data-testid="amrap-progression-margin"
+                        className="mb-1 text-xs text-amber-300/85"
+                      >
+                        AMRAP: {progression.amrapPerformance.achievedReps} reps / minimum{" "}
+                        {progression.amrapPerformance.minimumReps}
+                        {progression.amrapPerformance.marginReps >= 0
+                          ? ` (+${progression.amrapPerformance.marginReps})`
+                          : ` (${progression.amrapPerformance.marginReps})`}
+                      </p>
+                    )}
+                    <p className="text-xs text-zinc-400">{why}</p>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Media + Info */}
                 <div className="space-y-5">
                   {/* Rest timer banner */}
                   {restTimerRunning && restSeconds > 0 && (
-                    <div className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
+                    <div data-testid="rest-timer-banner" className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center shrink-0">
                           <Timer className="w-4 h-4 text-amber-400" />
@@ -4364,13 +6536,14 @@ export function WorkoutLogPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl text-amber-300 tabular-nums">
+                        <span data-testid="rest-timer-remaining-seconds" data-remaining-seconds={restSeconds} className="text-2xl text-amber-300 tabular-nums">
                           {formatTime(restSeconds)}
                         </span>
                         <button
                           onClick={() => {
                             setRestTimerRunning(false);
                             setRestSeconds(90);
+                            clearPersistedRestTimer(selectedSchedule()?.id ?? null);
                           }}
                           className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all"
                         >
@@ -4550,10 +6723,139 @@ export function WorkoutLogPage() {
                     </div>
                   </div>
 
+                  {/* Set overview table — roadmap P1.1 "true set-by-set
+                      table UI" (§6/§11's own mockup). Only rendered once
+                      the real per-set skeleton has loaded for a
+                      schedule-linked session with more than one set — a
+                      1-set exercise, the ad-hoc/freeform path, or a
+                      not-yet-loaded skeleton all keep today's plain single-
+                      value "Ghi chép" card below exactly as-is (see
+                      docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md's
+                      "Layout decision" — inputs stay in that card, this
+                      table is Previous/Recommended/status reference plus
+                      one-tap-undo for already-completed rows). */}
+                  {curExSetRows && curExSetRows.length > 1 && (
+                    <div
+                      data-testid="set-overview-table"
+                      className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 overflow-hidden"
+                    >
+                      <div className="px-4 pt-4 pb-1 text-xs text-zinc-600 uppercase tracking-wider">
+                        Các set
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-zinc-600 text-left">
+                              <th className="px-4 py-2 font-normal">Set</th>
+                              <th className="px-4 py-2 font-normal">Lần trước</th>
+                              <th className="px-4 py-2 font-normal">Đề xuất</th>
+                              <th className="px-4 py-2 font-normal">Hôm nay</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {curExSetRows.map((row, rowIdx) => {
+                              const isActiveRow = rowIdx === activeSetRowIndex;
+                              const prevSet = previousSetForRow(row.setNumber);
+                              const nextTarget = curEx?.dbId
+                                ? progressionByExercise[curEx.dbId]?.nextTarget
+                                : undefined;
+                              const plannedSet = (curEx as any)?.setPrescriptions?.find(
+                                (prescription: any) => prescription.setNumber === row.setNumber,
+                              );
+                              const recommendedLabel = plannedSet
+                                ? formatSetPrescriptionLabel(plannedSet)
+                                : nextTarget
+                                ? [
+                                    nextTarget.weightKg != null ? `${nextTarget.weightKg}kg` : null,
+                                    nextTarget.reps != null ? `${nextTarget.reps} reps` : null,
+                                    nextTarget.durationSeconds != null ? `${nextTarget.durationSeconds}s` : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" × ")
+                                : "—";
+                              return (
+                                <tr
+                                  key={row.id}
+                                  data-testid={`set-row-${row.setNumber}`}
+                                  data-set-completed={row.completed}
+                                  data-set-active={isActiveRow}
+                                  className={`border-t border-zinc-800/30 ${isActiveRow ? "bg-emerald-500/5" : ""}`}
+                                >
+                                  <td className="px-4 py-2.5 text-zinc-300">{row.setNumber}</td>
+                                  <td className="px-4 py-2.5 text-zinc-500">
+                                    {prevSet ? formatPerformanceSetLabel(prevSet) : "—"}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-emerald-400/80">
+                                    {row.completed ? "—" : recommendedLabel}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {row.completed ? (
+                                      <span className="inline-flex items-center gap-1.5 text-emerald-400">
+                                        <Check className="w-3.5 h-3.5" />
+                                        {[
+                                          row.weight != null ? `${row.weight}kg` : null,
+                                          row.reps != null ? `${row.reps} reps` : null,
+                                          row.durationSeconds != null ? `${row.durationSeconds}s` : null,
+                                          row.distanceMeters != null ? `${row.distanceMeters}m` : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" × ")}
+                                        {/* Only the MOST RECENTLY completed row ever gets an
+                                            inline undo — every set completes strictly in
+                                            order through this table (only the first
+                                            incomplete row is ever the active/completable
+                                            one), so "the row right before the active one"
+                                            (or the last row, once every set is done) is
+                                            always unambiguously the most recent completion.
+                                            Never offered on an earlier completed row —
+                                            undoing THAT one out of order isn't a scenario
+                                            this pass's design/tests cover. */}
+                                        {!isSelectedDayLocked &&
+                                          row.completed &&
+                                          (activeSetRowIndex === -1
+                                            ? rowIdx === curExSetRows.length - 1
+                                            : rowIdx === activeSetRowIndex - 1) && (
+                                          <button
+                                            type="button"
+                                            data-testid={`undo-set-${row.setNumber}`}
+                                            onClick={() =>
+                                              void handleUndoSetRow(
+                                                activeExIdx,
+                                                curEx.programExerciseId,
+                                                row.id,
+                                                activeExerciseLogsRef.current[activeExIdx],
+                                                activeSetRowIndex === -1,
+                                              )
+                                            }
+                                            className="ml-1 text-zinc-600 hover:text-amber-400 transition-colors"
+                                            aria-label={`Hoàn tác set ${row.setNumber}`}
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </span>
+                                    ) : isActiveRow ? (
+                                      <span className="text-emerald-300/80">Đang nhập bên dưới ↓</span>
+                                    ) : (
+                                      <span className="text-zinc-700">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Log Entry */}
                   <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
                     <p className="text-xs text-zinc-600 uppercase tracking-wider">
                       Ghi chép
+                      {curExSetRows && curExSetRows.length > 1 && activeSetRow && (
+                        <span className="normal-case text-zinc-500"> — Set {activeSetRow.setNumber}/{curExSetRows.length}</span>
+                      )}
                     </p>
                     {isSelectedDayLocked && (
                       <div
@@ -4566,54 +6868,361 @@ export function WorkoutLogPage() {
                         </p>
                       </div>
                     )}
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                      <RulerSlider
-                        className="min-w-0 flex-1"
-                        label={curEx.type === "cardio" ? "Thời gian (phút)" : "Khối lượng tạ"}
-                        min={0}
-                        max={300}
-                        step={0.5}
-                        majorTickInterval={10}
-                        unit={curEx.type === "cardio" ? "phút" : "kg"}
-                        disabled={isSelectedDayLocked || activeLog.noWeight}
-                        value={activeLog.noWeight ? 0 : Number(activeLog.weightKg) || 0}
-                        onChange={(next) =>
-                          updateActiveLog({
-                            weightKg: String(next),
-                            noWeight: false,
-                          })
-                        }
-                      />
-                      {/* h-16 matches RulerSlider's own track height exactly, so
-                          `sm:items-end` lines this button's bottom edge up with
-                          the track's bottom edge instead of floating vertically
-                          centered against the slider's full label+value+track
-                          block (which used to put it overlapping the value
-                          text and the top of the track — see git history). */}
-                      <button
-                        type="button"
-                        data-testid="no-weight-toggle"
-                        onClick={() =>
-                          updateActiveLog({
-                            noWeight: !activeLog.noWeight,
-                            weightKg: "",
-                          })
-                        }
-                        disabled={isSelectedDayLocked || !requiresExternalWeight}
-                        className={`h-16 shrink-0 rounded-xl border px-4 text-sm font-medium transition-all ${
-                          activeLog.noWeight
-                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                            : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
-                        } disabled:cursor-default`}
-                      >
-                        Không dùng tạ
-                      </button>
-                    </div>
+                    {/* Weight input — REPS_LOAD / TIME_LOAD / BODYWEIGHT_REPS
+                        only. TIME/DISTANCE_TIME never show this at all
+                        (openGym P0-completion pass — a plank/run has no
+                        weight to record); TIME_LOAD (e.g. weighted carry)
+                        shows both this AND the duration control below. */}
+                    {(curExLoggingMode === "REPS_LOAD" ||
+                      curExLoggingMode === "TIME_LOAD" ||
+                      curExLoggingMode === "BODYWEIGHT_REPS") && (
+                      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <RulerSlider
+                          className="min-w-0 flex-1"
+                          label="Khối lượng tạ"
+                          min={0}
+                          max={300}
+                          step={0.5}
+                          majorTickInterval={10}
+                          unit="kg"
+                          disabled={isSelectedDayLocked || activeLog.noWeight}
+                          value={activeLog.noWeight ? 0 : Number(activeLog.weightKg) || 0}
+                          onChange={(next) =>
+                            updateActiveLog({
+                              weightKg: String(next),
+                              noWeight: false,
+                            })
+                          }
+                        />
+                        {/* h-16 matches RulerSlider's own track height exactly, so
+                            `sm:items-end` lines this button's bottom edge up with
+                            the track's bottom edge instead of floating vertically
+                            centered against the slider's full label+value+track
+                            block (which used to put it overlapping the value
+                            text and the top of the track — see git history). */}
+                        <button
+                          type="button"
+                          data-testid="no-weight-toggle"
+                          onClick={() =>
+                            updateActiveLog({
+                              noWeight: !activeLog.noWeight,
+                              weightKg: "",
+                            })
+                          }
+                          disabled={isSelectedDayLocked || !allowsExternalWeight}
+                          className={`h-16 shrink-0 rounded-xl border px-4 text-sm font-medium transition-all ${
+                            activeLog.noWeight
+                              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                              : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
+                          } disabled:cursor-default`}
+                        >
+                          Không dùng tạ
+                        </button>
+                      </div>
+                    )}
                     {requiresExternalWeight && !activeLog.noWeight && (
                       <p className="text-[11px] text-amber-300/80">
                         Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.
                       </p>
                     )}
+
+                    {/* Duration input — TIME / TIME_LOAD / DISTANCE_TIME.
+                        Real, separate field (WorkoutSet.durationSeconds) —
+                        this replaces an earlier version of this screen that
+                        relabeled the WEIGHT slider as "Thời gian (phút)" and
+                        silently stored the value as kg (a real bug found and
+                        fixed this pass, see docs/OPENGYM_P0_COMPLETION_REPORT.md
+                        "Bugs found"). Minutes in the UI (familiar unit for a
+                        plank/carry/run), converted to whole seconds on write. */}
+                    {curExLoggingMode === "BODYWEIGHT_REPS" && (
+                      <label className="block">
+                        <span className="block text-[11px] text-zinc-500 mb-1">
+                          Body weight at set (kg)
+                        </span>
+                        <input
+                          data-testid="bodyweight-at-set-input"
+                          type="number"
+                          min="1"
+                          max="500"
+                          step="0.1"
+                          disabled={isSelectedDayLocked}
+                          value={activeLog.bodyWeightAtSetKg}
+                          onChange={(event) =>
+                            updateActiveLog({ bodyWeightAtSetKg: event.target.value })
+                          }
+                          className="w-full rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/40 disabled:opacity-50"
+                        />
+                      </label>
+                    )}
+
+                    {/* Reps input: BODYWEIGHT_REPS and planned AMRAP sets
+                        both need editable actual reps. Other set types keep
+                        the existing planned-reps fallback. */}
+                    {showsEditableReps && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Số reps"
+                        min={1}
+                        max={100}
+                        step={1}
+                        majorTickInterval={5}
+                        disabled={isSelectedDayLocked}
+                        value={Number(activeLog.reps) || 0}
+                        onChange={(next) => updateActiveLog({ reps: String(Math.round(next)) })}
+                      />
+                    )}
+                    {activePlannedSet?.isAmrap === true && (
+                      <p
+                        data-testid="active-amrap-hint"
+                        className="text-[11px] text-zinc-400"
+                      >
+                        AMRAP target: toi thieu{" "}
+                        {activePlannedSet.minReps ??
+                          activePlannedSet.targetReps ??
+                          "?"}{" "}
+                        reps, ghi so reps thuc te dat duoc.
+                      </p>
+                    )}
+
+                    {needsDuration && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Thời gian"
+                        min={0}
+                        max={180}
+                        step={0.25}
+                        majorTickInterval={5}
+                        unit="phút"
+                        disabled={isSelectedDayLocked}
+                        value={(Number(activeLog.durationSeconds) || 0) / 60}
+                        onChange={(nextMinutes) =>
+                          updateActiveLog({ durationSeconds: String(Math.round(nextMinutes * 60)) })
+                        }
+                      />
+                    )}
+                    {needsDistance && (
+                      <RulerSlider
+                        className="min-w-0"
+                        label="Quãng đường"
+                        min={0}
+                        max={50}
+                        step={0.1}
+                        majorTickInterval={5}
+                        unit="km"
+                        disabled={isSelectedDayLocked}
+                        value={(Number(activeLog.distanceMeters) || 0) / 1000}
+                        onChange={(nextKm) =>
+                          updateActiveLog({ distanceMeters: String(Math.round(nextKm * 1000)) })
+                        }
+                      />
+                    )}
+                    {(curExLoggingMode === "TIME" || curExLoggingMode === "TIME_LOAD") &&
+                      !(Number(activeLog.durationSeconds) > 0) && (
+                        <p className="text-[11px] text-amber-300/80">
+                          Bắt buộc nhập thời gian trước khi hoàn thành bài này.
+                        </p>
+                      )}
+                    {smartPrefillSource && (
+                      <p
+                        data-testid="smart-prefill-source"
+                        data-source={smartPrefillSource}
+                        className="text-[11px] text-emerald-300/75"
+                      >
+                        Đã điền sẵn từ{" "}
+                        {smartPrefillSource === "progression"
+                          ? "mục tiêu hôm nay"
+                          : smartPrefillSource === "previous"
+                            ? "lần trước"
+                            : "kế hoạch"}
+                      </p>
+                    )}
+
+                    <label className="block">
+                      <span className="block text-[11px] text-zinc-500 mb-1">
+                        Set type
+                      </span>
+                      <select
+                        data-testid="active-set-type-select"
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.setType || "WORKING"}
+                        onChange={(event) => updateActiveLog({ setType: event.target.value })}
+                        className="w-full rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/40 disabled:opacity-50"
+                      >
+                        {SET_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="space-y-3" data-testid="active-set-technique">
+                      <span className="block text-[11px] text-zinc-500">
+                        Kỹ thuật set
+                      </span>
+                      <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-950/50 p-1">
+                        {SET_TECHNIQUE_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={isSelectedDayLocked}
+                            onClick={() =>
+                              updateActiveLog({
+                                setTechnique: option.value,
+                                segments:
+                                  option.value === "STRAIGHT"
+                                    ? []
+                                    : activeLog.setTechnique === option.value &&
+                                        activeLog.segments.length > 0
+                                      ? activeLog.segments
+                                      : [newSetChainSegment(option.value, activeLog)],
+                              })
+                            }
+                            className={`min-h-9 px-2 text-xs transition-colors disabled:opacity-50 ${
+                              activeLog.setTechnique === option.value
+                                ? "rounded-md bg-emerald-500/15 text-emerald-300"
+                                : "text-zinc-500 hover:text-zinc-300"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {activeLog.setTechnique !== "STRAIGHT" && (
+                        <div className="divide-y divide-zinc-800/60 border-y border-zinc-800/60">
+                          {activeLog.segments.map((segment, segmentIndex) => (
+                            <div
+                              key={segmentIndex}
+                              className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-end gap-2 py-3"
+                            >
+                              <span className="pb-2 text-[11px] text-zinc-600">
+                                {segmentIndex + 1}
+                              </span>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Reps</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="500"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.reps}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, reps: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Kg</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.weightKg}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, weightKg: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <label className="min-w-0">
+                                <span className="mb-1 block text-[10px] text-zinc-600">Nghỉ (s)</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="600"
+                                  disabled={isSelectedDayLocked}
+                                  value={segment.restBeforeSeconds}
+                                  onChange={(event) =>
+                                    updateActiveLog({
+                                      segments: activeLog.segments.map((item, index) =>
+                                        index === segmentIndex
+                                          ? { ...item, restBeforeSeconds: event.target.value }
+                                          : item,
+                                      ),
+                                    })
+                                  }
+                                  className="w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-xs text-zinc-100 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                aria-label={`Xóa effort ${segmentIndex + 1}`}
+                                disabled={isSelectedDayLocked || activeLog.segments.length === 1}
+                                onClick={() =>
+                                  updateActiveLog({
+                                    segments: activeLog.segments.filter(
+                                      (_item, index) => index !== segmentIndex,
+                                    ),
+                                  })
+                                }
+                                className="mb-1 p-2 text-zinc-600 hover:text-rose-400 disabled:opacity-30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            disabled={isSelectedDayLocked || activeLog.segments.length >= 10}
+                            onClick={() =>
+                              updateActiveLog({
+                                segments: [
+                                  ...activeLog.segments,
+                                  newSetChainSegment(activeLog.setTechnique, activeLog),
+                                ],
+                              })
+                            }
+                            className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs text-emerald-400 hover:text-emerald-300 disabled:opacity-40"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Thêm effort
+                          </button>
+                        </div>
+                      )}
+                      {!setChainIsValid && (
+                        <p className="text-[11px] text-rose-300/85">
+                          Mỗi effort cần reps hợp lệ và thời gian nghỉ từ 0 đến 600 giây.
+                        </p>
+                      )}
+                    </div>
+
+                    <label className="block">
+                      <span className="block text-[11px] text-zinc-500 mb-1">
+                        Tempo
+                      </span>
+                      <input
+                        data-testid="active-tempo-input"
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.tempo}
+                        onChange={(event) => updateActiveLog({ tempo: event.target.value })}
+                        placeholder="3-1-1-0"
+                        inputMode="numeric"
+                        className={`w-full rounded-xl border bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none disabled:opacity-50 ${
+                          tempoIsValid
+                            ? "border-zinc-700/40 focus:border-emerald-500/40"
+                            : "border-rose-500/60 focus:border-rose-400"
+                        }`}
+                      />
+                      {!tempoIsValid && (
+                        <p className="mt-1 text-[11px] text-rose-300/85">
+                          Nhập theo dạng 3-1-1-0 hoặc để trống.
+                        </p>
+                      )}
+                    </label>
 
                     {showRpeRirHint && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
@@ -4711,15 +7320,21 @@ export function WorkoutLogPage() {
                     <button
                       data-testid="complete-exercise-button"
                       onClick={handleCompleteExercise}
-                      disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout}
+                      disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout || !tempoIsValid || !setChainIsValid}
                       className={`min-w-0 py-3.5 px-1 rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                        isSelectedDayLocked || isCompleted || isCompletingWorkout
+                        isSelectedDayLocked || isCompleted || isCompletingWorkout || !tempoIsValid || !setChainIsValid
                           ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
                           : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
                       }`}
                     >
                       <Check className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{isCompleted ? "Xong" : "Hoàn thành"}</span>
+                      <span className="truncate">
+                        {isCompleted
+                          ? "Xong"
+                          : curExSetRows && curExSetRows.length > 1 && activeSetRow
+                            ? `Hoàn thành Set ${activeSetRow.setNumber}`
+                            : "Hoàn thành"}
+                      </span>
                     </button>
                     <button
                       onClick={handleSkipExercise}
@@ -4861,13 +7476,23 @@ export function WorkoutLogPage() {
                           className="flex items-center justify-between text-sm"
                         >
                           <span className="text-zinc-300 truncate pr-2">{pr.exerciseName}</span>
-                          <span className="text-emerald-400 shrink-0">
-                            {pr.weightKg}kg{pr.reps ? ` × ${pr.reps}` : ""}
-                            <span className="text-zinc-500 text-xs">
-                              {" "}
-                              (trước: {pr.previousBestWeightKg}kg)
+                          {pr.prType === "REPS" ? (
+                            <span className="text-emerald-400 shrink-0">
+                              {pr.reps} reps
+                              <span className="text-zinc-500 text-xs">
+                                {" "}
+                                (trước: {pr.previousBestReps} reps)
+                              </span>
                             </span>
-                          </span>
+                          ) : (
+                            <span className="text-emerald-400 shrink-0">
+                              {pr.weightKg}kg{pr.reps ? ` × ${pr.reps}` : ""}
+                              <span className="text-zinc-500 text-xs">
+                                {" "}
+                                (trước: {pr.previousBestWeightKg}kg)
+                              </span>
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -4922,6 +7547,23 @@ export function WorkoutLogPage() {
         <SkipCancelFeedbackModal
           scheduleId={skipCancelPrompt.scheduleId}
           onClose={() => setSkipCancelPrompt(null)}
+        />
+      )}
+
+      {reschedulePrompt && (
+        <RescheduleModal
+          scheduleId={reschedulePrompt.scheduleId}
+          currentDateLabel={reschedulePrompt.currentDateLabel}
+          onClose={() => setReschedulePrompt(null)}
+          onRescheduled={() => void refetchProgramAndSchedules()}
+        />
+      )}
+
+      {showCreateCustomExercise && (
+        <CreateCustomExerciseModal
+          exerciseOptions={exerciseOptions}
+          onClose={() => setShowCreateCustomExercise(false)}
+          onCreated={() => void myCustomExercisesQuery.refetch()}
         />
       )}
 
@@ -5044,6 +7686,21 @@ export function WorkoutLogPage() {
                   </p>
                   <ExerciseMuscleMap exerciseId={showExerciseDetail.dbId} />
                 </div>
+              )}
+
+              {/* Roadmap P3.3 "Exercise progress charts" — only offered
+                  when a real DB exercise id is known, same gating the
+                  muscle map above already uses (a manually-typed custom
+                  exercise with no dbId has nothing to chart). */}
+              {showExerciseDetail.dbId && (
+                <button
+                  type="button"
+                  data-testid="view-exercise-progress-link"
+                  onClick={() => navigate(`/client/exercise-progress/${showExerciseDetail.dbId}`)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3 text-sm text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                >
+                  <TrendingUp className="w-4 h-4" /> Xem tiến độ theo thời gian
+                </button>
               )}
             </div>
           </div>
@@ -5716,6 +8373,15 @@ export function WorkoutLogPage() {
                     Dữ liệu lấy trực tiếp từ Exercise DB
                   </p>
                 </div>
+                {/* Roadmap P1.5 "Custom exercises". */}
+                <button
+                  type="button"
+                  data-testid="create-custom-exercise-trigger"
+                  onClick={() => setShowCreateCustomExercise(true)}
+                  className="shrink-0 flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200 px-3 py-2 rounded-lg border border-sky-500/25 bg-sky-500/10 hover:bg-sky-500/15 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tạo bài tập tùy chỉnh
+                </button>
                 <button
                   onClick={() => setShowAddExercise(false)}
                   className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0"
@@ -5822,6 +8488,70 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Roadmap P1.5 "Custom exercises" — always shown when the
+                  owner has any, regardless of the catalog's own search/
+                  filter state above (they're a separate query, never
+                  filtered the same way — see the impact analysis's
+                  disclosed simplification). */}
+              {Array.isArray(myCustomExercisesQuery.data) && myCustomExercisesQuery.data.length > 0 && (
+                <section data-testid="my-custom-exercises-section" className="space-y-2 mb-5">
+                  <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
+                    <div className="text-[11px] uppercase tracking-wider text-sky-300 font-semibold">
+                      Của tôi
+                    </div>
+                    <div className="h-px flex-1 bg-zinc-800" />
+                    <div className="text-[10px] text-zinc-500">
+                      {myCustomExercisesQuery.data.length} bài
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {myCustomExercisesQuery.data.map((ex: any) => (
+                      <div
+                        key={ex.id}
+                        data-testid={`my-custom-exercise-${ex.id}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleAddFromDB(ex)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") handleAddFromDB(ex);
+                        }}
+                        className="w-full text-left p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 hover:border-sky-500/40 transition-all flex items-center gap-4 group cursor-pointer"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                              {labelizeEnum(ex.bodyPart)}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                              {labelizeEnum(ex.typeOfEquipment)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid={`archive-custom-exercise-${ex.id}`}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await workoutService.archiveCustomExercise(ex.id);
+                              await myCustomExercisesQuery.refetch();
+                              toast.success("Đã lưu trữ bài tập tùy chỉnh.");
+                            } catch (error: any) {
+                              toast.error(error?.response?.data?.error || "Không thể lưu trữ bài tập này.");
+                            }
+                          }}
+                          className="shrink-0 text-zinc-600 hover:text-amber-400 transition-colors"
+                          aria-label={`Lưu trữ ${ex.exerciseName}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <Plus className="w-4 h-4 text-sky-500/0 group-hover:text-sky-400 transition-colors shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
               {dbLoading ? (
                 <div className="space-y-3">
                   {[0, 1, 2, 3, 4].map((item) => (

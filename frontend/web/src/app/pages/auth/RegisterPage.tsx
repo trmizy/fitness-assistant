@@ -1,24 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { useApp, UserRole } from "../../context/AppContext";
+import { useApp } from "../../context/AppContext";
 import {
   Dumbbell,
-  User,
-  Zap,
   ArrowRight,
-  ArrowLeft,
   Check,
   Mail,
   Lock,
   UserCircle,
 } from "lucide-react";
-import { authService, profileService } from "../../services/api";
+import { authService } from "../../services/api";
 import { toast } from "sonner";
 
-const steps = ["Tài khoản", "Xác nhận", "Hồ sơ", "Mục tiêu", "Xong"];
+/**
+ * Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.1.
+ * Used to have 5 steps (Tài khoản → OTP → Hồ sơ → Mục tiêu → Xong): the "Hồ sơ"/"Mục
+ * tiêu" steps collected age/gender/height/weight/goal/activityLevel through their own
+ * incomplete, buggy copy of what OnboardingWizardPage already asks properly (missing
+ * experienceLevel entirely, activityLevel silently hard-coded to LIGHTLY_ACTIVE with no
+ * UI to change it, and "ATHLETIC_PERFORMANCE" mislabeled "Cải thiện sức khỏe" — contradicting
+ * OnboardingWizardPage's correct "Hiệu suất thể thao" for the same enum value) — AND never
+ * set `hasCompletedOnboarding`, so `RequireOnboarding` redirected straight to
+ * OnboardingWizardPage immediately afterward regardless, making every new user click through
+ * two back-to-back wizards (up to 11 screens) before ever reaching the dashboard. Now just
+ * account creation + OTP verification; OnboardingWizardPage is the SINGLE place that collects
+ * the profile, once, correctly.
+ */
+const steps = ["Tài khoản", "Xác nhận"];
 
 export function RegisterPage() {
-  const { login, setUser } = useApp();
+  const { setUser } = useApp();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -27,22 +38,6 @@ export function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-
-  const [profile, setProfile] = useState({
-    dateOfBirth: "",
-    gender: "MALE",
-    heightCm: "",
-    currentWeight: "",
-    activityLevel: "LIGHTLY_ACTIVE",
-    goal: "",
-  });
-
-  const goals = [
-    { key: "WEIGHT_LOSS", label: "Giảm mỡ", emoji: "🔥" },
-    { key: "MUSCLE_GAIN", label: "Tăng cơ", emoji: "💪" },
-    { key: "MAINTENANCE", label: "Duy trì cân nặng", emoji: "⚖️" },
-    { key: "ATHLETIC_PERFORMANCE", label: "Cải thiện sức khỏe", emoji: "❤️" },
-  ];
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
@@ -88,63 +83,18 @@ export function RegisterPage() {
       const result = await authService.verifyRegistration(email, otp);
       if (result.success) {
         setUser(result.user);
-        toast.success("Xác minh email thành công");
-        setStep(2);
+        toast.success("Xác minh email thành công — hãy thiết lập hồ sơ tập luyện của bạn");
+        // Straight into the ONE real onboarding flow — RequireOnboarding would have
+        // forced this redirect anyway (hasCompletedOnboarding is still false for a
+        // brand-new account), so going there directly instead of via /client/dashboard
+        // skips a guaranteed extra redirect hop.
+        navigate("/client/onboarding", { replace: true });
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Xác minh thất bại");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSaveProfile = async () => {
-    const heightVal = parseFloat(profile.heightCm);
-    const weightVal = parseFloat(profile.currentWeight);
-
-    if (
-      !profile.dateOfBirth ||
-      !profile.heightCm ||
-      !profile.currentWeight ||
-      !profile.gender ||
-      !profile.goal
-    ) {
-      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
-      return;
-    }
-
-    const dob = new Date(profile.dateOfBirth);
-    const ageDiff = Date.now() - dob.getTime();
-    const ageYears = new Date(ageDiff).getUTCFullYear() - 1970;
-    if (isNaN(dob.getTime()) || ageYears < 13 || ageYears > 120) {
-      toast.error("Ngày sinh không hợp lệ (phải từ 13 tuổi trở lên)");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload: any = {
-        gender: profile.gender,
-        activityLevel: profile.activityLevel,
-        goal: profile.goal,
-        dateOfBirth: profile.dateOfBirth,
-        heightCm: heightVal,
-        currentWeight: weightVal,
-      };
-
-      await profileService.updateProfile(payload);
-      toast.success("Hồ sơ đã được cập nhật");
-      setStep(4);
-    } catch (error: any) {
-      console.error("Profile update error:", error);
-      toast.error(error.response?.data?.error || "Cập nhật hồ sơ thất bại");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFinish = () => {
-    window.location.href = "/client/dashboard";
   };
 
   return (
@@ -271,123 +221,11 @@ export function RegisterPage() {
             </div>
           )}
 
-          {/* Step 2: Hồ sơ */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-zinc-100">Hồ sơ của bạn</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
-                    Ngày sinh
-                  </label>
-                  <input
-                    type="date"
-                    value={profile.dateOfBirth}
-                    max={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) =>
-                      setProfile({ ...profile, dateOfBirth: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">
-                    Giới tính
-                  </label>
-                  <select
-                    value={profile.gender}
-                    onChange={(e) =>
-                      setProfile({ ...profile, gender: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500 transition-all cursor-pointer"
-                  >
-                    <option value="MALE">Nam ♂</option>
-                    <option value="FEMALE">Nữ ♀</option>
-                    <option value="OTHER">Khác</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
-                    Chiều cao (cm)
-                  </label>
-                  <input
-                    value={profile.heightCm}
-                    onChange={(e) =>
-                      setProfile({ ...profile, heightCm: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
-                    placeholder=""
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
-                    Cân nặng (kg)
-                  </label>
-                  <input
-                    value={profile.currentWeight}
-                    onChange={(e) =>
-                      setProfile({ ...profile, currentWeight: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
-                    placeholder=""
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Mục tiêu */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-zinc-100">
-                Chọn mục tiêu của bạn
-              </h2>
-              <div className="space-y-2">
-                {goals.map((g) => (
-                  <button
-                    key={g.key}
-                    onClick={() => setProfile({ ...profile, goal: g.key })}
-                    className={`flex items-center gap-3 w-full px-4 py-3 border rounded-xl transition-all text-left ${
-                      profile.goal === g.key
-                        ? "border-green-500 bg-green-500/10"
-                        : "border-zinc-700 hover:border-zinc-600"
-                    }`}
-                  >
-                    <span className="text-xl">{g.emoji}</span>
-                    <span
-                      className={`text-sm font-semibold ${profile.goal === g.key ? "text-green-500" : "text-zinc-300"}`}
-                    >
-                      {g.label}
-                    </span>
-                    {profile.goal === g.key && (
-                      <Check className="w-4 h-4 text-green-500 ml-auto" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Xong */}
-          {step === 4 && (
-            <div className="text-center py-6 space-y-3">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
-                <Check className="w-8 h-8 text-green-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-zinc-100">
-                Chào mừng bạn!
-              </h2>
-              <p className="text-zinc-500">
-                Hồ sơ thể dục của bạn đã sẵn sàng.
-              </p>
-            </div>
-          )}
-
           {/* Navigation */}
           <div className="mt-8 flex gap-3">
-            {step > 0 && step < 4 && (
+            {step === 1 && (
               <button
-                onClick={() => setStep(step - 1)}
+                onClick={() => setStep(0)}
                 className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all border border-zinc-700"
               >
                 Quay lại
@@ -413,34 +251,6 @@ export function RegisterPage() {
               >
                 {loading ? "Đang xác minh..." : "Xác minh mã"}{" "}
                 <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
-
-            {(step === 2 || step === 3) && (
-              <button
-                onClick={() => (step === 2 ? setStep(3) : handleSaveProfile())}
-                disabled={
-                  loading ||
-                  (step === 2 &&
-                    (!profile.dateOfBirth ||
-                      !profile.gender ||
-                      !profile.heightCm ||
-                      !profile.currentWeight)) ||
-                  (step === 3 && !profile.goal)
-                }
-                className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-              >
-                {loading ? "Đang lưu..." : "Tiếp tục"}{" "}
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
-
-            {step === 4 && (
-              <button
-                onClick={handleFinish}
-                className="flex-1 py-3 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
-              >
-                Vào Dashboard
               </button>
             )}
           </div>

@@ -4,14 +4,29 @@ import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache } from "./training-cycle.service";
-import { assertScheduleDateEditable, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate, scheduledDateLabel } from "../utils/schedule-lock.util";
+import { createPersistentNotification } from "../clients/notification.client";
+import { withIdempotentEvent } from "../utils/workout-idempotency.util";
 import { estimate1RM } from "../utils/estimated-1rm.util";
+import {
+  evaluateExerciseProgression,
+  type ExercisePerformanceSession,
+  type LoggingMode,
+  type ExperienceLevel,
+} from "./exercise-progression.engine";
+import type { CycleDecision } from "./cycle-decision.engine";
+import { fetchUserProfile } from "../clients/user.client";
+import {
+  explainExerciseProgressionSafe,
+  type ExplainExerciseProgressionPayload,
+} from "../clients/ai.client";
 import type {
   CompleteScheduleExerciseDto,
   CreateManualProgramDto,
   CreateWorkoutDto,
   UpdateWorkoutSetDto,
   ImportAiPlanDto,
+  ManualSetPrescriptionDto,
 } from "../models/fitness.models";
 import { SET_TYPES, SET_SIDES } from "../models/fitness.models";
 
@@ -34,6 +49,10 @@ type MappedAiDay = {
   title: string;
   description?: string;
   exercises: MappedAiExercise[];
+};
+
+type SetPrescriptionLike = Partial<ManualSetPrescriptionDto> & {
+  setNumber: number;
 };
 
 const GOAL_LABELS: Record<string, string> = {
@@ -105,6 +124,65 @@ function sanitizeImportedExerciseNote(value?: string | null) {
     "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
   );
 }
+
+function buildSetPrescriptionsForExercise(exercise: {
+  sets?: number | null;
+  reps?: number | null;
+  weight?: number | null;
+  restSeconds?: number | null;
+  setPrescriptions?: SetPrescriptionLike[] | null;
+}) {
+  const setCount = Math.max(1, Number(exercise.sets) || 1);
+  const provided = new Map<number, SetPrescriptionLike>();
+  for (const prescription of exercise.setPrescriptions ?? []) {
+    if (prescription?.setNumber >= 1 && prescription.setNumber <= setCount) {
+      provided.set(prescription.setNumber, prescription);
+    }
+  }
+
+  return Array.from({ length: setCount }, (_unused, index) => {
+    const setNumber = index + 1;
+    const source = provided.get(setNumber);
+    return {
+      setNumber,
+      targetReps: source?.targetReps ?? exercise.reps ?? null,
+      targetWeight: source?.targetWeight ?? exercise.weight ?? null,
+      targetRpe: source?.targetRpe ?? null,
+      targetRir: source?.targetRir ?? null,
+      targetSetType: source?.targetSetType ?? null,
+      targetTempo: source?.targetTempo ?? null,
+      targetDurationSeconds: source?.targetDurationSeconds ?? null,
+      targetDistanceMeters: source?.targetDistanceMeters ?? null,
+      isAmrap: source?.isAmrap ?? false,
+      minReps: source?.minReps ?? null,
+      restSeconds: source?.restSeconds ?? exercise.restSeconds ?? null,
+      notes: source?.notes ?? null,
+    };
+  });
+}
+
+function prescriptionForSet(programExercise: any, setNumber: number) {
+  const prescriptions = Array.isArray(programExercise?.setPrescriptions)
+    ? programExercise.setPrescriptions
+    : [];
+  const matched = prescriptions.find((prescription: any) => prescription.setNumber === setNumber);
+  if (matched) return matched;
+  return {
+    targetReps: programExercise.reps ?? null,
+    targetWeight: programExercise.weight ?? null,
+    targetRpe: null,
+    targetRir: null,
+    targetSetType: null,
+    targetTempo: null,
+    targetDurationSeconds: programExercise.duration ?? null,
+    targetDistanceMeters: null,
+  };
+}
+
+const PROGRAM_EXERCISE_INCLUDE = {
+  exercise: true,
+  setPrescriptions: { orderBy: { setNumber: "asc" as const } },
+};
 
 type WorkoutProgressSummary = {
   sessionId: string | null;
@@ -180,12 +258,26 @@ async function createStartedWorkoutForSchedule(
             workoutSets: {
               create: Array.from(
                 { length: Number(programExercise.sets) || 1 },
-                (_unused, setIndex) => ({
-                  setNumber: setIndex + 1,
-                  reps: programExercise.reps ?? null,
-                  weight: programExercise.weight ?? null,
-                  completed: false,
-                }),
+                (_unused, setIndex) => {
+                  const prescription = prescriptionForSet(programExercise, setIndex + 1);
+                  return {
+                    setNumber: setIndex + 1,
+                    reps: prescription.targetReps ?? programExercise.reps ?? null,
+                    weight: prescription.targetWeight ?? programExercise.weight ?? null,
+                    rpe: prescription.targetRpe ?? null,
+                    rir: prescription.targetRir ?? null,
+                    setType: prescription.targetSetType ?? null,
+                    tempo: prescription.targetTempo ?? null,
+                    durationSeconds:
+                      prescription.targetDurationSeconds ??
+                      programExercise.duration ??
+                      null,
+                    distanceMeters: prescription.targetDistanceMeters ?? null,
+                    isAmrap: prescription.isAmrap,
+                    amrapMinReps: prescription.minReps,
+                    completed: false,
+                  };
+                },
               ),
             },
           }),
@@ -215,7 +307,7 @@ async function recomputeScheduleProgress(
       programDay: {
         include: {
           program: { select: { id: true } },
-          exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+          exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
         },
       },
     },
@@ -418,6 +510,101 @@ export const workoutQueue = new Queue("workout-generation", {
   },
 });
 
+// Shared core of getExerciseProgression / getExerciseProgressionExplanation —
+// see docs/TRAINING_PROGRESSION_ARCHITECTURE.md §5. Every external lookup
+// (profile, active cycle, latest assessment) is independently fail-soft: a
+// missing profile/cycle/assessment degrades to the engine's own documented
+// defaults (UNKNOWN experience level, null cycle decision) rather than
+// erroring the whole request — this is reference/explanation, never a
+// blocker to logging a workout.
+async function computeExerciseProgressionInternal(
+  userId: string,
+  exerciseId: string,
+  excludeWorkoutId?: string,
+) {
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: exerciseId },
+    select: { exerciseName: true, loggingMode: true },
+  });
+  if (!exercise) throw { status: 404, message: "Exercise not found" };
+
+  const sessions = await workoutRepository.findRecentCompletedSessionsForExercise(
+    userId,
+    exerciseId,
+    5,
+    excludeWorkoutId,
+  );
+  const recentSessions: ExercisePerformanceSession[] = sessions.map((s) => ({
+    date: s.workout.date,
+    sets: s.workoutSets.map((set) => ({
+      weightKg: set.weight,
+      reps: set.reps,
+      rir: set.rir,
+      rpe: set.rpe,
+      durationSeconds: set.durationSeconds,
+      distanceMeters: set.distanceMeters,
+      completed: true, // repository already filters to completed:true
+      setType: set.setType,
+      isAmrap: set.isAmrap,
+      amrapMinReps: set.amrapMinReps,
+    })),
+  }));
+
+  const [profile, cycleDecision] = await Promise.all([
+    fetchUserProfile(userId).catch(() => null),
+    (async () => {
+      const activeCycle = await prisma.trainingCycle.findFirst({
+        where: { userId, status: "ACTIVE", archivedAt: null },
+        select: { id: true },
+      });
+      if (!activeCycle) return null;
+      const latestAssessment = await prisma.cycleAssessment.findFirst({
+        where: { cycleId: activeCycle.id, status: "COMPLETED" },
+        orderBy: { assessmentVersion: "desc" },
+        select: { decision: true },
+      });
+      return (latestAssessment?.decision as CycleDecision | undefined) ?? null;
+    })().catch(() => null),
+  ]);
+
+  const experienceLevel: ExperienceLevel = (profile?.experienceLevel as ExperienceLevel) ?? "UNKNOWN";
+
+  const result = evaluateExerciseProgression({
+    loggingMode: (exercise.loggingMode as LoggingMode) ?? "REPS_LOAD",
+    experienceLevel,
+    recentSessions,
+    cycleDecision,
+  });
+
+  return { exercise, experienceLevel, result };
+}
+
+const PROGRESSION_STATUS_LABEL_VI: Record<string, string> = {
+  KEEP: "giữ nguyên mức hiện tại",
+  INCREASE_LOAD: "tăng tải",
+  INCREASE_REPS: "tăng số rep",
+  INCREASE_SETS: "tăng số set",
+  DELOAD: "giảm tải để phục hồi",
+  REVIEW: "xem lại trước khi thay đổi",
+  INSUFFICIENT_DATA: "chưa đủ dữ liệu để kết luận",
+};
+
+// Local, non-AI fallback used only when ai-service itself is unreachable
+// (network error/timeout at the HTTP call level) — distinct from, and in
+// addition to, ai-service's OWN internal deterministic fallback (used when
+// ai-service is up but its LLM backend is not). Mirrors
+// exercise-progression-explanation.service.ts's buildDeterministicFallback
+// in ai-service so both fallback paths read the same regardless of which
+// layer produced them.
+function buildLocalDeterministicExplanation(
+  exerciseName: string,
+  result: { status: string; reasonCodes: string[] },
+): string {
+  const label = PROGRESSION_STATUS_LABEL_VI[result.status] ?? result.status;
+  const reasons = result.reasonCodes.length > 0 ? result.reasonCodes.join(", ") : "dữ liệu buổi tập gần đây";
+  return `Hệ thống đề xuất "${label}" cho ${exerciseName}, dựa trên: ${reasons}.`;
+}
+
 export const workoutService = {
   async listWorkouts(
     userId: string,
@@ -458,6 +645,25 @@ export const workoutService = {
       workoutData.date = schedule.date.toISOString();
     } else if (data.date) {
       assertScheduleDateEditable(new Date(data.date));
+    } else {
+      // Real bug found via this session's own regression testing (reproduces
+      // reliably every day roughly VN-midnight-to-7am, i.e. right now):
+      // leaving `date` unset here let Prisma's raw `Workout.date
+      // @default(now())` apply — a true UTC instant. Every OTHER date this
+      // codebase writes/compares (WorkoutSchedule.date, and every call site
+      // in this same file) is a UTC-midnight-anchored calendar-day LABEL in
+      // APP_SCHEDULE_TIME_ZONE (see schedule-lock.util.ts's own module doc
+      // comment) — a real instant is not the same value once VN-local-day
+      // has advanced past UTC-day, which happens for ~7 hours every single
+      // day. assertWorkoutEditableByWorkoutId's schedule-less fallback then
+      // read that "yesterday" UTC label and immediately locked a workout the
+      // user had just that moment created — a false SCHEDULE_DATE_LOCKED
+      // ("past") on brand-new data, for anyone logging a freeform/unscheduled
+      // workout during that window. Fixed by using the same
+      // todayAsScheduleDate() helper every other "what day is today" call
+      // site in this codebase already uses, instead of letting a raw instant
+      // default silently apply here.
+      workoutData.date = todayAsScheduleDate().toISOString();
     }
     return workoutRepository.create(userId, workoutData);
   },
@@ -492,6 +698,105 @@ export const workoutService = {
     await assertWorkoutEditableByWorkoutId(id);
     await workoutRepository.delete(id);
     return { message: "Workout deleted" };
+  },
+
+  // "Previous performance" prefill (docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §3, gap analysis P0 #1: confirmed absent before this — no per-exercise
+  // history endpoint existed anywhere in this controller). Returns exactly
+  // what the user logged last time for this exercise, per set, with no
+  // recommendation attached — the caller (UI/AI) must never present this as
+  // a target, only as reference context ("last time you did...").
+  async getPreviousPerformance(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const prior = await workoutRepository.findLastCompletedSetsForExercise(
+      userId,
+      exerciseId,
+      excludeWorkoutId,
+    );
+    if (!prior) {
+      return { exerciseId, hasHistory: false, date: null, sets: [] };
+    }
+    return {
+      exerciseId,
+      hasHistory: true,
+      date: prior.workout.date,
+      sets: prior.workoutSets.map((s) => ({
+        setNumber: s.setNumber,
+        weightKg: s.weight,
+        bodyWeightAtSetKg: s.bodyWeightAtSetKg,
+        reps: s.reps,
+        rpe: s.rpe,
+        rir: s.rir,
+        setType: s.setType,
+        durationSeconds: s.durationSeconds,
+        distanceMeters: s.distanceMeters,
+      })),
+    };
+  },
+
+  // Wires exercise-progression.engine.ts (built and unit-tested earlier in
+  // this pass, but never actually reachable by a real user until this
+  // endpoint — a real, honestly-flagged gap this pass closes) to real data:
+  // recent session history, the exercise's loggingMode, the user's
+  // experienceLevel (via the existing fitness-service -> user-service
+  // client, never touching user-service's own files), and the current
+  // active cycle's latest decision (for the precedence envelope —
+  // docs/TRAINING_PROGRESSION_ARCHITECTURE.md §2). Every external lookup is
+  // independently fail-soft: a missing profile/cycle/assessment degrades to
+  // the engine's own documented defaults (UNKNOWN experience level, null
+  // cycle decision) rather than erroring the whole request — this is
+  // reference/explanation, never a blocker to logging a workout.
+  async getExerciseProgression(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const { result } = await computeExerciseProgressionInternal(userId, exerciseId, excludeWorkoutId);
+    return { exerciseId, ...result };
+  },
+
+  // openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
+  // §5. OPTIONAL, separate, slower sibling of getExerciseProgression above:
+  // that endpoint stays purely deterministic and MUST keep working with zero
+  // AI dependency; this one additionally asks ai-service to explain the
+  // already-computed decision in natural Vietnamese. explainExerciseProgressionSafe
+  // never throws (ai-service down/timeout -> null), and even then this method
+  // still returns a real, locally-built explanation — AI is never a
+  // dependency of this request succeeding, only of whether the explanation
+  // text happens to be LLM-written vs mechanically templated.
+  async getExerciseProgressionExplanation(userId: string, exerciseId: string, excludeWorkoutId?: string) {
+    const { exercise, experienceLevel, result } = await computeExerciseProgressionInternal(
+      userId,
+      exerciseId,
+      excludeWorkoutId,
+    );
+
+    const payload: ExplainExerciseProgressionPayload = {
+      userId,
+      exerciseName: exercise.exerciseName,
+      loggingMode: (exercise.loggingMode as ExplainExerciseProgressionPayload["loggingMode"]) ?? "REPS_LOAD",
+      experienceLevel,
+      status: result.status,
+      currentPerformance: result.currentPerformance
+        ? {
+            weightKg: result.currentPerformance.weightKg,
+            reps: result.currentPerformance.reps,
+            durationSeconds: result.currentPerformance.durationSeconds,
+            distanceMeters: result.currentPerformance.distanceMeters,
+          }
+        : null,
+      nextTarget: result.nextTarget,
+      reasonCodes: result.reasonCodes,
+      cycleContext: result.cycleContext,
+    };
+
+    const aiResult = await explainExerciseProgressionSafe(userId, payload);
+    if (aiResult) {
+      return { exerciseId, ...aiResult };
+    }
+
+    // ai-service itself unreachable (not just its LLM backend) — local,
+    // non-AI fallback so this endpoint never errors just because AI is down.
+    return {
+      exerciseId,
+      explanation: buildLocalDeterministicExplanation(exercise.exerciseName, result),
+      source: "deterministic-fallback" as const,
+    };
   },
 
   async getPRs(userId: string, exerciseId?: string) {
@@ -564,11 +869,13 @@ export const workoutService = {
     const prs: Array<{
       exerciseId: string;
       exerciseName: string;
-      weightKg: number;
+      prType: "WEIGHT_E1RM" | "REPS";
+      weightKg: number | null;
       reps: number | null;
-      estimated1RmKg: number;
-      previousBestWeightKg: number;
-      previousBestEstimated1RmKg: number;
+      estimated1RmKg: number | null;
+      previousBestWeightKg: number | null;
+      previousBestEstimated1RmKg: number | null;
+      previousBestReps: number | null;
     }> = [];
     for (const [exerciseId, best] of sessionBestByExercise) {
       const prior = priorBestByExercise.get(exerciseId);
@@ -576,12 +883,75 @@ export const workoutService = {
         prs.push({
           exerciseId,
           exerciseName: best.exerciseName,
+          prType: "WEIGHT_E1RM",
           weightKg: best.weight,
           reps: best.reps,
           estimated1RmKg: Math.round(best.e1rm * 10) / 10,
           previousBestWeightKg: prior.weight,
           previousBestEstimated1RmKg: Math.round(prior.e1rm * 10) / 10,
+          previousBestReps: null,
         });
+      }
+    }
+
+    // Bodyweight exercises (no added load — weight is null): the e1RM
+    // comparison above never applies to these (estimate1RM needs a weight),
+    // so without this block a user doing only bodyweight work would never
+    // see a PR, ever. PR here is simply "more reps than your prior best for
+    // this exercise" — reps is the only performance axis available. A
+    // user's first time doing the exercise is not flagged, same rule as
+    // the weighted path above (nothing yet to have beaten).
+    const bodyweightExercises = workout.exercises.filter(
+      (ex: any) => ex.weight == null && ex.reps != null && ex.reps > 0,
+    );
+    if (bodyweightExercises.length > 0) {
+      const bwExerciseIds = [
+        ...new Set(bodyweightExercises.map((ex: any) => ex.exerciseId)),
+      ] as string[];
+      const priorBwSets = await workoutRepository.findPriorBodyweightRepsForExercises(
+        userId,
+        bwExerciseIds,
+        workoutId,
+      );
+      const priorBestRepsByExercise = new Map<string, number>();
+      for (const s of priorBwSets as any[]) {
+        if (s.reps == null) continue;
+        const current = priorBestRepsByExercise.get(s.exerciseId);
+        if (current == null || s.reps > current) {
+          priorBestRepsByExercise.set(s.exerciseId, s.reps);
+        }
+      }
+
+      const sessionBestRepsByExercise = new Map<
+        string,
+        { reps: number; exerciseName: string }
+      >();
+      for (const ex of bodyweightExercises as any[]) {
+        const current = sessionBestRepsByExercise.get(ex.exerciseId);
+        if (!current || ex.reps > current.reps) {
+          sessionBestRepsByExercise.set(ex.exerciseId, {
+            reps: ex.reps,
+            exerciseName:
+              ex.exerciseNameSnapshot || ex.exercise?.exerciseName || "Bài tập",
+          });
+        }
+      }
+
+      for (const [exerciseId, best] of sessionBestRepsByExercise) {
+        const priorBestReps = priorBestRepsByExercise.get(exerciseId);
+        if (priorBestReps != null && best.reps > priorBestReps) {
+          prs.push({
+            exerciseId,
+            exerciseName: best.exerciseName,
+            prType: "REPS",
+            weightKg: null,
+            reps: best.reps,
+            estimated1RmKg: null,
+            previousBestWeightKg: null,
+            previousBestEstimated1RmKg: null,
+            previousBestReps: priorBestReps,
+          });
+        }
       }
     }
 
@@ -603,7 +973,7 @@ export const workoutService = {
     };
   },
 
-  async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
+  async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto, eventId?: string | null) {
     const existing = await workoutRepository.findSetWithOwner(setId, userId);
     if (!existing) throw { status: 404, message: "Set not found" };
     const workoutExerciseForLock = await prisma.workoutExercise.findFirst({
@@ -613,23 +983,71 @@ export const workoutService = {
     if (workoutExerciseForLock?.workoutId) {
       await assertWorkoutEditableByWorkoutId(workoutExerciseForLock.workoutId);
     }
-    const updated = await workoutRepository.updateSet(setId, data);
-    const workoutExercise = await prisma.workoutExercise.findFirst({
-      where: { id: existing.workoutExerciseId, workout: { userId } },
-      select: { workoutId: true },
-    });
-    if (workoutExercise?.workoutId) {
-      const schedule = await prisma.workoutSchedule.findFirst({
-        where: { userId, workoutId: workoutExercise.workoutId },
-        select: { id: true },
-      });
-      if (schedule) {
-        await prisma.$transaction((tx) =>
-          recomputeScheduleProgress(tx, schedule.id, userId),
-        );
-      }
-    }
-    return updated;
+
+    // Roadmap P1.4 "Active-workout offline resilience" — the update and
+    // its progress recompute now run in ONE transaction (previously two
+    // separate operations) specifically so the idempotency check below is
+    // atomic with the mutation: either both the ledger row and the write
+    // commit together, or a crash rolls back both and a retry starts
+    // clean. See workout-idempotency.util.ts's own doc comment.
+    return prisma.$transaction((tx) =>
+      withIdempotentEvent(
+        tx,
+        eventId,
+        userId,
+        data.completed === false ? "SET_UNDONE" : "SET_COMPLETED",
+        async () => {
+          const { segments, ...setData } = data;
+          const updated = await tx.workoutSet.update({
+            where: { id: setId },
+            data: {
+              ...setData,
+              ...(segments !== undefined
+                ? {
+                    segments: {
+                      deleteMany: {},
+                      create: segments,
+                    },
+                  }
+                : {}),
+            },
+            include: { segments: { orderBy: { segmentNumber: "asc" } } },
+          });
+          const workoutExercise = await tx.workoutExercise.findFirst({
+            where: { id: existing.workoutExerciseId, workout: { userId } },
+            select: { workoutId: true, exerciseId: true, programExerciseId: true },
+          });
+          // Roadmap P1.1 "true set-by-set table UI" — the recompute already
+          // ran here before that change, its result was just discarded.
+          // Returning it lets a caller completing the LAST remaining set of
+          // an exercise via this endpoint (instead of
+          // completeScheduleExercise, which would otherwise overwrite every
+          // SIBLING set's already-logged distinct values — see
+          // docs/features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md) learn the
+          // same completedExercises/totalExercises/progressPercent/status/
+          // trainingCycleId completeScheduleExercise's response already
+          // carries, without a second network round-trip. `undefined` (the
+          // pre-existing behavior) when this set isn't linked to a
+          // schedule at all (the ad-hoc/freeform logging path).
+          let progress: Awaited<ReturnType<typeof recomputeScheduleProgress>> | undefined;
+          if (workoutExercise?.workoutId) {
+            const schedule = await tx.workoutSchedule.findFirst({
+              where: { userId, workoutId: workoutExercise.workoutId },
+              select: { id: true },
+            });
+            if (schedule) {
+              progress = await recomputeScheduleProgress(tx, schedule.id, userId, {
+                sessionId: workoutExercise.workoutId!,
+                workoutId: workoutExercise.workoutId!,
+                exerciseId: workoutExercise.exerciseId,
+                programExerciseId: workoutExercise.programExerciseId ?? undefined,
+              });
+            }
+          }
+          return { ...updated, progress };
+        },
+      ),
+    );
   },
 
   // POST /workouts/:id/sets - append a single set to an existing workout. Finds or
@@ -740,7 +1158,12 @@ export const workoutService = {
               },
             },
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
+              orderBy: { order: "asc" },
+            },
+            // Roadmap P1.3 "Superset / exercise grouping".
+            exerciseGroups: {
+              include: { members: true },
               orderBy: { order: "asc" },
             },
           },
@@ -765,7 +1188,7 @@ export const workoutService = {
       include: {
         program: true,
         exercises: {
-          include: { exercise: true },
+          include: PROGRAM_EXERCISE_INCLUDE,
           orderBy: { order: "asc" },
         },
       },
@@ -781,7 +1204,7 @@ export const workoutService = {
           include: {
             program: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -810,7 +1233,7 @@ export const workoutService = {
           include: {
             program: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -830,7 +1253,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+              exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
             },
           },
         },
@@ -882,6 +1305,7 @@ export const workoutService = {
     scheduleId: string,
     programExerciseId: string,
     performed?: CompleteScheduleExerciseDto,
+    eventId?: string | null,
   ) {
     // performed carries what the user ACTUALLY logged in WorkoutLogPage's
     // "Ghi chép" card (weight/reps/RPE/RIR) and/or a session-only exercise
@@ -893,7 +1317,10 @@ export const workoutService = {
     if (performed?.exerciseId) {
       await validateExerciseIds([performed.exerciseId]);
     }
-    return prisma.$transaction(async (tx) => {
+    // Roadmap P1.4 "Active-workout offline resilience" — see
+    // workout-idempotency.util.ts's own doc comment. Optional eventId,
+    // fully backward compatible with every existing caller.
+    return prisma.$transaction((tx) => withIdempotentEvent(tx, eventId, userId, "EXERCISE_COMPLETED", async () => {
       const schedule = await tx.workoutSchedule.findFirst({
         where: { id: scheduleId, userId },
         include: {
@@ -903,7 +1330,7 @@ export const workoutService = {
           programDay: {
             include: {
               program: { select: { id: true } },
-              exercises: { orderBy: { order: "asc" }, include: { exercise: true } },
+              exercises: { orderBy: { order: "asc" }, include: PROGRAM_EXERCISE_INCLUDE },
             },
           },
         },
@@ -953,6 +1380,9 @@ export const workoutService = {
         const actualWeight = performed?.weight ?? plannedExercise.weight ?? null;
         const actualReps = performed?.reps ?? plannedExercise.reps ?? null;
         const actualNotes = performed?.notes ?? plannedExercise.notes ?? null;
+        const actualBodyWeightAtSetKg = performed?.bodyWeightAtSetKg ?? null;
+        const actualDurationSeconds = performed?.durationSeconds ?? plannedExercise.duration ?? null;
+        const actualDistanceMeters = performed?.distanceMeters ?? null;
         finalExerciseId = actualExerciseId;
         // History-protection snapshot (see createStartedWorkoutForSchedule's
         // matching comment above) — the ACTUALLY performed exercise's name
@@ -971,21 +1401,37 @@ export const workoutService = {
             exerciseNameSnapshot: actualExerciseName,
             sets: Number(plannedExercise.sets) || 1,
             reps: actualReps,
-            duration: plannedExercise.duration ?? null,
+            duration: actualDurationSeconds,
             weight: actualWeight,
             notes: actualNotes,
             order: plannedExercise.order ?? 0,
             workoutSets: {
               create: Array.from(
                 { length: Number(plannedExercise.sets) || 1 },
-                (_unused, index) => ({
-                  setNumber: index + 1,
-                  reps: actualReps,
-                  weight: actualWeight,
-                  rpe: performed?.rpe ?? null,
-                  rir: performed?.rir ?? null,
-                  completed: false,
-                }),
+                (_unused, index) => {
+                  const prescription = prescriptionForSet(plannedExercise, index + 1);
+                  return {
+                    setNumber: index + 1,
+                    reps: performed?.reps ?? prescription.targetReps ?? actualReps,
+                    weight: performed?.weight ?? prescription.targetWeight ?? actualWeight,
+                    rpe: performed?.rpe ?? prescription.targetRpe ?? null,
+                    rir: performed?.rir ?? prescription.targetRir ?? null,
+                    setType: prescription.targetSetType ?? null,
+                    tempo: prescription.targetTempo ?? null,
+                    bodyWeightAtSetKg: actualBodyWeightAtSetKg,
+                    durationSeconds:
+                      performed?.durationSeconds ??
+                      prescription.targetDurationSeconds ??
+                      actualDurationSeconds,
+                    distanceMeters:
+                      performed?.distanceMeters ??
+                      prescription.targetDistanceMeters ??
+                      actualDistanceMeters,
+                    isAmrap: prescription.isAmrap,
+                    amrapMinReps: prescription.minReps,
+                    completed: false,
+                  };
+                },
               ),
             },
           },
@@ -1007,6 +1453,10 @@ export const workoutService = {
         const existingSet = workoutExercise.workoutSets[0];
         const actualRpe = performed.rpe ?? existingSet?.rpe ?? null;
         const actualRir = performed.rir ?? existingSet?.rir ?? null;
+        const actualBodyWeightAtSetKg = performed.bodyWeightAtSetKg ?? existingSet?.bodyWeightAtSetKg ?? null;
+        const actualDurationSeconds =
+          performed.durationSeconds ?? existingSet?.durationSeconds ?? workoutExercise.duration ?? null;
+        const actualDistanceMeters = performed.distanceMeters ?? existingSet?.distanceMeters ?? null;
         finalExerciseId = actualExerciseId;
         // Only re-resolve the snapshot when the exercise itself actually
         // changed on this re-submit (a late swap) — avoids a needless
@@ -1022,13 +1472,22 @@ export const workoutService = {
             exerciseId: actualExerciseId,
             reps: actualReps,
             weight: actualWeight,
+            duration: actualDurationSeconds,
             notes: actualNotes,
             ...(exerciseNameSnapshotUpdate !== undefined ? { exerciseNameSnapshot: exerciseNameSnapshotUpdate } : {}),
           },
         });
         await tx.workoutSet.updateMany({
           where: { workoutExerciseId: workoutExercise.id },
-          data: { weight: actualWeight, reps: actualReps, rpe: actualRpe, rir: actualRir },
+          data: {
+            weight: actualWeight,
+            reps: actualReps,
+            rpe: actualRpe,
+            rir: actualRir,
+            bodyWeightAtSetKg: actualBodyWeightAtSetKg,
+            durationSeconds: actualDurationSeconds,
+            distanceMeters: actualDistanceMeters,
+          },
         });
       } else {
         // Row already existed and no `performed` override was sent (the old
@@ -1048,7 +1507,61 @@ export const workoutService = {
         programExerciseId,
         exerciseCompleted: true,
       });
-    });
+    }));
+  },
+
+  // Roadmap P1.6 "undo last set" / Milestone P1-A exit criterion. Deliberately
+  // narrow (see docs/features/UNDO_LAST_SET_IMPACT_ANALYSIS.md): reverts the
+  // ONE exercise the caller names back to not-completed, never a general
+  // multi-step history undo. recomputeScheduleProgress is the exact same
+  // derivation completeScheduleExercise already uses — it always recomputes
+  // completedExercises/progressPercent/status fresh from the current
+  // WorkoutSet.completed flags, so undo needs no parallel counting logic at
+  // all, just the flag flip. The frontend is responsible for only ever
+  // offering this for the most-recently-completed exercise in the current
+  // session (never a general edit-history undo) — this method's own
+  // authorization is ownership + "is this exercise currently completed",
+  // same trust boundary completeScheduleExercise already has for "which
+  // exercise" (both take an explicit programExerciseId from the caller).
+  async undoCompleteScheduleExercise(
+    userId: string,
+    scheduleId: string,
+    programExerciseId: string,
+    eventId?: string | null,
+  ) {
+    // Roadmap P1.4 "Active-workout offline resilience" — same pattern as
+    // completeScheduleExercise above.
+    return prisma.$transaction((tx) => withIdempotentEvent(tx, eventId, userId, "EXERCISE_UNDONE", async () => {
+      const schedule = await tx.workoutSchedule.findFirst({
+        where: { id: scheduleId, userId },
+      });
+      if (!schedule) throw { status: 404, message: "Schedule not found" };
+      assertScheduleDateEditable(schedule.date);
+      if (!schedule.workoutId) {
+        throw { status: 409, message: "No session has been started for this schedule yet" };
+      }
+
+      const workoutExercise = await tx.workoutExercise.findFirst({
+        where: { workoutId: schedule.workoutId, programExerciseId },
+        include: { workoutSets: true },
+      });
+      if (!workoutExercise || !isWorkoutExerciseCompleted(workoutExercise)) {
+        throw { status: 409, message: "This exercise is not currently marked complete" };
+      }
+
+      await tx.workoutSet.updateMany({
+        where: { workoutExerciseId: workoutExercise.id },
+        data: { completed: false },
+      });
+
+      return recomputeScheduleProgress(tx, schedule.id, userId, {
+        sessionId: schedule.workoutId,
+        workoutId: schedule.workoutId,
+        exerciseId: workoutExercise.exerciseId,
+        programExerciseId,
+        exerciseCompleted: false,
+      });
+    }));
   },
 
   async createManualProgram(userId: string, input: CreateManualProgramDto) {
@@ -1127,6 +1640,9 @@ export const workoutService = {
                   reps: exercise.reps,
                   restSeconds: exercise.restSeconds,
                   notes: exercise.notes || null,
+                  setPrescriptions: {
+                    create: buildSetPrescriptionsForExercise(exercise),
+                  },
                 })),
               },
             })),
@@ -1136,7 +1652,7 @@ export const workoutService = {
           days: {
             include: {
               exercises: {
-                include: { exercise: true },
+                include: PROGRAM_EXERCISE_INCLUDE,
                 orderBy: { order: "asc" },
               },
               schedules: true,
@@ -1222,7 +1738,12 @@ export const workoutService = {
               include: { workout: true },
             },
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
+              orderBy: { order: "asc" },
+            },
+            // Roadmap P1.3 "Superset / exercise grouping".
+            exerciseGroups: {
+              include: { members: true },
               orderBy: { order: "asc" },
             },
           },
@@ -1245,7 +1766,7 @@ export const workoutService = {
         programDay: {
           include: {
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -1332,8 +1853,19 @@ export const workoutService = {
         restSeconds:
           typeof data.restSeconds === "number" ? data.restSeconds : 90,
         notes: typeof data.notes === "string" ? data.notes : undefined,
+        setPrescriptions: {
+          create: buildSetPrescriptionsForExercise({
+            sets: typeof data.sets === "number" ? data.sets : 3,
+            reps: typeof data.reps === "number" ? data.reps : 10,
+            restSeconds:
+              typeof data.restSeconds === "number" ? data.restSeconds : 90,
+            setPrescriptions: Array.isArray(data.setPrescriptions)
+              ? data.setPrescriptions
+              : undefined,
+          }),
+        },
       },
-      include: { exercise: true },
+      include: PROGRAM_EXERCISE_INCLUDE,
     });
   },
 
@@ -1356,12 +1888,39 @@ export const workoutService = {
       patch.reps = data.reps;
     if (typeof data.restSeconds === "number" || data.restSeconds === null)
       patch.restSeconds = data.restSeconds;
+    if (typeof data.weight === "number" || data.weight === null)
+      patch.weight = data.weight;
     if (typeof data.notes === "string" || data.notes === null)
       patch.notes = data.notes;
 
-    return prisma.workoutProgramExercise.update({
-      where: { id },
-      data: patch,
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.workoutProgramExercise.update({
+        where: { id },
+        data: patch,
+      });
+
+      if (Array.isArray(data.setPrescriptions)) {
+        await tx.workoutProgramExerciseSetPrescription.deleteMany({
+          where: { programExerciseId: id },
+        });
+        await tx.workoutProgramExerciseSetPrescription.createMany({
+          data: buildSetPrescriptionsForExercise({
+            sets: updated.sets,
+            reps: updated.reps,
+            weight: updated.weight,
+            restSeconds: updated.restSeconds,
+            setPrescriptions: data.setPrescriptions,
+          }).map((prescription) => ({
+            ...prescription,
+            programExerciseId: id,
+          })),
+        });
+      }
+
+      return tx.workoutProgramExercise.findUnique({
+        where: { id },
+        include: PROGRAM_EXERCISE_INCLUDE,
+      });
     });
   },
 
@@ -1382,6 +1941,141 @@ export const workoutService = {
     return prisma.workoutProgramExercise.delete({
       where: { id },
     });
+  },
+
+  /**
+   * Roadmap P1.3 "Superset / exercise grouping"
+   * (docs/features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md). Purely a
+   * program-day planning concept — never touches WorkoutExercise/
+   * WorkoutSet, so already-logged history is never at risk.
+   *
+   * Reorders the day's exercises so the selected members become a
+   * CONTIGUOUS block (in the order the caller selected them), inserted at
+   * the position of the earliest one. This is deliberate, not incidental:
+   * the active-session "is the next exercise a fellow group member" check
+   * (used to pick the right rest duration) only needs to compare adjacent
+   * entries if this invariant holds by construction, rather than search
+   * past unrelated exercises.
+   */
+  async createExerciseGroup(
+    userId: string,
+    programDayId: string,
+    programExerciseIds: string[],
+    type: string,
+    restBetweenExercisesSeconds?: number | null,
+    restAfterRoundSeconds?: number | null,
+  ) {
+    const VALID_TYPES = ["SUPERSET", "TRISET", "CIRCUIT"];
+    if (!VALID_TYPES.includes(type)) {
+      throw { status: 400, message: `type must be one of: ${VALID_TYPES.join(", ")}` };
+    }
+    const uniqueIds = [...new Set(programExerciseIds ?? [])];
+    if (uniqueIds.length < 2) {
+      throw { status: 400, message: "A group requires at least 2 exercises" };
+    }
+
+    const day = await prisma.workoutProgramDay.findFirst({
+      where: { id: programDayId, program: { userId } },
+      include: {
+        exercises: {
+          orderBy: { order: "asc" },
+          include: { groupMembership: true },
+        },
+      },
+    });
+    if (!day) throw { status: 404, message: "Program day not found" };
+
+    const dayExerciseIds = new Set(day.exercises.map((e) => e.id));
+    if (uniqueIds.some((id) => !dayExerciseIds.has(id))) {
+      throw { status: 400, message: "All exercises must belong to the same program day" };
+    }
+    const alreadyGrouped = day.exercises.filter(
+      (e) => uniqueIds.includes(e.id) && e.groupMembership,
+    );
+    if (alreadyGrouped.length > 0) {
+      throw { status: 409, message: "One or more exercises are already in a group" };
+    }
+
+    const selectedSet = new Set(uniqueIds);
+    const selectedInCallerOrder = uniqueIds.map((id) => day.exercises.find((e) => e.id === id)!);
+    const finalSequence: typeof day.exercises = [];
+    let groupInserted = false;
+    for (const ex of day.exercises) {
+      if (selectedSet.has(ex.id)) {
+        if (!groupInserted) {
+          finalSequence.push(...selectedInCallerOrder);
+          groupInserted = true;
+        }
+      } else {
+        finalSequence.push(ex);
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await Promise.all(
+        finalSequence.map((ex, idx) =>
+          tx.workoutProgramExercise.update({ where: { id: ex.id }, data: { order: idx } }),
+        ),
+      );
+      const group = await tx.workoutProgramExerciseGroup.create({
+        data: {
+          programDayId,
+          type,
+          restBetweenExercisesSeconds: restBetweenExercisesSeconds ?? null,
+          restAfterRoundSeconds: restAfterRoundSeconds ?? null,
+          members: {
+            create: selectedInCallerOrder.map((ex, idx) => ({
+              programExerciseId: ex.id,
+              order: idx,
+            })),
+          },
+        },
+        include: { members: true },
+      });
+      return group;
+    });
+  },
+
+  async updateExerciseGroup(
+    id: string,
+    userId: string,
+    data: {
+      restBetweenExercisesSeconds?: number | null;
+      restAfterRoundSeconds?: number | null;
+      type?: string;
+    },
+  ) {
+    const existing = await prisma.workoutProgramExerciseGroup.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: "Exercise group not found" };
+    const VALID_TYPES = ["SUPERSET", "TRISET", "CIRCUIT"];
+    if (data.type !== undefined && !VALID_TYPES.includes(data.type)) {
+      throw { status: 400, message: `type must be one of: ${VALID_TYPES.join(", ")}` };
+    }
+    const patch: any = {};
+    if (data.type !== undefined) patch.type = data.type;
+    if (data.restBetweenExercisesSeconds !== undefined)
+      patch.restBetweenExercisesSeconds = data.restBetweenExercisesSeconds;
+    if (data.restAfterRoundSeconds !== undefined)
+      patch.restAfterRoundSeconds = data.restAfterRoundSeconds;
+    return prisma.workoutProgramExerciseGroup.update({
+      where: { id },
+      data: patch,
+      include: { members: true },
+    });
+  },
+
+  /** Removes the group and its membership records only — the underlying
+   * WorkoutProgramExercise rows (and their current `order`) are untouched,
+   * so ungrouping never silently reshuffles the day again. */
+  async ungroupExercises(id: string, userId: string) {
+    const existing = await prisma.workoutProgramExerciseGroup.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: "Exercise group not found" };
+    await prisma.workoutProgramExerciseGroup.delete({ where: { id } });
+    return { success: true };
   },
 
   async deleteSchedule(id: string, userId: string) {
@@ -1449,6 +2143,100 @@ export const workoutService = {
     });
   },
 
+  /**
+   * Roadmap P1.2 "Reschedule workout"
+   * (docs/features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md) — moves the SAME
+   * logical session to a new date. Deliberately NOT built on
+   * assertScheduleDateEditable (which restricts every other mutation to
+   * "today only"): a missed (past) session must be reschedulable (case 3
+   * in the impact analysis), and a future session too (case 1) — only the
+   * TARGET date is restricted to today-or-future. This is a plain UPDATE
+   * of `date` on the existing row (never a new row) — see the impact
+   * analysis's "Audit findings" for why that is not just simpler but more
+   * correct than a two-row/logicalScheduleId design, given
+   * @@unique([userId, date]) already rules out two rows per day and
+   * computeAdherence already just range-queries the current `date`.
+   */
+  async rescheduleSchedule(
+    userId: string,
+    id: string,
+    newDateStr: string,
+    reason?: string | null,
+  ) {
+    if (!newDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(newDateStr)) {
+      throw { status: 400, message: "newDate must be YYYY-MM-DD" };
+    }
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    // Case 7 ("completed session cannot be casually moved") + the same
+    // trust boundary skip/cancel already use: workoutId set means a real
+    // session was started/logged. Also excludes SKIPPED/CANCELLED (both
+    // status !== "NOT_STARTED" with workoutId still null) — deliberate,
+    // see the impact analysis's "Scope boundary".
+    if (existing.workoutId || existing.status !== "NOT_STARTED") {
+      throw {
+        status: 409,
+        message: "Only a not-yet-started, not-skipped/cancelled session can be rescheduled",
+      };
+    }
+
+    const newDate = parseDateOnly(newDateStr);
+    if (compareScheduleDate(newDate, new Date()) === "past") {
+      throw { status: 400, message: "Cannot reschedule onto a date in the past" };
+    }
+    if (newDate.getTime() === existing.date.getTime()) {
+      throw { status: 409, message: "This session is already scheduled for that date" };
+    }
+
+    const conflict = await prisma.workoutSchedule.findFirst({
+      where: { userId, date: newDate, id: { not: id } },
+      include: { programDay: { select: { title: true } } },
+    });
+    if (conflict) {
+      throw {
+        status: 409,
+        message: `You already have "${conflict.programDay?.title ?? "a session"}" scheduled for that date`,
+      };
+    }
+
+    try {
+      const updated = await prisma.workoutSchedule.update({
+        where: { id },
+        data: {
+          date: newDate,
+          // Set once, on the FIRST reschedule only — never overwritten by
+          // a later one, so it always points at the truly original plan.
+          originalPlannedDate: existing.originalPlannedDate ?? existing.date,
+          rescheduledAt: new Date(),
+          rescheduleReason: reason ?? null,
+        },
+      });
+
+      // Roadmap P4.1 "Notifications/reminders" (§27) — a real, listable
+      // confirmation record of the reschedule (same "you just did X, here's
+      // a record of it" convention as e.g. an order confirmation), not a
+      // blocker to the reschedule itself succeeding (best-effort, see
+      // createPersistentNotification's own doc comment).
+      void createPersistentNotification({
+        userId,
+        text: `Đã dời lịch buổi tập từ ${scheduledDateLabel(existing.date)} sang ${scheduledDateLabel(newDate)}`,
+        eventType: "WORKOUT_RESCHEDULED",
+        entityId: id,
+        link: "/client/workout",
+      });
+
+      return updated;
+    } catch (error: any) {
+      // Defensive: the explicit conflict check above already covers the
+      // common case, but a concurrent request could still race past it —
+      // the DB's own @@unique([userId, date]) is the real guarantee.
+      if (error?.code === "P2002") {
+        throw { status: 409, message: "You already have a session scheduled for that date" };
+      }
+      throw error;
+    }
+  },
+
   async importAiPlanToSchedule(userId: string, input: ImportAiPlanDto) {
     const existingProgram = await (prisma.workoutProgram as any).findFirst({
       where: {
@@ -1460,7 +2248,7 @@ export const workoutService = {
           include: {
             schedules: true,
             exercises: {
-              include: { exercise: true },
+              include: PROGRAM_EXERCISE_INCLUDE,
               orderBy: { order: "asc" },
             },
           },
@@ -1547,7 +2335,7 @@ export const workoutService = {
               include: {
                 schedules: true,
                 exercises: {
-                  include: { exercise: true },
+                  include: PROGRAM_EXERCISE_INCLUDE,
                   orderBy: { order: "asc" },
                 },
               },
@@ -1850,7 +2638,7 @@ export const workoutService = {
           days: {
             include: {
               exercises: {
-                include: { exercise: true },
+                include: PROGRAM_EXERCISE_INCLUDE,
                 orderBy: { order: "asc" },
               },
               schedules: true,

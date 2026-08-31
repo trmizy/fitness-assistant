@@ -444,12 +444,31 @@ model PersonalizedServiceOrder {
   initialDeliveryDaysSnapshot Int                     @map("initial_delivery_days_snapshot")
   supportWeeksSnapshot        Int?                    @map("support_weeks_snapshot")
 
-  // ── Payment — real wallet transfer, same mechanism TrainingPackagePurchase
-  // already uses. No fabricated escrow (§XXXIV) — see final report for what
-  // payment-service actually supports. ────────────────────────────────────
+  // ── Payment — P1-FIN-001/002: real escrow via
+  // personalized-service-ledger.service.ts (payment-service). purchaseService
+  // holds the price in custodial ESCROW + PT/platform PENDING instead of
+  // crediting AVAILABLE immediately; the milestone*ReleasedAt fields below
+  // record each real release as it happens. (Superseded §XXXIV note: this
+  // used to say "no fabricated escrow, see final report" — payment-service's
+  // existing escrow/PENDING mechanism, already used by PT_CONTRACT/
+  // GYM_MEMBERSHIP, is now wired to Personalized Service too. Orders
+  // purchased before this shipped never went through the hold and have
+  // nothing in PENDING — see personalized-service-ledger.service.ts's
+  // header comment for why that degrades safely rather than incorrectly.) ─
   priceAtPurchase      Float    @map("price_at_purchase")
   paymentTransactionId String? @map("payment_transaction_id")
   purchasedAt          DateTime @default(now()) @map("purchased_at")
+
+  // ── Milestone-based release (P1-FIN-002) — stamped by
+  // personalized-service.service.ts right after each real payment-service
+  // release call succeeds. Two jobs: (1) the idempotency guard for
+  // deliverDraft, which fires on every revision redelivery but must only
+  // release DRAFT_DELIVERED's 30% once; (2) an honest audit trail for
+  // getRefundCalculation, independent of payment-service's own ledger.
+  milestoneIntakeReleasedAt    DateTime? @map("milestone_intake_released_at")
+  milestoneDraftReleasedAt     DateTime? @map("milestone_draft_released_at")
+  milestoneAcceptedReleasedAt  DateTime? @map("milestone_accepted_released_at")
+  milestoneCompletedReleasedAt DateTime? @map("milestone_completed_released_at")
 
   // ── Intake + consent (§XIII/§XIV) — free-form JSON: the intake form's
   // shape (body/goal/experience/training/health/lifestyle/nutrition/InBody

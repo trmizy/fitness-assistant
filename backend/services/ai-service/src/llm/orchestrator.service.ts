@@ -938,6 +938,32 @@ export const llmOrchestrator = {
       nutritionLlmInstructionOverrideTotal.inc({ reason: "calorie_calc_missing_data_not_requested" });
     }
 
+    // Belt-and-braces for Part 3's weight-conflict/override (same principle
+    // as the two blocks above): resolveWeightForCalculation() already
+    // injected a strict "[Xung đột cân nặng] ... Dùng {weightKg}kg ..."
+    // instruction into the prompt, but a local/small LLM cannot be trusted
+    // to reliably echo that exact number back in its own prose — real gap
+    // found via E2E testing (tests/21-ai-nutrition-chat-routing.spec.ts,
+    // Q5: "bỏ qua dữ liệu đã lưu, dùng 76kg"). The model sometimes computes
+    // a genuinely correct estimate using the overridden weight but never
+    // restates the number itself, leaving the user unable to tell which
+    // weight was actually used. If the message-stated weight conflicted
+    // with a saved measurement and the final answer doesn't mention that
+    // number, append the deterministic note explicitly — the resolved
+    // weight wins regardless of what the model chose to say.
+    if (
+      weightResolution.conflict &&
+      weightResolution.weightKg != null &&
+      !llmAnswer.includes(String(weightResolution.weightKg))
+    ) {
+      const usedNote =
+        language.responseLanguage === "vi"
+          ? `\n\n📏 **Cân nặng dùng để tính**: ${weightResolution.weightKg}kg (theo số bạn vừa cung cấp)${weightResolution.alternateWeightKg != null ? `, khác với số đo InBody gần nhất (${weightResolution.alternateWeightKg}kg)` : ""}.`
+          : `\n\n📏 **Weight used for this calculation**: ${weightResolution.weightKg}kg (the value you just stated)${weightResolution.alternateWeightKg != null ? `, which differs from your latest InBody measurement (${weightResolution.alternateWeightKg}kg)` : ""}.`;
+      llmAnswer = `${llmAnswer}${usedNote}`;
+      nutritionLlmInstructionOverrideTotal.inc({ reason: "weight_override_not_cited" });
+    }
+
     timing.totalMs = Date.now() - requestStartedAt;
     logger.info(
       {

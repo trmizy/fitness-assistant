@@ -25,6 +25,36 @@ function pushToSocket(payload: {
     );
 }
 
+// Roadmap P4.1 "Notifications/reminders" (§27) — "Need preference
+// controls" + "Do not spam". Only the 5 new workout-domain event types
+// are gated; every pre-existing CONTRACT_*/SESSION_* type is
+// deliberately NOT in this map, so create()'s behavior for them is
+// 100% unchanged (no regression risk to code paths this pass never
+// touched).
+const PREFERENCE_FIELD_BY_EVENT_TYPE: Partial<Record<NotificationEventType, keyof NotificationPreferenceRow>> = {
+  WORKOUT_UPCOMING: "workoutUpcomingEnabled",
+  WORKOUT_RESCHEDULED: "workoutRescheduledEnabled",
+  WORKOUT_UNFINISHED: "workoutUnfinishedEnabled",
+  TRAINING_PLAN_UPDATED: "planUpdatedEnabled",
+  PT_FEEDBACK_RECEIVED: "ptFeedbackEnabled",
+};
+
+type NotificationPreferenceRow = {
+  workoutUpcomingEnabled: boolean;
+  workoutRescheduledEnabled: boolean;
+  workoutUnfinishedEnabled: boolean;
+  planUpdatedEnabled: boolean;
+  ptFeedbackEnabled: boolean;
+};
+
+const DEFAULT_PREFERENCES: NotificationPreferenceRow = {
+  workoutUpcomingEnabled: true,
+  workoutRescheduledEnabled: true,
+  workoutUnfinishedEnabled: true,
+  planUpdatedEnabled: true,
+  ptFeedbackEnabled: true,
+};
+
 export const notificationService = {
   async create(data: {
     userId: string;
@@ -34,6 +64,17 @@ export const notificationService = {
     entityId: string;
     link?: string;
   }) {
+    const preferenceField = PREFERENCE_FIELD_BY_EVENT_TYPE[data.eventType as NotificationEventType];
+    if (preferenceField) {
+      const pref = await notificationRepository.findPreference(data.userId);
+      const enabled = pref ? (pref as any)[preferenceField] : DEFAULT_PREFERENCES[preferenceField];
+      if (!enabled) {
+        // Respecting an explicit opt-out is not a failure — the caller
+        // (e.g. a reminder job) should treat this the same as "sent".
+        return null;
+      }
+    }
+
     const notification = await notificationRepository.create({
       userId: data.userId,
       text: data.text,
@@ -47,6 +88,23 @@ export const notificationService = {
     pushToSocket({ userId: data.userId, notification });
 
     return notification;
+  },
+
+  async getPreferences(userId: string): Promise<NotificationPreferenceRow> {
+    const pref = await notificationRepository.findPreference(userId);
+    if (!pref) return { ...DEFAULT_PREFERENCES };
+    return {
+      workoutUpcomingEnabled: pref.workoutUpcomingEnabled,
+      workoutRescheduledEnabled: pref.workoutRescheduledEnabled,
+      workoutUnfinishedEnabled: pref.workoutUnfinishedEnabled,
+      planUpdatedEnabled: pref.planUpdatedEnabled,
+      ptFeedbackEnabled: pref.ptFeedbackEnabled,
+    };
+  },
+
+  async updatePreferences(userId: string, patch: Partial<NotificationPreferenceRow>) {
+    await notificationRepository.upsertPreference(userId, patch);
+    return this.getPreferences(userId);
   },
 
   async list(userId: string, page = 1, limit = 20) {

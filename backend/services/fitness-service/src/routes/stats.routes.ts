@@ -10,5 +10,25 @@ router.get(
   authMiddleware,
   statsController.getNutritionStats as any,
 );
+router.get(
+  "/muscle-heatmap",
+  authMiddleware,
+  statsController.getMuscleHeatmap as any,
+);
+router.get(
+  "/activity-heatmap",
+  authMiddleware,
+  statsController.getActivityHeatmap as any,
+);
+router.get(
+  "/activity-heatmap/day/:date",
+  authMiddleware,
+  statsController.getActivityDayDetail as any,
+);
+router.get(
+  "/exercise-progress/:exerciseId",
+  authMiddleware,
+  statsController.getExerciseProgress as any,
+);
 
 export default router;

@@ -19,6 +19,39 @@ router.post(
   workoutController.importAiPlan as any,
 );
 router.get("/prs", authMiddleware, workoutController.getPRs as any);
+// "Previous performance" prefill — see workout.service.ts getPreviousPerformance.
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/previous-performance",
+  authMiddleware,
+  workoutController.getPreviousPerformance as any,
+);
+// Deterministic per-exercise progression (docs/TRAINING_PROGRESSION_ARCHITECTURE.md).
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/progression",
+  authMiddleware,
+  workoutController.getExerciseProgression as any,
+);
+// openGym FINAL P0 CLOSURE PASS — OPTIONAL AI-explanation sibling of the
+// deterministic /progression route above. Separate endpoint (not a query
+// param on /progression) so the fast, always-available, purely-deterministic
+// route is structurally never coupled to ai-service being reachable.
+// Named route, must stay before /:id (see note above).
+router.get(
+  "/exercises/:exerciseId/progression/explanation",
+  authMiddleware,
+  workoutController.getExerciseProgressionExplanation as any,
+);
+// Roadmap P3.6 "Exercise history detail page" — aggregates charts/PRs
+// (P3.3), recent sessions (pre-existing), and progression (above) into
+// one page-ready response. Named route, must stay before /:id (see note
+// above).
+router.get(
+  "/exercises/:exerciseId/history",
+  authMiddleware,
+  workoutController.getExerciseHistoryDetail as any,
+);
 router.get(
   "/schedules",
   authMiddleware,
@@ -39,6 +72,12 @@ router.post(
   authMiddleware,
   workoutController.completeScheduleExercise as any,
 );
+// Roadmap P1.6 "undo last set" — sibling of /complete above.
+router.post(
+  "/schedules/:id/exercises/:programExerciseId/undo-complete",
+  authMiddleware,
+  workoutController.undoCompleteScheduleExercise as any,
+);
 router.delete(
   "/schedules/:id",
   authMiddleware,
@@ -48,6 +87,12 @@ router.post(
   "/schedules/:id/skip",
   authMiddleware,
   workoutController.skipSchedule as any,
+);
+// Roadmap P1.2 "Reschedule workout" — sibling of /skip and /cancel above.
+router.post(
+  "/schedules/:id/reschedule",
+  authMiddleware,
+  workoutController.rescheduleSchedule as any,
 );
 router.post(
   "/schedules/:id/cancel",
@@ -118,6 +163,23 @@ router.delete(
   "/program-exercises/:id",
   authMiddleware,
   workoutController.deleteProgramExercise as any,
+);
+
+// Roadmap P1.3 "Superset / exercise grouping".
+router.post(
+  "/program-days/:id/exercise-groups",
+  authMiddleware,
+  workoutController.createExerciseGroup as any,
+);
+router.patch(
+  "/exercise-groups/:id",
+  authMiddleware,
+  workoutController.updateExerciseGroup as any,
+);
+router.delete(
+  "/exercise-groups/:id",
+  authMiddleware,
+  workoutController.ungroupExercises as any,
 );
 
 router.patch(

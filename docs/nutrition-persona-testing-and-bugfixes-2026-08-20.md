@@ -131,10 +131,39 @@ npx playwright test tests/21-ai-nutrition-chat-routing.spec.ts --reporter=list
     - Golden AI eval đủ 7 câu — một phần đã có qua spec 21 (không đủ 7 câu, và spec 21 hiện có 1 điểm flaky ở Q5 như mục 6).
     - Spec 21's Q5 flakiness — xác nhận không phải regression, nhưng cũng chưa được sửa triệt để.
 
-## 8. Nguyên tắc đã tuân thủ
+## 9. Bản cập nhật thứ 3 (2026-08-23) — sửa nốt spec 21's Q5 flakiness
+
+**Việc đã làm**: đúng mục còn lại duy nhất được liệt kê ở mục 6/11 — spec 21's Q5 ("Bỏ qua dữ liệu cân nặng đã lưu... 76kg... ước tính calo duy trì") thi thoảng fail vì câu trả lời của LLM không nhắc lại số "76" dù tính toán đúng.
+
+**Root cause thật (đọc code, không đoán)**: `resolveWeightForCalculation()` (`nutrition_engine.ts`) đã tính đúng cân nặng ghi đè (76kg) và tạo sẵn `conflictNote` chứa số đó; `orchestrator.service.ts` đã tiêm câu này vào prompt như chỉ thị bắt buộc cho LLM. Nhưng khác với 2 case tương tự trong CÙNG file (`claimedMacroCheck` — macro không khớp, `calorieEstimationInputsCheck` — thiếu dữ liệu calo), case cân nặng **chưa có lưới an toàn xác định (deterministic belt-and-braces)** đảm bảo con số thực sự xuất hiện trong câu trả lời cuối — chỉ dựa vào việc LLM tự giác tuân theo chỉ thị trong prompt, một local LLM nhỏ không đáng tin cậy 100%.
+
+**Đã sửa**: thêm đúng 1 block belt-and-braces thứ 3 trong `orchestrator.service.ts` (cùng vị trí, cùng nguyên tắc với 2 block kia) — nếu `weightResolution.conflict` = true và câu trả lời cuối không chứa số cân nặng đã dùng, tự động nối thêm một câu xác định (VI + EN) nêu rõ cân nặng đã dùng để tính. Đồng thời thêm reason `"weight_override_not_cited"` vào metric `nutritionLlmInstructionOverrideTotal` đã có sẵn (không cần đổi schema, `labelNames: ["reason"]` là string tự do).
+
+- File đã sửa: `backend/services/ai-service/src/llm/orchestrator.service.ts` — **1 file duy nhất**, không đụng `nutrition_engine.ts`/`answer_validator.ts`/prompt.
+
+**Lệnh test đã chạy — kết quả thật**:
+```
+npx tsc --noEmit -p tsconfig.json (host, sau khi rebuild @gym-coach/shared bị stale cục bộ) → exit 0
+docker exec gymcoach-ai-dev sh -c "cd /app/backend/services/ai-service && npx tsc --noEmit -p tsconfig.json" → exit 0
+docker exec gymcoach-ai-dev sh -c "cd /app/backend/services/ai-service && npx tsx --test src/llm/__tests__/*.test.ts" → tests 244, pass 244, fail 0
+```
+
+**E2E spec 21 — kết quả thật, kể cả lần fail hạ tầng**:
+```
+cd fitnessassistant-playwright-e2e
+npx playwright test tests/21-ai-nutrition-chat-routing.spec.ts --reporter=list
+```
+- Lần 1: **FAIL ở Q1** — không liên quan tới fix, do Ollama model `fitness-coach-qwen2.5-1.5b:q4_K_M` chưa được nạp vào VRAM (dev stack vừa khởi động lại) nên response đầu tiên là placeholder "Model local có thể đang khởi động...". Đã warm-up model bằng 1 request trực tiếp tới Ollama rồi chạy lại.
+- Lần 2, 3, 4, 5: **PASS cả 4 lần liên tiếp** (trước đây chỉ pass 2/5, fail 3/5 luôn đúng ở Q5).
+- Xác nhận qua Prometheus metric thật (`GET /metrics` trên ai-service) — `nutrition_llm_instruction_override_total{reason="weight_override_not_cited"} = 1`: chứng minh trong các lần chạy đó, LLM **thật sự có** ít nhất 1 lần không tự nhắc lại "76", và lưới an toàn xác định đã can thiệp đúng lúc — không phải model tình cờ trả lời đúng mọi lần.
+- Chạy lại `23-ai-nutrition-plan-serving-realism.spec.ts` + `24-ai-nutrition-persona-b-c.spec.ts` cùng lúc: **3/3 PASS** — 21/23/24 xanh cùng nhau, không có regression.
+
+**Kết luận**: spec 21's Q5 flakiness đã được sửa tận gốc (không phải vá test, không nới lỏng threshold). Mục "Việc chưa làm" ở phần 7.11 nay chỉ còn: UI beginner mode, `MealRealismScorer` đúng tên/flag gốc, Gate 10 batch mới, Golden AI eval đủ 7 câu — các mục này nằm ngoài phạm vi lượt sửa hôm nay.
+
+## 10. Nguyên tắc đã tuân thủ
 
 - Không ghi "pass" cho bất kỳ chỗ nào chưa thực sự chạy lệnh.
-- Không sửa test để né fail — toàn bộ assertion gốc của `24-ai-nutrition-persona-b-c.spec.ts` được giữ nguyên; bug được sửa ở code nghiệp vụ (intent router, prompt, validator, safety guard), không ở test.
+- Không sửa test để né fail — toàn bộ assertion gốc của `24-ai-nutrition-persona-b-c.spec.ts` và `21-ai-nutrition-chat-routing.spec.ts` được giữ nguyên; bug được sửa ở code nghiệp vụ (intent router, prompt, validator, safety guard, orchestrator), không ở test.
 - Không mở rộng sang workout/Gate 7/gamification.
 - Không publish dữ liệu STAGING, không đụng production DB.
-- Đã báo cáo trung thực điểm chưa ổn định (spec 21's Q5) thay vì im lặng bỏ qua.
+- Đã báo cáo trung thực điểm chưa ổn định lúc phát hiện (spec 21's Q5) thay vì im lặng bỏ qua, và quay lại sửa tận gốc ở bản cập nhật thứ 3 thay vì để treo mãi.

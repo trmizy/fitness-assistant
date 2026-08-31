@@ -1,4 +1,6 @@
 import test from 'node:test';
+
+const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
@@ -52,7 +54,7 @@ async function cleanup(gymId: string, planId: string, membershipId: string) {
   await prisma.gym.delete({ where: { id: gymId } }).catch(() => {});
 }
 
-test('the check-in that consumes the LAST visit flips the membership to EXPIRED immediately', async () => {
+integrationTest('the check-in that consumes the LAST visit flips the membership to EXPIRED immediately', async () => {
   const gym = await makeGym();
   const plan = await makePlan(gym.id, 10);
   const clientId = randomUUID();
@@ -71,7 +73,7 @@ test('the check-in that consumes the LAST visit flips the membership to EXPIRED 
   }
 });
 
-test('a check-in that leaves visits remaining does NOT expire the membership', async () => {
+integrationTest('a check-in that leaves visits remaining does NOT expire the membership', async () => {
   const gym = await makeGym();
   const plan = await makePlan(gym.id, 10);
   const clientId = randomUUID();
@@ -89,7 +91,7 @@ test('a check-in that leaves visits remaining does NOT expire the membership', a
   }
 });
 
-test('an unlimited-visit membership (total_visits null) never auto-expires from a check-in', async () => {
+integrationTest('an unlimited-visit membership (total_visits null) never auto-expires from a check-in', async () => {
   const gym = await makeGym();
   const plan = await prisma.gymMembershipPlan.create({
     data: { id: randomUUID(), gymId: gym.id, name: 'Unlimited Plan', price: 500_000, durationDays: 365 }, // no visitLimit

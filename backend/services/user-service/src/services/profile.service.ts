@@ -2,9 +2,9 @@ import axios from "axios";
 import { profileRepository } from "../repositories/profile.repository";
 import { ptApplicationRepository } from "../repositories/pt_application.repository";
 import type { ProfileDto } from "../models/profile.models";
+import { authServiceClient } from "../clients/auth-service.client";
+import { toSignedProfilePhotoUrl } from "./s3-upload.service";
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:3006";
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
@@ -34,13 +34,10 @@ export async function enrichProfilesWithAuthNames(
   ];
   if (userIds.length === 0) return;
   try {
-    const { data } = await axios.post(
-      `${AUTH_SERVICE_URL}/auth/internal/users/batch`,
+    const { data } = await authServiceClient.internalPost(
+      "/auth/internal/users/batch",
       { userIds },
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
+      { timeoutMs: 3000 },
     );
     const nameMap = new Map<
       string,
@@ -74,13 +71,10 @@ export async function enrichProfilesWithAuthNames(
 }
 
 async function syncRoleToPT(userId: string): Promise<void> {
-  await axios.patch(
-    `${AUTH_SERVICE_URL}/auth/internal/users/${userId}/role`,
+  await authServiceClient.internalPatch(
+    `/auth/internal/users/${userId}/role`,
     { role: "PT" },
-    {
-      headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-      timeout: 5000,
-    },
+    { timeoutMs: 5000 },
   );
 }
 
@@ -88,13 +82,10 @@ async function syncRole(
   userId: string,
   role: "PT" | "CUSTOMER",
 ): Promise<void> {
-  await axios.patch(
-    `${AUTH_SERVICE_URL}/auth/internal/users/${userId}/role`,
+  await authServiceClient.internalPatch(
+    `/auth/internal/users/${userId}/role`,
     { role },
-    {
-      headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-      timeout: 5000,
-    },
+    { timeoutMs: 5000 },
   );
 }
 
@@ -111,6 +102,16 @@ async function canBecomePT(userId: string): Promise<boolean> {
   return application?.status === "APPROVED";
 }
 
+export async function withSignedProfilePhoto<T extends { photoUrl?: string | null } | null>(
+  profile: T,
+): Promise<T> {
+  if (!profile?.photoUrl) return profile;
+  return {
+    ...(profile as any),
+    photoUrl: await toSignedProfilePhotoUrl(profile.photoUrl),
+  };
+}
+
 function computeAgeFromDob(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
   const now = new Date();
@@ -123,7 +124,7 @@ function computeAgeFromDob(dateOfBirth: string): number {
 export const profileService = {
   async getProfile(userId: string) {
     const profile = await profileRepository.findByUserId(userId);
-    return { profile: profile ?? null };
+    return { profile: await withSignedProfilePhoto(profile ?? null) };
   },
 
   async upsertProfile(userId: string, data: ProfileDto) {
@@ -147,7 +148,7 @@ export const profileService = {
     }
 
     const profile = await profileRepository.upsert(userId, payload);
-    return { profile };
+    return { profile: await withSignedProfilePhoto(profile) };
   },
 
   async becomePT(userId: string, currentRole: string) {

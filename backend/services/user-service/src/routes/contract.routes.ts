@@ -101,6 +101,9 @@ router.post("/:id/session", authMiddleware, gone("POST /sessions, then POST /ses
 
 // Phase 4 — client pays a PENDING_PAYMENT contract via wallet
 router.post("/:id/pay", authMiddleware, contractController.pay as any);
+// Roadmap P4.1 "Notifications/reminders" — PT-only, enforced service-side
+// in contractService.sendFeedback (contract.ptUserId !== ptUserId -> 403).
+router.post("/:id/feedback", authMiddleware, contractController.sendFeedback as any);
 
 // Money view of a contract: what has been released, what is still pending, and what the
 // client would get back if they cancelled right now. Read-only, both parties may see it.

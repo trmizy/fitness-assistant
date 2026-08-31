@@ -23,6 +23,13 @@ import { TrainingPage } from "./pages/client/TrainingPage";
 import { ServicesPage } from "./pages/client/ServicesPage";
 import { ChatCoachPage } from "./pages/client/ChatCoachPage";
 import { PersonalizedServiceOrderPage } from "./pages/client/PersonalizedServiceOrderPage";
+import { ImportWorkoutsPage } from "./pages/client/ImportWorkoutsPage";
+import { ExportDataPage } from "./pages/client/ExportDataPage";
+import { TemplatesPage } from "./pages/client/TemplatesPage";
+import { MuscleHeatmapPage } from "./pages/client/MuscleHeatmapPage";
+import { ActivityHeatmapPage } from "./pages/client/ActivityHeatmapPage";
+import { ExerciseProgressChartPage } from "./pages/client/ExerciseProgressChartPage";
+import { NotificationPreferencesPage } from "./pages/client/NotificationPreferencesPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -46,6 +53,7 @@ import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { MarketplaceModeration } from "./pages/admin/MarketplaceModeration";
 import { AdminExerciseReview } from "./pages/admin/AdminExerciseReview";
+import { AdminCatalogQuality } from "./pages/admin/AdminCatalogQuality";
 import { PTServiceRefunds } from "./pages/admin/PTServiceRefunds";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
@@ -60,6 +68,7 @@ import { RequireRole } from "./components/RequireRole";
 import { RequireOnboarding } from "./components/RequireOnboarding";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
+import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +95,7 @@ function Root() {
         <SocketProvider>
           <CallProvider>
             <Toaster position="top-center" expand={false} richColors />
+            <PwaUpdatePrompt />
             <Outlet />
           </CallProvider>
         </SocketProvider>
@@ -117,6 +127,13 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
           { path: "onboarding", Component: OnboardingWizardPage },
           { path: "training-equipment", Component: TrainingEquipmentSettingsPage },
+          { path: "import-workouts", Component: ImportWorkoutsPage },
+          { path: "export-data", Component: ExportDataPage },
+          { path: "templates", Component: TemplatesPage },
+          { path: "muscle-heatmap", Component: MuscleHeatmapPage },
+          { path: "activity-heatmap", Component: ActivityHeatmapPage },
+          { path: "exercise-progress/:exerciseId", Component: ExerciseProgressChartPage },
+          { path: "notification-preferences", Component: NotificationPreferencesPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },
@@ -193,6 +210,7 @@ export const router = createBrowserRouter([
           { path: "pts", Component: PTManagement },
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "exercise-review", Component: AdminExerciseReview },
+          { path: "catalog-quality", Component: AdminCatalogQuality },
           { path: "pt-service-refunds", Component: PTServiceRefunds },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { connectSocket, getSocket } from "../services/socket";
+import { isChatWsEnabled } from "../config/serverUrl";
 import { useWebRTC } from "../hooks/useWebRTC";
 import { useApp } from "./AppContext";
 import type { CallUIState, CallSessionInfo, CallType } from "../types";
@@ -144,11 +145,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>([]);
   const isCallerRef = useRef(false);
+  const chatWsEnabled = isChatWsEnabled();
+
+  const showRealtimeDisabled = useCallback(() => {
+    toast.info("Realtime chat/call chưa được bật trong môi trường này.");
+  }, []);
 
   // ── WebRTC ─────────────────────────────────────────────────
   const handleIceCandidate = useCallback((candidate: RTCIceCandidate) => {
     const s = stateRef.current;
     if (s.callInfo?.callSessionId) {
+      if (!chatWsEnabled) return;
       const socket = getSocket();
       socket.emit("call:ice_candidate", {
         callSessionId: s.callInfo.callSessionId,
@@ -169,6 +176,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       } else if (connState === "failed") {
         const s = stateRef.current;
         if (s.callInfo?.callSessionId) {
+          if (!chatWsEnabled) return;
           const socket = getSocket();
           socket.emit("call:end", {
             callSessionId: s.callInfo.callSessionId,
@@ -197,7 +205,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   // ── Socket listeners (registered once) ─────────────────────
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !chatWsEnabled) return;
 
     const socket = connectSocket();
 
@@ -367,13 +375,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
       socket.off("call:media_toggled", onMediaToggled);
       socket.off("call:error", onError);
     };
-  }, [isAuthenticated, doCleanup]);
+  }, [isAuthenticated, chatWsEnabled, doCleanup]);
 
   // ── Actions (acquire media in click context, THEN signal) ──
 
   const initiateCall = useCallback(
     async (calleeId: string, callType: CallType, conversationId: string) => {
       if (stateRef.current.uiState !== "idle") return;
+      if (!chatWsEnabled) {
+        showRealtimeDisabled();
+        return;
+      }
 
       // 1. Acquire media FIRST (user gesture context = click)
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -413,7 +425,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         origin: "CHAT",
       });
     },
-    [],
+    [chatWsEnabled, showRealtimeDisabled],
   );
 
   const joinCoachingSession = useCallback(
@@ -423,6 +435,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
       joinToken: string;
     }): Promise<void> => {
       if (stateRef.current.uiState !== "idle") return;
+      if (!chatWsEnabled) {
+        showRealtimeDisabled();
+        return;
+      }
       if (!navigator.mediaDevices?.getUserMedia) {
         toast.error(
           "Trình duyệt không hỗ trợ camera/micro hoặc cần chạy trên HTTPS/localhost",
@@ -459,12 +475,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
         joinToken: session.joinToken,
       });
     },
-    [],
+    [chatWsEnabled, showRealtimeDisabled],
   );
 
   const acceptCall = useCallback(async () => {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
+    if (!chatWsEnabled) {
+      doCleanup();
+      return;
+    }
 
     // 1. Acquire media FIRST (user gesture context = click)
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -491,39 +511,51 @@ export function CallProvider({ children }: { children: ReactNode }) {
     isCallerRef.current = false;
     const socket = connectSocket();
     socket.emit("call:accept", { callSessionId: s.callInfo.callSessionId });
-  }, [doCleanup]);
+  }, [chatWsEnabled, doCleanup]);
 
   const rejectCall = useCallback(() => {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
+    if (!chatWsEnabled) {
+      doCleanup();
+      return;
+    }
     const socket = connectSocket();
     socket.emit("call:reject", { callSessionId: s.callInfo.callSessionId });
     doCleanup();
-  }, [doCleanup]);
+  }, [chatWsEnabled, doCleanup]);
 
   const cancelCall = useCallback(() => {
     const s = stateRef.current;
+    if (!chatWsEnabled) {
+      doCleanup();
+      return;
+    }
     if (s.callInfo?.callSessionId) {
       const socket = connectSocket();
       socket.emit("call:cancel", { callSessionId: s.callInfo.callSessionId });
     }
     doCleanup();
-  }, [doCleanup]);
+  }, [chatWsEnabled, doCleanup]);
 
   const endCall = useCallback(() => {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
+    if (!chatWsEnabled) {
+      doCleanup();
+      return;
+    }
     const socket = connectSocket();
     socket.emit("call:end", { callSessionId: s.callInfo.callSessionId });
     doCleanup();
-  }, [doCleanup]);
+  }, [chatWsEnabled, doCleanup]);
 
   const toggleMute = useCallback(() => {
     const newMuted = webrtcRef.current.toggleMute();
     dispatch({ type: "TOGGLE_MUTE", payload: newMuted });
 
     const s = stateRef.current;
-    if (s.callInfo?.callSessionId) {
+    if (chatWsEnabled && s.callInfo?.callSessionId) {
       const socket = getSocket();
       socket.emit("call:media_toggle", {
         callSessionId: s.callInfo.callSessionId,
@@ -531,14 +563,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         enabled: !newMuted,
       });
     }
-  }, []);
+  }, [chatWsEnabled]);
 
   const toggleVideo = useCallback(() => {
     const newOff = webrtcRef.current.toggleVideo();
     dispatch({ type: "TOGGLE_VIDEO", payload: newOff });
 
     const s = stateRef.current;
-    if (s.callInfo?.callSessionId) {
+    if (chatWsEnabled && s.callInfo?.callSessionId) {
       const socket = getSocket();
       socket.emit("call:media_toggle", {
         callSessionId: s.callInfo.callSessionId,
@@ -546,7 +578,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         enabled: !newOff,
       });
     }
-  }, []);
+  }, [chatWsEnabled]);
 
   return (
     <CallContext.Provider

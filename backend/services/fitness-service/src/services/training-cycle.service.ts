@@ -21,7 +21,15 @@ import { cycleThresholds } from "../config/cycle-thresholds.config";
 import { computeCycleMetrics, type CycleMetricsResult } from "./cycle-metrics.engine";
 import { cycleFeedbackAggregator, type CycleFeedbackSummaryResult } from "./cycle-feedback-aggregator";
 import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScope } from "./cycle-decision.engine";
-import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE, scheduledDateLabel, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { classifyDayState } from "../utils/activity-heatmap.util";
+import { aggregateCycleAdherence, type CycleAdherenceDayInput } from "../utils/cycle-adherence.util";
+import {
+  computePlannedVsActual,
+  aggregateCyclePlannedVsActual,
+  type PlannedExerciseOccurrence,
+  type ActualCompletedSet,
+} from "../utils/planned-vs-actual.util";
 import { buildCycleBaselineMetrics, buildCycleTargetMetrics } from "./cycle-baseline-snapshot.util";
 import { computeWeightTrend } from "./weight-trend.util";
 import { evaluateNutritionAdaptive, type NutritionDecisionResult } from "./nutrition-decision.engine";
@@ -70,6 +78,135 @@ function isUniqueConstraintError(err: unknown): boolean {
 function weekOfCycle(startDate: Date, asOf: Date): number {
   const days = Math.floor((asOf.getTime() - startDate.getTime()) / 86_400_000);
   return Math.max(1, Math.floor(days / 7) + 1);
+}
+
+/**
+ * Roadmap P3.4 "Training consistency and adherence" — builds the per-day
+ * inputs `aggregateCycleAdherence` (cycle-adherence.util.ts) needs, over
+ * the cycle's own FULL planned window (`cycle.startDate` to
+ * `cycle.endDate` — deliberately not capped at "today" the way
+ * `getCycleReport`'s existing `windowEnd` is for nutrition, since a
+ * `planned` (upcoming) session is by definition still in the future).
+ * Reuses `classifyDayState` (P3.2, activity-heatmap.util.ts) UNCHANGED,
+ * per real calendar day — same reschedule-source-vs-destination logic
+ * Activity Heatmap already proved correct, applied here to one cycle's
+ * date range instead of an arbitrary [from,to].
+ */
+function buildCycleAdherenceDays(
+  schedules: Array<{ date: Date; status: string; originalPlannedDate: Date | null }>,
+  cycleStartDate: Date,
+  cycleEndDate: Date,
+  now: Date,
+): CycleAdherenceDayInput[] {
+  const todayLabel = scheduledDateLabel(todayAsScheduleDate(now));
+  const statusByDateLabel = new Map(schedules.map((s) => [scheduledDateLabel(s.date), s.status]));
+  const movedAwayDateLabels = new Set(
+    schedules.filter((s) => s.originalPlannedDate).map((s) => scheduledDateLabel(s.originalPlannedDate!)),
+  );
+
+  const days: CycleAdherenceDayInput[] = [];
+  const cursor = startOfUtcDay(cycleStartDate);
+  const end = startOfUtcDay(cycleEndDate);
+  while (cursor <= end) {
+    const dateLabel = scheduledDateLabel(cursor);
+    const state = classifyDayState({
+      dateLabel,
+      todayLabel,
+      scheduleStatusAtDate: statusByDateLabel.get(dateLabel) ?? null,
+      hasOriginalPlanMovedAway: movedAwayDateLabels.has(dateLabel),
+    });
+    days.push({ state, hasRealSchedule: statusByDateLabel.has(dateLabel) });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+/**
+ * Roadmap P3.5 "Planned vs actual training volume" — builds the two
+ * flat input arrays `computePlannedVsActual` (planned-vs-actual.util.ts)
+ * needs, from real DB rows. Scoped to schedule rows that (a) have real
+ * logged data (COMPLETED or PARTIALLY_COMPLETED — §25: "completed
+ * sessions") and (b) actually link back to a real plan day
+ * (`programDayId`) and a real logged workout (`workoutId`) — a manually
+ * logged ad-hoc session with no plan link has nothing to compare
+ * against and is correctly excluded (matches
+ * `computePlannedVsActual`'s own "only plan-anchored exercises" rule).
+ * "Actual" is deliberately scoped to ONLY these same sessions' own
+ * logged sets (never the user's other, unrelated logged workouts for
+ * the same exercise) — keeps the comparison apples-to-apples.
+ */
+async function buildPlannedVsActualInputs(
+  schedules: Array<{ status: string; programDayId: string | null; workoutId: string | null }>,
+): Promise<{ plannedOccurrences: PlannedExerciseOccurrence[]; actualSets: ActualCompletedSet[] }> {
+  const qualifying = schedules.filter(
+    (s) => (s.status === "COMPLETED" || s.status === "PARTIALLY_COMPLETED") && s.programDayId && s.workoutId,
+  ) as Array<{ status: string; programDayId: string; workoutId: string }>;
+
+  if (qualifying.length === 0) return { plannedOccurrences: [], actualSets: [] };
+
+  const programDayIds = [...new Set(qualifying.map((s) => s.programDayId))];
+  const workoutIds = [...new Set(qualifying.map((s) => s.workoutId))];
+
+  const [planExercises, actualSetRows] = await Promise.all([
+    prisma.workoutProgramExercise.findMany({
+      where: { programDayId: { in: programDayIds } },
+      select: {
+        programDayId: true,
+        exerciseId: true,
+        sets: true,
+        reps: true,
+        weight: true,
+        duration: true,
+        exercise: { select: { exerciseName: true, loggingMode: true } },
+      },
+    }),
+    prisma.workoutSet.findMany({
+      where: { completed: true, workoutExercise: { workoutId: { in: workoutIds } } },
+      select: {
+        weight: true,
+        reps: true,
+        durationSeconds: true,
+        distanceMeters: true,
+        workoutExercise: { select: { exerciseId: true } },
+      },
+    }),
+  ]);
+
+  const planExercisesByDayId = new Map<string, typeof planExercises>();
+  for (const pe of planExercises) {
+    const list = planExercisesByDayId.get(pe.programDayId) ?? [];
+    list.push(pe);
+    planExercisesByDayId.set(pe.programDayId, list);
+  }
+
+  // One occurrence per (schedule row x planned exercise) — a program day
+  // reused across N real sessions this cycle correctly contributes N
+  // occurrences, not 1.
+  const plannedOccurrences: PlannedExerciseOccurrence[] = [];
+  for (const s of qualifying) {
+    const dayExercises = planExercisesByDayId.get(s.programDayId) ?? [];
+    for (const pe of dayExercises) {
+      plannedOccurrences.push({
+        exerciseId: pe.exerciseId,
+        exerciseName: pe.exercise.exerciseName,
+        loggingMode: pe.exercise.loggingMode,
+        sets: pe.sets,
+        reps: pe.reps,
+        weight: pe.weight,
+        duration: pe.duration,
+      });
+    }
+  }
+
+  const actualSets: ActualCompletedSet[] = actualSetRows.map((s) => ({
+    exerciseId: s.workoutExercise.exerciseId,
+    weight: s.weight,
+    reps: s.reps,
+    durationSeconds: s.durationSeconds,
+    distanceMeters: s.distanceMeters,
+  }));
+
+  return { plannedOccurrences, actualSets };
 }
 
 async function buildRollingSummary(
@@ -881,6 +1018,24 @@ export const trainingCycleService = {
 
     const totalDueSessions = completedSessions.length + missedSessions.length;
 
+    // Roadmap P3.4 "Training consistency and adherence" — the richer
+    // planned/completed/rescheduled/missed breakdown, built from the exact
+    // same `schedules` rows already fetched above (zero extra query).
+    // `completed`/`missed`/`upcoming`/`completionRate` above are left
+    // UNCHANGED (existing callers keep working) — this is purely additive.
+    const adherenceDays = buildCycleAdherenceDays(schedules, cycle.startDate, cycle.endDate, now);
+    const adherenceBreakdown = aggregateCycleAdherence(adherenceDays);
+    const rescheduledSessions = schedules
+      .filter((s) => s.originalPlannedDate)
+      .map((s) => ({ from: s.originalPlannedDate as Date, to: s.date, status: s.status }));
+
+    // Roadmap P3.5 "Planned vs actual training volume" — mode-aware
+    // (§25's own explicit warning against a blanket "volume = kg × reps"),
+    // built from the current program/cycle plan and completed sessions.
+    const { plannedOccurrences, actualSets } = await buildPlannedVsActualInputs(schedules);
+    const plannedVsActualByExercise = computePlannedVsActual(plannedOccurrences, actualSets);
+    const plannedVsActualTotals = aggregateCyclePlannedVsActual(plannedVsActualByExercise);
+
     const flags: string[] = [];
     if (proteinAdherencePct != null && proteinAdherencePct < 85) flags.push("PROTEIN_BELOW_TARGET");
     if (proteinPerKg != null && proteinPerKg < PROTEIN_EVIDENCE_RANGE_G_PER_KG.min) flags.push("PROTEIN_BELOW_EVIDENCE_RANGE");
@@ -902,6 +1057,18 @@ export const trainingCycleService = {
         missedSessions: missedSessions.map((s) => ({ date: s.date })),
         sessionDetails,
         highPainSessions,
+        // Roadmap P3.4 — §24's own "planned / completed / rescheduled /
+        // missed" breakdown, over the cycle's FULL window (incl. future
+        // planned sessions, unlike the fields above). `adherencePct` can
+        // legitimately differ from `completionRate` above: completionRate
+        // is completed/(completed+missed) with NO reschedule visibility
+        // (a rescheduled-then-completed session just silently counts as
+        // completed, a rescheduled-then-still-pending one just vanishes
+        // from both numerator and denominator); adherencePct is
+        // completed/(completed+partial+missed+rescheduled) — every
+        // session that has already had its moment, reschedules included.
+        breakdown: adherenceBreakdown,
+        rescheduledSessions,
       },
       trainingLoad: {
         hasData: hasTrainingLoadData,
@@ -926,6 +1093,15 @@ export const trainingCycleService = {
         completedMeals,
         partialMeals,
         skippedMeals,
+      },
+      // Roadmap P3.5 "Planned vs actual training volume" — scoped to
+      // exercises that were actually part of the plan (§25: "Use current
+      // program/cycle plan and completed sessions"); mode-gated per
+      // exercise (never one blended "volume" number across modes — see
+      // planned-vs-actual.util.ts's own doc comment).
+      plannedVsActual: {
+        byExercise: plannedVsActualByExercise,
+        totals: plannedVsActualTotals,
       },
       bodyComposition: (cycle.summary as any)?.inBodySeries ?? [],
       volumeWeekOverWeekPct,

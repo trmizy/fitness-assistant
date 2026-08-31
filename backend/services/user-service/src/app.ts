@@ -4,6 +4,7 @@ import fs from "fs";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
+import { isLambdaRuntime } from "./utils/runtime.util";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
 import ptApplicationRoutes from "./routes/pt_application.routes";
@@ -34,14 +35,29 @@ app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(metricsMiddleware());
 
-// Ensure upload directories exist
-for (const dir of [
-  "uploads/pt-applications",
-  "uploads/profile-photos",
-  "uploads/contracts",
-]) {
-  const p = path.join(process.cwd(), dir);
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+// Ensure upload directories exist — local/Docker only. Skipped entirely on Lambda rather than
+// attempted-then-caught: `process.cwd()` there resolves under the read-only deployment root, so
+// every one of these would always fail (previously wrapped in try/catch to avoid an EROFS/ENOENT
+// crash at import time, which worked but logged a warning on every single cold start for
+// something that was never going to succeed). None of the routes that write into these
+// directories are mounted on Lambda in the first place — see profile.routes.ts,
+// pt_application.routes.ts, and inbody.routes.ts's own runtime.util.ts-gated multer setup.
+if (!isLambdaRuntime()) {
+  for (const dir of [
+    "uploads/pt-applications",
+    "uploads/profile-photos",
+    "uploads/contracts",
+  ]) {
+    try {
+      const p = path.join(process.cwd(), dir);
+      if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+    } catch (err) {
+      logger.warn(
+        { dir, err: (err as Error).message },
+        "Could not create upload directory",
+      );
+    }
+  }
 }
 
 // Only profile-photos (public avatars, same exposure level as any social-app

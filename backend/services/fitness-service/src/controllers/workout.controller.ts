@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { workoutService } from "../services/workout.service";
 import { sessionFeedbackService } from "../services/session-feedback.service";
+import { exerciseHistoryService } from "../services/exercise-history.service";
 import {
   completeScheduleExerciseSchema,
   createManualProgramSchema,
@@ -120,6 +121,84 @@ export const workoutController = {
     }
   },
 
+  async getPreviousPerformance(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getPreviousPerformance(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error) {
+      logger.error("Error fetching previous performance:", error);
+      res.status(500).json({ error: "Failed to fetch previous performance" });
+    }
+  },
+
+  async getExerciseProgression(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getExerciseProgression(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise progression:", error);
+      res.status(500).json({ error: "Failed to fetch exercise progression" });
+    }
+  },
+
+  // Roadmap P3.6 "Exercise history detail page"
+  // (docs/features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md).
+  async getExerciseHistoryDetail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const result = await exerciseHistoryService.getExerciseHistoryDetail(req.user!.id, exerciseId);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise history detail:", error);
+      res.status(500).json({ error: "Failed to fetch exercise history detail" });
+    }
+  },
+
+  // openGym FINAL P0 CLOSURE PASS — optional, slower sibling of
+  // getExerciseProgression above. Never fails just because AI is down: the
+  // service layer always returns a real explanation (AI-written or a local
+  // deterministic fallback), so the only error paths here are "exercise not
+  // found" and genuine unexpected errors, same as getExerciseProgression.
+  async getExerciseProgressionExplanation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.params;
+      const { excludeWorkoutId } = req.query as Record<string, string>;
+      const result = await workoutService.getExerciseProgressionExplanation(
+        req.user!.id,
+        exerciseId,
+        excludeWorkoutId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error("Error fetching exercise progression explanation:", error);
+      res.status(500).json({ error: "Failed to fetch exercise progression explanation" });
+    }
+  },
+
   async getPRs(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { exerciseId } = req.query as Record<string, string>;
@@ -151,10 +230,16 @@ export const workoutController = {
   async updateSet(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = updateWorkoutSetSchema.parse(req.body);
+      // Roadmap P1.4 "Active-workout offline resilience" — read directly
+      // from the raw body (never part of the zod-validated `data`, which
+      // flows straight into a Prisma `data:` object and would otherwise
+      // leak an unknown field into it).
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
       const result = await workoutService.updateSet(
         req.params.setId,
         req.user!.id,
         data,
+        eventId,
       );
       res.json(result);
     } catch (error: any) {
@@ -255,11 +340,14 @@ export const workoutController = {
       // exists: it's the only way the actually-performed weight/reps/RPE/RIR
       // and a session-only exercise swap ever reach the persisted log.
       const body = completeScheduleExerciseSchema.parse(req.body ?? {});
+      // Roadmap P1.4 "Active-workout offline resilience".
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
       const result = await workoutService.completeScheduleExercise(
         req.user!.id,
         req.params.id,
         req.params.programExerciseId,
         body,
+        eventId,
       );
       res.json({ success: true, data: result });
     } catch (error: any) {
@@ -279,6 +367,36 @@ export const workoutController = {
         "Error completing workout schedule exercise",
       );
       res.status(500).json({ error: "Failed to complete workout exercise" });
+    }
+  },
+
+  // Roadmap P1.6 "undo last set" — sibling of completeScheduleExercise
+  // above, no request body (nothing to validate — this only ever flips the
+  // named exercise's completion flag back off).
+  async undoCompleteScheduleExercise(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      // Roadmap P1.4 "Active-workout offline resilience".
+      const eventId = typeof req.body?.eventId === "string" ? req.body.eventId : undefined;
+      const result = await workoutService.undoCompleteScheduleExercise(
+        req.user!.id,
+        req.params.id,
+        req.params.programExerciseId,
+        eventId,
+      );
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(
+        { err: error },
+        "Error undoing workout schedule exercise completion",
+      );
+      res.status(500).json({ error: "Failed to undo exercise completion" });
     }
   },
 
@@ -470,6 +588,66 @@ export const workoutController = {
     }
   },
 
+  // Roadmap P1.3 "Superset / exercise grouping".
+  async createExerciseGroup(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const group = await workoutService.createExerciseGroup(
+        req.user!.id,
+        req.params.id,
+        Array.isArray(req.body?.programExerciseIds) ? req.body.programExerciseIds : [],
+        typeof req.body?.type === "string" ? req.body.type : "",
+        typeof req.body?.restBetweenExercisesSeconds === "number" ? req.body.restBetweenExercisesSeconds : null,
+        typeof req.body?.restAfterRoundSeconds === "number" ? req.body.restAfterRoundSeconds : null,
+      );
+      res.status(201).json(group);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error creating exercise group");
+      res.status(500).json({ error: "Failed to create exercise group" });
+    }
+  },
+
+  async updateExerciseGroup(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const group = await workoutService.updateExerciseGroup(req.params.id, req.user!.id, {
+        type: typeof req.body?.type === "string" ? req.body.type : undefined,
+        restBetweenExercisesSeconds:
+          req.body?.restBetweenExercisesSeconds === null || typeof req.body?.restBetweenExercisesSeconds === "number"
+            ? req.body.restBetweenExercisesSeconds
+            : undefined,
+        restAfterRoundSeconds:
+          req.body?.restAfterRoundSeconds === null || typeof req.body?.restAfterRoundSeconds === "number"
+            ? req.body.restAfterRoundSeconds
+            : undefined,
+      });
+      res.json(group);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error updating exercise group");
+      res.status(500).json({ error: "Failed to update exercise group" });
+    }
+  },
+
+  async ungroupExercises(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.ungroupExercises(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error ungrouping exercises");
+      res.status(500).json({ error: "Failed to ungroup exercises" });
+    }
+  },
+
   async deleteSchedule(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await workoutService.deleteSchedule(
@@ -518,6 +696,29 @@ export const workoutController = {
       }
       logger.error({ err: error }, "Error cancelling schedule");
       res.status(500).json({ error: "Failed to cancel schedule" });
+    }
+  },
+
+  // Roadmap P1.2 "Reschedule workout" — moves the SAME logical session to
+  // a new date (see workoutService.rescheduleSchedule's own doc comment).
+  async rescheduleSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const newDate = typeof req.body?.newDate === "string" ? req.body.newDate : "";
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() || null : null;
+      const result = await workoutService.rescheduleSchedule(
+        req.user!.id,
+        req.params.id,
+        newDate,
+        reason,
+      );
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error rescheduling schedule");
+      res.status(500).json({ error: "Failed to reschedule schedule" });
     }
   },
 
