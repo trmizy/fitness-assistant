@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import jsQR from "jsqr";
 import { X, Loader2, CheckCircle2, XCircle, Camera } from "lucide-react";
 import { gymService } from "../../services/api";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 import type { CheckinResult } from "../../types";
 
 const ERR_MESSAGES: Record<string, string> = {
@@ -23,6 +24,9 @@ const ERR_MESSAGES: Record<string, string> = {
  */
 export function CheckinScanModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
+  // Android Back closes the scanner (and releases the camera) rather than navigating away
+  // with it still running.
+  useBackDismissible(true, onClose);
   const [camError, setCamError] = useState("");
   const [errorText, setErrorText] = useState("");
   const [scanning, setScanning] = useState(false);

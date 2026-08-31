@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
 import {
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
+import { ROLE_HOME, landingPathFor } from "../../config/landing";
 import { Preferences } from "@capacitor/preferences";
 
 const features = [
@@ -24,8 +25,16 @@ const features = [
 ];
 
 export function LoginPage() {
-  const { login } = useApp();
+  const { login, isAuthenticated, role } = useApp();
   const navigate = useNavigate();
+
+  // Anyone who reaches the login screen with a live session belongs inside the app.
+  // Without this, a restored session that landed here for any reason (a deep link, an
+  // old history entry, "/" before RootRedirect existed) left the user staring at a login
+  // form and retyping a password they never needed to enter — the reported bug.
+  useEffect(() => {
+    if (isAuthenticated) navigate(ROLE_HOME[role], { replace: true });
+  }, [isAuthenticated, role, navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,20 +57,9 @@ export function LoginPage() {
       if (success) {
         const { value: userStr } = await Preferences.get({ key: "user" });
         const storedUser = JSON.parse(userStr || "{}");
-        // Normalize casing — role may be stored in different cases.
-        const rawRole = String(storedUser.role || "").toUpperCase();
-
-        navigate(
-          rawRole === "ADMIN"
-            ? "/admin/dashboard"
-            // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything
-            // themselves now.
-            : rawRole === "GYM_OWNER"
-              ? "/gym-owner/dashboard"
-              : storedUser.isPT
-                ? "/pt/dashboard"
-                : "/client/dashboard",
-        );
+        // Same role->home table the root redirect and session restore use, so the three
+        // can never disagree about where a role's home screen is.
+        navigate(landingPathFor(storedUser), { replace: true });
       } else {
         setError("Email hoặc mật khẩu không đúng");
       }

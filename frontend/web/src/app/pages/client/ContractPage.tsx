@@ -18,6 +18,7 @@ import {
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService } from "../../services/api";
+import { openPaymentGateway } from "../../services/paymentGateway";
 import { toast } from "sonner";
 import type {
   Contract,
@@ -198,7 +199,14 @@ export function ContractPage() {
     onSuccess: (result: any) => {
       const url = result?.payment?.redirectUrl;
       if (url) {
-        window.location.href = url;
+        // In the app this opens a system browser tab and leaves the React app running
+        // underneath; on the web it behaves exactly as before. Either way the result is
+        // confirmed against the server, never inferred from the return URL.
+        void openPaymentGateway({
+          url,
+          transactionId: result?.payment?.transactionId,
+          navigate,
+        });
         return;
       }
       setPayTarget(null);

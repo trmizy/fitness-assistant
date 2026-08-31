@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, ChevronDown, FileText, Loader2, ShieldAlert, ShieldCheck, Store, X } from "lucide-react";
 import { marketplaceService } from "../../services/api";
@@ -34,6 +34,9 @@ export function MarketplaceModeration() {
 
   const listQuery = useQuery({
     queryKey: ["admin", "marketplace", filter],
+    // Keeps the current rows on screen while the new filter loads, instead of
+    // dropping to undefined and flashing an empty list on every filter change.
+    placeholderData: keepPreviousData,
     queryFn: () => marketplaceService.adminListForModeration(filter),
   });
 

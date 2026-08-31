@@ -66,6 +66,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { RequireRole } from "./components/RequireRole";
 import { RequireOnboarding } from "./components/RequireOnboarding";
+import { RootRedirect } from "./components/RootRedirect";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
 import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
@@ -111,7 +112,10 @@ export const router = createBrowserRouter([
     Component: Root,
     errorElement: <RouteErrorBoundary />,
     children: [
-      { index: true, element: <Navigate to="/login" replace /> },
+      // Not a hard redirect to /login — see RootRedirect. The Capacitor WebView always
+      // boots at "/", so this single line decided whether every app launch landed on the
+      // login screen or in the app.
+      { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
 

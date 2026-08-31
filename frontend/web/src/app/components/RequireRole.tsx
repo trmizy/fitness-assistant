@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Navigate } from "react-router";
 import { useApp, type UserRole } from "../context/AppContext";
 
 /**
@@ -25,10 +26,13 @@ export function RequireRole({
 }) {
   const { role, isAuthenticated } = useApp();
 
-  // AppShell (rendered inside `children`) already redirects an unauthenticated
-  // user to /login — render nothing here rather than risk a flash of this
-  // workspace's content while that redirect is in flight.
-  if (!isAuthenticated) return null;
+  // Redirect rather than render nothing. This used to `return null` on the assumption that
+  // AppShell (inside `children`) would do the redirecting — but returning null is exactly
+  // what stops AppShell from ever mounting, so nothing redirected and an unauthenticated
+  // visit to /admin/* or /pt/* simply sat on a blank screen at the guarded URL. Session
+  // restore now resolves before anything renders (see services/session.ts), so by the time
+  // this runs, `isAuthenticated: false` is a settled answer, not a still-loading one.
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   if (!allow.includes(role)) {
     return (

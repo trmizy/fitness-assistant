@@ -23,6 +23,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                Custom scheme for returning into the app from an external page (payment
+                gateways in particular). Declared now so the app side is ready; the backend
+                still returns to the WEB result URL, so nothing depends on this yet — the
+                payment flow works off the browser tab closing instead (see
+                services/paymentGateway.ts). When payment-service gains a mobile return URL,
+                pointing it at fitnessassistant:// will start working with no app change.
+
+                A link arriving here is NEVER treated as proof of payment: appUrlOpen only
+                routes the user to the result screen, which asks the server what happened.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fitnessassistant" />
+            </intent-filter>
+
         </activity>
 
         <provider

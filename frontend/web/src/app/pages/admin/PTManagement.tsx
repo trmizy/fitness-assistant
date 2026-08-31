@@ -32,7 +32,7 @@ import {
   ShieldCheck,
   History as HistoryIcon,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { formatVND } from "../../utils/currency";
 import {
   ptApplicationService,
@@ -1013,6 +1013,9 @@ export function PTManagement() {
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["admin-pt-applications", filter],
+    // Keeps the current rows on screen while the new filter loads, instead of
+    // dropping to undefined and flashing an empty list on every filter change.
+    placeholderData: keepPreviousData,
     queryFn: () =>
       ptApplicationService.listApplications(
         filter === "all" ? {} : { status: filter },

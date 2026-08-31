@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CreditCard, Loader2, AlertTriangle, X } from "lucide-react";
 import { paymentService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 export interface PaymentMethod {
   provider: string;
@@ -41,6 +42,11 @@ export function PaymentMethodDialog({
   onClose: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Android Back closes this dialog instead of navigating the page behind it — but not
+  // mid-submit, when a checkout is already being created and closing would leave the user
+  // unsure whether it went through.
+  useBackDismissible(!isSubmitting, onClose);
 
   const { data, isLoading, isError } = useQuery<{
     methods: PaymentMethod[];

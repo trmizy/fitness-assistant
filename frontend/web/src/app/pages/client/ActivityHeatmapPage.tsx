@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { statsService, type ActivityDayState } from "../../services/api";
@@ -47,6 +47,9 @@ export function ActivityHeatmapPage() {
 
   const heatmapQuery = useQuery({
     queryKey: ["activity-heatmap", from, to],
+    // Keeps the current rows on screen while the new filter loads, instead of
+    // dropping to undefined and flashing an empty list on every filter change.
+    placeholderData: keepPreviousData,
     queryFn: () => statsService.getActivityHeatmap(from, to),
   });
 

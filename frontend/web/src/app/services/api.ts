@@ -8,6 +8,8 @@ import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl } from "../config/serverUrl";
+import { hasUsableToken } from "./token";
+import { emitSessionExpired } from "./sessionEvents";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -35,6 +37,13 @@ export const api = axios.create({
 
 type RetriableRequestConfig = {
   _retry?: boolean;
+  /**
+   * Set by the startup/session-restore path (services/session.ts), which owns its own
+   * "give up and show the login screen" decision. Without it, a 401 during bootstrap would
+   * trigger the interceptor's own hard redirect and reload the whole app mid-restore —
+   * exactly the login-screen flash this flow exists to prevent.
+   */
+  _skipAuthRedirect?: boolean;
   headers?: Record<string, string>;
   url?: string;
 };
@@ -89,25 +98,43 @@ const refreshClient = axios.create({
   timeout: 10000,
 });
 
-const refreshOnce = makeRefreshOnce(refreshAccessToken);
+/** Shared across the app: concurrent 401s and the startup path all funnel through this one
+ *  in-flight refresh instead of each firing their own /auth/refresh. */
+export const refreshOnce = makeRefreshOnce(refreshAccessToken);
 
-function hasUsableToken(token: string | null): token is string {
-  return !!token && token !== "null" && token !== "undefined";
-}
-
-async function clearSessionAndRedirectToLogin() {
+/** Clears only the session keys — theme, language and other preferences survive. */
+export async function clearStoredSession(): Promise<void> {
   await Preferences.remove({ key: "accessToken" });
   await Preferences.remove({ key: "refreshToken" });
   await Preferences.remove({ key: "user" });
-  if (
-    window.location.pathname !== "/login" &&
-    window.location.pathname !== "/register"
-  ) {
-    window.location.href = "/login";
+}
+
+async function clearSessionAndRedirectToLogin() {
+  await clearStoredSession();
+  // Emit rather than assigning window.location: this module is outside the React tree, and
+  // a location assignment reloads the entire app just to reach /login. AppContext listens
+  // and navigates with the router instead (see services/sessionEvents.ts).
+  emitSessionExpired();
+}
+
+/**
+ * Thrown when /auth/refresh could not be reached or answered with a server error —
+ * i.e. we do NOT know whether the session is still valid.
+ *
+ * This is deliberately distinct from `refreshAccessToken` returning null, which means the
+ * server actively rejected the refresh token. Collapsing the two (the old behaviour: catch
+ * everything, return null) meant a dropped connection or a backend hiccup was indistinguishable
+ * from a revoked session, and logged the user out over a bad network.
+ */
+export class RefreshUnavailableError extends Error {
+  constructor(cause?: unknown) {
+    super("Token refresh could not be completed");
+    this.name = "RefreshUnavailableError";
+    this.cause = cause;
   }
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
   if (!hasUsableToken(refreshToken)) return null;
 
@@ -122,9 +149,14 @@ async function refreshAccessToken(): Promise<string | null> {
       }
       return data.accessToken;
     }
+    // 2xx with no usable token in the body — treat as a real rejection, not a transport fault.
     return null;
-  } catch {
-    return null;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    // The server answered and said no — the session really is over.
+    if (typeof status === "number" && status >= 400 && status < 500) return null;
+    // No response, or the server failed on its own account: we simply don't know.
+    throw new RefreshUnavailableError(err);
   }
 }
 
@@ -143,28 +175,36 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = (error?.config || {}) as RetriableRequestConfig;
     const status = error?.response?.status;
-    const code = error?.response?.data?.error?.code;
-    const message = error?.response?.data?.error?.message;
     const requestUrl = originalRequest.url || "";
 
+    // /auth/logout is deliberately NOT in this list: it is called with an already-dead
+    // session on purpose, and must never trigger a refresh-and-retry loop.
     const isAuthEndpoint =
       requestUrl.includes("/auth/login") ||
       requestUrl.includes("/auth/register") ||
-      requestUrl.includes("/auth/refresh");
+      requestUrl.includes("/auth/refresh") ||
+      requestUrl.includes("/auth/logout");
 
-    const isTokenIssue =
-      code === "UNAUTHORIZED" ||
-      (typeof message === "string" && /token|unauthorized/i.test(message));
-
-    if (
-      status === 401 &&
-      isTokenIssue &&
-      !isAuthEndpoint &&
-      !originalRequest._retry
-    ) {
+    // Any 401 from a non-auth endpoint is worth ONE refresh attempt. This used to also
+    // require an error code of "UNAUTHORIZED" or a /token|unauthorized/i match on the
+    // server's message — which silently disabled the whole refresh mechanism whenever a
+    // service worded its 401 differently. The retry is already bounded by _retry, and a
+    // refresh that isn't needed simply succeeds and costs one request.
+    if (status === 401 && !isAuthEndpoint && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const newToken = await refreshOnce();
+      let newToken: string | null = null;
+      try {
+        newToken = await refreshOnce();
+      } catch (refreshErr) {
+        // RefreshUnavailableError: we could not reach /auth/refresh, so we do NOT know the
+        // session is dead. Fail this one request and leave the stored session intact —
+        // destroying it here would log the user out over a flaky connection.
+        if (refreshErr instanceof RefreshUnavailableError) {
+          return Promise.reject(error);
+        }
+        throw refreshErr;
+      }
 
       if (hasUsableToken(newToken)) {
         originalRequest.headers = originalRequest.headers || {};
@@ -172,7 +212,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       }
 
-      clearSessionAndRedirectToLogin();
+      // Refresh genuinely failed — the session is over. The bootstrap path opts out of the
+      // redirect because it renders the login screen itself, without reloading the app.
+      if (!originalRequest._skipAuthRedirect) {
+        clearSessionAndRedirectToLogin();
+      }
     }
 
     return Promise.reject(error);
@@ -218,11 +262,23 @@ export const authService = {
   },
 
   logout: async () => {
+    // Revoke the refresh token server-side FIRST. Clearing local storage alone left the
+    // refresh token valid in the database, so a copy of it kept working after "logging out".
+    // Best-effort by design: a network failure here must not trap the user in a session they
+    // asked to end, so we always fall through to clearing locally either way.
+    try {
+      const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
+      if (hasUsableToken(refreshToken)) {
+        await api.post("/auth/logout", { refreshToken });
+      }
+    } catch {
+      // Ignored on purpose — see above.
+    }
+
     // Only clear session keys — keep theme, language and other non-session preferences.
-    await Preferences.remove({ key: "accessToken" });
-    await Preferences.remove({ key: "refreshToken" });
-    await Preferences.remove({ key: "user" });
-    window.location.href = "/login";
+    await clearStoredSession();
+    // Same reasoning as clearSessionAndRedirectToLogin: router navigation, not a reload.
+    emitSessionExpired();
   },
 };
 

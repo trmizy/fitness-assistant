@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "8",
     "@capacitor/core": "^8.5.0",
     "@capacitor/preferences": "^8.0.1",
     "@emotion/react": "11.14.0",

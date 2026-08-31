@@ -1,8 +1,8 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
-import { App as CapacitorApp } from "@capacitor/app";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
+import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
@@ -29,21 +29,10 @@ export function AppShell() {
     }
   }, [location.pathname, isPT, setActiveView]);
 
-  // Handle hardware back button for Android
-  useEffect(() => {
-    const backButtonListener = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
-      // If we are at the root dashboard of either view, exit app
-      if (location.pathname === "/client/dashboard" || location.pathname === "/pt/dashboard") {
-        CapacitorApp.exitApp();
-      } else {
-        // Otherwise, navigate back in history
-        navigate(-1);
-      }
-    });
-    return () => {
-      backButtonListener.then((listener) => listener.remove());
-    };
-  }, [location.pathname, navigate]);
+  // Android hardware Back — overlays, then history, then the role's home, then a
+  // double-press to exit. See the hook for why the previous inline version quit the app
+  // from ordinary screens.
+  useNativeBackNavigation();
 
   if (!isAuthenticated) return null;
   return (
@@ -95,23 +84,36 @@ function AppShellInner() {
             isChatView ? "" : "pb-16 lg:pb-0"
           }`}
         >
-          <AnimatePresence mode="wait">
+          {/*
+            Only the content area animates. The topbar, bottom nav and sidebar live outside
+            this box and stay put, which is what makes a transition read as "app changed
+            screen" rather than "page reloaded".
+
+            Deliberately transform + opacity only, and deliberately short:
+
+            - clip-path was the old effect. It is not hardware-accelerated in the Android
+              WebView, so every navigation repainted a growing circular mask on the CPU —
+              the single most expensive thing on the screen during the moment the user is
+              already waiting for new content.
+            - mode="wait" made it worse than the cost alone: the outgoing page had to finish
+              its exit animation BEFORE the new one began rendering, so the two 0.4s halves
+              were serialised into a visible stall between tap and content. mode="sync" with
+              no exit animation lets the new screen start immediately.
+            - 180ms sits inside the 160–220ms band that reads as responsive; 400ms reads as
+              waiting.
+
+            initial={false} suppresses the animation on the very first mount, so app startup
+            paints the first screen immediately instead of fading it in.
+          */}
+          <AnimatePresence mode="sync" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ clipPath: "circle(0% at 100% 50%)", opacity: 0 }}
-              animate={{ clipPath: "circle(150% at 50% 50%)", opacity: 1 }}
-              exit={{ clipPath: "circle(0% at 0% 50%)", opacity: 0 }}
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-              // min-h-full (not h-full): this box's real content height drives
-              // the clip-path circle's radius (circle() percentages are
-              // relative to the element's own box, not the viewport). Pinning
-              // it to exactly viewport height meant any page taller than one
-              // screen — e.g. the merged workout-log page — got sliced off by
-              // the circle's edge below that point, showing up as a diagonal
-              // cut with the AppShell background bleeding through. min-h-full
-              // still fills the viewport on short pages (so full-height
-              // children, e.g. the chat layout, are unaffected) but lets tall
-              // pages grow the box to their real height instead.
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
+              // min-h-full (not h-full): fills the viewport on short pages so full-height
+              // children (e.g. the chat layout) still work, while letting tall pages grow to
+              // their real height.
               className="min-h-full"
             >
               <Outlet />

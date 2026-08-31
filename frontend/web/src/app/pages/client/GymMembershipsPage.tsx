@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Dumbbell, Loader2, CheckCircle, Clock, XCircle, AlertTriangle, QrCode, RotateCcw } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
+import { openPaymentGateway } from "../../services/paymentGateway";
 import { toast } from "sonner";
 import type { GymMembershipContract, GymMembershipContractStatus } from "../../types";
 import { formatVND } from "../../utils/currency";
@@ -30,6 +32,7 @@ function formatDate(d?: string | null) {
 
 export function GymMembershipsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
   const [scanning, setScanning] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<GymMembershipContract | null>(null);
@@ -51,7 +54,13 @@ export function GymMembershipsPage() {
     onSuccess: (result: any) => {
       const url = result?.payment?.redirectUrl;
       if (url) {
-        window.location.href = url;
+        // App: system browser tab, React app kept alive. Web: unchanged. The membership
+        // still activates only on the gateway's signed webhook, never on the browser's word.
+        void openPaymentGateway({
+          url,
+          transactionId: result?.payment?.transactionId,
+          navigate,
+        });
         return;
       }
       setPayTarget(null);

@@ -2128,9 +2128,11 @@ export function AIPlansPage() {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                window.location.assign("/client/workout")
-                              }
+                              // Router navigation, not window.location.assign: the latter
+                              // makes the WebView reload the entire app (tear down React,
+                              // re-parse the bundle, re-bootstrap the session, refetch
+                              // everything) just to move between two screens of the same app.
+                              onClick={() => navigate("/client/workout")}
                               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-400 text-black font-semibold hover:bg-emerald-300"
                             >
                               Đi tới lịch tập

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { Dumbbell, MapPin, Loader2, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
+import { openPaymentGateway } from "../../services/paymentGateway";
 import { toast } from "sonner";
 import type { Gym, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
@@ -67,7 +68,13 @@ export function GymDetailPage() {
         return;
       }
       if (payment?.redirectUrl) {
-        window.location.href = payment.redirectUrl;
+        // System browser tab in the app (React app stays alive behind it), plain navigation
+        // on the web. The membership still only activates on the gateway's signed webhook.
+        void openPaymentGateway({
+          url: payment.redirectUrl,
+          transactionId: payment.transactionId,
+          navigate,
+        });
         return;
       }
       // Checkout intent itself failed to start (e.g. gateway not configured) — membership

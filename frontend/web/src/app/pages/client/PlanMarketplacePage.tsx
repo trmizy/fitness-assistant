@@ -34,6 +34,8 @@ import {
   type PersonalizedService,
   type PersonalizedServiceType,
 } from "../../services/api";
+import { openPaymentGateway } from "../../services/paymentGateway";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { useApp } from "../../context/AppContext";
 
 const SERVICE_TYPE_LABELS: Record<PersonalizedServiceType, string> = {
@@ -1473,6 +1475,8 @@ function PersonalizedServiceCard({ svc, onOpen }: { svc: PersonalizedService; on
 }
 
 function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
+  // Android Back closes this sheet instead of leaving the marketplace behind it.
+  useBackDismissible(true, onClose);
   const detailQuery = useQuery({ queryKey: ["personalized-service", id], queryFn: () => personalizedServiceApi.getDetail(id) });
   // P0 cluster C2 — purchase now starts a gateway checkout instead of an instant wallet
   // transfer; the order only activates once the gateway's webhook confirms payment, never on
@@ -1484,7 +1488,13 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
     onSuccess: (result) => {
       const url = result.payment?.redirectUrl;
       if (url) {
-        window.location.href = url;
+        // App: system browser tab with the React app still alive behind it. Web: unchanged.
+        // The order still activates only on the gateway's webhook, never on this response.
+        void openPaymentGateway({
+          url,
+          transactionId: result.payment?.transactionId,
+          navigate,
+        });
         return;
       }
       setShowGateway(false);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Table2, Search, Video, VideoOff, Loader2 } from "lucide-react";
 import { catalogQualityService } from "../../services/api";
 
@@ -39,6 +39,9 @@ export function AdminCatalogQuality() {
 
   const query = useQuery({
     queryKey: ["admin", "catalog-quality", loggingMode, status, search, page],
+    // Keeps the current rows on screen while the new filter loads, instead of
+    // dropping to undefined and flashing an empty list on every filter change.
+    placeholderData: keepPreviousData,
     queryFn: () =>
       catalogQualityService.getMatrix({
         loggingMode: loggingMode || undefined,

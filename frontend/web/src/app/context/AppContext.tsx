@@ -6,10 +6,14 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Preferences } from "@capacitor/preferences";
+import { App as CapacitorApp } from "@capacitor/app";
 import { User } from "../types";
 import { authService } from "../services/api";
+import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
+import { onSessionExpired } from "../services/sessionEvents";
 import { clearPendingAiState } from "../stores/pendingAiTasks";
 
 // Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
@@ -34,39 +38,96 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-function hasUsableToken(token: string | null): token is string {
-  return !!token && token !== "null" && token !== "undefined";
-}
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthenticated, setIsAuth] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("client");
   const [user, setUser] = useState<User | null>(null);
 
+  // Restore the session BEFORE the router renders anything. Nothing below this point
+  // sees a half-known auth state, which is what used to flash the login screen on
+  // every cold start (see services/session.ts for the full reasoning).
   useEffect(() => {
-    async function loadAuth() {
-      try {
-        const [tokenRes, userRes] = await Promise.all([
-          Preferences.get({ key: "accessToken" }),
-          Preferences.get({ key: "user" })
-        ]);
-        if (hasUsableToken(tokenRes.value)) {
-          setIsAuth(true);
-          if (userRes.value) {
-            setUser(JSON.parse(userRes.value));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load auth state", err);
-      } finally {
-        setIsInitializing(false);
+    let cancelled = false;
+    (async () => {
+      const result = await bootstrapSession();
+      if (cancelled) return;
+      if (result.status === "authenticated") {
+        setUser(result.user);
+        setIsAuth(true);
+      } else {
+        setUser(null);
+        setIsAuth(false);
       }
-    }
-    loadAuth();
+      setIsInitializing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // services/api.ts sits outside the React tree, so when it decides a session is over it
+  // emits instead of assigning window.location (which would reload the whole app). Here,
+  // inside the tree, that becomes a plain router navigation.
+  useEffect(() => {
+    return onSessionExpired(() => {
+      setIsAuth(false);
+      setUser(null);
+      setActiveView("client");
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    });
+  }, [navigate, queryClient]);
+
+  // Deep links (fitnessassistant://...) — currently unused by the payment flow, which works
+  // off the browser tab closing, but wired up so an external return lands in the right screen
+  // without reloading the app.
+  //
+  // SECURITY: whatever the link says is treated as a ROUTE, never as a fact. A link claiming
+  // "?success=true" proves nothing — anyone can open one. The result screen it lands on always
+  // asks the server (POST /me/payments/:id/sync) and only shows success if the server agrees.
+  useEffect(() => {
+    const listener = CapacitorApp.addListener("appUrlOpen", ({ url }) => {
+      try {
+        const parsed = new URL(url);
+        // With a custom scheme, the first path segment is parsed as the HOST:
+        // "fitnessassistant://client/payments/result" gives host "client" and pathname
+        // "/payments/result". Dropping the host would navigate to "/payments/result",
+        // which is not a route — the segment has to be put back.
+        const host = parsed.host ? `/${parsed.host}` : "";
+        const target = `${host}${parsed.pathname}${parsed.search}` || "/";
+        navigate(target.startsWith("/") ? target : `/${target}`, { replace: true });
+      } catch {
+        // A malformed link is not worth acting on at all.
+      }
+    });
+    return () => {
+      void listener.then((l) => l.remove());
+    };
+  }, [navigate]);
+
+  // An app resumed after hours in the background must not wait for its first request to
+  // fail before noticing the access token died. Refresh up front, on the way back in.
+  useEffect(() => {
+    const listener = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive || !isAuthenticated) return;
+      void (async () => {
+        const stillValid = await ensureFreshAccessToken();
+        // Only false when the server actively rejected the refresh token — an unreachable
+        // server returns true, so a bad connection never logs anyone out.
+        if (!stillValid) {
+          setIsAuth(false);
+          setUser(null);
+        }
+      })();
+    });
+    return () => {
+      void listener.then((l) => l.remove());
+    };
+  }, [isAuthenticated]);
 
   // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now.
   const role: UserRole =
@@ -120,7 +181,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       clearPendingAiState(user.id);
     }
     queryClient.clear();
-    await authService.logout(); // Clears Preferences and redirects to /login
+    // Revokes the refresh token server-side, clears Preferences, then emits
+    // "session expired" — the listener above turns that into a router navigation.
+    await authService.logout();
     setIsAuth(false);
     setUser(null);
     setActiveView("client");

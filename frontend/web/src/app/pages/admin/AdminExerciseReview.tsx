@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   GitCompare,
@@ -83,6 +83,9 @@ export function AdminExerciseReview() {
 
   const listQuery = useQuery({
     queryKey: ["admin", "exercise-review", "list", status, decisionTier, search],
+    // Keeps the current rows on screen while the new filter loads, instead of
+    // dropping to undefined and flashing an empty list on every filter change.
+    placeholderData: keepPreviousData,
     queryFn: () => exerciseReviewService.list({ status, decisionTier: decisionTier || undefined, search: search || undefined }),
   });
 

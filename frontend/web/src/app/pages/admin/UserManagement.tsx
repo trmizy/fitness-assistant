@@ -10,11 +10,11 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Preferences } from "@capacitor/preferences";
-import axios from "axios";
-import { apiBaseUrl } from "../../config/serverUrl";
-
-const API_BASE = apiBaseUrl();
+// Goes through the shared `api` instance, not a bare axios import: only that instance
+// attaches the token, refreshes it on a 401, and queues concurrent callers behind one
+// refresh. A hand-rolled axios call with a manually-read token skips all three and dies
+// the moment the access token expires.
+import { api } from "../../services/api";
 
 interface AdminUser {
   id: string;
@@ -49,10 +49,7 @@ export function UserManagement() {
     setLoading(true);
     setError(null);
     try {
-      const { value: token } = await Preferences.get({ key: "accessToken" });
-      const { data } = await axios.get(`${API_BASE}/admin/users`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const { data } = await api.get("/admin/users");
       setUsers(data.data?.users ?? []);
     } catch (err: any) {
       setError(err?.response?.data?.error?.message ?? "Failed to load users");
