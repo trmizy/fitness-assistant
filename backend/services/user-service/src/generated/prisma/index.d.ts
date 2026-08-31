@@ -49,6 +49,11 @@ export type Session = $Result.DefaultSelection<Prisma.$SessionPayload>
  */
 export type SessionReview = $Result.DefaultSelection<Prisma.$SessionReviewPayload>
 /**
+ * Model ClientReview
+ * 
+ */
+export type ClientReview = $Result.DefaultSelection<Prisma.$ClientReviewPayload>
+/**
  * Model Notification
  * 
  */
@@ -636,6 +641,16 @@ export class PrismaClient<
   get sessionReview(): Prisma.SessionReviewDelegate<ExtArgs>;
 
   /**
+   * `prisma.clientReview`: Exposes CRUD operations for the **ClientReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ClientReviews
+    * const clientReviews = await prisma.clientReview.findMany()
+    * ```
+    */
+  get clientReview(): Prisma.ClientReviewDelegate<ExtArgs>;
+
+  /**
    * `prisma.notification`: Exposes CRUD operations for the **Notification** model.
     * Example usage:
     * ```ts
@@ -1202,6 +1217,7 @@ export namespace Prisma {
     Contract: 'Contract',
     Session: 'Session',
     SessionReview: 'SessionReview',
+    ClientReview: 'ClientReview',
     Notification: 'Notification',
     NotificationPreference: 'NotificationPreference',
     PTAvailability: 'PTAvailability',
@@ -1229,7 +1245,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1720,6 +1736,76 @@ export namespace Prisma {
           count: {
             args: Prisma.SessionReviewCountArgs<ExtArgs>
             result: $Utils.Optional<SessionReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      ClientReview: {
+        payload: Prisma.$ClientReviewPayload<ExtArgs>
+        fields: Prisma.ClientReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ClientReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ClientReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.ClientReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ClientReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          findMany: {
+            args: Prisma.ClientReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>[]
+          }
+          create: {
+            args: Prisma.ClientReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          createMany: {
+            args: Prisma.ClientReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ClientReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.ClientReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          update: {
+            args: Prisma.ClientReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.ClientReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ClientReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ClientReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.ClientReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateClientReview>
+          }
+          groupBy: {
+            args: Prisma.ClientReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ClientReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ClientReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<ClientReviewCountAggregateOutputType> | number
           }
         }
       }
@@ -2806,11 +2892,13 @@ export namespace Prisma {
   export type ContractCountOutputType = {
     sessions: number
     reviews: number
+    clientReviews: number
   }
 
   export type ContractCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sessions?: boolean | ContractCountOutputTypeCountSessionsArgs
     reviews?: boolean | ContractCountOutputTypeCountReviewsArgs
+    clientReviews?: boolean | ContractCountOutputTypeCountClientReviewsArgs
   }
 
   // Custom InputTypes
@@ -2836,6 +2924,13 @@ export namespace Prisma {
    */
   export type ContractCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SessionReviewWhereInput
+  }
+
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeCountClientReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientReviewWhereInput
   }
 
 
@@ -8621,6 +8716,7 @@ export namespace Prisma {
     updatedAt?: boolean
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
+    clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
     _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contract"]>
 
@@ -8745,6 +8841,7 @@ export namespace Prisma {
   export type ContractInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
+    clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
     _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ContractIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -8754,6 +8851,7 @@ export namespace Prisma {
     objects: {
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       reviews: Prisma.$SessionReviewPayload<ExtArgs>[]
+      clientReviews: Prisma.$ClientReviewPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -9183,6 +9281,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     sessions<T extends Contract$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany"> | Null>
     reviews<T extends Contract$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    clientReviews<T extends Contract$clientReviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$clientReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9622,6 +9721,26 @@ export namespace Prisma {
   }
 
   /**
+   * Contract.clientReviews
+   */
+  export type Contract$clientReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    where?: ClientReviewWhereInput
+    orderBy?: ClientReviewOrderByWithRelationInput | ClientReviewOrderByWithRelationInput[]
+    cursor?: ClientReviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ClientReviewScalarFieldEnum | ClientReviewScalarFieldEnum[]
+  }
+
+  /**
    * Contract without action
    */
   export type ContractDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9954,6 +10073,7 @@ export namespace Prisma {
     updatedAt?: boolean
     contract?: boolean | ContractDefaultArgs<ExtArgs>
     review?: boolean | Session$reviewArgs<ExtArgs>
+    clientReview?: boolean | Session$clientReviewArgs<ExtArgs>
     rescheduleRequests?: boolean | Session$rescheduleRequestsArgs<ExtArgs>
     _count?: boolean | SessionCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["session"]>
@@ -10016,6 +10136,7 @@ export namespace Prisma {
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     contract?: boolean | ContractDefaultArgs<ExtArgs>
     review?: boolean | Session$reviewArgs<ExtArgs>
+    clientReview?: boolean | Session$clientReviewArgs<ExtArgs>
     rescheduleRequests?: boolean | Session$rescheduleRequestsArgs<ExtArgs>
     _count?: boolean | SessionCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -10028,6 +10149,7 @@ export namespace Prisma {
     objects: {
       contract: Prisma.$ContractPayload<ExtArgs>
       review: Prisma.$SessionReviewPayload<ExtArgs> | null
+      clientReview: Prisma.$ClientReviewPayload<ExtArgs> | null
       rescheduleRequests: Prisma.$SessionRescheduleRequestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -10421,6 +10543,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     contract<T extends ContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractDefaultArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     review<T extends Session$reviewArgs<ExtArgs> = {}>(args?: Subset<T, Session$reviewArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    clientReview<T extends Session$clientReviewArgs<ExtArgs> = {}>(args?: Subset<T, Session$clientReviewArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     rescheduleRequests<T extends Session$rescheduleRequestsArgs<ExtArgs> = {}>(args?: Subset<T, Session$rescheduleRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionRescheduleRequestPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -10805,6 +10928,21 @@ export namespace Prisma {
      */
     include?: SessionReviewInclude<ExtArgs> | null
     where?: SessionReviewWhereInput
+  }
+
+  /**
+   * Session.clientReview
+   */
+  export type Session$clientReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    where?: ClientReviewWhereInput
   }
 
   /**
@@ -11836,6 +11974,1003 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: SessionReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ClientReview
+   */
+
+  export type AggregateClientReview = {
+    _count: ClientReviewCountAggregateOutputType | null
+    _avg: ClientReviewAvgAggregateOutputType | null
+    _sum: ClientReviewSumAggregateOutputType | null
+    _min: ClientReviewMinAggregateOutputType | null
+    _max: ClientReviewMaxAggregateOutputType | null
+  }
+
+  export type ClientReviewAvgAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type ClientReviewSumAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type ClientReviewMinAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    ptUserId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientReviewMaxAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    ptUserId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientReviewCountAggregateOutputType = {
+    id: number
+    sessionId: number
+    contractId: number
+    ptUserId: number
+    rating: number
+    comment: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ClientReviewAvgAggregateInputType = {
+    rating?: true
+  }
+
+  export type ClientReviewSumAggregateInputType = {
+    rating?: true
+  }
+
+  export type ClientReviewMinAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    ptUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type ClientReviewMaxAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    ptUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type ClientReviewCountAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    ptUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ClientReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientReview to aggregate.
+     */
+    where?: ClientReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientReviews to fetch.
+     */
+    orderBy?: ClientReviewOrderByWithRelationInput | ClientReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ClientReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ClientReviews
+    **/
+    _count?: true | ClientReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ClientReviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ClientReviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ClientReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ClientReviewMaxAggregateInputType
+  }
+
+  export type GetClientReviewAggregateType<T extends ClientReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregateClientReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateClientReview[P]>
+      : GetScalarType<T[P], AggregateClientReview[P]>
+  }
+
+
+
+
+  export type ClientReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientReviewWhereInput
+    orderBy?: ClientReviewOrderByWithAggregationInput | ClientReviewOrderByWithAggregationInput[]
+    by: ClientReviewScalarFieldEnum[] | ClientReviewScalarFieldEnum
+    having?: ClientReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ClientReviewCountAggregateInputType | true
+    _avg?: ClientReviewAvgAggregateInputType
+    _sum?: ClientReviewSumAggregateInputType
+    _min?: ClientReviewMinAggregateInputType
+    _max?: ClientReviewMaxAggregateInputType
+  }
+
+  export type ClientReviewGroupByOutputType = {
+    id: string
+    sessionId: string
+    contractId: string
+    ptUserId: string
+    rating: number
+    comment: string | null
+    createdAt: Date
+    _count: ClientReviewCountAggregateOutputType | null
+    _avg: ClientReviewAvgAggregateOutputType | null
+    _sum: ClientReviewSumAggregateOutputType | null
+    _min: ClientReviewMinAggregateOutputType | null
+    _max: ClientReviewMaxAggregateOutputType | null
+  }
+
+  type GetClientReviewGroupByPayload<T extends ClientReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ClientReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ClientReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ClientReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], ClientReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ClientReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    ptUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["clientReview"]>
+
+  export type ClientReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    ptUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["clientReview"]>
+
+  export type ClientReviewSelectScalar = {
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    ptUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+  }
+
+  export type ClientReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }
+  export type ClientReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }
+
+  export type $ClientReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ClientReview"
+    objects: {
+      session: Prisma.$SessionPayload<ExtArgs>
+      contract: Prisma.$ContractPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sessionId: string
+      contractId: string
+      ptUserId: string
+      rating: number
+      comment: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["clientReview"]>
+    composites: {}
+  }
+
+  type ClientReviewGetPayload<S extends boolean | null | undefined | ClientReviewDefaultArgs> = $Result.GetResult<Prisma.$ClientReviewPayload, S>
+
+  type ClientReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ClientReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ClientReviewCountAggregateInputType | true
+    }
+
+  export interface ClientReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ClientReview'], meta: { name: 'ClientReview' } }
+    /**
+     * Find zero or one ClientReview that matches the filter.
+     * @param {ClientReviewFindUniqueArgs} args - Arguments to find a ClientReview
+     * @example
+     * // Get one ClientReview
+     * const clientReview = await prisma.clientReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ClientReviewFindUniqueArgs>(args: SelectSubset<T, ClientReviewFindUniqueArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ClientReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ClientReviewFindUniqueOrThrowArgs} args - Arguments to find a ClientReview
+     * @example
+     * // Get one ClientReview
+     * const clientReview = await prisma.clientReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ClientReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, ClientReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ClientReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewFindFirstArgs} args - Arguments to find a ClientReview
+     * @example
+     * // Get one ClientReview
+     * const clientReview = await prisma.clientReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ClientReviewFindFirstArgs>(args?: SelectSubset<T, ClientReviewFindFirstArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ClientReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewFindFirstOrThrowArgs} args - Arguments to find a ClientReview
+     * @example
+     * // Get one ClientReview
+     * const clientReview = await prisma.clientReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ClientReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, ClientReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ClientReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ClientReviews
+     * const clientReviews = await prisma.clientReview.findMany()
+     * 
+     * // Get first 10 ClientReviews
+     * const clientReviews = await prisma.clientReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const clientReviewWithIdOnly = await prisma.clientReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ClientReviewFindManyArgs>(args?: SelectSubset<T, ClientReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ClientReview.
+     * @param {ClientReviewCreateArgs} args - Arguments to create a ClientReview.
+     * @example
+     * // Create one ClientReview
+     * const ClientReview = await prisma.clientReview.create({
+     *   data: {
+     *     // ... data to create a ClientReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends ClientReviewCreateArgs>(args: SelectSubset<T, ClientReviewCreateArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ClientReviews.
+     * @param {ClientReviewCreateManyArgs} args - Arguments to create many ClientReviews.
+     * @example
+     * // Create many ClientReviews
+     * const clientReview = await prisma.clientReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ClientReviewCreateManyArgs>(args?: SelectSubset<T, ClientReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ClientReviews and returns the data saved in the database.
+     * @param {ClientReviewCreateManyAndReturnArgs} args - Arguments to create many ClientReviews.
+     * @example
+     * // Create many ClientReviews
+     * const clientReview = await prisma.clientReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ClientReviews and only return the `id`
+     * const clientReviewWithIdOnly = await prisma.clientReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ClientReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, ClientReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ClientReview.
+     * @param {ClientReviewDeleteArgs} args - Arguments to delete one ClientReview.
+     * @example
+     * // Delete one ClientReview
+     * const ClientReview = await prisma.clientReview.delete({
+     *   where: {
+     *     // ... filter to delete one ClientReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ClientReviewDeleteArgs>(args: SelectSubset<T, ClientReviewDeleteArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ClientReview.
+     * @param {ClientReviewUpdateArgs} args - Arguments to update one ClientReview.
+     * @example
+     * // Update one ClientReview
+     * const clientReview = await prisma.clientReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ClientReviewUpdateArgs>(args: SelectSubset<T, ClientReviewUpdateArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ClientReviews.
+     * @param {ClientReviewDeleteManyArgs} args - Arguments to filter ClientReviews to delete.
+     * @example
+     * // Delete a few ClientReviews
+     * const { count } = await prisma.clientReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ClientReviewDeleteManyArgs>(args?: SelectSubset<T, ClientReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ClientReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ClientReviews
+     * const clientReview = await prisma.clientReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ClientReviewUpdateManyArgs>(args: SelectSubset<T, ClientReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ClientReview.
+     * @param {ClientReviewUpsertArgs} args - Arguments to update or create a ClientReview.
+     * @example
+     * // Update or create a ClientReview
+     * const clientReview = await prisma.clientReview.upsert({
+     *   create: {
+     *     // ... data to create a ClientReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ClientReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ClientReviewUpsertArgs>(args: SelectSubset<T, ClientReviewUpsertArgs<ExtArgs>>): Prisma__ClientReviewClient<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ClientReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewCountArgs} args - Arguments to filter ClientReviews to count.
+     * @example
+     * // Count the number of ClientReviews
+     * const count = await prisma.clientReview.count({
+     *   where: {
+     *     // ... the filter for the ClientReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends ClientReviewCountArgs>(
+      args?: Subset<T, ClientReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ClientReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ClientReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ClientReviewAggregateArgs>(args: Subset<T, ClientReviewAggregateArgs>): Prisma.PrismaPromise<GetClientReviewAggregateType<T>>
+
+    /**
+     * Group by ClientReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ClientReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ClientReviewGroupByArgs['orderBy'] }
+        : { orderBy?: ClientReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ClientReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetClientReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ClientReview model
+   */
+  readonly fields: ClientReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ClientReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ClientReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    session<T extends SessionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SessionDefaultArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    contract<T extends ContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractDefaultArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ClientReview model
+   */ 
+  interface ClientReviewFieldRefs {
+    readonly id: FieldRef<"ClientReview", 'String'>
+    readonly sessionId: FieldRef<"ClientReview", 'String'>
+    readonly contractId: FieldRef<"ClientReview", 'String'>
+    readonly ptUserId: FieldRef<"ClientReview", 'String'>
+    readonly rating: FieldRef<"ClientReview", 'Int'>
+    readonly comment: FieldRef<"ClientReview", 'String'>
+    readonly createdAt: FieldRef<"ClientReview", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ClientReview findUnique
+   */
+  export type ClientReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientReview to fetch.
+     */
+    where: ClientReviewWhereUniqueInput
+  }
+
+  /**
+   * ClientReview findUniqueOrThrow
+   */
+  export type ClientReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientReview to fetch.
+     */
+    where: ClientReviewWhereUniqueInput
+  }
+
+  /**
+   * ClientReview findFirst
+   */
+  export type ClientReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientReview to fetch.
+     */
+    where?: ClientReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientReviews to fetch.
+     */
+    orderBy?: ClientReviewOrderByWithRelationInput | ClientReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientReviews.
+     */
+    cursor?: ClientReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientReviews.
+     */
+    distinct?: ClientReviewScalarFieldEnum | ClientReviewScalarFieldEnum[]
+  }
+
+  /**
+   * ClientReview findFirstOrThrow
+   */
+  export type ClientReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientReview to fetch.
+     */
+    where?: ClientReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientReviews to fetch.
+     */
+    orderBy?: ClientReviewOrderByWithRelationInput | ClientReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientReviews.
+     */
+    cursor?: ClientReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientReviews.
+     */
+    distinct?: ClientReviewScalarFieldEnum | ClientReviewScalarFieldEnum[]
+  }
+
+  /**
+   * ClientReview findMany
+   */
+  export type ClientReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientReviews to fetch.
+     */
+    where?: ClientReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientReviews to fetch.
+     */
+    orderBy?: ClientReviewOrderByWithRelationInput | ClientReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ClientReviews.
+     */
+    cursor?: ClientReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientReviews.
+     */
+    skip?: number
+    distinct?: ClientReviewScalarFieldEnum | ClientReviewScalarFieldEnum[]
+  }
+
+  /**
+   * ClientReview create
+   */
+  export type ClientReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ClientReview.
+     */
+    data: XOR<ClientReviewCreateInput, ClientReviewUncheckedCreateInput>
+  }
+
+  /**
+   * ClientReview createMany
+   */
+  export type ClientReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ClientReviews.
+     */
+    data: ClientReviewCreateManyInput | ClientReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientReview createManyAndReturn
+   */
+  export type ClientReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ClientReviews.
+     */
+    data: ClientReviewCreateManyInput | ClientReviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ClientReview update
+   */
+  export type ClientReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ClientReview.
+     */
+    data: XOR<ClientReviewUpdateInput, ClientReviewUncheckedUpdateInput>
+    /**
+     * Choose, which ClientReview to update.
+     */
+    where: ClientReviewWhereUniqueInput
+  }
+
+  /**
+   * ClientReview updateMany
+   */
+  export type ClientReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ClientReviews.
+     */
+    data: XOR<ClientReviewUpdateManyMutationInput, ClientReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which ClientReviews to update
+     */
+    where?: ClientReviewWhereInput
+  }
+
+  /**
+   * ClientReview upsert
+   */
+  export type ClientReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ClientReview to update in case it exists.
+     */
+    where: ClientReviewWhereUniqueInput
+    /**
+     * In case the ClientReview found by the `where` argument doesn't exist, create a new ClientReview with this data.
+     */
+    create: XOR<ClientReviewCreateInput, ClientReviewUncheckedCreateInput>
+    /**
+     * In case the ClientReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ClientReviewUpdateInput, ClientReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * ClientReview delete
+   */
+  export type ClientReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
+    /**
+     * Filter which ClientReview to delete.
+     */
+    where: ClientReviewWhereUniqueInput
+  }
+
+  /**
+   * ClientReview deleteMany
+   */
+  export type ClientReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientReviews to delete
+     */
+    where?: ClientReviewWhereInput
+  }
+
+  /**
+   * ClientReview without action
+   */
+  export type ClientReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientReview
+     */
+    select?: ClientReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientReviewInclude<ExtArgs> | null
   }
 
 
@@ -24185,6 +25320,19 @@ export namespace Prisma {
   export type SessionReviewScalarFieldEnum = (typeof SessionReviewScalarFieldEnum)[keyof typeof SessionReviewScalarFieldEnum]
 
 
+  export const ClientReviewScalarFieldEnum: {
+    id: 'id',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    ptUserId: 'ptUserId',
+    rating: 'rating',
+    comment: 'comment',
+    createdAt: 'createdAt'
+  };
+
+  export type ClientReviewScalarFieldEnum = (typeof ClientReviewScalarFieldEnum)[keyof typeof ClientReviewScalarFieldEnum]
+
+
   export const NotificationScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -25584,6 +26732,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
+    clientReviews?: ClientReviewListRelationFilter
   }
 
   export type ContractOrderByWithRelationInput = {
@@ -25645,6 +26794,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
     reviews?: SessionReviewOrderByRelationAggregateInput
+    clientReviews?: ClientReviewOrderByRelationAggregateInput
   }
 
   export type ContractWhereUniqueInput = Prisma.AtLeast<{
@@ -25709,6 +26859,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
+    clientReviews?: ClientReviewListRelationFilter
   }, "id">
 
   export type ContractOrderByWithAggregationInput = {
@@ -25867,6 +27018,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
     review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+    clientReview?: XOR<ClientReviewNullableRelationFilter, ClientReviewWhereInput> | null
     rescheduleRequests?: SessionRescheduleRequestListRelationFilter
   }
 
@@ -25897,6 +27049,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     contract?: ContractOrderByWithRelationInput
     review?: SessionReviewOrderByWithRelationInput
+    clientReview?: ClientReviewOrderByWithRelationInput
     rescheduleRequests?: SessionRescheduleRequestOrderByRelationAggregateInput
   }
 
@@ -25930,6 +27083,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
     review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+    clientReview?: XOR<ClientReviewNullableRelationFilter, ClientReviewWhereInput> | null
     rescheduleRequests?: SessionRescheduleRequestListRelationFilter
   }, "id">
 
@@ -26061,6 +27215,76 @@ export namespace Prisma {
     rating?: IntWithAggregatesFilter<"SessionReview"> | number
     comment?: StringNullableWithAggregatesFilter<"SessionReview"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"SessionReview"> | Date | string
+  }
+
+  export type ClientReviewWhereInput = {
+    AND?: ClientReviewWhereInput | ClientReviewWhereInput[]
+    OR?: ClientReviewWhereInput[]
+    NOT?: ClientReviewWhereInput | ClientReviewWhereInput[]
+    id?: StringFilter<"ClientReview"> | string
+    sessionId?: StringFilter<"ClientReview"> | string
+    contractId?: StringFilter<"ClientReview"> | string
+    ptUserId?: StringFilter<"ClientReview"> | string
+    rating?: IntFilter<"ClientReview"> | number
+    comment?: StringNullableFilter<"ClientReview"> | string | null
+    createdAt?: DateTimeFilter<"ClientReview"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+  }
+
+  export type ClientReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    ptUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    session?: SessionOrderByWithRelationInput
+    contract?: ContractOrderByWithRelationInput
+  }
+
+  export type ClientReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    sessionId?: string
+    AND?: ClientReviewWhereInput | ClientReviewWhereInput[]
+    OR?: ClientReviewWhereInput[]
+    NOT?: ClientReviewWhereInput | ClientReviewWhereInput[]
+    contractId?: StringFilter<"ClientReview"> | string
+    ptUserId?: StringFilter<"ClientReview"> | string
+    rating?: IntFilter<"ClientReview"> | number
+    comment?: StringNullableFilter<"ClientReview"> | string | null
+    createdAt?: DateTimeFilter<"ClientReview"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+  }, "id" | "sessionId">
+
+  export type ClientReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    ptUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ClientReviewCountOrderByAggregateInput
+    _avg?: ClientReviewAvgOrderByAggregateInput
+    _max?: ClientReviewMaxOrderByAggregateInput
+    _min?: ClientReviewMinOrderByAggregateInput
+    _sum?: ClientReviewSumOrderByAggregateInput
+  }
+
+  export type ClientReviewScalarWhereWithAggregatesInput = {
+    AND?: ClientReviewScalarWhereWithAggregatesInput | ClientReviewScalarWhereWithAggregatesInput[]
+    OR?: ClientReviewScalarWhereWithAggregatesInput[]
+    NOT?: ClientReviewScalarWhereWithAggregatesInput | ClientReviewScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ClientReview"> | string
+    sessionId?: StringWithAggregatesFilter<"ClientReview"> | string
+    contractId?: StringWithAggregatesFilter<"ClientReview"> | string
+    ptUserId?: StringWithAggregatesFilter<"ClientReview"> | string
+    rating?: IntWithAggregatesFilter<"ClientReview"> | number
+    comment?: StringNullableWithAggregatesFilter<"ClientReview"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ClientReview"> | Date | string
   }
 
   export type NotificationWhereInput = {
@@ -28029,6 +29253,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateInput = {
@@ -28090,6 +29315,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractUpdateInput = {
@@ -28151,6 +29377,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateInput = {
@@ -28212,6 +29439,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type ContractCreateManyInput = {
@@ -28417,6 +29645,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
     review?: SessionReviewCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
@@ -28446,6 +29675,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewUncheckedCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
@@ -28475,6 +29705,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
@@ -28504,6 +29735,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUncheckedUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
@@ -28650,6 +29882,74 @@ export namespace Prisma {
     sessionId?: StringFieldUpdateOperationsInput | string
     contractId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewCreateInput = {
+    id?: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    session: SessionCreateNestedOneWithoutClientReviewInput
+    contract: ContractCreateNestedOneWithoutClientReviewsInput
+  }
+
+  export type ClientReviewUncheckedCreateInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ClientReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    session?: SessionUpdateOneRequiredWithoutClientReviewNestedInput
+    contract?: ContractUpdateOneRequiredWithoutClientReviewsNestedInput
+  }
+
+  export type ClientReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewCreateManyInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ClientReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30771,11 +32071,21 @@ export namespace Prisma {
     none?: SessionReviewWhereInput
   }
 
+  export type ClientReviewListRelationFilter = {
+    every?: ClientReviewWhereInput
+    some?: ClientReviewWhereInput
+    none?: ClientReviewWhereInput
+  }
+
   export type SessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type SessionReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ClientReviewOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -31100,6 +32410,11 @@ export namespace Prisma {
     isNot?: SessionReviewWhereInput | null
   }
 
+  export type ClientReviewNullableRelationFilter = {
+    is?: ClientReviewWhereInput | null
+    isNot?: ClientReviewWhereInput | null
+  }
+
   export type SessionRescheduleRequestListRelationFilter = {
     every?: SessionRescheduleRequestWhereInput
     some?: SessionRescheduleRequestWhereInput
@@ -31251,6 +32566,44 @@ export namespace Prisma {
   }
 
   export type SessionReviewSumOrderByAggregateInput = {
+    rating?: SortOrder
+  }
+
+  export type ClientReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    ptUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientReviewAvgOrderByAggregateInput = {
+    rating?: SortOrder
+  }
+
+  export type ClientReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    ptUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    ptUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientReviewSumOrderByAggregateInput = {
     rating?: SortOrder
   }
 
@@ -32463,6 +33816,13 @@ export namespace Prisma {
     connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
   }
 
+  export type ClientReviewCreateNestedManyWithoutContractInput = {
+    create?: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput> | ClientReviewCreateWithoutContractInput[] | ClientReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
+    createMany?: ClientReviewCreateManyContractInputEnvelope
+    connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+  }
+
   export type SessionUncheckedCreateNestedManyWithoutContractInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -32475,6 +33835,13 @@ export namespace Prisma {
     connectOrCreate?: SessionReviewCreateOrConnectWithoutContractInput | SessionReviewCreateOrConnectWithoutContractInput[]
     createMany?: SessionReviewCreateManyContractInputEnvelope
     connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+  }
+
+  export type ClientReviewUncheckedCreateNestedManyWithoutContractInput = {
+    create?: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput> | ClientReviewCreateWithoutContractInput[] | ClientReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
+    createMany?: ClientReviewCreateManyContractInputEnvelope
+    connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
   }
 
   export type EnumContractStatusFieldUpdateOperationsInput = {
@@ -32541,6 +33908,20 @@ export namespace Prisma {
     deleteMany?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
   }
 
+  export type ClientReviewUpdateManyWithoutContractNestedInput = {
+    create?: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput> | ClientReviewCreateWithoutContractInput[] | ClientReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
+    upsert?: ClientReviewUpsertWithWhereUniqueWithoutContractInput | ClientReviewUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: ClientReviewCreateManyContractInputEnvelope
+    set?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    disconnect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    delete?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    update?: ClientReviewUpdateWithWhereUniqueWithoutContractInput | ClientReviewUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: ClientReviewUpdateManyWithWhereWithoutContractInput | ClientReviewUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+  }
+
   export type SessionUncheckedUpdateManyWithoutContractNestedInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -32569,6 +33950,20 @@ export namespace Prisma {
     deleteMany?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
   }
 
+  export type ClientReviewUncheckedUpdateManyWithoutContractNestedInput = {
+    create?: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput> | ClientReviewCreateWithoutContractInput[] | ClientReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
+    upsert?: ClientReviewUpsertWithWhereUniqueWithoutContractInput | ClientReviewUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: ClientReviewCreateManyContractInputEnvelope
+    set?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    disconnect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    delete?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+    update?: ClientReviewUpdateWithWhereUniqueWithoutContractInput | ClientReviewUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: ClientReviewUpdateManyWithWhereWithoutContractInput | ClientReviewUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+  }
+
   export type ContractCreateNestedOneWithoutSessionsInput = {
     create?: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
     connectOrCreate?: ContractCreateOrConnectWithoutSessionsInput
@@ -32579,6 +33974,12 @@ export namespace Prisma {
     create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
     connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
     connect?: SessionReviewWhereUniqueInput
+  }
+
+  export type ClientReviewCreateNestedOneWithoutSessionInput = {
+    create?: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutSessionInput
+    connect?: ClientReviewWhereUniqueInput
   }
 
   export type SessionRescheduleRequestCreateNestedManyWithoutSessionInput = {
@@ -32592,6 +33993,12 @@ export namespace Prisma {
     create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
     connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
     connect?: SessionReviewWhereUniqueInput
+  }
+
+  export type ClientReviewUncheckedCreateNestedOneWithoutSessionInput = {
+    create?: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutSessionInput
+    connect?: ClientReviewWhereUniqueInput
   }
 
   export type SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput = {
@@ -32627,6 +34034,16 @@ export namespace Prisma {
     update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
   }
 
+  export type ClientReviewUpdateOneWithoutSessionNestedInput = {
+    create?: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutSessionInput
+    upsert?: ClientReviewUpsertWithoutSessionInput
+    disconnect?: ClientReviewWhereInput | boolean
+    delete?: ClientReviewWhereInput | boolean
+    connect?: ClientReviewWhereUniqueInput
+    update?: XOR<XOR<ClientReviewUpdateToOneWithWhereWithoutSessionInput, ClientReviewUpdateWithoutSessionInput>, ClientReviewUncheckedUpdateWithoutSessionInput>
+  }
+
   export type SessionRescheduleRequestUpdateManyWithoutSessionNestedInput = {
     create?: XOR<SessionRescheduleRequestCreateWithoutSessionInput, SessionRescheduleRequestUncheckedCreateWithoutSessionInput> | SessionRescheduleRequestCreateWithoutSessionInput[] | SessionRescheduleRequestUncheckedCreateWithoutSessionInput[]
     connectOrCreate?: SessionRescheduleRequestCreateOrConnectWithoutSessionInput | SessionRescheduleRequestCreateOrConnectWithoutSessionInput[]
@@ -32649,6 +34066,16 @@ export namespace Prisma {
     delete?: SessionReviewWhereInput | boolean
     connect?: SessionReviewWhereUniqueInput
     update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type ClientReviewUncheckedUpdateOneWithoutSessionNestedInput = {
+    create?: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: ClientReviewCreateOrConnectWithoutSessionInput
+    upsert?: ClientReviewUpsertWithoutSessionInput
+    disconnect?: ClientReviewWhereInput | boolean
+    delete?: ClientReviewWhereInput | boolean
+    connect?: ClientReviewWhereUniqueInput
+    update?: XOR<XOR<ClientReviewUpdateToOneWithWhereWithoutSessionInput, ClientReviewUpdateWithoutSessionInput>, ClientReviewUncheckedUpdateWithoutSessionInput>
   }
 
   export type SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput = {
@@ -32691,6 +34118,34 @@ export namespace Prisma {
     upsert?: ContractUpsertWithoutReviewsInput
     connect?: ContractWhereUniqueInput
     update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutReviewsInput, ContractUpdateWithoutReviewsInput>, ContractUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type SessionCreateNestedOneWithoutClientReviewInput = {
+    create?: XOR<SessionCreateWithoutClientReviewInput, SessionUncheckedCreateWithoutClientReviewInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutClientReviewInput
+    connect?: SessionWhereUniqueInput
+  }
+
+  export type ContractCreateNestedOneWithoutClientReviewsInput = {
+    create?: XOR<ContractCreateWithoutClientReviewsInput, ContractUncheckedCreateWithoutClientReviewsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutClientReviewsInput
+    connect?: ContractWhereUniqueInput
+  }
+
+  export type SessionUpdateOneRequiredWithoutClientReviewNestedInput = {
+    create?: XOR<SessionCreateWithoutClientReviewInput, SessionUncheckedCreateWithoutClientReviewInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutClientReviewInput
+    upsert?: SessionUpsertWithoutClientReviewInput
+    connect?: SessionWhereUniqueInput
+    update?: XOR<XOR<SessionUpdateToOneWithWhereWithoutClientReviewInput, SessionUpdateWithoutClientReviewInput>, SessionUncheckedUpdateWithoutClientReviewInput>
+  }
+
+  export type ContractUpdateOneRequiredWithoutClientReviewsNestedInput = {
+    create?: XOR<ContractCreateWithoutClientReviewsInput, ContractUncheckedCreateWithoutClientReviewsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutClientReviewsInput
+    upsert?: ContractUpsertWithoutClientReviewsInput
+    connect?: ContractWhereUniqueInput
+    update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutClientReviewsInput, ContractUpdateWithoutClientReviewsInput>, ContractUncheckedUpdateWithoutClientReviewsInput>
   }
 
   export type EnumNotificationEventTypeFieldUpdateOperationsInput = {
@@ -34887,6 +36342,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
@@ -34915,6 +36371,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewUncheckedCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
@@ -34953,6 +36410,34 @@ export namespace Prisma {
 
   export type SessionReviewCreateManyContractInputEnvelope = {
     data: SessionReviewCreateManyContractInput | SessionReviewCreateManyContractInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ClientReviewCreateWithoutContractInput = {
+    id?: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    session: SessionCreateNestedOneWithoutClientReviewInput
+  }
+
+  export type ClientReviewUncheckedCreateWithoutContractInput = {
+    id?: string
+    sessionId: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ClientReviewCreateOrConnectWithoutContractInput = {
+    where: ClientReviewWhereUniqueInput
+    create: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput>
+  }
+
+  export type ClientReviewCreateManyContractInputEnvelope = {
+    data: ClientReviewCreateManyContractInput | ClientReviewCreateManyContractInput[]
     skipDuplicates?: boolean
   }
 
@@ -35031,6 +36516,35 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"SessionReview"> | Date | string
   }
 
+  export type ClientReviewUpsertWithWhereUniqueWithoutContractInput = {
+    where: ClientReviewWhereUniqueInput
+    update: XOR<ClientReviewUpdateWithoutContractInput, ClientReviewUncheckedUpdateWithoutContractInput>
+    create: XOR<ClientReviewCreateWithoutContractInput, ClientReviewUncheckedCreateWithoutContractInput>
+  }
+
+  export type ClientReviewUpdateWithWhereUniqueWithoutContractInput = {
+    where: ClientReviewWhereUniqueInput
+    data: XOR<ClientReviewUpdateWithoutContractInput, ClientReviewUncheckedUpdateWithoutContractInput>
+  }
+
+  export type ClientReviewUpdateManyWithWhereWithoutContractInput = {
+    where: ClientReviewScalarWhereInput
+    data: XOR<ClientReviewUpdateManyMutationInput, ClientReviewUncheckedUpdateManyWithoutContractInput>
+  }
+
+  export type ClientReviewScalarWhereInput = {
+    AND?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+    OR?: ClientReviewScalarWhereInput[]
+    NOT?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+    id?: StringFilter<"ClientReview"> | string
+    sessionId?: StringFilter<"ClientReview"> | string
+    contractId?: StringFilter<"ClientReview"> | string
+    ptUserId?: StringFilter<"ClientReview"> | string
+    rating?: IntFilter<"ClientReview"> | number
+    comment?: StringNullableFilter<"ClientReview"> | string | null
+    createdAt?: DateTimeFilter<"ClientReview"> | Date | string
+  }
+
   export type ContractCreateWithoutSessionsInput = {
     id?: string
     ptUserId: string
@@ -35089,6 +36603,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutSessionsInput = {
@@ -35149,6 +36664,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutSessionsInput = {
@@ -35177,6 +36693,29 @@ export namespace Prisma {
   export type SessionReviewCreateOrConnectWithoutSessionInput = {
     where: SessionReviewWhereUniqueInput
     create: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+  }
+
+  export type ClientReviewCreateWithoutSessionInput = {
+    id?: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    contract: ContractCreateNestedOneWithoutClientReviewsInput
+  }
+
+  export type ClientReviewUncheckedCreateWithoutSessionInput = {
+    id?: string
+    contractId: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ClientReviewCreateOrConnectWithoutSessionInput = {
+    where: ClientReviewWhereUniqueInput
+    create: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
   }
 
   export type SessionRescheduleRequestCreateWithoutSessionInput = {
@@ -35286,6 +36825,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutSessionsInput = {
@@ -35346,6 +36886,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type SessionReviewUpsertWithoutSessionInput = {
@@ -35372,6 +36913,35 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     contractId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewUpsertWithoutSessionInput = {
+    update: XOR<ClientReviewUpdateWithoutSessionInput, ClientReviewUncheckedUpdateWithoutSessionInput>
+    create: XOR<ClientReviewCreateWithoutSessionInput, ClientReviewUncheckedCreateWithoutSessionInput>
+    where?: ClientReviewWhereInput
+  }
+
+  export type ClientReviewUpdateToOneWithWhereWithoutSessionInput = {
+    where?: ClientReviewWhereInput
+    data: XOR<ClientReviewUpdateWithoutSessionInput, ClientReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type ClientReviewUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutClientReviewsNestedInput
+  }
+
+  export type ClientReviewUncheckedUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -35436,6 +37006,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
+    clientReview?: ClientReviewCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
   }
 
@@ -35464,6 +37035,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    clientReview?: ClientReviewUncheckedCreateNestedOneWithoutSessionInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
   }
 
@@ -35530,6 +37102,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutReviewsInput = {
@@ -35590,6 +37163,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutReviewsInput = {
@@ -35633,6 +37207,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+    clientReview?: ClientReviewUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
@@ -35661,6 +37236,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    clientReview?: ClientReviewUncheckedUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
@@ -35733,6 +37309,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutReviewsInput = {
@@ -35793,6 +37370,399 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+  }
+
+  export type SessionCreateWithoutClientReviewInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    contract: ContractCreateNestedOneWithoutSessionsInput
+    review?: SessionReviewCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestCreateNestedManyWithoutSessionInput
+  }
+
+  export type SessionUncheckedCreateWithoutClientReviewInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedCreateNestedManyWithoutSessionInput
+  }
+
+  export type SessionCreateOrConnectWithoutClientReviewInput = {
+    where: SessionWhereUniqueInput
+    create: XOR<SessionCreateWithoutClientReviewInput, SessionUncheckedCreateWithoutClientReviewInput>
+  }
+
+  export type ContractCreateWithoutClientReviewsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateWithoutClientReviewsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractCreateOrConnectWithoutClientReviewsInput = {
+    where: ContractWhereUniqueInput
+    create: XOR<ContractCreateWithoutClientReviewsInput, ContractUncheckedCreateWithoutClientReviewsInput>
+  }
+
+  export type SessionUpsertWithoutClientReviewInput = {
+    update: XOR<SessionUpdateWithoutClientReviewInput, SessionUncheckedUpdateWithoutClientReviewInput>
+    create: XOR<SessionCreateWithoutClientReviewInput, SessionUncheckedCreateWithoutClientReviewInput>
+    where?: SessionWhereInput
+  }
+
+  export type SessionUpdateToOneWithWhereWithoutClientReviewInput = {
+    where?: SessionWhereInput
+    data: XOR<SessionUpdateWithoutClientReviewInput, SessionUncheckedUpdateWithoutClientReviewInput>
+  }
+
+  export type SessionUpdateWithoutClientReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+    review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
+  }
+
+  export type SessionUncheckedUpdateWithoutClientReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
+  }
+
+  export type ContractUpsertWithoutClientReviewsInput = {
+    update: XOR<ContractUpdateWithoutClientReviewsInput, ContractUncheckedUpdateWithoutClientReviewsInput>
+    create: XOR<ContractCreateWithoutClientReviewsInput, ContractUncheckedCreateWithoutClientReviewsInput>
+    where?: ContractWhereInput
+  }
+
+  export type ContractUpdateToOneWithWhereWithoutClientReviewsInput = {
+    where?: ContractWhereInput
+    data: XOR<ContractUpdateWithoutClientReviewsInput, ContractUncheckedUpdateWithoutClientReviewsInput>
+  }
+
+  export type ContractUpdateWithoutClientReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateWithoutClientReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type VietnamWardCreateWithoutProvinceInput = {
@@ -36594,6 +38564,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
     review?: SessionReviewCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewCreateNestedOneWithoutSessionInput
   }
 
   export type SessionUncheckedCreateWithoutRescheduleRequestsInput = {
@@ -36622,6 +38593,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+    clientReview?: ClientReviewUncheckedCreateNestedOneWithoutSessionInput
   }
 
   export type SessionCreateOrConnectWithoutRescheduleRequestsInput = {
@@ -36666,6 +38638,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUpdateOneWithoutSessionNestedInput
   }
 
   export type SessionUncheckedUpdateWithoutRescheduleRequestsInput = {
@@ -36694,6 +38667,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUncheckedUpdateOneWithoutSessionNestedInput
   }
 
   export type PTTrainingLocationCreateManyPtProfileInput = {
@@ -36935,6 +38909,15 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ClientReviewCreateManyContractInput = {
+    id?: string
+    sessionId: string
+    ptUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
   export type SessionUpdateWithoutContractInput = {
     id?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -36960,6 +38943,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUpdateManyWithoutSessionNestedInput
   }
 
@@ -36988,6 +38972,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+    clientReview?: ClientReviewUncheckedUpdateOneWithoutSessionNestedInput
     rescheduleRequests?: SessionRescheduleRequestUncheckedUpdateManyWithoutSessionNestedInput
   }
 
@@ -37039,6 +39024,33 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    session?: SessionUpdateOneRequiredWithoutClientReviewNestedInput
+  }
+
+  export type ClientReviewUncheckedUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientReviewUncheckedUpdateManyWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -37331,6 +39343,10 @@ export namespace Prisma {
      * @deprecated Use SessionReviewDefaultArgs instead
      */
     export type SessionReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ClientReviewDefaultArgs instead
+     */
+    export type ClientReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ClientReviewDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NotificationDefaultArgs instead
      */

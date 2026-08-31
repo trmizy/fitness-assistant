@@ -26,7 +26,7 @@ export class WalletNotActiveError extends Error {
 export const PLATFORM_ESCROW_ID = 'ESCROW';
 export const PLATFORM_REVENUE_ID = 'REVENUE';
 
-export type Bucket = 'PENDING' | 'AVAILABLE';
+export type Bucket = 'PENDING' | 'AVAILABLE' | 'LOCKED';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -59,12 +59,21 @@ async function lockWallets(tx: TxClient, walletIds: string[]): Promise<Map<strin
  * itself and every entry chains off it.
  */
 function readBucket(wallet: WalletRow, bucket: Bucket): Prisma.Decimal {
-  return new Prisma.Decimal(bucket === 'PENDING' ? wallet.pending_balance : wallet.available_balance);
+  const raw = bucket === 'PENDING' ? wallet.pending_balance : bucket === 'LOCKED' ? wallet.locked_balance : wallet.available_balance;
+  return new Prisma.Decimal(raw);
 }
 
 function writeBucket(wallet: WalletRow, bucket: Bucket, value: Prisma.Decimal): void {
   if (bucket === 'PENDING') wallet.pending_balance = value.toString();
+  else if (bucket === 'LOCKED') wallet.locked_balance = value.toString();
   else wallet.available_balance = value.toString();
+}
+
+/** The Prisma update payload for whichever bucket moved. */
+function bucketUpdate(bucket: Bucket, value: Prisma.Decimal): Prisma.WalletUpdateInput {
+  if (bucket === 'PENDING') return { pendingBalance: value };
+  if (bucket === 'LOCKED') return { lockedBalance: value };
+  return { availableBalance: value };
 }
 
 async function applyDebit(
@@ -80,7 +89,7 @@ async function applyDebit(
   const after = before.minus(amount);
   await tx.wallet.update({
     where: { id: wallet.id },
-    data: bucket === 'PENDING' ? { pendingBalance: after } : { availableBalance: after },
+    data: bucketUpdate(bucket, after),
   });
   writeBucket(wallet, bucket, after);
   await tx.walletLedgerEntry.create({
@@ -109,7 +118,7 @@ async function applyCredit(
   const after = before.plus(amount);
   await tx.wallet.update({
     where: { id: wallet.id },
-    data: bucket === 'PENDING' ? { pendingBalance: after } : { availableBalance: after },
+    data: bucketUpdate(bucket, after),
   });
   writeBucket(wallet, bucket, after);
   await tx.walletLedgerEntry.create({

@@ -120,7 +120,8 @@ export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryT
 
 export const LedgerBucket: {
   PENDING: 'PENDING',
-  AVAILABLE: 'AVAILABLE'
+  AVAILABLE: 'AVAILABLE',
+  LOCKED: 'LOCKED'
 };
 
 export type LedgerBucket = (typeof LedgerBucket)[keyof typeof LedgerBucket]

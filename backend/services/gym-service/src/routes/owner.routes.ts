@@ -59,6 +59,13 @@ router.post('/gyms/:gymId/trainers', asyncHandler(affiliationController.invite))
 router.post('/gyms/:gymId/collaborations', asyncHandler(collaborationController.proposeAsGym));
 router.patch('/collaborations/:id', asyncHandler(collaborationController.respondAsGym));
 router.delete('/collaborations/:id', asyncHandler(collaborationController.terminateAsGym));
+// Missing until now — the PT side had its GET (/me/collaborations, pt.routes.ts) but the owner
+// side never got the mirror route, even though collaborationController.listMine already
+// branches on req.user.role and handles GYM_OWNER correctly. Without this a gym owner had no
+// way to see collaboration proposals at all (confirmed live: GymManagePage.tsx's
+// CollaborationPanel calls exactly this path and 404s). Frontend already expects
+// GET /owner/collaborations (collaborationService.listForOwner in api.ts).
+router.get('/collaborations', asyncHandler(collaborationController.listMine));
 
 // Money-flow plan 5.3 — same ownership-verify-then-proxy shape as /gyms/:gymId/wallet above.
 // gym-service has no ledger logic; it only confirms this caller actually owns the gym before

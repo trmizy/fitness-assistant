@@ -76,6 +76,12 @@ router.post(
   authMiddleware,
   bookingController.reviewSession as any,
 );
+// Mirror-image of the route above — PT rates the client instead of the client rating the PT.
+router.post(
+  "/:id/review-client",
+  authMiddleware,
+  bookingController.reviewClient as any,
+);
 router.post(
   "/:id/reschedule",
   authMiddleware,

@@ -25,30 +25,22 @@ export interface RefundResult {
   refundAmount: number;
 }
 
-export interface HoldPersonalizedServiceResult extends WalletTransferResult {
-  escrowAfter?: string;
-  pending?: { seller: string; platform: string };
+export interface CheckoutResult {
+  transactionId: string;
+  status: string;
+  redirectUrl: string | null;
+  qrCodeUrl: string | null;
+  provider: string;
 }
 
-export type PersonalizedServiceMilestone =
-  | "INTAKE_REVIEWED"
-  | "DRAFT_DELIVERED"
-  | "ACCEPTED"
-  | "COMPLETED";
-
-export interface ReleaseMilestoneResult {
-  milestone: PersonalizedServiceMilestone;
-  released: { seller: string; platform: string };
+export interface OrderReleaseResult {
+  released: { pt: string; platform: string };
 }
 
-export interface RefundHeldResult {
-  refunded: string;
-  drawnFrom: { sellerPending: string; sellerAvailable: string; platformPending: string; platformAvailable: string };
+export interface OrderRefundResult {
+  refund: string;
+  clawedBack: { pt: string; platform: string };
   shortfall: string;
-}
-
-export interface LedgerSummaryResult {
-  held: { seller: string; platform: string };
 }
 
 export class PaymentClientError extends Error {
@@ -62,6 +54,109 @@ export class PaymentClientError extends Error {
 }
 
 export const paymentClient = {
+  /**
+   * P0 cluster C2 — start a gateway checkout for a Personalized PT Service order. The buyer
+   * pays the gateway directly; the order activates only once payment-service's webhook
+   * confirms it (POST /internal/personalized-service/orders/:id/activate-after-payment) —
+   * never on this response. Replaces walletTransfer for this purchase type, which required a
+   * pre-funded wallet balance that no longer exists (wallet top-up is disabled).
+   */
+  async checkout(params: {
+    orderId: string;
+    sellerId: string;
+    buyerId: string;
+    amount: number;
+    platformRate: string;
+    idempotencyKey: string;
+    provider?: string;
+    orderInfo?: string;
+  }): Promise<CheckoutResult> {
+    const platform = Number(params.platformRate);
+    try {
+      const { data } = await axios.post(
+        `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
+        {
+          purpose: "PERSONALIZED_SERVICE_PURCHASE",
+          relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE",
+          relatedEntityId: params.orderId,
+          amount: params.amount,
+          rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4), gymRate: "0" },
+          parties: { ptUserId: params.sellerId, clientUserId: params.buyerId },
+          idempotencyKey: params.idempotencyKey,
+          initiatedBy: params.buyerId,
+          sourceService: "ai-service",
+          provider: params.provider,
+          orderInfo: params.orderInfo,
+        },
+        { headers, timeout: 20_000 },
+      );
+      return data.data as CheckoutResult;
+    } catch (e: any) {
+      const code = e?.response?.data?.error?.code || "CHECKOUT_FAILED";
+      throw Object.assign(new Error(e?.response?.data?.error?.message || code), {
+        code,
+        status: e?.response?.status || 502,
+      });
+    }
+  },
+
+  async getTransaction(transactionId: string): Promise<any> {
+    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}`, { headers, timeout: 10_000 });
+    return data.data;
+  },
+
+  /** P0 cluster C3 — the buyer accepted (or auto-accept did): the PT and platform's full
+   * pending share for this order becomes withdrawable. */
+  async releaseOrder(params: {
+    transactionId: string;
+    price: number;
+    platformRate: string;
+    parties: { ptUserId: string; clientUserId: string };
+    label: string;
+    idempotencyKey: string;
+  }): Promise<OrderReleaseResult> {
+    const platform = Number(params.platformRate);
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/personalized-service/release`,
+      {
+        transactionId: params.transactionId,
+        price: String(params.price),
+        rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4) },
+        parties: params.parties,
+        label: params.label,
+        idempotencyKey: params.idempotencyKey,
+      },
+      { headers, timeout: 15_000 },
+    );
+    return data.data as OrderReleaseResult;
+  },
+
+  /** P0 cluster C4/C5 — hands the client back refundAmount, pulling from pending first, then
+   * clawing back from available (falling back to a PartnerReceivable debt against the PT if
+   * even that comes up short — the client is always made whole). */
+  async refundOrder(params: {
+    transactionId: string;
+    refundAmount: number;
+    platformRate: string;
+    parties: { ptUserId: string; clientUserId: string };
+    label: string;
+    idempotencyKey: string;
+  }): Promise<OrderRefundResult> {
+    const platform = Number(params.platformRate);
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/personalized-service/refund`,
+      {
+        transactionId: params.transactionId,
+        refundAmount: String(params.refundAmount),
+        rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4) },
+        parties: params.parties,
+        label: params.label,
+        idempotencyKey: params.idempotencyKey,
+      },
+      { headers, timeout: 15_000 },
+    );
+    return data.data as OrderRefundResult;
+  },
   async walletTransfer(params: {
     payerOwnerId: string;
     receiverOwnerId: string;
@@ -80,9 +175,17 @@ export const paymentClient = {
     const { data } = await axios.post(
       `${PAYMENT_SERVICE_URL}/internal/payments/wallet-transfer`,
       {
+        // Cụm C1: the payer always spends from their own CLIENT (personal) wallet regardless
+        // of what other role they hold — but the receiver here is never a client. Both of this
+        // function's callers (marketplace TrainingPackage purchase, and — until the C2/C3 fix
+        // — Personalized Service purchase) gate the seller behind assertApprovedPtSeller /
+        // assertApprovedPt first, so the receiver is always an approved PT. Crediting a
+        // "CLIENT"-type wallet keyed by the PT's own userId used to put their earnings
+        // somewhere GET /me/pt-wallet and POST /me/withdrawals (both hard-keyed to the PT
+        // wallet type) could never see or reach.
         payerOwnerType: "CLIENT",
         payerOwnerId: params.payerOwnerId,
-        receiverOwnerType: "CLIENT",
+        receiverOwnerType: "PT",
         receiverOwnerId: params.receiverOwnerId,
         amount: params.amount,
         purpose: params.purpose ?? "TRAINING_PACKAGE_PURCHASE",
@@ -124,90 +227,5 @@ export const paymentClient = {
         status,
       );
     }
-  },
-
-  // ── Personalized PT Service escrow (P1-FIN-001/002) ──────────────────────
-  // Deliberately a SEPARATE trio of calls from walletTransfer/refundTransaction
-  // above (which TrainingPackagePurchase still uses unchanged) — see
-  // personalized-service-ledger.service.ts (payment-service) for why this
-  // holds the price instead of crediting AVAILABLE immediately.
-
-  async holdPersonalizedServicePayment(params: {
-    buyerId: string;
-    sellerId: string;
-    price: number;
-    relatedEntityId: string;
-    idempotencyKey: string;
-    initiatedBy: string;
-    label: string;
-  }): Promise<HoldPersonalizedServiceResult> {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/hold`,
-      {
-        buyerId: params.buyerId,
-        sellerId: params.sellerId,
-        price: params.price,
-        relatedEntityId: params.relatedEntityId,
-        idempotencyKey: params.idempotencyKey,
-        initiatedBy: params.initiatedBy,
-        sourceService: "ai-service",
-        label: params.label,
-      },
-      { headers, timeout: 15_000 },
-    );
-    return data.data as HoldPersonalizedServiceResult;
-  },
-
-  async releasePersonalizedServiceMilestone(params: {
-    transactionId: string;
-    sellerId: string;
-    price: number;
-    milestone: PersonalizedServiceMilestone;
-    label: string;
-  }): Promise<ReleaseMilestoneResult> {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/release-milestone`,
-      params,
-      { headers, timeout: 15_000 },
-    );
-    return data.data as ReleaseMilestoneResult;
-  },
-
-  async refundPersonalizedServiceHeld(params: {
-    transactionId: string;
-    sellerId: string;
-    buyerId: string;
-    refundAmount: number;
-    initiatedBy: string;
-    reason: string;
-    label: string;
-  }): Promise<RefundHeldResult> {
-    try {
-      const { data } = await axios.post(
-        `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/refund`,
-        params,
-        { headers, timeout: 15_000 },
-      );
-      return data.data as RefundHeldResult;
-    } catch (err: any) {
-      const status = err?.response?.status ?? 500;
-      const code = err?.response?.data?.error?.code ?? "REFUND_FAILED";
-      throw new PaymentClientError(
-        err?.response?.data?.error?.message ?? code,
-        code,
-        status,
-      );
-    }
-  },
-
-  async getPersonalizedServiceLedgerSummary(
-    transactionId: string,
-    sellerId: string,
-  ): Promise<LedgerSummaryResult> {
-    const { data } = await axios.get(
-      `${PAYMENT_SERVICE_URL}/internal/payments/personalized-service/${transactionId}/${sellerId}/ledger-summary`,
-      { headers, timeout: 15_000 },
-    );
-    return data.data as LedgerSummaryResult;
   },
 };

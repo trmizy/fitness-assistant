@@ -1,12 +1,19 @@
 /**
  * Marketplace rework — Personalized PT Service (spec sections VI-XXII, LV).
  *
+ * P0 cluster C2/C3 rewrote the purchase mechanism: a gateway checkout (PENDING_PAYMENT) that
+ * only unlocks Intake once payment-service confirms payment via activateAfterPayment —
+ * mirroring PT-contract/gym-membership exactly — instead of an instant wallet-to-wallet
+ * transfer. purchaseAndActivate() below is the test-only stand-in for what a real webhook
+ * does: it calls activateAfterPayment right after checkout, using the SAME stubbed
+ * getTransaction() a real reconciliation retry would use.
+ *
  * Real DB (ai-service has no separate *_test database — same accepted
  * constraint as every other integration test in this file's neighborhood,
  * see marketplace-publisher-qualification.integration.test.ts). Cross-service
- * calls (PT eligibility, Contract creation, fitness-service commit) are
- * stubbed via personalizedServiceDeps — same indirection pattern as
- * marketplaceDeps.
+ * calls (PT eligibility, Contract creation, fitness-service commit, payment-service
+ * checkout/release/refund) are stubbed via personalizedServiceDeps — same indirection
+ * pattern as marketplaceDeps.
  *
  * Run with (from backend/services/ai-service):
  *   npx tsx --test src/__tests__/personalized-service.test.ts
@@ -20,48 +27,52 @@ import { personalizedServiceService, personalizedServiceDeps } from "../services
 const originalFetchEligibility = personalizedServiceDeps.fetchPtMarketplaceEligibility;
 const originalCreateContract = personalizedServiceDeps.createMarketplaceContract;
 const originalCommitPlan = personalizedServiceDeps.commitPersonalizedPlan;
-const originalHoldPayment = personalizedServiceDeps.holdPersonalizedServicePayment;
-const originalReleaseMilestone = personalizedServiceDeps.releasePersonalizedServiceMilestone;
-const originalRefundHeld = personalizedServiceDeps.refundPersonalizedServiceHeld;
-const originalLedgerSummary = personalizedServiceDeps.getPersonalizedServiceLedgerSummary;
+const originalCheckout = personalizedServiceDeps.checkout;
+const originalGetTransaction = personalizedServiceDeps.getTransaction;
+const originalReleaseOrder = personalizedServiceDeps.releaseOrder;
+const originalRefundOrder = personalizedServiceDeps.refundOrder;
 
-function stubHoldSucceeds() {
-  personalizedServiceDeps.holdPersonalizedServicePayment = async () => ({ status: "PAID", transactionId: `mock-txn-${randomUUID()}` });
-}
-function stubReleaseMilestoneSucceeds() {
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => ({
-    milestone: params.milestone,
-    released: { seller: "0.00", platform: "0.00" },
+/** Every test purchases against a freshly-random buyerId with no real gateway/wallet — stub
+ * the payment primitives to always succeed so these tests exercise ORDER lifecycle logic, not
+ * payment-service's real ledger rules (those are payment-service's own test suite's job; the
+ * new escrow mechanics themselves are proven in payment-service's
+ * personalized-service-ledger.integration.test.ts). The mock transactionId encodes the
+ * orderId so getTransaction's stub can echo back a matching relatedEntityId without needing
+ * any shared state between the two stubs. */
+function stubPaymentSuccess() {
+  personalizedServiceDeps.checkout = async (params) => ({
+    transactionId: `mock-txn-${params.orderId}`,
+    status: "PENDING",
+    redirectUrl: "https://mock-gateway.test/pay",
+    qrCodeUrl: null,
+    provider: "MOCK",
   });
-}
-function stubRefundHeldSucceeds() {
-  personalizedServiceDeps.refundPersonalizedServiceHeld = async (params) => ({
-    refunded: params.refundAmount.toFixed(2),
-    drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" },
+  personalizedServiceDeps.getTransaction = async (transactionId: string) => ({
+    id: transactionId,
+    status: "PAID",
+    relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE",
+    relatedEntityId: transactionId.replace("mock-txn-", ""),
+  });
+  personalizedServiceDeps.releaseOrder = async () => ({ released: { pt: "0.00", platform: "0.00" } });
+  personalizedServiceDeps.refundOrder = async (params) => ({
+    refund: params.refundAmount.toFixed(2),
+    clawedBack: { pt: "0.00", platform: "0.00" },
     shortfall: "0.00",
   });
 }
 
 test.before(() => {
-  // Every test purchases against a freshly-random buyerId with no real
-  // wallet/balance — stub every payment/ledger primitive to always succeed
-  // so these tests exercise ORDER lifecycle logic, not payment-service's
-  // real wallet balance rules (those are payment-service's own test
-  // suite's job — see personalized-service-ledger.integration.test.ts).
-  stubHoldSucceeds();
-  stubReleaseMilestoneSucceeds();
-  stubRefundHeldSucceeds();
-  personalizedServiceDeps.getPersonalizedServiceLedgerSummary = async () => ({ held: { seller: "0.00", platform: "0.00" } });
+  stubPaymentSuccess();
 });
 
 test.after(async () => {
   personalizedServiceDeps.fetchPtMarketplaceEligibility = originalFetchEligibility;
   personalizedServiceDeps.createMarketplaceContract = originalCreateContract;
   personalizedServiceDeps.commitPersonalizedPlan = originalCommitPlan;
-  personalizedServiceDeps.holdPersonalizedServicePayment = originalHoldPayment;
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = originalReleaseMilestone;
-  personalizedServiceDeps.refundPersonalizedServiceHeld = originalRefundHeld;
-  personalizedServiceDeps.getPersonalizedServiceLedgerSummary = originalLedgerSummary;
+  personalizedServiceDeps.checkout = originalCheckout;
+  personalizedServiceDeps.getTransaction = originalGetTransaction;
+  personalizedServiceDeps.releaseOrder = originalReleaseOrder;
+  personalizedServiceDeps.refundOrder = originalRefundOrder;
   await prisma.$disconnect();
 });
 
@@ -99,6 +110,15 @@ async function createTestService(sellerId: string) {
   return personalizedServiceService.createService(sellerId, validServiceInput);
 }
 
+/** Purchase + the webhook-equivalent activation — the order this returns is exactly what the
+ * OLD synchronous walletTransfer purchase used to hand back directly (status INTAKE_PENDING,
+ * paymentTransactionId set). */
+async function purchaseAndActivate(serviceId: string, buyerId: string, provider?: string) {
+  const { order, payment } = await personalizedServiceService.purchaseService(serviceId, buyerId, provider);
+  const activated = await personalizedServiceService.activateAfterPayment(order.id, payment.transactionId);
+  return activated!;
+}
+
 // ── §LV — CUSTOMER cannot create; unapproved PT cannot create; approved PT can ──
 
 test("createService: rejects (403) a plain customer with no PT application at all", async () => {
@@ -133,27 +153,35 @@ test("createService: succeeds for an approved PT and price/deliverables cannot b
   assert.equal(service.status, "ACTIVE");
 });
 
-// ── Purchase ──────────────────────────────────────────────────────────────────
+// ── Purchase (P0 cluster C2/C3 — gateway checkout, not instant wallet transfer) ──────────
 
-test("purchaseService: a failed payment leaves the order CANCELLED, never unlocks Intake/the service", async () => {
+test("purchaseService: starts a gateway checkout — order is PENDING_PAYMENT, not settled, until activation", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
 
-  personalizedServiceDeps.holdPersonalizedServicePayment = async () => ({ status: "FAILED", transactionId: "x", failureReason: "Insufficient balance" });
+  const { order, payment } = await personalizedServiceService.purchaseService(service.id, buyerId);
+  assert.equal(order.status, "PENDING_PAYMENT");
+  assert.ok(payment.redirectUrl, "must hand back somewhere to send the buyer to actually pay");
+  assert.equal(order.platformRateSnapshot, 0.1);
+  assert.equal(order.ptRateSnapshot, 0.9);
+});
+
+test("purchaseService: if the gateway checkout itself fails to start, the order is left PENDING_PAYMENT for a retry — not silently cancelled", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  const buyerId = `buyer-${randomUUID()}`;
+
+  personalizedServiceDeps.checkout = async () => {
+    throw Object.assign(new Error("Gateway unreachable"), { code: "CHECKOUT_FAILED", status: 502 });
+  };
   try {
-    await assert.rejects(
-      () => personalizedServiceService.purchaseService(service.id, buyerId),
-      (err: any) => {
-        assert.equal(err.statusCode ?? err.status, 402);
-        return true;
-      },
-    );
+    await assert.rejects(() => personalizedServiceService.purchaseService(service.id, buyerId));
     const orders = await personalizedServiceService.listMyOrders(buyerId);
     assert.equal(orders.length, 1);
-    assert.equal(orders[0].status, "CANCELLED");
+    assert.equal(orders[0].status, "PENDING_PAYMENT");
   } finally {
-    stubHoldSucceeds();
+    stubPaymentSuccess();
   }
 });
 
@@ -169,12 +197,12 @@ test("purchaseService: a seller cannot purchase their own service", async () => 
   );
 });
 
-test("purchaseService: creates an order snapshotting the service's CURRENT terms, status INTAKE_PENDING, never hands over a generic plan immediately", async () => {
+test("activateAfterPayment: creates an order snapshotting the service's CURRENT terms, status INTAKE_PENDING, never hands over a generic plan immediately", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
 
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
   assert.equal(order.status, "INTAKE_PENDING");
   assert.equal(order.buyerId, buyerId);
   assert.equal(order.sellerId, sellerId);
@@ -183,13 +211,47 @@ test("purchaseService: creates an order snapshotting the service's CURRENT terms
   assert.equal(order.revisionLimitSnapshot, 2);
   assert.equal(order.draftContent, null);
   assert.equal(order.intakeData, null);
+  assert.ok(order.paymentTransactionId);
+});
+
+test("activateAfterPayment: rejects a transaction that does not verify (wrong order, wrong status, wrong purpose)", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  const buyerId = `buyer-${randomUUID()}`;
+  const { order } = await personalizedServiceService.purchaseService(service.id, buyerId);
+
+  personalizedServiceDeps.getTransaction = async () => ({ id: "x", status: "FAILED", relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE", relatedEntityId: order.id });
+  try {
+    await assert.rejects(
+      () => personalizedServiceService.activateAfterPayment(order.id, "x"),
+      (err: any) => {
+        assert.equal(err.statusCode ?? err.status, 400);
+        return true;
+      },
+    );
+    const reread = await prisma.personalizedServiceOrder.findUnique({ where: { id: order.id } });
+    assert.equal(reread!.status, "PENDING_PAYMENT", "must not have activated on an unverified transaction");
+  } finally {
+    stubPaymentSuccess();
+  }
+});
+
+test("activateAfterPayment: retried after already activated (webhook redelivery) is a no-op — does not throw, stays INTAKE_PENDING", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  const buyerId = `buyer-${randomUUID()}`;
+  const { order, payment } = await personalizedServiceService.purchaseService(service.id, buyerId);
+
+  await personalizedServiceService.activateAfterPayment(order.id, payment.transactionId);
+  const again = await personalizedServiceService.activateAfterPayment(order.id, payment.transactionId);
+  assert.equal(again!.status, "INTAKE_PENDING");
 });
 
 test("purchaseService: editing the service AFTER purchase does not change an already-placed order's snapshot (§XXXVIII)", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   // PT "edits" the listing by archiving it and creating a differently-priced one —
   // this codebase's PublishedPlan versioning convention (no in-place price edit
@@ -207,7 +269,7 @@ test("getOrder: a random third party (neither buyer nor seller) is denied", asyn
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   await assert.rejects(
     () => personalizedServiceService.getOrder(order.id, `stranger-${randomUUID()}`),
@@ -224,7 +286,7 @@ test("submitIntake: only the buyer can submit intake for their own order", async
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   await assert.rejects(
     () =>
@@ -243,7 +305,7 @@ test("submitIntake: rejects an empty consentCategories list — nothing may be s
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   await assert.rejects(
     () => personalizedServiceService.submitIntake(order.id, buyerId, { intakeData: {}, consentCategories: [] }),
@@ -258,7 +320,7 @@ test("submitIntake: rejects a consent category outside the fixed known set", asy
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   await assert.rejects(
     () =>
@@ -277,7 +339,7 @@ test("submitIntake: on success, creates the Contract (§XII) and computes the de
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   let contractCallArgs: any = null;
   personalizedServiceDeps.createMarketplaceContract = async (params) => {
@@ -307,7 +369,7 @@ test("getOrder: the PT sees ONLY intake fields covered by a consented category �
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
   personalizedServiceDeps.createMarketplaceContract = async () => `contract-${randomUUID()}`;
 
   await personalizedServiceService.submitIntake(order.id, buyerId, {
@@ -328,7 +390,7 @@ test("submitIntake: cannot be called twice (wrong state the second time)", async
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
   personalizedServiceDeps.createMarketplaceContract = async () => "contract-123";
 
   await personalizedServiceService.submitIntake(order.id, buyerId, {
@@ -350,7 +412,7 @@ test("submitIntake: cannot be called twice (wrong state the second time)", async
 async function purchaseAndIntake(sellerId: string) {
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
   personalizedServiceDeps.createMarketplaceContract = async () => `contract-${randomUUID()}`;
   const submitted = await personalizedServiceService.submitIntake(order.id, buyerId, {
     intakeData: { goal: "MUSCLE_GAIN" },
@@ -387,7 +449,7 @@ test("deliverDraft: cannot be delivered before intake is submitted / review star
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
 
   await assert.rejects(
     () => personalizedServiceService.deliverDraft(order.id, sellerId, sampleDraft),
@@ -398,112 +460,19 @@ test("deliverDraft: cannot be delivered before intake is submitted / review star
   );
 });
 
-test("deliverDraft: succeeds after startReview, sets status DRAFT_DELIVERED and stores the content", async () => {
+test("deliverDraft: succeeds after startReview, sets status DRAFT_DELIVERED, stores the content, and starts the auto-accept clock", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order } = await purchaseAndIntake(sellerId);
   await personalizedServiceService.startReview(order.id, sellerId);
 
+  const before = Date.now();
   const delivered = await personalizedServiceService.deliverDraft(order.id, sellerId, sampleDraft);
   assert.equal(delivered.status, "DRAFT_DELIVERED");
   assert.equal(delivered.draftVersion, 1);
   assert.deepEqual(delivered.draftContent, sampleDraft as any);
-});
-
-// ── P1-FIN-001/002: milestone-based escrow release ─────────────────────────
-// releasePersonalizedServiceMilestone is best-effort (see
-// releaseMilestoneBestEffort's doc comment) — these tests verify it fires
-// at the right moment with the right milestone, that deliverDraft's
-// idempotency guard actually prevents a second payout on revision
-// redelivery, and that a release FAILURE never blocks the domain
-// transition it's attached to.
-
-test("milestone release: startReview releases INTAKE_REVIEWED and stamps milestoneIntakeReleasedAt", async () => {
-  const sellerId = `pt-${randomUUID()}`;
-  const { order, buyerId } = await purchaseAndIntake(sellerId);
-  void buyerId;
-
-  const calls: string[] = [];
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
-    calls.push(params.milestone);
-    assert.equal(params.transactionId, order.paymentTransactionId);
-    assert.equal(params.sellerId, sellerId);
-    assert.equal(params.price, 100000);
-    return { milestone: params.milestone, released: { seller: "9000.00", platform: "1000.00" } };
-  };
-  try {
-    const reviewing = await personalizedServiceService.startReview(order.id, sellerId);
-    assert.equal(reviewing.status, "PT_REVIEWING");
-    assert.deepEqual(calls, ["INTAKE_REVIEWED"]);
-    assert.ok(reviewing.milestoneIntakeReleasedAt);
-  } finally {
-    stubReleaseMilestoneSucceeds();
-  }
-});
-
-test("milestone release: deliverDraft releases DRAFT_DELIVERED on the FIRST delivery only — a revision redelivery does not pay out twice", async () => {
-  const sellerId = `pt-${randomUUID()}`;
-  const { order, buyerId } = await purchaseAndIntake(sellerId);
-  await personalizedServiceService.startReview(order.id, sellerId);
-
-  const calls: string[] = [];
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
-    calls.push(params.milestone);
-    return { milestone: params.milestone, released: { seller: "0.00", platform: "0.00" } };
-  };
-  try {
-    let current = await personalizedServiceService.deliverDraft(order.id, sellerId, sampleDraft);
-    assert.deepEqual(calls, ["DRAFT_DELIVERED"]);
-    assert.ok(current.milestoneDraftReleasedAt);
-    const firstStampedAt = current.milestoneDraftReleasedAt;
-
-    current = await personalizedServiceService.requestRevision(current.id, buyerId, { category: "OTHER", comment: "x" });
-    await personalizedServiceService.startRevisionWork(current.id, sellerId);
-    current = await personalizedServiceService.deliverDraft(current.id, sellerId, { ...sampleDraft, name: "v2" });
-
-    assert.deepEqual(calls, ["DRAFT_DELIVERED"]); // still just one call — redelivery did not release again
-    assert.deepEqual(current.milestoneDraftReleasedAt, firstStampedAt); // unchanged
-  } finally {
-    stubReleaseMilestoneSucceeds();
-  }
-});
-
-test("milestone release: acceptOrder releases ACCEPTED, completeOrder releases COMPLETED", async () => {
-  const sellerId = `pt-${randomUUID()}`;
-  const { order, buyerId } = await deliverToDraft(sellerId);
-  personalizedServiceDeps.commitPersonalizedPlan = async () => ({ createdProgramId: "p-milestone-test", createdScheduleCount: 1 });
-
-  const calls: string[] = [];
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = async (params) => {
-    calls.push(params.milestone);
-    return { milestone: params.milestone, released: { seller: "0.00", platform: "0.00" } };
-  };
-  try {
-    const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
-    assert.ok(accepted.milestoneAcceptedReleasedAt);
-
-    const completed = await personalizedServiceService.completeOrder(order.id, buyerId);
-    assert.ok(completed.milestoneCompletedReleasedAt);
-
-    assert.deepEqual(calls, ["ACCEPTED", "COMPLETED"]);
-  } finally {
-    stubReleaseMilestoneSucceeds();
-  }
-});
-
-test("milestone release: a payment-service failure never blocks the domain transition (best-effort)", async () => {
-  const sellerId = `pt-${randomUUID()}`;
-  const { order } = await purchaseAndIntake(sellerId);
-
-  personalizedServiceDeps.releasePersonalizedServiceMilestone = async () => {
-    throw new Error("payment-service unreachable (simulated)");
-  };
-  try {
-    const reviewing = await personalizedServiceService.startReview(order.id, sellerId);
-    assert.equal(reviewing.status, "PT_REVIEWING"); // transition still succeeded
-    assert.equal(reviewing.milestoneIntakeReleasedAt, null); // but the release genuinely did not happen — not fabricated
-  } finally {
-    stubReleaseMilestoneSucceeds();
-  }
+  assert.ok(delivered.autoAcceptDeadline, "P0 cluster C3 — must start the auto-accept clock");
+  const days = (new Date(delivered.autoAcceptDeadline!).getTime() - before) / (24 * 60 * 60 * 1000);
+  assert.ok(Math.abs(days - 3) < 0.01, `expected ~3 days (AUTO_ACCEPT_DAYS default), got ${days}`);
 });
 
 // ── Revision limit enforcement (§XX) ───────────────────────────────────────
@@ -525,6 +494,15 @@ test("requestRevision: only the buyer can request a revision", async () => {
       return true;
     },
   );
+});
+
+test("requestRevision: clears the auto-accept clock — the buyer responded, no need to auto-accept on their behalf", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order, buyerId } = await deliverToDraft(sellerId);
+  assert.ok(order.autoAcceptDeadline);
+
+  const afterRevision = await personalizedServiceService.requestRevision(order.id, buyerId, { category: "EXERCISE", comment: "x" });
+  assert.equal(afterRevision.autoAcceptDeadline, null);
 });
 
 test("requestRevision: enforces the package's revisionLimit (2 in this test) — 3rd request is rejected", async () => {
@@ -559,7 +537,7 @@ test("requestRevision: unlimited when revisionLimitSnapshot is null (e.g. ongoin
   stubApprovedPt(sellerId);
   const service = await personalizedServiceService.createService(sellerId, { ...validServiceInput, revisionLimit: null });
   const buyerId = `buyer-${randomUUID()}`;
-  let order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  let order = await purchaseAndActivate(service.id, buyerId);
   personalizedServiceDeps.createMarketplaceContract = async () => `contract-${randomUUID()}`;
   order = await personalizedServiceService.submitIntake(order.id, buyerId, { intakeData: {}, consentCategories: ["basic_info"] });
   await personalizedServiceService.startReview(order.id, sellerId);
@@ -573,7 +551,7 @@ test("requestRevision: unlimited when revisionLimitSnapshot is null (e.g. ongoin
   assert.equal(order.revisionCount, 5); // never throws despite 5 rounds
 });
 
-// ── Accept — commits into a real training program (§XXI/§XXII) ────────────
+// ── Accept — commits into a real training program AND releases held money (§XXI/§XXII, C3) ──
 
 test("acceptOrder: only the buyer can accept", async () => {
   const sellerId = `pt-${randomUUID()}`;
@@ -599,7 +577,7 @@ test("acceptOrder: cannot accept before a draft has been delivered", async () =>
   );
 });
 
-test("acceptOrder: commits the draft via the fitness-service client and stores the resulting program id", async () => {
+test("acceptOrder: commits the draft via the fitness-service client, stores the resulting program id, releases the held money, and clears the auto-accept clock", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order, buyerId } = await deliverToDraft(sellerId);
 
@@ -608,13 +586,25 @@ test("acceptOrder: commits the draft via the fitness-service client and stores t
     commitCalledWith = { userId, draft };
     return { createdProgramId: "program-abc", createdScheduleCount: 4 };
   };
+  let releaseCalledWith: any = null;
+  personalizedServiceDeps.releaseOrder = async (params) => {
+    releaseCalledWith = params;
+    return { released: { pt: "90000.00", platform: "10000.00" } };
+  };
 
   const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
   assert.equal(accepted.status, "ACCEPTED"); // ONLINE_COACHING with supportWeeks would be ACTIVE — this fixture is PERSONALIZED_WORKOUT
   assert.equal(accepted.committedProgramId, "program-abc");
   assert.ok(accepted.acceptedAt);
+  assert.ok(accepted.releasedAt, "P0 cluster C3 — must record that money was released");
+  assert.equal(accepted.autoAcceptDeadline, null);
   assert.equal(commitCalledWith.userId, buyerId); // committed to the BUYER's schedule, never the seller's
   assert.deepEqual(commitCalledWith.draft, sampleDraft);
+  assert.equal(releaseCalledWith.parties.ptUserId, sellerId);
+  assert.equal(releaseCalledWith.parties.clientUserId, buyerId);
+  assert.equal(releaseCalledWith.idempotencyKey, `PERSONALIZED_RELEASE:${order.id}`);
+
+  stubPaymentSuccess();
 });
 
 test("acceptOrder: an ONLINE_COACHING service with supportWeeks lands on ACTIVE (ongoing), not a terminal ACCEPTED", async () => {
@@ -626,7 +616,7 @@ test("acceptOrder: an ONLINE_COACHING service with supportWeeks lands on ACTIVE 
     supportWeeks: 12,
   });
   const buyerId = `buyer-${randomUUID()}`;
-  let order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  let order = await purchaseAndActivate(service.id, buyerId);
   personalizedServiceDeps.createMarketplaceContract = async () => `contract-${randomUUID()}`;
   order = await personalizedServiceService.submitIntake(order.id, buyerId, { intakeData: {}, consentCategories: ["basic_info"] });
   await personalizedServiceService.startReview(order.id, sellerId);
@@ -635,18 +625,65 @@ test("acceptOrder: an ONLINE_COACHING service with supportWeeks lands on ACTIVE 
 
   const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
   assert.equal(accepted.status, "ACTIVE");
+  stubPaymentSuccess();
+});
+
+test("acceptOrder: a release failure does not undo the acceptance — the plan is already committed", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order, buyerId } = await deliverToDraft(sellerId);
+  personalizedServiceDeps.commitPersonalizedPlan = async () => ({ createdProgramId: "program-xyz", createdScheduleCount: 1 });
+  personalizedServiceDeps.releaseOrder = async () => {
+    throw new Error("payment-service unreachable");
+  };
+
+  const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
+  assert.equal(accepted.status, "ACCEPTED");
+  assert.equal(accepted.committedProgramId, "program-xyz");
+  assert.equal(accepted.releasedAt, null, "release genuinely failed — must not claim otherwise");
+
+  stubPaymentSuccess();
 });
 
 // ── Cancellation / refund / dispute — §XXXI/§XXXII ─────────────────────────
 
-test("cancelOrder: allowed while INTAKE_PENDING (PT has not started)", async () => {
+test("cancelOrder: allowed while INTAKE_PENDING (PT has not started) — refunds the full price from pending (C4)", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const service = await createTestService(sellerId);
   const buyerId = `buyer-${randomUUID()}`;
-  const order = await personalizedServiceService.purchaseService(service.id, buyerId);
+  const order = await purchaseAndActivate(service.id, buyerId);
+
+  let refundCalledWith: any = null;
+  personalizedServiceDeps.refundOrder = async (params) => {
+    refundCalledWith = params;
+    return { refund: "100000.00", clawedBack: { pt: "90000.00", platform: "10000.00" }, shortfall: "0.00" };
+  };
 
   const cancelled = await personalizedServiceService.cancelOrder(order.id, buyerId, "changed my mind");
   assert.equal(cancelled.status, "CANCELLED");
+  assert.equal(cancelled.cumulativeRefundedAmount, 100000);
+  assert.equal(refundCalledWith.refundAmount, 100000);
+  assert.equal(refundCalledWith.idempotencyKey, `PERSONALIZED_REFUND:${order.id}:100000.00`);
+
+  stubPaymentSuccess();
+});
+
+test("cancelOrder: allowed while PENDING_PAYMENT — pure status flip, no refund call (nothing was ever charged)", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  const buyerId = `buyer-${randomUUID()}`;
+  const { order } = await personalizedServiceService.purchaseService(service.id, buyerId);
+
+  let refundCalled = false;
+  personalizedServiceDeps.refundOrder = async (params) => {
+    refundCalled = true;
+    return { refund: params.refundAmount.toFixed(2), clawedBack: { pt: "0.00", platform: "0.00" }, shortfall: "0.00" };
+  };
+
+  const cancelled = await personalizedServiceService.cancelOrder(order.id, buyerId);
+  assert.equal(cancelled.status, "CANCELLED");
+  assert.equal(refundCalled, false, "PENDING_PAYMENT means nothing was ever charged — no refund call should happen");
+
+  stubPaymentSuccess();
 });
 
 test("cancelOrder: rejected once the PT has started reviewing — must use refund-request/dispute instead", async () => {
@@ -717,6 +754,7 @@ test("plan versions: acceptOrder marks the currently-delivered version ACCEPTED,
   const versions = await personalizedServiceService.listPlanVersions(order.id, buyerId);
   assert.equal(versions.length, 1);
   assert.equal(versions[0].status, "ACCEPTED");
+  stubPaymentSuccess();
 });
 
 test("plan versions: a random third party cannot list version history", async () => {
@@ -737,6 +775,7 @@ async function acceptedOrder(sellerId: string) {
   const { order, buyerId } = await deliverToDraft(sellerId);
   personalizedServiceDeps.commitPersonalizedPlan = async () => ({ createdProgramId: `p-${randomUUID()}`, createdScheduleCount: 1 });
   const accepted = await personalizedServiceService.acceptOrder(order.id, buyerId);
+  stubPaymentSuccess();
   return { order: accepted, buyerId, sellerId };
 }
 
@@ -835,13 +874,10 @@ test("review: getSellerReviewSummary aggregates average rating and count", async
   assert.equal(summary.averageRating, 4);
 });
 
-// ── Admin refund resolution — real money movement, ceiling enforcement,
-// idempotency. refundPersonalizedServiceHeld IS routed through
-// personalizedServiceDeps (P1-FIN-001/002 — unlike the old generic
-// refundTransaction it replaced) — stub it there, same indirection as
-// holdPersonalizedServicePayment above. ────────────────────────────────────
+// ── Admin refund resolution (C5) — real money movement via personalizedServiceDeps.
+// refundOrder, ceiling enforcement, idempotency. ───────────────────────────
 
-test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableCeiling/held correctly", async () => {
+test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableCeiling correctly", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "changed my mind");
@@ -850,7 +886,6 @@ test("refund: getRefundCalculation reports totalPaid/alreadyRefunded/refundableC
   assert.equal(calc.totalPaid, 100000);
   assert.equal(calc.alreadyRefunded, 0);
   assert.equal(calc.refundableCeiling, 100000);
-  assert.deepEqual(calc.held, { seller: "0.00", platform: "0.00" }); // stubbed ledger summary
   assert.equal(calc.milestones.draftDelivered, true);
   assert.equal(calc.milestones.accepted, false);
 });
@@ -865,15 +900,15 @@ test("refund: a non-ADMIN-gated call path is enforced at the controller, not the
   assert.ok(true);
 });
 
-test("refund: APPROVE moves real money via refundPersonalizedServiceHeld and marks the order REFUNDED when fully refunded", async () => {
+test("refund: APPROVE moves real money via refundOrder (pulling from pending, since nothing has been released yet) and marks the order REFUNDED when fully refunded", async () => {
   const sellerId = `pt-${randomUUID()}`;
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "PT unresponsive");
 
   let refundCalledWith: any = null;
-  personalizedServiceDeps.refundPersonalizedServiceHeld = async (params) => {
+  personalizedServiceDeps.refundOrder = async (params) => {
     refundCalledWith = params;
-    return { refunded: params.refundAmount.toFixed(2), drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" }, shortfall: "0.00" };
+    return { refund: params.refundAmount.toFixed(2), clawedBack: { pt: "90000.00", platform: "10000.00" }, shortfall: "0.00" };
   };
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
@@ -886,10 +921,9 @@ test("refund: APPROVE moves real money via refundPersonalizedServiceHeld and mar
     assert.equal(resolved.refundDecision, "APPROVED_FULL");
     assert.ok(resolved.refundedAt);
     assert.equal(refundCalledWith.refundAmount, 100000);
-    assert.equal(refundCalledWith.sellerId, sellerId);
-    assert.equal(refundCalledWith.buyerId, buyerId);
+    assert.equal(refundCalledWith.idempotencyKey, `PERSONALIZED_REFUND:${order.id}:100000.00`);
   } finally {
-    stubRefundHeldSucceeds();
+    stubPaymentSuccess();
   }
 });
 
@@ -898,6 +932,11 @@ test("refund: a partial APPROVE keeps the order out of REFUNDED and restores its
   const { order, buyerId } = await deliverToDraft(sellerId); // status DRAFT_DELIVERED before refund request
   await personalizedServiceService.requestRefund(order.id, buyerId, "partial issue");
 
+  personalizedServiceDeps.refundOrder = async (params) => ({
+    refund: params.refundAmount.toFixed(2),
+    clawedBack: { pt: "27000.00", platform: "3000.00" },
+    shortfall: "0.00",
+  });
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
       decision: "APPROVE",
@@ -908,7 +947,7 @@ test("refund: a partial APPROVE keeps the order out of REFUNDED and restores its
     assert.equal(resolved.cumulativeRefundedAmount, 30000);
     assert.equal(resolved.refundDecision, "APPROVED_PARTIAL");
   } finally {
-    stubRefundHeldSucceeds();
+    stubPaymentSuccess();
   }
 });
 
@@ -917,6 +956,11 @@ test("refund: cannot approve an amount exceeding the refundable ceiling (double-
   const { order, buyerId } = await deliverToDraft(sellerId);
   await personalizedServiceService.requestRefund(order.id, buyerId, "x");
 
+  personalizedServiceDeps.refundOrder = async (params) => ({
+    refund: params.refundAmount.toFixed(2),
+    clawedBack: { pt: "0.00", platform: "0.00" },
+    shortfall: "0.00",
+  });
   try {
     // First partial approval: 70000 of 100000
     await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
@@ -940,7 +984,7 @@ test("refund: cannot approve an amount exceeding the refundable ceiling (double-
       },
     );
   } finally {
-    stubRefundHeldSucceeds();
+    stubPaymentSuccess();
   }
 });
 
@@ -950,9 +994,9 @@ test("refund: DENY restores the order to its pre-refund-request status and moves
   await personalizedServiceService.requestRefund(order.id, buyerId, "buyer changed mind");
 
   let refundCalled = false;
-  personalizedServiceDeps.refundPersonalizedServiceHeld = async () => {
+  personalizedServiceDeps.refundOrder = async (params) => {
     refundCalled = true;
-    return { refunded: "0.00", drawnFrom: { sellerPending: "0.00", sellerAvailable: "0.00", platformPending: "0.00", platformAvailable: "0.00" }, shortfall: "0.00" };
+    return { refund: params.refundAmount.toFixed(2), clawedBack: { pt: "0.00", platform: "0.00" }, shortfall: "0.00" };
   };
   try {
     const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
@@ -964,7 +1008,7 @@ test("refund: DENY restores the order to its pre-refund-request status and moves
     assert.equal(resolved.refundDecision, "DENIED");
     assert.equal(refundCalled, false); // no payment call was ever made
   } finally {
-    stubRefundHeldSucceeds();
+    stubPaymentSuccess();
   }
 });
 

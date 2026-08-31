@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { conversationRepository } from "../repositories/conversation.repository";
+import { personalizedServiceService } from "../services/personalized-service.service";
 import {
   enqueueLocalEvidenceRefresh,
   enqueuePubMedRefresh,
@@ -363,6 +364,28 @@ router.delete(
     try {
       const removed = await removeKnowledgeRefreshSchedules();
       res.json({ cleared: true, removed });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// P0 cluster C2/C3 — called by payment-service once the gateway's signed webhook confirms
+// payment (reconciliation.service.ts's callActivateEndpoint), mirroring user-service's
+// /internal/contracts/:id/activate-after-payment and gym-service's
+// /internal/gym-memberships/:id/activate exactly.
+router.post(
+  "/personalized-service/orders/:id/activate-after-payment",
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!requireInternalSecret(req, res)) return;
+    try {
+      const { transactionId } = req.body ?? {};
+      if (!transactionId) {
+        res.status(400).json({ error: "transactionId is required" });
+        return;
+      }
+      const order = await personalizedServiceService.activateAfterPayment(req.params.id, transactionId);
+      res.json({ success: true, data: order });
     } catch (err) {
       next(err);
     }

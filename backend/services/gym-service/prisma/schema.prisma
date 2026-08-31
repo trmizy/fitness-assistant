@@ -26,6 +26,13 @@ enum GymMembershipContractStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+  /// P0 cluster E2 — the gym was suspended/closed/removed between checkout and the payment
+  /// webhook: money already settled into escrow + gym/platform pending, but activating a
+  /// membership at a gym no longer allowed to operate would be wrong. An auto-refund is
+  /// attempted immediately (see membershipService.resolvePendingIssue); if that itself fails
+  /// (payment-service unreachable), the row stays here as an admin queue until manually
+  /// resolved — never silently dropped.
+  PENDING_ISSUE
 }
 
 enum AffiliationStatus {

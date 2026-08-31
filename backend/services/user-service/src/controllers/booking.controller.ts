@@ -304,16 +304,38 @@ export const bookingController = {
     }
   },
 
+  // Mirror-image of reviewSession: the PT rates the client instead of the client rating the PT.
+  async reviewClient(req: any, res: Response) {
+    try {
+      const ptUserId = req.headers["x-user-id"] as string;
+      const { rating, comment } = req.body;
+      const review = await bookingService.reviewClient(
+        req.params.id,
+        ptUserId,
+        rating,
+        comment,
+      );
+      res.status(201).json(review);
+    } catch (error: any) {
+      logger.error(error, "Review client error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to review client" });
+    }
+  },
+
   // ── Session Rescheduling ────────────────────────────────────────
 
   async requestReschedule(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;
-      const { proposedStartAt, proposedEndAt, reason } = req.body;
+      // P0 cluster H1: proposedEndAt is never read from the request — the service always
+      // computes it from the contract's own sessionDurationMinutes snapshot.
+      const { proposedStartAt, reason } = req.body;
       const result = await bookingService.requestReschedule(
         req.params.id,
         userId,
-        { proposedStartAt, proposedEndAt, reason }
+        { proposedStartAt, reason }
       );
       res.json(result);
     } catch (error: any) {

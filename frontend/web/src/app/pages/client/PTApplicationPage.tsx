@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -415,8 +415,21 @@ export function PTApplicationPage() {
       .catch(() => {});
   }, []);
 
+  // Hydrate formData from the server exactly ONCE, on the first successful load — never again
+  // afterward, even though `appData` keeps changing reference on every draft-save response (see
+  // saveMutation below). Re-running this on every appData change used to make formData the
+  // server's echo instead of the user's own typing: draft-save #1 fires with, say,
+  // yearsOfExperience still unset, the server naturally answers with that field `null` (never
+  // been written), and re-merging that response back into formData overwrote a value the user
+  // had *already* picked on a later step by the time that response arrived. Confirmed live
+  // while building an E2E test: identity-document uploads and yearsOfExperience/serviceMode
+  // fields were silently wiped mid-wizard this way, no error, no way for the user to notice
+  // before final submission failed with a "missing field" they clearly remembered filling in.
+  // From here on formData is the single source of truth; saves are one-way (local -> server).
+  const hydratedRef = useRef(false);
   useEffect(() => {
-    if (appData) {
+    if (appData && !hydratedRef.current) {
+      hydratedRef.current = true;
       setFormData((prev) => ({
         ...prev,
         ...appData,
@@ -520,8 +533,16 @@ export function PTApplicationPage() {
   const saveMutation = useMutation({
     mutationFn: (data: Partial<PTApplication>) =>
       ptApplicationService.saveDraft(data),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["pt-application-me"] }),
+    // Seed the cache directly with the mutation's own response (same fix already applied in
+    // OnboardingWizardPage.tsx) instead of invalidateQueries, which only schedules a background
+    // refetch. That refetch could resolve AFTER the user has already typed into the next step,
+    // and the effect below that hydrates formData from appData would then overwrite those
+    // fresh, not-yet-saved edits with the (older) server snapshot the refetch returned —
+    // silently losing whatever the user just entered. Real data loss confirmed while building
+    // an E2E test for this wizard: identity-document uploads and service-mode/price fields on a
+    // later step were wiped this way. setQueryData closes the race window entirely — there is
+    // no network round-trip left to race against.
+    onSuccess: (data) => queryClient.setQueryData(["pt-application-me"], data),
     onError: (err: any) => {
       alert(
         err.response?.data?.error ||

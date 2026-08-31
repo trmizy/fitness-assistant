@@ -1,10 +1,10 @@
-import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
-import { Prisma, ContractStatus, SessionStatus } from "../generated/prisma";
+import { ContractStatus, SessionStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
 import { notificationService } from "./notification.service";
-import { paymentClient } from "../clients/payment.client";
+import { terminateContractMoney } from "./contract-payout.service";
+import { getRemainingEntitlements } from "./contract.service";
 
 /**
  * Contract states that still owe the client something — the ones that must be unwound when
@@ -18,7 +18,7 @@ export const BLOCKING_CONTRACT_STATUSES: ContractStatus[] = [
   ContractStatus.ACTIVE,
 ];
 
-/** Sessions that have not been delivered yet, so they must be called off and refunded. */
+/** Sessions that have not been delivered yet, so they must be called off. */
 const FUTURE_SESSION_STATUSES: SessionStatus[] = [
   SessionStatus.REQUESTED,
   SessionStatus.CONFIRMED,
@@ -29,42 +29,11 @@ const FUTURE_SESSION_STATUSES: SessionStatus[] = [
 export interface ContractRefundOutcome {
   contractId: string;
   clientUserId: string;
-  status: "REFUNDED" | "CANCELLED_NO_REFUND" | "REFUND_PENDING_MANUAL" | "SKIPPED";
+  status: "REFUNDED" | "CANCELLED_NO_REFUND" | "SKIPPED";
   refundAmount: number;
   unusedSessions: number;
   cancelledSessions: number;
   reason?: string;
-}
-
-/**
- * Prorated refund for the sessions the client paid for but will never receive.
- *
- *   unused = totalSessions − usedSessions
- *   refund = price × unused / totalSessions
- *
- * Money is computed with Prisma.Decimal and rounded to the đồng — never with binary
- * floating point, where 1_000_000 × 3/10 is not reliably 300_000.
- *
- * `usedSessions` is already the honest count of delivered sessions: after the client
- * confirmation change, only a COMPLETED session (or a legacy client NO_SHOW) increments it,
- * so anything merely reported by the PT and still awaiting confirmation — or under dispute —
- * counts as unused and is refunded, which is the reading that favours the client.
- */
-export function computeProratedRefund(contract: {
-  price: Prisma.Decimal | number | null;
-  totalSessions: number;
-  usedSessions: number;
-}): { refund: Prisma.Decimal; unusedSessions: number } {
-  const total = contract.totalSessions;
-  const unused = Math.max(0, total - contract.usedSessions);
-  if (!total || total <= 0 || contract.price == null) {
-    return { refund: new Prisma.Decimal(0), unusedSessions: unused };
-  }
-  const refund = new Prisma.Decimal(contract.price)
-    .mul(unused)
-    .div(total)
-    .toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP);
-  return { refund, unusedSessions: unused };
 }
 
 export const ptDeactivationService = {
@@ -78,11 +47,14 @@ export const ptDeactivationService = {
 
   /**
    * Unwinds every open contract of a PT whose account is being disabled: cancels the
-   * sessions that will never happen, refunds the unused portion to the client, and marks
-   * the PT hidden from discovery.
+   * sessions that will never happen, settles the contract's money, and marks the PT hidden
+   * from discovery.
    *
-   * Each contract is handled independently — one with broken data (no price, zero sessions)
-   * or an unaffordable refund is recorded and skipped, never allowed to abort the rest.
+   * Each contract is handled independently — one that fails is recorded and skipped, never
+   * allowed to abort the rest. auth-service's relay (pt-deactivation-relay.service.ts) may
+   * call this endpoint again on a retry; that is safe because every step below is either
+   * idempotent (terminateContractMoney's `CONTRACT_TERMINATE:<contractId>` key) or re-derives
+   * "what's left to do" from the contract's current status on every call.
    */
   async deactivatePT(
     ptUserId: string,
@@ -98,13 +70,23 @@ export const ptDeactivationService = {
 
     for (const contract of contracts) {
       try {
-        outcomes.push(await this.unwindContract(contract, adminId, reason));
+        outcomes.push(await this.unwindContract(contract, reason));
       } catch (err) {
         logger.error({
           error: "Failed to unwind contract during PT deactivation",
           contractId: contract.id,
           message: (err as Error).message,
         });
+        await notificationService
+          .create({
+            userId: adminId,
+            text: `Chấm dứt hợp đồng ${contract.id.slice(0, 8)} khi khoá huấn luyện viên thất bại — cần kiểm tra thủ công.`,
+            eventType: "REFUND_NEEDS_MANUAL_SETTLEMENT",
+            entityType: "CONTRACT",
+            entityId: contract.id,
+            link: "/admin/dashboard",
+          })
+          .catch(() => {});
         outcomes.push({
           contractId: contract.id,
           clientUserId: contract.clientUserId,
@@ -118,7 +100,7 @@ export const ptDeactivationService = {
     }
 
     logger.info(
-      `[PTDeactivation] pt=${ptUserId} contracts=${contracts.length} refunded=${outcomes.filter((o) => o.status === "REFUNDED").length} pendingManual=${outcomes.filter((o) => o.status === "REFUND_PENDING_MANUAL").length} skipped=${outcomes.filter((o) => o.status === "SKIPPED").length}`,
+      `[PTDeactivation] pt=${ptUserId} contracts=${contracts.length} refunded=${outcomes.filter((o) => o.status === "REFUNDED").length} skipped=${outcomes.filter((o) => o.status === "SKIPPED").length}`,
     );
     return { outcomes, suspended };
   },
@@ -128,12 +110,10 @@ export const ptDeactivationService = {
       id: string;
       clientUserId: string;
       ptUserId: string;
-      price: Prisma.Decimal | number | null;
       totalSessions: number;
       usedSessions: number;
-      paymentTransactionId: string | null;
+      compensatedSessions: number;
     },
-    adminId: string,
     reason: string,
   ): Promise<ContractRefundOutcome> {
     // 1. Call off everything not yet delivered.
@@ -146,44 +126,32 @@ export const ptDeactivationService = {
       },
     });
 
-    // 2. Work out what the client is owed.
-    const { refund, unusedSessions } = computeProratedRefund(contract);
-    const refundAmount = refund.toNumber();
+    const unusedSessions = getRemainingEntitlements(contract);
 
-    const cancelContract = () =>
-      contractRepository.update(contract.id, {
+    // 2. Settle the contract's money through the exact same formula and idempotency key every
+    // other termination path in the system uses (P0 cluster A2). This file used to run its own
+    // prorated-refund formula (which ignored compensatedSessions, disagreeing with
+    // contract-money.ts) and call payment-service's raw transaction refund with a fresh random
+    // idempotency key on every attempt — so a retried deactivation call (the auth-service relay
+    // explicitly documents retrying as safe) would refund the same contract a second time.
+    // terminateContractMoney is the one shared path: stable `CONTRACT_TERMINATE:<contractId>`
+    // key, and it already accounts for compensatedSessions. It also returns null for a
+    // contract that was never paid (or has no usable price/session count) instead of touching
+    // anything — that case is handled below.
+    const result = await terminateContractMoney(contract.id, "PT_BANNED");
+
+    if (result === null) {
+      // Never paid — no money to move. Cancel the contract ourselves; terminateContractMoney
+      // did not touch it.
+      await contractRepository.update(contract.id, {
         status: ContractStatus.CANCELLED,
         cancelledBy: "SYSTEM",
         cancellationReason: reason,
       });
-
-    // Broken data must not take the whole sweep down with it.
-    if (!contract.totalSessions || contract.price == null) {
-      logger.warn({
-        msg: "Contract skipped during PT deactivation — unusable price/sessions",
-        contractId: contract.id,
-        price: contract.price,
-        totalSessions: contract.totalSessions,
-      });
-      await cancelContract();
-      return {
-        contractId: contract.id,
-        clientUserId: contract.clientUserId,
-        status: "SKIPPED",
-        refundAmount: 0,
-        unusedSessions,
-        cancelledSessions,
-        reason: "Hợp đồng thiếu giá hoặc số buổi",
-      };
-    }
-
-    // 3. Nothing paid, or nothing left unused → cancel with no money movement.
-    if (refundAmount <= 0 || !contract.paymentTransactionId) {
-      await cancelContract();
       await this.notifyClient(
         contract.clientUserId,
         contract.id,
-        `Hợp đồng đã bị huỷ do huấn luyện viên ngừng hoạt động. Không có khoản hoàn tiền${refundAmount > 0 ? " (chưa ghi nhận thanh toán)" : ""}.`,
+        "Hợp đồng đã bị huỷ do huấn luyện viên ngừng hoạt động. Không có khoản hoàn tiền (chưa ghi nhận thanh toán).",
       );
       return {
         contractId: contract.id,
@@ -195,63 +163,24 @@ export const ptDeactivationService = {
       };
     }
 
-    // 4. Refund through payment-service, which owns the ledger reversal.
-    try {
-      await paymentClient.refund({
-        originalTransactionId: contract.paymentTransactionId,
-        refundAmount,
-        idempotencyKey: `pt-deactivation-refund:${contract.id}:${randomUUID()}`,
-        initiatedBy: adminId,
-        reason,
-      });
-    } catch (err: any) {
-      // The PT's wallet no longer holds the money. The client is still owed it, so the
-      // contract is still cancelled and the shortfall is escalated instead of swallowed.
-      const code = err?.code ?? "REFUND_FAILED";
-      logger.error({
-        error: "Refund failed during PT deactivation — needs manual settlement",
-        contractId: contract.id,
-        refundAmount,
-        code,
-      });
-      await cancelContract();
-      await this.notifyClient(
-        contract.clientUserId,
-        contract.id,
-        `Hợp đồng đã bị huỷ. Khoản hoàn ${refundAmount.toLocaleString("vi-VN")}đ đang chờ xử lý thủ công.`,
-      );
-      await notificationService
-        .create({
-          userId: adminId,
-          text: `Hoàn tiền ${refundAmount.toLocaleString("vi-VN")}đ cho hợp đồng ${contract.id.slice(0, 8)} thất bại (${code}) — cần xử lý thủ công.`,
-          eventType: "REFUND_NEEDS_MANUAL_SETTLEMENT",
-          entityType: "CONTRACT",
-          entityId: contract.id,
-          link: "/admin/dashboard",
-        })
-        .catch(() => {});
-      return {
-        contractId: contract.id,
-        clientUserId: contract.clientUserId,
-        status: "REFUND_PENDING_MANUAL",
-        refundAmount,
-        unusedSessions,
-        cancelledSessions,
-        reason: code,
-      };
-    }
+    // terminateContractMoney already committed status/terminatedAt/terminationReason on the
+    // contract row — this only fills in the client-facing "Lý do" text shown on the contract
+    // detail page, which the shared path does not set for itself.
+    await contractRepository.update(contract.id, { cancelledBy: "SYSTEM", cancellationReason: reason });
 
-    await cancelContract();
+    const refundAmount = Number(result.refund ?? 0);
     await this.notifyClient(
       contract.clientUserId,
       contract.id,
-      `Hợp đồng đã bị huỷ do huấn luyện viên ngừng hoạt động. Bạn được hoàn ${refundAmount.toLocaleString("vi-VN")}đ cho ${unusedSessions} buổi chưa sử dụng.`,
+      refundAmount > 0
+        ? `Hợp đồng đã bị huỷ do huấn luyện viên ngừng hoạt động. Bạn được hoàn ${refundAmount.toLocaleString("vi-VN")}đ cho ${unusedSessions} buổi chưa sử dụng.`
+        : "Hợp đồng đã bị huỷ do huấn luyện viên ngừng hoạt động. Không có khoản hoàn tiền.",
     );
 
     return {
       contractId: contract.id,
       clientUserId: contract.clientUserId,
-      status: "REFUNDED",
+      status: refundAmount > 0 ? "REFUNDED" : "CANCELLED_NO_REFUND",
       refundAmount,
       unusedSessions,
       cancelledSessions,

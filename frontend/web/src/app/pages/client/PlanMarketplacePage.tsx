@@ -23,6 +23,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { StarRating } from "../../components/StarRating";
+import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 import {
   marketplaceService,
   planService,
@@ -1472,14 +1473,22 @@ function PersonalizedServiceCard({ svc, onOpen }: { svc: PersonalizedService; on
 }
 
 function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
-  const navigate = useNavigate();
   const detailQuery = useQuery({ queryKey: ["personalized-service", id], queryFn: () => personalizedServiceApi.getDetail(id) });
+  // P0 cluster C2 — purchase now starts a gateway checkout instead of an instant wallet
+  // transfer; the order only activates once the gateway's webhook confirms payment, never on
+  // this response. showGateway opens the same PaymentMethodDialog gym-membership/contract
+  // checkout already uses, for the same reason: which gateways are usable is a server decision.
+  const [showGateway, setShowGateway] = useState(false);
   const purchaseMutation = useMutation({
-    mutationFn: () => personalizedServiceApi.purchase(id),
-    onSuccess: (order) => {
-      toast.success("Mua thành công — hãy điền thông tin Intake để PT bắt đầu cá nhân hóa.");
-      onClose();
-      navigate(`/client/marketplace-orders/${order.id}`);
+    mutationFn: (provider: string) => personalizedServiceApi.purchase(id, provider),
+    onSuccess: (result) => {
+      const url = result.payment?.redirectUrl;
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+      setShowGateway(false);
+      toast.error("Cổng thanh toán không trả về liên kết — thử lại hoặc chọn cổng khác");
     },
     onError: (err: any) => toast.error(err?.response?.data?.error?.message ?? "Không thể mua dịch vụ này."),
   });
@@ -1535,7 +1544,7 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
               <span className="text-xl font-bold text-green-400">{svc.price.toLocaleString("vi-VN")}đ</span>
               <button
                 data-testid="purchase-service-button"
-                onClick={() => purchaseMutation.mutate()}
+                onClick={() => setShowGateway(true)}
                 disabled={purchaseMutation.isPending}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold bg-green-500 text-black hover:bg-green-400 disabled:opacity-50"
               >
@@ -1543,6 +1552,16 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
               </button>
             </div>
           </>
+        )}
+
+        {showGateway && svc && (
+          <PaymentMethodDialog
+            amount={svc.price}
+            title="Chọn phương thức thanh toán dịch vụ"
+            isSubmitting={purchaseMutation.isPending}
+            onClose={() => setShowGateway(false)}
+            onConfirm={(provider) => purchaseMutation.mutate(provider)}
+          />
         )}
       </div>
     </div>

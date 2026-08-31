@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Calendar,
   AlertOctagon,
+  Star,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
@@ -30,6 +31,7 @@ import type {
   SessionStatus,
 } from "../../types";
 import { formatVND } from "../../utils/currency";
+import { Stars } from "../../components/gym/Stars";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -284,6 +286,31 @@ export function PTContractsPage() {
       toast.error(err?.response?.data?.error || "Failed to record no-show"),
   });
 
+  // Mirror-image of the client's session review (BookingPage.tsx) — PT rates the client
+  // instead of the client rating the PT.
+  const [reviewClientId, setReviewClientId] = useState<string | null>(null);
+  const [reviewClientRating, setReviewClientRating] = useState(5);
+  const [reviewClientComment, setReviewClientComment] = useState("");
+  const reviewClientMut = useMutation({
+    mutationFn: () => {
+      if (!reviewClientId) throw new Error("Missing data");
+      return sessionService.reviewClient(
+        reviewClientId,
+        reviewClientRating,
+        reviewClientComment,
+      );
+    },
+    onSuccess: () => {
+      toast.success("Đã gửi đánh giá về khách hàng");
+      setReviewClientId(null);
+      setReviewClientRating(5);
+      setReviewClientComment("");
+      queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error || "Không gửi được đánh giá"),
+  });
+
   const filtered = (contracts as Contract[]).filter((c) => {
     if (search) {
       const q = search.toLowerCase();
@@ -454,6 +481,15 @@ export function PTContractsPage() {
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" /> {partyName(c)}
                         </span>
+                        {/* Client's rating from OTHER PTs' past sessions with them — the
+                            counterpart to a client already seeing a PT's rating up front.
+                            Most useful exactly on a PENDING_REVIEW request, before Accept. */}
+                        {c.clientRating && c.clientRating.ratingCount > 0 && (
+                          <span className="flex items-center gap-1" title={`${c.clientRating.ratingCount} đánh giá từ PT khác`}>
+                            <Stars value={c.clientRating.avgRating ?? 0} size={12} />
+                            <span>({c.clientRating.ratingCount})</span>
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <Dumbbell className="w-3 h-3" /> {c.usedSessions}/
                           {c.totalSessions}
@@ -697,6 +733,32 @@ export function PTContractsPage() {
                                         </button>
                                       </>
                                     )}
+                                    {/* Mirror-image of the client's own post-session review
+                                        (BookingPage.tsx) — PT rates the client's conduct. */}
+                                    {s.status === "COMPLETED" &&
+                                      !s.clientReview && (
+                                        <button
+                                          onClick={() =>
+                                            setReviewClientId(s.id)
+                                          }
+                                          className="flex items-center gap-1 bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold hover:bg-green-500/20 transition-colors"
+                                        >
+                                          <Star className="w-3 h-3" /> Đánh
+                                          giá khách
+                                        </button>
+                                      )}
+                                    {s.clientReview && (
+                                      <div className="flex items-center gap-0.5">
+                                        {Array.from({ length: 5 }).map(
+                                          (_, i) => (
+                                            <Star
+                                              key={i}
+                                              className={`w-3 h-3 ${i < s.clientReview!.rating ? "text-amber-400 fill-amber-400" : "text-zinc-700"}`}
+                                            />
+                                          ),
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -872,6 +934,60 @@ export function PTContractsPage() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
                 Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Client Dialog — mirror-image of BookingPage.tsx's client review modal */}
+      {reviewClientId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-5 border-b border-zinc-800/60">
+              <h3 className="text-zinc-100 font-bold">Đánh giá khách hàng</h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setReviewClientRating(i + 1)}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-colors ${i < reviewClientRating ? "text-amber-400 fill-amber-400" : "text-zinc-700 hover:text-zinc-500"}`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reviewClientComment}
+                onChange={(e) => setReviewClientComment(e.target.value)}
+                rows={3}
+                placeholder="Khách hàng này thế nào? (đúng giờ, hợp tác...) — không bắt buộc"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
+              />
+            </div>
+            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
+              <button
+                onClick={() => {
+                  setReviewClientId(null);
+                  setReviewClientRating(5);
+                  setReviewClientComment("");
+                }}
+                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Bỏ qua
+              </button>
+              <button
+                onClick={() => reviewClientMut.mutate()}
+                disabled={reviewClientMut.isPending}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                {reviewClientMut.isPending && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                Gửi đánh giá
               </button>
             </div>
           </div>

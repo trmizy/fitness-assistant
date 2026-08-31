@@ -73,12 +73,18 @@ enum LedgerEntryType {
   CREDIT
 }
 
-/// Which of a wallet's two balances an entry moved. Releasing money from PENDING to
+/// Which of a wallet's three balances an entry moved. Releasing money from PENDING to
 /// AVAILABLE is written as two entries sharing one transactionId: a PENDING debit and an
 /// AVAILABLE credit, so the ledger stays double-entry and the release is auditable.
+/// P0 cluster F: LOCKED added — a wallet's already-unused `lockedBalance` column finally gets
+/// a ledger-writing path. A withdrawal request approval moves AVAILABLE -> LOCKED (a hard
+/// reservation a later clawback/refund cannot reach, since those only ever debit AVAILABLE);
+/// the actual payout later debits LOCKED (+ ESCROW); a rejection after approval moves LOCKED
+/// back to AVAILABLE.
 enum LedgerBucket {
   PENDING
   AVAILABLE
+  LOCKED
 }
 
 enum RelatedEntityType {

@@ -151,11 +151,12 @@ export const personalizedServiceController = {
     }
   },
 
-  // ── Purchase ──────────────────────────────────────────────────────────────
+  // ── Purchase (P0 cluster C2) — returns { order, payment }; payment.redirectUrl / qrCodeUrl
+  // is where the client sends the buyer next, the order does not settle on this response. ──
   async purchaseService(req: Request, res: Response, next: NextFunction) {
     try {
-      const order = await personalizedServiceService.purchaseService(req.params.id, req.context.userId);
-      res.status(201).json(formatSuccessResponse(order));
+      const result = await personalizedServiceService.purchaseService(req.params.id, req.context.userId, req.body?.provider);
+      res.status(201).json(formatSuccessResponse(result));
     } catch (error) {
       next(error);
     }

@@ -198,6 +198,7 @@ export type PersonalizedServiceStatus = (typeof PersonalizedServiceStatus)[keyof
 
 
 export const PersonalizedServiceOrderStatus: {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   PURCHASED: 'PURCHASED',
   INTAKE_PENDING: 'INTAKE_PENDING',
   INTAKE_SUBMITTED: 'INTAKE_SUBMITTED',
@@ -15839,6 +15840,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number | null
     supportWeeksSnapshot: number | null
     priceAtPurchase: number | null
+    platformRateSnapshot: number | null
+    ptRateSnapshot: number | null
     draftVersion: number | null
     revisionCount: number | null
     cumulativeRefundedAmount: number | null
@@ -15849,6 +15852,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number | null
     supportWeeksSnapshot: number | null
     priceAtPurchase: number | null
+    platformRateSnapshot: number | null
+    ptRateSnapshot: number | null
     draftVersion: number | null
     revisionCount: number | null
     cumulativeRefundedAmount: number | null
@@ -15867,12 +15872,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number | null
     supportWeeksSnapshot: number | null
     priceAtPurchase: number | null
+    platformRateSnapshot: number | null
+    ptRateSnapshot: number | null
     paymentTransactionId: string | null
     purchasedAt: Date | null
-    milestoneIntakeReleasedAt: Date | null
-    milestoneDraftReleasedAt: Date | null
-    milestoneAcceptedReleasedAt: Date | null
-    milestoneCompletedReleasedAt: Date | null
+    releasedAt: Date | null
+    autoAcceptDeadline: Date | null
     intakeSubmittedAt: Date | null
     contractId: string | null
     initialDeliveryDeadline: Date | null
@@ -15909,12 +15914,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number | null
     supportWeeksSnapshot: number | null
     priceAtPurchase: number | null
+    platformRateSnapshot: number | null
+    ptRateSnapshot: number | null
     paymentTransactionId: string | null
     purchasedAt: Date | null
-    milestoneIntakeReleasedAt: Date | null
-    milestoneDraftReleasedAt: Date | null
-    milestoneAcceptedReleasedAt: Date | null
-    milestoneCompletedReleasedAt: Date | null
+    releasedAt: Date | null
+    autoAcceptDeadline: Date | null
     intakeSubmittedAt: Date | null
     contractId: string | null
     initialDeliveryDeadline: Date | null
@@ -15952,12 +15957,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot: number
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId: number
     purchasedAt: number
-    milestoneIntakeReleasedAt: number
-    milestoneDraftReleasedAt: number
-    milestoneAcceptedReleasedAt: number
-    milestoneCompletedReleasedAt: number
+    releasedAt: number
+    autoAcceptDeadline: number
     intakeData: number
     consentCategories: number
     intakeSubmittedAt: number
@@ -15991,6 +15996,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: true
     supportWeeksSnapshot?: true
     priceAtPurchase?: true
+    platformRateSnapshot?: true
+    ptRateSnapshot?: true
     draftVersion?: true
     revisionCount?: true
     cumulativeRefundedAmount?: true
@@ -16001,6 +16008,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: true
     supportWeeksSnapshot?: true
     priceAtPurchase?: true
+    platformRateSnapshot?: true
+    ptRateSnapshot?: true
     draftVersion?: true
     revisionCount?: true
     cumulativeRefundedAmount?: true
@@ -16019,12 +16028,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: true
     supportWeeksSnapshot?: true
     priceAtPurchase?: true
+    platformRateSnapshot?: true
+    ptRateSnapshot?: true
     paymentTransactionId?: true
     purchasedAt?: true
-    milestoneIntakeReleasedAt?: true
-    milestoneDraftReleasedAt?: true
-    milestoneAcceptedReleasedAt?: true
-    milestoneCompletedReleasedAt?: true
+    releasedAt?: true
+    autoAcceptDeadline?: true
     intakeSubmittedAt?: true
     contractId?: true
     initialDeliveryDeadline?: true
@@ -16061,12 +16070,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: true
     supportWeeksSnapshot?: true
     priceAtPurchase?: true
+    platformRateSnapshot?: true
+    ptRateSnapshot?: true
     paymentTransactionId?: true
     purchasedAt?: true
-    milestoneIntakeReleasedAt?: true
-    milestoneDraftReleasedAt?: true
-    milestoneAcceptedReleasedAt?: true
-    milestoneCompletedReleasedAt?: true
+    releasedAt?: true
+    autoAcceptDeadline?: true
     intakeSubmittedAt?: true
     contractId?: true
     initialDeliveryDeadline?: true
@@ -16104,12 +16113,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: true
     supportWeeksSnapshot?: true
     priceAtPurchase?: true
+    platformRateSnapshot?: true
+    ptRateSnapshot?: true
     paymentTransactionId?: true
     purchasedAt?: true
-    milestoneIntakeReleasedAt?: true
-    milestoneDraftReleasedAt?: true
-    milestoneAcceptedReleasedAt?: true
-    milestoneCompletedReleasedAt?: true
+    releasedAt?: true
+    autoAcceptDeadline?: true
     intakeData?: true
     consentCategories?: true
     intakeSubmittedAt?: true
@@ -16237,12 +16246,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId: string | null
     purchasedAt: Date
-    milestoneIntakeReleasedAt: Date | null
-    milestoneDraftReleasedAt: Date | null
-    milestoneAcceptedReleasedAt: Date | null
-    milestoneCompletedReleasedAt: Date | null
+    releasedAt: Date | null
+    autoAcceptDeadline: Date | null
     intakeData: JsonValue | null
     consentCategories: JsonValue | null
     intakeSubmittedAt: Date | null
@@ -16302,12 +16311,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: boolean
     supportWeeksSnapshot?: boolean
     priceAtPurchase?: boolean
+    platformRateSnapshot?: boolean
+    ptRateSnapshot?: boolean
     paymentTransactionId?: boolean
     purchasedAt?: boolean
-    milestoneIntakeReleasedAt?: boolean
-    milestoneDraftReleasedAt?: boolean
-    milestoneAcceptedReleasedAt?: boolean
-    milestoneCompletedReleasedAt?: boolean
+    releasedAt?: boolean
+    autoAcceptDeadline?: boolean
     intakeData?: boolean
     consentCategories?: boolean
     intakeSubmittedAt?: boolean
@@ -16354,12 +16363,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: boolean
     supportWeeksSnapshot?: boolean
     priceAtPurchase?: boolean
+    platformRateSnapshot?: boolean
+    ptRateSnapshot?: boolean
     paymentTransactionId?: boolean
     purchasedAt?: boolean
-    milestoneIntakeReleasedAt?: boolean
-    milestoneDraftReleasedAt?: boolean
-    milestoneAcceptedReleasedAt?: boolean
-    milestoneCompletedReleasedAt?: boolean
+    releasedAt?: boolean
+    autoAcceptDeadline?: boolean
     intakeData?: boolean
     consentCategories?: boolean
     intakeSubmittedAt?: boolean
@@ -16401,12 +16410,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: boolean
     supportWeeksSnapshot?: boolean
     priceAtPurchase?: boolean
+    platformRateSnapshot?: boolean
+    ptRateSnapshot?: boolean
     paymentTransactionId?: boolean
     purchasedAt?: boolean
-    milestoneIntakeReleasedAt?: boolean
-    milestoneDraftReleasedAt?: boolean
-    milestoneAcceptedReleasedAt?: boolean
-    milestoneCompletedReleasedAt?: boolean
+    releasedAt?: boolean
+    autoAcceptDeadline?: boolean
     intakeData?: boolean
     consentCategories?: boolean
     intakeSubmittedAt?: boolean
@@ -16468,12 +16477,23 @@ export namespace Prisma {
       initialDeliveryDaysSnapshot: number
       supportWeeksSnapshot: number | null
       priceAtPurchase: number
+      platformRateSnapshot: number
+      ptRateSnapshot: number
       paymentTransactionId: string | null
       purchasedAt: Date
-      milestoneIntakeReleasedAt: Date | null
-      milestoneDraftReleasedAt: Date | null
-      milestoneAcceptedReleasedAt: Date | null
-      milestoneCompletedReleasedAt: Date | null
+      /**
+       * Set once releaseOrder has actually moved the PT/platform's pending share to available
+       * (buyer accepted, or the auto-accept sweep did on their behalf). Money-flow only — never
+       * gates business logic, which always re-derives from payment-service's real wallet state.
+       */
+      releasedAt: Date | null
+      /**
+       * Drives the auto-accept sweep (mirrors Session.clientConfirmDeadline in user-service): a
+       * PT must not wait forever on a buyer who never responds to a delivered draft. Set when the
+       * order enters DRAFT_DELIVERED, cleared on any transition out of it (accepted, revision
+       * requested, refunded, disputed).
+       */
+      autoAcceptDeadline: Date | null
       intakeData: Prisma.JsonValue | null
       consentCategories: Prisma.JsonValue | null
       intakeSubmittedAt: Date | null
@@ -16909,12 +16929,12 @@ export namespace Prisma {
     readonly initialDeliveryDaysSnapshot: FieldRef<"PersonalizedServiceOrder", 'Int'>
     readonly supportWeeksSnapshot: FieldRef<"PersonalizedServiceOrder", 'Int'>
     readonly priceAtPurchase: FieldRef<"PersonalizedServiceOrder", 'Float'>
+    readonly platformRateSnapshot: FieldRef<"PersonalizedServiceOrder", 'Float'>
+    readonly ptRateSnapshot: FieldRef<"PersonalizedServiceOrder", 'Float'>
     readonly paymentTransactionId: FieldRef<"PersonalizedServiceOrder", 'String'>
     readonly purchasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
-    readonly milestoneIntakeReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
-    readonly milestoneDraftReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
-    readonly milestoneAcceptedReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
-    readonly milestoneCompletedReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly releasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly autoAcceptDeadline: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
     readonly intakeData: FieldRef<"PersonalizedServiceOrder", 'Json'>
     readonly consentCategories: FieldRef<"PersonalizedServiceOrder", 'Json'>
     readonly intakeSubmittedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
@@ -27830,12 +27850,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: 'initialDeliveryDaysSnapshot',
     supportWeeksSnapshot: 'supportWeeksSnapshot',
     priceAtPurchase: 'priceAtPurchase',
+    platformRateSnapshot: 'platformRateSnapshot',
+    ptRateSnapshot: 'ptRateSnapshot',
     paymentTransactionId: 'paymentTransactionId',
     purchasedAt: 'purchasedAt',
-    milestoneIntakeReleasedAt: 'milestoneIntakeReleasedAt',
-    milestoneDraftReleasedAt: 'milestoneDraftReleasedAt',
-    milestoneAcceptedReleasedAt: 'milestoneAcceptedReleasedAt',
-    milestoneCompletedReleasedAt: 'milestoneCompletedReleasedAt',
+    releasedAt: 'releasedAt',
+    autoAcceptDeadline: 'autoAcceptDeadline',
     intakeData: 'intakeData',
     consentCategories: 'consentCategories',
     intakeSubmittedAt: 'intakeSubmittedAt',
@@ -29536,12 +29556,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
     supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
     priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    platformRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
+    ptRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
     paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
-    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    autoAcceptDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
     consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
     intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
@@ -29587,12 +29607,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrderInput | SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
     purchasedAt?: SortOrder
-    milestoneIntakeReleasedAt?: SortOrderInput | SortOrder
-    milestoneDraftReleasedAt?: SortOrderInput | SortOrder
-    milestoneAcceptedReleasedAt?: SortOrderInput | SortOrder
-    milestoneCompletedReleasedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    autoAcceptDeadline?: SortOrderInput | SortOrder
     intakeData?: SortOrderInput | SortOrder
     consentCategories?: SortOrderInput | SortOrder
     intakeSubmittedAt?: SortOrderInput | SortOrder
@@ -29641,12 +29661,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
     supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
     priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    platformRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
+    ptRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
     paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
-    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    autoAcceptDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
     consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
     intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
@@ -29692,12 +29712,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrderInput | SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
     purchasedAt?: SortOrder
-    milestoneIntakeReleasedAt?: SortOrderInput | SortOrder
-    milestoneDraftReleasedAt?: SortOrderInput | SortOrder
-    milestoneAcceptedReleasedAt?: SortOrderInput | SortOrder
-    milestoneCompletedReleasedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    autoAcceptDeadline?: SortOrderInput | SortOrder
     intakeData?: SortOrderInput | SortOrder
     consentCategories?: SortOrderInput | SortOrder
     intakeSubmittedAt?: SortOrderInput | SortOrder
@@ -29746,12 +29766,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntWithAggregatesFilter<"PersonalizedServiceOrder"> | number
     supportWeeksSnapshot?: IntNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | number | null
     priceAtPurchase?: FloatWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    platformRateSnapshot?: FloatWithAggregatesFilter<"PersonalizedServiceOrder"> | number
+    ptRateSnapshot?: FloatWithAggregatesFilter<"PersonalizedServiceOrder"> | number
     paymentTransactionId?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
     purchasedAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
-    milestoneIntakeReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneDraftReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneAcceptedReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneCompletedReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    releasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    autoAcceptDeadline?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
     intakeData?: JsonNullableWithAggregatesFilter<"PersonalizedServiceOrder">
     consentCategories?: JsonNullableWithAggregatesFilter<"PersonalizedServiceOrder">
     intakeSubmittedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
@@ -31952,12 +31972,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -32003,12 +32023,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -32052,12 +32072,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32103,12 +32123,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32153,12 +32173,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -32198,12 +32218,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32244,12 +32264,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34482,12 +34502,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     paymentTransactionId?: SortOrder
     purchasedAt?: SortOrder
-    milestoneIntakeReleasedAt?: SortOrder
-    milestoneDraftReleasedAt?: SortOrder
-    milestoneAcceptedReleasedAt?: SortOrder
-    milestoneCompletedReleasedAt?: SortOrder
+    releasedAt?: SortOrder
+    autoAcceptDeadline?: SortOrder
     intakeData?: SortOrder
     consentCategories?: SortOrder
     intakeSubmittedAt?: SortOrder
@@ -34519,6 +34539,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     draftVersion?: SortOrder
     revisionCount?: SortOrder
     cumulativeRefundedAmount?: SortOrder
@@ -34537,12 +34559,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     paymentTransactionId?: SortOrder
     purchasedAt?: SortOrder
-    milestoneIntakeReleasedAt?: SortOrder
-    milestoneDraftReleasedAt?: SortOrder
-    milestoneAcceptedReleasedAt?: SortOrder
-    milestoneCompletedReleasedAt?: SortOrder
+    releasedAt?: SortOrder
+    autoAcceptDeadline?: SortOrder
     intakeSubmittedAt?: SortOrder
     contractId?: SortOrder
     initialDeliveryDeadline?: SortOrder
@@ -34579,12 +34601,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     paymentTransactionId?: SortOrder
     purchasedAt?: SortOrder
-    milestoneIntakeReleasedAt?: SortOrder
-    milestoneDraftReleasedAt?: SortOrder
-    milestoneAcceptedReleasedAt?: SortOrder
-    milestoneCompletedReleasedAt?: SortOrder
+    releasedAt?: SortOrder
+    autoAcceptDeadline?: SortOrder
     intakeSubmittedAt?: SortOrder
     contractId?: SortOrder
     initialDeliveryDeadline?: SortOrder
@@ -34613,6 +34635,8 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: SortOrder
     supportWeeksSnapshot?: SortOrder
     priceAtPurchase?: SortOrder
+    platformRateSnapshot?: SortOrder
+    ptRateSnapshot?: SortOrder
     draftVersion?: SortOrder
     revisionCount?: SortOrder
     cumulativeRefundedAmount?: SortOrder
@@ -37926,12 +37950,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -37975,12 +37999,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38054,12 +38078,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFilter<"PersonalizedServiceOrder"> | number
     supportWeeksSnapshot?: IntNullableFilter<"PersonalizedServiceOrder"> | number | null
     priceAtPurchase?: FloatFilter<"PersonalizedServiceOrder"> | number
+    platformRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
+    ptRateSnapshot?: FloatFilter<"PersonalizedServiceOrder"> | number
     paymentTransactionId?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     purchasedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
-    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
-    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    autoAcceptDeadline?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     intakeData?: JsonNullableFilter<"PersonalizedServiceOrder">
     consentCategories?: JsonNullableFilter<"PersonalizedServiceOrder">
     intakeSubmittedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
@@ -38446,12 +38470,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38496,12 +38520,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38560,12 +38584,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38610,12 +38634,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38658,12 +38682,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38708,12 +38732,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38772,12 +38796,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38822,12 +38846,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38870,12 +38894,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38920,12 +38944,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -38984,12 +39008,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39034,12 +39058,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39082,12 +39106,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -39132,12 +39156,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -39196,12 +39220,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39246,12 +39270,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40129,12 +40153,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot: number
     supportWeeksSnapshot?: number | null
     priceAtPurchase: number
+    platformRateSnapshot: number
+    ptRateSnapshot: number
     paymentTransactionId?: string | null
     purchasedAt?: Date | string
-    milestoneIntakeReleasedAt?: Date | string | null
-    milestoneDraftReleasedAt?: Date | string | null
-    milestoneAcceptedReleasedAt?: Date | string | null
-    milestoneCompletedReleasedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    autoAcceptDeadline?: Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: Date | string | null
@@ -40174,12 +40198,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40223,12 +40247,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40272,12 +40296,12 @@ export namespace Prisma {
     initialDeliveryDaysSnapshot?: IntFieldUpdateOperationsInput | number
     supportWeeksSnapshot?: NullableIntFieldUpdateOperationsInput | number | null
     priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    platformRateSnapshot?: FloatFieldUpdateOperationsInput | number
+    ptRateSnapshot?: FloatFieldUpdateOperationsInput | number
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     purchasedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoAcceptDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     intakeData?: NullableJsonNullValueInput | InputJsonValue
     consentCategories?: NullableJsonNullValueInput | InputJsonValue
     intakeSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

@@ -295,7 +295,8 @@ exports.LedgerEntryType = exports.$Enums.LedgerEntryType = {
 
 exports.LedgerBucket = exports.$Enums.LedgerBucket = {
   PENDING: 'PENDING',
-  AVAILABLE: 'AVAILABLE'
+  AVAILABLE: 'AVAILABLE',
+  LOCKED: 'LOCKED'
 };
 
 exports.WithdrawalRequestStatus = exports.$Enums.WithdrawalRequestStatus = {

@@ -1873,6 +1873,12 @@ export type PersonalizedServiceType =
   | "ONLINE_COACHING";
 
 export type PersonalizedServiceOrderStatus =
+  // P0 cluster C2/C3: payment now goes through gateway checkout, same as PT-contract/gym
+  // membership — an order exists in this status from the moment checkout starts until the
+  // gateway's webhook confirms payment. "PURCHASED" itself is never actually observed by the
+  // frontend anymore (activation moves PENDING_PAYMENT straight to INTAKE_PENDING), kept below
+  // only because the backend enum still names it.
+  | "PENDING_PAYMENT"
   | "PURCHASED"
   | "INTAKE_PENDING"
   | "INTAKE_SUBMITTED"
@@ -1935,6 +1941,15 @@ export interface DraftContent {
   selectedWeekdays: number[];
   replaceExisting?: boolean;
   days: DraftDay[];
+}
+
+// P0 cluster C2 — mirrors ai-service's clients/payment.client.ts CheckoutResult exactly.
+export interface PersonalizedServicePayment {
+  transactionId: string;
+  status: string;
+  redirectUrl: string | null;
+  qrCodeUrl: string | null;
+  provider: string;
 }
 
 export interface PersonalizedServiceOrder {
@@ -2078,8 +2093,15 @@ export const personalizedServiceApi = {
     const { data } = await api.get<{ success: boolean; data: PersonalizedService }>(`/marketplace/services/${id}`);
     return data.data;
   },
-  purchase: async (id: string) => {
-    const { data } = await api.post<{ success: boolean; data: PersonalizedServiceOrder }>(`/marketplace/services/${id}/purchase`);
+  // P0 cluster C2 — starts a gateway checkout; the response carries payment.redirectUrl (or
+  // payment.qrCodeUrl), not a settled order. The order activates only once the gateway's
+  // webhook confirms payment — the caller must send the buyer to payment.redirectUrl next,
+  // same convention as gymService.payMembership / contract checkout.
+  purchase: async (id: string, provider?: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: { order: PersonalizedServiceOrder; payment: PersonalizedServicePayment };
+    }>(`/marketplace/services/${id}/purchase`, provider ? { provider } : {});
     return data.data;
   },
   listMyOrders: async () => {
@@ -3045,7 +3067,7 @@ export const adminService = {
     const { data } = await api.get("/admin/sessions/disputed");
     return data;
   },
-  resolveSessionDispute: async (id: string, resolution: "COMPLETED" | "CANCELLED", note: string) => {
+  resolveSessionDispute: async (id: string, resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED", note: string) => {
     const { data } = await api.post(`/admin/sessions/${id}/resolve`, { resolution, note });
     return data;
   },
@@ -3830,6 +3852,14 @@ export const sessionService = {
     });
     return data;
   },
+  // Mirror-image of reviewSession — PT rates the client instead of the client rating the PT.
+  reviewClient: async (id: string, rating: number, comment?: string) => {
+    const { data } = await api.post(`/sessions/${id}/review-client`, {
+      rating,
+      comment,
+    });
+    return data;
+  },
   requestReschedule: async (id: string, proposedStartAt: string, proposedEndAt: string, reason: string) => {
     const { data } = await api.post(`/sessions/${id}/reschedule`, {
       proposedStartAt,
@@ -4140,11 +4170,24 @@ export const gymService = {
     return data?.data ?? data;
   },
   // Client
-  buyMembership: async (gymId: string, planId: string, provider?: string, referralCode?: string) => {
+  // A4 — "gyms where I already have an active membership elsewhere", for the warning shown
+  // before confirming a purchase at a *different* gym. Warns, never blocks (money-flow §2.6).
+  getMembershipWarnings: async (gymId: string): Promise<Array<{ gymId: string; gymName: string; endDate: string }>> => {
+    const { data } = await api.get(`/gyms/${gymId}/membership-warnings`);
+    return data?.data ?? data;
+  },
+  buyMembership: async (
+    gymId: string,
+    planId: string,
+    provider?: string,
+    referralCode?: string,
+    acknowledgedMultiGymWarning?: boolean,
+  ) => {
     const { data } = await api.post(`/gyms/${gymId}/memberships`, {
       planId,
       ...(provider ? { provider } : {}),
       ...(referralCode ? { referralCode } : {}),
+      ...(acknowledgedMultiGymWarning ? { acknowledgedMultiGymWarning: true } : {}),
     });
     return data;
   },

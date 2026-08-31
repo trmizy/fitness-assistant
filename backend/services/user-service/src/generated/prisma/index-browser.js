@@ -341,6 +341,16 @@ exports.Prisma.SessionReviewScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ClientReviewScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  ptUserId: 'ptUserId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.NotificationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -717,6 +727,7 @@ exports.Prisma.ModelName = {
   Contract: 'Contract',
   Session: 'Session',
   SessionReview: 'SessionReview',
+  ClientReview: 'ClientReview',
   Notification: 'Notification',
   NotificationPreference: 'NotificationPreference',
   PTAvailability: 'PTAvailability',

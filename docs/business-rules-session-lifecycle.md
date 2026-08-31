@@ -37,6 +37,36 @@ DISPUTED ──(quản trị viên phân xử)──> COMPLETED hoặc CANCELLED
 do PT gây ra không trừ quota bình thường — nó tăng `compensatedSessions` (xem
 `docs/money-flow.md` §2.1, §5). Không trạng thái nào đi lùi.
 
+### 1.1 Trạng thái nào vẫn đang "giữ quyền lợi" (P0 cụm B1)
+
+Khi đếm "hợp đồng còn cho phép đặt thêm bao nhiêu buổi" (`sessionRepository.countActiveByContract`),
+**năm** trạng thái sau vẫn tính là đang giữ một suất quyền lợi của hợp đồng — chưa buổi nào
+trong số đó đã được giải phóng hay hoàn trả:
+
+```
+REQUESTED · CONFIRMED · PENDING_CLIENT_CONFIRMATION · DISPUTED · PT_NO_SHOW_REPORTED
+```
+
+Trước đây chỉ đếm `REQUESTED`/`CONFIRMED` — một buổi đang chờ khách xác nhận, đang tranh chấp,
+hay đang chờ PT phản hồi báo cáo vắng mặt đều **không bị tính**, nên khách có thể đặt vượt quá
+số buổi đã mua trong đúng lúc một buổi khác của họ đang ở một trong ba trạng thái đó. `COMPLETED`,
+`CANCELLED`, `NO_SHOW` không tính — mỗi trạng thái đó đã được hạch toán xong ở nơi khác
+(`usedSessions`, `compensatedSessions`, hoặc đơn giản là chưa từng diễn ra).
+
+### 1.2 Đặt lịch không bao giờ được double-book PT (P0 cụm B2)
+
+Kiểm tra số buổi còn được đặt (§1.1) và kiểm tra trùng khung giờ của PT trước đây chỉ là hai
+lần đọc riêng lẻ, không có khoá nào — hai yêu cầu đặt lịch gửi gần như đồng thời có thể cùng
+đọc thấy "còn chỗ"/"còn trống" trước khi cái nào ghi xong, tạo ra hai buổi tập chồng giờ cho
+cùng một PT hoặc vượt quá số buổi hợp đồng cho phép.
+
+`bookSession` giờ khoá theo PT bằng `pg_advisory_xact_lock` (khoá cấp transaction, tự giải
+phóng khi commit/rollback, không cần đổi schema) **ngay trước** bước kiểm tra số buổi còn lại
+và kiểm tra trùng giờ, gộp cả hai kiểm tra đó cùng với việc tạo buổi tập vào **một** transaction
+có khoá. `respondToReschedule`'s nhánh ACCEPT (§3) dùng đúng cùng cơ chế khoá này. Các kiểm tra
+không cạnh tranh (giờ PT công bố, ngày PT nghỉ, thời hạn hợp đồng) vẫn chạy trước, ngoài khoá —
+chỉ phần thật sự có thể bị đua mới cần nằm trong khoá.
+
 ### Vì sao có `PENDING_CLIENT_CONFIRMATION` thay vì để PT tự quyết
 
 Trước đây PT một mình vừa khai buổi tập đã diễn ra, vừa được trả tiền ngay, không ai kiểm lại.
@@ -86,14 +116,37 @@ lúc nạp module.
 kiểu KEEP/DEDUCT ở bảng trên chỉ nói buổi đó có tính là "đã dùng" (`u`) hay không; quyền lợi
 tổng của hợp đồng (`totalSessions`) không bao giờ đổi sau khi ký.
 
+### 2.1 Chỉ được báo hoàn thành/vắng mặt sau đúng thời điểm (P0 cụm B3/B4)
+
+Hai mốc thời gian riêng biệt, không dùng chung:
+
+| Hành động | Mốc chặn | Vì sao dùng mốc này |
+|---|---|---|
+| PT báo **hoàn thành** (`completeSession`) | `scheduledEndAt` (giờ **kết thúc**) | "Hoàn thành" nghĩa là *toàn bộ* buổi đã diễn ra — báo được ngay sau khi vừa bắt đầu là sai, dù chỉ mới trôi qua vài phút |
+| PT báo **khách vắng mặt** / PT tự nhận **vắng mặt** (`markNoShow`, cả hai chiều) | `scheduledStartAt` (giờ **bắt đầu**) | "Vắng mặt" chỉ cần biết thời điểm hẹn đã trôi qua — không cần đợi hết cả buổi mới kết luận được ai không tới |
+| Khách báo **PT vắng mặt** (`reportPtNoShow`) | `scheduledStartAt` | Đã có từ trước — hai chiều báo vắng mặt giờ **đối xứng nhau**, dùng cùng một mốc |
+
+Trước đây `completeSession` và `markNoShow` (cả hai nhánh) không kiểm tra thời gian nào cả —
+PT có thể báo một buổi đã "hoàn thành" hoặc khách "vắng mặt" ngay sau khi vừa xác nhận, trước
+khi buổi tập thật sự diễn ra. Không có ngưỡng phút "cho phép sai số" nào ở đây — mốc chặn là
+tuyệt đối, giống hệt cách `reportPtNoShow` (chiều ngược lại) đã làm từ trước.
+
 ---
 
 ## 3. Đặt lại lịch (reschedule)
 
 - Bên đề xuất gửi giờ mới; bên kia **chấp nhận** hoặc **từ chối**. Không tự bên nào có thể ép.
+- **Giờ kết thúc đề xuất luôn tính từ máy chủ (P0 cụm H1)** — `sessionDurationMinutes` đóng
+  băng trên hợp đồng, không bao giờ đọc từ thân yêu cầu. Trước đây người gọi trực tiếp API có
+  thể tự gửi một giờ kết thúc bất kỳ, đề xuất dời sang một buổi dài/ngắn hẳn so với gói đã mua
+  — đúng lỗ hổng `bookSession` (đặt lịch ban đầu) đã vá từ trước (money-flow plan 3.4), giờ
+  `requestReschedule` cũng theo đúng kỷ luật đó.
 - Khi **chấp nhận**, hệ thống **kiểm tra lại slot còn trống** ngay trước khi ghi (`assertSlotBookable`)
   — vì thời gian giữa lúc đề xuất và lúc chấp nhận có thể đã có buổi khác chen vào đúng khung
-  giờ đó. Không kiểm tra lại thì hai buổi có thể trùng giờ.
+  giờ đó. Không kiểm tra lại thì hai buổi có thể trùng giờ. **Chạy trong cùng khoá theo PT mà
+  §1.2 mô tả (P0 cụm H2)** — bản thân việc kiểm tra lại cũng có khoảng hở đua tương tự B2 nếu
+  hai lượt "chấp nhận" gửi gần như đồng thời, nên phải nằm trong cùng một transaction có khoá
+  với hai bước ghi (đổi trạng thái yêu cầu + đổi giờ buổi tập), không phải ba câu lệnh rời rạc.
 - Yêu cầu đặt lại lịch tự hết hạn sau một khoảng thời gian nếu không ai phản hồi (job nền —
   "Reschedule expiry job", chạy mỗi 10 phút).
 - PT **không được công bố lịch rảnh trống** → mọi thao tác đặt lịch (kể cả đặt lại) bị chặn với
@@ -128,10 +181,24 @@ PT phủ nhận một `PT_NO_SHOW_REPORTED`. Cả hai đều dừng lại chờ 
 `/admin/disputes` — **không có đường tự động nào giải quyết tranh chấp**, tiền đứng yên
 (quota không trừ, không bên nào được/mất tiền) cho tới khi có kết luận kèm ghi chú bắt buộc.
 
-Quản trị viên chọn `COMPLETED` (buổi tập coi như đã diễn ra — trừ quota, PT được trả, theo
-đúng công thức giải phóng bình thường) hoặc `CANCELLED` (buổi không diễn ra — không trừ quota,
-không ai được trả). Không có lựa chọn thứ ba; quyết định phải rơi vào đúng một trong hai nhánh
-tiền đã có sẵn công thức, không tạo nhánh tiền mới chỉ cho riêng trường hợp tranh chấp.
+Quản trị viên chọn một trong **ba** kết luận — không còn chỉ hai (P0 cụm B5):
+
+| Kết luận | Khi nào dùng | Quota | Tiền |
+|---|---|---|---|
+| `COMPLETED` | Buổi tập coi như đã diễn ra | **Trừ** | PT được trả — công thức giải phóng bình thường |
+| `CANCELLED` | Buổi không diễn ra, không ai sai hẳn | Giữ | Không ai được trả |
+| `PT_NO_SHOW_CONFIRMED` | Quản trị viên xác nhận PT **thật sự** vắng mặt (chỉ có ý nghĩa cho tranh chấp đến từ nhánh PT phủ nhận báo cáo vắng mặt của khách) | Giữ | **Bồi thường khách** — đúng công thức PT-vắng-buổi ở `money-flow.md` §5, y hệt như khi PT tự nhận vắng mặt (`markNoShow`) |
+
+**`PT_NO_SHOW_CONFIRMED` là kết luận mới.** Trước đây tranh chấp đến từ việc PT phủ nhận báo
+cáo vắng mặt của khách (`respondToNoShowReport`'s nhánh DENY) chỉ có hai lựa chọn cũ — nếu quản
+trị viên xác nhận khách đúng (PT thật sự vắng), lựa chọn gần nhất là `CANCELLED`: huỷ buổi,
+không trừ quota, **nhưng cũng không bồi thường khách**. Cùng một sự thật (PT vắng mặt) nhưng
+cho ra hai kết cục tiền khác nhau tuỳ tranh chấp tới từ hướng nào — đúng khoảng trống đề bài mô
+tả. Kết luận này tái dùng **nguyên** luồng bồi thường `markNoShow`'s nhánh PT tự nhận đã dùng,
+không viết công thức tiền mới riêng cho tranh chấp.
+
+Không có lựa chọn thứ tư; mọi kết luận phải rơi đúng vào một trong ba nhánh tiền đã có sẵn công
+thức, không tạo nhánh tiền mới chỉ cho riêng một trường hợp tranh chấp.
 
 ---
 

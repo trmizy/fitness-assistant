@@ -25,6 +25,7 @@ import {
 const WEEKDAY_LABEL = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 const STATUS_LABEL: Record<PersonalizedServiceOrderStatus, string> = {
+  PENDING_PAYMENT: "Khách đang thanh toán — chưa cần xử lý",
   PURCHASED: "Đã mua",
   INTAKE_PENDING: "Chờ khách điền Intake",
   INTAKE_SUBMITTED: "Khách đã gửi Intake",

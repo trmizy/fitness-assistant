@@ -1,26 +1,43 @@
-import { SessionStatus } from "../generated/prisma";
+import { Prisma, SessionStatus } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
+/**
+ * P0 cluster B2: every query below that participates in the booking race (quota count, PT
+ * time-conflict check, session create) can be called either against the plain client (its
+ * normal, unlocked use everywhere else — e.g. confirmSession's BR-31 check) or against a
+ * `Prisma.TransactionClient` opened under an advisory lock (booking.service.ts's
+ * withPtScheduleLock). Threading an optional db param through, defaulting to the singleton
+ * client, means there is exactly one implementation of each query either way — the lock is
+ * purely about WHICH connection runs it, never a second copy of the query itself.
+ */
+type Db = typeof prisma | Prisma.TransactionClient;
+
 export const sessionRepository = {
-  create: (data: {
-    contractId: string;
-    clientUserId: string;
-    ptUserId: string;
-    sessionMode?: string;
-    scheduledStartAt: Date;
-    scheduledEndAt: Date;
-    location?: string;
-    notes?: string;
-  }) => prisma.session.create({ data: data as any }),
+  create: (
+    data: {
+      contractId: string;
+      clientUserId: string;
+      ptUserId: string;
+      sessionMode?: string;
+      scheduledStartAt: Date;
+      scheduledEndAt: Date;
+      location?: string;
+      notes?: string;
+    },
+    db: Db = prisma,
+  ) => db.session.create({ data: data as any }),
 
   findById: (id: string) =>
-    prisma.session.findUnique({ where: { id }, include: { review: true } }),
+    prisma.session.findUnique({
+      where: { id },
+      include: { review: true, clientReview: true },
+    }),
 
   findByContract: (contractId: string) =>
     prisma.session.findMany({
       where: { contractId },
       orderBy: { scheduledStartAt: "asc" },
-      include: { review: true },
+      include: { review: true, clientReview: true },
     }),
 
   /** Upcoming sessions for a user (as either client or PT) */
@@ -45,8 +62,9 @@ export const sessionRepository = {
     id: string,
     status: SessionStatus,
     extra?: Record<string, any>,
+    db: Db = prisma,
   ) =>
-    prisma.session.update({
+    db.session.update({
       where: { id },
       data: { status, ...extra },
     }),
@@ -100,12 +118,28 @@ export const sessionRepository = {
       include: { contract: true },
     }),
 
-  /** Count non-terminal sessions for a contract (to enforce session limit) */
-  countActiveByContract: (contractId: string) =>
-    prisma.session.count({
+  /**
+   * Count sessions that still hold an entitlement against a contract (to enforce the session
+   * limit). P0 cluster B1: used to only count REQUESTED/CONFIRMED — PENDING_CLIENT_CONFIRMATION,
+   * DISPUTED, and PT_NO_SHOW_REPORTED also still hold a claim on the contract's quota (nothing
+   * has released or refunded that slot yet), so a client could book past their purchased count
+   * while another of their sessions sat in one of those three states waiting on a response.
+   * COMPLETED/CANCELLED/NO_SHOW are excluded on purpose: each of those has already been
+   * accounted for elsewhere (usedSessions, compensatedSessions, or simply never happened).
+   */
+  countActiveByContract: (contractId: string, db: Db = prisma) =>
+    db.session.count({
       where: {
         contractId,
-        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        status: {
+          in: [
+            SessionStatus.REQUESTED,
+            SessionStatus.CONFIRMED,
+            SessionStatus.PENDING_CLIENT_CONFIRMATION,
+            SessionStatus.DISPUTED,
+            SessionStatus.PT_NO_SHOW_REPORTED,
+          ],
+        },
       },
     }),
 
@@ -118,8 +152,9 @@ export const sessionRepository = {
     endAt: Date,
     excludeId?: string,
     statuses?: SessionStatus[],
+    db: Db = prisma,
   ) =>
-    prisma.session.findFirst({
+    db.session.findFirst({
       where: {
         ptUserId,
         status: {
@@ -160,7 +195,7 @@ export const sessionRepository = {
       },
     }),
 
-  /** Create a session review */
+  /** Create a session review (client rating the PT) */
   createReview: (data: {
     sessionId: string;
     contractId: string;
@@ -168,6 +203,15 @@ export const sessionRepository = {
     rating: number;
     comment?: string;
   }) => prisma.sessionReview.create({ data }),
+
+  /** Create a client review (PT rating the client) — the mirror-image of createReview above. */
+  createClientReview: (data: {
+    sessionId: string;
+    contractId: string;
+    ptUserId: string;
+    rating: number;
+    comment?: string;
+  }) => prisma.clientReview.create({ data }),
 
   /**
    * Batch: all booked sessions (REQUESTED|CONFIRMED) for multiple PTs within a date range.
@@ -202,8 +246,9 @@ export const sessionRepository = {
     id: string,
     status: string,
     responseNote?: string,
+    db: Db = prisma,
   ) =>
-    prisma.sessionRescheduleRequest.update({
+    db.sessionRescheduleRequest.update({
       where: { id },
       data: {
         status: status as any,

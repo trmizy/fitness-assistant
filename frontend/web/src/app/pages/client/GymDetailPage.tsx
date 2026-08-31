@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Dumbbell, MapPin, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Dumbbell, MapPin, Loader2, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
@@ -17,6 +17,9 @@ export function GymDetailPage() {
   // which gateway first — there is no silent default (same contract as "Pay Now" on
   // GymMembershipsPage, which retries a PENDING_PAYMENT membership through this same dialog).
   const [buyTarget, setBuyTarget] = useState<GymMembershipPlan | null>(null);
+  // A4 — the plan waiting on the "you already have a membership elsewhere" confirmation,
+  // shown BEFORE the gateway picker when applicable. null while that dialog is closed.
+  const [warningTarget, setWarningTarget] = useState<GymMembershipPlan | null>(null);
   // Optional PT referral code — applies to whichever plan is bought. Backend already
   // supports it (membership.service.ts#purchase); nothing in the UI ever collected it.
   const [referralCode, setReferralCode] = useState("");
@@ -33,9 +36,25 @@ export function GymDetailPage() {
     enabled: !!id,
   });
 
+  // A4 — fetched once per gym visit (cheap, read-only); checked before opening the gateway
+  // picker so an already-warned client isn't asked to acknowledge on every plan click.
+  const { data: multiGymWarnings = [] } = useQuery({
+    queryKey: ["membership-warnings", id],
+    queryFn: () => gymService.getMembershipWarnings(id!),
+    enabled: !!id,
+  });
+
+  const startBuy = (plan: GymMembershipPlan) => {
+    if (multiGymWarnings.length > 0) {
+      setWarningTarget(plan);
+    } else {
+      setBuyTarget(plan);
+    }
+  };
+
   const buyMutation = useMutation({
     mutationFn: ({ planId, provider }: { planId: string; provider: string }) =>
-      gymService.buyMembership(id!, planId, provider, referralCode.trim() || undefined),
+      gymService.buyMembership(id!, planId, provider, referralCode.trim() || undefined, multiGymWarnings.length > 0),
     onSuccess: (result: any) => {
       // Purchase creates the membership AND starts a checkout with the chosen gateway in one
       // call (see membership.service.ts#purchase → attemptPayment) — the response is a
@@ -160,7 +179,7 @@ export function GymDetailPage() {
                   <div className="text-sm font-bold text-green-400 mb-2">{formatVND(Number(p.price))}</div>
                   <button
                     type="button"
-                    onClick={() => setBuyTarget(p)}
+                    onClick={() => startBuy(p)}
                     disabled={buyMutation.isPending}
                     className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                   >
@@ -175,6 +194,47 @@ export function GymDetailPage() {
       </div>
 
       <GymReviewsSection gymId={id!} />
+
+      {warningTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="p-5 border-b border-zinc-800/60 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <h3 className="text-zinc-100 font-bold">Bạn đang có gói ở phòng gym khác</h3>
+            </div>
+            <div className="p-5 space-y-2 text-sm text-zinc-300">
+              <p className="text-zinc-400">Bạn hoàn toàn có thể là hội viên nhiều phòng gym cùng lúc — chỉ là một lời nhắc trước khi mua thêm:</p>
+              <ul className="space-y-1.5">
+                {multiGymWarnings.map((w) => (
+                  <li key={w.gymId} className="rounded-lg bg-zinc-800/60 px-3 py-2">
+                    <span className="font-semibold text-zinc-200">{w.gymName}</span>
+                    <span className="text-zinc-500"> — còn hiệu lực đến {new Date(w.endDate).toLocaleDateString("vi-VN")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setWarningTarget(null)}
+                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBuyTarget(warningTarget);
+                  setWarningTarget(null);
+                }}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              >
+                Vẫn tiếp tục mua
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {buyTarget && (
         <PaymentMethodDialog

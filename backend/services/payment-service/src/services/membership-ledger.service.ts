@@ -113,10 +113,23 @@ export interface ClawbackResult {
  * the referral commission from the PT and return it to the gym's pending bucket, funding the
  * refund the same way the original commission was funded.
  *
- * PT's AVAILABLE bucket is reclaimed first (pooled across every referral they have ever
- * earned — the same precedent compensateNoShow already uses for a PT-contract no-show
- * charge), then PENDING scoped to this one membership's transactionId — never another
- * membership's pending money.
+ * PENDING scoped to THIS membership's transactionId is reclaimed first — that's where the
+ * commission being clawed back actually lives if it hasn't matured yet, and draining it keeps
+ * this transaction's own pending ledger consistent with the price the client paid. Only the
+ * shortfall (the commission already matured to AVAILABLE before this refund happened) falls
+ * back to the PT's pooled AVAILABLE bucket.
+ *
+ * This used to run AVAILABLE-first, pooled across every referral the PT has ever earned (the
+ * same precedent compensateNoShow uses for a PT-contract no-show charge) — reasonable for a
+ * no-show charge, which is a fresh debt with no transaction of its own to scope to, but wrong
+ * here: when a PT holds AVAILABLE balance from an unrelated, already-settled referral (e.g. an
+ * earlier membership a client self-cancelled, which never triggers a clawback), draining that
+ * pool first left THIS transaction's own PENDING untouched while crediting the recovered money
+ * back into THIS transaction's gym-pending bucket — inflating its total pending beyond the
+ * original price and breaking `releaseMembershipPending`'s current-share rate invariant
+ * (confirmed live: `platformRate must be >= 0.1` on an otherwise-correct 500k membership refund,
+ * because gymPending+platformPending+ptPending summed to ~550k instead of 500k). Scoped-PENDING-
+ * first avoids ever touching money the current transaction doesn't own.
  */
 export async function clawbackMembershipReferral(params: {
   transactionId: string;
@@ -141,21 +154,21 @@ export async function clawbackMembershipReferral(params: {
     let outstanding = amount;
     let recovered = ZERO;
 
-    const availHeld = ops.balance(ptWallet.id, 'AVAILABLE');
-    const fromAvail = availHeld.lessThan(outstanding) ? availHeld : outstanding;
-    if (fromAvail.greaterThan(0)) {
-      await ops.debit(ptWallet.id, fromAvail, `${label} — referral clawback`, 'AVAILABLE');
-      recovered = recovered.plus(fromAvail);
-      outstanding = outstanding.minus(fromAvail);
+    const pendingForTxn = await pendingRemainingForTxn(ops, ptWallet.id, transactionId);
+    const fromPending = pendingForTxn.lessThan(outstanding) ? pendingForTxn : outstanding;
+    if (fromPending.greaterThan(0)) {
+      await ops.debit(ptWallet.id, fromPending, `${label} — referral clawback`, 'PENDING');
+      recovered = recovered.plus(fromPending);
+      outstanding = outstanding.minus(fromPending);
     }
 
     if (outstanding.greaterThan(0)) {
-      const pendingForTxn = await pendingRemainingForTxn(ops, ptWallet.id, transactionId);
-      const fromPending = pendingForTxn.lessThan(outstanding) ? pendingForTxn : outstanding;
-      if (fromPending.greaterThan(0)) {
-        await ops.debit(ptWallet.id, fromPending, `${label} — referral clawback`, 'PENDING');
-        recovered = recovered.plus(fromPending);
-        outstanding = outstanding.minus(fromPending);
+      const availHeld = ops.balance(ptWallet.id, 'AVAILABLE');
+      const fromAvail = availHeld.lessThan(outstanding) ? availHeld : outstanding;
+      if (fromAvail.greaterThan(0)) {
+        await ops.debit(ptWallet.id, fromAvail, `${label} — referral clawback`, 'AVAILABLE');
+        recovered = recovered.plus(fromAvail);
+        outstanding = outstanding.minus(fromAvail);
       }
     }
 

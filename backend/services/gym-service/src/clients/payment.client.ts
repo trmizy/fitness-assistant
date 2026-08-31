@@ -126,7 +126,7 @@ export const paymentClient = {
     clientId: string;
     ptUserId?: string | null;
     refundToClient?: string;
-    membershipStatus: 'CANCELLED' | 'EXPIRED';
+    membershipStatus: 'CANCELLED' | 'EXPIRED' | 'PENDING_ISSUE';
     label: string;
     idempotencyKey: string;
   }) {

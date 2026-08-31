@@ -13,13 +13,7 @@ import {
   clawbackMembershipReferral,
   releaseMembershipPending,
 } from '../services/membership-ledger.service';
-import {
-  holdPersonalizedServicePayment,
-  releasePersonalizedServiceMilestone,
-  refundPersonalizedServiceHeld,
-  getPersonalizedServiceLedgerSummary,
-  type PersonalizedServiceMilestone,
-} from '../services/personalized-service-ledger.service';
+import { releaseOrder, refundOrder } from '../services/personalized-service-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
@@ -143,231 +137,6 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
       success: true,
       data: { status: 'FAILED' as const, transactionId: txn.id, failureReason: (err as Error).message },
     });
-  }
-});
-
-// ── Personalized PT Service escrow (P1-FIN-001/002) ──────────────────────────
-// Unlike the generic wallet-transfer above, this holds the price in PENDING instead of
-// crediting AVAILABLE immediately — see personalized-service-ledger.service.ts's header.
-//
-// Registered BEFORE the generic '/payments/:id/refund' route below: Express matches routes in
-// registration order, and '/payments/personalized-service/refund' has the exact same segment
-// shape as '/payments/:id/refund' (':id' happily matches the literal string
-// "personalized-service") — real bug found via E2E testing
-// (18-personalized-service-lifecycle-extended.spec.ts, TC-EXT-011): registered AFTER the
-// generic route, every call here was silently swallowed by it instead, failing 400
-// VALIDATION_ERROR on fields (initiatedBy/reason/idempotencyKey) this route doesn't even have.
-
-const holdPersonalizedServiceSchema = z.object({
-  price: z.number().positive(),
-  commissionRate: z.number().min(0).max(1).optional(),
-  buyerId: z.string().min(1),
-  sellerId: z.string().min(1),
-  relatedEntityId: z.string().min(1), // orderId
-  idempotencyKey: z.string().min(1),
-  initiatedBy: z.string().min(1),
-  sourceService: z.string().min(1),
-  label: z.string().min(1),
-});
-
-// POST /internal/payments/personalized-service/hold — the buyer paid; hold the price in
-// custodial escrow + PT/platform PENDING instead of crediting AVAILABLE immediately. Same
-// idempotency-key/fingerprint discipline as /payments/wallet-transfer above (this is a
-// payer-initiated call that a client could retry).
-router.post('/payments/personalized-service/hold', async (req: Request, res: Response) => {
-  const parsed = holdPersonalizedServiceSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
-  }
-  const d = parsed.data;
-  const commissionRate = new Prisma.Decimal(d.commissionRate ?? DEFAULT_COMMISSION_RATE);
-
-  const fingerprint = computeFingerprint({
-    amount: d.price,
-    purpose: 'PERSONALIZED_SERVICE_PURCHASE',
-    payerOwnerId: d.buyerId,
-    receiverOwnerId: d.sellerId,
-    relatedEntityId: d.relatedEntityId,
-  });
-
-  let txn: Awaited<ReturnType<typeof transactionRepository.create>>;
-  try {
-    const check = await checkIdempotency(d.idempotencyKey, fingerprint);
-    if (check.kind === 'CONFLICT') {
-      return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
-    }
-    if (check.kind === 'REPLAY') {
-      return res.json({ success: true, data: statusResponse(check.transaction) });
-    }
-
-    const [buyerWallet, sellerWallet] = await Promise.all([
-      walletService.getOrCreateWallet('CLIENT', d.buyerId),
-      walletService.getOrCreateWallet('CLIENT', d.sellerId),
-    ]);
-
-    txn = await transactionRepository.create({
-      payerId: d.buyerId,
-      purpose: 'PERSONALIZED_SERVICE_PURCHASE',
-      amount: d.price,
-      currency: 'VND',
-      status: 'PROCESSING',
-      idempotencyKey: d.idempotencyKey,
-      requestFingerprint: fingerprint,
-      payerWalletId: buyerWallet.id,
-      receiverWalletId: sellerWallet.id,
-      relatedEntityType: 'PERSONALIZED_SERVICE_PURCHASE',
-      relatedEntityId: d.relatedEntityId,
-      activationStatus: 'PENDING',
-      initiatedBy: d.initiatedBy,
-      sourceService: d.sourceService,
-    });
-
-    const result = await holdPersonalizedServicePayment({
-      transactionId: txn.id,
-      price: new Prisma.Decimal(d.price),
-      commissionRate,
-      buyerId: d.buyerId,
-      sellerId: d.sellerId,
-      label: d.label,
-    });
-    const updated = await transactionRepository.findById(txn.id);
-    return res.json({ success: true, data: { ...statusResponse(updated!), ...result } });
-  } catch (err) {
-    if (!txn!) {
-      logger.error({ error: 'personalized-service hold failed before transaction row was created', message: (err as Error).message });
-      return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR' } });
-    }
-    const isBusinessError = err instanceof InsufficientBalanceError || err instanceof WalletNotActiveError;
-    if (!isBusinessError) {
-      logger.error({ error: 'personalized-service hold failed', message: (err as Error).message, transactionId: txn.id });
-    }
-    await transactionRepository.markFailed(txn.id);
-    return res.json({
-      success: true,
-      data: { status: 'FAILED' as const, transactionId: txn.id, failureReason: (err as Error).message },
-    });
-  }
-});
-
-const releaseMilestoneSchema = z.object({
-  transactionId: z.string().min(1),
-  sellerId: z.string().min(1),
-  price: z.number().positive(),
-  milestone: z.enum(['INTAKE_REVIEWED', 'DRAFT_DELIVERED', 'ACCEPTED', 'COMPLETED']),
-  label: z.string().min(1),
-});
-
-// POST /internal/payments/personalized-service/release-milestone — no idempotency-key layer,
-// same convention as /contracts/release-session etc.: the caller (ai-service) owns "has THIS
-// milestone already fired for this order" via its own state-machine guard fields, and
-// releasePersonalizedServiceMilestone's own PENDING-clamp is the second line of defense.
-router.post('/payments/personalized-service/release-milestone', async (req: Request, res: Response) => {
-  const parsed = releaseMilestoneSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
-  }
-  const d = parsed.data;
-  try {
-    const commission = await transactionRepository.findCommissionByTransactionId(d.transactionId);
-    if (!commission) {
-      return res.status(409).json({ success: false, error: { code: 'MISSING_COMMISSION_RECORD', message: 'No hold was ever recorded for this transaction' } });
-    }
-    const result = await releasePersonalizedServiceMilestone({
-      transactionId: d.transactionId,
-      sellerId: d.sellerId,
-      price: new Prisma.Decimal(d.price),
-      commissionRate: new Prisma.Decimal(commission.commissionRate),
-      milestone: d.milestone as PersonalizedServiceMilestone,
-      label: d.label,
-    });
-    return res.json({ success: true, data: result });
-  } catch (err) {
-    logger.error({ error: 'personalized-service milestone release failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
-  }
-});
-
-const refundPersonalizedServiceSchema = z.object({
-  transactionId: z.string().min(1),
-  sellerId: z.string().min(1),
-  buyerId: z.string().min(1),
-  refundAmount: z.number().positive(),
-  initiatedBy: z.string().min(1),
-  reason: z.string().min(1),
-  label: z.string().min(1),
-});
-
-// POST /internal/payments/personalized-service/refund — draws PENDING first, then pooled
-// AVAILABLE. The refundable ceiling itself is ai-service's job (adminResolveRefund already
-// checks priceAtPurchase - cumulativeRefundedAmount before ever calling this).
-//
-// Also writes a REFUND-purpose PaymentTransaction row purely for audit/history (transaction
-// list views, reporting) — the actual money movement is done by refundPersonalizedServiceHeld
-// against the ORIGINAL transactionId's ledger entries (must stay the original id, not a new
-// one: pendingRemainingForTxn's per-order scoping depends on every entry for this order,
-// across hold/release/refund, sharing that one id). Real gap found via E2E testing
-// (18-personalized-service-lifecycle-extended.spec.ts, TC-EXT-011): without this row, the
-// order's own refund fields updated correctly but no payment_transactions history existed for
-// it at all, unlike every other refund path in this system.
-router.post('/payments/personalized-service/refund', async (req: Request, res: Response) => {
-  const parsed = refundPersonalizedServiceSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
-  }
-  const d = parsed.data;
-  try {
-    const [commission, original] = await Promise.all([
-      transactionRepository.findCommissionByTransactionId(d.transactionId),
-      transactionRepository.findById(d.transactionId),
-    ]);
-    if (!commission || !original) {
-      return res.status(409).json({ success: false, error: { code: 'MISSING_COMMISSION_RECORD', message: 'No hold was ever recorded for this transaction' } });
-    }
-    const result = await refundPersonalizedServiceHeld({
-      transactionId: d.transactionId,
-      sellerId: d.sellerId,
-      buyerId: d.buyerId,
-      refundAmount: new Prisma.Decimal(d.refundAmount),
-      commissionRate: new Prisma.Decimal(commission.commissionRate),
-      label: d.label,
-    });
-    const refundTxn = await transactionRepository.create({
-      payerId: original.payerId,
-      purpose: 'REFUND',
-      amount: d.refundAmount,
-      currency: original.currency,
-      status: 'PAID',
-      paidAt: new Date(),
-      idempotencyKey: `personalized-service-refund-record:${d.transactionId}:${Date.now()}`,
-      payerWalletId: original.payerWalletId,
-      receiverWalletId: original.receiverWalletId,
-      relatedEntityType: original.relatedEntityType,
-      relatedEntityId: original.relatedEntityId,
-      activationStatus: 'ACTIVATED',
-      initiatedBy: d.initiatedBy,
-      sourceService: 'payment-service',
-      refundOfTransactionId: original.id,
-      metadata: { reason: d.reason, partialRefund: true, originalAmount: Number(original.amount), ...result },
-    });
-    return res.json({ success: true, data: { ...result, refundTransactionId: refundTxn.id } });
-  } catch (err) {
-    logger.error({ error: 'personalized-service refund failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED', message: (err as Error).message } });
-  }
-});
-
-// GET /internal/payments/personalized-service/:transactionId/:sellerId/ledger-summary —
-// read-only held/released figures for admin UI (getRefundCalculation).
-router.get('/payments/personalized-service/:transactionId/:sellerId/ledger-summary', async (req: Request, res: Response) => {
-  try {
-    const result = await getPersonalizedServiceLedgerSummary({
-      transactionId: req.params.transactionId,
-      sellerId: req.params.sellerId,
-    });
-    return res.json({ success: true, data: result });
-  } catch (err) {
-    logger.error({ error: 'personalized-service ledger summary failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'LEDGER_SUMMARY_FAILED', message: (err as Error).message } });
   }
 });
 
@@ -508,8 +277,13 @@ function ratesFromMetadata(metadata: unknown): RateTable {
 }
 
 const checkoutSchema = z.object({
-  purpose: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE']),
-  relatedEntityType: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE']),
+  // Cụm C2: Personalized Service purchase used a wallet-to-wallet transfer even though wallet
+  // top-up is disabled — a client with a genuinely empty (post-topup-removal) wallet could
+  // never buy. Added here so it goes through the SAME gateway-checkout pipeline PT_CONTRACT /
+  // GYM_MEMBERSHIP already use — the client pays the gateway directly, nothing needs a
+  // pre-funded wallet balance.
+  purpose: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE', 'PERSONALIZED_SERVICE_PURCHASE']),
+  relatedEntityType: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE', 'PERSONALIZED_SERVICE_PURCHASE']),
   relatedEntityId: z.string().min(1),
   amount: z.number().positive(),
   rates: rateSchema,
@@ -693,6 +467,9 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
 
 const terminateSchema = releaseSchema.extend({
   usedSessions: z.number().int().min(0),
+  // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
+  // left, but defensive) does not 400.
+  compensatedSessions: z.number().int().min(0).optional(),
   reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED']),
   alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
 });
@@ -711,6 +488,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       price: new Prisma.Decimal(d.price),
       totalSessions: d.totalSessions,
       usedSessions: d.usedSessions,
+      compensatedSessions: d.compensatedSessions,
       rates: toRates(d.rates),
       reason: d.reason,
       alreadyReleased: {
@@ -736,6 +514,9 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     price: z.string().min(1),
     totalSessions: z.number().int().positive(),
     usedSessions: z.number().int().min(0),
+    // Cụm A1 — without this, the preview shown before a cancel/refund never reflects sessions
+    // already paid out as no-show compensation, disagreeing with what termination actually pays.
+    compensatedSessions: z.number().int().min(0).optional(),
     rates: rateSchema,
   });
   const parsed = schema.safeParse(req.body);
@@ -749,6 +530,7 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
         price: new Prisma.Decimal(parsed.data.price),
         totalSessions: parsed.data.totalSessions,
         usedSessions: parsed.data.usedSessions,
+        compensatedSessions: parsed.data.compensatedSessions,
         rates: toRates(parsed.data.rates),
       }),
     });
@@ -830,7 +612,10 @@ const membershipReleaseSchema = z.object({
   // endpoints below fix their own literal value — a gym-service bug that calls this while a
   // membership is still ACTIVE would have to lie about the state to get past this, which is
   // the backstop the plan's F4 asked for (payment-service cannot see gym-service's own DB).
-  membershipStatus: z.enum(['CANCELLED', 'EXPIRED']),
+  // P0 cluster E2: PENDING_ISSUE added — a membership whose gym was no longer APPROVED at
+  // activation time never activates at all; this is the third terminal state that justifies
+  // draining its pending straight back to the client.
+  membershipStatus: z.enum(['CANCELLED', 'EXPIRED', 'PENDING_ISSUE']),
   label: z.string().min(1),
   // Money-flow redesign plan 1.1: MEMBERSHIP_RELEASE:<membershipId> — shared by both
   // /membership-release and /membership-cancel-forfeit, since a membership only ever
@@ -922,6 +707,97 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
 router.get('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
   const list = await withdrawalService.listMine('GYM', req.params.gymId);
   return res.json({ success: true, data: list });
+});
+
+// ── Personalized PT Service escrow (P0 cluster C3) ──────────────────────────────────────
+//
+// No /hold endpoint: "hold" is exactly what the generic checkout + webhook pipeline already
+// does for every purpose (settleContractPayment, called from webhook.service.ts's
+// settlePurchase) — see personalized-service-ledger.service.ts's header comment. Only
+// release (buyer accepted) and refund (cancelled before work started, or an admin-approved
+// refund at any point after) need dedicated logic, since neither fits contract-ledger.
+// service.ts's per-session-release / termination-reason-driven formulas.
+
+const orderRateSchema = z.object({
+  platformRate: z.string().min(1),
+  ptRate: z.string().min(1),
+});
+const orderPartiesSchema = z.object({
+  ptUserId: z.string().min(1),
+  clientUserId: z.string().min(1),
+});
+function toOrderRates(r: z.infer<typeof orderRateSchema>) {
+  return { platformRate: new Prisma.Decimal(r.platformRate), ptRate: new Prisma.Decimal(r.ptRate) };
+}
+
+const personalizedReleaseSchema = z.object({
+  transactionId: z.string().min(1),
+  price: z.string().min(1),
+  rates: orderRateSchema,
+  parties: orderPartiesSchema,
+  label: z.string().min(1),
+  // Business key `PERSONALIZED_RELEASE:<orderId>` — an order is only ever accepted once.
+  idempotencyKey: z.string().min(1),
+});
+
+// POST /internal/personalized-service/release — the buyer accepted (or auto-accept did): the
+// PT and platform's full pending share for this order becomes withdrawable.
+router.post('/personalized-service/release', async (req: Request, res: Response) => {
+  const parsed = personalizedReleaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await releaseOrder({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      rates: toOrderRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'personalized-service release failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
+  }
+});
+
+const personalizedRefundSchema = z.object({
+  transactionId: z.string().min(1),
+  refundAmount: z.string().min(1),
+  rates: orderRateSchema,
+  parties: orderPartiesSchema,
+  label: z.string().min(1),
+  // Business key `PERSONALIZED_REFUND:<orderId>:<refundAmount>` — amount-scoped because an
+  // order can be legitimately refunded more than once (partial-refund-ceiling admin flow).
+  idempotencyKey: z.string().min(1),
+});
+
+// POST /internal/personalized-service/refund — hands the client back refundAmount, pulling
+// from whatever is still PENDING first, then clawing back from AVAILABLE, then (only for the
+// PT's share) falling back to a PartnerReceivable if even that comes up short.
+router.post('/personalized-service/refund', async (req: Request, res: Response) => {
+  const parsed = personalizedRefundSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await refundOrder({
+      transactionId: d.transactionId,
+      refundAmount: new Prisma.Decimal(d.refundAmount),
+      rates: toOrderRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'personalized-service refund failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED', message: (err as Error).message } });
+  }
 });
 
 export default router;

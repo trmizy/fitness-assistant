@@ -110,6 +110,24 @@ export const membershipController = {
     }
   },
 
+  /** Admin queue — see membership.service.ts#listPendingIssues (P0 cluster E2). */
+  async listPendingIssues(_req: Request, res: Response) {
+    const list = await membershipService.listPendingIssues();
+    res.json({ success: true, data: list });
+  },
+
+  /** Admin manual retry — see membership.service.ts#resolvePendingIssueByAdmin (P0 cluster E2). */
+  async resolvePendingIssue(req: Request, res: Response) {
+    try {
+      const adminId = req.user!.userId;
+      const result = await membershipService.resolvePendingIssueByAdmin(req.params.id, adminId);
+      return res.json({ success: true, data: result });
+    } catch (e: any) {
+      logger.error(e, 'resolve pending-issue membership error');
+      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+    }
+  },
+
   async listForClient(req: Request, res: Response) {
     const clientId = req.user!.userId;
     const list = await membershipService.listForClient(clientId);

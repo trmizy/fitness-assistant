@@ -172,6 +172,11 @@ export async function terminateContractMoney(
     price: contract.price!.toString(),
     totalSessions: contract.totalSessions,
     usedSessions: contract.usedSessions,
+    // Money-flow plan 1.5 / P0 cluster A1: without this, payment-service's remainingValue()
+    // does not know a no-show session was already compensated in cash, and counts it as
+    // still-unused entitlement on top of the cash payout the client already received —
+    // paying the same session's value twice.
+    compensatedSessions: contract.compensatedSessions,
     rates: ratesOf(contract),
     reason,
     alreadyReleased: {
@@ -207,6 +212,9 @@ export async function moneyBreakdown(contractId: string): Promise<any> {
     price: contract.price.toString(),
     totalSessions: contract.totalSessions,
     usedSessions: contract.usedSessions,
+    // Same reason as terminateContractMoney above — a preview of "what would I get back right
+    // now" must also exclude compensated sessions from the still-pending pool it quotes.
+    compensatedSessions: contract.compensatedSessions,
     rates: ratesOf(contract),
   });
 

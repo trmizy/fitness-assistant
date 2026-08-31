@@ -1,12 +1,12 @@
 /**
- * Personalized PT Service escrow + milestone release (P1-FIN-001/002).
+ * Cụm C3 (ký quỹ) + C4 (hoàn tiền khi huỷ trước khi PT bắt đầu) + C5 (thu hồi khi PT đã rút
+ * tiền) — chứng minh bằng sổ cái thật rằng escrow của Personalized Service hoạt động đúng.
  *
- * Same shape as contract-ledger.integration.test.ts / membership-ledger.integration.test.ts:
- * the invariant (escrow = the sum of every claim on it) is asserted after every step — money
- * silently landing in the wrong bucket is still a bug even when the total is right.
+ * "hold" không có hàm riêng ở đây — nó CHÍNH LÀ settleContractPayment (đã có, dùng chung cho
+ * mọi purpose gateway-checkout) — xem doc comment đầu personalized-service-ledger.service.ts.
+ * File này test releaseOrder + refundOrder, hai hàm thật sự mới.
  *
- * Run THIS FILE ALONE — it TRUNCATEs the ledger between scenarios and node:test runs separate
- * files concurrently:
+ * Run THIS FILE ALONE:
  *   DATABASE_URL="postgresql://gymcoach:gymcoach_password@localhost:5433/gymcoach_payment_test" \
  *     npx tsx --test src/__tests__/personalized-service-ledger.integration.test.ts
  */
@@ -15,15 +15,16 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 
 const databaseUrl = process.env.DATABASE_URL || '';
+const canUseIntegrationDb = /_test/i.test(databaseUrl);
 const skipOpts = {
-  skip: /_test/i.test(databaseUrl) ? false : 'Requires DATABASE_URL pointing at a *_test database.',
+  skip: canUseIntegrationDb ? false : 'Requires DATABASE_URL pointing at a *_test database.',
 };
 
 type Mods = {
   prisma: (typeof import('../repositories/prisma'))['prisma'];
   Prisma: (typeof import('../generated/prisma'))['Prisma'];
-  ledger: typeof import('../services/personalized-service-ledger.service');
   contractLedger: typeof import('../services/contract-ledger.service');
+  ledger: typeof import('../services/personalized-service-ledger.service');
   reconcile: typeof import('../services/reconcile.service');
   wallet: (typeof import('../services/wallet.service'))['walletService'];
 };
@@ -34,8 +35,8 @@ async function load(): Promise<Mods> {
     mods = {
       prisma: (await import('../repositories/prisma')).prisma,
       Prisma: (await import('../generated/prisma')).Prisma,
-      ledger: await import('../services/personalized-service-ledger.service'),
       contractLedger: await import('../services/contract-ledger.service'),
+      ledger: await import('../services/personalized-service-ledger.service'),
       reconcile: await import('../services/reconcile.service'),
       wallet: (await import('../services/wallet.service')).walletService,
     };
@@ -48,346 +49,241 @@ test.after(async () => {
 });
 
 async function resetLedger(m: Mods) {
+  // ledger_operations included: this file's idempotency keys are per-scenario-name literals,
+  // not randomized per run, so a second manual run against the persistent test DB would
+  // otherwise replay the first run's cached result instead of touching freshly-truncated
+  // wallets.
   await m.prisma.$executeRawUnsafe(
-    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, payment_transactions, wallets RESTART IDENTITY CASCADE',
+    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE',
   );
 }
 
 interface Fixture {
+  orderId: string;
   txnId: string;
-  buyerId: string;
-  sellerId: string;
+  parties: { ptUserId: string; clientUserId: string };
   price: InstanceType<Mods['Prisma']['Decimal']>;
-  commissionRate: InstanceType<Mods['Prisma']['Decimal']>;
+  rates: { platformRate: InstanceType<Mods['Prisma']['Decimal']>; ptRate: InstanceType<Mods['Prisma']['Decimal']> };
 }
 
-/** Funds the buyer's wallet directly (bypassing a real gateway top-up — irrelevant to this
- * ledger's own correctness) and holds a Personalized Service purchase through it. */
-async function seedHeldOrder(m: Mods, price: number, commissionRate = '0.10'): Promise<Fixture> {
+/** "hold": exactly the generic checkout+webhook settlement every other purpose uses. */
+async function seedHeldOrder(m: Mods, opts: { price: number; platformRate?: string }): Promise<Fixture> {
   const suffix = randomUUID().slice(0, 8);
-  const buyerId = `buyer-${suffix}`;
-  const sellerId = `pt-${suffix}`;
-
-  const buyerWallet = await m.wallet.getOrCreateWallet('CLIENT', buyerId);
-  await m.prisma.wallet.update({ where: { id: buyerWallet.id }, data: { availableBalance: new m.Prisma.Decimal(price) } });
-
+  const parties = { ptUserId: `pt-${suffix}`, clientUserId: `client-${suffix}` };
+  const rates = {
+    platformRate: new m.Prisma.Decimal(opts.platformRate ?? '0.10'),
+    ptRate: new m.Prisma.Decimal(1).minus(opts.platformRate ?? '0.10'),
+  };
   const txn = await m.prisma.paymentTransaction.create({
     data: {
-      payerId: buyerId,
+      payerId: parties.clientUserId,
       purpose: 'PERSONALIZED_SERVICE_PURCHASE',
-      amount: price,
+      amount: opts.price,
       currency: 'VND',
-      status: 'PROCESSING',
-      idempotencyKey: `personalized-service-${suffix}`,
+      status: 'PENDING',
+      provider: 'MOCK',
+      idempotencyKey: `order-${suffix}`,
       relatedEntityType: 'PERSONALIZED_SERVICE_PURCHASE',
       relatedEntityId: `order-${suffix}`,
-      sourceService: 'integration-test',
+      activationStatus: 'PENDING',
+      sourceService: 'ai-service',
     },
   });
-
-  await m.ledger.holdPersonalizedServicePayment({
+  const price = new m.Prisma.Decimal(opts.price);
+  await m.contractLedger.settleContractPayment({
     transactionId: txn.id,
-    price: new m.Prisma.Decimal(price),
-    commissionRate: new m.Prisma.Decimal(commissionRate),
-    buyerId,
-    sellerId,
-    label: `order ${suffix}`,
+    price,
+    rates: { platformRate: rates.platformRate, ptRate: rates.ptRate, gymRate: new m.Prisma.Decimal(0) },
+    parties: { ptUserId: parties.ptUserId, gymId: null, clientUserId: parties.clientUserId },
+    label: `PersonalizedService order-${suffix}`,
   });
-
-  return { txnId: txn.id, buyerId, sellerId, price: new m.Prisma.Decimal(price), commissionRate: new m.Prisma.Decimal(commissionRate) };
+  return { orderId: `order-${suffix}`, txnId: txn.id, parties, price, rates };
 }
 
 async function balances(m: Mods, f: Fixture) {
-  const [seller, buyer, revenue, escrow] = await Promise.all([
-    m.wallet.getOrCreateWallet('CLIENT', f.sellerId),
-    m.wallet.getOrCreateWallet('CLIENT', f.buyerId),
+  const [pt, client, revenue] = await Promise.all([
+    m.contractLedger.readWallet('PT', f.parties.ptUserId),
+    m.contractLedger.readWallet('CLIENT', f.parties.clientUserId),
     m.wallet.getRevenueWallet(),
-    m.wallet.getEscrowWallet(),
   ]);
   return {
-    sellerPending: seller.pendingBalance.toFixed(2),
-    sellerAvailable: seller.availableBalance.toFixed(2),
-    buyerAvailable: buyer.availableBalance.toFixed(2),
+    ptPending: pt.pendingBalance,
+    ptAvailable: pt.availableBalance,
+    clientAvailable: client.availableBalance,
     platformPending: revenue.pendingBalance.toFixed(2),
     platformAvailable: revenue.availableBalance.toFixed(2),
-    escrow: escrow.availableBalance.toFixed(2),
   };
 }
 
-// ── Hold ─────────────────────────────────────────────────────────────────────
-
-test('hold: the whole price lands in escrow; seller/platform PENDING split 90/10; buyer AVAILABLE debited', skipOpts, async () => {
+test('releaseOrder: khách accept — toàn bộ pending của PT và nền tảng chuyển sang available, không đồng nào kẹt lại', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  const f = await seedHeldOrder(m, 1_000_000);
+  const f = await seedHeldOrder(m, { price: 2_000_000, platformRate: '0.10' });
 
-  const b = await balances(m, f);
-  assert.equal(b.escrow, '1000000.00', 'escrow holds the whole price');
-  assert.equal(b.sellerPending, '900000.00', 'seller (PT) pending after hold — 90%');
-  assert.equal(b.platformPending, '100000.00', 'platform pending after hold — 10%');
-  assert.equal(b.sellerAvailable, '0.00', 'nobody can spend a đồng of a fresh hold yet');
-  assert.equal(b.buyerAvailable, '0.00', 'buyer fully debited');
-  await m.reconcile.assertInvariant('hold');
-});
+  const mid = await balances(m, f);
+  assert.equal(mid.ptPending, '1800000.00');
+  assert.equal(mid.platformPending, '200000.00');
 
-test('hold: a retried request (same transactionId) does not double-charge the buyer', skipOpts, async () => {
-  const m = await load();
-  await resetLedger(m);
-  const f = await seedHeldOrder(m, 500_000);
-
-  // Simulate a client retry: same transactionId, hold called again.
-  await m.ledger.holdPersonalizedServicePayment({
+  const result = await m.ledger.releaseOrder({
     transactionId: f.txnId,
     price: f.price,
-    commissionRate: f.commissionRate,
-    buyerId: f.buyerId,
-    sellerId: f.sellerId,
-    label: 'retry',
+    rates: f.rates,
+    parties: f.parties,
+    label: 'accept',
+    idempotencyKey: `PERSONALIZED_RELEASE:${f.orderId}`,
   });
 
-  const b = await balances(m, f);
-  assert.equal(b.escrow, '500000.00', 'still exactly one price, not two');
-  assert.equal(b.sellerPending, '450000.00');
-  await m.reconcile.assertInvariant('hold retry');
+  assert.equal(result.released.pt, '1800000.00');
+  assert.equal(result.released.platform, '200000.00');
+
+  const final = await balances(m, f);
+  assert.equal(final.ptPending, '0.00');
+  assert.equal(final.platformPending, '0.00');
+  assert.equal(final.ptAvailable, '1800000.00');
+  assert.equal(final.platformAvailable, '200000.00');
+
+  await m.reconcile.assertInvariant('C3 release');
 });
 
-// ── Milestone release ────────────────────────────────────────────────────────
-
-test('release: INTAKE_REVIEWED (10%) → DRAFT_DELIVERED (30%) → ACCEPTED (40%) → COMPLETED drains the exact remainder', skipOpts, async () => {
+test('releaseOrder: gọi lại lần hai với cùng khoá không giải phóng thêm', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  const f = await seedHeldOrder(m, 1_000_000); // 900k seller pending, 100k platform pending
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'INTAKE_REVIEWED', label: 'm1',
-  });
-  let b = await balances(m, f);
-  assert.equal(b.sellerAvailable, '90000.00', '10% of the seller share released');
-  assert.equal(b.platformAvailable, '10000.00', '10% of the platform share released');
-  assert.equal(b.sellerPending, '810000.00');
-  assert.equal(b.platformPending, '90000.00');
-  assert.equal(b.escrow, '1000000.00', 'escrow untouched — release is a reallocation, not a payout');
-  await m.reconcile.assertInvariant('after INTAKE_REVIEWED');
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'DRAFT_DELIVERED', label: 'm2',
-  });
-  b = await balances(m, f);
-  assert.equal(b.sellerAvailable, '360000.00', '10% + 30% = 40% released');
-  assert.equal(b.platformAvailable, '40000.00');
-  await m.reconcile.assertInvariant('after DRAFT_DELIVERED');
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'ACCEPTED', label: 'm3',
-  });
-  b = await balances(m, f);
-  assert.equal(b.sellerAvailable, '720000.00', '10% + 30% + 40% = 80% released');
-  assert.equal(b.platformAvailable, '80000.00');
-  assert.equal(b.sellerPending, '180000.00', 'exactly the remaining 20%');
-  await m.reconcile.assertInvariant('after ACCEPTED');
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'COMPLETED', label: 'm4',
-  });
-  b = await balances(m, f);
-  assert.equal(b.sellerAvailable, '900000.00', 'COMPLETED drained the exact remainder, not a separately-rounded 20%');
-  assert.equal(b.platformAvailable, '100000.00');
-  assert.equal(b.sellerPending, '0.00', 'fully drained');
-  assert.equal(b.platformPending, '0.00', 'fully drained');
-  await m.reconcile.assertInvariant('after COMPLETED');
-});
-
-// IMPORTANT, matches releasePersonalizedServiceMilestone's own doc comment: for the three
-// FIXED-fraction milestones, this function has no memory of "has INTAKE_REVIEWED already
-// fired for this order" — only the caller (ai-service's milestone*ReleasedAt guard fields,
-// checked BEFORE ever calling this) prevents a real double-payout. Calling the SAME
-// fixed-fraction milestone twice releases that slice TWICE, as long as enough PENDING from
-// the OTHER not-yet-released milestones remains to cover it — proven here deliberately, not
-// as a bug report, so nobody "fixes" this file into asserting a guarantee the design never
-// made. Idempotency-Design-Doesn't-Live-Here.
-test('release: a repeated FIXED-fraction milestone call is NOT self-idempotent — that guard lives in the caller, not here', skipOpts, async () => {
-  const m = await load();
-  await resetLedger(m);
-  const f = await seedHeldOrder(m, 200_000); // seller pending 180000, platform pending 20000
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'INTAKE_REVIEWED', label: 'first',
-  });
-  const second = await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'INTAKE_REVIEWED', label: 'duplicate — same milestone, called again',
-  });
-  // 10% released a SECOND time — there was enough PENDING left (the other 90%) to cover it.
-  assert.equal(second.released.seller, '18000.00');
-  assert.equal(second.released.platform, '2000.00');
-  const b = await balances(m, f);
-  assert.equal(b.sellerAvailable, '36000.00', '2 x 10% actually paid out — proves the guard is NOT here');
-  await m.reconcile.assertInvariant('after duplicate release'); // still fully reconciled — no money fabricated, just moved twice
-});
-
-// COMPLETED is the one exception: it drains whatever's actually left rather than computing
-// its own fixed slice, so a second call — unlike the fixed-fraction milestones above — always
-// finds nothing more to move regardless of how many times it's called.
-test('release: COMPLETED (drain-remainder) IS self-idempotent — a second call always finds nothing left', skipOpts, async () => {
-  const m = await load();
-  await resetLedger(m);
-  const f = await seedHeldOrder(m, 200_000);
-
-  await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'COMPLETED', label: 'first — drains everything since nothing else was released',
-  });
+  const f = await seedHeldOrder(m, { price: 1_000_000 });
+  const params = {
+    transactionId: f.txnId,
+    price: f.price,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'accept-retry',
+    idempotencyKey: `PERSONALIZED_RELEASE:${f.orderId}`,
+  };
+  await m.ledger.releaseOrder(params);
   const after1 = await balances(m, f);
-
-  const second = await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-    milestone: 'COMPLETED', label: 'duplicate',
-  });
+  await m.ledger.releaseOrder(params);
   const after2 = await balances(m, f);
 
-  assert.deepEqual(after2, after1, 'balances unchanged by the duplicate call');
-  assert.equal(second.released.seller, '0.00', 'nothing left to drain the second time');
-  assert.equal(second.released.platform, '0.00');
-  await m.reconcile.assertInvariant('after duplicate COMPLETED release');
+  assert.equal(after2.ptAvailable, after1.ptAvailable);
+  assert.equal(after2.platformAvailable, after1.platformAvailable);
+  await m.reconcile.assertInvariant('C3 release retry-safe');
 });
 
-test('release: a legacy pre-escrow order (never held — zero PENDING throughout) degrades to a harmless no-op', skipOpts, async () => {
+test('refundOrder (C4): huỷ trước khi PT bắt đầu — chưa release gì, hoàn 100% từ pending, PT/nền tảng còn lại 0', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  const sellerId = `pt-${randomUUID().slice(0, 8)}`;
-  const fakeTxnId = randomUUID();
+  const f = await seedHeldOrder(m, { price: 1_500_000, platformRate: '0.10' });
 
-  const result = await m.ledger.releasePersonalizedServiceMilestone({
-    transactionId: fakeTxnId, sellerId, price: new m.Prisma.Decimal(100_000), commissionRate: new m.Prisma.Decimal('0.10'),
-    milestone: 'COMPLETED', label: 'legacy order',
+  const result = await m.ledger.refundOrder({
+    transactionId: f.txnId,
+    refundAmount: f.price,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'cancel-before-work',
+    idempotencyKey: `PERSONALIZED_REFUND:${f.orderId}:${f.price.toFixed(2)}`,
   });
-  assert.equal(result.released.seller, '0.00');
-  assert.equal(result.released.platform, '0.00');
+
+  assert.equal(result.refund, '1500000.00');
+  assert.equal(result.clawedBack.pt, '1350000.00');
+  assert.equal(result.clawedBack.platform, '150000.00');
+  assert.equal(result.shortfall, '0.00');
+
+  const final = await balances(m, f);
+  assert.equal(final.ptPending, '0.00');
+  assert.equal(final.platformPending, '0.00');
+  assert.equal(final.ptAvailable, '0.00');
+  assert.equal(final.clientAvailable, '1500000.00', 'khách phải nhận đủ 100% vì PT chưa bắt đầu làm việc');
+
+  await m.reconcile.assertInvariant('C4 full refund before work starts');
 });
 
-// ── Refund ───────────────────────────────────────────────────────────────────
-
-test('refund: before any release, draws entirely from PENDING', skipOpts, async () => {
+test('refundOrder (C5): admin hoàn tiền SAU khi đã accept (đã release) — thu hồi lại từ available của PT', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  const f = await seedHeldOrder(m, 1_000_000);
-
-  const r = await m.ledger.refundPersonalizedServiceHeld({
-    transactionId: f.txnId, sellerId: f.sellerId, buyerId: f.buyerId,
-    refundAmount: new m.Prisma.Decimal(500_000), commissionRate: f.commissionRate, label: 'half refund',
+  const f = await seedHeldOrder(m, { price: 2_000_000, platformRate: '0.10' });
+  await m.ledger.releaseOrder({
+    transactionId: f.txnId,
+    price: f.price,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'accept',
+    idempotencyKey: `PERSONALIZED_RELEASE:${f.orderId}`,
   });
-  assert.equal(r.refunded, '500000.00');
-  assert.equal(r.drawnFrom.sellerPending, '450000.00');
-  assert.equal(r.drawnFrom.platformPending, '50000.00');
-  assert.equal(r.drawnFrom.sellerAvailable, '0.00');
-  assert.equal(r.shortfall, '0.00');
 
-  const b = await balances(m, f);
-  assert.equal(b.buyerAvailable, '500000.00', 'buyer got the refund back');
-  assert.equal(b.sellerPending, '450000.00', 'remaining 45% still held');
-  assert.equal(b.escrow, '1000000.00', 'escrow untouched — refund is a reallocation too');
-  await m.reconcile.assertInvariant('after PENDING-only refund');
+  // Quản trị viên duyệt hoàn 50% sau khi khiếu nại — PT đã có đủ 1.800.000 khả dụng để bị thu hồi phần của mình.
+  const refundAmount = new m.Prisma.Decimal('1000000');
+  const result = await m.ledger.refundOrder({
+    transactionId: f.txnId,
+    refundAmount,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'admin-partial-refund',
+    idempotencyKey: `PERSONALIZED_REFUND:${f.orderId}:${refundAmount.toFixed(2)}`,
+  });
+
+  assert.equal(result.refund, '1000000.00');
+  assert.equal(result.clawedBack.pt, '900000.00');
+  assert.equal(result.clawedBack.platform, '100000.00');
+  assert.equal(result.shortfall, '0.00');
+
+  const final = await balances(m, f);
+  assert.equal(final.ptAvailable, '900000.00', '1.800.000 đã nhận trừ 900.000 bị thu hồi');
+  assert.equal(final.platformAvailable, '100000.00', '200.000 hoa hồng trừ 100.000 bị thu hồi');
+  assert.equal(final.clientAvailable, '1000000.00');
+
+  await m.reconcile.assertInvariant('C5 partial refund after acceptance');
 });
 
-test('refund: after full release, claws back from pooled AVAILABLE instead', skipOpts, async () => {
+test('refundOrder (C5): PT đã rút hết tiền — thu hồi thiếu hụt được ghi nợ PartnerReceivable, khách vẫn nhận đủ', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  const f = await seedHeldOrder(m, 1_000_000);
-  for (const milestone of ['INTAKE_REVIEWED', 'DRAFT_DELIVERED', 'ACCEPTED', 'COMPLETED'] as const) {
-    await m.ledger.releasePersonalizedServiceMilestone({
-      transactionId: f.txnId, sellerId: f.sellerId, price: f.price, commissionRate: f.commissionRate,
-      milestone, label: milestone,
-    });
-  }
-  // Everything is now AVAILABLE, nothing PENDING.
-  let b = await balances(m, f);
-  assert.equal(b.sellerPending, '0.00');
-
-  const r = await m.ledger.refundPersonalizedServiceHeld({
-    transactionId: f.txnId, sellerId: f.sellerId, buyerId: f.buyerId,
-    refundAmount: new m.Prisma.Decimal(300_000), commissionRate: f.commissionRate, label: 'post-completion refund',
-  });
-  assert.equal(r.drawnFrom.sellerPending, '0.00', 'nothing left in PENDING to draw from');
-  assert.equal(r.drawnFrom.sellerAvailable, '270000.00', 'clawed back from released AVAILABLE instead');
-  assert.equal(r.drawnFrom.platformAvailable, '30000.00');
-  assert.equal(r.shortfall, '0.00', 'the PT/platform had enough released money to cover it');
-
-  b = await balances(m, f);
-  assert.equal(b.buyerAvailable, '300000.00');
-  assert.equal(b.sellerAvailable, '630000.00', '900000 released - 270000 clawed back');
-  await m.reconcile.assertInvariant('after post-completion refund');
-});
-
-test('refund: a gap neither PENDING nor AVAILABLE can cover is fronted by platform revenue and booked as a PT receivable', skipOpts, async () => {
-  const m = await load();
-  await resetLedger(m);
-  const f = await seedHeldOrder(m, 100_000);
-
-  // First refund is entirely legitimate — drains PENDING exactly (covered by the "before any
-  // release" test above). A SECOND refund attempt for the same order (payment-service itself
-  // does not enforce the priceAtPurchase ceiling — that guard is ai-service's job, see
-  // adminResolveRefund; this is payment-service's own belt-and-braces for if that guard is
-  // ever bypassed, same principle contract-ledger.service.ts's compensateNoShow already
-  // relies on) finds nothing left in either bucket for either party — a genuine, ledger-
-  // consistent shortfall, not a simulated one.
-  await m.ledger.refundPersonalizedServiceHeld({
-    transactionId: f.txnId, sellerId: f.sellerId, buyerId: f.buyerId,
-    refundAmount: f.price, commissionRate: f.commissionRate, label: 'first (legitimate) refund',
+  const f = await seedHeldOrder(m, { price: 1_000_000, platformRate: '0.10' });
+  await m.ledger.releaseOrder({
+    transactionId: f.txnId,
+    price: f.price,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'accept',
+    idempotencyKey: `PERSONALIZED_RELEASE:${f.orderId}`,
   });
 
-  // Fund platform revenue generously — this is BOTH the platform's own party wallet (its
-  // 10% charge below draws from here first, and succeeds) AND coverShortfall's funding
-  // source for whatever the seller still can't cover.
+  // PT rút sạch 900.000 khả dụng trước khi tranh chấp xảy ra — tiền thật đã rời nền tảng, nên
+  // escrow cũng giảm tương ứng (đúng "payout" trong money-flow).
+  const ptWallet = await m.wallet.getOrCreateWallet('PT', f.parties.ptUserId);
+  const escrowWallet = await m.wallet.getEscrowWallet();
+  await m.wallet.withWallets([ptWallet.id, escrowWallet.id], f.txnId, async (ops) => {
+    await ops.debit(ptWallet.id, new m.Prisma.Decimal('900000'), 'PT withdrew everything');
+    await ops.debit(escrowWallet.id, new m.Prisma.Decimal('900000'), 'cash left the platform via withdrawal');
+  });
+
+  // Doanh thu nền tảng trong đời thực là tích luỹ từ RẤT NHIỀU giao dịch khác, không chỉ một
+  // giao dịch này — mô phỏng bằng cách cộng thêm hoa hồng "từ các giao dịch khác" (kèm escrow
+  // tương ứng) đủ để nền tảng có khả năng đứng ra ứng trước khoản 900.000 còn thiếu.
   const revenueWallet = await m.wallet.getRevenueWallet();
-  await m.prisma.wallet.update({ where: { id: revenueWallet.id }, data: { availableBalance: new m.Prisma.Decimal(500_000) } });
-
-  const r = await m.ledger.refundPersonalizedServiceHeld({
-    transactionId: f.txnId, sellerId: f.sellerId, buyerId: f.buyerId,
-    refundAmount: f.price, commissionRate: f.commissionRate, label: 'second (over-refund) attempt',
+  await m.wallet.withWallets([revenueWallet.id, escrowWallet.id], f.txnId, async (ops) => {
+    await ops.credit(revenueWallet.id, new m.Prisma.Decimal('2000000'), 'seed — hoa hồng tích luỹ từ các giao dịch khác');
+    await ops.credit(escrowWallet.id, new m.Prisma.Decimal('2000000'), 'seed — tiền tương ứng trong escrow');
   });
-  assert.equal(r.drawnFrom.sellerPending, '0.00');
-  assert.equal(r.drawnFrom.sellerAvailable, '0.00');
-  assert.equal(r.drawnFrom.platformPending, '0.00');
-  assert.equal(r.drawnFrom.platformAvailable, '10000.00', 'platform covers its OWN 10% share from the revenue wallet just funded');
-  assert.equal(r.shortfall, '90000.00', 'only the seller\'s 90% share — nothing left anywhere for them — is a genuine gap');
 
-  const receivables = await m.prisma.partnerReceivable.findMany({ where: { partnerType: 'PT', partnerId: f.sellerId } });
+  const refundAmount = f.price; // hoàn toàn bộ
+  const result = await m.ledger.refundOrder({
+    transactionId: f.txnId,
+    refundAmount,
+    rates: f.rates,
+    parties: f.parties,
+    label: 'admin-full-refund-after-withdrawal',
+    idempotencyKey: `PERSONALIZED_REFUND:${f.orderId}:${refundAmount.toFixed(2)}`,
+  });
+
+  assert.equal(result.refund, '1000000.00');
+  assert.equal(result.clawedBack.pt, '900000.00', 'toàn bộ 900.000 phần PT được ghi nhận là đã "thu hồi" — dù thật ra là nợ, không phải tiền mặt lấy lại được');
+  assert.equal(result.shortfall, '0.00', 'nền tảng đứng ra ứng trước, không phải nợ treo lơ lửng');
+
+  const receivables = await m.prisma.partnerReceivable.findMany({ where: { partnerType: 'PT', partnerId: f.parties.ptUserId } });
   assert.equal(receivables.length, 1);
-  assert.equal(new m.Prisma.Decimal(receivables[0].amount).toFixed(2), '90000.00');
+  assert.equal(new m.Prisma.Decimal(receivables[0].amount).toFixed(2), '900000.00');
 
-  const b = await balances(m, f);
-  assert.equal(b.buyerAvailable, '200000.00', 'buyer was credited both times — the over-refund itself is not this function\'s job to prevent');
-});
+  const final = await balances(m, f);
+  assert.equal(final.clientAvailable, '1000000.00', 'khách vẫn nhận đủ 100% dù PT đã rút sạch tiền trước đó');
+  assert.equal(final.ptAvailable, '0.00');
 
-test('getPersonalizedServiceLedgerSummary: reads the exact PENDING remaining for one order, ignoring other orders sharing the same seller wallet', skipOpts, async () => {
-  const m = await load();
-  await resetLedger(m);
-  const f1 = await seedHeldOrder(m, 100_000);
-  // A second, unrelated order for the SAME seller — proves the summary is scoped per
-  // transactionId, not the seller wallet's pooled total (F2's reasoning from
-  // membership-ledger.service.ts, reused here via pendingRemainingForTxn).
-  const suffix2 = randomUUID().slice(0, 8);
-  const txn2 = await m.prisma.paymentTransaction.create({
-    data: {
-      payerId: `buyer-${suffix2}`, purpose: 'PERSONALIZED_SERVICE_PURCHASE', amount: 50_000, currency: 'VND',
-      status: 'PROCESSING', idempotencyKey: `personalized-service-${suffix2}`,
-      relatedEntityType: 'PERSONALIZED_SERVICE_PURCHASE', relatedEntityId: `order-${suffix2}`, sourceService: 'integration-test',
-    },
-  });
-  await m.prisma.wallet.update({
-    where: { id: (await m.wallet.getOrCreateWallet('CLIENT', `buyer-${suffix2}`)).id },
-    data: { availableBalance: new m.Prisma.Decimal(50_000) },
-  });
-  await m.ledger.holdPersonalizedServicePayment({
-    transactionId: txn2.id, price: new m.Prisma.Decimal(50_000), commissionRate: f1.commissionRate,
-    buyerId: `buyer-${suffix2}`, sellerId: f1.sellerId, label: 'second order, same seller',
-  });
-
-  const summary = await m.ledger.getPersonalizedServiceLedgerSummary({ transactionId: f1.txnId, sellerId: f1.sellerId });
-  assert.equal(summary.held.seller, '90000.00', 'order 1\'s own held amount, not pooled with order 2\'s 45000');
+  await m.reconcile.assertInvariant('C5 refund after PT withdrew — receivable covers the gap');
 });

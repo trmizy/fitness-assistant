@@ -324,12 +324,12 @@ exports.Prisma.PersonalizedServiceOrderScalarFieldEnum = {
   initialDeliveryDaysSnapshot: 'initialDeliveryDaysSnapshot',
   supportWeeksSnapshot: 'supportWeeksSnapshot',
   priceAtPurchase: 'priceAtPurchase',
+  platformRateSnapshot: 'platformRateSnapshot',
+  ptRateSnapshot: 'ptRateSnapshot',
   paymentTransactionId: 'paymentTransactionId',
   purchasedAt: 'purchasedAt',
-  milestoneIntakeReleasedAt: 'milestoneIntakeReleasedAt',
-  milestoneDraftReleasedAt: 'milestoneDraftReleasedAt',
-  milestoneAcceptedReleasedAt: 'milestoneAcceptedReleasedAt',
-  milestoneCompletedReleasedAt: 'milestoneCompletedReleasedAt',
+  releasedAt: 'releasedAt',
+  autoAcceptDeadline: 'autoAcceptDeadline',
   intakeData: 'intakeData',
   consentCategories: 'consentCategories',
   intakeSubmittedAt: 'intakeSubmittedAt',
@@ -560,6 +560,7 @@ exports.PersonalizedServiceStatus = exports.$Enums.PersonalizedServiceStatus = {
 };
 
 exports.PersonalizedServiceOrderStatus = exports.$Enums.PersonalizedServiceOrderStatus = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   PURCHASED: 'PURCHASED',
   INTAKE_PENDING: 'INTAKE_PENDING',
   INTAKE_SUBMITTED: 'INTAKE_SUBMITTED',

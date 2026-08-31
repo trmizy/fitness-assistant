@@ -38,6 +38,16 @@ export interface ContractMoneyInput {
   totalSessions: number;
   /** u — sessions that count as used (see countsAsUsed). */
   usedSessions: number;
+  /**
+   * Cụm A1 — sessions consumed via cash compensation (a PT no-show), not by being trained.
+   * user-service's getRemainingEntitlements() has always subtracted this alongside
+   * usedSessions (money-flow plan 1.5); this formula module did not know the field existed,
+   * so the two services disagreed on how many sessions a contract still owes — a client
+   * compensated for a no-show could still get the same session's value back again on
+   * cancellation. Optional, defaulting to 0, so no existing caller that predates
+   * compensatedSessions has to change to keep compiling.
+   */
+  compensatedSessions?: number;
   rates: RateTable;
 }
 
@@ -93,8 +103,15 @@ function validate(input: ContractMoneyInput): void {
   if (!Number.isInteger(input.usedSessions) || input.usedSessions < 0) {
     throw new Error(`usedSessions must be a non-negative integer, got ${input.usedSessions}`);
   }
-  if (input.usedSessions > input.totalSessions) {
-    throw new Error(`usedSessions (${input.usedSessions}) cannot exceed totalSessions (${input.totalSessions})`);
+  const compensatedSessions = input.compensatedSessions ?? 0;
+  if (!Number.isInteger(compensatedSessions) || compensatedSessions < 0) {
+    throw new Error(`compensatedSessions must be a non-negative integer, got ${compensatedSessions}`);
+  }
+  const consumed = input.usedSessions + compensatedSessions;
+  if (consumed > input.totalSessions) {
+    throw new Error(
+      `usedSessions (${input.usedSessions}) + compensatedSessions (${compensatedSessions}) = ${consumed} cannot exceed totalSessions (${input.totalSessions})`,
+    );
   }
   assertRatesValid(input.rates);
 }
@@ -105,10 +122,19 @@ export function unitValue(price: Prisma.Decimal, totalSessions: number): Prisma.
   return price.div(totalSessions);
 }
 
-/** remaining = P × (N − u) / N — the value of the sessions not yet consumed. */
+/**
+ * remaining = P × (N − consumed) / N — the value of the sessions not yet consumed.
+ *
+ * consumed = usedSessions + compensatedSessions (cụm A1). A session the client was already
+ * paid cash compensation for (a PT no-show) is just as "spent" against the contract's
+ * entitlement as one they actually trained — leaving it out of `consumed` handed that
+ * session's value back to the client a second time on cancellation, on top of the cash
+ * compensation already paid.
+ */
 export function remainingValue(input: ContractMoneyInput): Prisma.Decimal {
   validate(input);
-  const unused = input.totalSessions - input.usedSessions;
+  const consumed = input.usedSessions + (input.compensatedSessions ?? 0);
+  const unused = input.totalSessions - consumed;
   return input.price.mul(unused).div(input.totalSessions);
 }
 
@@ -194,11 +220,11 @@ export function roundForClient(amount: Prisma.Decimal): Prisma.Decimal {
 
 export interface TerminationOutcome {
   reason: TerminationReason;
-  /** Value of the sessions never delivered. */
+  /** Value of the sessions never delivered (never used, never compensated). */
   remaining: Prisma.Decimal;
   /** Paid back to the client's wallet, rounded in their favour. */
   refund: Prisma.Decimal;
-  /** P − refund: what stays in the system to be shared out. */
+  /** P − compensationValue − refund: what stays in the system to be shared out. */
   withheld: Prisma.Decimal;
   /** Extra penalty taken from the PT (and gym) on top, for PT-initiated cancellation. */
   penalty: Prisma.Decimal;
@@ -256,12 +282,21 @@ export function computeTermination(
     throw new Error(`refund ${refund.toString()} exceeds contract price ${input.price.toString()}`);
   }
 
-  const withheld = input.price.minus(refund);
+  // Cụm A1 — a compensated (PT no-show) session's value already left the system entirely
+  // before termination ever runs: compensateNoShow already debited this exact amount out of
+  // the three parties' pending/available buckets and credited it to the client, as a separate
+  // ledger operation with its own idempotency key. `entitlement` here must not re-claim that
+  // value for the parties, or settleParty (contract-ledger.service.ts) tries to top a party up
+  // using pending money that compensation already took — a silent shortfall, not a thrown
+  // error, because settleParty clamps to whatever pending actually holds.
+  const compensationValue = input.price.mul(input.compensatedSessions ?? 0).div(input.totalSessions);
+  const withheld = input.price.minus(compensationValue).minus(refund);
   const entitlement = splitThreeWays(withheld, input.rates);
 
   const total = refund.plus(entitlement.pt).plus(entitlement.gym).plus(entitlement.platform);
-  if (!total.equals(input.price)) {
-    throw new Error(`termination does not reconcile: ${total.toString()} != ${input.price.toString()}`);
+  const expectedTotal = input.price.minus(compensationValue);
+  if (!total.equals(expectedTotal)) {
+    throw new Error(`termination does not reconcile: ${total.toString()} != ${expectedTotal.toString()} (price ${input.price.toString()} minus compensation ${compensationValue.toString()} already paid out)`);
   }
 
   return { reason, remaining, refund, withheld, penalty, entitlement };
@@ -289,8 +324,10 @@ export function computeSessionRelease(
  * charged to the three parties in proportion — the platform does not get to keep commission
  * on a session that never happened.
  *
- * The caller must also drop totalSessions by one: the client has been paid out for this
- * session, so leaving the quota in place would hand them the value twice.
+ * The caller must also increment the contract's compensatedSessions by one (never decrement
+ * totalSessions, which is immutable once signed — see money-flow plan 1.5). Compensating the
+ * client AND leaving the entitlement unconsumed would hand them this session's value twice:
+ * once as cash now, once again as `remaining` on a later cancellation (cụm A1).
  */
 export function computeNoShowCompensation(
   price: Prisma.Decimal,
@@ -308,6 +345,8 @@ export interface MoneyBreakdown {
   price: string;
   totalSessions: number;
   usedSessions: number;
+  /** Cụm A1 — sessions consumed via cash compensation rather than being trained. */
+  compensatedSessions: number;
   unit: string;
   remaining: string;
   rates: { platformRate: string; ptRate: string; gymRate: string };
@@ -323,11 +362,20 @@ export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
   const remaining = remainingValue(input);
   const perSession = computeSessionRelease(input.price, input.totalSessions, input.rates);
   const u = input.usedSessions;
+  const c = input.compensatedSessions ?? 0;
   const released = {
     pt: perSession.pt.mul(u),
     gym: perSession.gym.mul(u),
     platform: perSession.platform.mul(u),
   };
+  // Cụm A1 — compensateNoShow already debited this amount out of pending/available for a
+  // compensated session, same as `released` does for a used one. stillPending must subtract
+  // both, or a compensated contract's preview shows pending money that was already paid out.
+  const compensationValue = input.price.mul(c).div(input.totalSessions);
+  const compensationSplit = splitThreeWays(
+    compensationValue.toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN),
+    input.rates,
+  );
   const whole = splitThreeWays(input.price, input.rates);
   const cancelNow = computeTermination(input, 'CLIENT_CANCELLED');
 
@@ -335,6 +383,7 @@ export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
     price: input.price.toFixed(2),
     totalSessions: input.totalSessions,
     usedSessions: u,
+    compensatedSessions: c,
     unit: unit.toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN).toFixed(2),
     remaining: remaining.toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN).toFixed(2),
     rates: {
@@ -348,9 +397,9 @@ export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
       platform: released.platform.toFixed(2),
     },
     stillPending: {
-      pt: whole.pt.minus(released.pt).toFixed(2),
-      gym: whole.gym.minus(released.gym).toFixed(2),
-      platform: whole.platform.minus(released.platform).toFixed(2),
+      pt: whole.pt.minus(released.pt).minus(compensationSplit.pt).toFixed(2),
+      gym: whole.gym.minus(released.gym).minus(compensationSplit.gym).toFixed(2),
+      platform: whole.platform.minus(released.platform).minus(compensationSplit.platform).toFixed(2),
     },
     refundIfCancelledNow: cancelNow.refund.toFixed(2),
   };

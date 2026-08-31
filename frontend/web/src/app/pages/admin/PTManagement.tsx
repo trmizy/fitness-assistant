@@ -449,6 +449,12 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
       ptApplicationService.reviewAction(app.id, action as any, {
         adminNote: note,
         feedback,
+        // pt_application.service.ts#adminReviewAction requires rejectionReason (not
+        // adminNote/feedback) specifically for the REJECTED action — omitting it made
+        // "Reject" always fail with "Rejection reason is required". The applicant-facing
+        // "Message sent to user" field is the right content for it (same field already
+        // doubles as the outward-facing message for NEEDS_MORE_INFO via adminNote).
+        rejectionReason: feedback,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pt-applications"] });

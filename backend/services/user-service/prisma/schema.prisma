@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -556,6 +556,7 @@ model Contract {
 
   sessions           Session[]
   reviews            SessionReview[]
+  clientReviews      ClientReview[]
 
   @@index([ptUserId])
   @@index([clientUserId])
@@ -602,6 +603,7 @@ model Session {
 
   contract              Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
   review                SessionReview?
+  clientReview          ClientReview?
   rescheduleRequests    SessionRescheduleRequest[]
 
   @@index([contractId])
@@ -629,6 +631,28 @@ model SessionReview {
 
   @@index([contractId])
   @@map("session_reviews")
+}
+
+// ─── Client Review ──────────────────────────────────────────────────
+// Mirrors SessionReview in the opposite direction: the PT rates the CLIENT's conduct for a
+// completed session (punctuality, cooperation, etc.) instead of the client rating the PT.
+// Surfaced back to a PT considering a NEW contract request from this same client (see
+// contractService.getByPT's clientRating field) — the counterpart to how a client can already
+// see a PT's rating before requesting a contract in the first place.
+model ClientReview {
+  id           String   @id @default(uuid())
+  sessionId    String   @unique @map("session_id")
+  contractId   String   @map("contract_id")
+  ptUserId     String   @map("pt_user_id")
+  rating       Int      // 1–5
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("client_reviews")
 }
 
 // ─── Notification ─────────────────────────────────────────────────

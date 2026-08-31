@@ -103,7 +103,8 @@ export const GymMembershipContractStatus: {
   PENDING_PAYMENT: 'PENDING_PAYMENT',
   ACTIVE: 'ACTIVE',
   EXPIRED: 'EXPIRED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  PENDING_ISSUE: 'PENDING_ISSUE'
 };
 
 export type GymMembershipContractStatus = (typeof GymMembershipContractStatus)[keyof typeof GymMembershipContractStatus]

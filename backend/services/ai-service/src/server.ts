@@ -7,6 +7,7 @@ import { aiWorker } from "./workers/ai.worker";
 import { closeAiQueue } from "./workers/ai.queue";
 import { logger } from "@gym-coach/shared";
 import { getQdrantClient } from "./repositories/qdrant";
+import { startPersonalizedServiceAutoAcceptJob } from "./services/personalized-service-autoaccept-sweep.service";
 
 const PORT = process.env.PORT || 3003;
 
@@ -32,6 +33,11 @@ async function startServer() {
     app.listen(PORT, () => {
       logger.info(`AI Service running on port ${PORT}`);
     });
+
+    // P0 cluster C3 — a Personalized Service buyer must not be able to leave a PT
+    // uncredited forever by never responding to a delivered draft; also retries a release
+    // that failed on its first attempt. See personalized-service-autoaccept-sweep.service.ts.
+    startPersonalizedServiceAutoAcceptJob();
   } catch (error) {
     logger.error("Failed to start server:", error);
     process.exit(1);

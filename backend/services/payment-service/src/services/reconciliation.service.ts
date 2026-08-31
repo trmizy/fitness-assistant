@@ -12,6 +12,10 @@ const TOPUP_STALE_MINUTES = Number(process.env.TOPUP_STALE_MINUTES ?? '60');
 
 const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
+// Cụm C2/C3: personalized-service purchase now goes through the generic checkout+webhook
+// pipeline, same as PT_CONTRACT/GYM_MEMBERSHIP — needs a way to tell ai-service to activate
+// the order once payment is confirmed, which payment-service never previously called at all.
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
@@ -106,6 +110,8 @@ export async function callActivateEndpoint(txn: PaymentTransaction): Promise<voi
     await axios.post(`${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, { headers, timeout: 10_000 });
   } else if (txn.relatedEntityType === 'PT_CONTRACT') {
     await axios.post(`${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, { headers, timeout: 10_000 });
+  } else if (txn.relatedEntityType === 'PERSONALIZED_SERVICE_PURCHASE') {
+    await axios.post(`${AI_SERVICE_URL}/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, { headers, timeout: 10_000 });
   } else {
     throw new Error(`Unknown relatedEntityType for activation: ${txn.relatedEntityType}`);
   }

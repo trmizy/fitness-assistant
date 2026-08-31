@@ -48,9 +48,14 @@ Chấm dứt hợp đồng (6 lý do, xem §4)
    ├─> Ví khách += refund
    └─> ESCROW KHÔNG đổi
 
-Rút tiền (VĐ1, CHƯA LÀM)
-   └─> Chỉ rút từ ngăn khả dụng, quản trị viên duyệt và chuyển khoản THỦ CÔNG
-        └─> Ngăn khả dụng −= X  VÀ  ESCROW −= X   ← lúc này tiền mới thật sự rời hệ thống
+Rút tiền (VĐ1 — đã xong, xem §16 để biết chi tiết đầy đủ)
+   └─> requestWithdrawal: chỉ được yêu cầu rút từ ngăn KHẢ DỤNG
+        └─> approve(): ngăn khả dụng −= X, ngăn KHOÁ (locked) += X   ← tiền thật đã bị giữ,
+             không còn tính vào số dư có thể rút/clawback lần nữa, nhưng ESCROW CHƯA đổi
+             └─> markPaid() (sau khi chuyển khoản THỦ CÔNG xong):
+                  ngăn khoá −= X  VÀ  ESCROW −= X   ← lúc này tiền mới thật sự rời hệ thống
+             └─> reject() (nếu đã approve rồi mới từ chối):
+                  ngăn khoá −= X, ngăn khả dụng += X   ← hoàn lại, ESCROW không đổi
 ```
 
 **Nguyên tắc vàng: ESCROW chỉ đổi khi tiền thật vào hoặc ra khỏi nền tảng.** Mọi thao tác
@@ -136,6 +141,18 @@ Cài đặt: `countsAsUsed()` trong `contract-money.ts`.
 Kiểm quyền ở `contract.controller.ts#terminate`. Lý do quyết định ai chịu thiệt nên **không
 bao giờ tin giá trị người gọi gửi lên**: để PT tự khai `MUTUAL` là mở đường cho họ né phí huỷ.
 
+> **`EXPIRED` — "chỉ admin" là nói về ai được GỌI API, không phải ai KHỞI XƯỚNG (P0 cụm A3).**
+> `contract.service.ts#expireContracts()` (một tiến trình nền, khuôn mẫu giống
+> `reschedule-expiry.service.ts`, khởi động cùng `user-service` server) tự tìm các hợp đồng đã
+> quá hạn và gọi thẳng `terminateContractMoney(contractId, "EXPIRED")` — không đi qua endpoint
+> `terminate` công khai, nên không cần một "admin" thật bấm nút. **Trước cụm A3, hàm này chỉ
+> đổi `status` sang `EXPIRED` mà KHÔNG hề đụng tới tiền** — ngăn chờ của hợp đồng hết hạn bị bỏ
+> quên vĩnh viễn, không giải phóng cũng không hoàn. Mỗi hợp đồng được xử lý độc lập (bọc
+> try/catch riêng), một hợp đồng lỗi không chặn các hợp đồng khác trong cùng lượt quét. Sweep
+> **không** bọc `settleTracked` — cố ý, vì bản thân điều kiện quét lại (hợp đồng vẫn ở trạng
+> thái coi như "chưa xử lý" tại lần quét sau) đã tự nhiên cho retry, không cần lớp theo dõi
+> thêm.
+
 ### Công thức tổng quát — một đường đi cho cả 6 lý do
 
 ```
@@ -182,14 +199,18 @@ xem `getRemainingEntitlements()` ở §2.1.
 
 ---
 
-## 6. Hai ngăn ví, hai ví hệ thống, và bất biến
+## 6. Ba ngăn ví, hai ví hệ thống, và bất biến
 
-### Hai ngăn
+### Ba ngăn
 
 | Ngăn | Ý nghĩa |
 |---|---|
 | `pendingBalance` | Tiền đã thuộc về chủ ví nhưng **chưa được rút** — còn gắn với buổi chưa diễn ra |
-| `availableBalance` | Tiền **được phép rút** |
+| `availableBalance` | Tiền **được phép rút**, chưa có yêu cầu rút nào đang xử lý trên nó |
+| `lockedBalance` | **(P0 cụm F)** Tiền đã được duyệt rút (`withdrawal.approve`) nhưng **chưa chuyển khoản
+xong** (`markPaid`) — tách khỏi `availableBalance` chính vì lý do này: một khoản thu hồi
+(clawback) phát sinh SAU khi đã duyệt rút không được phép ăn vào tiền đang chờ chuyển khoản đó
+(xem §16 và §12 "clawback không được đụng ngăn khoá"). |
 
 `WalletLedgerEntry.bucket` cho biết bút toán động vào ngăn nào; `balanceBefore`/`balanceAfter`
 tính theo đúng ngăn đó, nên **mỗi ngăn có một chuỗi số dư liên tục không đứt** — kiểm toán được.
@@ -209,9 +230,15 @@ không diễn giải được** — không trả lời được câu "trong này
 ### Bất biến
 
 ```
-ESCROW.available = Σ (pending + available) của MỌI ví không phải ESCROW
+ESCROW.available = Σ (pending + available + locked) của MỌI ví không phải ESCROW
                    (khách + PT + gym + REVENUE)
 ```
+
+`lockedBalance` **phải** nằm trong tổng quyền đòi — tiền đã được duyệt rút (§16) vẫn chưa rời
+hệ thống thật sự (chỉ `markPaid` mới trừ ESCROW), nên nó vẫn là quyền đòi hợp lệ trên tiền
+đang giữ. Bỏ sót ngăn này khỏi công thức đối soát (lỗi thực tế đã xảy ra ở
+`reconcile.service.ts` trước khi cụm F vá — xem §12) sẽ khiến `GET /admin/payments/reconciliation`
+báo lệch giả ngay khi có một yêu cầu rút đang ở trạng thái đã duyệt.
 
 ESCROW là *tiền mặt đang giữ*; mọi ví khác là *quyền đòi* trên số tiền đó. Quyền đòi phải
 bằng tiền giữ. Lệch một đồng nghĩa là tiền đã được tạo ra hoặc biến mất ở đâu đó, và **sổ
@@ -310,6 +337,8 @@ ngăn chờ vẫn hoàn đủ cho khách.
 | `COLLABORATION_OFFER_TTL_DAYS` | `7` | Số ngày một đề xuất cộng tác còn hiệu lực (§14.1) |
 | `PAYMENT_PROVIDER` | `VNPAY` | Cổng dự phòng khi yêu cầu không nêu rõ |
 | `SESSION_AUTO_CONFIRM_DAYS` | `3` | Số ngày trước khi buổi tập tự duyệt |
+| `PERSONALIZED_SERVICE_AUTO_ACCEPT_DAYS` | `3` | Số ngày trước khi bản nháp dịch vụ cá nhân hoá tự được chấp nhận thay khách (§19.4) |
+| `GYM_MEMBERSHIP_PENDING_PAYMENT_STALE_MINUTES` | `10` | Đơn hội viên chờ thanh toán quá lâu (chưa từng trả tiền) tự huỷ sau bao nhiêu phút — cùng ngưỡng `NON_TOPUP_STALE_MINUTES` của payment-service |
 
 ---
 
@@ -320,12 +349,24 @@ Liệt kê thẳng để không ai tưởng đã xong:
 - **Chi trả tự động ra ngân hàng.** Cố ý không làm — cổng đang chạy môi trường thử nghiệm,
   mọi lệnh chi ra ngoài là thao tác **thủ công** do quản trị viên xác nhận (§16 — luồng rút
   tiền tự nó ĐÃ xong, chỉ riêng bước "chuyển khoản thật" là vẫn thủ công, có chủ đích).
-- **Trừ tự động `PartnerReceivable`.** Bản ghi công nợ được tạo và ghi log cảnh báo, nhưng
-  chưa tự trừ vào các lần ghi có sau của PT. Hiện phải xử lý tay. Quy tắc ưu tiên khi việc này
-  được cài — thu hồi thắng yêu cầu rút đang chờ — đã ghi ở §15.
-- **Giao diện hiển thị hai ngăn ví cho PT/khách.** Trang ví PT và khách hiện chỉ vẽ
-  `availableBalance` (giống trước), dù API đã trả cả `pendingBalance`. Trang ví phòng gym
-  (`GymManagePage`) đã vẽ cả hai từ trước.
+- ~~Trừ tự động `PartnerReceivable`~~ — **ĐÃ có từ trước** (`recoverReceivables` trong
+  `contract-ledger.service.ts`), không phải khoảng trống. Mỗi lần ngăn khả dụng của một PT/gym
+  đang nợ được ghi có (giải phóng buổi, giải phóng dịch vụ cá nhân hoá, giải phóng gói hội
+  viên, chấm dứt hợp đồng...), hàm này tự trừ khoản nợ cũ nhất trước, giới hạn đúng bằng số
+  tiền vừa ghi có — không bao giờ đụng số dư đã có từ trước. **Khoảng trống thật, hẹp hơn nhiều
+  so với bản trước của tài liệu này mô tả:** một yêu cầu rút mới ở trạng thái `PENDING` (chưa
+  `approve()`, nên vẫn còn nằm trong `availableBalance`) chưa được giữ chỗ — một khoản thu hồi
+  xảy ra cùng lúc vẫn có thể ăn vào đúng số tiền yêu cầu rút đó đang trông cậy vào. Yêu cầu đã
+  `approve()` thì AN TOÀN tự nhiên: cụm F đã chuyển số tiền đó sang ngăn `lockedBalance` riêng,
+  ngoài tầm với của `recoverReceivables` (nó chỉ đọc `availableBalance` — xem §16). Quy tắc ưu
+  tiên cho khoảng trống còn lại — thu hồi thắng yêu cầu rút đang `PENDING` — đã ghi ở §15.
+- **Giao diện hiển thị đủ các ngăn ví cho PT/khách.** Trang ví PT và khách hiện chỉ vẽ
+  `availableBalance` (giống trước), dù API đã trả cả `pendingBalance` và (từ cụm F)
+  `lockedBalance`. Trang ví phòng gym (`GymManagePage`) đã vẽ `pending`+`available` từ trước,
+  nhưng chưa vẽ `lockedBalance` — mọi loại ví đều có ngăn này (cột nằm trên chính model `Wallet`,
+  không phân biệt theo `ownerType`), và chủ gym cũng rút tiền qua đúng luồng khoá ở §16
+  (`POST/GET /owner/gyms/:gymId/withdrawals`), nên khoảng trống này áp dụng như nhau cho cả ba
+  trang.
 - **Giải phóng tiền gói hội viên theo ngày.** Hiện giữ toàn bộ tới khi gói kết thúc — xem §13
   để biết vì sao và vì sao cách đó không thực tế lâu dài.
 
@@ -514,18 +555,52 @@ viên **tự chuyển khoản bên ngoài hệ thống** → bấm "đã chi tr�
 | Quản trị viên | `GET/POST /admin/payments/withdrawals`, `.../:id/approve`, `.../:id/reject`, `.../:id/mark-paid` |
 
 **Trạng thái:** `PENDING → APPROVED (tuỳ chọn) → PAID`, hoặc `→ REJECTED` bất cứ lúc nào trước
-`PAID`. **`markPaid` là nơi DUY NHẤT tiền thực sự dịch chuyển** — request/approve/reject chỉ
-đổi trạng thái, không đụng sổ cái.
+`PAID`.
 
-**Số tiền được phép rút:**
-- **PT / phòng gym:** `availableBalance − Σ(các yêu cầu đang PENDING/APPROVED)`. Trừ đi các yêu
-  cầu đang chờ để hai yêu cầu liên tiếp không cùng rút một khoản tiền hai lần.
+> **P0 cụm F — sửa lại nhận định cũ của mục này.** Bản trước ghi *"`markPaid` là nơi DUY NHẤT
+> tiền thực sự dịch chuyển — request/approve/reject chỉ đổi trạng thái, không đụng sổ cái"*.
+> Điều đó **sai** sau cụm F (ví đã có ngăn `lockedBalance` thứ ba — xem §6): `approve()` giờ
+> thật sự chuyển tiền, `availableBalance → lockedBalance`, bằng `withWallets`/`applyDebit`/
+> `applyCredit` như mọi thao tác khác — không còn là phép tính suy ra suông. Cụ thể:
+>
+> - **`approve()`**: `ops.debit(AVAILABLE)` + `ops.credit(LOCKED)` cùng khoản đúng bằng số tiền
+>   yêu cầu, khoá `WITHDRAWAL_LOCK:<id>`. ESCROW không đổi (tiền chưa rời nền tảng).
+> - **`reject()`**: nếu yêu cầu đang ở `APPROVED` (đã khoá) → đảo ngược, `LOCKED → AVAILABLE`,
+>   khoá `WITHDRAWAL_UNLOCK:<id>`. Nếu còn `PENDING` (chưa từng khoá) → chỉ đổi trạng thái,
+>   không có bút toán nào — không có gì để hoàn.
+> - **`markPaid()`** vẫn là nơi DUY NHẤT tiền thực sự **rời khỏi nền tảng** (trừ ESCROW), nhưng
+>   không còn là nơi duy nhất ví chủ sở hữu bị động tới. Nếu yêu cầu đang `PENDING` (bỏ qua nút
+>   duyệt, đi thẳng sang chi trả — lối tắt cũ vẫn được giữ), nó tự khoá ngay trong cùng một
+>   transaction trước khi trừ, để lại đúng dấu vết sổ sách như khi đi qua `approve()` trước.
+>   Nếu đã `APPROVED` từ trước, chỉ cần trừ `LOCKED` + ESCROW.
+>
+> **Vì sao tách hẳn một ngăn `lockedBalance` thay vì chỉ tính suy ra từ tổng các yêu cầu đang mở
+> (cách làm cũ):** mọi thao tác trừ tiền khác trong hệ thống (một khoản thu hồi `PartnerReceivable`,
+> một khoản hoàn tiền admin, …) mặc định chỉ đụng `availableBalance` (xem `Bucket` type và tham
+> số mặc định của `applyDebit` trong `wallet.service.ts`) — muốn đụng `lockedBalance` phải gọi
+> tường minh, và **không nơi nào ngoài file `withdrawal.service.ts` làm vậy**. Nghĩa là: **một
+> yêu cầu rút đã được duyệt (`APPROVED`) an toàn tuyệt đối trước mọi khoản thu hồi phát sinh
+> sau đó** — về mặt cấu trúc, không phải vì có thêm một lớp kiểm tra thứ tự nào. Đây chính là
+> điều bản kế hoạch cộng tác/giới thiệu (§14/§13, mục B3 ở đó) đã lường trước và để ngỏ.
+>
+> **Khoảng trống còn lại (đã ghi rõ ở §11 và §15):** một yêu cầu còn **`PENDING`** (chưa duyệt)
+> không có sự bảo vệ này — nó vẫn nằm trong `availableBalance` thường, nên một khoản thu hồi
+> đến đúng lúc đó vẫn có thể ăn vào đúng số tiền yêu cầu đang trông cậy. Quy tắc ưu tiên cho
+> trường hợp này (thu hồi thắng, giảm/xem-lại yêu cầu rút) đã ghi ở §15 nhưng **chưa cài đặt**.
+
+**Số tiền được phép rút** (kiểm tra ở `requestWithdrawal`, trước khi tạo yêu cầu):
+- **PT / phòng gym:** `availableBalance − Σ(các yêu cầu đang PENDING)`. **Chỉ trừ `PENDING`,
+  không cộng thêm `APPROVED`** (khác bản trước của tài liệu này) — một yêu cầu `APPROVED` đã
+  thật sự rời `availableBalance` sang `lockedBalance` rồi, `availableBalance` đọc trực tiếp từ
+  ví đã tự phản ánh đúng, cộng thêm lần nữa sẽ trừ trùng hai lần cho cùng một khoản.
 - **Khách hàng:** chỉ được rút phần **có nguồn gốc hoàn trả/bồi thường** — nhận diện qua mô tả
-  bút toán chứa `"refund"` hoặc `"compensation"` (không phân biệt hoa thường). **Hạn chế đã
-  biết:** không có cột "lý do" có cấu trúc trên `WalletLedgerEntry`; một mô tả tự do nào đó
-  vô tình không chứa hai từ khoá này sẽ bị tính thiếu — **thiếu, không bao giờ thừa** (khách
-  mất quyền rút, không bao giờ được rút tiền không phải của mình), nên đây là hướng lỗi an
-  toàn nếu nó xảy ra.
+  bút toán chứa `"refund"` hoặc `"compensation"` (không phân biệt hoa thường), trừ đi cả
+  `PENDING` lẫn `APPROVED` (`sumOpenAmount`, giữ nguyên công thức cũ cho nhánh này — nó không
+  suy ra được từ `availableBalance` như nhánh PT/gym, vì tiêu chí là theo mô tả bút toán chứ
+  không phải theo ngăn ví). **Hạn chế đã biết:** không có cột "lý do" có cấu trúc trên
+  `WalletLedgerEntry`; một mô tả tự do nào đó vô tình không chứa hai từ khoá này sẽ bị tính
+  thiếu — **thiếu, không bao giờ thừa** (khách mất quyền rút, không bao giờ được rút tiền
+  không phải của mình), nên đây là hướng lỗi an toàn nếu nó xảy ra.
 
 **Mỗi lần `markPaid` tạo một `PaymentTransaction` riêng, `purpose = WITHDRAWAL`.**
 `WalletLedgerEntry.transactionId` là FK thật tới `PaymentTransaction` — rút tiền không có giao
@@ -560,6 +635,10 @@ này thay tiền bằng cách replay kết quả cũ, **không bao giờ chạy 
 | `MEMBERSHIP_REFERRAL:<membershipId>` | Chuyển hoa hồng giới thiệu PT khi gói kích hoạt | `gym-service/membership.service.ts` |
 | `REFERRAL_CLAWBACK:<membershipId>` | Thu hồi hoa hồng giới thiệu khi admin hoàn tiền | `gym-service/membership.service.ts` |
 | `WITHDRAWAL:<withdrawalRequestId>` | `markPaid` — chi trả yêu cầu rút tiền (§16) | `payment-service/withdrawal.service.ts` |
+| `WITHDRAWAL_LOCK:<withdrawalRequestId>` | **(P0 cụm F)** `approve()` — chuyển `AVAILABLE → LOCKED` (§16) | `payment-service/withdrawal.service.ts` |
+| `WITHDRAWAL_UNLOCK:<withdrawalRequestId>` | **(P0 cụm F)** `reject()` sau khi đã `APPROVED` — hoàn `LOCKED → AVAILABLE` (§16) | `payment-service/withdrawal.service.ts` |
+| `PERSONALIZED_RELEASE:<orderId>` | **(P0 cụm C)** Giải phóng ngăn chờ dịch vụ cá nhân hoá khi khách/hệ thống chấp nhận bản giao (§19) | `payment-service/personalized-service-ledger.service.ts` |
+| `PERSONALIZED_REFUND:<orderId>:<refundAmount>` | **(P0 cụm C)** Hoàn tiền đơn dịch vụ cá nhân hoá — **có thêm số tiền vào khoá**, khác quy ước `<id>`-suông của các dòng trên, vì một đơn có thể được hoàn tiền hợp lệ **nhiều lần** (hoàn từng phần qua cơ chế trần hoàn tiền tối đa của admin) — dùng khoá `<orderId>` suông sẽ khiến lần hoàn thứ hai bị coi là replay của lần thứ nhất và không chạy | `payment-service/personalized-service-ledger.service.ts` |
 
 `WITHDRAWAL:<id>` được dùng **hai lần cho hai mục đích khác nhau** trong `markPaid`: làm
 `idempotencyKey` của `PaymentTransaction` mới (để một lần retry tái dùng đúng dòng thay vì tạo
@@ -590,6 +669,14 @@ Ghi lại những gì bị **loại khỏi phạm vi có chủ đích**, để k
 - **Endpoint quyết toán hoa hồng cũ đã nghỉ hưu.** `PATCH /admin/payments/commissions/:id/settle`
   chưa từng có logic thật (luôn 501) và không có caller nào — trả về `410 ENDPOINT_RETIRED`,
   trỏ sang luồng rút tiền (§16) là con đường thật để lấy hoa hồng ra khỏi ví.
+- **P0 cụm D (marketplace hard-delete) bị bỏ qua có chủ đích, theo lệnh trực tiếp của người
+  dùng** — không phải thiếu sót hay bỏ quên. Cụm D đặt ra để sửa một lỗi trong luồng xoá cứng
+  (hard-delete) sản phẩm marketplace, nhưng marketplace là phần thuộc quyền của đối tác
+  ("đó là phần của partner của ta"), và người dùng yêu cầu dừng hẳn, không sửa logic
+  marketplace nữa, chỉ tập trung vào thanh toán. Không có file marketplace nào bị **sửa**
+  trong cả đợt P0 này (có đọc/grep để xác định phạm vi, nhưng dừng ngay khi phát hiện đây là
+  logic marketplace, trước khi viết bất kỳ dòng sửa nào). Lỗi gốc của cụm D **vẫn còn tồn tại
+  trong code**, chưa được vá.
 
 ---
 
@@ -622,6 +709,36 @@ sang user-service theo đúng cách — nếu không, một PT được mở kho
 một cột "nguồn tiền" có cấu trúc — xem giải thích đầy đủ và hướng lỗi an toàn ở §16.
 
 **Bất biến đối soát khác đề bài** — xem ghi chú ở §6.
+
+### P0 sửa lỗi kế toán hợp đồng / toàn vẹn buổi tập / ký quỹ dịch vụ cá nhân hoá (cụm G→A→B→C→E→F→H)
+
+**Cụm C — "giữ tiền" (hold) của dịch vụ cá nhân hoá tái dùng nguyên xi bơm-checkout +
+webhook đã có, không phải 3 endpoint mới như đề bài mô tả.** Đề bài hình dung cần dựng riêng
+một cơ chế giữ tiền cho đơn dịch vụ cá nhân hoá. Khi bắt tay vào mới thấy: checkout chung
+(`POST /internal/payments/checkout`) đã làm đúng thứ cần — nhận tiền qua cổng, đóng băng tỷ lệ,
+cộng ESCROW + ngăn chờ hai bên (PT/nền tảng, không có gym) — chỉ cần thêm một `purpose` mới
+(`PERSONALIZED_SERVICE_PURCHASE`) và một trạng thái đơn hàng mới (`PENDING_PAYMENT`) chờ
+webhook kích hoạt, đúng khuôn mẫu hợp đồng PT/gói hội viên đã có. Dựng một cơ chế giữ tiền
+riêng sẽ là **một đường tiền thứ hai** — vi phạm thẳng luật bắt buộc "mọi chuyển tiền đi qua
+`withWallets`", nên bị loại ngay từ đầu. Chỉ thật sự có 2 endpoint payment-service **mới**
+(`/personalized-service/release`, `/personalized-service/refund`) — endpoint thứ ba (giữ tiền)
+không cần vì đã có sẵn.
+
+**Cụm C4 — ngưỡng "còn huỷ được" của đơn dịch vụ cá nhân hoá tái dùng đúng luật đã có trong
+code (`PURCHASED`/`INTAKE_PENDING`/`INTAKE_SUBMITTED`, §XXXII cũ), không hỏi lại người dùng.**
+Đây là một quy tắc nghiệp vụ đã được code hoá, có kiểm thử, và ổn định từ trước — không phải
+một con số nghiệp vụ còn thiếu cần STOP-và-hỏi theo luật của task. Dùng lại nguyên trạng khi
+nối `refundOrder` vào `cancelOrder`.
+
+**Cụm C3 — số ngày tự-chấp-nhận bản giao mặc định `3` ngày
+(`PERSONALIZED_SERVICE_AUTO_ACCEPT_DAYS`).** Đây LÀ một con số nghiệp vụ chưa có trong task —
+đã hỏi qua `AskUserQuestion` với phương án đề xuất là 3 ngày (khớp `SESSION_AUTO_CONFIRM_DAYS`
+đã có, để hai luồng tự-duyệt trong hệ thống nhất quán). Người dùng không chọn cụ thể mà bảo
+tiếp tục — đã chọn đúng phương án đề xuất (3 ngày) làm mặc định, ghi rõ ở đây để không ai tưởng
+đây là số bịa ra không hỏi.
+
+**Khoá idempotency `PERSONALIZED_REFUND:<orderId>:<refundAmount>` có thêm số tiền vào khoá,
+khác quy ước `<id>` suông đề bài gợi ý.** Lý do và hệ quả: xem §17.
 
 ---
 
@@ -666,3 +783,99 @@ Cổng nào dùng được phụ thuộc deployment có creds nào. Danh sách c
 đầu nói dối ngay khi có người thêm hoặc bỏ một cổng — mà mời người dùng chọn một cổng không
 thể hoàn tất còn tệ hơn không mời, vì họ chỉ biết sau khi đã quyết định mua. Cổng chưa cấu
 hình vẫn hiện nhưng mờ đi kèm lý do, thay vì bị giấu.
+
+---
+
+## 19. Dịch vụ cá nhân hoá (`ai-service`) — vòng đời tiền, ký quỹ (P0 cụm C)
+
+> Đây là logic **thương mại** (giá, ký quỹ, chia ba... đúng ra là chia hai, xem dưới) sống
+> trong codebase `ai-service` — không phải logic AI/LLM/dinh dưỡng/an toàn hội thoại. Luật cấm
+> "không đụng ai-service" của task áp cho phần thứ hai; cụm C chỉ chạm đúng các file thương mại
+> nêu tên tường minh trong đề bài (`payment.client.ts`, module `personalized-service.*`).
+
+### 19.1 Trước cụm C — vì sao phải sửa
+
+Luồng cũ chuyển tiền **ngay lập tức** bằng `walletTransfer` (chuyển thẳng khách → PT, không
+qua ESCROW/ngăn chờ) tại thời điểm mua, **và** `receiverOwnerType` bị gán cứng sai thành
+`"CLIENT"` — tiền lẽ ra trả cho PT lại được ghi có vào chính ví khách vừa trả tiền (C1, tự vá
+lại tiền mình vừa trả). Ngoài lỗi đó, chuyển tiền ngay khi mua vi phạm nguyên tắc ký quỹ dùng
+cho mọi luồng tiền khác trong hệ thống này (PT-contract, gói hội viên): tiền phải nằm ở ngăn
+chờ tới khi **có việc thật đã xảy ra** (ở đây là: khách nhận và chấp nhận bản giao), không phải
+ngay khi thanh toán thành công — nếu không, PT có thể nhận trọn tiền rồi không giao gì, và
+không có nguồn nào để hoàn khi khách huỷ trước khi PT bắt đầu làm việc (C2).
+
+### 19.2 Luồng tiền mới — dùng lại đúng bơm checkout + webhook chung (không phải cơ chế riêng)
+
+```
+Khách bấm mua dịch vụ cá nhân hoá → chọn cổng
+   └─> POST /internal/payments/checkout  (purpose = PERSONALIZED_SERVICE_PURCHASE — MỚI)
+        · Đơn ở trạng thái PENDING_PAYMENT (ENUM MỚI), platformRateSnapshot/ptRateSnapshot
+          đóng băng ngay lúc này — cùng nguyên tắc "khoá tỷ lệ tại thời điểm ký" của §12
+        · Trả redirectUrl, KHÔNG đồng nào dịch chuyển
+        └─> Webhook cổng (hoặc job đối soát chủ động hỏi lại — TÁI DÙNG nguyên xi, không viết
+             thêm gì riêng cho dịch vụ cá nhân hoá)
+             ├─> ESCROW                     += P
+             ├─> PT ngăn chờ                += ptRateSnapshot × P
+             ├─> Nền tảng (REVENUE) ngăn chờ += platformRateSnapshot × P   (KHÔNG có phần gym
+             │                                   — PersonalizedService không gắn gymId)
+             └─> Gọi ngược ai-service (POST /internal/personalized-service/orders/:id/
+                  activate-after-payment) → PENDING_PAYMENT chuyển thẳng sang INTAKE_PENDING
+                  (bỏ qua PURCHASED — enum giữ giá trị đó chỉ vì code cũ vẫn còn nhắc tên)
+
+PT giao bản nháp (deliverDraft) → DRAFT_DELIVERED, autoAcceptDeadline = now + 3 ngày
+   (PERSONALIZED_SERVICE_AUTO_ACCEPT_DAYS)
+
+Khách chấp nhận (acceptOrder) — HOẶC sweep tự chấp nhận thay khi quá hạn (§19.4)
+   └─> POST /internal/personalized-service/release  (endpoint MỚI, MỘT trong hai endpoint
+        payment-service thật sự mới của cụm C — xem §15)
+        ├─> PT ngăn chờ    −= phần PT còn giữ, PT khả dụng    += cùng số đó
+        └─> NT ngăn chờ    −= phần NT còn giữ, NT khả dụng    += cùng số đó
+             (releaseOrder luôn giải phóng TOÀN BỘ phần còn trong ngăn chờ của đơn — một đơn,
+             một lần giao, không có khái niệm giải phóng từng phần)
+
+Huỷ trước khi PT bắt đầu làm việc (cancelOrder, còn ở PURCHASED/INTAKE_PENDING/
+INTAKE_SUBMITTED — ngưỡng tái dùng nguyên luật cũ, xem §15) HOẶC admin duyệt hoàn tiền
+(adminResolveRefund, có thể từng phần và gọi nhiều lần)
+   └─> POST /internal/personalized-service/refund  (endpoint MỚI thứ hai)
+        ├─> Rút trước từ ngăn CHỜ của PT/NT (trường hợp thường — chưa giải phóng gì)
+        ├─> Không đủ → rút tiếp từ ngăn KHẢ DỤNG (đơn đã được accept, hoặc một lần hoàn từng
+        │    phần trước đó đã rút cạn ngăn chờ)
+        ├─> Vẫn không đủ (PT đã rút hết) → PartnerReceivable ghi nợ PT, phần NT thiếu thì báo
+        │    lỗi mức "error" — nền tảng không thể tự nợ chính mình
+        └─> Ví khách += refundAmount. ESCROW KHÔNG đổi (tiền chưa hề rời nền tảng — chỉ đổi
+             quyền đòi).
+```
+
+### 19.3 Bảng trạng thái đơn hàng → trạng thái tiền
+
+| Trạng thái đơn | Tiền đang ở đâu |
+|---|---|
+| `PENDING_PAYMENT` | Chưa vào hệ thống — khách chưa thanh toán xong hoặc webhook chưa về |
+| `INTAKE_PENDING` … `DRAFT_DELIVERED` … `REVISION_*` | Trong ngăn **CHỜ** của PT + NT (đã nhận tiền, chưa giao xong) |
+| `ACCEPTED` / `ACTIVE` / `COMPLETED` | Đã giải phóng sang ngăn **KHẢ DỤNG** của PT + NT |
+| `CANCELLED` (huỷ trước khi PT bắt đầu) | Toàn bộ hoàn lại khách, ngăn chờ PT/NT về 0 cho đơn này |
+| `REFUND_REQUESTED` → `REFUNDED` (admin duyệt) | Hoàn một phần hoặc toàn bộ — có thể lặp lại nhiều lần cho tới trần hoàn tiền tối đa |
+| `DISPUTED` | Không tự động động tới tiền — chờ xử lý thủ công như tranh chấp buổi tập (§ tranh chấp) |
+
+### 19.4 Tự động chấp nhận sau khi hết hạn xem xét (C3)
+
+`ai-service/src/services/personalized-service-autoaccept-sweep.service.ts`, khởi động cùng
+server (`startPersonalizedServiceAutoAcceptJob`), khuôn mẫu giống mọi sweep khác trong hệ
+thống này (cờ chống chạy chồng, cô lập lỗi từng dòng). Hai lượt quét mỗi lần chạy:
+
+1. **Tự chấp nhận** các đơn `DRAFT_DELIVERED` đã quá `autoAcceptDeadline` — gọi lại đúng
+   `commitAcceptance` mà `acceptOrder` (khách bấm tay) cũng gọi, **một bản cài đặt duy nhất**
+   cho cả hai đường, không để hai đường trôi lệch nhau.
+2. **Thử lại giải phóng** cho các đơn đã `ACCEPTED`/`ACTIVE` nhưng vì lý do gì đó
+   (payment-service tạm sập lúc accept, …) chưa thực sự giải phóng được tiền — best-effort,
+   đúng tinh thần "giải phóng theo buổi là best-effort" đã có ở §12 cho PT-contract.
+
+Mặc định `3` ngày — xem lý do chọn con số này ở §15.
+
+### 19.5 Lỗi đã bắt được và sửa trong lúc code (C1, tự bản thân)
+
+`commitAcceptance` bản đầu tiên có lỗi trả-về-cũ: `const [, updated] = await
+prisma.$transaction([...])` đọc `updated` **trước** khi bước giải phóng tiền (`releasedAt`)
+chạy xong, nên hàm trả về một object có `releasedAt: null` ngay cả khi giải phóng đã thành
+công — sai dữ liệu trả về (không sai tiền, tiền đã giải phóng đúng), nhưng đủ để giao diện/log
+hiểu nhầm trạng thái. Sửa bằng `let [, updated]` rồi gán lại `updated` sau bước giải phóng.

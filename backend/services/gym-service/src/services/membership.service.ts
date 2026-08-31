@@ -176,6 +176,12 @@ export const membershipService = {
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
     if (contract.status === 'ACTIVE' || contract.paymentTxnId) throw err('ALREADY_PAID', 409);
     if (contract.status !== 'PENDING_PAYMENT') throw err(`Cannot pay for membership in ${contract.status} status`, 400);
+    // P0 cluster E1: purchase() checks the gym is APPROVED at order-creation time, but that
+    // is only true at that instant — a gym can be suspended (violation, closure) any time
+    // between then and this retry. Without re-checking here, a client could still pay into
+    // (and activate a membership at) a gym that is no longer allowed to accept money.
+    const gym = await gymRepository.findById(contract.gymId);
+    if (!gym || gym.status !== 'APPROVED') throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
     return attemptPayment(contract, clientId, provider);
   },
 
@@ -341,17 +347,58 @@ export const membershipService = {
     return others.map((m) => ({ gymId: m.gymId, gymName: m.gym.name, endDate: m.endDate }));
   },
 
-  /** Called by the internal /activate endpoint — verifies the transaction before activating. */
+  /**
+   * Called by the internal /activate endpoint — verifies the transaction before activating.
+   *
+   * P0 cluster E2: the gym could have been suspended/closed any time between checkout and
+   * this webhook — the money already settled into escrow + gym/platform pending
+   * (settleContractPayment ran in payment-service before it ever called this endpoint), so
+   * activating a membership at a gym no longer allowed to operate would be wrong. Refunds it
+   * back out in full instead (nothing was ever delivered). If that refund itself fails, the
+   * error is NOT swallowed — it propagates up through the controller so payment-service's own
+   * activation-retry sweep (reconciliation.service.ts's reconcilePendingActivations, already
+   * built, already retries on a schedule) keeps calling this endpoint again on its existing
+   * cadence; a genuinely stuck case still ends up in the admin queue
+   * (listPendingIssues/resolvePendingIssueByAdmin below) once that sweep gives up.
+   */
   async activateViaTransaction(membershipId: string, transactionId: string) {
     const txn = await paymentClient.getTransaction(transactionId);
     if (!txn || txn.status !== 'PAID' || txn.relatedEntityType !== 'GYM_MEMBERSHIP' || txn.relatedEntityId !== membershipId) {
       throw err('Transaction verification failed', 400);
     }
+
+    const before = await membershipRepository.findById(membershipId);
+    if (!before) throw err('Membership not found', 404);
+
+    // A retry (the sweep above, or a duplicate webhook delivery) of a membership whose first
+    // refund attempt already failed — try the refund again. Safe: releaseMembershipPending's
+    // idempotency key is stable per membership, and nothing else here re-runs.
+    if (before.status === 'PENDING_ISSUE') {
+      await this.refundPendingIssue(before, transactionId);
+      return membershipRepository.findById(membershipId);
+    }
+    if (before.status !== 'PENDING_PAYMENT') {
+      // Already ACTIVE (idempotent replay of a webhook that already succeeded) or some other
+      // terminal state — nothing left to do.
+      return before;
+    }
+
+    const gym = await gymRepository.findById(before.gymId);
+    if (!gym || gym.status !== 'APPROVED') {
+      const { affected, contract: marked } = await membershipRepository.markPendingIssueIfPending(membershipId, transactionId);
+      if (affected === 0 || !marked) return membershipRepository.findById(membershipId); // lost a race — another call is already handling it
+      logger.warn(`[Membership] ${membershipId} could not activate — gym ${before.gymId} is ${gym?.status ?? 'missing'}, refunding in full`);
+      await this.refundPendingIssue(marked, transactionId);
+      return membershipRepository.findById(membershipId);
+    }
+
     const { contract } = await membershipRepository.activateIfPending(membershipId, transactionId);
 
-    // Referral commission moves from the gym's pending bucket to the PT's the moment the
-    // membership actually activates — not at purchase time, when the client might still
-    // abandon payment.
+    // P0 cluster E4: referral commission moves from the gym's pending bucket to the PT's the
+    // moment the membership actually activates — not at purchase time, when the client might
+    // still abandon payment. Used to swallow a failure here with nothing to retry it; now
+    // marks the row FAILED so referral-settlement-sweep.service.ts finds and retries it —
+    // same discipline as every other money-moving sweep in this codebase.
     const withReferral = await membershipRepository.findByIdWithReferral(membershipId);
     if (withReferral?.referral && withReferral.referral.status === 'PENDING') {
       try {
@@ -368,18 +415,72 @@ export const membershipService = {
         });
         await referralRepository.markReleased(membershipId);
       } catch (e) {
-        // The membership itself activated fine; a missed referral settlement is retried by
-        // nothing today (no sweep for PENDING referrals — a gap, not silently pretended
-        // fixed) — logged loudly so it surfaces in ops rather than vanishing.
         logger.error({
-          error: '[Membership] referral settlement failed after activation',
+          error: '[Membership] referral settlement failed after activation — marked FAILED for the retry sweep',
           membershipId,
           message: (e as Error).message,
         });
+        await referralRepository.markFailed(membershipId).catch(() => {});
       }
     }
 
     return contract;
+  },
+
+  /**
+   * P0 cluster E2 — refunds a PENDING_ISSUE membership's full price back to the client and
+   * marks it CANCELLED. Called both from the fresh-detection branch in activateViaTransaction
+   * and from its own retry branch (an already-PENDING_ISSUE membership seen again) — same
+   * function either way, so the two paths cannot drift apart. Deliberately lets
+   * releaseMembershipPending's failure propagate — see activateViaTransaction's own doc
+   * comment for why that is the right thing to do here (payment-service's existing
+   * reconciliation sweep is the auto-retry; resolvePendingIssueByAdmin is the manual fallback
+   * once that sweep gives up).
+   */
+  async refundPendingIssue(
+    contract: { id: string; gymId: string; clientId: string; priceAtPurchase: any },
+    transactionId: string,
+  ) {
+    await paymentClient.releaseMembershipPending({
+      transactionId,
+      gymId: contract.gymId,
+      clientId: contract.clientId,
+      // Referral commission is never settled until activation succeeds (see the block above)
+      // — a membership that never activated has nothing sitting in a PT's pending bucket to
+      // touch, so there is no referral party to name here.
+      ptUserId: null,
+      refundToClient: String(contract.priceAtPurchase),
+      membershipStatus: 'PENDING_ISSUE',
+      label: `Membership ${contract.id} could not activate — gym unavailable`,
+      idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
+    });
+    await membershipRepository.cancelAfterRefund(contract.id);
+    await membershipRepository.markPayoutReleased(contract.id);
+
+    const withReferral = await membershipRepository.findByIdWithReferral(contract.id);
+    if (withReferral?.referral && withReferral.referral.status === 'PENDING') {
+      await referralRepository.markVoided(contract.id).catch(() => {});
+    }
+  },
+
+  /** The admin queue for a PENDING_ISSUE membership whose auto-refund kept failing past
+   * payment-service's own reconciliation-sweep retry budget. */
+  async listPendingIssues() {
+    return membershipRepository.listPendingIssues();
+  },
+
+  /** Admin-triggered manual retry of the exact same refund activateViaTransaction's retry
+   * branch attempts automatically — for the rare case a membership outlives payment-service's
+   * own retry budget (10 attempts, ~50 min) and needs a human to kick it again later. */
+  async resolvePendingIssueByAdmin(membershipId: string, adminId: string) {
+    const contract = await membershipRepository.findById(membershipId);
+    if (!contract) throw err('Membership not found', 404);
+    if (contract.status !== 'PENDING_ISSUE') throw err(`Membership is not PENDING_ISSUE (status ${contract.status})`, 409);
+    if (!contract.paymentTxnId) throw err('No payment transaction on record — cannot refund', 409);
+
+    await this.refundPendingIssue(contract, contract.paymentTxnId);
+    logger.info(`[Membership] Admin ${adminId} manually resolved PENDING_ISSUE membership ${membershipId}`);
+    return membershipRepository.findById(membershipId);
   },
 
   /** Called by the internal /cancel-after-refund endpoint — verifies both transactions first. */

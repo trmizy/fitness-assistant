@@ -286,9 +286,21 @@ export const availabilityService = {
     ptUserId: string,
     slots: { dayOfWeek: string; startTime: string; endTime: string }[],
   ) {
-    this.validateAvailabilityBlocks(slots);
+    // DAY_NAME_NORMALIZE exists precisely for this call site's real caller — pt_application.
+    // service.ts's saveDraft forwards data.availabilityBlocks straight from the PT application
+    // wizard, whose day <select> options are the abbreviated "Mon".."Sun" values (see
+    // PTApplicationPage.tsx's dayOptions) — never the full DayOfWeek enum names. Without
+    // normalizing here first, validateAvailabilityBlocks's `DAY_ORDER[slot.dayOfWeek]` lookup
+    // always misses on "Mon" and every draft save with any availability block set throws
+    // "Invalid day: Mon" — confirmed live while building an E2E test for this wizard; the
+    // step is required to submit, so this made every new PT application unsubmittable.
+    const normalized = slots.map((s) => ({
+      ...s,
+      dayOfWeek: DAY_NAME_NORMALIZE[s.dayOfWeek] ?? s.dayOfWeek,
+    }));
+    this.validateAvailabilityBlocks(normalized);
 
-    const typed = slots.map((s) => ({
+    const typed = normalized.map((s) => ({
       dayOfWeek: s.dayOfWeek as DayOfWeek,
       startTime: s.startTime,
       endTime: s.endTime,

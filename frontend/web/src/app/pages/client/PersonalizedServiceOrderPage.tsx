@@ -21,6 +21,7 @@ import { StarRating } from "../../components/StarRating";
  */
 
 const STATUS_LABEL: Record<PersonalizedServiceOrderStatus, string> = {
+  PENDING_PAYMENT: "Chờ xác nhận thanh toán",
   PURCHASED: "Đã mua",
   INTAKE_PENDING: "Chờ điền Intake",
   INTAKE_SUBMITTED: "Đã gửi Intake — chờ PT xem xét",
@@ -548,6 +549,17 @@ export function PersonalizedServiceOrderPage() {
         </span>
       </div>
 
+      {order.status === "PENDING_PAYMENT" && (
+        <div className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6 text-center space-y-2">
+          <Loader2 className="w-8 h-8 text-orange-400 animate-spin mx-auto" />
+          <p className="text-sm text-zinc-200 font-semibold">Đang chờ cổng thanh toán xác nhận</p>
+          <p className="text-xs text-zinc-500">
+            Nếu bạn đã thanh toán xong, trang này sẽ tự cập nhật trong ít giây. Nếu bạn đã đóng
+            trang thanh toán mà chưa trả tiền, hãy huỷ đơn bên dưới rồi mua lại.
+          </p>
+        </div>
+      )}
+
       {order.status === "INTAKE_PENDING" && (
         <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-4">
           <h2 className="text-sm font-bold text-zinc-200 mb-3">Điền thông tin Intake để PT bắt đầu cá nhân hóa</h2>
@@ -624,12 +636,15 @@ export function PersonalizedServiceOrderPage() {
         </div>
       )}
 
-      {["PURCHASED", "INTAKE_PENDING"].includes(order.status) && (
+      {/* Cancel-eligible set matches cancelOrder's server-side check exactly (PENDING_PAYMENT,
+          PURCHASED, INTAKE_PENDING, INTAKE_SUBMITTED — "PT chưa bắt đầu làm việc", §XXXII) —
+          keep in sync with personalized-service.service.ts#cancelOrder if that list changes. */}
+      {["PENDING_PAYMENT", "PURCHASED", "INTAKE_PENDING", "INTAKE_SUBMITTED"].includes(order.status) && (
         <button onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="w-full py-2 rounded-lg text-xs text-zinc-500 hover:text-red-400">
           Huỷ đơn
         </button>
       )}
-      {!["CANCELLED", "REFUNDED", "COMPLETED"].includes(order.status) && order.status !== "PURCHASED" && order.status !== "INTAKE_PENDING" && (
+      {!["PENDING_PAYMENT", "PURCHASED", "INTAKE_PENDING", "INTAKE_SUBMITTED", "CANCELLED", "REFUNDED", "COMPLETED"].includes(order.status) && (
         <button onClick={() => refundMutation.mutate()} disabled={refundMutation.isPending} className="w-full py-2 rounded-lg text-xs text-zinc-500 hover:text-amber-400">
           Yêu cầu hoàn tiền / Khiếu nại
         </button>

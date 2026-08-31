@@ -21,11 +21,16 @@ export const membershipRepository = {
    * gym" (money-flow plan §2.5/A2), which cancelled/expired history still counts against.
    */
   async hasEverHadMembershipAt(clientId: string, gymId: string): Promise<boolean> {
-    // Money-flow plan 3.8: PENDING_PAYMENT excluded — a client who clicked "buy" and
-    // abandoned checkout never actually purchased anything here, and must not permanently
-    // lose the referral-code eligibility of their real first purchase over it.
+    // Money-flow plan 3.8 / P0 cluster E3: checks paymentTxnId, not the current status.
+    // Checking `status !== 'PENDING_PAYMENT'` used to miss that a never-paid order does not
+    // STAY PENDING_PAYMENT forever — cancelIfPending (the client's own explicit cancel) and
+    // the pending-payment-expiry sweep (P0 E3) both move an order that was NEVER actually
+    // paid for into CANCELLED, the exact status this query already (correctly) treats as "a
+    // real purchase" for a genuinely-activated-then-cancelled membership. paymentTxnId is
+    // only ever set by activateIfPending — a real, confirmed payment — so it stays a reliable
+    // signal regardless of what status a never-paid order eventually lands in.
     const count = await prisma.gymMembershipContract.count({
-      where: { clientId, gymId, status: { not: 'PENDING_PAYMENT' } },
+      where: { clientId, gymId, paymentTxnId: { not: null } },
     });
     return count > 0;
   },
@@ -88,6 +93,28 @@ export const membershipRepository = {
     return prisma.gymMembershipContract.update({ where: { id }, data: { status: 'CANCELLED' } });
   },
 
+  /** P0 cluster E2 — idempotent: only flips PENDING_PAYMENT -> PENDING_ISSUE. A membership
+   * already PENDING_ISSUE (a retried webhook) or that moved on some other way returns as-is
+   * so the caller can tell whether IT was the one that just made the transition. Records
+   * paymentTxnId here (normally only set on real activation) so a later admin-triggered
+   * manual resolution has the transaction id to refund without needing it passed in again. */
+  async markPendingIssueIfPending(id: string, paymentTxnId: string) {
+    const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
+    if (!contract) return { affected: 0, contract: null };
+    if (contract.status !== 'PENDING_PAYMENT') return { affected: 0, contract };
+    const updated = await prisma.gymMembershipContract.update({ where: { id }, data: { status: 'PENDING_ISSUE', paymentTxnId } });
+    return { affected: 1, contract: updated };
+  },
+
+  /** The admin queue P0 cluster E2 leaves behind when an auto-refund itself failed. */
+  async listPendingIssues() {
+    return prisma.gymMembershipContract.findMany({
+      where: { status: 'PENDING_ISSUE' },
+      orderBy: { createdAt: 'asc' },
+      include: { gym: { select: { name: true, status: true } } },
+    });
+  },
+
   /** Idempotent: only cancels an ACTIVE membership (a repeat call after it's already CANCELLED is a no-op). */
   async cancelAfterRefund(id: string) {
     const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
@@ -140,6 +167,17 @@ export const membershipRepository = {
       data: { status: 'EXPIRED' },
     });
     return count;
+  },
+
+  /** P0 cluster E3 — PENDING_PAYMENT orders nobody ever paid for and nobody explicitly
+   * cancelled either, older than the given cutoff. */
+  async findStalePendingPayments(cutoff: Date, limit: number) {
+    return prisma.gymMembershipContract.findMany({
+      where: { status: 'PENDING_PAYMENT', createdAt: { lt: cutoff } },
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
   },
 
   /** EXPIRED memberships whose gym/platform/referral payout has not yet been released. */

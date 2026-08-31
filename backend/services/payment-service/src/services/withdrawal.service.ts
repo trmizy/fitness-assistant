@@ -75,7 +75,14 @@ export const withdrawalService = {
     if (!wallet) throw err('Ví không tồn tại', 404, 'WALLET_NOT_FOUND');
     if (wallet.status !== 'ACTIVE') throw err('Ví hiện không hoạt động', 409, 'WALLET_NOT_ACTIVE');
 
-    const alreadyOpen = await withdrawalRepository.sumOpenAmount(wallet.id);
+    // P0 cluster F: two different sums, on purpose. sumPendingAmount (PENDING only) is what
+    // is genuinely still sitting in availableBalance and not yet reserved anywhere — approve()
+    // now actually moves an APPROVED request's amount out to lockedBalance, so
+    // wallet.availableBalance already reflects that reduction on its own. sumOpenAmount
+    // (PENDING + APPROVED) stays reserved for the CLIENT branch below, whose formula is
+    // ledger-description-based rather than derived from availableBalance and so has no other
+    // way to know about an approved-but-unpaid request.
+    const pendingReserved = await withdrawalRepository.sumPendingAmount(wallet.id);
 
     let withdrawable: Prisma.Decimal;
     if (ownerType === 'CLIENT') {
@@ -85,13 +92,16 @@ export const withdrawalService = {
       // later without this check being revisited).
       const refundSourced = await withdrawalRepository.sumRefundSourcedCredits(wallet.id);
       const alreadyPaidOut = await withdrawalRepository.sumPaidAmount(wallet.id);
+      const alreadyOpen = await withdrawalRepository.sumOpenAmount(wallet.id);
       withdrawable = refundSourced.minus(alreadyPaidOut).minus(alreadyOpen);
     } else {
-      withdrawable = wallet.availableBalance.minus(alreadyOpen);
+      withdrawable = wallet.availableBalance.minus(pendingReserved);
     }
-    // Defensive floor regardless of branch — availableBalance is the hard ceiling no wallet
-    // can ever exceed withdrawing past, whatever the refund-sourced math above computed.
-    withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(alreadyOpen));
+    // Defensive floor regardless of branch — whatever is genuinely still sitting in
+    // availableBalance (net of still-PENDING requests) is the hard ceiling no wallet can ever
+    // exceed withdrawing past. An APPROVED request already left availableBalance for real
+    // (into lockedBalance), so it must not be subtracted here a second time.
+    withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved));
 
     if (amountDecimal.greaterThan(withdrawable)) {
       throw err(
@@ -122,15 +132,41 @@ export const withdrawalService = {
     return withdrawalRepository.listPending();
   },
 
+  /**
+   * P0 cluster F — approval now REALLY moves the money, AVAILABLE -> LOCKED, not just a
+   * status flip. Locked is a hard reservation: every other money-moving path in this service
+   * (a clawback, an admin refund, anything) only ever debits AVAILABLE by default (see
+   * wallet.service.ts's Bucket type and applyDebit's default parameter) — it structurally
+   * cannot reach LOCKED without explicitly naming that bucket, which nothing outside this
+   * file does. That is what makes an approved-for-payout amount actually safe from a later
+   * clawback eating into it, instead of the old purely-computed
+   * withdrawalRepository.sumOpenAmount reservation, which never moved anything and could be
+   * silently outrun by an unrelated debit running in the gap between approval and payout.
+   */
   async approve(id: string, adminId: string) {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status !== 'PENDING') {
       throw err(`Không thể duyệt yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
     }
-    return withdrawalRepository.updateStatus(id, 'APPROVED', { reviewedBy: adminId, reviewedAt: new Date() });
+
+    const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
+    return walletService.withWallets([request.walletId], payoutTxn.id, (ops) =>
+      withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
+        await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
+        await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
+        return ops.tx.withdrawalRequest.update({
+          where: { id },
+          data: { status: 'APPROVED', reviewedBy: adminId, reviewedAt: new Date() },
+        });
+      }),
+    );
   },
 
+  /** P0 cluster F — a request rejected AFTER approval had its money moved to LOCKED; that
+   * must come back to AVAILABLE here, or it stays stranded in LOCKED forever. A request
+   * rejected while still PENDING never had anything moved (see approve, above) — pure status
+   * flip, unchanged from before. */
   async reject(id: string, adminId: string, reason: string) {
     if (!reason?.trim()) throw err('Cần nêu lý do từ chối', 400, 'REASON_REQUIRED');
     const request = await withdrawalRepository.findById(id);
@@ -138,6 +174,18 @@ export const withdrawalService = {
     if (request.status === 'PAID') {
       throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
     }
+
+    if (request.status === 'APPROVED') {
+      const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
+      await walletService.withWallets([request.walletId], payoutTxn.id, (ops) =>
+        withIdempotentLedgerOp(ops, `WITHDRAWAL_UNLOCK:${request.id}`, async () => {
+          await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} rejected — restored from lock`, 'LOCKED');
+          await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} rejected — restored from lock`, 'AVAILABLE');
+          return { unlocked: request.amount.toFixed(2) };
+        }),
+      );
+    }
+
     return withdrawalRepository.updateStatus(id, 'REJECTED', {
       reviewedBy: adminId,
       reviewedAt: new Date(),
@@ -146,9 +194,15 @@ export const withdrawalService = {
   },
 
   /**
-   * The ONLY place money actually moves in this whole flow. `bankReference` is the paper
-   * trail for a transfer the admin ALREADY MADE manually, outside this system — this call
-   * records that it happened, it does not cause a payout to be sent.
+   * The ONLY place money actually LEAVES THE PLATFORM in this whole flow. `bankReference` is
+   * the paper trail for a transfer the admin ALREADY MADE manually, outside this system —
+   * this call records that it happened, it does not cause a payout to be sent.
+   *
+   * P0 cluster F: an admin may still go straight from PENDING to markPaid, skipping the
+   * separate approve() click (kept — this was already a supported, tested shortcut) — in that
+   * case the lock-then-pay move happens right here, in the same atomic operation, so the
+   * ledger trail ends up identical either way. If the request WAS approved earlier, that move
+   * already happened and this only needs to debit LOCKED.
    */
   async markPaid(id: string, adminId: string, bankReference: string) {
     if (!bankReference?.trim()) throw err('Cần mã tham chiếu ngân hàng', 400, 'BANK_REFERENCE_REQUIRED');
@@ -162,14 +216,22 @@ export const withdrawalService = {
     const escrowWallet = await walletService.getEscrowWallet();
 
     // withWallets' own applyDebit throws InsufficientBalanceError if the wallet's real
-    // availableBalance has somehow dropped below this amount since the request was made
-    // (e.g. an intervening clawback) — that failure surfaces to the admin rather than
-    // silently overdrawing the wallet. withIdempotentLedgerOp guards the debit itself: two
-    // concurrent markPaid calls serialize on the wallet's FOR UPDATE lock, and the loser
-    // finds this key already claimed and replays instead of debiting a second time.
+    // available/locked balance has somehow dropped below this amount since the request was
+    // made (e.g. an intervening clawback that outran a still-PENDING request that never got
+    // locked) — that failure surfaces to the admin rather than silently overdrawing the
+    // wallet. withIdempotentLedgerOp guards the debit itself: two concurrent markPaid calls
+    // serialize on the wallet's FOR UPDATE lock, and the loser finds this key already claimed
+    // and replays instead of debiting a second time.
     return walletService.withWallets([request.walletId, escrowWallet.id], payoutTxn.id, (ops) =>
       withIdempotentLedgerOp(ops, `WITHDRAWAL:${request.id}`, async () => {
-        await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} paid — ref ${bankReference.trim()}`);
+        if (request.status === 'PENDING') {
+          // Never explicitly approved — lock it now, in the same operation, so a request paid
+          // this way leaves the exact same ledger trail (a LOCK move followed by a LOCKED
+          // debit) as one that went through approve() first.
+          await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
+          await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
+        }
+        await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} paid — ref ${bankReference.trim()}`, 'LOCKED');
         // ESCROW.available is "every đồng taken in and not yet paid out" (reconcile.service.ts's
         // invariant doc comment) — the partner's own wallet debit above only reallocates a
         // *claim* on that cash between wallets, it never removes money from the platform. A

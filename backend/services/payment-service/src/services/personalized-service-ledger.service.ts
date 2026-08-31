@@ -1,345 +1,215 @@
 import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
-import { splitThreeWays, ZERO, ONE, type RateTable } from './contract-money';
 import { walletService } from './wallet.service';
+import { withIdempotentLedgerOp } from './ledger-idempotency';
+import { splitThreeWays, ZERO } from './contract-money';
 import { coverShortfall, recoverReceivables } from './contract-ledger.service';
-import { pendingRemainingForTxn } from './membership-ledger.service';
 
 /**
- * Escrow + milestone release for Personalized PT Service purchases (P1-FIN-001/002).
+ * P0 cluster C3 — escrow for Personalized PT Service orders (ai-service).
  *
- * Two parties only — PT and platform, no gym — so every split here is `splitThreeWays` with
- * `gymRate: ZERO`, reusing the exact same tested rounding/reconciliation rules the three-way
- * contract/membership splits already rely on, rather than a bespoke two-way formula.
+ * A deliberately small sibling of contract-ledger.service.ts, not a reuse of its PT-contract
+ * shaped functions: a personalized-service order has no totalSessions/usedSessions concept —
+ * it is one lump-sum price, held until the buyer accepts the delivered work (or the
+ * auto-accept sweep does, on their behalf, after the review window lapses) or refunded. Same
+ * underlying primitives (walletService.withWallets, withIdempotentLedgerOp,
+ * coverShortfall/recoverReceivables) — a different shape of formula.
  *
- * DELIBERATE: the seller's wallet stays `(CLIENT, sellerId)` — the SAME identity the pre-escrow
- * `wallet-transfer` path already used for Personalized Service, not `(PT, sellerId)`. The dev DB
- * already carries 1300+ personalized_service_orders paid through that CLIENT wallet; switching
- * identity now would strand every one of those payouts in a wallet this new refund/release code
- * never looks at. `recoverReceivables`'s `walletId` and `partnerType`/`partnerId` are independent
- * params — `partnerType: 'PT'` is used purely as the receivables-bookkeeping label here, decoupled
- * from which wallet row actually holds the balance.
+ * There is no `holdOrder` here: the "hold" step (price → escrow, PT/platform shares →
+ * PENDING) is exactly what the existing generic checkout + webhook pipeline already does for
+ * every gateway purchase (settleContractPayment, called from webhook.service.ts's
+ * settlePurchase) — personalized-service just needed to start using that pipeline instead of
+ * the old direct wallet-transfer (C2). Writing a second "hold" primitive here would duplicate
+ * that, not add anything.
  *
- * Direction of travel (same principle as contract-ledger.service.ts's header):
- *   hold    → ESCROW gains P; seller + platform PENDING gain their split of P
- *   release → PENDING falls, AVAILABLE rises for whichever party (ESCROW untouched — still held)
- *   refund  → PENDING falls first, then pooled AVAILABLE if PENDING is insufficient; buyer's
- *             AVAILABLE rises (ESCROW untouched — the claim on the held cash simply moves)
+ * No gym share: PersonalizedService has no gymId — every split here is PT vs platform only.
  */
 
-export type PersonalizedServiceMilestone =
-  | 'INTAKE_REVIEWED'
-  | 'DRAFT_DELIVERED'
-  | 'ACCEPTED'
-  | 'COMPLETED';
+export interface OrderParties {
+  ptUserId: string;
+  clientUserId: string;
+}
 
-// Confirmed release schedule (not a placeholder — product signed off on these exact numbers,
-// matching QA_REMAINING_ISSUES_PERSONALIZED_PT.md's illustrative table verbatim). COMPLETED has
-// no fixed fraction here on purpose: it drains whatever remains in PENDING instead of computing
-// its own 20% slice, so any rounding residue from the first three (independently-rounded) slices
-// cannot survive forever in PENDING — see releasePersonalizedServiceMilestone below.
-const MILESTONE_RELEASE_PCT: Record<Exclude<PersonalizedServiceMilestone, 'COMPLETED'>, Prisma.Decimal> = {
-  INTAKE_REVIEWED: new Prisma.Decimal('0.10'),
-  DRAFT_DELIVERED: new Prisma.Decimal('0.30'),
-  ACCEPTED: new Prisma.Decimal('0.40'),
-};
+export interface OrderRates {
+  ptRate: Prisma.Decimal;
+  platformRate: Prisma.Decimal;
+}
 
 interface ResolvedWallets {
-  escrowId: string;
   revenueId: string;
-  sellerId: string; // (CLIENT, sellerId) wallet — see header comment
-  buyerId?: string; // (CLIENT, buyerId) wallet — only resolved when a buyer is actually involved
+  ptId: string;
+  clientId: string;
   all: string[];
 }
 
-/** `buyerId` is optional: release/refund-summary paths never touch the buyer's wallet, and
- * resolving it anyway would create a stray wallet row for callers that pass no real buyer. */
-async function resolveWallets(params: { buyerId?: string; sellerId: string }): Promise<ResolvedWallets> {
-  const [escrow, revenue, seller, buyer] = await Promise.all([
-    walletService.getEscrowWallet(),
+async function resolveWallets(parties: OrderParties): Promise<ResolvedWallets> {
+  const [revenue, pt, client] = await Promise.all([
     walletService.getRevenueWallet(),
-    walletService.getOrCreateWallet('CLIENT', params.sellerId),
-    params.buyerId ? walletService.getOrCreateWallet('CLIENT', params.buyerId) : Promise.resolve(null),
+    walletService.getOrCreateWallet('PT', parties.ptUserId),
+    walletService.getOrCreateWallet('CLIENT', parties.clientUserId),
   ]);
-  const all = [escrow.id, revenue.id, seller.id];
-  if (buyer) all.push(buyer.id);
-  return {
-    escrowId: escrow.id,
-    revenueId: revenue.id,
-    sellerId: seller.id,
-    buyerId: buyer?.id,
-    all,
-  };
+  return { revenueId: revenue.id, ptId: pt.id, clientId: client.id, all: [revenue.id, pt.id, client.id] };
 }
 
-function ratesFor(commissionRate: Prisma.Decimal): RateTable {
-  return { ptRate: ONE.minus(commissionRate), platformRate: commissionRate, gymRate: ZERO };
-}
-
-export interface HoldResult {
-  escrowAfter: string;
-  pending: { seller: string; platform: string };
-}
-
-/**
- * The buyer paid: debit their existing wallet balance, move the whole price into custodial
- * ESCROW, and simultaneously attribute the PT/platform split to their PENDING buckets — nobody
- * can spend any of it yet. Mirrors contract-ledger.service.ts's settleContractPayment, except
- * the price comes from an existing wallet balance (debited here) rather than a fresh gateway
- * payment, so this function ALSO does the payer debit `transferInternal` would have done.
- *
- * Also writes a PlatformCommission row — not just bookkeeping. It is what lets
- * refundPersonalizedServiceHeld later read back the ACTUAL rate this specific order settled at
- * (via transactionRepository.findCommissionByTransactionId, the same lookup the existing generic
- * refund endpoint already relies on), instead of trusting whatever the commission-rate env var
- * happens to say by the time a refund is requested, possibly much later.
- */
-export async function holdPersonalizedServicePayment(params: {
-  transactionId: string;
-  price: Prisma.Decimal;
-  commissionRate: Prisma.Decimal;
-  buyerId: string;
-  sellerId: string;
-  label: string;
-}): Promise<HoldResult> {
-  const { transactionId, price, commissionRate, buyerId, sellerId, label } = params;
-  if (price.lessThanOrEqualTo(0)) throw new Error('price must be > 0');
-
-  const wallets = await resolveWallets({ buyerId, sellerId });
-  if (!wallets.buyerId) throw new Error('buyer wallet did not resolve'); // narrows for the closure below
-  const buyerWalletId = wallets.buyerId;
-  const rates = ratesFor(commissionRate);
-  const split = splitThreeWays(price, rates);
-
-  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
-    // Same compare-and-swap discipline as settleContractPayment/transferInternal: only the
-    // caller that actually flips the transaction to PAID may move money. A retried request
-    // (same transactionId) sees status already PAID and does nothing further.
-    const flipped = await ops.tx.paymentTransaction.updateMany({
-      where: { id: transactionId, status: { not: 'PAID' } },
-      data: { status: 'PAID', paidAt: new Date() },
-    });
-    if (flipped.count === 0) {
-      logger.info(`[PersonalizedServiceLedger] Transaction ${transactionId} already settled — skipping`);
-      return {
-        escrowAfter: ops.balance(wallets.escrowId, 'AVAILABLE').toFixed(2),
-        pending: {
-          seller: ops.balance(wallets.sellerId, 'PENDING').toFixed(2),
-          platform: ops.balance(wallets.revenueId, 'PENDING').toFixed(2),
-        },
-      };
-    }
-
-    await ops.debit(buyerWalletId, price, `${label} — payment`);
-    await ops.credit(wallets.escrowId, price, `${label} — received`);
-    if (split.pt.greaterThan(0)) await ops.credit(wallets.sellerId, split.pt, `${label} — PT share held`, 'PENDING');
-    if (split.platform.greaterThan(0)) {
-      await ops.credit(wallets.revenueId, split.platform, `${label} — platform share held`, 'PENDING');
-    }
-
-    await ops.tx.platformCommission.create({
-      data: {
-        paymentTransactionId: transactionId,
-        partnerType: 'PT',
-        partnerId: sellerId,
-        grossAmount: price,
-        platformFeeAmount: split.platform,
-        partnerPayoutAmount: split.pt,
-        commissionRate,
-        status: 'PENDING',
-      },
-    });
-
-    return {
-      escrowAfter: ops.balance(wallets.escrowId, 'AVAILABLE').toFixed(2),
-      pending: {
-        seller: ops.balance(wallets.sellerId, 'PENDING').toFixed(2),
-        platform: ops.balance(wallets.revenueId, 'PENDING').toFixed(2),
-      },
-    };
-  });
+function split(amount: Prisma.Decimal, rates: OrderRates) {
+  return splitThreeWays(amount, { ptRate: rates.ptRate, gymRate: ZERO, platformRate: rates.platformRate });
 }
 
 export interface ReleaseResult {
-  released: { seller: string; platform: string };
-  milestone: PersonalizedServiceMilestone;
+  released: { pt: string; platform: string };
 }
 
 /**
- * A milestone was reached: move that slice from PENDING to AVAILABLE for the seller and the
- * platform. Idempotency for which milestones have already fired lives in ai-service (the
- * milestone*ReleasedAt guard fields on PersonalizedServiceOrder — this function itself has no
- * way to know "has INTAKE_REVIEWED already paid out for this order" beyond what's left in
- * PENDING). As a second line of defense, `move()`'s clamp-to-available means a duplicate call
- * simply finds nothing left to move rather than ever overpaying.
- *
- * COMPLETED does not compute its own 20% — it drains whatever remains in PENDING for this
- * transactionId, so the three earlier (independently rounded-down) slices' residue always lands
- * with the final release rather than surviving in PENDING forever. Also the correct behavior for
- * legacy pre-escrow orders (zero PENDING throughout): every release, including COMPLETED, is a
- * harmless no-op — that PT was already paid in full immediately under the old wallet-transfer path.
+ * Step 2 of the lifecycle: the buyer accepted (or auto-accept did). The PT and platform's
+ * full pending share for this order becomes withdrawable. There is no partial-release
+ * concept — one order, one delivery, accepted or refunded as a whole — so this always moves
+ * everything still sitting in pending for the order's two parties.
  */
-export async function releasePersonalizedServiceMilestone(params: {
+export async function releaseOrder(params: {
   transactionId: string;
-  sellerId: string;
   price: Prisma.Decimal;
-  commissionRate: Prisma.Decimal;
-  milestone: PersonalizedServiceMilestone;
+  rates: OrderRates;
+  parties: OrderParties;
   label: string;
+  /** Business key `PERSONALIZED_RELEASE:<orderId>` — an order is only ever accepted once, so
+   * this key is stable across retries of the SAME acceptance (manual or auto-accept). */
+  idempotencyKey: string;
 }): Promise<ReleaseResult> {
-  const { transactionId, sellerId, price, commissionRate, milestone, label } = params;
-  const wallets = await resolveWallets({ sellerId }); // no buyer wallet involved in a release
-  const rates = ratesFor(commissionRate);
+  const { transactionId, price, rates, parties, label, idempotencyKey } = params;
+  const wallets = await resolveWallets(parties);
+  const shares = split(price, rates);
 
-  return walletService.withWallets([wallets.escrowId, wallets.revenueId, wallets.sellerId], transactionId, async (ops) => {
-    let slice: { pt: Prisma.Decimal; platform: Prisma.Decimal };
-    if (milestone === 'COMPLETED') {
-      const sellerPending = await pendingRemainingForTxn(ops, wallets.sellerId, transactionId);
-      const platformPending = await pendingRemainingForTxn(ops, wallets.revenueId, transactionId);
-      slice = { pt: sellerPending, platform: platformPending };
-    } else {
-      const pct = MILESTONE_RELEASE_PCT[milestone];
-      slice = splitThreeWays(price.mul(pct).toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN), rates);
-    }
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const move = async (
+        walletId: string,
+        amount: Prisma.Decimal,
+        who: string,
+        debtor?: { partnerType: 'PT'; partnerId: string },
+      ): Promise<Prisma.Decimal> => {
+        if (amount.lessThanOrEqualTo(0)) return ZERO;
+        const held = ops.balance(walletId, 'PENDING');
+        const moving = held.lessThan(amount) ? held : amount;
+        if (moving.lessThanOrEqualTo(0)) {
+          logger.warn(`[PersonalizedServiceLedger] ${who} pending bucket empty for ${label} — nothing to release`);
+          return ZERO;
+        }
+        await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
+        await ops.credit(walletId, moving, `${label} — order accepted`, 'AVAILABLE');
+        if (debtor) {
+          await recoverReceivables({ ops, walletId, revenueWalletId: wallets.revenueId, ...debtor, justCredited: moving, label });
+        }
+        return moving;
+      };
 
-    const move = async (walletId: string, amount: Prisma.Decimal, who: 'PT' | 'PLATFORM') => {
-      if (amount.lessThanOrEqualTo(0)) return ZERO;
-      const available = ops.balance(walletId, 'PENDING');
-      const moving = available.lessThan(amount) ? available : amount;
-      if (moving.lessThanOrEqualTo(0)) {
-        logger.warn(`[PersonalizedServiceLedger] ${who} pending bucket empty for ${label} (${milestone}) — nothing to release`);
-        return ZERO;
-      }
-      await ops.debit(walletId, moving, `${label} — ${milestone} release`, 'PENDING');
-      await ops.credit(walletId, moving, `${label} — ${milestone} earned`, 'AVAILABLE');
-      if (who === 'PT') {
-        await recoverReceivables({
-          ops,
-          walletId,
-          revenueWalletId: wallets.revenueId,
-          partnerType: 'PT',
-          partnerId: sellerId,
-          justCredited: moving,
-          label,
-        });
-      }
-      return moving;
-    };
+      const pt = await move(wallets.ptId, shares.pt, 'PT', { partnerType: 'PT', partnerId: parties.ptUserId });
+      const platform = await move(wallets.revenueId, shares.platform, 'platform');
 
-    const releasedPt = await move(wallets.sellerId, slice.pt, 'PT');
-    const releasedPlatform = await move(wallets.revenueId, slice.platform, 'PLATFORM');
-
-    return {
-      milestone,
-      released: { seller: releasedPt.toFixed(2), platform: releasedPlatform.toFixed(2) },
-    };
-  });
+      return { released: { pt: pt.toFixed(2), platform: platform.toFixed(2) } };
+    }),
+  );
 }
 
 export interface RefundResult {
-  refunded: string;
-  drawnFrom: { sellerPending: string; sellerAvailable: string; platformPending: string; platformAvailable: string };
+  refund: string;
+  clawedBack: { pt: string; platform: string };
   shortfall: string;
 }
 
 /**
- * An admin approved a refund. Charges the seller and the platform in proportion to the ACTUAL
- * commission rate this order settled at (read off the PlatformCommission row written at hold
- * time — never today's env-var default, which may have changed since), drawing PENDING first
- * (money not yet earned) and then pooled AVAILABLE (already-released money — see
- * contract-ledger.service.ts's compensateNoShow for the same two-bucket precedent; there is no
- * withdrawal feature yet, so pooled AVAILABLE is always still reachable within this ledger). Any
- * true gap is fronted by the platform and booked as a PT receivable via coverShortfall, same as
- * every other shortfall path in this system.
+ * Hands the client back `refundAmount`.
  *
- * The refundable CEILING (priceAtPurchase − cumulativeRefundedAmount) is enforced by the caller
- * (ai-service's adminResolveRefund) before this is ever called — this function's job is only to
- * move the money correctly, not to re-derive that business ceiling.
+ * Pulls first from whatever the PT and platform still hold in PENDING for this order — the
+ * common case: cancelled or refunded before acceptance, when nothing has been released yet
+ * (P0 cluster C4). If that is not enough — the order was already accepted and its money
+ * released to AVAILABLE, or an earlier partial refund already drained pending (C5) — claws
+ * back the rest from AVAILABLE. If even that falls short (the PT has already withdrawn),
+ * the platform fronts it and books a PartnerReceivable against the PT via coverShortfall,
+ * exactly like a PT-contract termination shortfall — the client is always made whole; the
+ * PT's debt is recovered out of their future earnings via recoverReceivables (releaseOrder,
+ * above). A shortfall on the PLATFORM's own share has nowhere further to go (the platform
+ * cannot owe itself) and is reported back as `shortfall` — an operational alarm, not
+ * something this function can resolve on its own.
+ *
+ * Escrow does not move: the cash never left the platform, only whose claim on it changed.
  */
-export async function refundPersonalizedServiceHeld(params: {
+export async function refundOrder(params: {
   transactionId: string;
-  sellerId: string;
-  buyerId: string;
   refundAmount: Prisma.Decimal;
-  commissionRate: Prisma.Decimal;
+  rates: OrderRates;
+  parties: OrderParties;
   label: string;
+  /** Business key `PERSONALIZED_REFUND:<orderId>:<refundAmount>` — amount-scoped (not just
+   * `<orderId>`) because, like the pre-existing generic-refund path this replaces, an order
+   * can be partially refunded more than once (adminResolveRefund's ceiling-tracked partial
+   * approvals). A stable per-order key would make every refund after the first a no-op
+   * replay of the first amount instead of a real second movement. */
+  idempotencyKey: string;
 }): Promise<RefundResult> {
-  const { transactionId, sellerId, buyerId, refundAmount, commissionRate, label } = params;
+  const { transactionId, refundAmount, rates, parties, label, idempotencyKey } = params;
   if (refundAmount.lessThanOrEqualTo(0)) throw new Error('refundAmount must be > 0');
+  const wallets = await resolveWallets(parties);
+  const shares = split(refundAmount, rates);
 
-  const wallets = await resolveWallets({ buyerId, sellerId });
-  if (!wallets.buyerId) throw new Error('buyer wallet did not resolve'); // narrows for the closure below
-  const buyerWalletId = wallets.buyerId;
-  const rates = ratesFor(commissionRate);
-  const owed = splitThreeWays(refundAmount, rates);
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const clawedBack = { pt: ZERO, platform: ZERO };
+      let shortfall = ZERO;
 
-  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
-    const drawn = { sellerPending: ZERO, sellerAvailable: ZERO, platformPending: ZERO, platformAvailable: ZERO };
-    let shortfall = ZERO;
+      const clawback = async (
+        walletId: string,
+        amount: Prisma.Decimal,
+        key: 'pt' | 'platform',
+        debtor?: { partnerType: 'PT'; partnerId: string },
+      ) => {
+        if (amount.lessThanOrEqualTo(0)) return;
+        let remaining = amount;
 
-    const charge = async (
-      walletId: string,
-      amount: Prisma.Decimal,
-      pendingKey: 'sellerPending' | 'platformPending',
-      availableKey: 'sellerAvailable' | 'platformAvailable',
-    ) => {
-      if (amount.lessThanOrEqualTo(0)) return;
-      let outstanding = amount;
-      const pendingForTxn = await pendingRemainingForTxn(ops, walletId, transactionId);
-      const fromPending = pendingForTxn.lessThan(outstanding) ? pendingForTxn : outstanding;
-      if (fromPending.greaterThan(0)) {
-        await ops.debit(walletId, fromPending, `${label} — refund drawn from held funds`, 'PENDING');
-        drawn[pendingKey] = fromPending;
-        outstanding = outstanding.minus(fromPending);
-      }
-      if (outstanding.greaterThan(0)) {
-        const availHeld = ops.balance(walletId, 'AVAILABLE');
-        const fromAvail = availHeld.lessThan(outstanding) ? availHeld : outstanding;
-        if (fromAvail.greaterThan(0)) {
-          await ops.debit(walletId, fromAvail, `${label} — refund clawed back from released funds`, 'AVAILABLE');
-          drawn[availableKey] = fromAvail;
-          outstanding = outstanding.minus(fromAvail);
+        const pending = ops.balance(walletId, 'PENDING');
+        const fromPending = pending.lessThan(remaining) ? pending : remaining;
+        if (fromPending.greaterThan(0)) {
+          await ops.debit(walletId, fromPending, `${label} — refund funded from pending`, 'PENDING');
+          clawedBack[key] = clawedBack[key].plus(fromPending);
+          remaining = remaining.minus(fromPending);
         }
+        if (remaining.lessThanOrEqualTo(0)) return;
+
+        const available = ops.balance(walletId, 'AVAILABLE');
+        const fromAvailable = available.lessThan(remaining) ? available : remaining;
+        if (fromAvailable.greaterThan(0)) {
+          await ops.debit(walletId, fromAvailable, `${label} — refund clawed back from available`, 'AVAILABLE');
+          clawedBack[key] = clawedBack[key].plus(fromAvailable);
+          remaining = remaining.minus(fromAvailable);
+        }
+        if (remaining.lessThanOrEqualTo(0)) return;
+
+        if (debtor) {
+          await coverShortfall(ops, wallets.revenueId, remaining, {
+            partnerType: debtor.partnerType,
+            partnerId: debtor.partnerId,
+            reason: `${label} — refund shortfall`,
+            transactionId,
+          });
+          clawedBack[key] = clawedBack[key].plus(remaining);
+        } else {
+          shortfall = shortfall.plus(remaining);
+        }
+      };
+
+      await clawback(wallets.ptId, shares.pt, 'pt', { partnerType: 'PT', partnerId: parties.ptUserId });
+      await clawback(wallets.revenueId, shares.platform, 'platform');
+
+      await ops.credit(wallets.clientId, refundAmount, `${label} — refund`);
+
+      if (shortfall.greaterThan(0)) {
+        logger.error(`[PersonalizedServiceLedger] ${label}: platform revenue itself came up ${shortfall.toString()} short covering a refund — needs manual attention`);
       }
-      shortfall = shortfall.plus(outstanding);
-    };
 
-    await charge(wallets.sellerId, owed.pt, 'sellerPending', 'sellerAvailable');
-    await charge(wallets.revenueId, owed.platform, 'platformPending', 'platformAvailable');
-
-    await ops.credit(buyerWalletId, refundAmount, `${label} — refund`);
-
-    if (shortfall.greaterThan(0)) {
-      await coverShortfall(ops, wallets.revenueId, shortfall, {
-        partnerType: 'PT',
-        partnerId: sellerId,
-        reason: `Personalized Service refund shortfall (${label})`,
-        transactionId,
-      });
-    }
-
-    return {
-      refunded: refundAmount.toFixed(2),
-      drawnFrom: {
-        sellerPending: drawn.sellerPending.toFixed(2),
-        sellerAvailable: drawn.sellerAvailable.toFixed(2),
-        platformPending: drawn.platformPending.toFixed(2),
-        platformAvailable: drawn.platformAvailable.toFixed(2),
-      },
-      shortfall: shortfall.toFixed(2),
-    };
-  });
-}
-
-/** Read-only summary for admin UI / getRefundCalculation — no side effects. */
-export async function getPersonalizedServiceLedgerSummary(params: {
-  transactionId: string;
-  sellerId: string;
-}): Promise<{ held: { seller: string; platform: string } }> {
-  const wallets = await resolveWallets({ sellerId: params.sellerId });
-  return walletService.withWallets([wallets.sellerId, wallets.revenueId], `read:${params.transactionId}`, async (ops) => {
-    const seller = await pendingRemainingForTxn(ops, wallets.sellerId, params.transactionId);
-    const platform = await pendingRemainingForTxn(ops, wallets.revenueId, params.transactionId);
-    return { held: { seller: seller.toFixed(2), platform: platform.toFixed(2) } };
-  });
+      return {
+        refund: refundAmount.toFixed(2),
+        clawedBack: { pt: clawedBack.pt.toFixed(2), platform: clawedBack.platform.toFixed(2) },
+        shortfall: shortfall.toFixed(2),
+      };
+    }),
+  );
 }

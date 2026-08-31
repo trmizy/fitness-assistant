@@ -776,6 +776,12 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
       GYM_SERVICE_URL: http://gym-service:3006
       USER_SERVICE_URL: http://user-service:3004
+      # P0 cluster C2/C3: personalized-service purchase now goes through the same generic
+      # checkout+webhook pipeline PT_CONTRACT/GYM_MEMBERSHIP already use — needs this to tell
+      # ai-service to activate an order once payment is confirmed. Without it, a Personalized
+      # Service purchase's webhook settles the money correctly but the order itself is stuck
+      # PENDING_PAYMENT forever (ECONNREFUSED against localhost:3003 inside the container).
+      AI_SERVICE_URL: http://ai-service:3003
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
       TOPUP_STALE_MINUTES: ${TOPUP_STALE_MINUTES:-60}
       # Sandbox gateways only — the MOCK provider was removed. This is just the fallback

@@ -5,6 +5,7 @@ import app from './app';
 import { prisma } from './repositories/prisma';
 import { logger } from '@gym-coach/shared';
 import { startMembershipPayoutSweep } from './services/membershipPayout.sweep';
+import { startReferralSettlementSweepJob } from './services/referral-settlement-sweep.service';
 
 const PORT = process.env.PORT || 3006;
 
@@ -13,6 +14,9 @@ async function startServer() {
     app.listen(PORT, () => {
       logger.info(`Gym Service running on port ${PORT}`);
       startMembershipPayoutSweep();
+      // P0 cluster E4 — retries a referral commission settlement that failed on its first
+      // attempt after activation. See referral-settlement-sweep.service.ts.
+      startReferralSettlementSweepJob();
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

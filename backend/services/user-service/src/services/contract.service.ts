@@ -19,6 +19,7 @@ import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
+import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
 import { auditService } from "./audit.service";
 import { terminateContractMoney } from "./contract-payout.service";
@@ -754,13 +755,21 @@ export const contractService = {
     const contracts = await contractRepository.findByPT(ptUserId, s);
     if (contracts.length === 0) return contracts;
 
-    const profileMap = await counterpartyProfiles(
-      contracts.map((c) => c.clientUserId),
-    );
+    const clientIds = contracts.map((c) => c.clientUserId);
+    const [profileMap, ratingMap] = await Promise.all([
+      counterpartyProfiles(clientIds),
+      // Lets a PT reviewing a PENDING_REVIEW request see how this client behaved with OTHER
+      // PTs before — the counterpart to a client already seeing a PT's rating up front.
+      clientReviewRepository.aggregateForClients(clientIds),
+    ]);
 
     return contracts.map((c) => ({
       ...c,
       clientProfile: profileMap.get(c.clientUserId) ?? null,
+      clientRating: ratingMap.get(c.clientUserId) ?? {
+        avgRating: null,
+        ratingCount: 0,
+      },
     }));
   },
 
@@ -1015,12 +1024,44 @@ export const contractService = {
   },
 
   // ── Expire overdue contracts ───────────────────────────────────────
+  /**
+   * P0 cluster A3: a contract past its endDate used to just flip to EXPIRED with zero money
+   * movement — whatever was still sitting in the three parties' pending buckets for
+   * never-booked sessions stayed there forever, and the reconciliation invariant kept holding
+   * (escrow still equalled the sum of claims) but nobody could actually withdraw that value:
+   * the PT/gym's claim was real yet unreachable, since nothing had released it out of pending.
+   *
+   * Policy decision (confirmed with the user rather than invented): natural expiry ALWAYS
+   * settles as 'EXPIRED' (zero refund to the client) — a PT-caused no-show is already
+   * compensated in cash the moment it happens via compensateNoShowMoney/compensatedSessions,
+   * not deferred to whenever the contract eventually lapses, so there is no separate
+   * "PT-caused expiry" case left to distinguish here.
+   *
+   * Each contract is settled independently, same discipline as ptDeactivationService — one
+   * failure (payment-service unreachable, bad data) must not stop the rest of the sweep from
+   * expiring the contracts that ARE settleable.
+   *
+   * Deliberately NOT wrapped in settleTracked (unlike the sweep-retried session-level
+   * settlements): findExpiredContracts() re-queries "still ACTIVE, endDate already passed"
+   * fresh on every tick, so a contract whose termination fails this tick is simply
+   * rediscovered and retried the next tick — no separate tracking row is needed, and
+   * terminateContractMoney's own stable `CONTRACT_TERMINATE:<contractId>` key already makes a
+   * retry safe against double settlement.
+   */
   async expireContracts() {
     const expired = await contractRepository.findExpiredContracts();
     let count = 0;
     for (const c of expired) {
-      await contractRepository.updateStatus(c.id, ContractStatus.EXPIRED);
-      count++;
+      try {
+        await terminateContractMoney(c.id, "EXPIRED");
+        count++;
+      } catch (e) {
+        logger.error({
+          error: "Failed to settle an expired contract's money",
+          contractId: c.id,
+          message: (e as Error).message,
+        });
+      }
     }
     return count;
   },

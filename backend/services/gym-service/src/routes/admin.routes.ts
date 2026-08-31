@@ -16,4 +16,9 @@ router.patch('/gyms/:id/status', asyncHandler(gymController.setStatus));
 // which forfeits the unused portion.
 router.post('/gym-memberships/:id/refund', asyncHandler(membershipController.refundByAdmin));
 
+// P0 cluster E2 — memberships whose auto-refund kept failing past payment-service's own
+// activation-retry budget; a human resolves them from here.
+router.get('/gym-memberships/pending-issues', asyncHandler(membershipController.listPendingIssues));
+router.post('/gym-memberships/:id/resolve-pending-issue', asyncHandler(membershipController.resolvePendingIssue));
+
 export default router;

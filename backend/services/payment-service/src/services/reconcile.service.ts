@@ -5,7 +5,7 @@ import { PLATFORM_ESCROW_ID, PLATFORM_REVENUE_ID } from './wallet.service';
 /**
  * The system-wide money invariant.
  *
- *   ESCROW.available = Σ (pending + available) over every non-ESCROW wallet
+ *   ESCROW.available = Σ (pending + available + locked) over every non-ESCROW wallet
  *
  * ESCROW is custodial: it is the single account holding all cash taken in through the
  * gateways and not yet paid out. Every other wallet is a *claim* on that cash — a PT's
@@ -19,6 +19,11 @@ import { PLATFORM_ESCROW_ID, PLATFORM_REVENUE_ID } from './wallet.service';
  * omitting the platform's own claim leaves a permanent shortfall of exactly the commission.
  * REVENUE is included here instead, and stays included until a payout debits both it and
  * ESCROW — the same way a PT withdrawal does.
+ *
+ * P0 cluster F — locked included: a withdrawal request approval moves money AVAILABLE ->
+ * LOCKED (still someone's claim, just reserved for an imminent payout), not out of the
+ * platform's custody — only the actual payout (markPaid's escrow debit) does that. Omitting
+ * `locked` here would make every approval look like a drift of exactly the approved amount.
  */
 export interface ReconciliationReport {
   escrow: string;
@@ -29,13 +34,15 @@ export interface ReconciliationReport {
     clientBalances: string;
     ptPending: string;
     ptAvailable: string;
+    ptLocked: string;
     gymPending: string;
     gymAvailable: string;
+    gymLocked: string;
     platformRevenuePending: string;
     platformRevenueAvailable: string;
   };
   /** Wallets whose balances have gone negative — always a bug, never expected. */
-  negativeWallets: { id: string; ownerType: string; ownerId: string; available: string; pending: string }[];
+  negativeWallets: { id: string; ownerType: string; ownerId: string; available: string; pending: string; locked: string }[];
 }
 
 interface SumRow {
@@ -43,6 +50,7 @@ interface SumRow {
   owner_id: string;
   pending: string | null;
   available: string | null;
+  locked: string | null;
 }
 
 export async function buildReconciliationReport(): Promise<ReconciliationReport> {
@@ -50,7 +58,8 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
     SELECT owner_type,
            CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END AS owner_id,
            SUM(pending_balance)::text   AS pending,
-           SUM(available_balance)::text AS available
+           SUM(available_balance)::text AS available,
+           SUM(locked_balance)::text    AS locked
     FROM wallets
     GROUP BY owner_type, CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END`;
 
@@ -60,6 +69,7 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
     return {
       pending: new Prisma.Decimal(r?.pending ?? 0),
       available: new Prisma.Decimal(r?.available ?? 0),
+      locked: new Prisma.Decimal(r?.locked ?? 0),
     };
   };
 
@@ -69,22 +79,22 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
   const revenue = pick('PLATFORM', PLATFORM_REVENUE_ID);
   const escrowRow = pick('PLATFORM', PLATFORM_ESCROW_ID);
 
-  // A client wallet only ever holds refunds, and those are withdrawable, but count both
-  // buckets so an accidental pending credit shows up as a claim rather than as drift.
+  // A client wallet only ever holds refunds, and those are withdrawable, but count all three
+  // buckets so an accidental pending/locked credit shows up as a claim rather than as drift.
   const claims = zero
-    .plus(client.pending).plus(client.available)
-    .plus(pt.pending).plus(pt.available)
-    .plus(gym.pending).plus(gym.available)
-    .plus(revenue.pending).plus(revenue.available);
+    .plus(client.pending).plus(client.available).plus(client.locked)
+    .plus(pt.pending).plus(pt.available).plus(pt.locked)
+    .plus(gym.pending).plus(gym.available).plus(gym.locked)
+    .plus(revenue.pending).plus(revenue.available).plus(revenue.locked);
 
   const escrow = escrowRow.available;
   const drift = escrow.minus(claims);
 
   const negativeRows = await prisma.$queryRaw<
-    { id: string; owner_type: string; owner_id: string; available_balance: string; pending_balance: string }[]
-  >`SELECT id, owner_type, owner_id, available_balance, pending_balance
+    { id: string; owner_type: string; owner_id: string; available_balance: string; pending_balance: string; locked_balance: string }[]
+  >`SELECT id, owner_type, owner_id, available_balance, pending_balance, locked_balance
       FROM wallets
-     WHERE available_balance < 0 OR pending_balance < 0`;
+     WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0`;
 
   return {
     escrow: escrow.toFixed(2),
@@ -92,11 +102,13 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
     drift: drift.toFixed(2),
     balanced: drift.isZero(),
     breakdown: {
-      clientBalances: client.available.plus(client.pending).toFixed(2),
+      clientBalances: client.available.plus(client.pending).plus(client.locked).toFixed(2),
       ptPending: pt.pending.toFixed(2),
       ptAvailable: pt.available.toFixed(2),
+      ptLocked: pt.locked.toFixed(2),
       gymPending: gym.pending.toFixed(2),
       gymAvailable: gym.available.toFixed(2),
+      gymLocked: gym.locked.toFixed(2),
       platformRevenuePending: revenue.pending.toFixed(2),
       platformRevenueAvailable: revenue.available.toFixed(2),
     },
@@ -106,6 +118,7 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
       ownerId: r.owner_id,
       available: r.available_balance,
       pending: r.pending_balance,
+      locked: r.locked_balance,
     })),
   };
 }

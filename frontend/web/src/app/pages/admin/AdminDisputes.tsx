@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Gavel, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, Gavel, Loader2, UserX, X } from "lucide-react";
 import { adminService } from "../../services/api";
 import type { Session } from "../../types";
 
@@ -26,7 +26,7 @@ function formatDateTime(iso: string) {
 export function AdminDisputes() {
   const queryClient = useQueryClient();
   const [rulingId, setRulingId] = useState<string | null>(null);
-  const [rulingAction, setRulingAction] = useState<"COMPLETED" | "CANCELLED" | null>(null);
+  const [rulingAction, setRulingAction] = useState<"COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED" | null>(null);
   const [note, setNote] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -36,7 +36,7 @@ export function AdminDisputes() {
   const sessions: Session[] = data ?? [];
 
   const resolveMutation = useMutation({
-    mutationFn: ({ id, resolution, note }: { id: string; resolution: "COMPLETED" | "CANCELLED"; note: string }) =>
+    mutationFn: ({ id, resolution, note }: { id: string; resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED"; note: string }) =>
       adminService.resolveSessionDispute(id, resolution, note),
     onSuccess: () => {
       toast.success("Đã phân xử khiếu nại");
@@ -48,7 +48,7 @@ export function AdminDisputes() {
     onError: (error: any) => toast.error(error?.response?.data?.error || "Không thể phân xử"),
   });
 
-  const openRuling = (sessionId: string, action: "COMPLETED" | "CANCELLED") => {
+  const openRuling = (sessionId: string, action: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED") => {
     setRulingId(sessionId);
     setRulingAction(action);
     setNote("");
@@ -114,8 +114,20 @@ export function AdminDisputes() {
                 <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3">
                   <p className="text-xs text-zinc-400 mb-2">
                     Kết luận:{" "}
-                    <span className={rulingAction === "COMPLETED" ? "text-blue-400 font-bold" : "text-red-400 font-bold"}>
-                      {rulingAction === "COMPLETED" ? "Buổi tập ĐÃ diễn ra — trừ quota, PT được trả tiền" : "Buổi tập KHÔNG diễn ra — không trừ quota"}
+                    <span
+                      className={
+                        rulingAction === "COMPLETED"
+                          ? "text-blue-400 font-bold"
+                          : rulingAction === "PT_NO_SHOW_CONFIRMED"
+                            ? "text-amber-400 font-bold"
+                            : "text-red-400 font-bold"
+                      }
+                    >
+                      {rulingAction === "COMPLETED"
+                        ? "Buổi tập ĐÃ diễn ra — trừ quota, PT được trả tiền"
+                        : rulingAction === "PT_NO_SHOW_CONFIRMED"
+                          ? "Xác nhận PT vắng mặt — bồi thường khách bằng tiền, KHÔNG trừ buổi (giống PT tự nhận vắng)"
+                          : "Buổi tập KHÔNG diễn ra — không trừ quota"}
                     </span>
                   </p>
                   <textarea
@@ -144,12 +156,19 @@ export function AdminDisputes() {
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => openRuling(s.id, "COMPLETED")}
                     className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
                     <Check className="w-3.5 h-3.5" /> Buổi tập đã diễn ra
+                  </button>
+                  <button
+                    onClick={() => openRuling(s.id, "PT_NO_SHOW_CONFIRMED")}
+                    className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    title="Xác nhận khiếu nại của khách là đúng — PT thực sự đã vắng mặt. Bồi thường khách bằng tiền, buổi tập KHÔNG bị trừ, giống hệt khi PT tự nhận vắng."
+                  >
+                    <UserX className="w-3.5 h-3.5" /> Xác nhận PT vắng mặt
                   </button>
                   <button
                     onClick={() => openRuling(s.id, "CANCELLED")}

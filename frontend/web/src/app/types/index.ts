@@ -167,6 +167,9 @@ export interface Contract {
   ptProfile?: ContractPartyProfile | null;
   /** Attached on `/contracts/pt` — who the client is. */
   clientProfile?: ContractPartyProfile | null;
+  /** Attached on `/contracts/pt` — this client's aggregate rating from OTHER PTs' past
+   * sessions with them (ClientReview, the mirror-image of a PT's own SessionReview rating). */
+  clientRating?: { avgRating: number | null; ratingCount: number };
 }
 
 // ── Session types ────────────────────────────────────────────────
@@ -224,6 +227,8 @@ export interface Session {
   createdAt: string;
   updatedAt: string;
   review?: SessionReview;
+  /** Mirror-image of `review` — the PT's rating of the client for this session, if given. */
+  clientReview?: ClientReview;
   rescheduleRequests?: SessionRescheduleRequest[];
 }
 
@@ -232,6 +237,17 @@ export interface SessionReview {
   sessionId: string;
   contractId: string;
   clientUserId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+/** Mirror-image of SessionReview — the PT rates the client instead of the client rating the PT. */
+export interface ClientReview {
+  id: string;
+  sessionId: string;
+  contractId: string;
+  ptUserId: string;
   rating: number;
   comment?: string;
   createdAt: string;

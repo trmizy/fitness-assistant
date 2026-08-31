@@ -406,6 +406,13 @@ model PersonalizedService {
 }
 
 enum PersonalizedServiceOrderStatus {
+  // P0 cluster C2/C3: payment now goes through gateway checkout (like PT_CONTRACT /
+  // GYM_MEMBERSHIP), not an instant wallet-to-wallet transfer — an order exists in the DB
+  // before the gateway confirms payment. PURCHASED itself is never actually persisted as an
+  // observed state by the new flow (activation moves PENDING_PAYMENT straight to
+  // INTAKE_PENDING, exactly mirroring the old code's own synchronous behavior) — kept in the
+  // enum only because existing code (cancelOrder's allowed-status list) still names it.
+  PENDING_PAYMENT
   PURCHASED
   INTAKE_PENDING
   INTAKE_SUBMITTED
@@ -433,7 +440,7 @@ model PersonalizedServiceOrder {
   serviceId String                         @map("service_id")
   sellerId  String                         @map("seller_id")
   buyerId   String                         @map("buyer_id")
-  status    PersonalizedServiceOrderStatus @default(PURCHASED)
+  status    PersonalizedServiceOrderStatus @default(PENDING_PAYMENT)
 
   // ── Snapshot of the service's terms at purchase time ────────────────────
   titleSnapshot               String                  @map("title_snapshot")
@@ -444,31 +451,28 @@ model PersonalizedServiceOrder {
   initialDeliveryDaysSnapshot Int                     @map("initial_delivery_days_snapshot")
   supportWeeksSnapshot        Int?                    @map("support_weeks_snapshot")
 
-  // ── Payment — P1-FIN-001/002: real escrow via
-  // personalized-service-ledger.service.ts (payment-service). purchaseService
-  // holds the price in custodial ESCROW + PT/platform PENDING instead of
-  // crediting AVAILABLE immediately; the milestone*ReleasedAt fields below
-  // record each real release as it happens. (Superseded §XXXIV note: this
-  // used to say "no fabricated escrow, see final report" — payment-service's
-  // existing escrow/PENDING mechanism, already used by PT_CONTRACT/
-  // GYM_MEMBERSHIP, is now wired to Personalized Service too. Orders
-  // purchased before this shipped never went through the hold and have
-  // nothing in PENDING — see personalized-service-ledger.service.ts's
-  // header comment for why that degrades safely rather than incorrectly.) ─
-  priceAtPurchase      Float    @map("price_at_purchase")
-  paymentTransactionId String?  @map("payment_transaction_id")
-  purchasedAt          DateTime @default(now()) @map("purchased_at")
-
-  // ── Milestone-based release (P1-FIN-002) — stamped by
-  // personalized-service.service.ts right after each real payment-service
-  // release call succeeds. Two jobs: (1) the idempotency guard for
-  // deliverDraft, which fires on every revision redelivery but must only
-  // release DRAFT_DELIVERED's 30% once; (2) an honest audit trail for
-  // getRefundCalculation, independent of payment-service's own ledger.
-  milestoneIntakeReleasedAt    DateTime? @map("milestone_intake_released_at")
-  milestoneDraftReleasedAt     DateTime? @map("milestone_draft_released_at")
-  milestoneAcceptedReleasedAt  DateTime? @map("milestone_accepted_released_at")
-  milestoneCompletedReleasedAt DateTime? @map("milestone_completed_released_at")
+  // ── Payment (P0 cluster C2/C3) — real gateway checkout + escrow, same pipeline
+  // PT_CONTRACT/GYM_MEMBERSHIP use: the price sits in the PT's and platform's PENDING
+  // buckets from payment until the buyer accepts (or refunds before then), never available
+  // to withdraw in between. Rates are snapshotted here at checkout — the same immutable-once-
+  // signed discipline Contract.platformRate/ptRate already follows — so a later change to the
+  // platform's default commission rate cannot retroactively change an in-flight order's
+  // split. paymentTransactionId is set at checkout (before the gateway confirms), since
+  // release/refund need it regardless of confirmation timing. ─────────────────────────────
+  priceAtPurchase      Float     @map("price_at_purchase")
+  platformRateSnapshot Float     @map("platform_rate_snapshot")
+  ptRateSnapshot       Float     @map("pt_rate_snapshot")
+  paymentTransactionId String?   @map("payment_transaction_id")
+  purchasedAt          DateTime  @default(now()) @map("purchased_at")
+  /// Set once releaseOrder has actually moved the PT/platform's pending share to available
+  /// (buyer accepted, or the auto-accept sweep did on their behalf). Money-flow only — never
+  /// gates business logic, which always re-derives from payment-service's real wallet state.
+  releasedAt           DateTime? @map("released_at")
+  /// Drives the auto-accept sweep (mirrors Session.clientConfirmDeadline in user-service): a
+  /// PT must not wait forever on a buyer who never responds to a delivered draft. Set when the
+  /// order enters DRAFT_DELIVERED, cleared on any transition out of it (accepted, revision
+  /// requested, refunded, disputed).
+  autoAcceptDeadline   DateTime? @map("auto_accept_deadline")
 
   // ── Intake + consent (§XIII/§XIV) — free-form JSON: the intake form's
   // shape (body/goal/experience/training/health/lifestyle/nutrition/InBody
@@ -544,6 +548,9 @@ model PersonalizedServiceOrder {
   @@index([sellerId])
   @@index([serviceId])
   @@index([status])
+  // Drives the auto-accept sweep, which repeatedly asks for exactly this pair (mirrors
+  // Session's [status, clientConfirmDeadline] index in user-service).
+  @@index([status, autoAcceptDeadline])
   @@map("personalized_service_orders")
 }
 

@@ -6,6 +6,7 @@ import {
   SessionMode,
   ContractStatus,
   DayOfWeek,
+  Prisma,
 } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
 import { contractRepository } from "../repositories/contract.repository";
@@ -15,7 +16,7 @@ import {
 } from "./contract-payout.service";
 import { resolveSessionOutcome } from "./session-outcome";
 import { availabilityRepository } from "../repositories/availability.repository";
-import { profileRepository } from "../repositories/profile.repository";
+import { profileRepository, prisma } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService, getRemainingEntitlements } from "./contract.service";
 import { auditService } from "./audit.service";
@@ -97,12 +98,20 @@ async function assertSlotBookable(
   startAt: Date,
   endAt: Date,
   excludeSessionId?: string,
+  db?: Prisma.TransactionClient,
 ): Promise<void> {
+  // P0 cluster H2: db (when passed) threads through ONLY to the conflict check — the one
+  // part of this function that needs to run on the SAME connection currently holding the
+  // per-PT advisory lock, so its result is atomic with the write that follows it. The
+  // availability/exception reads below are read-only, slow-changing data — no correctness
+  // reason to route them through the transaction too.
   const conflict = await sessionRepository.findConflict(
     ptUserId,
     startAt,
     endAt,
     excludeSessionId,
+    undefined,
+    db,
   );
   if (conflict) throw err("Khung giờ này trùng với một buổi tập khác", 409);
 
@@ -132,6 +141,33 @@ async function assertSlotBookable(
   dayEnd.setHours(23, 59, 59, 999);
   const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
   if (exceptions.length > 0) throw err("Huấn luyện viên nghỉ vào ngày này", 400);
+}
+
+/**
+ * P0 cluster B2 — serializes concurrent writes that could otherwise both pass a check before
+ * either commits (the classic TOCTOU double-booking race): two clients booking the same PT's
+ * time slot, or two bookings against the same contract both squeezing under the quota limit.
+ *
+ * `pg_advisory_xact_lock` is transaction-scoped — released automatically at commit or
+ * rollback — so this needs no schema change or new migration. Locking on the PT's id
+ * serializes every booking-affecting write for that PT regardless of which contract it goes
+ * through; the optional contractId additionally serializes the quota check for one specific
+ * contract. `hashtext` maps the id to a 32-bit lock key — a collision between two unrelated
+ * PTs only costs a little unnecessary serialization, never a correctness bug, since the real
+ * checks still run (for real, against post-lock committed data) inside the lock either way.
+ */
+async function withPtScheduleLock<T>(
+  ptUserId: string,
+  contractId: string | null,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${ptUserId}))`;
+    if (contractId) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${contractId}))`;
+    }
+    return fn(tx);
+  });
 }
 
 export const bookingService = {
@@ -178,15 +214,6 @@ export const bookingService = {
       }
     }
 
-    // Check session limit: consumed (used + PT-no-show compensated) + pending/confirmed must
-    // stay below the immutable purchased count (money-flow plan 1.5 — see
-    // getRemainingEntitlements for why this can no longer just compare usedSessions).
-    const activeSessionCount =
-      await sessionRepository.countActiveByContract(contractId);
-    if (getRemainingEntitlements(contract) <= activeSessionCount) {
-      throw err("Session limit reached for this contract", 400);
-    }
-
     // Parse datetime. Money-flow plan 3.4: duration comes ONLY from the contract's own
     // frozen snapshot, never the request body — a client calling the API directly used to be
     // able to book e.g. 180 minutes against a package sold as 60.
@@ -210,16 +237,6 @@ export const bookingService = {
     // Check contract date range
     if (contract.endDate && startAt > contract.endDate) {
       throw err("Session date is past the contract end date", 400);
-    }
-
-    // Check for PT time conflict
-    const conflict = await sessionRepository.findConflict(
-      contract.ptUserId,
-      startAt,
-      endAt,
-    );
-    if (conflict) {
-      throw err("This time slot conflicts with another session", 409);
     }
 
     // Check PT availability. Money-flow plan 3.5: a PT who never published a weekly schedule
@@ -263,15 +280,44 @@ export const bookingService = {
       }
     }
 
-    const session = await sessionRepository.create({
-      contractId,
-      clientUserId,
-      ptUserId: contract.ptUserId,
-      sessionMode: (data.sessionMode as SessionMode) || SessionMode.OFFLINE,
-      scheduledStartAt: startAt,
-      scheduledEndAt: endAt,
-      location: data.location,
-      notes: data.notes,
+    // P0 cluster B1 + B2: the session-limit check and the PT time-conflict check both have to
+    // run again right here, inside the same lock as the create — everything validated above
+    // (dates, PT availability, blocked days) is static/slow-changing and does not need to be
+    // re-checked under lock, but "how many active sessions does this contract have" and "does
+    // the PT already have something in this slot" can both change between two concurrent
+    // requests. Without the lock, two requests can each read the pre-write count/conflict
+    // state, both see room, and both create — one contract oversold, or the PT double-booked.
+    const session = await withPtScheduleLock(contract.ptUserId, contractId, async (tx) => {
+      const activeSessionCount = await sessionRepository.countActiveByContract(contractId, tx);
+      if (getRemainingEntitlements(contract) <= activeSessionCount) {
+        throw err("Session limit reached for this contract", 400);
+      }
+
+      const conflict = await sessionRepository.findConflict(
+        contract.ptUserId,
+        startAt,
+        endAt,
+        undefined,
+        undefined,
+        tx,
+      );
+      if (conflict) {
+        throw err("This time slot conflicts with another session", 409);
+      }
+
+      return sessionRepository.create(
+        {
+          contractId,
+          clientUserId,
+          ptUserId: contract.ptUserId,
+          sessionMode: (data.sessionMode as SessionMode) || SessionMode.OFFLINE,
+          scheduledStartAt: startAt,
+          scheduledEndAt: endAt,
+          location: data.location,
+          notes: data.notes,
+        },
+        tx,
+      );
     });
 
     // Notify PT
@@ -341,6 +387,14 @@ export const bookingService = {
     if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
     if (session.status !== SessionStatus.CONFIRMED) {
       throw err(`Cannot complete session in ${session.status} status`, 400);
+    }
+    // P0 cluster B3: "completed" means the whole session happened — gated on scheduledEndAt
+    // (not scheduledStartAt), unlike the no-show checks below, which only need to establish
+    // that the moment someone was due to arrive has passed. Nothing enforced this before: a
+    // PT could report a session delivered seconds after confirming it, well before any actual
+    // training took place.
+    if (session.scheduledEndAt.getTime() > Date.now()) {
+      throw err("Chưa tới giờ kết thúc buổi tập — chưa thể báo hoàn thành", 400);
     }
 
     const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
@@ -434,21 +488,60 @@ export const bookingService = {
   },
 
   // ── Admin rules on a disputed session ───────────────────────────
+  /**
+   * P0 cluster B5: a DISPUTED session can arrive here from either direction —
+   * disputeSession (client disputes what the PT reported as delivered) or
+   * respondToNoShowReport's DENY branch (PT denies a client's no-show report). The first
+   * direction only ever needed COMPLETED/CANCELLED. The second needed a third outcome:
+   * confirming the client was right settles exactly like markNoShow's PT-self-admit branch
+   * (cash compensation, quota untouched) — CANCELLED alone left the client uncompensated for
+   * a PT absence an admin had just confirmed really happened, the same session's value a
+   * self-admitted no-show always pays out simply vanishing depending on which path got there.
+   */
   async resolveDispute(
     sessionId: string,
     adminId: string,
-    resolution: "COMPLETED" | "CANCELLED",
+    resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED",
     note: string,
   ) {
     if (!note?.trim()) throw err("Resolution note is required", 400);
-    if (resolution !== "COMPLETED" && resolution !== "CANCELLED") {
-      throw err("Resolution must be COMPLETED or CANCELLED", 400);
+    if (resolution !== "COMPLETED" && resolution !== "CANCELLED" && resolution !== "PT_NO_SHOW_CONFIRMED") {
+      throw err("Resolution must be COMPLETED, CANCELLED, or PT_NO_SHOW_CONFIRMED", 400);
     }
 
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Session not found", 404);
     if (session.status !== SessionStatus.DISPUTED) {
       throw err(`Session is not disputed (status ${session.status})`, 400);
+    }
+
+    if (resolution === "PT_NO_SHOW_CONFIRMED") {
+      const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.NO_SHOW, {
+        resolvedBy: adminId,
+        resolutionNote: note.trim(),
+        resolvedAt: new Date(),
+        ptNotes: "Quản trị viên xác nhận huấn luyện viên vắng mặt",
+      });
+
+      // Same settlement markNoShow's PT-self-admit branch uses — cash compensation, charged
+      // to the three parties in proportion, the client's quota never touched.
+      await compensateNoShowMoney(session.contractId, sessionId);
+      await contractService.checkAndCompleteContract(session.contractId);
+
+      for (const userId of [session.clientUserId, session.ptUserId]) {
+        await notificationService
+          .create({
+            userId,
+            text: "Quản trị viên xác nhận huấn luyện viên vắng mặt — khách được hoàn tiền một buổi, buổi tập không bị trừ",
+            eventType: "SESSION_DISPUTE_RESOLVED",
+            entityType: "SESSION",
+            entityId: sessionId,
+            link: userId === session.clientUserId ? "/client/wallet" : "/pt/schedule",
+          })
+          .catch(() => {});
+      }
+
+      return { ...updated, quotaDeducted: false };
     }
 
     // Only a COMPLETED ruling costs the client a session.
@@ -621,6 +714,13 @@ export const bookingService = {
         400,
       );
     }
+    // P0 cluster B4: reportPtNoShow (the client-reports-PT-no-show direction) has always
+    // gated on scheduledStartAt — this direction (PT reports the client, or admits their own
+    // absence) never did, so a PT could mark a client no-show for a session that had not
+    // happened yet. Same field, same cutoff, for consistency with that existing check.
+    if (session.scheduledStartAt.getTime() > Date.now()) {
+      throw err("Chưa tới giờ buổi tập — chưa thể báo vắng mặt", 400);
+    }
 
     const isClientNoShow = noShowBy === "CLIENT";
 
@@ -787,6 +887,36 @@ export const bookingService = {
     });
   },
 
+  /** Mirror-image of reviewSession: the PT rates the CLIENT's conduct for a completed
+   *  session, instead of the client rating the PT. */
+  async reviewClient(
+    sessionId: string,
+    ptUserId: string,
+    rating: number,
+    comment?: string,
+  ) {
+    if (rating < 1 || rating > 5)
+      throw err("Rating must be between 1 and 5", 400);
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.COMPLETED) {
+      throw err("Can only review completed sessions", 400);
+    }
+    if (session.clientReview) {
+      throw err("Session already reviewed", 409);
+    }
+
+    return sessionRepository.createClientReview({
+      sessionId,
+      contractId: session.contractId,
+      ptUserId,
+      rating,
+      comment,
+    });
+  },
+
   // ── Get sessions for a contract ─────────────────────────────────
   async getContractSessions(contractId: string, userId: string) {
     const contract = await contractRepository.findById(contractId);
@@ -884,7 +1014,10 @@ export const bookingService = {
     userId: string,
     data: {
       proposedStartAt: string;
-      proposedEndAt: string;
+      // P0 cluster H1: kept accepted-but-ignored on the input type only so a stale client
+      // still sending it does not fail request validation — the actual end time is always
+      // server-computed below, never read from here.
+      proposedEndAt?: string;
       reason: string;
     }
   ) {
@@ -932,16 +1065,21 @@ export const bookingService = {
     }
 
     const proposedStart = new Date(data.proposedStartAt);
-    const proposedEnd = new Date(data.proposedEndAt);
-    if (isNaN(proposedStart.getTime()) || isNaN(proposedEnd.getTime())) {
+    if (isNaN(proposedStart.getTime())) {
       throw err("Thời gian đề xuất không hợp lệ", 400);
-    }
-    if (proposedStart >= proposedEnd) {
-      throw err("Giờ bắt đầu phải trước giờ kết thúc", 400);
     }
     if (proposedStart <= now) {
       throw err("Thời gian đề xuất phải ở tương lai", 400);
     }
+
+    // P0 cluster H1: duration comes ONLY from the contract's own frozen snapshot, never the
+    // request body — exactly the same discipline bookSession already follows (money-flow
+    // plan 3.4). A direct-API caller used to be able to propose e.g. a 180-minute session
+    // against a package sold as 60, by simply naming a different proposedEndAt.
+    const contract = await contractRepository.findById(session.contractId);
+    if (!contract) throw err("Contract not found", 404);
+    const durationMin = contract.sessionDurationMinutes ?? 60;
+    const proposedEnd = new Date(proposedStart.getTime() + durationMin * 60 * 1000);
 
     // The proposed slot has to survive the SAME checks a fresh booking does. Skipping this
     // was the real hole: a reschedule could put the trainer in two places at once, or outside
@@ -1082,31 +1220,37 @@ export const bookingService = {
     }
 
     if (action === "ACCEPT") {
-      // Money-flow plan 3.2: requestReschedule checked this SLOT was free at proposal time,
-      // but nothing re-checked it here — between the proposal and the accept, another session
-      // could have taken it, giving the PT two sessions at once with no error anywhere. Must
-      // run before either write below, so a conflict leaves the request PENDING and the
-      // session's time untouched, exactly as if this had failed at proposal time.
-      await assertSlotBookable(
-        session.ptUserId,
-        request.proposedStartAt,
-        request.proposedEndAt,
-        session.id,
-      );
+      // Money-flow plan 3.2 / P0 cluster H2: requestReschedule checked this SLOT was free at
+      // proposal time, but that check-then-write gap is the EXACT same race B2 closed for
+      // booking itself — two concurrent accepts (or an accept racing a fresh booking) could
+      // both pass the conflict check before either commits. Runs inside the same per-PT
+      // advisory lock bookSession uses: the conflict re-check and both writes below are now
+      // one atomic unit, not three separate statements a concurrent call can interleave with.
+      await withPtScheduleLock(session.ptUserId, null, async (tx) => {
+        await assertSlotBookable(
+          session.ptUserId,
+          request.proposedStartAt,
+          request.proposedEndAt,
+          session.id,
+          tx,
+        );
 
-      await sessionRepository.updateRescheduleRequestStatus(
-        requestId,
-        "ACCEPTED",
-        responseNote
-      );
-      await sessionRepository.updateStatus(
-        session.id,
-        SessionStatus.CONFIRMED,
-        {
-          scheduledStartAt: request.proposedStartAt,
-          scheduledEndAt: request.proposedEndAt,
-        }
-      );
+        await sessionRepository.updateRescheduleRequestStatus(
+          requestId,
+          "ACCEPTED",
+          responseNote,
+          tx,
+        );
+        await sessionRepository.updateStatus(
+          session.id,
+          SessionStatus.CONFIRMED,
+          {
+            scheduledStartAt: request.proposedStartAt,
+            scheduledEndAt: request.proposedEndAt,
+          },
+          tx,
+        );
+      });
     } else {
       await sessionRepository.updateRescheduleRequestStatus(
         requestId,

@@ -236,8 +236,13 @@ export interface NoShowResult {
  * that value back off the three parties in proportion — the platform gives back its
  * commission too, since it earned nothing on a session that never happened.
  *
- * The caller must also drop the contract's totalSessions by one. Compensating the client AND
- * leaving the quota in place would hand them the same session's value twice.
+ * The caller must also increment the contract's compensatedSessions by one — never decrement
+ * totalSessions (that number, and price, are immutable once the contract is signed; see
+ * money-flow plan 1.5). Compensating the client AND leaving the entitlement uncounted would
+ * hand them the same session's value twice: once as cash here, once again as an unused
+ * session when the contract later settles or terminates. remainingValue() and
+ * computeTermination() in contract-money.ts are what actually subtract compensatedSessions
+ * back out of "still owed."
  */
 export async function compensateNoShow(params: {
   transactionId: string;
@@ -366,9 +371,16 @@ export async function coverShortfall(
  * Partial recovery is normal — a large debt is worked off over several sessions. The row
  * only settles when `recovered` reaches `amount`.
  *
- * Not yet interacting with withdrawal requests: money-flow §15 rules that recovery outranks
- * a pending withdrawal, but WithdrawalRequest does not exist yet (VĐ1). When it does, the
- * check belongs here, before the debit.
+ * Withdrawal requests (VĐ1) now exist, and P0 cluster F gave `WalletLedgerV2` a third bucket
+ * (`LOCKED`) for exactly this reason: once a withdrawal is `approve()`d, its amount is moved
+ * OUT of AVAILABLE into LOCKED, so this function's `ops.balance(walletId, 'AVAILABLE')` read
+ * can no longer touch it — an approved-but-not-yet-paid withdrawal is structurally safe from
+ * a clawback that lands afterward. The still-open gap is narrower than the old comment above
+ * implied: a withdrawal that is only *requested* (still PENDING, still sitting in AVAILABLE)
+ * has no reservation yet, so a same-moment recovery can still shrink the balance a pending
+ * request expects to draw from — `requestWithdrawal`/`approve()` do not re-check against an
+ * in-flight receivable. Money-flow §15 rules that recovery should outrank a pending request
+ * in that case; the check, if added, belongs in `withdrawal.service.ts#approve()`, not here.
  */
 export async function recoverReceivables(params: {
   ops: LedgerOps;
@@ -451,6 +463,10 @@ export async function terminateContract(params: {
   price: Prisma.Decimal;
   totalSessions: number;
   usedSessions: number;
+  /** Cụm A1 — sessions consumed via cash compensation (a PT no-show), not by being trained.
+   * Must reach computeTermination or the value of an already-compensated session is handed
+   * back to the client a second time on cancellation. Defaults to 0. */
+  compensatedSessions?: number;
   rates: RateTable;
   reason: TerminationReason;
   /** Already moved to each party's available bucket, session by session. */
@@ -461,9 +477,9 @@ export async function terminateContract(params: {
    * first call's result instead of settling the contract a second time (plan 1.1). */
   idempotencyKey: string;
 }): Promise<TerminationLedgerResult> {
-  const { transactionId, price, totalSessions, usedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey } = params;
+  const { transactionId, price, totalSessions, usedSessions, compensatedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey } = params;
 
-  const outcome = computeTermination({ price, totalSessions, usedSessions, rates }, reason);
+  const outcome = computeTermination({ price, totalSessions, usedSessions, compensatedSessions, rates }, reason);
   const wallets = await resolveWallets(parties);
   assertGymConsistency(wallets, outcome.entitlement.gym);
 
