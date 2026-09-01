@@ -293,6 +293,18 @@ const checkoutSchema = z.object({
   sourceService: z.string().min(1),
   provider: z.enum(['VNPAY', 'MOMO', 'ZALOPAY', 'PAYOS']).optional(),
   orderInfo: z.string().optional(),
+  // Which return-URL the gateway's own return handler should send the payer's browser to
+  // once it has settled the transaction — 'mobile' → the app's `fitnessassistant://` deep
+  // link (already has a listener, see AppContext.tsx's appUrlOpen), 'web' (default) → the
+  // existing FRONTEND_URL web result page. Persisted on the transaction now because by the
+  // time the gateway calls back, the original request (and its Origin header) is long gone.
+  platform: z.enum(['web', 'mobile']).optional(),
+  // The gateway's own x-public-base-url, forwarded all the way down (see app.ts in the
+  // gateway) — whatever host:port the payer's app/browser actually dialed to start this
+  // checkout. Only VNPay reads it (its own return handler lives on THIS service, behind
+  // whatever door the request came through — LAN IP, 10.0.2.2, or a cloudflared tunnel);
+  // ZaloPay/PayOS redirect straight to `platform`'s destination without a hop back here.
+  returnBaseUrl: z.string().url().optional(),
 });
 
 /**
@@ -361,6 +373,8 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
       transactionId: txnId,
       amount: Math.round(d.amount),
       orderInfo: d.orderInfo ?? `${d.purpose} ${d.relatedEntityId}`,
+      platform: d.platform,
+      returnBaseUrl: d.returnBaseUrl,
     });
 
     const txn = await transactionRepository.create({
@@ -389,6 +403,7 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
         parties: { ptUserId: d.parties.ptUserId, gymId: d.parties.gymId ?? null, clientUserId: d.parties.clientUserId },
         redirectUrl: intent.redirectUrl,
         qrCodeUrl: intent.qrCodeUrl,
+        platform: d.platform ?? 'web',
       } as Prisma.InputJsonValue,
     });
 

@@ -38,6 +38,7 @@ export class ZaloPayProvider implements PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
+    platform?: 'web' | 'mobile';
   }): Promise<PaymentIntentResult> {
     const { transactionId, amount, orderInfo } = params;
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -48,7 +49,10 @@ export class ZaloPayProvider implements PaymentProvider {
     // and persist it as providerTransactionId so callback/query always match.
     const appTransId = `${yymmdd(new Date())}_${transactionId.replace(/-/g, '').slice(0, 20)}`;
     const appTime = Date.now();
-    const embedData = JSON.stringify({ redirecturl: `${FRONTEND_URL}/client/payments/result?txnId=${transactionId}` });
+    // Unlike VNPay (which comes back through this service's own /vnpay/return first), ZaloPay
+    // redirects straight to whatever URL is embedded here — has to be the right one already.
+    const returnBase = params.platform === 'mobile' ? 'fitnessassistant://client' : `${FRONTEND_URL}/client`;
+    const embedData = JSON.stringify({ redirecturl: `${returnBase}/payments/result?txnId=${transactionId}` });
     const item = '[]';
     const appUser = 'gymcoach';
 

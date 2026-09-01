@@ -27,6 +27,11 @@ export class MoMoProvider implements PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
+    // MoMo is still deferred (no configured creds, no public IPN tunnel — see
+    // project_payment_gateways memory), so `platform` is accepted for interface
+    // conformance only; REDIRECT is not yet made platform-aware like VNPay/ZaloPay/PayOS.
+    platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<PaymentIntentResult> {
     const { transactionId, amount, orderInfo, extraData = '' } = params;
     const requestId = transactionId;

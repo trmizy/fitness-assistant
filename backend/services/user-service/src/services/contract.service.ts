@@ -1174,7 +1174,9 @@ export const contractService = {
    * has split the price into escrow and the parties' pending buckets. Nothing here touches
    * money — that would mean trusting the browser's word for it.
    */
-  async pay(contractId: string, clientUserId: string, provider?: string) {
+  async pay(
+    contractId: string, clientUserId: string, provider?: string, platform?: "web" | "mobile", returnBaseUrl?: string,
+  ) {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.clientUserId !== clientUserId)
@@ -1212,6 +1214,8 @@ export const contractService = {
       initiatedBy: clientUserId,
       provider,
       orderInfo: `Hop dong PT ${contract.packageName}`.slice(0, 100),
+      platform,
+      returnBaseUrl,
     });
 
     return {

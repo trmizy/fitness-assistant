@@ -70,8 +70,10 @@ export const paymentClient = {
     idempotencyKey: string;
     provider?: string;
     orderInfo?: string;
+    platform?: "web" | "mobile";
+    returnBaseUrl?: string;
   }): Promise<CheckoutResult> {
-    const platform = Number(params.platformRate);
+    const platformRateNum = Number(params.platformRate);
     try {
       const { data } = await axios.post(
         `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
@@ -80,13 +82,15 @@ export const paymentClient = {
           relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE",
           relatedEntityId: params.orderId,
           amount: params.amount,
-          rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4), gymRate: "0" },
+          rates: { platformRate: params.platformRate, ptRate: (1 - platformRateNum).toFixed(4), gymRate: "0" },
           parties: { ptUserId: params.sellerId, clientUserId: params.buyerId },
           idempotencyKey: params.idempotencyKey,
           initiatedBy: params.buyerId,
           sourceService: "ai-service",
           provider: params.provider,
           orderInfo: params.orderInfo,
+          platform: params.platform,
+          returnBaseUrl: params.returnBaseUrl,
         },
         { headers, timeout: 20_000 },
       );

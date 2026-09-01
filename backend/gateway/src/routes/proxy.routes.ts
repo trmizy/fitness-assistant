@@ -2331,6 +2331,22 @@ router.post(
   }),
 );
 
+// VNPay's own return-URL handler (no auth — this is VNPay redirecting the payer's browser
+// back, not an authenticated app call; the query string is itself signature-verified inside
+// payment-service). Previously reachable only by hitting payment-service's port 3007
+// directly — fine on the same LAN, unreachable through the tunnel, which only forwards port
+// 3000. Proxying it here means the SAME tunneled gateway URL now doubles as the return
+// address (see app.ts's x-public-base-url, threaded into VNPAY_RETURN_URL at checkout time).
+router.get(
+  '/payments/vnpay/return',
+  createProxyMiddleware({ target: PAYMENT_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Payment service') }),
+);
+// Same reachability reasoning, for VNPAY_SIMULATE=true's local stand-in checkout page.
+router.get(
+  '/payments/vnpay/sim',
+  createProxyMiddleware({ target: PAYMENT_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Payment service') }),
+);
+
 // Withdrawal self-service (money-flow plan 5.3) — PT or CLIENT, payment-service infers which
 // wallet from the caller's role via the gateway-injected x-user-role header.
 router.use(

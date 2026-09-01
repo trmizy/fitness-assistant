@@ -42,6 +42,25 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// Whatever host:port the caller actually dialed to reach US, right now — the LAN IP on the
+// same WiFi, `10.0.2.2` from inside an emulator, or a Cloudflare quick-tunnel's ever-changing
+// `https://xxxx.trycloudflare.com` (see Khoi-dong-Tunnel.bat). A payment gateway's own
+// return-URL has to be reachable by whichever browser the payer ends up completing checkout
+// in, and that browser only ever knows to come back through the SAME door it went out —
+// hardcoding one value in `.env` (what this used to do) works for exactly one of those at a
+// time. `trust proxy` isn't set — cloudflared terminates TLS and forwards plain HTTP
+// internally — so the real scheme comes from its own X-Forwarded-Proto, not req.protocol.
+// Consumed by ai-service/gym-service/user-service's own `detectPlatform`-adjacent checkout
+// controllers, same forwarding pattern as x-gateway-secret above.
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(",")[0]?.trim() || req.protocol;
+  const host = req.get("host");
+  delete req.headers["x-public-base-url"]; // never trust a client-supplied value, same rule as x-user-*
+  if (host) req.headers["x-public-base-url"] = `${proto}://${host}`;
+  next();
+});
+
 app.use(rateLimiter);
 app.use(metricsMiddleware());
 

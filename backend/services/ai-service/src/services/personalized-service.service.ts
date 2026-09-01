@@ -262,7 +262,9 @@ export const personalizedServiceService = {
    * caller must send the buyer to `payment.redirectUrl` (or show `payment.qrCodeUrl`), same
    * shape as gym-service's membershipService.purchase.
    */
-  async purchaseService(serviceId: string, buyerId: string, provider?: string) {
+  async purchaseService(
+    serviceId: string, buyerId: string, provider?: string, platform?: "web" | "mobile", returnBaseUrl?: string,
+  ) {
     const service = await prisma.personalizedService.findFirst({ where: { id: serviceId, status: "ACTIVE" } });
     if (!service) throw new ApiError("PERSONALIZED_SERVICE_NOT_FOUND", "Service not found or no longer for sale", 404);
     if (service.sellerId === buyerId) {
@@ -304,6 +306,8 @@ export const personalizedServiceService = {
       idempotencyKey,
       provider,
       orderInfo: `Personalized service ${order.id}`.slice(0, 100),
+      platform,
+      returnBaseUrl,
     });
 
     const updated = await prisma.personalizedServiceOrder.update({

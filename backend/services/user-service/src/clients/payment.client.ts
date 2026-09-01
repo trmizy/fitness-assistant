@@ -38,6 +38,8 @@ export const paymentClient = {
     initiatedBy: string;
     provider?: string;
     orderInfo?: string;
+    platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<CheckoutResult> {
     try {
       const { data } = await axios.post(
@@ -54,6 +56,8 @@ export const paymentClient = {
           sourceService: 'user-service',
           provider: params.provider,
           orderInfo: params.orderInfo,
+          platform: params.platform,
+          returnBaseUrl: params.returnBaseUrl,
         },
         { headers, timeout: 20_000 },
       );

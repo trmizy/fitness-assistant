@@ -83,7 +83,16 @@ router.get('/vnpay/return', async (req: Request, res: Response) => {
     logger.error({ error: '[VNPayReturn] processing failed', txnRef, message: (err as Error).message });
   }
 
-  const target = `${FRONTEND_URL}/client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`;
+  // Send the payer's browser to the right home: the app's own deep link if this checkout
+  // started on mobile (see checkoutSchema's `platform` in internal.routes.ts — persisted on
+  // the transaction at create time, since by now the original request is long gone), the web
+  // result page otherwise. Never trust `uiStatus` here either way — both destinations re-ask
+  // the server via POST /me/payments/:id/sync before showing anything.
+  const txn = await transactionRepository.findById(txnRef).catch(() => null);
+  const platform = (txn?.metadata as Record<string, unknown> | null)?.platform === 'mobile' ? 'mobile' : 'web';
+  const target = platform === 'mobile'
+    ? `fitnessassistant://client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`
+    : `${FRONTEND_URL}/client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`;
   return res.redirect(302, target);
 });
 

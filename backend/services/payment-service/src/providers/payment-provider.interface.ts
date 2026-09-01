@@ -59,6 +59,13 @@ export interface PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
+    /** 'mobile' → the app's own `fitnessassistant://` deep link (only ZaloPay/PayOS read
+     *  this directly — they embed their own return URL into the gateway request itself,
+     *  unlike VNPay, which goes back through this service's own /vnpay/return first and
+     *  picks its final redirect from the transaction's stored metadata instead). */
+    platform?: 'web' | 'mobile';
+    /** Only VNPay reads this — see internal.routes.ts's checkoutSchema for what it is. */
+    returnBaseUrl?: string;
   }): Promise<PaymentIntentResult>;
 
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult;

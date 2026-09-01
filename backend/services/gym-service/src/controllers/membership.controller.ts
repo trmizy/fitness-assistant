@@ -2,6 +2,18 @@ import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
 
+// See the identical helper's comment in ai-service/controllers/personalized-service.controller.ts
+// — same signal (Capacitor's fixed `http://localhost` WebView origin), same purpose (pick the
+// gateway return-URL), duplicated rather than shared because backend/shared isn't hot-reloaded.
+function detectPlatform(req: Request): 'web' | 'mobile' {
+  return req.headers.origin === 'http://localhost' ? 'mobile' : 'web';
+}
+
+function publicBaseUrl(req: Request): string | undefined {
+  const h = req.headers['x-public-base-url'];
+  return typeof h === 'string' ? h : undefined;
+}
+
 export const membershipController = {
   async purchase(req: Request, res: Response) {
     try {
@@ -17,6 +29,8 @@ export const membershipController = {
         provider,
         referralCode || undefined,
         acknowledgedMultiGymWarning,
+        detectPlatform(req),
+        publicBaseUrl(req),
       );
       return res.status(201).json({ success: true, data: result });
     } catch (e: any) {
@@ -55,7 +69,7 @@ export const membershipController = {
     try {
       const clientId = req.user!.userId;
       const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
-      const result = await membershipService.retryPay(req.params.id, clientId, provider);
+      const result = await membershipService.retryPay(req.params.id, clientId, provider, detectPlatform(req), publicBaseUrl(req));
       return res.json({ success: true, data: result });
     } catch (e: any) {
       if (e.message === 'ALREADY_PAID') {

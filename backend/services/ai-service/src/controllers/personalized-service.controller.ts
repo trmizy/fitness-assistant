@@ -3,6 +3,25 @@ import { z } from "zod";
 import { personalizedServiceService, CONSENT_CATEGORIES } from "../services/personalized-service.service";
 import { formatSuccessResponse, ApiError } from "../errors/api-error";
 
+/**
+ * The Capacitor app's WebView has a fixed, distinctive origin — `http://localhost`, no port
+ * — that a real browser (the web app, on its own dev/prod port) never sends. Used at
+ * checkout time to pick which return-URL the gateway sends the payer back to once payment
+ * settles (the app's own `fitnessassistant://` deep link vs. the web result page) — see
+ * checkoutSchema's `platform` in payment-service/internal.routes.ts for where this lands.
+ * Never trusted for anything security-sensitive: worst case of a wrong guess here is landing
+ * on the wrong (but still real, still server-verified) result screen.
+ */
+function detectPlatform(req: Request): "web" | "mobile" {
+  return req.headers.origin === "http://localhost" ? "mobile" : "web";
+}
+
+/** See app.ts's x-public-base-url for what this is and why. */
+function publicBaseUrl(req: Request): string | undefined {
+  const h = req.headers["x-public-base-url"];
+  return typeof h === "string" ? h : undefined;
+}
+
 const SERVICE_TYPES = ["PERSONALIZED_WORKOUT", "PERSONALIZED_NUTRITION", "WORKOUT_AND_NUTRITION", "ONLINE_COACHING"] as const;
 
 const createServiceSchema = z.object({
@@ -155,7 +174,9 @@ export const personalizedServiceController = {
   // is where the client sends the buyer next, the order does not settle on this response. ──
   async purchaseService(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await personalizedServiceService.purchaseService(req.params.id, req.context.userId, req.body?.provider);
+      const result = await personalizedServiceService.purchaseService(
+        req.params.id, req.context.userId, req.body?.provider, detectPlatform(req), publicBaseUrl(req),
+      );
       res.status(201).json(formatSuccessResponse(result));
     } catch (error) {
       next(error);

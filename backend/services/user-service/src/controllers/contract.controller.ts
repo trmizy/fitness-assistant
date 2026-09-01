@@ -513,7 +513,11 @@ export const contractController = {
     try {
       const clientUserId = req.headers['x-user-id'] as string;
       const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
-      const result = await contractService.pay(req.params.id, clientUserId, provider);
+      // Same signal as ai-service/gym-service's own detectPlatform: the Capacitor app's
+      // WebView has a fixed `http://localhost` origin a real browser never sends.
+      const platform: 'web' | 'mobile' = req.headers.origin === 'http://localhost' ? 'mobile' : 'web';
+      const returnBaseUrl = typeof req.headers['x-public-base-url'] === 'string' ? req.headers['x-public-base-url'] : undefined;
+      const result = await contractService.pay(req.params.id, clientUserId, provider, platform, returnBaseUrl);
       res.json(result);
     } catch (error: any) {
       if (error.message === 'ALREADY_PAID') {

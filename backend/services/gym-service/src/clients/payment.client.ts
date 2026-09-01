@@ -38,8 +38,10 @@ export const paymentClient = {
     idempotencyKey: string;
     provider?: string;
     orderInfo?: string;
+    platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<CheckoutResult> {
-    const platform = Number(params.platformRate);
+    const platformRateNum = Number(params.platformRate);
     try {
       const { data } = await axios.post(
         `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
@@ -51,7 +53,7 @@ export const paymentClient = {
           rates: {
             platformRate: params.platformRate,
             ptRate: '0',
-            gymRate: (1 - platform).toFixed(4),
+            gymRate: (1 - platformRateNum).toFixed(4),
           },
           parties: { ptUserId: params.gymId, gymId: params.gymId, clientUserId: params.clientId },
           idempotencyKey: params.idempotencyKey,
@@ -59,6 +61,8 @@ export const paymentClient = {
           sourceService: 'gym-service',
           provider: params.provider,
           orderInfo: params.orderInfo,
+          platform: params.platform,
+          returnBaseUrl: params.returnBaseUrl,
         },
         { headers, timeout: 20_000 },
       );

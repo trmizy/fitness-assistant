@@ -87,12 +87,23 @@ export class VNPayProvider implements PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
+    platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<PaymentIntentResult> {
     const { transactionId, amount, orderInfo } = params;
     if (!Number.isInteger(amount) || amount <= 0) {
       // VND has no minor unit; vnp_Amount must be an exact integer ×100 — never float math.
       throw new Error(`VNPay amount must be a positive integer VND, got ${amount}`);
     }
+
+    // Whatever door the payer's own request came in through, right now, wins over the
+    // static `.env` default — that door is the only one guaranteed reachable by whichever
+    // browser ends up completing checkout (see app.ts's x-public-base-url for the full
+    // reasoning: a LAN IP baked into `.env` is unreachable from a phone on a cloudflared
+    // tunnel, off-LAN, same as a bare "localhost" default is unreachable from an emulator).
+    const effectiveReturnUrl = params.returnBaseUrl
+      ? `${params.returnBaseUrl}/payments/vnpay/return`
+      : RETURN_URL;
 
     const now = new Date();
     const vnpCreateDate = formatVnpDate(now);
@@ -108,7 +119,7 @@ export class VNPayProvider implements PaymentProvider {
       vnp_OrderInfo: orderInfo,
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
-      vnp_ReturnUrl: RETURN_URL,
+      vnp_ReturnUrl: effectiveReturnUrl,
       vnp_IpAddr: '127.0.0.1',
       vnp_CreateDate: vnpCreateDate,
       vnp_ExpireDate: vnpExpireDate,

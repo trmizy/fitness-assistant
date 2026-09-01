@@ -44,6 +44,8 @@ async function attemptPayment(
   contract: { id: string; gymId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null },
   clientId: string,
   provider?: string,
+  platform?: 'web' | 'mobile',
+  returnBaseUrl?: string,
 ) {
   if (contract.status === 'ACTIVE' || contract.paymentTxnId) {
     throw err('ALREADY_PAID', 409);
@@ -62,6 +64,8 @@ async function attemptPayment(
     idempotencyKey,
     provider,
     orderInfo: `Goi hoi vien ${contract.id}`.slice(0, 100),
+    platform,
+    returnBaseUrl,
   });
 
   logger.info(`[Membership] Checkout started for ${contract.id} via ${result.provider}`);
@@ -81,6 +85,8 @@ export const membershipService = {
     provider?: string,
     referralCode?: string,
     acknowledgedMultiGymWarning?: boolean,
+    platform?: 'web' | 'mobile',
+    returnBaseUrl?: string,
   ) {
     const plan = await planRepository.findById(planId);
     if (!plan || plan.gymId !== gymId || plan.status !== 'ACTIVE') throw err('Plan not found or inactive', 404);
@@ -143,7 +149,7 @@ export const membershipService = {
       });
     }
 
-    return attemptPayment(contract, clientId, provider);
+    return attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
   },
 
   /**
@@ -170,7 +176,9 @@ export const membershipService = {
     return { ptUserId };
   },
 
-  async retryPay(membershipId: string, clientId: string, provider?: string) {
+  async retryPay(
+    membershipId: string, clientId: string, provider?: string, platform?: 'web' | 'mobile', returnBaseUrl?: string,
+  ) {
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
@@ -182,7 +190,7 @@ export const membershipService = {
     // (and activate a membership at) a gym that is no longer allowed to accept money.
     const gym = await gymRepository.findById(contract.gymId);
     if (!gym || gym.status !== 'APPROVED') throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
-    return attemptPayment(contract, clientId, provider);
+    return attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
   },
 
   async cancelPending(membershipId: string, clientId: string) {
