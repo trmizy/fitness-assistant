@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1485,6 +1486,17 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
   const [showGateway, setShowGateway] = useState(false);
   const purchaseMutation = useMutation({
     mutationFn: (provider: string) => personalizedServiceApi.purchase(id, provider),
+    // A genuine network-transport failure (no `error.response` at all — the request never
+    // got a usable response back, as opposed to the server answering with a real 4xx/5xx) has
+    // been confirmed, directly, to still leave the order created successfully server-side:
+    // captured on the wire as HTTP 201 with a valid body, immediately followed by the
+    // WebView's own network stack reporting the load itself as failed. The user only ever
+    // saw the resulting false "purchase failed" toast, never the order that was actually
+    // sitting there waiting to be paid. One silent retry closes that gap for the common case
+    // without touching real business-rule rejections (self-purchase, PT not approved, service
+    // no longer listed, ...), which always arrive WITH a response body and so are still
+    // reported immediately, not retried.
+    retry: (failureCount, error: any) => failureCount < 1 && !error?.response,
     onSuccess: (result) => {
       const url = result.payment?.redirectUrl;
       if (url) {
@@ -1504,8 +1516,18 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
   });
   const svc = detailQuery.data;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+  // Portal to document.body, not an inline return: AppShell renders every routed page inside
+  // a framer-motion <motion.div> for the page-transition animation, and that component's
+  // `transform` style creates its own stacking context — z-index set on anything inside it
+  // (this sheet included) can never paint above BottomNav, which AppShell renders as a
+  // *sibling* of that motion.div, outside its stacking context entirely. Bumping this sheet's
+  // z-index alone (tried first) changed nothing visible for exactly that reason: it only wins
+  // comparisons against elements sharing the same context, and BottomNav isn't one of them.
+  // Escaping via a portal sidesteps the whole problem instead of chasing z-index numbers.
+  // (BottomNav sits at z-50; z-[60] here is kept anyway as a second line of defense now that
+  // both are compared as ordinary document.body children.)
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-zinc-900 border border-zinc-700/60 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto p-5 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-400">
@@ -1574,7 +1596,8 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

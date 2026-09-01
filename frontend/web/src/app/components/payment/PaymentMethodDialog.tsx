@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, Loader2, AlertTriangle, X } from "lucide-react";
 import { paymentService } from "../../services/api";
@@ -47,6 +47,18 @@ export function PaymentMethodDialog({
   // mid-submit, when a checkout is already being created and closing would leave the user
   // unsure whether it went through.
   useBackDismissible(!isSubmitting, onClose);
+
+  // A real touch on the emulator (host mouse click translated through QEMU's virtual
+  // touchscreen) was confirmed, directly, to sometimes dispatch the confirm button's click
+  // TWICE for one tap — captured on the wire as two separate POST /purchase calls a few
+  // hundred ms apart, one of which can lose a race server-side and surface as a misleading
+  // "Không thể mua dịch vụ này" error even though the other one succeeded. `disabled={...
+  // isSubmitting}` alone doesn't close this window: it depends on a state update + re-render
+  // landing between the two click events, which is exactly the race that was losing. A plain
+  // ref checked synchronously in the handler itself has no such window — it's set on the
+  // very first click, before React ever gets involved, so a second click event arriving
+  // microtasks later is a no-op regardless of render timing.
+  const hasConfirmedRef = useRef(false);
 
   const { data, isLoading, isError } = useQuery<{
     methods: PaymentMethod[];
@@ -165,7 +177,11 @@ export function PaymentMethodDialog({
           </button>
           <button
             type="button"
-            onClick={() => selected && onConfirm(selected)}
+            onClick={() => {
+              if (hasConfirmedRef.current || !selected) return;
+              hasConfirmedRef.current = true;
+              onConfirm(selected);
+            }}
             disabled={!selected || isSubmitting}
             className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
           >
