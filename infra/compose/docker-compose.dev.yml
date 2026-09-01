@@ -800,8 +800,13 @@ services:
       # would override the env_file value). This file carries only non-sensitive defaults.
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VNPAY_API_URL: ${VNPAY_API_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
-      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:3007/payments/vnpay/return}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      # VNPAY_RETURN_URL / FRONTEND_URL used to be declared here too, the exact mistake the
+      # comment above warns against: an unset ${VAR:-default} in THIS block resolves against
+      # the host shell (not ../../.env) and silently wins over the real value env_file would
+      # otherwise supply. Confirmed directly — mobile E2E kept getting the literal fallback
+      # (bare `localhost`) no matter what ../../.env said, because these two lines were
+      # clobbering it every time. Removed so env_file is the only source, same as
+      # MOMO_PARTNER_CODE/ZALOPAY_KEY1/PAYOS_* already correctly work.
       # ZaloPay + PayOS creds come from the untracked ../../.env via env_file (declaring
       # them here as empty ${VAR:-} would override that). Only non-sensitive defaults here.
       ZALOPAY_ENDPOINT: ${ZALOPAY_ENDPOINT:-https://sb-openapi.zalopay.vn}
