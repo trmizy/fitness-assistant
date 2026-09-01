@@ -123,9 +123,11 @@ export const router = createBrowserRouter([
       {
         path: "client",
         element: (
-          <RequireOnboarding>
-            <AppShell />
-          </RequireOnboarding>
+          <RequireRole allow={["client"]}>
+            <RequireOnboarding>
+              <AppShell />
+            </RequireOnboarding>
+          </RequireRole>
         ),
         children: [
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
