@@ -61,9 +61,11 @@ test("a PT cancelling < 24h out compensates the client and marks the session NO_
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => {
+    // Vòng 4 / Phase A1: cancelSession's CONFIRMED branch now CASes via transitionStatus
+    // instead of an unconditional updateStatus — mock the primitive it actually calls now.
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
-      return { ...session, status } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementCompensatedSessions", async () => {
@@ -120,9 +122,10 @@ test("a PT cancelling ≥ 24h out still costs nothing — unchanged from before 
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => {
+    // Vòng 4 / Phase A1: same swap as above — REQUESTED-branch cancel also CASes now.
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
-      return { ...session, status } as any;
+      return true;
     }),
     patch(notificationService, "create", async () => ({}) as any),
   ];

@@ -126,6 +126,8 @@ exports.Prisma.GymBrandScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
   name: 'name',
+  approvedName: 'approvedName',
+  pendingName: 'pendingName',
   description: 'description',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -136,12 +138,20 @@ exports.Prisma.GymScalarFieldEnum = {
   ownerId: 'ownerId',
   brandId: 'brandId',
   name: 'name',
+  approvedName: 'approvedName',
+  pendingName: 'pendingName',
   description: 'description',
   address: 'address',
+  approvedAddress: 'approvedAddress',
+  pendingAddress: 'pendingAddress',
   city: 'city',
   phone: 'phone',
   email: 'email',
   status: 'status',
+  operationalStatus: 'operationalStatus',
+  closureReason: 'closureReason',
+  closedAt: 'closedAt',
+  reopenedAt: 'reopenedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -228,6 +238,7 @@ exports.Prisma.GymPtCollaborationScalarFieldEnum = {
   acceptedAt: 'acceptedAt',
   terminatedAt: 'terminatedAt',
   terminatedBy: 'terminatedBy',
+  effectiveAt: 'effectiveAt',
   note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -266,6 +277,12 @@ exports.GymStatus = exports.$Enums.GymStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   SUSPENDED: 'SUSPENDED'
+};
+
+exports.GymOperationalStatus = exports.$Enums.GymOperationalStatus = {
+  OPEN: 'OPEN',
+  TEMPORARILY_CLOSED: 'TEMPORARILY_CLOSED',
+  PERMANENTLY_CLOSED: 'PERMANENTLY_CLOSED'
 };
 
 exports.GymMembershipPlanStatus = exports.$Enums.GymMembershipPlanStatus = {

@@ -80,9 +80,10 @@ test("client cancelling < 24h before the session releases the PT's money for it"
       calls.push("session.findById");
       return session as any;
     }),
-    patch(sessionRepository, "updateStatus", async () => {
+    // Vòng 4 / Phase A1: cancelSession CASes via transitionStatus now, not updateStatus.
+    patch(sessionRepository, "transitionStatus", async () => {
       calls.push("session.updateStatus");
-      return { ...session, status: SessionStatus.CANCELLED } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => {
       calls.push("contract.findById");
@@ -126,9 +127,10 @@ test("client cancelling >= 24h ahead does not deduct quota or release money", as
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async () => {
+    // Vòng 4 / Phase A1: cancelSession CASes via transitionStatus now, not updateStatus.
+    patch(sessionRepository, "transitionStatus", async () => {
       calls.push("session.updateStatus");
-      return { ...session, status: SessionStatus.CANCELLED } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementSession", async () => {
@@ -165,9 +167,10 @@ test("the PT cancelling with plenty of notice (≥24h) never deducts quota or re
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async () => {
+    // Vòng 4 / Phase A1: cancelSession CASes via transitionStatus now, not updateStatus.
+    patch(sessionRepository, "transitionStatus", async () => {
       calls.push("session.updateStatus");
-      return { ...session, status: SessionStatus.CANCELLED } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementSession", async () => {

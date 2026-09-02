@@ -37,4 +37,20 @@ export const brandController = {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
   },
+
+  // ── Admin (Vòng 4 / Phase C1) ────────────────────────────────────────
+  async listAllForAdmin(_req: Request, res: Response) {
+    const brands = await brandService.listAllForAdmin();
+    res.json({ success: true, data: brands });
+  },
+
+  async approveRename(req: Request, res: Response) {
+    try {
+      const adminId = req.user!.userId;
+      const brand = await brandService.approveRename(req.params.id, adminId);
+      res.json({ success: true, data: brand });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
 };

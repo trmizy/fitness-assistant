@@ -347,6 +347,7 @@ enum TerminationReason {
   MUTUAL           // both sides agreed — full refund of the unused value, nobody penalised
   EXPIRED          // ran past its end date with sessions unused — nothing refunded
   COMPLETED        // quota fully used — nothing to refund
+  PT_REPEATED_NO_SHOW // Vòng 4 / E2 — client's own right after a 3rd confirmed PT no-show, full refund
 }
 
 enum PackageType {
@@ -371,6 +372,21 @@ enum SessionStatus {
   COMPLETED // Session delivered and settled — the only state that consumes quota
   CANCELLED // Either party cancelled
   NO_SHOW   // Client or PT did not attend
+}
+
+/// Vòng 4 / Phase E4 — audit/admin-screen classification only, does not change how a dispute
+/// is resolved (resolveDispute's three outcomes are unchanged). Set once, when a session first
+/// enters DISPUTED, by disputeSession or respondToNoShowReport's DENY branch.
+enum SessionDisputeType {
+  /// disputeSession, from an ordinary "PT says it happened" report — the client disputes
+  /// whether the session was actually delivered as described.
+  DELIVERY_DISPUTE
+  /// respondToNoShowReport DENY — the client claimed the PT no-showed (reportPtNoShow); the
+  /// PT is contesting that claim.
+  PT_NO_SHOW_CLAIM
+  /// disputeSession, from a "PT says the CLIENT no-showed" report (markNoShow, noShowBy:
+  /// CLIENT) — the client is contesting THAT claim.
+  CLIENT_NO_SHOW_CLAIM
 }
 
 enum SessionMode {
@@ -588,12 +604,21 @@ model Session {
   // double confirm / retry can never charge the client twice.
   sessionDeducted    Boolean       @default(false) @map("session_deducted")
   completedAt        DateTime?     @map("completed_at")
+  /// Vòng 4 / Phase E2 — true only when this session's NO_SHOW was actually the PT's fault
+  /// (self-admitted via markNoShow, agreed via respondToNoShowReport, or admin-confirmed via
+  /// resolveDispute's PT_NO_SHOW_CONFIRMED) — never set for a client no-show or a late-cancel
+  /// tagged NO_SHOW. Counts toward the client's right to terminate the contract for repeated
+  /// PT no-shows (3+) — see contract.controller.ts's terminate() and TerminationReason
+  /// PT_REPEATED_NO_SHOW.
+  ptAtFault          Boolean       @default(false) @map("pt_at_fault")
 
   // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
   clientConfirmDeadline DateTime? @map("client_confirm_deadline")
   autoConfirmed         Boolean   @default(false) @map("auto_confirmed")
   disputeReason         String?   @map("dispute_reason")
   disputedAt            DateTime? @map("disputed_at")
+  /// Vòng 4 / Phase E4 — audit/admin-screen only, see SessionDisputeType's own doc comment.
+  disputeType           SessionDisputeType? @map("dispute_type")
   resolvedBy            String?   @map("resolved_by")
   resolutionNote        String?   @map("resolution_note")
   resolvedAt            DateTime? @map("resolved_at")

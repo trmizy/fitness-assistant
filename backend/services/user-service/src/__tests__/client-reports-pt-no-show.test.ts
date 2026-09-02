@@ -93,10 +93,54 @@ test("cannot report a no-show before the session's scheduled start time", async 
   try {
     await assert.rejects(
       () => bookingService.reportPtNoShow(sessionId, "client-1", "reason"),
-      /Chưa tới giờ/,
+      /Chưa thể báo.*vắng mặt/, // Vòng 4 / Phase E1: message now mentions the grace window
     );
   } finally {
     restore();
+  }
+});
+
+test("E1 — reportPtNoShow bị từ chối khi mới quá giờ hẹn 5 phút (còn trong grace window)", async () => {
+  const sessionId = randomUUID();
+  const session = {
+    id: sessionId,
+    contractId: "c1",
+    clientUserId: "client-1",
+    ptUserId: "pt-1",
+    status: SessionStatus.CONFIRMED,
+    scheduledStartAt: new Date(Date.now() - 5 * 60 * 1000),
+  };
+  const restore = patch(sessionRepository, "findById", async () => session as any);
+  try {
+    await assert.rejects(
+      () => bookingService.reportPtNoShow(sessionId, "client-1", "reason"),
+      /Chưa thể báo.*vắng mặt/,
+    );
+  } finally {
+    restore();
+  }
+});
+
+test("E1 — reportPtNoShow cho phép báo sau khi hết grace window (quá giờ hẹn 20 phút)", async () => {
+  const sessionId = randomUUID();
+  const session = {
+    id: sessionId,
+    contractId: "c1",
+    clientUserId: "client-1",
+    ptUserId: "pt-1",
+    status: SessionStatus.CONFIRMED,
+    scheduledStartAt: new Date(Date.now() - 20 * 60 * 1000),
+  };
+  const restores = [
+    patch(sessionRepository, "findById", async () => session as any),
+    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(notificationService, "create", async () => ({}) as any),
+  ];
+  try {
+    const updated = await bookingService.reportPtNoShow(sessionId, "client-1", "reason");
+    assert.equal((updated as any).status, SessionStatus.PT_NO_SHOW_REPORTED);
+  } finally {
+    restores.forEach((r) => r());
   }
 });
 

@@ -613,6 +613,11 @@ export const contractController = {
         MUTUAL: isAdmin,
         EXPIRED: isAdmin,
         COMPLETED: isAdmin,
+        // Vòng 4 / Phase E2 — a RIGHT the client exercises themselves (not automatic, not
+        // admin-only) — but only once actually earned. The count check right below is what
+        // stops a client from just declaring this reason on any contract; the boolean here
+        // only says "a client is the kind of caller who is ever allowed to pick this reason".
+        PT_REPEATED_NO_SHOW: isClient || isAdmin,
       };
       if (!(reason in allowed)) {
         res.status(400).json({ error: `Unknown termination reason: ${reason}` });
@@ -621,6 +626,21 @@ export const contractController = {
       if (!allowed[reason]) {
         res.status(403).json({ error: `You may not terminate this contract as ${reason}` });
         return;
+      }
+
+      // Vòng 4 / Phase E2 — never trust the caller's say-so for the ONE reason a client can
+      // self-declare a full refund: re-count ptAtFault sessions on THIS contract server-side.
+      // An admin invoking the same reason (e.g. on the client's behalf, over support) is
+      // exempt from the count — admins can already invoke PT_BANNED/MUTUAL with no precondition
+      // at all, so gating admin use of this reason more strictly would be inconsistent.
+      if (reason === "PT_REPEATED_NO_SHOW" && !isAdmin) {
+        const { eligible, count, threshold } = await contractService.repeatedNoShowEligibility(req.params.id);
+        if (!eligible) {
+          res.status(403).json({
+            error: `Chưa đủ điều kiện — cần ít nhất ${threshold} lần huấn luyện viên vắng mặt được xác nhận (hiện tại: ${count})`,
+          });
+          return;
+        }
       }
 
       const result = await terminateContractMoney(req.params.id, reason as any);

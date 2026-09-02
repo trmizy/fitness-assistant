@@ -1,13 +1,21 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
+import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
+import { PageSkeleton } from "./PageSkeleton";
 import { CallOverlay } from "../call/CallOverlay";
-import bgGym from "../../../assets/bg-gym.jpg";
+
+// Vòng 4 / Phase D1 — was a Vite ES import of a 6MB src/assets/bg-gym.jpg (duplicated
+// byte-for-byte in public/bg-gym.jpg, which public/offline.html and public/sw.js's precache
+// list also referenced by root-relative URL — a service worker can't import a hashed Vite
+// asset). Now a single 136KB public/bg-gym.webp is the only copy, referenced by the same
+// stable root-relative path everywhere.
+const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView } = useApp();
@@ -33,6 +41,9 @@ export function AppShell() {
   // double-press to exit. See the hook for why the previous inline version quit the app
   // from ordinary screens.
   useNativeBackNavigation();
+
+  // Vòng 4 / Phase E5 — @capacitor/status-bar wiring, no-op on web.
+  useNativeStatusBar();
 
   if (!isAuthenticated) return null;
   return (
@@ -116,7 +127,13 @@ function AppShellInner() {
               // their real height.
               className="min-h-full"
             >
-              <Outlet />
+              {/* Vòng 4 / Phase D2 — routes.tsx now lazy()s every page; this Suspense boundary
+                  is scoped to JUST the content area (inside main, inside the animated box)
+                  precisely so Topbar/Sidebar/BottomNav — all outside <main> — never remount or
+                  flash while a route chunk is still downloading. */}
+              <Suspense fallback={<PageSkeleton />}>
+                <Outlet />
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

@@ -38,7 +38,7 @@ test('activateViaTransaction: khi settleReferral thất bại, bản ghi giới 
   const restores = [
     patch(paymentClient, 'getTransaction', async () => ({ status: 'PAID', relatedEntityType: 'GYM_MEMBERSHIP', relatedEntityId: state.id })),
     patch(membershipRepository, 'findById', async () => ({ ...state })),
-    patch(gymRepository, 'findById', async () => ({ id: state.gymId, status: 'APPROVED' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: state.gymId, status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
     patch(membershipRepository, 'activateIfPending', async () => {
       state.status = 'ACTIVE';
       return { contract: { ...state } };

@@ -1,6 +1,12 @@
 import { ContractStatus, ContractSource, PackageType, SessionMode, Prisma } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
+/** Vòng 4 / Phase A3 — same reasoning as session.repository.ts's own Db type: findById needs
+ *  to run on whichever connection currently holds withPtScheduleLock's advisory lock, so a
+ *  caller reading the contract INSIDE that lock sees a truly fresh row (not one read before
+ *  the lock was ever acquired). Defaults to the singleton client everywhere else. */
+type Db = typeof prisma | Prisma.TransactionClient;
+
 export const contractRepository = {
   create: (data: {
     ptUserId: string;
@@ -31,7 +37,7 @@ export const contractRepository = {
     paymentTransactionId?: string;
   }) => prisma.contract.create({ data }),
 
-  findById: (id: string) => prisma.contract.findUnique({ where: { id } }),
+  findById: (id: string, db: Db = prisma) => db.contract.findUnique({ where: { id } }),
 
   findByIdWithSessions: (id: string) =>
     prisma.contract.findUnique({

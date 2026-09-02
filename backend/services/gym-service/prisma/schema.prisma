@@ -16,6 +16,20 @@ enum GymStatus {
   SUSPENDED
 }
 
+/// Vòng 4 / Phase C3 — the owner's own "are we physically open" switch, orthogonal to
+/// GymStatus above (the admin's "is this gym allowed on the platform" moderation gate). Every
+/// checkpoint that requires APPROVED also requires OPEN — see membership.service.ts,
+/// checkin.service.ts, gym.repository.ts's public-listing queries.
+enum GymOperationalStatus {
+  OPEN
+  TEMPORARILY_CLOSED
+  /// One-way — nothing in this codebase transitions a gym back out of PERMANENTLY_CLOSED.
+  /// Creates an admin actionable item (gymService.listPermanentlyClosedNeedingReview) rather
+  /// than auto-refunding active memberships — see docs/vong-4.md's closure compensation table
+  /// (policy only, not code).
+  PERMANENTLY_CLOSED
+}
+
 enum GymMembershipPlanStatus {
   ACTIVE
   INACTIVE
@@ -60,7 +74,17 @@ enum GymTrainerVisibility {
 model GymBrand {
   id          String   @id @default(uuid())
   ownerId     String   @map("owner_id")
-  name        String
+  /// Vòng 4 / Phase C1 — `name` stays the owner's freely-editable working value (unchanged
+  /// role from before this phase); `approvedName`/`pendingName` are a moderation overlay only
+  /// PUBLIC pages read. `approvedName` is null until an admin approves this brand's FIRST
+  /// branch (gymService.setStatus backfills it then, same trigger C1 specifies — no new admin
+  /// action needed for the first approval). Every later rename sets `pendingName` only,
+  /// leaving `approvedName` untouched until the dedicated "Duyệt đổi tên thương hiệu" admin
+  /// action (brandService.approveRename) promotes it. Null pendingName means "nothing pending
+  /// — name is exactly what's approved."
+  name          String
+  approvedName  String?  @map("approved_name")
+  pendingName   String?  @map("pending_name")
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -78,13 +102,37 @@ model Gym {
   /// and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
   /// a grouping label for search and owner navigation, not a second source of truth.
   brandId       String?   @map("brand_id")
+  /// Vòng 4 / Phase C2 — same approvedX/pendingX overlay as GymBrand.name above, applied to
+  /// name AND address (the only two fields that need re-approval; every other field — phone,
+  /// email, city, description, hours — stays freely editable with no moderation at all).
+  /// `name`/`address` remain the live working values every non-public consumer already reads
+  /// (checkin receipts, membership listings, the owner's own dashboard); only the public
+  /// discovery endpoints (gymService.listApproved/getApprovedById) substitute approvedName/
+  /// approvedAddress in their place. `approvedName`/`approvedAddress` are backfilled from
+  /// name/address the first time this gym's `status` is set to APPROVED (mirrors the brand's
+  /// first-branch-approval trigger); every edit afterwards only moves pendingName/
+  /// pendingAddress until the "Duyệt đổi tên/địa chỉ" admin action (gymService.approveRename)
+  /// promotes them.
   name          String
+  approvedName    String?   @map("approved_name")
+  pendingName     String?   @map("pending_name")
   description   String?
-  address       String
+  address         String
+  approvedAddress String?   @map("approved_address")
+  pendingAddress  String?   @map("pending_address")
   city          String?
   phone         String?
   email         String?
   status        GymStatus @default(PENDING_REVIEW)
+  /// Vòng 4 / Phase C3 — independent from `status` (moderation: is this gym allowed to exist
+  /// on the platform at all) on purpose. This is the OWNER's own "are we open for business
+  /// right now" switch — a SUSPENDED gym is never OPEN-gated regardless of this value (both
+  /// axes must pass), but an APPROVED gym can still be temporarily/permanently closed by its
+  /// own owner without an admin ever touching `status`.
+  operationalStatus GymOperationalStatus @default(OPEN) @map("operational_status")
+  closureReason     String?              @map("closure_reason")
+  closedAt          DateTime?            @map("closed_at")
+  reopenedAt        DateTime?            @map("reopened_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -96,6 +144,7 @@ model Gym {
   collaborations GymPtCollaboration[]
 
   @@index([status])
+  @@index([operationalStatus])
   @@index([ownerId])
   @@index([brandId])
   @@map("gyms")
@@ -272,6 +321,14 @@ model GymPtCollaboration {
   acceptedAt      DateTime?           @map("accepted_at")
   terminatedAt    DateTime?           @map("terminated_at")
   terminatedBy    String?             @map("terminated_by")
+  /// Vòng 4 / Phase E3 — when set, this row is winding down: status STAYS 'ACCEPTED' (so
+  /// affiliation/roster display is unaffected) until this date, but activeRates() already
+  /// refuses NEW referral/rate lookups against it the moment this is set, regardless of the
+  /// date — "new collaborations blocked immediately, running contracts continue until
+  /// effectiveAt". Null = no pending termination. A lazy check (finalizeIfEffective, mirroring
+  /// expireIfStale above) flips status -> TERMINATED once effectiveAt has passed. terminate()
+  /// with no explicit date still terminates immediately (sets effectiveAt = now).
+  effectiveAt     DateTime?           @map("effective_at")
   note            String?
 
   createdAt       DateTime            @default(now()) @map("created_at")

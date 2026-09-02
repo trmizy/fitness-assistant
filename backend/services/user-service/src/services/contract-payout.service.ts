@@ -9,7 +9,7 @@ import { settleTracked } from "./session-settlement.service";
 function statusFor(reason: string): ContractStatus {
   if (reason === "COMPLETED") return ContractStatus.COMPLETED;
   if (reason === "EXPIRED") return ContractStatus.EXPIRED;
-  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL
+  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL, PT_REPEATED_NO_SHOW
 }
 
 /**
@@ -154,7 +154,12 @@ export type TerminationReason =
   | "PT_CANCELLED"
   | "MUTUAL"
   | "EXPIRED"
-  | "COMPLETED";
+  | "COMPLETED"
+  // Vòng 4 / Phase E2 — the client's own right to terminate after a 3rd PT no-show
+  // (ptAtFault), not an admin/system decision. Same 100%-refund-of-remaining formula as
+  // PT_BANNED/MUTUAL (contract-money.ts) — the PT is at fault here too, just via a pattern of
+  // no-shows rather than a single administrative ban.
+  | "PT_REPEATED_NO_SHOW";
 
 /**
  * Settle a contract's money for good: refund the client per the reason's formula and bring

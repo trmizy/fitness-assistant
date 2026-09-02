@@ -2504,6 +2504,15 @@ router.use(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
 );
 
+// Admin — brand moderation (Vòng 4 / Phase C1). Sibling path outside /admin/gyms above, same
+// gotcha as /owner/brands: needs its own explicit declaration or it 404s at the gateway.
+router.use(
+  '/admin/brands',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
 // Admin — exceptional membership refund (money-flow plan §2.4). Separate prefix from
 // /admin/gyms above, needs its own declaration.
 router.use(

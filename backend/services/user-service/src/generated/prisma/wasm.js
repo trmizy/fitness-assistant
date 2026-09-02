@@ -320,10 +320,12 @@ exports.Prisma.SessionScalarFieldEnum = {
   cancellationReason: 'cancellationReason',
   sessionDeducted: 'sessionDeducted',
   completedAt: 'completedAt',
+  ptAtFault: 'ptAtFault',
   clientConfirmDeadline: 'clientConfirmDeadline',
   autoConfirmed: 'autoConfirmed',
   disputeReason: 'disputeReason',
   disputedAt: 'disputedAt',
+  disputeType: 'disputeType',
   resolvedBy: 'resolvedBy',
   resolutionNote: 'resolutionNote',
   resolvedAt: 'resolvedAt',
@@ -633,7 +635,8 @@ exports.TerminationReason = exports.$Enums.TerminationReason = {
   PT_CANCELLED: 'PT_CANCELLED',
   MUTUAL: 'MUTUAL',
   EXPIRED: 'EXPIRED',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {
@@ -645,6 +648,12 @@ exports.SessionStatus = exports.$Enums.SessionStatus = {
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
+};
+
+exports.SessionDisputeType = exports.$Enums.SessionDisputeType = {
+  DELIVERY_DISPUTE: 'DELIVERY_DISPUTE',
+  PT_NO_SHOW_CLAIM: 'PT_NO_SHOW_CLAIM',
+  CLIENT_NO_SHOW_CLAIM: 'CLIENT_NO_SHOW_CLAIM'
 };
 
 exports.NotificationEventType = exports.$Enums.NotificationEventType = {

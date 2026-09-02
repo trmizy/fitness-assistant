@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, ListChecks, Banknote } from "lucide-react";
+import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, ListChecks, Banknote, Settings, Lock, Unlock, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
-import type { Gym, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
+import type { Gym, GymBrand, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
@@ -37,10 +37,51 @@ export function GymManagePage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
 
+  // Vòng 4 / Phase C2/C3/C4 — settings section: name/address (pending-approval), operational
+  // status, and brand reassignment.
+  const [showSettings, setShowSettings] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [closeReason, setCloseReason] = useState("");
+  const [closingMode, setClosingMode] = useState<"TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED" | null>(null);
+
   const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
     queryKey: ["owned-gym", id],
     queryFn: () => gymService.getOwnedGym(id!),
     enabled: !!id,
+  });
+
+  useEffect(() => {
+    if (gym) {
+      setEditName(gym.name);
+      setEditAddress(gym.address);
+    }
+  }, [gym?.id, gym?.name, gym?.address]);
+
+  const { data: ownedBrands = [] } = useQuery<GymBrand[]>({
+    queryKey: ["owned-brands"],
+    queryFn: () => gymService.listOwnedBrands(),
+  });
+
+  const updateGymMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof gymService.updateGym>[1]) => gymService.updateGym(id!, payload),
+    onSuccess: () => {
+      toast.success("Đã lưu — thay đổi tên/địa chỉ sẽ hiển thị công khai sau khi admin duyệt");
+      queryClient.invalidateQueries({ queryKey: ["owned-gym", id] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể lưu thay đổi"),
+  });
+
+  const setOperationalStatusMutation = useMutation({
+    mutationFn: (payload: { operationalStatus: "OPEN" | "TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED"; reason?: string }) =>
+      gymService.setGymOperationalStatus(id!, payload.operationalStatus, payload.reason),
+    onSuccess: () => {
+      toast.success("Đã cập nhật trạng thái hoạt động");
+      setClosingMode(null);
+      setCloseReason("");
+      queryClient.invalidateQueries({ queryKey: ["owned-gym", id] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể cập nhật"),
   });
 
   const { data: wallet } = useQuery<Wallet>({
@@ -136,20 +177,162 @@ export function GymManagePage() {
         <ArrowLeft className="w-4 h-4" /> Back to my gyms
       </button>
 
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-          <Dumbbell className="w-6 h-6 text-green-400" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+            <Dumbbell className="w-6 h-6 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-zinc-100">{gym.name}</h1>
+            <div className="text-xs text-zinc-500">{gym.address}{gym.city ? `, ${gym.city}` : ""}</div>
+            {reviews && reviews.count > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
+                <Stars value={reviews.averageRating} /> {reviews.averageRating.toFixed(1)} ({reviews.count} đánh giá)
+              </div>
+            )}
+            {(gym.pendingName || gym.pendingAddress) && (
+              <p data-testid="gym-pending-approval-hint" className="text-[11px] text-amber-400 mt-1">
+                {gym.pendingName && <>Tên mới đang chờ duyệt: <strong>{gym.pendingName}</strong>. </>}
+                {gym.pendingAddress && <>Địa chỉ mới đang chờ duyệt: <strong>{gym.pendingAddress}</strong>.</>}
+              </p>
+            )}
+            {gym.operationalStatus && gym.operationalStatus !== "OPEN" && (
+              <p data-testid="gym-operational-status-badge" data-status={gym.operationalStatus} className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {gym.operationalStatus === "TEMPORARILY_CLOSED" ? "Đang tạm đóng cửa" : "Đã đóng cửa vĩnh viễn"}
+                {gym.closureReason ? ` — ${gym.closureReason}` : ""}
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <h1 className="text-lg font-bold text-zinc-100">{gym.name}</h1>
-          <div className="text-xs text-zinc-500">{gym.address}{gym.city ? `, ${gym.city}` : ""}</div>
-          {reviews && reviews.count > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
-              <Stars value={reviews.averageRating} /> {reviews.averageRating.toFixed(1)} ({reviews.count} đánh giá)
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          data-testid="gym-settings-toggle"
+          onClick={() => setShowSettings((v) => !v)}
+          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <Settings className="w-3.5 h-3.5" /> Cài đặt
+        </button>
       </div>
+
+      {/* Settings — Vòng 4 / Phase C2/C3/C4 */}
+      {showSettings && (
+        <div data-testid="gym-settings-panel" className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-5">
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tên & địa chỉ</p>
+            <p className="text-[11px] text-zinc-600">
+              Đổi tên/địa chỉ ở đây không hiển thị công khai ngay — phải chờ admin duyệt. Trong
+              lúc chờ, phòng gym vẫn bán gói và cho check-in bình thường.
+            </p>
+            <input
+              data-testid="gym-edit-name-input"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            />
+            <input
+              data-testid="gym-edit-address-input"
+              value={editAddress}
+              onChange={(e) => setEditAddress(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            />
+            <button
+              type="button"
+              data-testid="gym-save-name-address-button"
+              onClick={() => updateGymMutation.mutate({ name: editName, address: editAddress })}
+              disabled={!editName.trim() || !editAddress.trim() || updateGymMutation.isPending}
+              className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
+            >
+              Lưu
+            </button>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-zinc-800/60">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Thương hiệu</p>
+            <select
+              data-testid="gym-brand-select"
+              value={gym.brandId ?? ""}
+              onChange={(e) => updateGymMutation.mutate({ brandId: e.target.value || null })}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            >
+              <option value="">Không thuộc thương hiệu nào</option>
+              {ownedBrands.map((b) => (
+                <option key={b.id} value={b.id}>{b.approvedName ?? b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-zinc-800/60">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Trạng thái hoạt động</p>
+            {gym.operationalStatus === "PERMANENTLY_CLOSED" ? (
+              <p className="text-xs text-zinc-500">Phòng gym đã đóng cửa vĩnh viễn — không thể đổi trạng thái nữa.</p>
+            ) : closingMode ? (
+              <div className="space-y-2">
+                <textarea
+                  data-testid="gym-close-reason-input"
+                  value={closeReason}
+                  onChange={(e) => setCloseReason(e.target.value)}
+                  placeholder="Lý do đóng cửa..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 min-h-[60px]"
+                />
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setClosingMode(null); setCloseReason(""); }} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
+                    Huỷ
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="gym-confirm-close-button"
+                    onClick={() => setOperationalStatusMutation.mutate({ operationalStatus: closingMode, reason: closeReason })}
+                    disabled={!closeReason.trim() || setOperationalStatusMutation.isPending}
+                    className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+                  >
+                    Xác nhận {closingMode === "TEMPORARILY_CLOSED" ? "tạm đóng cửa" : "đóng cửa vĩnh viễn"}
+                  </button>
+                </div>
+              </div>
+            ) : gym.operationalStatus === "TEMPORARILY_CLOSED" ? (
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  data-testid="gym-reopen-button"
+                  onClick={() => setOperationalStatusMutation.mutate({ operationalStatus: "OPEN" })}
+                  disabled={setOperationalStatusMutation.isPending}
+                  className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                >
+                  <Unlock className="w-3.5 h-3.5" /> Mở lại
+                </button>
+                <button
+                  type="button"
+                  data-testid="gym-permanently-close-toggle"
+                  onClick={() => setClosingMode("PERMANENTLY_CLOSED")}
+                  className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" /> Đóng cửa vĩnh viễn
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  data-testid="gym-temporarily-close-toggle"
+                  onClick={() => setClosingMode("TEMPORARILY_CLOSED")}
+                  className="flex items-center gap-1.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" /> Tạm đóng cửa
+                </button>
+                <button
+                  type="button"
+                  data-testid="gym-permanently-close-toggle"
+                  onClick={() => setClosingMode("PERMANENTLY_CLOSED")}
+                  className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" /> Đóng cửa vĩnh viễn
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Wallet */}
       <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex flex-wrap items-center gap-x-6 gap-y-2">

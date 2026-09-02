@@ -9,6 +9,20 @@ import { collaborationService } from '../services/collaboration.service';
  * proposal.
  */
 
+function err(message: string, status: number) {
+  return Object.assign(new Error(message), { status });
+}
+
+/** Vòng 4 / Phase E3 — optional notice-period date for terminate(). Omitted/blank means
+ * immediate (unchanged default behavior); a value that fails to parse is a 400, not a silent
+ * fall-through to "immediate" — a caller who typed a real date does not mean "right now". */
+function parseEffectiveAt(raw: unknown): Date | undefined {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const date = new Date(raw as string);
+  if (Number.isNaN(date.getTime())) throw err('effectiveAt không hợp lệ', 400);
+  return date;
+}
+
 export const collaborationController = {
   // PT proposes to a gym — POST /gyms/:gymId/collaborations
   async proposeAsPt(req: Request, res: Response) {
@@ -99,7 +113,8 @@ export const collaborationController = {
 
   async terminateAsPt(req: Request, res: Response) {
     try {
-      const row = await collaborationService.terminate(req.params.id, 'PT', req.user!.userId);
+      const effectiveAt = parseEffectiveAt(req.body?.effectiveAt);
+      const row = await collaborationService.terminate(req.params.id, 'PT', req.user!.userId, effectiveAt);
       res.json({ success: true, data: row });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
@@ -108,7 +123,8 @@ export const collaborationController = {
 
   async terminateAsGym(req: Request, res: Response) {
     try {
-      const row = await collaborationService.terminate(req.params.id, 'GYM', req.user!.userId);
+      const effectiveAt = parseEffectiveAt(req.body?.effectiveAt);
+      const row = await collaborationService.terminate(req.params.id, 'GYM', req.user!.userId, effectiveAt);
       res.json({ success: true, data: row });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });

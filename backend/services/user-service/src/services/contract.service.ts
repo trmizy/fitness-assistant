@@ -10,6 +10,7 @@ import {
   SessionSettlementKind,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
+import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { authServiceClient } from "../clients/auth-service.client";
@@ -28,6 +29,11 @@ import { settleTracked } from "./session-settlement.service";
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
+
+/** Vòng 4 / Phase E2 — how many confirmed PT no-shows on one contract earn the client the
+ * right to terminate it themselves for a full refund (TerminationReason PT_REPEATED_NO_SHOW,
+ * enforced in contract.controller.ts's terminate()). */
+export const PT_REPEATED_NO_SHOW_THRESHOLD = 3;
 
 /**
  * Money-flow plan 1.5 — the single shared formula for "how many sessions does this contract
@@ -790,6 +796,18 @@ export const contractService = {
 
   async getById(id: string) {
     return contractRepository.findByIdWithSessions(id);
+  },
+
+  /**
+   * Vòng 4 / Phase E2 — how close a contract is to the client's own right to terminate for
+   * repeated PT no-shows. Extracted out of contract.controller.ts's terminate() so the count
+   * check that actually GATES the money-moving action is unit-testable on its own (the rest of
+   * terminate() is plain HTTP/authorization glue, same as the other five termination reasons,
+   * none of which have dedicated unit tests either).
+   */
+  async repeatedNoShowEligibility(contractId: string) {
+    const count = await sessionRepository.countPtAtFaultByContract(contractId);
+    return { count, threshold: PT_REPEATED_NO_SHOW_THRESHOLD, eligible: count >= PT_REPEATED_NO_SHOW_THRESHOLD };
   },
 
   // Roadmap P4.1 "Notifications/reminders" (§27) — "PT feedback" is one

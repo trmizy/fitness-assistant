@@ -6,8 +6,10 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "app:build": "vite build --mode capacitor",
-    "app:sync": "vite build --mode capacitor && cap sync android"
+    "app:build": "cross-env CAPACITOR_ENV=dev vite build --mode capacitor",
+    "app:sync": "cross-env CAPACITOR_ENV=dev vite build --mode capacitor && cross-env CAPACITOR_ENV=dev cap sync android",
+    "app:build:prod": "vite build --mode production",
+    "app:sync:prod": "vite build --mode production && cap sync android"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "8",
@@ -15,7 +17,10 @@
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "8",
     "@capacitor/core": "^8.5.0",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -86,6 +91,7 @@
     "@types/react": "^18.2.47",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "4.7.0",
+    "cross-env": "^10.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "4.1.12",

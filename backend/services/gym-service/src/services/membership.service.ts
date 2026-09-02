@@ -97,8 +97,12 @@ export const membershipService = {
     // Money-flow plan 2.5 — the first of three status chokepoints: a gym that is not
     // APPROVED (still under review, rejected, or suspended for a violation) must not accept
     // new money. Without this, "suspended" was purely cosmetic on the purchase flow.
+    // Vòng 4 / Phase C3: a gym can also be APPROVED but temporarily/permanently closed by its
+    // own owner — that axis is independent of `status` and must gate here too.
     const gym = await gymRepository.findById(gymId);
-    if (!gym || gym.status !== 'APPROVED') throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
+    if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
+      throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
+    }
 
     const existingOpen = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
     if (existingOpen) {
@@ -188,8 +192,11 @@ export const membershipService = {
     // is only true at that instant — a gym can be suspended (violation, closure) any time
     // between then and this retry. Without re-checking here, a client could still pay into
     // (and activate a membership at) a gym that is no longer allowed to accept money.
+    // Vòng 4 / Phase C3: same OPEN gate as purchase() above.
     const gym = await gymRepository.findById(contract.gymId);
-    if (!gym || gym.status !== 'APPROVED') throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
+    if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
+      throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
+    }
     return attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
   },
 
@@ -391,11 +398,15 @@ export const membershipService = {
       return before;
     }
 
+    // Vòng 4 / Phase C3: extends this EXISTING chokepoint rather than adding a new one — a gym
+    // the owner closed (TEMPORARILY_CLOSED or PERMANENTLY_CLOSED) between checkout and this
+    // webhook must be treated exactly like a gym that got SUSPENDED in that same window: the
+    // membership goes to PENDING_ISSUE and gets refunded in full, never silently activated.
     const gym = await gymRepository.findById(before.gymId);
-    if (!gym || gym.status !== 'APPROVED') {
+    if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       const { affected, contract: marked } = await membershipRepository.markPendingIssueIfPending(membershipId, transactionId);
       if (affected === 0 || !marked) return membershipRepository.findById(membershipId); // lost a race — another call is already handling it
-      logger.warn(`[Membership] ${membershipId} could not activate — gym ${before.gymId} is ${gym?.status ?? 'missing'}, refunding in full`);
+      logger.warn(`[Membership] ${membershipId} could not activate — gym ${before.gymId} is ${gym?.status ?? 'missing'}/${gym?.operationalStatus ?? 'missing'}, refunding in full`);
       await this.refundPendingIssue(marked, transactionId);
       return membershipRepository.findById(membershipId);
     }

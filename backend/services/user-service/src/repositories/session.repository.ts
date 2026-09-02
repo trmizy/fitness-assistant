@@ -83,6 +83,31 @@ export const sessionRepository = {
     return count === 1;
   },
 
+  /**
+   * Vòng 4 / Phase A — general-purpose version of the same CAS shape claimDeduction above
+   * uses for `sessionDeducted`, but for `status`. `updateStatus` above is a plain
+   * `db.session.update({ where: { id } })` — no status precondition at all, so two
+   * concurrent callers that both read the same starting status both "win" and both run
+   * their side effects (this is exactly how cancelSession could double-deduct quota).
+   * `updateMany`'s where-clause makes the precondition atomic with the write: only a caller
+   * whose expected status still matches what's in the row RIGHT NOW gets `count === 1` and
+   * may proceed to run side effects; every other concurrent caller gets `false` and must
+   * treat this as "already handled by someone else", not retry the same write.
+   */
+  transitionStatus: async (
+    id: string,
+    expected: SessionStatus[],
+    next: SessionStatus,
+    extra?: Record<string, any>,
+    db: Db = prisma,
+  ): Promise<boolean> => {
+    const { count } = await db.session.updateMany({
+      where: { id, status: { in: expected } },
+      data: { status: next, ...extra },
+    });
+    return count === 1;
+  },
+
   /** Sessions whose client-confirmation window has run out (drives the auto-confirm job). */
   findExpiredPendingConfirmation: (now: Date, limit = 100) =>
     prisma.session.findMany({
@@ -142,6 +167,14 @@ export const sessionRepository = {
         },
       },
     }),
+
+  /** Vòng 4 / Phase E2 — how many sessions on this contract were NO_SHOW through the PT's own
+   * fault (self-admitted, agreed to the client's report, or admin-confirmed) — see the
+   * ptAtFault field's own doc comment in schema.prisma. Feeds the client's right to terminate
+   * for repeated PT no-shows (3+), enforced server-side in contract.controller.ts's
+   * terminate(), never trusted from the caller. */
+  countPtAtFaultByContract: (contractId: string) =>
+    prisma.session.count({ where: { contractId, ptAtFault: true } }),
 
   /** Check for overlapping sessions for a PT at a given time range.
    *  statuses defaults to [REQUESTED, CONFIRMED] for booking.

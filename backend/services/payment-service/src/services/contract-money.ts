@@ -22,7 +22,11 @@ export type TerminationReason =
   | 'PT_CANCELLED'
   | 'MUTUAL'
   | 'EXPIRED'
-  | 'COMPLETED';
+  | 'COMPLETED'
+  // Vòng 4 / Phase E2 — client-initiated, after a 3rd confirmed PT no-show on this contract
+  // (user-service enforces the count before ever sending this reason here). Same
+  // 100%-of-remaining formula as PT_BANNED/MUTUAL below — the PT is at fault either way.
+  | 'PT_REPEATED_NO_SHOW';
 
 /** Share of a contract each party is entitled to. Frozen onto the contract when it is signed. */
 export interface RateTable {
@@ -257,6 +261,7 @@ export function computeTermination(
       break;
     case 'PT_BANNED':
     case 'MUTUAL':
+    case 'PT_REPEATED_NO_SHOW':
       rawRefund = remaining;
       break;
     case 'PT_CANCELLED':

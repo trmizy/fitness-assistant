@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
-import { Preferences } from "@capacitor/preferences";
 import { gatewaySocketUrl } from "../config/serverUrl";
 import { ensureFreshAccessToken } from "../services/session";
+import { tokenStore } from "../services/tokenStore";
 
 // Empty string tells socket.io-client to connect to the CURRENT page origin
 // (its documented default-URL behavior) at the default "/socket.io" path —
@@ -16,8 +16,10 @@ const SOCKET_URL = gatewaySocketUrl();
 
 let socket: Socket | null = null;
 
-async function readAccessToken(): Promise<string | null> {
-  const { value: token } = await Preferences.get({ key: "accessToken" });
+// Vòng 4 / Phase D3 — was its own Preferences.get round-trip; tokenStore is guaranteed fresh
+// right after the ensureFreshAccessToken() await at each call site below.
+function readAccessToken(): string | null {
+  const token = tokenStore.get();
   return token && token !== "null" && token !== "undefined" ? token : null;
 }
 
@@ -30,7 +32,7 @@ export function getSocket(): Socket {
       // until it gives up — realtime silently stays down for a session that was fine.
       auth: async (cb) => {
         await ensureFreshAccessToken();
-        cb({ token: await readAccessToken() });
+        cb({ token: readAccessToken() });
       },
       autoConnect: false,
       reconnection: true,

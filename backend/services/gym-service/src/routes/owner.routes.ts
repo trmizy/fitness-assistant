@@ -10,24 +10,31 @@ import { collaborationController } from '../controllers/collaboration.controller
 import { paymentClient } from '../clients/payment.client';
 import { gymService } from '../services/gym.service';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { validateBody } from '../middleware/validate.middleware';
+import { brandCreateSchema, brandUpdateSchema } from '../schemas/brand.schemas';
+import { gymCreateSchema, gymUpdateSchema, gymOperationalStatusSchema } from '../schemas/gym.schemas';
+import { planCreateSchema, planUpdateSchema } from '../schemas/plan.schemas';
 
 const router = Router();
 router.use(extractUser, requireAuth, requireRoles('GYM_OWNER'));
 
 // A chain: one owner, many branches (Gym rows below with brandId set). Optional — an owner
 // who never creates a brand just keeps creating standalone gyms exactly as before.
-router.post('/brands', asyncHandler(brandController.create));
+router.post('/brands', validateBody(brandCreateSchema), asyncHandler(brandController.create));
 router.get('/brands', asyncHandler(brandController.listOwned));
 router.get('/brands/:id', asyncHandler(brandController.getOwnedById));
-router.patch('/brands/:id', asyncHandler(brandController.update));
+router.patch('/brands/:id', validateBody(brandUpdateSchema), asyncHandler(brandController.update));
 
 // Ownership is verified per-row inside each service method (gymService.getOwnedGym) —
 // requireRoles('GYM_OWNER') alone only proves the caller is *a* gym owner, not that
 // they own *this* gym.
-router.post('/gyms', asyncHandler(gymController.createOwned));
+router.post('/gyms', validateBody(gymCreateSchema), asyncHandler(gymController.createOwned));
 router.get('/gyms', asyncHandler(gymController.listOwned));
 router.get('/gyms/:id', asyncHandler(gymController.getOwnedById));
-router.patch('/gyms/:id', asyncHandler(gymController.updateOwned));
+router.patch('/gyms/:id', validateBody(gymUpdateSchema), asyncHandler(gymController.updateOwned));
+
+// Vòng 4 / Phase C3 — the owner's own open/close switch, separate from admin moderation.
+router.patch('/gyms/:id/operational-status', validateBody(gymOperationalStatusSchema), asyncHandler(gymController.setOperationalStatus));
 
 router.get('/gyms/:gymId/wallet', asyncHandler(async (req, res) => {
   try {
@@ -40,9 +47,9 @@ router.get('/gyms/:gymId/wallet', asyncHandler(async (req, res) => {
   }
 }));
 
-router.post('/gyms/:gymId/plans', asyncHandler(planController.create));
+router.post('/gyms/:gymId/plans', validateBody(planCreateSchema), asyncHandler(planController.create));
 router.get('/gyms/:gymId/plans', asyncHandler(planController.listOwned));
-router.patch('/gyms/:gymId/plans/:planId', asyncHandler(planController.update));
+router.patch('/gyms/:gymId/plans/:planId', validateBody(planUpdateSchema), asyncHandler(planController.update));
 
 router.get('/gyms/:gymId/memberships', asyncHandler(membershipController.listForOwner));
 

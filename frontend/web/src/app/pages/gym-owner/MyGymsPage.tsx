@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dumbbell, MapPin, Loader2, Plus, X, Clock, CheckCircle, XCircle, Ban, Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { Dumbbell, MapPin, Loader2, Plus, X, Clock, CheckCircle, XCircle, Ban, Building2, ChevronDown, ChevronRight, Pencil, Check } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -52,27 +52,69 @@ function BrandGroup({
   branches,
   onOpenBranch,
   onAddBranch,
+  onRename,
+  isRenaming,
 }: {
   brand: GymBrand;
   branches: Gym[];
   onOpenBranch: (gymId: string) => void;
   onAddBranch: (brandId: string) => void;
+  onRename: (brandId: string, newName: string) => void;
+  isRenaming: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(brand.approvedName ?? brand.name);
+  const displayName = brand.approvedName ?? brand.name;
+
   return (
     <div className="bg-zinc-900/60 rounded-2xl border border-zinc-800/60 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-zinc-800/30 transition-colors"
-      >
-        <div className="flex items-center gap-2.5">
-          <Building2 className="w-4 h-4 text-green-400" />
-          <span className="text-sm font-bold text-zinc-200">{brand.name}</span>
-          <span className="text-xs text-zinc-600">{branches.length} chi nhánh</span>
-        </div>
-        {expanded ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
-      </button>
+      <div className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-zinc-800/30 transition-colors gap-2">
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+          <Building2 className="w-4 h-4 text-green-400 shrink-0" />
+          {editing ? (
+            <input
+              data-testid="brand-rename-input"
+              autoFocus
+              value={nameInput}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setNameInput(e.target.value)}
+              className="bg-zinc-950 border border-zinc-700 rounded-md px-2 py-0.5 text-sm text-zinc-200 min-w-0"
+            />
+          ) : (
+            <span className="text-sm font-bold text-zinc-200 truncate">{displayName}</span>
+          )}
+          <span className="text-xs text-zinc-600 shrink-0">{branches.length} chi nhánh</span>
+        </button>
+        {editing ? (
+          <button
+            type="button"
+            data-testid="brand-rename-save-button"
+            onClick={(e) => { e.stopPropagation(); onRename(brand.id, nameInput); setEditing(false); }}
+            disabled={!nameInput.trim() || isRenaming}
+            className="text-green-400 hover:text-green-300 shrink-0"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="brand-rename-toggle"
+            onClick={(e) => { e.stopPropagation(); setNameInput(displayName); setEditing(true); }}
+            className="text-zinc-600 hover:text-zinc-300 shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="shrink-0">
+          {expanded ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
+        </button>
+      </div>
+      {brand.pendingName && (
+        <p data-testid="brand-pending-approval-hint" className="px-4 pb-2 text-[11px] text-amber-400">
+          Tên mới đang chờ duyệt: <strong>{brand.pendingName}</strong>
+        </p>
+      )}
       {expanded && (
         <div className="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {branches.map((g) => (
@@ -143,6 +185,17 @@ export function MyGymsPage() {
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create brand"),
   });
 
+  // Vòng 4 / Phase C1 — a rename only ever moves pendingName; approvedName (what's shown
+  // publicly) is untouched until an admin approves it.
+  const renameBrandMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => gymService.updateBrand(id, { name }),
+    onSuccess: () => {
+      toast.success("Đã lưu — tên mới sẽ hiển thị công khai sau khi admin duyệt");
+      queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể đổi tên"),
+  });
+
   const openAddBranch = (brandId: string) => {
     setGymForm({ name: "", address: "", city: "", description: "", brandId });
     setShowCreateGym(true);
@@ -203,6 +256,8 @@ export function MyGymsPage() {
               branches={branchesForBrand(gyms, brand.id)}
               onOpenBranch={(gymId) => navigate(`/gym-owner/gyms/${gymId}`)}
               onAddBranch={openAddBranch}
+              onRename={(id, name) => renameBrandMutation.mutate({ id, name })}
+              isRenaming={renameBrandMutation.isPending}
             />
           ))}
         </div>

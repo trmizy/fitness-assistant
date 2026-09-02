@@ -485,7 +485,7 @@ const terminateSchema = releaseSchema.extend({
   // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
   // left, but defensive) does not 400.
   compensatedSessions: z.number().int().min(0).optional(),
-  reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED']),
+  reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'PT_REPEATED_NO_SHOW']),
   alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
 });
 

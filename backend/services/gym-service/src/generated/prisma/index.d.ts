@@ -91,6 +91,15 @@ export namespace $Enums {
 export type GymStatus = (typeof GymStatus)[keyof typeof GymStatus]
 
 
+export const GymOperationalStatus: {
+  OPEN: 'OPEN',
+  TEMPORARILY_CLOSED: 'TEMPORARILY_CLOSED',
+  PERMANENTLY_CLOSED: 'PERMANENTLY_CLOSED'
+};
+
+export type GymOperationalStatus = (typeof GymOperationalStatus)[keyof typeof GymOperationalStatus]
+
+
 export const GymMembershipPlanStatus: {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE'
@@ -161,6 +170,10 @@ export type CollaborationParty = (typeof CollaborationParty)[keyof typeof Collab
 export type GymStatus = $Enums.GymStatus
 
 export const GymStatus: typeof $Enums.GymStatus
+
+export type GymOperationalStatus = $Enums.GymOperationalStatus
+
+export const GymOperationalStatus: typeof $Enums.GymOperationalStatus
 
 export type GymMembershipPlanStatus = $Enums.GymMembershipPlanStatus
 
@@ -1835,6 +1848,8 @@ export namespace Prisma {
     id: string | null
     ownerId: string | null
     name: string | null
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -1844,6 +1859,8 @@ export namespace Prisma {
     id: string | null
     ownerId: string | null
     name: string | null
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -1853,6 +1870,8 @@ export namespace Prisma {
     id: number
     ownerId: number
     name: number
+    approvedName: number
+    pendingName: number
     description: number
     createdAt: number
     updatedAt: number
@@ -1864,6 +1883,8 @@ export namespace Prisma {
     id?: true
     ownerId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     createdAt?: true
     updatedAt?: true
@@ -1873,6 +1894,8 @@ export namespace Prisma {
     id?: true
     ownerId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     createdAt?: true
     updatedAt?: true
@@ -1882,6 +1905,8 @@ export namespace Prisma {
     id?: true
     ownerId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     createdAt?: true
     updatedAt?: true
@@ -1964,6 +1989,8 @@ export namespace Prisma {
     id: string
     ownerId: string
     name: string
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     createdAt: Date
     updatedAt: Date
@@ -1990,6 +2017,8 @@ export namespace Prisma {
     id?: boolean
     ownerId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2001,6 +2030,8 @@ export namespace Prisma {
     id?: boolean
     ownerId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2010,6 +2041,8 @@ export namespace Prisma {
     id?: boolean
     ownerId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2029,7 +2062,19 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       ownerId: string
+      /**
+       * Vòng 4 / Phase C1 — `name` stays the owner's freely-editable working value (unchanged
+       * role from before this phase); `approvedName`/`pendingName` are a moderation overlay only
+       * PUBLIC pages read. `approvedName` is null until an admin approves this brand's FIRST
+       * branch (gymService.setStatus backfills it then, same trigger C1 specifies — no new admin
+       * action needed for the first approval). Every later rename sets `pendingName` only,
+       * leaving `approvedName` untouched until the dedicated "Duyệt đổi tên thương hiệu" admin
+       * action (brandService.approveRename) promotes it. Null pendingName means "nothing pending
+       * — name is exactly what's approved."
+       */
       name: string
+      approvedName: string | null
+      pendingName: string | null
       description: string | null
       createdAt: Date
       updatedAt: Date
@@ -2430,6 +2475,8 @@ export namespace Prisma {
     readonly id: FieldRef<"GymBrand", 'String'>
     readonly ownerId: FieldRef<"GymBrand", 'String'>
     readonly name: FieldRef<"GymBrand", 'String'>
+    readonly approvedName: FieldRef<"GymBrand", 'String'>
+    readonly pendingName: FieldRef<"GymBrand", 'String'>
     readonly description: FieldRef<"GymBrand", 'String'>
     readonly createdAt: FieldRef<"GymBrand", 'DateTime'>
     readonly updatedAt: FieldRef<"GymBrand", 'DateTime'>
@@ -2796,12 +2843,20 @@ export namespace Prisma {
     ownerId: string | null
     brandId: string | null
     name: string | null
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     address: string | null
+    approvedAddress: string | null
+    pendingAddress: string | null
     city: string | null
     phone: string | null
     email: string | null
     status: $Enums.GymStatus | null
+    operationalStatus: $Enums.GymOperationalStatus | null
+    closureReason: string | null
+    closedAt: Date | null
+    reopenedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2811,12 +2866,20 @@ export namespace Prisma {
     ownerId: string | null
     brandId: string | null
     name: string | null
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     address: string | null
+    approvedAddress: string | null
+    pendingAddress: string | null
     city: string | null
     phone: string | null
     email: string | null
     status: $Enums.GymStatus | null
+    operationalStatus: $Enums.GymOperationalStatus | null
+    closureReason: string | null
+    closedAt: Date | null
+    reopenedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2826,12 +2889,20 @@ export namespace Prisma {
     ownerId: number
     brandId: number
     name: number
+    approvedName: number
+    pendingName: number
     description: number
     address: number
+    approvedAddress: number
+    pendingAddress: number
     city: number
     phone: number
     email: number
     status: number
+    operationalStatus: number
+    closureReason: number
+    closedAt: number
+    reopenedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2843,12 +2914,20 @@ export namespace Prisma {
     ownerId?: true
     brandId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     address?: true
+    approvedAddress?: true
+    pendingAddress?: true
     city?: true
     phone?: true
     email?: true
     status?: true
+    operationalStatus?: true
+    closureReason?: true
+    closedAt?: true
+    reopenedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2858,12 +2937,20 @@ export namespace Prisma {
     ownerId?: true
     brandId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     address?: true
+    approvedAddress?: true
+    pendingAddress?: true
     city?: true
     phone?: true
     email?: true
     status?: true
+    operationalStatus?: true
+    closureReason?: true
+    closedAt?: true
+    reopenedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2873,12 +2960,20 @@ export namespace Prisma {
     ownerId?: true
     brandId?: true
     name?: true
+    approvedName?: true
+    pendingName?: true
     description?: true
     address?: true
+    approvedAddress?: true
+    pendingAddress?: true
     city?: true
     phone?: true
     email?: true
     status?: true
+    operationalStatus?: true
+    closureReason?: true
+    closedAt?: true
+    reopenedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2961,12 +3056,20 @@ export namespace Prisma {
     ownerId: string
     brandId: string | null
     name: string
+    approvedName: string | null
+    pendingName: string | null
     description: string | null
     address: string
+    approvedAddress: string | null
+    pendingAddress: string | null
     city: string | null
     phone: string | null
     email: string | null
     status: $Enums.GymStatus
+    operationalStatus: $Enums.GymOperationalStatus
+    closureReason: string | null
+    closedAt: Date | null
+    reopenedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: GymCountAggregateOutputType | null
@@ -2993,12 +3096,20 @@ export namespace Prisma {
     ownerId?: boolean
     brandId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     address?: boolean
+    approvedAddress?: boolean
+    pendingAddress?: boolean
     city?: boolean
     phone?: boolean
     email?: boolean
     status?: boolean
+    operationalStatus?: boolean
+    closureReason?: boolean
+    closedAt?: boolean
+    reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -3015,12 +3126,20 @@ export namespace Prisma {
     ownerId?: boolean
     brandId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     address?: boolean
+    approvedAddress?: boolean
+    pendingAddress?: boolean
     city?: boolean
     phone?: boolean
     email?: boolean
     status?: boolean
+    operationalStatus?: boolean
+    closureReason?: boolean
+    closedAt?: boolean
+    reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -3031,12 +3150,20 @@ export namespace Prisma {
     ownerId?: boolean
     brandId?: boolean
     name?: boolean
+    approvedName?: boolean
+    pendingName?: boolean
     description?: boolean
     address?: boolean
+    approvedAddress?: boolean
+    pendingAddress?: boolean
     city?: boolean
     phone?: boolean
     email?: boolean
     status?: boolean
+    operationalStatus?: boolean
+    closureReason?: boolean
+    closedAt?: boolean
+    reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -3073,13 +3200,41 @@ export namespace Prisma {
        * a grouping label for search and owner navigation, not a second source of truth.
        */
       brandId: string | null
+      /**
+       * Vòng 4 / Phase C2 — same approvedX/pendingX overlay as GymBrand.name above, applied to
+       * name AND address (the only two fields that need re-approval; every other field — phone,
+       * email, city, description, hours — stays freely editable with no moderation at all).
+       * `name`/`address` remain the live working values every non-public consumer already reads
+       * (checkin receipts, membership listings, the owner's own dashboard); only the public
+       * discovery endpoints (gymService.listApproved/getApprovedById) substitute approvedName/
+       * approvedAddress in their place. `approvedName`/`approvedAddress` are backfilled from
+       * name/address the first time this gym's `status` is set to APPROVED (mirrors the brand's
+       * first-branch-approval trigger); every edit afterwards only moves pendingName/
+       * pendingAddress until the "Duyệt đổi tên/địa chỉ" admin action (gymService.approveRename)
+       * promotes them.
+       */
       name: string
+      approvedName: string | null
+      pendingName: string | null
       description: string | null
       address: string
+      approvedAddress: string | null
+      pendingAddress: string | null
       city: string | null
       phone: string | null
       email: string | null
       status: $Enums.GymStatus
+      /**
+       * Vòng 4 / Phase C3 — independent from `status` (moderation: is this gym allowed to exist
+       * on the platform at all) on purpose. This is the OWNER's own "are we open for business
+       * right now" switch — a SUSPENDED gym is never OPEN-gated regardless of this value (both
+       * axes must pass), but an APPROVED gym can still be temporarily/permanently closed by its
+       * own owner without an admin ever touching `status`.
+       */
+      operationalStatus: $Enums.GymOperationalStatus
+      closureReason: string | null
+      closedAt: Date | null
+      reopenedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gym"]>
@@ -3485,12 +3640,20 @@ export namespace Prisma {
     readonly ownerId: FieldRef<"Gym", 'String'>
     readonly brandId: FieldRef<"Gym", 'String'>
     readonly name: FieldRef<"Gym", 'String'>
+    readonly approvedName: FieldRef<"Gym", 'String'>
+    readonly pendingName: FieldRef<"Gym", 'String'>
     readonly description: FieldRef<"Gym", 'String'>
     readonly address: FieldRef<"Gym", 'String'>
+    readonly approvedAddress: FieldRef<"Gym", 'String'>
+    readonly pendingAddress: FieldRef<"Gym", 'String'>
     readonly city: FieldRef<"Gym", 'String'>
     readonly phone: FieldRef<"Gym", 'String'>
     readonly email: FieldRef<"Gym", 'String'>
     readonly status: FieldRef<"Gym", 'GymStatus'>
+    readonly operationalStatus: FieldRef<"Gym", 'GymOperationalStatus'>
+    readonly closureReason: FieldRef<"Gym", 'String'>
+    readonly closedAt: FieldRef<"Gym", 'DateTime'>
+    readonly reopenedAt: FieldRef<"Gym", 'DateTime'>
     readonly createdAt: FieldRef<"Gym", 'DateTime'>
     readonly updatedAt: FieldRef<"Gym", 'DateTime'>
   }
@@ -9241,6 +9404,7 @@ export namespace Prisma {
     acceptedAt: Date | null
     terminatedAt: Date | null
     terminatedBy: string | null
+    effectiveAt: Date | null
     note: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -9260,6 +9424,7 @@ export namespace Prisma {
     acceptedAt: Date | null
     terminatedAt: Date | null
     terminatedBy: string | null
+    effectiveAt: Date | null
     note: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -9279,6 +9444,7 @@ export namespace Prisma {
     acceptedAt: number
     terminatedAt: number
     terminatedBy: number
+    effectiveAt: number
     note: number
     createdAt: number
     updatedAt: number
@@ -9314,6 +9480,7 @@ export namespace Prisma {
     acceptedAt?: true
     terminatedAt?: true
     terminatedBy?: true
+    effectiveAt?: true
     note?: true
     createdAt?: true
     updatedAt?: true
@@ -9333,6 +9500,7 @@ export namespace Prisma {
     acceptedAt?: true
     terminatedAt?: true
     terminatedBy?: true
+    effectiveAt?: true
     note?: true
     createdAt?: true
     updatedAt?: true
@@ -9352,6 +9520,7 @@ export namespace Prisma {
     acceptedAt?: true
     terminatedAt?: true
     terminatedBy?: true
+    effectiveAt?: true
     note?: true
     createdAt?: true
     updatedAt?: true
@@ -9458,6 +9627,7 @@ export namespace Prisma {
     acceptedAt: Date | null
     terminatedAt: Date | null
     terminatedBy: string | null
+    effectiveAt: Date | null
     note: string | null
     createdAt: Date
     updatedAt: Date
@@ -9496,6 +9666,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     terminatedAt?: boolean
     terminatedBy?: boolean
+    effectiveAt?: boolean
     note?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9516,6 +9687,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     terminatedAt?: boolean
     terminatedBy?: boolean
+    effectiveAt?: boolean
     note?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9536,6 +9708,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     terminatedAt?: boolean
     terminatedBy?: boolean
+    effectiveAt?: boolean
     note?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9579,6 +9752,16 @@ export namespace Prisma {
       acceptedAt: Date | null
       terminatedAt: Date | null
       terminatedBy: string | null
+      /**
+       * Vòng 4 / Phase E3 — when set, this row is winding down: status STAYS 'ACCEPTED' (so
+       * affiliation/roster display is unaffected) until this date, but activeRates() already
+       * refuses NEW referral/rate lookups against it the moment this is set, regardless of the
+       * date — "new collaborations blocked immediately, running contracts continue until
+       * effectiveAt". Null = no pending termination. A lazy check (finalizeIfEffective, mirroring
+       * expireIfStale above) flips status -> TERMINATED once effectiveAt has passed. terminate()
+       * with no explicit date still terminates immediately (sets effectiveAt = now).
+       */
+      effectiveAt: Date | null
       note: string | null
       createdAt: Date
       updatedAt: Date
@@ -9989,6 +10172,7 @@ export namespace Prisma {
     readonly acceptedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly terminatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly terminatedBy: FieldRef<"GymPtCollaboration", 'String'>
+    readonly effectiveAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly note: FieldRef<"GymPtCollaboration", 'String'>
     readonly createdAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly updatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
@@ -11395,6 +11579,8 @@ export namespace Prisma {
     id: 'id',
     ownerId: 'ownerId',
     name: 'name',
+    approvedName: 'approvedName',
+    pendingName: 'pendingName',
     description: 'description',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -11408,12 +11594,20 @@ export namespace Prisma {
     ownerId: 'ownerId',
     brandId: 'brandId',
     name: 'name',
+    approvedName: 'approvedName',
+    pendingName: 'pendingName',
     description: 'description',
     address: 'address',
+    approvedAddress: 'approvedAddress',
+    pendingAddress: 'pendingAddress',
     city: 'city',
     phone: 'phone',
     email: 'email',
     status: 'status',
+    operationalStatus: 'operationalStatus',
+    closureReason: 'closureReason',
+    closedAt: 'closedAt',
+    reopenedAt: 'reopenedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -11518,6 +11712,7 @@ export namespace Prisma {
     acceptedAt: 'acceptedAt',
     terminatedAt: 'terminatedAt',
     terminatedBy: 'terminatedBy',
+    effectiveAt: 'effectiveAt',
     note: 'note',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -11611,6 +11806,20 @@ export namespace Prisma {
    * Reference to a field of type 'GymStatus[]'
    */
   export type ListEnumGymStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymOperationalStatus'
+   */
+  export type EnumGymOperationalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymOperationalStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymOperationalStatus[]'
+   */
+  export type ListEnumGymOperationalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymOperationalStatus[]'>
     
 
 
@@ -11771,6 +11980,8 @@ export namespace Prisma {
     id?: StringFilter<"GymBrand"> | string
     ownerId?: StringFilter<"GymBrand"> | string
     name?: StringFilter<"GymBrand"> | string
+    approvedName?: StringNullableFilter<"GymBrand"> | string | null
+    pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
@@ -11781,6 +11992,8 @@ export namespace Prisma {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrderInput | SortOrder
+    pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -11794,6 +12007,8 @@ export namespace Prisma {
     NOT?: GymBrandWhereInput | GymBrandWhereInput[]
     ownerId?: StringFilter<"GymBrand"> | string
     name?: StringFilter<"GymBrand"> | string
+    approvedName?: StringNullableFilter<"GymBrand"> | string | null
+    pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
@@ -11804,6 +12019,8 @@ export namespace Prisma {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrderInput | SortOrder
+    pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -11819,6 +12036,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"GymBrand"> | string
     ownerId?: StringWithAggregatesFilter<"GymBrand"> | string
     name?: StringWithAggregatesFilter<"GymBrand"> | string
+    approvedName?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    pendingName?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     description?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
@@ -11832,12 +12051,20 @@ export namespace Prisma {
     ownerId?: StringFilter<"Gym"> | string
     brandId?: StringNullableFilter<"Gym"> | string | null
     name?: StringFilter<"Gym"> | string
+    approvedName?: StringNullableFilter<"Gym"> | string | null
+    pendingName?: StringNullableFilter<"Gym"> | string | null
     description?: StringNullableFilter<"Gym"> | string | null
     address?: StringFilter<"Gym"> | string
+    approvedAddress?: StringNullableFilter<"Gym"> | string | null
+    pendingAddress?: StringNullableFilter<"Gym"> | string | null
     city?: StringNullableFilter<"Gym"> | string | null
     phone?: StringNullableFilter<"Gym"> | string | null
     email?: StringNullableFilter<"Gym"> | string | null
     status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFilter<"Gym"> | $Enums.GymOperationalStatus
+    closureReason?: StringNullableFilter<"Gym"> | string | null
+    closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -11853,12 +12080,20 @@ export namespace Prisma {
     ownerId?: SortOrder
     brandId?: SortOrderInput | SortOrder
     name?: SortOrder
+    approvedName?: SortOrderInput | SortOrder
+    pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     address?: SortOrder
+    approvedAddress?: SortOrderInput | SortOrder
+    pendingAddress?: SortOrderInput | SortOrder
     city?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     status?: SortOrder
+    operationalStatus?: SortOrder
+    closureReason?: SortOrderInput | SortOrder
+    closedAt?: SortOrderInput | SortOrder
+    reopenedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     brand?: GymBrandOrderByWithRelationInput
@@ -11877,12 +12112,20 @@ export namespace Prisma {
     ownerId?: StringFilter<"Gym"> | string
     brandId?: StringNullableFilter<"Gym"> | string | null
     name?: StringFilter<"Gym"> | string
+    approvedName?: StringNullableFilter<"Gym"> | string | null
+    pendingName?: StringNullableFilter<"Gym"> | string | null
     description?: StringNullableFilter<"Gym"> | string | null
     address?: StringFilter<"Gym"> | string
+    approvedAddress?: StringNullableFilter<"Gym"> | string | null
+    pendingAddress?: StringNullableFilter<"Gym"> | string | null
     city?: StringNullableFilter<"Gym"> | string | null
     phone?: StringNullableFilter<"Gym"> | string | null
     email?: StringNullableFilter<"Gym"> | string | null
     status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFilter<"Gym"> | $Enums.GymOperationalStatus
+    closureReason?: StringNullableFilter<"Gym"> | string | null
+    closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -11898,12 +12141,20 @@ export namespace Prisma {
     ownerId?: SortOrder
     brandId?: SortOrderInput | SortOrder
     name?: SortOrder
+    approvedName?: SortOrderInput | SortOrder
+    pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     address?: SortOrder
+    approvedAddress?: SortOrderInput | SortOrder
+    pendingAddress?: SortOrderInput | SortOrder
     city?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     status?: SortOrder
+    operationalStatus?: SortOrder
+    closureReason?: SortOrderInput | SortOrder
+    closedAt?: SortOrderInput | SortOrder
+    reopenedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymCountOrderByAggregateInput
@@ -11919,12 +12170,20 @@ export namespace Prisma {
     ownerId?: StringWithAggregatesFilter<"Gym"> | string
     brandId?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     name?: StringWithAggregatesFilter<"Gym"> | string
+    approvedName?: StringNullableWithAggregatesFilter<"Gym"> | string | null
+    pendingName?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     description?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     address?: StringWithAggregatesFilter<"Gym"> | string
+    approvedAddress?: StringNullableWithAggregatesFilter<"Gym"> | string | null
+    pendingAddress?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     city?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     phone?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     email?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     status?: EnumGymStatusWithAggregatesFilter<"Gym"> | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusWithAggregatesFilter<"Gym"> | $Enums.GymOperationalStatus
+    closureReason?: StringNullableWithAggregatesFilter<"Gym"> | string | null
+    closedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
+    reopenedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
   }
@@ -12383,6 +12642,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
@@ -12403,6 +12663,7 @@ export namespace Prisma {
     acceptedAt?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
     terminatedBy?: SortOrderInput | SortOrder
+    effectiveAt?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12426,6 +12687,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
@@ -12446,6 +12708,7 @@ export namespace Prisma {
     acceptedAt?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
     terminatedBy?: SortOrderInput | SortOrder
+    effectiveAt?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12473,6 +12736,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
     terminatedAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
     terminatedBy?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
+    effectiveAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
@@ -12569,6 +12833,8 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12579,6 +12845,8 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12589,6 +12857,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12599,6 +12869,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12609,6 +12881,8 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12618,6 +12892,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12627,6 +12903,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12636,12 +12914,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -12657,12 +12943,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -12676,12 +12970,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -12697,12 +12999,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -12717,12 +13027,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12731,12 +13049,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12746,12 +13072,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13251,6 +13585,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13271,6 +13606,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13289,6 +13625,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13309,6 +13646,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13328,6 +13666,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13346,6 +13685,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13365,6 +13705,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13527,6 +13868,8 @@ export namespace Prisma {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -13536,6 +13879,8 @@ export namespace Prisma {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -13545,6 +13890,8 @@ export namespace Prisma {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -13607,6 +13954,24 @@ export namespace Prisma {
     not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
   }
 
+  export type EnumGymOperationalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymOperationalStatus | EnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymOperationalStatusFilter<$PrismaModel> | $Enums.GymOperationalStatus
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type GymBrandNullableRelationFilter = {
     is?: GymBrandWhereInput | null
     isNot?: GymBrandWhereInput | null
@@ -13667,12 +14032,20 @@ export namespace Prisma {
     ownerId?: SortOrder
     brandId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     address?: SortOrder
+    approvedAddress?: SortOrder
+    pendingAddress?: SortOrder
     city?: SortOrder
     phone?: SortOrder
     email?: SortOrder
     status?: SortOrder
+    operationalStatus?: SortOrder
+    closureReason?: SortOrder
+    closedAt?: SortOrder
+    reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13682,12 +14055,20 @@ export namespace Prisma {
     ownerId?: SortOrder
     brandId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     address?: SortOrder
+    approvedAddress?: SortOrder
+    pendingAddress?: SortOrder
     city?: SortOrder
     phone?: SortOrder
     email?: SortOrder
     status?: SortOrder
+    operationalStatus?: SortOrder
+    closureReason?: SortOrder
+    closedAt?: SortOrder
+    reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13697,12 +14078,20 @@ export namespace Prisma {
     ownerId?: SortOrder
     brandId?: SortOrder
     name?: SortOrder
+    approvedName?: SortOrder
+    pendingName?: SortOrder
     description?: SortOrder
     address?: SortOrder
+    approvedAddress?: SortOrder
+    pendingAddress?: SortOrder
     city?: SortOrder
     phone?: SortOrder
     email?: SortOrder
     status?: SortOrder
+    operationalStatus?: SortOrder
+    closureReason?: SortOrder
+    closedAt?: SortOrder
+    reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13715,6 +14104,30 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymStatusFilter<$PrismaModel>
     _max?: NestedEnumGymStatusFilter<$PrismaModel>
+  }
+
+  export type EnumGymOperationalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymOperationalStatus | EnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymOperationalStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymOperationalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type DecimalFilter<$PrismaModel = never> = {
@@ -13755,17 +14168,6 @@ export namespace Prisma {
     in?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel> | $Enums.GymMembershipPlanStatus
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type GymRelationFilter = {
@@ -13886,20 +14288,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type EnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
@@ -14262,6 +14650,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     terminatedAt?: SortOrder
     terminatedBy?: SortOrder
+    effectiveAt?: SortOrder
     note?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14288,6 +14677,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     terminatedAt?: SortOrder
     terminatedBy?: SortOrder
+    effectiveAt?: SortOrder
     note?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14307,6 +14697,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     terminatedAt?: SortOrder
     terminatedBy?: SortOrder
+    effectiveAt?: SortOrder
     note?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14527,6 +14918,14 @@ export namespace Prisma {
     set?: $Enums.GymStatus
   }
 
+  export type EnumGymOperationalStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymOperationalStatus
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type GymBrandUpdateOneWithoutBranchesNestedInput = {
     create?: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
     connectOrCreate?: GymBrandCreateOrConnectWithoutBranchesInput
@@ -14723,10 +15122,6 @@ export namespace Prisma {
 
   export type EnumGymMembershipPlanStatusFieldUpdateOperationsInput = {
     set?: $Enums.GymMembershipPlanStatus
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type GymUpdateOneRequiredWithoutPlansNestedInput = {
@@ -15089,6 +15484,24 @@ export namespace Prisma {
     not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
   }
 
+  export type NestedEnumGymOperationalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymOperationalStatus | EnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymOperationalStatusFilter<$PrismaModel> | $Enums.GymOperationalStatus
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedEnumGymStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
     in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
@@ -15097,6 +15510,30 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymStatusFilter<$PrismaModel>
     _max?: NestedEnumGymStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymOperationalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymOperationalStatus | EnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymOperationalStatus[] | ListEnumGymOperationalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymOperationalStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymOperationalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedDecimalFilter<$PrismaModel = never> = {
@@ -15115,17 +15552,6 @@ export namespace Prisma {
     in?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel> | $Enums.GymMembershipPlanStatus
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -15206,20 +15632,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
@@ -15368,12 +15780,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
@@ -15387,12 +15807,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -15436,12 +15864,20 @@ export namespace Prisma {
     ownerId?: StringFilter<"Gym"> | string
     brandId?: StringNullableFilter<"Gym"> | string | null
     name?: StringFilter<"Gym"> | string
+    approvedName?: StringNullableFilter<"Gym"> | string | null
+    pendingName?: StringNullableFilter<"Gym"> | string | null
     description?: StringNullableFilter<"Gym"> | string | null
     address?: StringFilter<"Gym"> | string
+    approvedAddress?: StringNullableFilter<"Gym"> | string | null
+    pendingAddress?: StringNullableFilter<"Gym"> | string | null
     city?: StringNullableFilter<"Gym"> | string | null
     phone?: StringNullableFilter<"Gym"> | string | null
     email?: StringNullableFilter<"Gym"> | string | null
     status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFilter<"Gym"> | $Enums.GymOperationalStatus
+    closureReason?: StringNullableFilter<"Gym"> | string | null
+    closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
   }
@@ -15450,6 +15886,8 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15459,6 +15897,8 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15638,6 +16078,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15656,6 +16097,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15686,6 +16128,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15695,6 +16139,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15868,6 +16314,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
@@ -15877,12 +16324,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -15897,12 +16352,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -15983,12 +16446,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -16003,12 +16474,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -16037,12 +16516,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -16057,12 +16544,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -16183,12 +16678,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -16203,12 +16706,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -16327,12 +16838,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -16347,12 +16866,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -16381,12 +16908,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -16401,12 +16936,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -16519,12 +17062,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -16539,12 +17090,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -16573,12 +17132,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -16593,12 +17160,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -16611,12 +17186,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -16631,12 +17214,20 @@ export namespace Prisma {
     ownerId: string
     brandId?: string | null
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
@@ -16665,12 +17256,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -16685,12 +17284,20 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -16803,12 +17410,20 @@ export namespace Prisma {
     id?: string
     ownerId: string
     name: string
+    approvedName?: string | null
+    pendingName?: string | null
     description?: string | null
     address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
     city?: string | null
     phone?: string | null
     email?: string | null
     status?: $Enums.GymStatus
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    closedAt?: Date | string | null
+    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16817,12 +17432,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
@@ -16836,12 +17459,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
@@ -16855,12 +17486,20 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16933,6 +17572,7 @@ export namespace Prisma {
     acceptedAt?: Date | string | null
     terminatedAt?: Date | string | null
     terminatedBy?: string | null
+    effectiveAt?: Date | string | null
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17122,6 +17762,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17140,6 +17781,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17158,6 +17800,7 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

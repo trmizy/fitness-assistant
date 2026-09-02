@@ -26,6 +26,7 @@ interface MembershipRow {
   client_id: string;
   plan_id: string;
   gym_status: string;
+  gym_operational_status: string;
 }
 
 /**
@@ -73,10 +74,12 @@ export const checkinService = {
     const result = await prisma.$transaction(async (tx) => {
       // Money-flow plan 2.5 — second chokepoint: joins to gyms so a SUSPENDED (or otherwise
       // not-APPROVED) gym's "suspended" status actually means something at the one place that
-      // lets a member physically walk in, not just at the purchase flow.
+      // lets a member physically walk in, not just at the purchase flow. Vòng 4 / Phase C3
+      // adds operational_status to the same join — a gym the owner closed must block check-in
+      // exactly like a SUSPENDED one.
       const rows = await tx.$queryRaw<MembershipRow[]>`
         SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
-               g.status AS gym_status
+               g.status AS gym_status, g.operational_status AS gym_operational_status
         FROM gym_membership_contracts c
         JOIN gyms g ON g.id = c.gym_id
         WHERE c.gym_id = ${gymId} AND c.client_id = ${clientId}
@@ -87,7 +90,7 @@ export const checkinService = {
       if (rows.length === 0) throw err('NO_MEMBERSHIP', 403);
       const m = rows[0];
 
-      if (m.gym_status !== 'APPROVED') throw err('GYM_NOT_ACTIVE', 409);
+      if (m.gym_status !== 'APPROVED' || m.gym_operational_status !== 'OPEN') throw err('GYM_NOT_ACTIVE', 409);
 
       // Lazy-expire a membership past its end date, then require ACTIVE.
       let status = m.status;

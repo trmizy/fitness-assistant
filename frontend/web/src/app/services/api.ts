@@ -11,6 +11,7 @@ import { apiBaseUrl } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
+import { tokenStore } from "./tokenStore";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -106,6 +107,7 @@ export const refreshOnce = makeRefreshOnce(refreshAccessToken);
 /** Clears only the session keys — theme, language and other preferences survive. */
 export async function clearStoredSession(): Promise<void> {
   await Preferences.remove({ key: "accessToken" });
+  tokenStore.set(null);
   await clearRefreshToken();
   await Preferences.remove({ key: "user" });
 }
@@ -145,6 +147,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     });
     if (hasUsableToken(data?.accessToken)) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
+      tokenStore.set(data.accessToken);
       if (hasUsableToken(data?.refreshToken)) {
         await writeRefreshToken(data.refreshToken);
       }
@@ -162,7 +165,10 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 api.interceptors.request.use(async (config) => {
-  const { value: token } = await Preferences.get({ key: "accessToken" });
+  // Vòng 4 / Phase D3 — was `await Preferences.get({ key: "accessToken" })` here: a
+  // native-bridge round-trip on EVERY single request. tokenStore is kept in sync with
+  // storage on every write (see tokenStore.ts's doc comment) — reading it is synchronous.
+  const token = tokenStore.get();
   if (hasUsableToken(token)) {
     config.headers.Authorization = `Bearer ${token}`;
   } else if (config.headers?.Authorization) {
@@ -230,6 +236,7 @@ export const authService = {
     // Store tokens directly from auth service response
     if (data.accessToken) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
+      tokenStore.set(data.accessToken);
       await writeRefreshToken(data.refreshToken);
       return { success: true, user: data.user };
     }
@@ -255,6 +262,7 @@ export const authService = {
     const { data } = await api.post("/auth/register/verify", { email, otp });
     if (data.accessToken) {
       await Preferences.set({ key: "accessToken", value: data.accessToken });
+      tokenStore.set(data.accessToken);
       await writeRefreshToken(data.refreshToken);
       await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
       return { success: true, user: data.user };
@@ -2980,8 +2988,9 @@ export const coachService = {
             signal: controller.signal,
           });
 
-        const { value: accessToken } = await Preferences.get({ key: "accessToken" });
-        let response = await sendStreamRequest(accessToken);
+        // Vòng 4 / Phase D3 — raw fetch() bypasses the axios interceptor above (needs a
+        // streaming response body), so it used to do its own Preferences.get round-trip here.
+        let response = await sendStreamRequest(tokenStore.get());
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
@@ -3156,6 +3165,39 @@ export const adminService = {
   },
   markWithdrawalPaid: async (id: string, bankReference: string) => {
     const { data } = await api.post(`/admin/payments/withdrawals/${id}/mark-paid`, { bankReference });
+    return data?.data ?? data;
+  },
+
+  // Vòng 4 / Phase C — gym/brand moderation. There was no admin-facing gym/brand list at all
+  // before this phase.
+  listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
+    const { data } = await api.get('/admin/gyms', { params: status ? { status } : undefined });
+    return data?.data ?? data;
+  },
+  setGymStatus: async (gymId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
+    const { data } = await api.patch(`/admin/gyms/${gymId}/status`, { status });
+    return data?.data ?? data;
+  },
+  // C2 — approves a rename/address-change on a gym that was already approved before (the
+  // gym's very FIRST approval happens automatically via setGymStatus('APPROVED') above).
+  approveGymRename: async (gymId: string) => {
+    const { data } = await api.patch(`/admin/gyms/${gymId}/approve-rename`);
+    return data?.data ?? data;
+  },
+  // C3 — the actionable item for a permanently-closed gym: still-ACTIVE memberships there
+  // need an admin to run the existing refundByAdmin(reason: 'GYM_CLOSED') on them.
+  listPermanentlyClosedGyms: async () => {
+    const { data } = await api.get('/admin/gyms/permanently-closed');
+    return data?.data ?? data;
+  },
+  listBrandsForAdmin: async () => {
+    const { data } = await api.get('/admin/brands');
+    return data?.data ?? data;
+  },
+  // C1 — the dedicated "Duyệt đổi tên thương hiệu" action; a brand's FIRST-ever approval
+  // happens automatically when its first branch is approved (setGymStatus above).
+  approveBrandRename: async (brandId: string) => {
+    const { data } = await api.patch(`/admin/brands/${brandId}/approve-rename`);
     return data?.data ?? data;
   },
 
@@ -3701,8 +3743,9 @@ export const contractService = {
   },
   // End an ACTIVE (paid) contract and settle everyone per the termination reason's formula
   // — see docs/money-flow.md §3.3–3.6. CLIENT_CANCELLED refunds 90% of the unused value
-  // (10% penalty); the backend enforces who may declare which reason.
-  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED") => {
+  // (10% penalty); PT_REPEATED_NO_SHOW (Vòng 4 / Phase E2) refunds 100% — the backend
+  // independently re-counts confirmed PT no-shows before allowing it, never trusting this call.
+  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW") => {
     const { data } = await api.post(`/contracts/${id}/terminate`, { reason });
     return data;
   },
@@ -4283,6 +4326,21 @@ export const gymService = {
   },
   getOwnedGym: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}`);
+    return data?.data ?? data;
+  },
+  // Vòng 4 / Phase C2/C4 — name/address only ever move pendingName/pendingAddress (public
+  // display waits for admin approval); brandId moves/detaches the gym (pass null to detach).
+  updateGym: async (
+    gymId: string,
+    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string; brandId: string | null }>,
+  ) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}`, payload);
+    return data?.data ?? data;
+  },
+  // Vòng 4 / Phase C3 — owner's own open/close switch. `reason` required for
+  // TEMPORARILY_CLOSED/PERMANENTLY_CLOSED, ignored for OPEN (reopen).
+  setGymOperationalStatus: async (gymId: string, operationalStatus: 'OPEN' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED', reason?: string) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/operational-status`, { operationalStatus, ...(reason ? { reason } : {}) });
     return data?.data ?? data;
   },
   getOwnedWallet: async (gymId: string) => {

@@ -219,11 +219,17 @@ export interface Session {
   cancellationReason?: string;
   sessionDeducted: boolean;
   completedAt?: string;
+  /** Vòng 4 / Phase E2 — true only when this NO_SHOW was actually the PT's fault. 3+ across a
+   * contract's sessions gives the client the right to terminate for a full refund. */
+  ptAtFault?: boolean;
   // Money-flow plan 4.1: the client-confirmation window (PENDING_CLIENT_CONFIRMATION →
   // COMPLETED, or DISPUTED if the client objects before this deadline).
   clientConfirmDeadline?: string | null;
   autoConfirmed?: boolean;
   disputeReason?: string | null;
+  /** Vòng 4 / Phase E4 — audit/admin-screen classification only, set once when the session
+   * first enters DISPUTED. Never changes how resolveDispute rules on it. */
+  disputeType?: "DELIVERY_DISPUTE" | "PT_NO_SHOW_CLAIM" | "CLIENT_NO_SHOW_CLAIM" | null;
   createdAt: string;
   updatedAt: string;
   review?: SessionReview;
@@ -396,11 +402,19 @@ export type GymMembershipContractStatus =
   | "EXPIRED"
   | "CANCELLED";
 
+export type GymOperationalStatus = "OPEN" | "TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED";
+
 /** A chain: one owner, one name, many physical locations (branches, below). */
 export interface GymBrand {
   id: string;
   ownerId: string;
   name: string;
+  /** Vòng 4 / Phase C1 — moderation overlay. Public pages read `approvedName`; `name` is the
+   * owner's current working value (mirrors `pendingName` whenever a rename hasn't been
+   * approved yet). Owner-facing screens: show `approvedName ?? name` as "current", and a
+   * "Tên mới đang chờ duyệt: …" hint whenever `pendingName` is set. */
+  approvedName?: string | null;
+  pendingName?: string | null;
   description?: string;
   createdAt: string;
   updatedAt: string;
@@ -414,18 +428,29 @@ export interface Gym {
   /** Which brand this location belongs to, if any — most gyms have none. */
   brandId?: string | null;
   name: string;
+  /** Vòng 4 / Phase C2 — same overlay as GymBrand.approvedName/pendingName above, for both
+   * name and address. */
+  approvedName?: string | null;
+  pendingName?: string | null;
   description?: string;
   address: string;
+  approvedAddress?: string | null;
+  pendingAddress?: string | null;
   city?: string;
   phone?: string;
   email?: string;
   status: GymStatus;
+  /** Vòng 4 / Phase C3 — the owner's own open/closed switch, independent from `status`. */
+  operationalStatus?: GymOperationalStatus;
+  closureReason?: string | null;
+  closedAt?: string | null;
+  reopenedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   averageRating?: number; // public DTO only
   reviewCount?: number; // public DTO only
   /** Included on public/owner listings so the client can group branches without a second call. */
-  brand?: { id: string; name: string } | null;
+  brand?: { id: string; name: string; approvedName?: string | null; pendingName?: string | null } | null;
 }
 
 export interface GymMembershipPlan {

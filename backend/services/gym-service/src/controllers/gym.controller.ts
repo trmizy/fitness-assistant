@@ -63,4 +63,39 @@ export const gymController = {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
   },
+
+  // ── Owner (Vòng 4 / Phase C3) ────────────────────────────────────────
+  async setOperationalStatus(req: Request, res: Response) {
+    try {
+      const ownerId = req.user!.userId;
+      const { operationalStatus, reason } = req.body;
+      const gym = await gymService.setOperationalStatus(req.params.id, ownerId, operationalStatus, reason);
+      res.json({ success: true, data: gym });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
+
+  // ── Admin (Vòng 4 / Phase C2/C3) ─────────────────────────────────────
+  async listAllForAdmin(req: Request, res: Response) {
+    const VALID = ['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED'];
+    const raw = req.query.status;
+    const status = typeof raw === 'string' && VALID.includes(raw) ? (raw as any) : undefined;
+    const gyms = await gymService.listAllForAdmin(status);
+    res.json({ success: true, data: gyms });
+  },
+
+  async listPermanentlyClosed(_req: Request, res: Response) {
+    const gyms = await gymService.listPermanentlyClosedNeedingReview();
+    res.json({ success: true, data: gyms });
+  },
+
+  async approveRename(req: Request, res: Response) {
+    try {
+      const gym = await gymService.approveRename(req.params.id);
+      res.json({ success: true, data: gym });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
 };

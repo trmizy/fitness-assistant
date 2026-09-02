@@ -19,7 +19,10 @@ import { signGymCheckinToken } from '../utils/checkinToken';
  * the rest of this codebase's unit tests do. Creates real rows, cleans them up after.
  */
 
-async function makeGym(status: 'APPROVED' | 'SUSPENDED') {
+async function makeGym(
+  status: 'APPROVED' | 'SUSPENDED',
+  operationalStatus: 'OPEN' | 'TEMPORARILY_CLOSED' = 'OPEN',
+) {
   return prisma.gym.create({
     data: {
       id: randomUUID(),
@@ -27,6 +30,7 @@ async function makeGym(status: 'APPROVED' | 'SUSPENDED') {
       name: `Test Gym ${status}`,
       address: '123 Test St',
       status,
+      operationalStatus,
     },
   });
 }
@@ -71,6 +75,24 @@ integrationTest('a client with an ACTIVE membership cannot check in at a SUSPEND
     await assert.rejects(() => checkinService.checkInByGymToken(clientId, token));
 
     // The membership's usedVisits must NOT have moved — a rejected check-in is a true no-op.
+    const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
+    assert.equal(after?.usedVisits, 0);
+  } finally {
+    await cleanup(gym.id, plan.id, membership.id);
+  }
+});
+
+// Vòng 4 / Phase C3 — same chokepoint, second axis: an APPROVED gym the owner has
+// temporarily closed must block check-in exactly like a SUSPENDED one does above.
+integrationTest('a client with an ACTIVE membership cannot check in at a TEMPORARILY_CLOSED gym', async () => {
+  const gym = await makeGym('APPROVED', 'TEMPORARILY_CLOSED');
+  const plan = await makePlan(gym.id);
+  const clientId = randomUUID();
+  const membership = await makeActiveMembership(gym.id, plan.id, clientId);
+  const { token } = signGymCheckinToken(gym.id);
+
+  try {
+    await assert.rejects(() => checkinService.checkInByGymToken(clientId, token));
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 0);
   } finally {

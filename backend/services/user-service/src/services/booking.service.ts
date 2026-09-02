@@ -3,6 +3,7 @@ import { logger } from "@gym-coach/shared";
 import {
   AuditEntityType,
   SessionStatus,
+  SessionDisputeType,
   SessionMode,
   ContractStatus,
   DayOfWeek,
@@ -42,6 +43,18 @@ export const AUTO_CONFIRM_DAYS = Number(
   process.env.SESSION_AUTO_CONFIRM_DAYS ?? "3",
 );
 const AUTO_CONFIRM_MS = AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000;
+
+/**
+ * Vòng 4 / Phase E1 — a grace window after scheduledStartAt before EITHER side may report the
+ * other one no-show. Without this, a party arriving 2 minutes late could be reported the
+ * instant the clock passed the scheduled time. Applies both directions — markNoShow (PT
+ * reports client, or admits their own absence) and reportPtNoShow (client reports PT) —
+ * neither is more lenient than the other.
+ */
+export const NO_SHOW_GRACE_MINUTES = Number(
+  process.env.NO_SHOW_GRACE_MINUTES ?? "15",
+);
+const NO_SHOW_GRACE_MS = NO_SHOW_GRACE_MINUTES * 60 * 1000;
 
 /** Collaborators of {@link deductQuotaOnce}, injectable so the once-only rule is testable. */
 export interface QuotaDeps {
@@ -288,8 +301,18 @@ export const bookingService = {
     // requests. Without the lock, two requests can each read the pre-write count/conflict
     // state, both see room, and both create — one contract oversold, or the PT double-booked.
     const session = await withPtScheduleLock(contract.ptUserId, contractId, async (tx) => {
+      // Vòng 4 / Phase A3: `contract` above was read BEFORE the lock was ever acquired — by
+      // the time we're in here, another session on this same contract may have completed or
+      // been compensated (raising usedSessions/compensatedSessions) without that ever
+      // reaching this stale copy. countActiveByContract was already reading fresh via `tx`;
+      // checking a fresh count against a stale contract defeats the lock's own purpose, since
+      // half the comparison still reflects pre-lock state. Re-read on this transaction's own
+      // connection so both sides of the comparison are equally fresh.
+      const freshContract = await contractRepository.findById(contractId, tx);
+      if (!freshContract) throw err("Contract not found", 404);
+
       const activeSessionCount = await sessionRepository.countActiveByContract(contractId, tx);
-      if (getRemainingEntitlements(contract) <= activeSessionCount) {
+      if (getRemainingEntitlements(freshContract) <= activeSessionCount) {
         throw err("Session limit reached for this contract", 400);
       }
 
@@ -336,6 +359,15 @@ export const bookingService = {
   },
 
   // ── PT confirms a session ───────────────────────────────────────
+  /**
+   * Vòng 4 / Phase A2: this used to check status/conflict once, outside any lock, then write
+   * unconditionally — no re-check against contract.status/endDate/ptSuspended/entitlement at
+   * all, and not run inside withPtScheduleLock the way bookSession is, so two confirms for two
+   * sessions in the same PT slot could both pass the conflict check before either committed.
+   * The cheap 404/403 checks below stay outside the lock (no point paying lock-acquisition
+   * cost for a request that is invalid regardless); everything the lock exists to protect is
+   * re-read fresh, on the transaction's own connection, INSIDE it.
+   */
   async confirmSession(sessionId: string, ptUserId: string) {
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Session not found", 404);
@@ -344,22 +376,66 @@ export const bookingService = {
       throw err(`Cannot confirm session in ${session.status} status`, 400);
     }
 
-    // BR-31: block if PT already has a CONFIRMED session in same slot
-    const conflict = await sessionRepository.findConflict(
-      session.ptUserId,
-      session.scheduledStartAt,
-      session.scheduledEndAt,
-      session.id,
-      [SessionStatus.CONFIRMED],
-    );
-    if (conflict) {
-      throw err("PT has a conflicting session in this time slot", 409);
-    }
+    await withPtScheduleLock(session.ptUserId, session.contractId, async (tx) => {
+      const freshSession = await tx.session.findUnique({ where: { id: sessionId } });
+      if (!freshSession) throw err("Session not found", 404);
+      if (freshSession.status !== SessionStatus.REQUESTED) {
+        throw err(`Cannot confirm session in ${freshSession.status} status`, 400);
+      }
 
-    const updated = await sessionRepository.updateStatus(
-      sessionId,
-      SessionStatus.CONFIRMED,
-    );
+      const contract = await contractRepository.findById(freshSession.contractId, tx);
+      if (!contract) throw err("Contract not found", 404);
+      if (contract.status !== ContractStatus.ACTIVE) {
+        throw err("Hợp đồng không còn hiệu lực", 409);
+      }
+      if (contract.endDate && contract.endDate < new Date()) {
+        throw err("Hợp đồng đã hết hạn", 409);
+      }
+
+      // Same rule bookSession enforces before ever creating a session — a suspended PT's
+      // contracts are already unwound/refunded, so nothing of theirs should progress either.
+      const ptProfile = await profileRepository.findByUserId(ptUserId);
+      if ((ptProfile as any)?.ptSuspended) {
+        throw err("Huấn luyện viên hiện không nhận lịch mới", 409);
+      }
+
+      // This session is REQUESTED right now, one of the five statuses countActiveByContract
+      // treats as still holding a claim — so it is already counted in activeSessionCount, and
+      // confirming it (REQUESTED → CONFIRMED, both "holding" statuses) does not add a new
+      // claim. The question here is not bookSession's "is there room for one more" (`<=`); it
+      // is "does entitlement still cover everything already committed, this session included"
+      // — blocked only if entitlement has fallen strictly below what is already held (e.g.
+      // another session on the same contract completed/was compensated since this one was
+      // requested, using up entitlement this one was counting on).
+      const activeSessionCount = await sessionRepository.countActiveByContract(contract.id, tx);
+      if (getRemainingEntitlements(contract) < activeSessionCount) {
+        throw err("Hợp đồng không còn đủ quyền lợi cho buổi tập này", 409);
+      }
+
+      // BR-31: block if PT already has a CONFIRMED session in same slot — re-checked on tx.
+      const conflict = await sessionRepository.findConflict(
+        freshSession.ptUserId,
+        freshSession.scheduledStartAt,
+        freshSession.scheduledEndAt,
+        freshSession.id,
+        [SessionStatus.CONFIRMED],
+        tx,
+      );
+      if (conflict) {
+        throw err("PT has a conflicting session in this time slot", 409);
+      }
+
+      const won = await sessionRepository.transitionStatus(
+        sessionId,
+        [SessionStatus.REQUESTED],
+        SessionStatus.CONFIRMED,
+        undefined,
+        tx,
+      );
+      if (!won) throw err("Buổi tập đã được xử lý", 409);
+    });
+
+    const updated = await sessionRepository.findById(sessionId);
 
     await notificationService
       .create({
@@ -466,11 +542,20 @@ export const bookingService = {
       throw err(`Cannot dispute a session in ${session.status} status`, 400);
     }
 
+    // Vòng 4 / Phase E4 — audit/admin-screen only: PENDING_CLIENT_CONFIRMATION is entered from
+    // two different origins (completeSession's "it happened", or markNoShow's "client
+    // no-show" — see that function's own ptNotes: "Client no-show"), and disputeSession is the
+    // shared exit for both. ptNotes is the only signal distinguishing which one this is.
+    const disputeType: SessionDisputeType =
+      session.ptNotes === "Client no-show"
+        ? SessionDisputeType.CLIENT_NO_SHOW_CLAIM
+        : SessionDisputeType.DELIVERY_DISPUTE;
+
     // Quota is deliberately left untouched — an admin decides in resolveDispute.
     const updated = await sessionRepository.updateStatus(
       sessionId,
       SessionStatus.DISPUTED,
-      { disputeReason: reason.trim(), disputedAt: new Date() },
+      { disputeReason: reason.trim(), disputedAt: new Date(), disputeType },
     );
 
     await notificationService
@@ -521,6 +606,8 @@ export const bookingService = {
         resolutionNote: note.trim(),
         resolvedAt: new Date(),
         ptNotes: "Quản trị viên xác nhận huấn luyện viên vắng mặt",
+        // Vòng 4 / Phase E2 — counts toward the client's right to terminate after 3.
+        ptAtFault: true,
       });
 
       // Same settlement markNoShow's PT-self-admit branch uses — cash compensation, charged
@@ -623,11 +710,17 @@ export const bookingService = {
     // (same distinction addException makes for a not-yet-confirmed session): just cancel, no
     // money or quota either way.
     if (session.status === SessionStatus.REQUESTED) {
-      const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.CANCELLED, {
-        cancelledBy: userId,
-        cancellationReason: reason.trim(),
-        sessionDeducted: false,
-      });
+      // Vòng 4 / Phase A1: CAS on the read-above status, not an unconditional write — a
+      // second concurrent cancel (or anything else that moved this session on) gets `false`
+      // here and must stop, not repeat whatever this branch already decided.
+      const won = await sessionRepository.transitionStatus(
+        sessionId,
+        [SessionStatus.REQUESTED],
+        SessionStatus.CANCELLED,
+        { cancelledBy: userId, cancellationReason: reason.trim(), sessionDeducted: false },
+      );
+      if (!won) throw err("Buổi tập đã được xử lý", 409);
+      const updated = await sessionRepository.findById(sessionId);
       await notificationService
         .create({
           userId: otherUserId,
@@ -653,11 +746,26 @@ export const bookingService = {
       hoursBeforeStart,
     });
 
-    const updated = await sessionRepository.updateStatus(sessionId, outcome.sessionStatus, {
-      cancelledBy: userId,
-      cancellationReason: reason.trim(),
-      sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
-    });
+    // Vòng 4 / Phase A1 — the actual P0: `updateStatus` used to be an unconditional write with
+    // NO status precondition, so two concurrent cancels on the same CONFIRMED session both
+    // read CONFIRMED, both wrote CANCELLED, and both ran the DEDUCT branch below — the ONE
+    // quota-increment path in the whole system that `deductQuotaOnce`'s claimDeduction guard
+    // does not cover, since it goes through contractRepository.incrementSession directly. A
+    // double increment here can push usedSessions + compensatedSessions past totalSessions,
+    // which payment-service's contract-money.ts validate() throws on — permanently blocking
+    // terminateContractMoney and leaving the contract's escrow stuck with no way out short of
+    // a manual DB fix. The CAS below makes only the winning request run any side effect at all.
+    const won = await sessionRepository.transitionStatus(
+      sessionId,
+      [SessionStatus.CONFIRMED],
+      outcome.sessionStatus,
+      {
+        cancelledBy: userId,
+        cancellationReason: reason.trim(),
+        sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
+      },
+    );
+    if (!won) throw err("Buổi tập đã được xử lý", 409);
 
     // Same order deductQuotaOnce uses (charge, then release/compensate, then check
     // completion) so a contract that finishes on its very last session settles with this
@@ -674,6 +782,8 @@ export const bookingService = {
     if (outcome.clientQuotaEffect === "DEDUCT" || outcome.ptPayout || outcome.clientCompensation) {
       await contractService.checkAndCompleteContract(session.contractId);
     }
+
+    const updated = await sessionRepository.findById(sessionId);
 
     await notificationService
       .create({
@@ -718,8 +828,12 @@ export const bookingService = {
     // gated on scheduledStartAt — this direction (PT reports the client, or admits their own
     // absence) never did, so a PT could mark a client no-show for a session that had not
     // happened yet. Same field, same cutoff, for consistency with that existing check.
-    if (session.scheduledStartAt.getTime() > Date.now()) {
-      throw err("Chưa tới giờ buổi tập — chưa thể báo vắng mặt", 400);
+    // Vòng 4 / Phase E1: + a grace window (NO_SHOW_GRACE_MINUTES) past that cutoff.
+    if (session.scheduledStartAt.getTime() + NO_SHOW_GRACE_MS > Date.now()) {
+      throw err(
+        `Chưa thể báo vắng mặt — cần đợi ít nhất ${NO_SHOW_GRACE_MINUTES} phút sau giờ hẹn`,
+        400,
+      );
     }
 
     const isClientNoShow = noShowBy === "CLIENT";
@@ -739,7 +853,12 @@ export const bookingService = {
       const updated = await sessionRepository.updateStatus(
         sessionId,
         outcome.sessionStatus,
-        { sessionDeducted: outcome.clientQuotaEffect === "DEDUCT", ptNotes: "PT no-show" },
+        {
+          sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
+          ptNotes: "PT no-show",
+          // Vòng 4 / Phase E2 — counts toward the client's right to terminate after 3.
+          ptAtFault: true,
+        },
       );
 
       // The client is owed one session's value in cash, charged back to the three parties.
@@ -803,8 +922,12 @@ export const bookingService = {
     if (session.status !== SessionStatus.CONFIRMED) {
       throw err(`Cannot report a no-show for a session in ${session.status} status`, 400);
     }
-    if (session.scheduledStartAt.getTime() > Date.now()) {
-      throw err("Chưa tới giờ buổi tập — chưa thể báo huấn luyện viên vắng mặt", 400);
+    // Vòng 4 / Phase E1: same grace window as markNoShow's mirror check — both directions.
+    if (session.scheduledStartAt.getTime() + NO_SHOW_GRACE_MS > Date.now()) {
+      throw err(
+        `Chưa thể báo huấn luyện viên vắng mặt — cần đợi ít nhất ${NO_SHOW_GRACE_MINUTES} phút sau giờ hẹn`,
+        400,
+      );
     }
 
     const updated = await sessionRepository.updateStatus(
@@ -853,6 +976,9 @@ export const bookingService = {
     const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.DISPUTED, {
       ptNotes: note?.trim() || "PT phản đối báo cáo vắng mặt của khách",
       disputedAt: new Date(),
+      // Vòng 4 / Phase E4 — unambiguous here: the client's own claim was "PT no-showed"
+      // (reportPtNoShow), and this is the PT contesting exactly that claim.
+      disputeType: SessionDisputeType.PT_NO_SHOW_CLAIM,
     });
 
     return updated;

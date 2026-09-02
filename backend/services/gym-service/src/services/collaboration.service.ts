@@ -73,6 +73,33 @@ async function expireIfStale<T extends { id: string; status: CollaborationStatus
   return { ...row, status: 'EXPIRED' as CollaborationStatus };
 }
 
+/**
+ * Vòng 4 / Phase E3 — mirrors expireIfStale above, but for a collaboration whose notice-period
+ * termination has actually arrived: status stays 'ACCEPTED' while effectiveAt is in the
+ * future (existing affiliation/roster display is unaffected during the wind-down), and only
+ * flips to TERMINATED (+ suspends the affiliation, same as an immediate terminate()) once
+ * effectiveAt has passed. Called from every read path that returns collaboration rows, same as
+ * expireIfStale, so a stale ACCEPTED never leaks out just because nothing has written to the
+ * row since its effectiveAt passed.
+ */
+async function finalizeIfEffective<T extends { id: string; gymId: string; ptUserId: string; status: CollaborationStatus; effectiveAt: Date | null }>(
+  row: T,
+): Promise<T> {
+  if (row.status !== 'ACCEPTED' || !row.effectiveAt || row.effectiveAt > new Date()) return row;
+  const { count } = await prisma.gymPtCollaboration.updateMany({
+    where: { id: row.id, status: 'ACCEPTED' },
+    data: { status: 'TERMINATED', terminatedAt: row.effectiveAt },
+  });
+  if (count > 0) {
+    await prisma.gymTrainerAffiliation.updateMany({
+      where: { gymId: row.gymId, ptId: row.ptUserId },
+      data: { status: 'SUSPENDED' },
+    });
+  }
+  const real = await prisma.gymPtCollaboration.findUniqueOrThrow({ where: { id: row.id } });
+  return { ...row, ...real };
+}
+
 export const collaborationService = {
   /**
    * A trainer proposes terms to a gym (or a gym owner proposes to a trainer).
@@ -252,16 +279,34 @@ export const collaborationService = {
    * the contract, not lookups into this table (see docs/money-flow.md §12). Only future
    * contracts lose the arrangement.
    */
-  async terminate(collaborationId: string, actor: CollaborationParty, actorUserId: string) {
+  /**
+   * Vòng 4 / Phase E3 — `effectiveAt` is optional and defaults to immediate (today's exact
+   * behavior, unchanged for any caller not passing it). Passed a future date instead, this
+   * becomes a notice-period termination: `activeRates()` refuses this row for any NEW
+   * referral/rate lookup starting right now, but `status` stays ACCEPTED (so the affiliation
+   * row is NOT suspended yet — the PT keeps showing as affiliated) until that date arrives,
+   * when `finalizeIfEffective` (called from every read path) finishes the job.
+   */
+  async terminate(collaborationId: string, actor: CollaborationParty, actorUserId: string, effectiveAt?: Date) {
     const row = await prisma.gymPtCollaboration.findUnique({ where: { id: collaborationId } });
     if (!row) throw err('Không tìm thấy hợp tác', 404);
     await this.assertParty(row, actor, actorUserId);
     if (row.status !== 'ACCEPTED') throw err(`Không thể chấm dứt hợp tác ở trạng thái ${row.status}`, 409);
 
+    const isFuture = effectiveAt && effectiveAt.getTime() > Date.now();
+    if (isFuture) {
+      // Notice period: leave status ACCEPTED, affiliation untouched — just mark it winding
+      // down. activeRates() above already stops honoring it from this point on regardless.
+      return prisma.gymPtCollaboration.update({
+        where: { id: row.id },
+        data: { effectiveAt, terminatedBy: actorUserId },
+      });
+    }
+
     const [updated] = await prisma.$transaction([
       prisma.gymPtCollaboration.update({
         where: { id: row.id },
-        data: { status: 'TERMINATED', terminatedAt: new Date(), terminatedBy: actorUserId },
+        data: { status: 'TERMINATED', terminatedAt: new Date(), terminatedBy: actorUserId, effectiveAt: new Date() },
       }),
       // No INACTIVE value on AffiliationStatus (PENDING/ACTIVE/REJECTED/SUSPENDED) — SUSPENDED
       // is the closest fit: the trainer no longer checks in free or shares revenue here, but
@@ -282,7 +327,7 @@ export const collaborationService = {
         orderBy: { updatedAt: 'desc' },
         include: { gym: { select: { id: true, name: true, city: true } } },
       });
-      return Promise.all(rows.map((r) => expireIfStale(r)));
+      return Promise.all(rows.map((r) => expireIfStale(r).then((row) => finalizeIfEffective(row))));
     }
     const gyms = await prisma.gym.findMany({ where: { ownerId: params.ownerId }, select: { id: true } });
     const rows = await prisma.gymPtCollaboration.findMany({
@@ -290,7 +335,7 @@ export const collaborationService = {
       orderBy: { updatedAt: 'desc' },
       include: { gym: { select: { id: true, name: true, city: true } } },
     });
-    return Promise.all(rows.map((r) => expireIfStale(r)));
+    return Promise.all(rows.map((r) => expireIfStale(r).then((row) => finalizeIfEffective(row))));
   },
 
   /**
@@ -330,8 +375,11 @@ export const collaborationService = {
     // Money-flow plan 2.5 — third chokepoint: a gym that is no longer APPROVED (suspended for
     // a violation, or otherwise deactivated) must not hand out its frozen rate table for NEW
     // contracts, even if the collaboration row itself is still ACCEPTED.
+    // Vòng 4 / Phase E3 — effectiveAt !== null means a termination is pending (immediate or
+    // notice-period): "new collaborations blocked immediately" means this must exclude it the
+    // moment terminate() is called, not only once the effective date itself arrives.
     const row = await prisma.gymPtCollaboration.findFirst({
-      where: { gymId, ptUserId, status: 'ACCEPTED', gym: { status: 'APPROVED' } },
+      where: { gymId, ptUserId, status: 'ACCEPTED', effectiveAt: null, gym: { status: 'APPROVED' } },
       orderBy: { acceptedAt: 'desc' },
     });
     if (!row) return null;

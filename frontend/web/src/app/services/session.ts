@@ -19,6 +19,7 @@ import type { User } from "../types";
 import { api, refreshOnce, clearStoredSession, RefreshUnavailableError } from "./api";
 import { hasUsableToken, isAccessTokenExpiringSoon } from "./token";
 import { readRefreshToken } from "./secureStorage";
+import { tokenStore } from "./tokenStore";
 
 export type BootstrapResult =
   | { status: "authenticated"; user: User | null }
@@ -76,6 +77,11 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
       Preferences.get({ key: "accessToken" }),
       readRefreshToken(),
     ]);
+    // Vòng 4 / Phase D3 — seed the in-memory token store from storage FIRST, before anything
+    // below makes a request through the interceptor (which now reads tokenStore synchronously
+    // instead of storage). Skipping this would make every request during/after bootstrap look
+    // unauthenticated even though a perfectly good session is sitting in storage.
+    tokenStore.set(accessToken);
 
     // The refresh token is what actually defines "there is a session here".
     if (!hasUsableToken(refreshToken)) {
@@ -142,10 +148,10 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
  */
 export async function ensureFreshAccessToken(): Promise<boolean> {
   try {
-    const [{ value: accessToken }, refreshToken] = await Promise.all([
-      Preferences.get({ key: "accessToken" }),
-      readRefreshToken(),
-    ]);
+    // Vòng 4 / Phase D3 — tokenStore is already the freshest known value (seeded at bootstrap,
+    // kept in sync on every login/refresh), so this no longer needs its own Preferences.get.
+    const accessToken = tokenStore.get();
+    const refreshToken = await readRefreshToken();
 
     if (!hasUsableToken(refreshToken)) return false;
     if (!isAccessTokenExpiringSoon(accessToken)) return true;

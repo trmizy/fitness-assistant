@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileText,
   CheckCircle,
@@ -233,6 +233,42 @@ export function ContractPage() {
     enabled: showCancelDialog && !!selectedId && selected?.status === "ACTIVE",
   });
 
+  // Vòng 4 / Phase E2 — the client's own right to terminate after a 3rd confirmed PT no-show.
+  // Never automatic: this only ever shows a banner with a choice, never terminates on its own.
+  // The contract LIST (getByClient) has no per-session data — fetch the detail (which does)
+  // only for the selected ACTIVE contract, same lazy-load shape as `breakdown` above.
+  const { data: contractDetail } = useQuery({
+    queryKey: ["contract-detail", selectedId],
+    queryFn: () => contractService.getById(selectedId!),
+    enabled: !!selectedId && selected?.status === "ACTIVE",
+  });
+  const ptNoShowCount = (contractDetail?.sessions ?? []).filter((s: any) => s.ptAtFault).length;
+  const repeatedNoShowEligible = ptNoShowCount >= 3;
+  const [continuedPastNoShowWarning, setContinuedPastNoShowWarning] = useState(false);
+
+  // Re-show the banner every time a different contract is selected — "continue" only ever
+  // dismisses it for THIS viewing, never records a permanent "stop asking".
+  useEffect(() => {
+    setContinuedPastNoShowWarning(false);
+  }, [selectedId]);
+
+  const terminateForRepeatedNoShowMutation = useMutation({
+    mutationFn: (id: string) => contractService.terminateContract(id, "PT_REPEATED_NO_SHOW"),
+    onSuccess: (result: any) => {
+      const refund = Number(result?.settlement?.refund ?? 0);
+      toast.success(
+        refund > 0
+          ? `Đã chấm dứt hợp đồng — hoàn ${formatVND(refund)} (100% giá trị chưa dùng) vào ví của bạn`
+          : "Đã chấm dứt hợp đồng",
+      );
+      setShowTerminateForNoShowDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || "Không thể chấm dứt hợp đồng");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -369,6 +405,47 @@ export function ContractPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Vòng 4 / Phase E2 — a RIGHT the client exercises, never an automatic
+                    termination: shown as an explicit two-button choice every time this
+                    contract is opened while eligible, until the client actually acts on it. */}
+                {repeatedNoShowEligible && !continuedPastNoShowWarning && (
+                  <div
+                    data-testid="pt-repeated-no-show-banner"
+                    data-pt-no-show-count={ptNoShowCount}
+                    className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-3 space-y-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-200">
+                        Huấn luyện viên đã vắng mặt <strong>{ptNoShowCount} lần</strong> được xác
+                        nhận ở hợp đồng này. Ngài có quyền chấm dứt hợp đồng ngay và nhận lại{" "}
+                        <strong>100% giá trị chưa dùng</strong>, hoặc tiếp tục hợp đồng như bình
+                        thường — tuỳ Ngài chọn, hệ thống không tự động chấm dứt.
+                      </p>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        data-testid="pt-repeated-no-show-continue-button"
+                        onClick={() => setContinuedPastNoShowWarning(true)}
+                        className="px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-zinc-100 border border-zinc-700/60 rounded-lg hover:bg-zinc-800 transition-colors"
+                      >
+                        Tiếp tục
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="pt-repeated-no-show-terminate-button"
+                        onClick={() => terminateForRepeatedNoShowMutation.mutate(selected.id)}
+                        disabled={terminateForRepeatedNoShowMutation.isPending}
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        {terminateForRepeatedNoShowMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        Chấm dứt hợp đồng
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Who + which contract — everything a support ticket or dispute has to
                     reference. Without this the client can only point at "my contract". */}

@@ -14,6 +14,13 @@ import type { Session } from "../../types";
  * anyone to actually rule on it.
  */
 
+// Vòng 4 / Phase E4 — audit/admin-screen label only, purely informational.
+const DISPUTE_TYPE_LABEL: Record<string, string> = {
+  DELIVERY_DISPUTE: "Khiếu nại báo cáo hoàn thành",
+  PT_NO_SHOW_CLAIM: "Khách tố PT vắng mặt — PT phản đối",
+  CLIENT_NO_SHOW_CLAIM: "PT báo khách vắng mặt — khách phản đối",
+};
+
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   return (
@@ -89,9 +96,16 @@ export function AdminDisputes() {
                     {s.clientUserId.slice(0, 8)}... · PT {s.ptUserId.slice(0, 8)}...
                   </p>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-red-400 whitespace-nowrap">
-                  Đang khiếu nại
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-red-400 whitespace-nowrap">
+                    Đang khiếu nại
+                  </span>
+                  {s.disputeType && DISPUTE_TYPE_LABEL[s.disputeType] && (
+                    <span data-testid="dispute-type-badge" data-dispute-type={s.disputeType} className="text-[10px] px-2 py-0.5 rounded-full border bg-zinc-800/60 border-zinc-700/60 text-zinc-400 whitespace-nowrap">
+                      {DISPUTE_TYPE_LABEL[s.disputeType]}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Evidence: what each side said */}

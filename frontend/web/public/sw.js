@@ -1,4 +1,7 @@
-const APP_VERSION = "pwa-20260828-1";
+// Vòng 4 / Phase D1 — bumped: bg-gym.jpg (6MB) -> bg-gym.webp (136KB) in PRECACHE_URLS below.
+// A new version forces old installed service workers to drop their stale cache (still
+// pointing at the removed .jpg) and precache-fetch the new URL list on next activate.
+const APP_VERSION = "pwa-20260902-1";
 const STATIC_CACHE = `fitness-ai-static-${APP_VERSION}`;
 const RUNTIME_CACHE = `fitness-ai-runtime-${APP_VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -11,7 +14,7 @@ const PRECACHE_URLS = [
   "/pwa-icon.svg",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
-  "/bg-gym.jpg",
+  "/bg-gym.webp",
 ];
 
 function isSameOrigin(url) {

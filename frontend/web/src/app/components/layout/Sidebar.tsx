@@ -26,6 +26,7 @@ import {
   Banknote,
   GitCompare,
   Table2,
+  Building2,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -115,6 +116,7 @@ const adminNav = [
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
   { label: "Khiếu nại buổi tập", icon: Gavel, to: "/admin/disputes" },
   { label: "Yêu cầu rút tiền", icon: Banknote, to: "/admin/withdrawals" },
+  { label: "Phòng gym & thương hiệu", icon: Building2, to: "/admin/gyms" },
   {
     label: "Workflows",
     icon: Workflow,

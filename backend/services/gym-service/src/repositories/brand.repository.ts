@@ -25,4 +25,10 @@ export const brandRepository = {
   async update(id: string, data: Prisma.GymBrandUpdateInput) {
     return prisma.gymBrand.update({ where: { id }, data });
   },
+
+  /** Vòng 4 / Phase C1 — admin's brand-moderation list (there was no admin-facing brand list
+   * at all before this phase). */
+  async findAllForAdmin() {
+    return prisma.gymBrand.findMany({ orderBy: { createdAt: 'desc' } });
+  },
 };

@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { chatSocketTarget } from "../config/serverUrl";
-import { Preferences } from "@capacitor/preferences";
 import { ensureFreshAccessToken } from "./session";
+import { tokenStore } from "./tokenStore";
 
 // Empty string = same-origin (current page), proxied by Vite in dev under
 // "/chat-socket.io" (see vite.config.ts) to chat-service's real
@@ -26,8 +26,8 @@ export function getSocket(): Socket {
       // pause does not hand chat-service an expired token and then keep retrying with it.
       auth: async (cb) => {
         await ensureFreshAccessToken();
-        const { value: token } = await Preferences.get({ key: "accessToken" });
-        cb({ token });
+        // Vòng 4 / Phase D3 — tokenStore is fresh right after the await above.
+        cb({ token: tokenStore.get() });
       },
       autoConnect: false,
       // Voice/video call signaling still runs on chat-service until the call

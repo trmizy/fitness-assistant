@@ -242,7 +242,8 @@ export const TerminationReason: {
   PT_CANCELLED: 'PT_CANCELLED',
   MUTUAL: 'MUTUAL',
   EXPIRED: 'EXPIRED',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW'
 };
 
 export type TerminationReason = (typeof TerminationReason)[keyof typeof TerminationReason]
@@ -260,6 +261,15 @@ export const SessionStatus: {
 };
 
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus]
+
+
+export const SessionDisputeType: {
+  DELIVERY_DISPUTE: 'DELIVERY_DISPUTE',
+  PT_NO_SHOW_CLAIM: 'PT_NO_SHOW_CLAIM',
+  CLIENT_NO_SHOW_CLAIM: 'CLIENT_NO_SHOW_CLAIM'
+};
+
+export type SessionDisputeType = (typeof SessionDisputeType)[keyof typeof SessionDisputeType]
 
 
 export const NotificationEventType: {
@@ -414,6 +424,10 @@ export const TerminationReason: typeof $Enums.TerminationReason
 export type SessionStatus = $Enums.SessionStatus
 
 export const SessionStatus: typeof $Enums.SessionStatus
+
+export type SessionDisputeType = $Enums.SessionDisputeType
+
+export const SessionDisputeType: typeof $Enums.SessionDisputeType
 
 export type NotificationEventType = $Enums.NotificationEventType
 
@@ -9781,10 +9795,12 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    ptAtFault: boolean | null
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean | null
     disputeReason: string | null
     disputedAt: Date | null
+    disputeType: $Enums.SessionDisputeType | null
     resolvedBy: string | null
     resolutionNote: string | null
     resolvedAt: Date | null
@@ -9808,10 +9824,12 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    ptAtFault: boolean | null
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean | null
     disputeReason: string | null
     disputedAt: Date | null
+    disputeType: $Enums.SessionDisputeType | null
     resolvedBy: string | null
     resolutionNote: string | null
     resolvedAt: Date | null
@@ -9835,10 +9853,12 @@ export namespace Prisma {
     cancellationReason: number
     sessionDeducted: number
     completedAt: number
+    ptAtFault: number
     clientConfirmDeadline: number
     autoConfirmed: number
     disputeReason: number
     disputedAt: number
+    disputeType: number
     resolvedBy: number
     resolutionNote: number
     resolvedAt: number
@@ -9864,10 +9884,12 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    ptAtFault?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
     disputedAt?: true
+    disputeType?: true
     resolvedBy?: true
     resolutionNote?: true
     resolvedAt?: true
@@ -9891,10 +9913,12 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    ptAtFault?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
     disputedAt?: true
+    disputeType?: true
     resolvedBy?: true
     resolutionNote?: true
     resolvedAt?: true
@@ -9918,10 +9942,12 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    ptAtFault?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
     disputedAt?: true
+    disputeType?: true
     resolvedBy?: true
     resolutionNote?: true
     resolvedAt?: true
@@ -10018,10 +10044,12 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean
     completedAt: Date | null
+    ptAtFault: boolean
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean
     disputeReason: string | null
     disputedAt: Date | null
+    disputeType: $Enums.SessionDisputeType | null
     resolvedBy: string | null
     resolutionNote: string | null
     resolvedAt: Date | null
@@ -10062,10 +10090,12 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    ptAtFault?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
     disputedAt?: boolean
+    disputeType?: boolean
     resolvedBy?: boolean
     resolutionNote?: boolean
     resolvedAt?: boolean
@@ -10094,10 +10124,12 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    ptAtFault?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
     disputedAt?: boolean
+    disputeType?: boolean
     resolvedBy?: boolean
     resolutionNote?: boolean
     resolvedAt?: boolean
@@ -10122,10 +10154,12 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    ptAtFault?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
     disputedAt?: boolean
+    disputeType?: boolean
     resolvedBy?: boolean
     resolutionNote?: boolean
     resolvedAt?: boolean
@@ -10168,10 +10202,23 @@ export namespace Prisma {
       cancellationReason: string | null
       sessionDeducted: boolean
       completedAt: Date | null
+      /**
+       * Vòng 4 / Phase E2 — true only when this session's NO_SHOW was actually the PT's fault
+       * (self-admitted via markNoShow, agreed via respondToNoShowReport, or admin-confirmed via
+       * resolveDispute's PT_NO_SHOW_CONFIRMED) — never set for a client no-show or a late-cancel
+       * tagged NO_SHOW. Counts toward the client's right to terminate the contract for repeated
+       * PT no-shows (3+) — see contract.controller.ts's terminate() and TerminationReason
+       * PT_REPEATED_NO_SHOW.
+       */
+      ptAtFault: boolean
       clientConfirmDeadline: Date | null
       autoConfirmed: boolean
       disputeReason: string | null
       disputedAt: Date | null
+      /**
+       * Vòng 4 / Phase E4 — audit/admin-screen only, see SessionDisputeType's own doc comment.
+       */
+      disputeType: $Enums.SessionDisputeType | null
       resolvedBy: string | null
       resolutionNote: string | null
       resolvedAt: Date | null
@@ -10589,10 +10636,12 @@ export namespace Prisma {
     readonly cancellationReason: FieldRef<"Session", 'String'>
     readonly sessionDeducted: FieldRef<"Session", 'Boolean'>
     readonly completedAt: FieldRef<"Session", 'DateTime'>
+    readonly ptAtFault: FieldRef<"Session", 'Boolean'>
     readonly clientConfirmDeadline: FieldRef<"Session", 'DateTime'>
     readonly autoConfirmed: FieldRef<"Session", 'Boolean'>
     readonly disputeReason: FieldRef<"Session", 'String'>
     readonly disputedAt: FieldRef<"Session", 'DateTime'>
+    readonly disputeType: FieldRef<"Session", 'SessionDisputeType'>
     readonly resolvedBy: FieldRef<"Session", 'String'>
     readonly resolutionNote: FieldRef<"Session", 'String'>
     readonly resolvedAt: FieldRef<"Session", 'DateTime'>
@@ -25293,10 +25342,12 @@ export namespace Prisma {
     cancellationReason: 'cancellationReason',
     sessionDeducted: 'sessionDeducted',
     completedAt: 'completedAt',
+    ptAtFault: 'ptAtFault',
     clientConfirmDeadline: 'clientConfirmDeadline',
     autoConfirmed: 'autoConfirmed',
     disputeReason: 'disputeReason',
     disputedAt: 'disputedAt',
+    disputeType: 'disputeType',
     resolvedBy: 'resolvedBy',
     resolutionNote: 'resolutionNote',
     resolvedAt: 'resolvedAt',
@@ -25861,6 +25912,20 @@ export namespace Prisma {
    * Reference to a field of type 'SessionStatus[]'
    */
   export type ListEnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionDisputeType'
+   */
+  export type EnumSessionDisputeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionDisputeType'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionDisputeType[]'
+   */
+  export type ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionDisputeType[]'>
     
 
 
@@ -27007,10 +27072,12 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    ptAtFault?: BoolFilter<"Session"> | boolean
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
     disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    disputeType?: EnumSessionDisputeTypeNullableFilter<"Session"> | $Enums.SessionDisputeType | null
     resolvedBy?: StringNullableFilter<"Session"> | string | null
     resolutionNote?: StringNullableFilter<"Session"> | string | null
     resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -27038,10 +27105,12 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    ptAtFault?: SortOrder
     clientConfirmDeadline?: SortOrderInput | SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrderInput | SortOrder
     disputedAt?: SortOrderInput | SortOrder
+    disputeType?: SortOrderInput | SortOrder
     resolvedBy?: SortOrderInput | SortOrder
     resolutionNote?: SortOrderInput | SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -27072,10 +27141,12 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    ptAtFault?: BoolFilter<"Session"> | boolean
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
     disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    disputeType?: EnumSessionDisputeTypeNullableFilter<"Session"> | $Enums.SessionDisputeType | null
     resolvedBy?: StringNullableFilter<"Session"> | string | null
     resolutionNote?: StringNullableFilter<"Session"> | string | null
     resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -27103,10 +27174,12 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    ptAtFault?: SortOrder
     clientConfirmDeadline?: SortOrderInput | SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrderInput | SortOrder
     disputedAt?: SortOrderInput | SortOrder
+    disputeType?: SortOrderInput | SortOrder
     resolvedBy?: SortOrderInput | SortOrder
     resolutionNote?: SortOrderInput | SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -27136,10 +27209,12 @@ export namespace Prisma {
     cancellationReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
     sessionDeducted?: BoolWithAggregatesFilter<"Session"> | boolean
     completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    ptAtFault?: BoolWithAggregatesFilter<"Session"> | boolean
     clientConfirmDeadline?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolWithAggregatesFilter<"Session"> | boolean
     disputeReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
     disputedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    disputeType?: EnumSessionDisputeTypeNullableWithAggregatesFilter<"Session"> | $Enums.SessionDisputeType | null
     resolvedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
     resolutionNote?: StringNullableWithAggregatesFilter<"Session"> | string | null
     resolvedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
@@ -29634,10 +29709,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -29665,10 +29742,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -29694,10 +29773,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29725,10 +29806,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29755,10 +29838,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -29781,10 +29866,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29808,10 +29895,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -32400,6 +32489,13 @@ export namespace Prisma {
     not?: NestedEnumSessionModeFilter<$PrismaModel> | $Enums.SessionMode
   }
 
+  export type EnumSessionDisputeTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionDisputeType | EnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel> | $Enums.SessionDisputeType | null
+  }
+
   export type ContractRelationFilter = {
     is?: ContractWhereInput
     isNot?: ContractWhereInput
@@ -32441,10 +32537,12 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    ptAtFault?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
     disputedAt?: SortOrder
+    disputeType?: SortOrder
     resolvedBy?: SortOrder
     resolutionNote?: SortOrder
     resolvedAt?: SortOrder
@@ -32468,10 +32566,12 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    ptAtFault?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
     disputedAt?: SortOrder
+    disputeType?: SortOrder
     resolvedBy?: SortOrder
     resolutionNote?: SortOrder
     resolvedAt?: SortOrder
@@ -32495,10 +32595,12 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    ptAtFault?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
     disputedAt?: SortOrder
+    disputeType?: SortOrder
     resolvedBy?: SortOrder
     resolutionNote?: SortOrder
     resolvedAt?: SortOrder
@@ -32524,6 +32626,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumSessionModeFilter<$PrismaModel>
     _max?: NestedEnumSessionModeFilter<$PrismaModel>
+  }
+
+  export type EnumSessionDisputeTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionDisputeType | EnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionDisputeTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SessionDisputeType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel>
   }
 
   export type SessionRelationFilter = {
@@ -34016,6 +34128,10 @@ export namespace Prisma {
     set?: $Enums.SessionMode
   }
 
+  export type NullableEnumSessionDisputeTypeFieldUpdateOperationsInput = {
+    set?: $Enums.SessionDisputeType | null
+  }
+
   export type ContractUpdateOneRequiredWithoutSessionsNestedInput = {
     create?: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
     connectOrCreate?: ContractCreateOrConnectWithoutSessionsInput
@@ -34928,6 +35044,13 @@ export namespace Prisma {
     not?: NestedEnumSessionModeFilter<$PrismaModel> | $Enums.SessionMode
   }
 
+  export type NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionDisputeType | EnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel> | $Enums.SessionDisputeType | null
+  }
+
   export type NestedEnumSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
     in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
@@ -34946,6 +35069,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumSessionModeFilter<$PrismaModel>
     _max?: NestedEnumSessionModeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumSessionDisputeTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionDisputeType | EnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionDisputeType[] | ListEnumSessionDisputeTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionDisputeTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SessionDisputeType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumSessionDisputeTypeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumNotificationEventTypeFilter<$PrismaModel = never> = {
@@ -36332,10 +36465,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -36361,10 +36496,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -36476,10 +36613,12 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    ptAtFault?: BoolFilter<"Session"> | boolean
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
     disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    disputeType?: EnumSessionDisputeTypeNullableFilter<"Session"> | $Enums.SessionDisputeType | null
     resolvedBy?: StringNullableFilter<"Session"> | string | null
     resolutionNote?: StringNullableFilter<"Session"> | string | null
     resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -36996,10 +37135,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -37026,10 +37167,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -37197,10 +37340,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37227,10 +37372,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37388,10 +37535,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -37418,10 +37567,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -37589,10 +37740,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37619,10 +37772,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38553,10 +38708,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -38583,10 +38740,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -38627,10 +38786,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38657,10 +38818,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38889,10 +39052,12 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    ptAtFault?: boolean
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
     disputedAt?: Date | string | null
+    disputeType?: $Enums.SessionDisputeType | null
     resolvedBy?: string | null
     resolutionNote?: string | null
     resolvedAt?: Date | string | null
@@ -38933,10 +39098,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38962,10 +39129,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38991,10 +39160,12 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptAtFault?: BoolFieldUpdateOperationsInput | boolean
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    disputeType?: NullableEnumSessionDisputeTypeFieldUpdateOperationsInput | $Enums.SessionDisputeType | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

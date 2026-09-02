@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Preferences } from "@capacitor/preferences";
 import { API_URL, adminService } from "../../services/api";
+import { tokenStore } from "../../services/tokenStore";
 import {
   RefreshCw,
   Workflow,
@@ -189,14 +189,10 @@ export function AdminWorkflowStudio() {
   const [e2eResult, setE2eResult] = useState<E2EResult | null>(null);
   const [e2eError, setE2eError] = useState<string | null>(null);
 
-  // Token storage moved to @capacitor/preferences (web impl: localStorage under a
-  // "CapacitorStorage." prefix, added for the Android APK build) — a bare
-  // localStorage.getItem("accessToken") always misses now, so the studio link below
-  // silently opened logged out. Preferences.get is async; loaded once on mount.
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  useEffect(() => {
-    void Preferences.get({ key: "accessToken" }).then(({ value }) => setAccessToken(value));
-  }, []);
+  // A bare localStorage.getItem("accessToken") always misses on the Android APK build (token
+  // storage is @capacitor/preferences there), so the studio link below silently opened logged
+  // out. Vòng 4 / Phase D3 — tokenStore is synchronous now, no async effect needed to read it.
+  const [accessToken] = useState<string | null>(() => tokenStore.get());
 
   // ── Data loading ─────────────────────────────────────────────────────────
 

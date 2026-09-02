@@ -252,9 +252,10 @@ test('a rate table where the platform would round to a negative remainder is cau
 
 // ── Every termination reason ─────────────────────────────────────────────────
 
-test('all six termination reasons produce a reconciling outcome', () => {
+test('all seven termination reasons produce a reconciling outcome', () => {
   const reasons: TerminationReason[] = [
     'CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED',
+    'PT_REPEATED_NO_SHOW', // Vòng 4 / Phase E2
   ];
   const input = { price: D(1_000_000), totalSessions: 10, usedSessions: 4, rates: WITH_GYM };
 
@@ -265,6 +266,8 @@ test('all six termination reasons produce a reconciling outcome', () => {
     MUTUAL: '600000',
     EXPIRED: '0',
     COMPLETED: '0',
+    // Same 100%-of-remaining formula as PT_BANNED/MUTUAL — the PT is at fault either way.
+    PT_REPEATED_NO_SHOW: '600000',
   };
 
   for (const reason of reasons) {

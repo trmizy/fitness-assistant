@@ -86,13 +86,56 @@ test('activateViaTransaction: từ chối kích hoạt và hoàn tiền toàn b�
   assert.equal(releaseCalledWith.ptUserId, null, 'hoa hồng giới thiệu chưa từng được chốt vì chưa từng kích hoạt — không có gì để đụng tới ở phía PT');
 });
 
+// Vòng 4 / Phase C3 — the exact scenario the phase doc calls out as most important: checkout
+// succeeds while the gym is OPEN, the owner closes it TEMPORARILY_CLOSED before the gateway's
+// webhook arrives, then the webhook confirms payment. Must land exactly like the SUSPENDED
+// case above — PENDING_ISSUE, refunded in full, never silently ACTIVE.
+test('activateViaTransaction: từ chối kích hoạt và hoàn tiền toàn bộ khi phòng gym bị TEMPORARILY_CLOSED giữa lúc thanh toán', async () => {
+  const state = makeState();
+  stubTransactionPaid(state.id);
+
+  let releaseCalledWith: any = null;
+  const restores = [
+    patch(membershipRepository, 'findById', async () => ({ ...state })),
+    patch(membershipRepository, 'findByIdWithReferral', async () => ({ ...state, referral: state.referral })),
+    patch(gymRepository, 'findById', async () => ({ id: state.gymId, status: 'APPROVED', operationalStatus: 'TEMPORARILY_CLOSED' }) as any),
+    patch(membershipRepository, 'markPendingIssueIfPending', async () => {
+      if (state.status !== 'PENDING_PAYMENT') return { affected: 0, contract: { ...state } };
+      state.status = 'PENDING_ISSUE';
+      return { affected: 1, contract: { ...state } };
+    }),
+    patch(paymentClient, 'releaseMembershipPending', async (body: any) => {
+      releaseCalledWith = body;
+      return { released: { gym: '0.00', platform: '0.00', ptReferral: '0.00' }, refundedToClient: String(state.priceAtPurchase), shortfall: '0.00' };
+    }),
+    patch(membershipRepository, 'cancelAfterRefund', async () => {
+      state.status = 'CANCELLED';
+      return { ...state } as any;
+    }),
+    patch(membershipRepository, 'markPayoutReleased', async () => {
+      return {} as any;
+    }),
+  ];
+
+  try {
+    await membershipService.activateViaTransaction(state.id, 'txn-1');
+  } finally {
+    restores.forEach((r) => r());
+  }
+
+  assert.equal(state.status, 'CANCELLED', 'phải hoàn tất bằng CANCELLED (đã hoàn tiền), không được ACTIVE');
+  assert.ok(releaseCalledWith, 'phải gọi hoàn tiền — không được im lặng bỏ qua');
+  assert.equal(releaseCalledWith.refundToClient, String(state.priceAtPurchase), 'phải hoàn ĐỦ 100%');
+  assert.equal(releaseCalledWith.membershipStatus, 'PENDING_ISSUE');
+});
+
 test('activateViaTransaction: kích hoạt bình thường khi phòng gym vẫn APPROVED', async () => {
   const state = makeState();
   stubTransactionPaid(state.id);
 
   const restores = [
     patch(membershipRepository, 'findById', async () => ({ ...state })),
-    patch(gymRepository, 'findById', async () => ({ id: state.gymId, status: 'APPROVED' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: state.gymId, status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
     patch(membershipRepository, 'findByIdWithReferral', async () => ({ ...state, referral: null })),
     patch(membershipRepository, 'activateIfPending', async () => {
       state.status = 'ACTIVE';

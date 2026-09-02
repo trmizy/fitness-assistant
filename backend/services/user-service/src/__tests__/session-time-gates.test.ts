@@ -101,8 +101,58 @@ test("B4 — markNoShow (PT tự nhận vắng mặt) từ chối khi buổi t�
   try {
     await assert.rejects(
       () => bookingService.markNoShow(sessionId, "pt-1", "PT"),
-      /Chưa tới giờ/,
+      /Chưa thể báo.*vắng mặt/, // Vòng 4 / Phase E1: message now mentions the grace window
     );
+  } finally {
+    restores.forEach((r) => r());
+  }
+});
+
+// Vòng 4 / Phase E1 — grace window (mặc định 15 phút, NO_SHOW_GRACE_MINUTES) sau
+// scheduledStartAt trước khi CÓ THỂ báo vắng mặt, áp dụng cả hai chiều.
+test("E1 — markNoShow bị từ chối khi mới quá giờ hẹn 5 phút (còn trong grace window)", async () => {
+  const sessionId = randomUUID();
+  const session = {
+    id: sessionId,
+    contractId: "c1",
+    clientUserId: "client-1",
+    ptUserId: "pt-1",
+    status: SessionStatus.CONFIRMED,
+    scheduledStartAt: new Date(Date.now() - 5 * 60 * 1000), // mới qua giờ hẹn 5 phút
+  };
+  const restores = [
+    patch(sessionRepository, "findById", async () => session as any),
+    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(notificationService, "create", async () => ({}) as any),
+  ];
+  try {
+    await assert.rejects(
+      () => bookingService.markNoShow(sessionId, "pt-1", "CLIENT"),
+      /Chưa thể báo.*vắng mặt/,
+    );
+  } finally {
+    restores.forEach((r) => r());
+  }
+});
+
+test("E1 — markNoShow cho phép báo vắng mặt sau khi hết grace window (quá giờ hẹn 20 phút)", async () => {
+  const sessionId = randomUUID();
+  const session = {
+    id: sessionId,
+    contractId: "c1",
+    clientUserId: "client-1",
+    ptUserId: "pt-1",
+    status: SessionStatus.CONFIRMED,
+    scheduledStartAt: new Date(Date.now() - 20 * 60 * 1000), // qua giờ hẹn 20 phút — hết grace 15 phút
+  };
+  const restores = [
+    patch(sessionRepository, "findById", async () => session as any),
+    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(notificationService, "create", async () => ({}) as any),
+  ];
+  try {
+    const updated = await bookingService.markNoShow(sessionId, "pt-1", "CLIENT");
+    assert.equal((updated as any).status, SessionStatus.PENDING_CLIENT_CONFIRMATION);
   } finally {
     restores.forEach((r) => r());
   }
@@ -127,7 +177,7 @@ test("B4 — markNoShow (PT báo khách vắng mặt) từ chối khi buổi t�
   try {
     await assert.rejects(
       () => bookingService.markNoShow(sessionId, "pt-1", "CLIENT"),
-      /Chưa tới giờ/,
+      /Chưa thể báo.*vắng mặt/, // Vòng 4 / Phase E1: message now mentions the grace window
     );
   } finally {
     restores.forEach((r) => r());
