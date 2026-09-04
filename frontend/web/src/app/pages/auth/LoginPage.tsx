@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useLocation, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
 import {
   Eye,
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
-import { ROLE_HOME, landingPathFor } from "../../config/landing";
+import { ROLE_HOME, landingPathFor, isSafeReturnPath } from "../../config/landing";
 import { Preferences } from "@capacitor/preferences";
 
 const features = [
@@ -27,13 +27,21 @@ const features = [
 export function LoginPage() {
   const { login, isAuthenticated, role } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where AppShell's auth guard or a session-expiry redirect grabbed the user from, so a
+  // login can drop them back where they were instead of always the role's home screen —
+  // see config/landing.ts's isSafeReturnPath for why this can't be trusted as-is.
+  const returnTo = (location.state as { from?: string } | null)?.from;
 
   // Anyone who reaches the login screen with a live session belongs inside the app.
   // Without this, a restored session that landed here for any reason (a deep link, an
   // old history entry, "/" before RootRedirect existed) left the user staring at a login
   // form and retyping a password they never needed to enter — the reported bug.
   useEffect(() => {
-    if (isAuthenticated) navigate(ROLE_HOME[role], { replace: true });
+    if (isAuthenticated) {
+      navigate(isSafeReturnPath(returnTo) ? returnTo : ROLE_HOME[role], { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, role, navigate]);
 
   const [email, setEmail] = useState("");
@@ -57,9 +65,11 @@ export function LoginPage() {
       if (success) {
         const { value: userStr } = await Preferences.get({ key: "user" });
         const storedUser = JSON.parse(userStr || "{}");
-        // Same role->home table the root redirect and session restore use, so the three
-        // can never disagree about where a role's home screen is.
-        navigate(landingPathFor(storedUser), { replace: true });
+        // Prefer the page the user was actually trying to reach (carried via router state
+        // from AppShell's auth guard / a session-expiry redirect) over the generic role
+        // home — otherwise a session that expires mid-flow (e.g. right after paying) strands
+        // the user on their dashboard instead of the page they came back to check.
+        navigate(isSafeReturnPath(returnTo) ? returnTo : landingPathFor(storedUser), { replace: true });
       } else {
         setError("Email hoặc mật khẩu không đúng");
       }

@@ -45,7 +45,12 @@ export const sessionRepository = {
     prisma.session.findMany({
       where: {
         OR: [{ clientUserId: userId }, { ptUserId: userId }],
-        scheduledStartAt: { gte: new Date() },
+        // Filtering on scheduledStartAt used to mean a session vanished from "My
+        // Schedule"/"upcoming" the instant its start time arrived — even while it was
+        // still running (an ONLINE session's join window stays open well past its start,
+        // see call.policy.ts). Filtering on the END time instead keeps a session in this
+        // list for its whole duration, only dropping off once it's actually over.
+        scheduledEndAt: { gte: new Date() },
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
       },
       orderBy: { scheduledStartAt: "asc" },

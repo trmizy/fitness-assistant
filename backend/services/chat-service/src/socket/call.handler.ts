@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Server, Socket } from "socket.io";
 import { CallType, CallOrigin } from "@prisma/client";
 import { logger } from "@gym-coach/shared";
@@ -19,19 +20,75 @@ export const graceTimers = new Map<
   { callSessionId: string; timeout: NodeJS.Timeout }
 >();
 
-function getIceServers() {
+// STUN alone only helps two peers on simple/compatible NATs find each other directly — it
+// does nothing when either side is behind symmetric NAT (the default on most mobile carrier
+// networks) or a restrictive firewall. Confirmed reproducing exactly that: a real phone
+// (mobile data) calling a real laptop (a different home network) failed with "ice_failed"
+// every time with STUN-only servers, even though signaling (initiate/accept) worked fine —
+// TURN (a relay both sides CAN reach) is what's missing, not a signaling bug.
+function staticIceServers(): any[] {
   const servers: any[] = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
   ];
+  // TURN_URL takes a comma-separated list (same convention as CORS_ORIGIN elsewhere) since a
+  // real TURN deployment publishes several transports (UDP/TCP/TLS on different ports) for
+  // reliability across different network restrictions — one URL is rarely enough in practice.
+  // This is the fallback path — see getIceServers() below for the primary one.
   if (process.env.TURN_URL) {
-    servers.push({
-      urls: process.env.TURN_URL,
-      username: process.env.TURN_USERNAME || "",
-      credential: process.env.TURN_CREDENTIAL || "",
-    });
+    const urls = process.env.TURN_URL.split(",").map((u) => u.trim()).filter(Boolean);
+    if (urls.length > 0) {
+      servers.push({
+        urls,
+        username: process.env.TURN_USERNAME || "",
+        credential: process.env.TURN_CREDENTIAL || "",
+      });
+    }
   }
   return servers;
+}
+
+const METERED_DOMAIN = process.env.METERED_DOMAIN;
+const METERED_API_KEY = process.env.METERED_API_KEY;
+// Metered issues time-limited TURN credentials (not a fixed username/password) valid for
+// roughly 24h — refetching well before that (6h) means a credential handed to a client is
+// never close to its own expiry mid-call, at the cost of one cheap HTTP call per 6h, not
+// per call.
+const METERED_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+let meteredCache: { servers: any[]; fetchedAt: number } | null = null;
+
+/**
+ * Own (non-shared) TURN credentials from metered.ca, fetched fresh and cached — replaces the
+ * Open Relay Project's free shared credentials, which are public/well-known and can be rate-
+ * limited or exhausted by unrelated traffic with no way to tell from this side. Falls back to
+ * the static TURN_URL/STUN-only servers (staticIceServers) if Metered isn't configured, the
+ * fetch fails, or the response isn't the array of ICE servers it's documented to return — a
+ * broken TURN fetch must never be the reason a call can't even try to connect.
+ */
+async function getIceServers(): Promise<any[]> {
+  if (!METERED_DOMAIN || !METERED_API_KEY) return staticIceServers();
+
+  if (meteredCache && Date.now() - meteredCache.fetchedAt < METERED_CACHE_TTL_MS) {
+    return meteredCache.servers;
+  }
+
+  try {
+    const { data } = await axios.get(
+      `https://${METERED_DOMAIN}/api/v1/turn/credentials`,
+      { params: { apiKey: METERED_API_KEY }, timeout: 5000 },
+    );
+    if (Array.isArray(data) && data.length > 0) {
+      meteredCache = { servers: data, fetchedAt: Date.now() };
+      return data;
+    }
+    logger.warn({ data }, "Metered TURN credentials response was not the expected array");
+  } catch (error) {
+    logger.error(error, "Failed to fetch Metered TURN credentials");
+  }
+
+  // A stale-but-still-plausible cached credential beats none at all if this fetch failed but
+  // an earlier one (within the process's lifetime) succeeded.
+  return meteredCache?.servers ?? staticIceServers();
 }
 
 function clearRingTimeout(callSessionId: string) {
@@ -213,13 +270,13 @@ export function registerCallHandlers(
           socket.emit("call:existing", {
             callSessionId: result.existingCall.id,
             status: result.existingCall.status,
-            iceServers: getIceServers(),
+            iceServers: await getIceServers(),
           });
           return;
         }
 
         const call = result.call!;
-        const iceServers = getIceServers();
+        const iceServers = await getIceServers();
 
         // Notify callee (all tabs via user room)
         io.to(`user:${calleeId}`).emit("call:incoming", {
@@ -283,7 +340,7 @@ export function registerCallHandlers(
 
         clearRingTimeout(callSessionId);
         const call = result.call!;
-        const iceServers = getIceServers();
+        const iceServers = await getIceServers();
 
         // Notify caller
         io.to(`user:${call.callerId}`).emit("call:accepted", {

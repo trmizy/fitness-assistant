@@ -39,6 +39,7 @@ export class ZaloPayProvider implements PaymentProvider {
     orderInfo: string;
     extraData?: string;
     platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<PaymentIntentResult> {
     const { transactionId, amount, orderInfo } = params;
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -51,7 +52,14 @@ export class ZaloPayProvider implements PaymentProvider {
     const appTime = Date.now();
     // Unlike VNPay (which comes back through this service's own /vnpay/return first), ZaloPay
     // redirects straight to whatever URL is embedded here — has to be the right one already.
-    const returnBase = params.platform === 'mobile' ? 'fitnessassistant://client' : `${FRONTEND_URL}/client`;
+    // Same reasoning as vnpay.provider.ts's effectiveReturnUrl: whatever door the payer's own
+    // request came in through (params.returnBaseUrl, from the gateway's x-public-base-url)
+    // wins over the static `.env` FRONTEND_URL — a LAN IP baked into `.env` goes stale the
+    // moment the dev machine's DHCP lease changes, same failure this fixed for VNPay already
+    // (confirmed by reproducing it: ZaloPay redirected to a stale 192.168.2.103 while the
+    // payer's browser was actually on 192.168.1.2, timing out).
+    const returnBase =
+      params.platform === 'mobile' ? 'fitnessassistant://client' : `${params.returnBaseUrl ?? FRONTEND_URL}/client`;
     const embedData = JSON.stringify({ redirecturl: `${returnBase}/payments/result?txnId=${transactionId}` });
     const item = '[]';
     const appUser = 'gymcoach';

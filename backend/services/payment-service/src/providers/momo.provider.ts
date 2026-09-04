@@ -37,6 +37,12 @@ export class MoMoProvider implements PaymentProvider {
     const requestId = transactionId;
     const orderId   = transactionId;
     const requestType = 'payWithMethod';
+    // Same fix as vnpay/zalopay/payos: prefer the payer's actual request origin over the
+    // static `.env` MOMO_REDIRECT_URL, which goes stale the moment the dev machine's LAN
+    // IP/tunnel changes. Was declared in this method's params before but never read.
+    const effectiveRedirect = params.returnBaseUrl
+      ? `${params.returnBaseUrl}/client/payments/result`
+      : REDIRECT;
 
     // Field order is alphabetical and MUST match MoMo docs exactly
     const rawSignature = [
@@ -47,7 +53,7 @@ export class MoMoProvider implements PaymentProvider {
       `orderId=${orderId}`,
       `orderInfo=${orderInfo}`,
       `partnerCode=${PARTNER}`,
-      `redirectUrl=${REDIRECT}`,
+      `redirectUrl=${effectiveRedirect}`,
       `requestId=${requestId}`,
       `requestType=${requestType}`,
     ].join('&');
@@ -61,7 +67,7 @@ export class MoMoProvider implements PaymentProvider {
       amount:      String(amount),
       orderId,
       orderInfo,
-      redirectUrl: REDIRECT,
+      redirectUrl: effectiveRedirect,
       ipnUrl:      IPN_URL,
       extraData,
       requestType,

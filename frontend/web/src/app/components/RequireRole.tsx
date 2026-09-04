@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useLocation } from "react-router";
 import { useApp, type UserRole } from "../context/AppContext";
 
 /**
@@ -25,6 +25,7 @@ export function RequireRole({
   children: ReactNode;
 }) {
   const { role, isAuthenticated } = useApp();
+  const location = useLocation();
 
   // Redirect rather than render nothing. This used to `return null` on the assumption that
   // AppShell (inside `children`) would do the redirecting — but returning null is exactly
@@ -32,7 +33,16 @@ export function RequireRole({
   // visit to /admin/* or /pt/* simply sat on a blank screen at the guarded URL. Session
   // restore now resolves before anything renders (see services/session.ts), so by the time
   // this runs, `isAuthenticated: false` is a settled answer, not a still-loading one.
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  //
+  // This guard sits OUTSIDE AppShell (it wraps it), so when it fires, AppShell's own
+  // isAuthenticated effect never gets a chance to run at all — its return-path capture
+  // (see AppShell.tsx) is dead code for this case. Carry the same `state.from` here, or a
+  // session that drops mid-flow (e.g. right after a payment redirect lands on
+  // /client/payments/result with an expired token) strands the user on the login page with
+  // no way back to what they were looking at.
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+  }
 
   if (!allow.includes(role)) {
     return (

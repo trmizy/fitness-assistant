@@ -45,6 +45,7 @@ export class PayOSProvider implements PaymentProvider {
     orderInfo: string;
     extraData?: string;
     platform?: 'web' | 'mobile';
+    returnBaseUrl?: string;
   }): Promise<PaymentIntentResult> {
     const { transactionId, amount, orderInfo } = params;
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -54,8 +55,12 @@ export class PayOSProvider implements PaymentProvider {
     // orderCode must be a unique positive integer; store its string form as providerTransactionId.
     const orderCode = Date.now();
     const description = orderInfo.slice(0, 25); // PayOS caps description at 25 chars
-    // Same reasoning as ZaloPay above: PayOS redirects straight here, no intermediate hop.
-    const returnBase = params.platform === 'mobile' ? 'fitnessassistant://client' : `${FRONTEND_URL}/client`;
+    // Same reasoning as ZaloPay above: PayOS redirects straight here, no intermediate hop —
+    // and same fix as vnpay.provider.ts's effectiveReturnUrl: prefer the payer's actual
+    // request origin (params.returnBaseUrl) over the static `.env` FRONTEND_URL, which goes
+    // stale the moment the dev machine's LAN IP/tunnel changes.
+    const returnBase =
+      params.platform === 'mobile' ? 'fitnessassistant://client' : `${params.returnBaseUrl ?? FRONTEND_URL}/client`;
     const returnUrl = `${returnBase}/payments/result?txnId=${transactionId}`;
     const cancelUrl = `${returnBase}/payments/result?txnId=${transactionId}`;
 

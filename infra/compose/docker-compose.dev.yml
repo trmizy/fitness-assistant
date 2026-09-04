@@ -498,6 +498,25 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       CORS_ORIGIN: http://localhost:5173
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      # WebRTC calls (call.handler.ts's getIceServers) were STUN-only — fine on the same LAN,
+      # but confirmed failing with "ice_failed" for any real cross-network pair (a phone on
+      # mobile data calling a laptop on a different home connection), because STUN alone
+      # can't traverse the symmetric NAT most mobile carriers use.
+      #
+      # METERED_DOMAIN/METERED_API_KEY (own account, set in .env — never committed) are the
+      # primary path: getIceServers() fetches fresh, non-shared TURN credentials from them.
+      # TURN_URL/TURN_USERNAME/TURN_CREDENTIAL below are only the fallback used when Metered
+      # isn't configured (or its fetch fails) — the Open Relay Project's free, publicly-
+      # published, SHARED test credentials (metered.ca/tools/openrelay, no signup). Confirmed
+      # those alone were not enough for a reliable cross-network call (shared with unrelated
+      # traffic with no way to tell from this side if it's being rate-limited) — fine as a
+      # last-resort fallback, not as the primary path. Before a real launch, replace both with
+      # either a self-hosted coturn (needs a real public IP, which this dev machine behind a
+      # home router/tunnel does not have) or a paid hosted TURN provider (Twilio, Xirsys,
+      # Cloudflare Calls, metered.ca's own paid tier).
+      TURN_URL: ${TURN_URL:-turn:openrelay.metered.ca:80,turn:openrelay.metered.ca:443,turn:openrelay.metered.ca:443?transport=tcp}
+      TURN_USERNAME: ${TURN_USERNAME:-openrelayproject}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-openrelayproject}
     env_file:
       - ../../.env
     volumes:
