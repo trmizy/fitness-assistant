@@ -1,0 +1,174 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # module.hello_world.aws_lambda_function.this will be updated in-place
+  ~ resource "aws_lambda_function" "this" {
+      ~ filename                       = "../../modules/lambda-service/.build/fitness-assistant-hello-dev.zip" -> "../../modules/lambda-http-api/.build/fitness-assistant-hello-dev.zip"
+        id                             = "fitness-assistant-hello-dev"
+      ~ last_modified                  = "2026-08-04T08:53:55.000+0000" -> (known after apply)
+      ~ source_code_hash               = "hTni7Byo8jy2cJKng/HKAIxg8IjKfWj3T67pKWiGKQY=" -> "Tof9B2iVzKyApM61alsNQXxAYm1ISV9DYMSUpdeIQVI="
+        tags                           = {}
+        # (29 unchanged attributes hidden)
+
+      ~ environment {
+          ~ variables = {
+              + "ENVIRONMENT" = "dev"
+              + "SERVICE"     = "fitness-assistant"
+                # (1 unchanged element hidden)
+            }
+        }
+
+        # (3 unchanged blocks hidden)
+    }
+
+  # module.iam.aws_iam_role.github_actions_ci will be updated in-place
+  ~ resource "aws_iam_role" "github_actions_ci" {
+      ~ assume_role_policy    = jsonencode(
+          ~ {
+              ~ Statement = [
+                  ~ {
+                      ~ Condition = {
+                          ~ StringLike   = {
+                              ~ "token.actions.githubusercontent.com:sub" = "repo:trmizy/fitness-assistant:*" -> [
+                                  + "repo:trmizy/fitness-assistant:ref:refs/heads/master",
+                                  + "repo:trmizy/fitness-assistant:pull_request",
+                                ]
+                            }
+                            # (1 unchanged attribute hidden)
+                        }
+                        # (3 unchanged attributes hidden)
+                    },
+                ]
+                # (1 unchanged attribute hidden)
+            }
+        )
+        id                    = "fitness-assistant-github-actions-ci"
+        name                  = "fitness-assistant-github-actions-ci"
+        tags                  = {}
+        # (11 unchanged attributes hidden)
+
+        # (2 unchanged blocks hidden)
+    }
+
+  # module.iam.aws_iam_role_policy.ci_plan_read_only will be updated in-place
+  ~ resource "aws_iam_role_policy" "ci_plan_read_only" {
+        id          = "fitness-assistant-github-actions-ci:plan-read-only"
+        name        = "plan-read-only"
+      ~ policy      = jsonencode(
+          ~ {
+              ~ Statement = [
+                  ~ {
+                      ~ Action   = [
+                          - "s3:GetBucket*",
+                          - "s3:ListBucket",
+                          - "s3:GetObject",
+                          - "dynamodb:DescribeTable",
+                          - "dynamodb:ListTables",
+                          - "iam:GetRole",
+                          - "iam:GetRolePolicy",
+                          - "iam:ListRolePolicies",
+                          - "iam:ListAttachedRolePolicies",
+                          - "iam:GetOpenIDConnectProvider",
+                          - "iam:ListOpenIDConnectProviders",
+                          - "lambda:GetFunction",
+                          - "lambda:GetFunctionConfiguration",
+                          - "lambda:ListFunctions",
+                          + "s3:List*",
+                          + "s3:Get*",
+                          + "logs:FilterLogEvents",
+                          + "logs:Describe*",
+                          + "lambda:List*",
+                          + "lambda:Get*",
+                          + "iam:List*",
+                          + "iam:Get*",
+                          + "cloudfront:List*",
+                          + "cloudfront:Get*",
+                          + "budgets:Describe*",
+                          + "apigateway:OPTIONS",
+                          + "apigateway:HEAD",
+                            "apigateway:GET",
+                          - "logs:DescribeLogGroups",
+                          - "logs:GetLogEvents",
+                          - "sts:GetCallerIdentity",
+                        ]
+                      - Sid      = "ReadOnlyForPlan"
+                        # (2 unchanged attributes hidden)
+                    },
+                ]
+                # (1 unchanged attribute hidden)
+            }
+        )
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.iam.aws_iam_role_policy.ci_state_backend_read will be updated in-place
+  ~ resource "aws_iam_role_policy" "ci_state_backend_read" {
+        id          = "fitness-assistant-github-actions-ci:state-backend-read"
+        name        = "state-backend-read"
+      ~ policy      = jsonencode(
+          ~ {
+              ~ Statement = [
+                  ~ {
+                      ~ Action   = [
+                          ~ "s3:GetObject" -> "s3:ListBucket",
+                          ~ "s3:ListBucket" -> "s3:GetBucketLocation",
+                        ]
+                      ~ Resource = [
+                          - "arn:aws:s3:::fitness-assistant-tfstate-191798898985",
+                          - "arn:aws:s3:::fitness-assistant-tfstate-191798898985/*",
+                        ] -> "arn:aws:s3:::fitness-assistant-tfstate-191798898985"
+                      - Sid      = "ReadState"
+                        # (1 unchanged attribute hidden)
+                    },
+                  ~ {
+                      ~ Action   = [
+                          ~ "dynamodb:GetItem" -> "s3:PutObject",
+                          ~ "dynamodb:PutItem" -> "s3:GetObject",
+                          ~ "dynamodb:DeleteItem" -> "s3:DeleteObject",
+                        ]
+                      ~ Resource = "arn:aws:dynamodb:ap-southeast-1:191798898985:table/fitness-assistant-tfstate-lock" -> "arn:aws:s3:::fitness-assistant-tfstate-191798898985/*"
+                      - Sid      = "StateLock"
+                        # (1 unchanged attribute hidden)
+                    },
+                ]
+                # (1 unchanged attribute hidden)
+            }
+        )
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.s3_uploads.aws_s3_bucket_versioning.this will be updated in-place
+  ~ resource "aws_s3_bucket_versioning" "this" {
+        id                    = "fitness-assistant-uploads-dev-191798898985"
+        # (3 unchanged attributes hidden)
+
+      ~ versioning_configuration {
+          ~ status     = "Disabled" -> "Enabled"
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.s3_vectors.aws_s3_bucket_versioning.this will be updated in-place
+  ~ resource "aws_s3_bucket_versioning" "this" {
+        id                    = "fitness-assistant-vectors-dev-191798898985"
+        # (3 unchanged attributes hidden)
+
+      ~ versioning_configuration {
+          ~ status     = "Disabled" -> "Enabled"
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+Plan: 0 to add, 6 to change, 0 to destroy.
+
+Changes to Outputs:
+  + api_base_url               = "https://uo90qua3rk.execute-api.ap-southeast-1.amazonaws.com"
+  + frontend_bucket_name       = "fitness-assistant-frontend-dev-191798898985"
+  ~ hello_url                  = "https://uo90qua3rk.execute-api.ap-southeast-1.amazonaws.com//hello" -> "https://uo90qua3rk.execute-api.ap-southeast-1.amazonaws.com/hello"
+  + lambda_name                = "fitness-assistant-hello-dev"
+  + uploads_bucket_name        = "fitness-assistant-uploads-dev-191798898985"
+  + vectors_bucket_name        = "fitness-assistant-vectors-dev-191798898985"

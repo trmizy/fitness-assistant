@@ -1,0 +1,816 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Conversation {
+  id                        String    @id @default(uuid())
+  userId                    String?   @map("user_id")
+  sessionId                 String?   @map("session_id")
+  question                  String
+  answer                    String
+  modelUsed                 String    @map("model_used")
+  responseTime              Float     @map("response_time")
+  relevance                 String?
+  relevanceExplanation      String?   @map("relevance_explanation")
+  promptTokens              Int       @map("prompt_tokens")
+  completionTokens          Int       @map("completion_tokens")
+  totalTokens               Int       @map("total_tokens")
+  cost                      Float     @default(0)
+  feedback                  Int?
+  feedbackTimestamp         DateTime? @map("feedback_timestamp")
+  // ── Observability fields ────────────────────────────────────────────────────
+  traceId                   String?   @map("trace_id")
+  usedFallback              Boolean   @default(false) @map("used_fallback")
+  usedDeterministicFallback Boolean   @default(false) @map("used_deterministic_fallback")
+  responseLanguage          String?   @map("response_language")
+  routeIntent               String?   @map("route_intent")
+  warningCount              Int       @default(0) @map("warning_count")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, sessionId, createdAt])
+  @@index([createdAt])
+  @@index([routeIntent])
+  @@index([usedFallback])
+  @@map("conversations")
+}
+
+model ChatSession {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  title         String
+  // Bumped explicitly whenever a new turn is appended to this session (not on
+  // every touch) — the sidebar sorts by this, so a title rename alone never
+  // reorders the list.
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, archivedAt, lastMessageAt])
+  @@map("chat_sessions")
+}
+
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String
+  // Free-text label ("dietary" | "schedule" | "exercise_preference" | "other"),
+  // not an enum — keeps the remember_user_fact tool schema simple and lets the
+  // model choose without a migration if new categories come up.
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("user_memories")
+}
+
+enum PlanStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PtReviewStatus {
+  PENDING_PT_REVIEW
+  PT_APPROVED
+  PT_REJECTED
+}
+
+model WorkoutPlan {
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
+  name        String
+  description String?
+  goal        String
+  duration    Int
+  daysPerWeek Int        @map("days_per_week")
+  /// Structured JSON matching PlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+  plan        Json
+  status      PlanStatus @default(QUEUED)
+  version     Int        @default(1)
+  /// BullMQ job ID — used for polling via GET /plans/job/:jobId
+  jobId          String?          @map("job_id")
+  failReason     String?          @map("fail_reason")
+  ptUserId       String?          @map("pt_user_id")
+  ptName         String?          @map("pt_name")
+  clientName     String?          @map("client_name")
+  ptReviewStatus PtReviewStatus?  @map("pt_review_status")
+  ptNote         String?          @map("pt_note")
+  ptReviewedAt   DateTime?        @map("pt_reviewed_at")
+  archivedAt     DateTime?        @map("archived_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  publishedListings PublishedPlan[]
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, status])
+  @@index([ptUserId, ptReviewStatus])
+  @@index([userId, archivedAt])
+  @@map("workout_plans")
+}
+
+enum PublishModerationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+// A user-published, community-visible listing wrapping one of their WorkoutPlan
+// rows. Title/description/goal are snapshotted at publish time so edits to the
+// underlying WorkoutPlan don't silently change an already-approved listing.
+model PublishedPlan {
+  id               String                  @id @default(uuid())
+  sourcePlanId     String                  @map("source_plan_id")
+  publisherId      String                  @map("publisher_id")
+  title            String
+  description      String?
+  goal             String
+  moderationStatus PublishModerationStatus @default(DRAFT) @map("moderation_status")
+  moderationNote   String?                 @map("moderation_note")
+  avgRating        Float                   @default(0) @map("avg_rating")
+  ratingCount      Int                     @default(0) @map("rating_count")
+  publishedAt      DateTime?               @map("published_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  // ── Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — versioning.
+  // Publishing an update creates a NEW PublishedPlan row (version = prior+1,
+  // previousVersionId pointing back) rather than mutating this row in
+  // place — existing TrainingPackage/TrainingPackagePurchase/adoptions that
+  // reference an OLD id keep working unchanged (no destructive overwrite).
+  // approvedBy is set once an admin moderates this specific version (a new
+  // version always re-enters SUBMITTED, never inherits the prior version's
+  // APPROVED status).
+  version            Int     @default(1)
+  previousVersionId  String? @map("previous_version_id")
+  changelog          String? // what changed in this version, publisher-authored
+  improvementReason  String? @map("improvement_reason") // why this version was made — e.g. "addressed reviewer feedback about X"
+  approvedBy         String? @map("approved_by")
+
+  // true when the publisher's gateway role was "PT" at the moment of
+  // publish/republish (req.context.role, forwarded by the gateway from the
+  // verified JWT — not user-editable). Purely a display label ("PT xác
+  // thực" vs "người dùng tự chia sẻ") — publishing itself has the SAME
+  // requirements for everyone (see the hasCompletedCycleForPlan gate in
+  // publishPlan/republishVersion); a PT gets no special privilege here.
+  publisherIsVerifiedPt Boolean @default(false) @map("publisher_is_verified_pt")
+
+  // Deterministic (rule-based, NOT AI) quality score cache — see
+  // plan-quality-scorer.ts. Recomputed whenever a review is submitted.
+  qualityScore           Float?    @map("quality_score")
+  qualityScoreComputedAt DateTime? @map("quality_score_computed_at")
+
+  sourcePlan WorkoutPlan       @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
+  reviews    PlanReview[]
+  packages   TrainingPackage[]
+  improvementSuggestions PlanImprovementSuggestion[]
+  moderationAnalyses     PlanModerationAnalysis[]
+
+  @@index([publisherId])
+  @@index([moderationStatus])
+  @@index([previousVersionId])
+  @@map("published_plans")
+}
+
+// 🤖 Pre-moderation quality/safety screening — runs automatically right after
+// a plan is submitted (publishPlan/republishVersion), BEFORE any admin sees
+// it. Two layers, kept structurally separate: `ruleFlags`/`computedStats`
+// are deterministic (a plain rule engine over the plan's weeklySchedule —
+// no AI), `aiConcerns`/`aiConfidenceScore`/`aiRecommendation` are the LLM's
+// interpretation of those same rule outputs. The AI NEVER decides — it only
+// produces a report for the admin to read; `moderationStatus` only ever
+// changes via ContractController-style human action (reviewAction), never
+// automatically from this table. A deterministic rule flag always survives
+// into `aiRecommendation` even if the model tries to wave it off — see
+// plan-moderation-analysis.service.ts's belt-and-braces override.
+model PlanModerationAnalysis {
+  id              String @id @default(uuid())
+  publishedPlanId String @map("published_plan_id")
+
+  computedStats Json @map("computed_stats") // {daysPerWeek, restDaysPerWeek, avgSetsPerSession, ...} — plain arithmetic, no AI
+  ruleFlags     Json @map("rule_flags") // string[] — deterministic, e.g. NO_REST_DAY, EXCESSIVE_VOLUME_PER_SESSION
+
+  similarListings Json @map("similar_listings") // [{publishedPlanId, title, similarityScore}] — deterministic Jaccard similarity, see plan-similarity.ts
+
+  aiConcerns          Json    @map("ai_concerns") // string[]
+  aiConfidenceScore   Float   @map("ai_confidence_score") // 0-1 — the AI's own confidence, not a pass/fail
+  aiRecommendation    String  @map("ai_recommendation") // likely_safe | needs_review | likely_unsafe
+  explanationForAdmin String  @map("explanation_for_admin")
+  usedFallback        Boolean @default(false) @map("used_fallback")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@index([publishedPlanId, createdAt])
+  @@map("plan_moderation_analyses")
+}
+
+model PlanReview {
+  id              String   @id @default(uuid())
+  publishedPlanId String   @map("published_plan_id")
+  reviewerId      String   @map("reviewer_id")
+  rating          Int // 1-5 — overall, unchanged for backward compat
+  comment         String? // unchanged for backward compat; freeText below is the new richer field
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // ── Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — additive
+  // multi-dimensional review fields. All nullable: a review submitted
+  // before this migration (or via a minimal client) stays valid with these
+  // simply unset — the aggregator (plan-quality-scorer.ts) treats a null
+  // dimension as "not rated" rather than as a zero/negative signal.
+  goalFit           Int?     @map("goal_fit") // 1-5: how well the plan fit the reviewer's stated goal
+  difficultyFit     String?  @map("difficulty_fit") // too_easy | just_right | too_hard
+  enjoyment         Int?     // 1-5
+  clarity           Int?     // 1-5: how clear/easy to follow the plan was
+  equipmentFit      Int?     @map("equipment_fit") // 1-5: how well required equipment matched what the reviewer had
+  timeFit           Int?     @map("time_fit") // 1-5: how well the time commitment fit the reviewer's schedule
+  resultsPerception String?  @map("results_perception") // better_than_expected | as_expected | worse_than_expected | too_early_to_tell
+  wouldUseAgain     Boolean? @map("would_use_again")
+  complaintTags     Json?    @map("complaint_tags") // string[] from a fixed enum, e.g. ["too_hard","equipment_mismatch"]
+  freeText          String?  @map("free_text") // richer free-text feedback, distinct from the legacy `comment`
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([publishedPlanId, reviewerId])
+  @@index([publishedPlanId])
+  @@map("plan_reviews")
+}
+
+// 🤖 Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — AI-generated
+// suggestions for a publisher, derived from the plan's aggregated reviews.
+// Advisory only: the AI never auto-edits or auto-publishes anything — a
+// publisher who wants to act on a suggestion still has to manually create a
+// new PublishedPlan version (see the versioning fields above).
+model PlanImprovementSuggestion {
+  id              String   @id @default(uuid())
+  publishedPlanId String   @map("published_plan_id")
+
+  basedOnReviewCount Int    @map("based_on_review_count")
+  qualityScoreSnapshot Float? @map("quality_score_snapshot")
+  suggestions     Json // string[] — concrete, review-grounded suggestions
+  commonComplaints Json  @map("common_complaints") // [{tag, count}] — deterministic, from complaintTags aggregation
+  summary         String // short human-readable summary for the publisher
+
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@index([publishedPlanId, generatedAt])
+  @@map("plan_improvement_suggestions")
+}
+
+// 📥 Phase 8 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — closes the
+// audit-identified gap: no action previously existed for a browsing user to
+// actually adopt a marketplace plan into their own calendar (a paid
+// TrainingPackagePurchase alone never created anything usable). One row per
+// successful adopt call — fitness-service's /workouts/from-ai-plan is the
+// system of record for the resulting WorkoutProgram; this table just
+// records that the adoption happened, from which published version, and
+// under what access basis.
+model PlanAdoption {
+  id              String @id @default(uuid())
+  publishedPlanId String @map("published_plan_id")
+  adopterId       String @map("adopter_id")
+
+  accessBasis String @map("access_basis") // free | purchased
+  purchaseId  String? @map("purchase_id") // TrainingPackagePurchase.id, when accessBasis = "purchased"
+  // true when the adopter trimmed/adjusted exercises before importing
+  // (customizedWeeklySchedule) rather than taking the published plan
+  // unchanged — see marketplace.service.ts's adoptPlan.
+  wasCustomized Boolean @default(false) @map("was_customized")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([publishedPlanId, adopterId])
+  @@index([adopterId, createdAt])
+  @@map("plan_adoptions")
+}
+
+enum TrainingPackageStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TrainingPackagePurchaseStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// A priced, sellable listing wrapping an APPROVED PublishedPlan. sellerId is
+// always the PublishedPlan's publisher (enforced in the service layer, not by
+// FK) — this is a distinct entity so a publisher can price/name multiple
+// sellable variants of the same underlying plan later without re-publishing.
+model TrainingPackage {
+  id              String                @id @default(uuid())
+  sellerId        String                @map("seller_id")
+  publishedPlanId String                @map("published_plan_id")
+  name            String
+  description     String?
+  price           Float
+  durationWeeks   Int?                  @map("duration_weeks")
+  status          TrainingPackageStatus @default(ACTIVE)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  publishedPlan PublishedPlan             @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+  purchases     TrainingPackagePurchase[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([publishedPlanId])
+  @@map("training_packages")
+}
+
+model TrainingPackagePurchase {
+  id                   String                         @id @default(uuid())
+  packageId            String                         @map("package_id")
+  buyerId              String                         @map("buyer_id")
+  priceAtPurchase       Float                          @map("price_at_purchase")
+  paymentTransactionId String?                        @map("payment_transaction_id")
+  status               TrainingPackagePurchaseStatus @default(PENDING)
+  purchasedAt          DateTime?                      @map("purchased_at")
+  createdAt            DateTime                       @default(now()) @map("created_at")
+  updatedAt            DateTime                       @updatedAt @map("updated_at")
+
+  package TrainingPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, buyerId])
+  @@index([buyerId])
+  @@index([packageId])
+  @@map("training_package_purchases")
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Personalized PT Service — the marketplace rework's core new product type.
+// TrainingPackage above sells a FIXED plan (same content to every buyer);
+// this sells a PT's TIME/EXPERTISE/PERSONALIZATION CAPACITY — buyer gets a
+// plan created FOR them, after Intake, via Draft/Revision/Accept. See the
+// business-rework spec, section VI-XXII.
+// ══════════════════════════════════════════════════════════════════════════
+
+enum PersonalizedServiceType {
+  PERSONALIZED_WORKOUT
+  PERSONALIZED_NUTRITION
+  WORKOUT_AND_NUTRITION
+  ONLINE_COACHING
+}
+
+enum PersonalizedServiceStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// A PT-configured, priced, personalized-coaching-service listing. sellerId
+// is enforced (service layer, not FK — same convention as TrainingPackage)
+// to belong to an APPROVED PT. `deliverables` is a free-form string[] — the
+// spec explicitly warns against hardcoding package features (§VII); a PT
+// configures what's actually included ("Personalized Workout Plan",
+// "Weekly Check-in", "3 Revisions", ...) rather than fixed boolean columns
+// that would need a migration every time a new deliverable is invented.
+model PersonalizedService {
+  id                  String                    @id @default(uuid())
+  sellerId            String                    @map("seller_id")
+  serviceType         PersonalizedServiceType   @map("service_type")
+  title               String
+  description         String?
+  price               Float
+  deliverables        Json // string[]
+  revisionLimit       Int?                      @map("revision_limit") // null = unlimited (§XX)
+  initialDeliveryDays Int                       @map("initial_delivery_days") // §XXXVII — deadline clock starts at intake submission, not purchase
+  supportWeeks        Int?                      @map("support_weeks") // null = one-off delivery, no ongoing coaching window
+  targetGoal          String?                   @map("target_goal")
+  targetLevel         String?                   @map("target_level")
+  status              PersonalizedServiceStatus @default(ACTIVE)
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+
+  orders PersonalizedServiceOrder[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@map("personalized_services")
+}
+
+enum PersonalizedServiceOrderStatus {
+  // P0 cluster C2/C3: payment now goes through gateway checkout (like PT_CONTRACT /
+  // GYM_MEMBERSHIP), not an instant wallet-to-wallet transfer — an order exists in the DB
+  // before the gateway confirms payment. PURCHASED itself is never actually persisted as an
+  // observed state by the new flow (activation moves PENDING_PAYMENT straight to
+  // INTAKE_PENDING, exactly mirroring the old code's own synchronous behavior) — kept in the
+  // enum only because existing code (cancelOrder's allowed-status list) still names it.
+  PENDING_PAYMENT
+  PURCHASED
+  INTAKE_PENDING
+  INTAKE_SUBMITTED
+  PT_REVIEWING
+  IN_PROGRESS
+  DRAFT_DELIVERED
+  REVISION_REQUESTED
+  REVISION_IN_PROGRESS
+  ACCEPTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUND_REQUESTED
+  REFUNDED
+  DISPUTED
+}
+
+// The purchase + full delivery lifecycle (§XII's state machine). The
+// service's terms are snapshotted onto the order AT PURCHASE TIME (§XXXVIII
+// — a later PT edit to the listing must never silently change an in-flight
+// or completed order's terms), exactly the same snapshot discipline
+// PublishedPlan's versioning already uses for free listings.
+model PersonalizedServiceOrder {
+  id       String                         @id @default(uuid())
+  serviceId String                        @map("service_id")
+  sellerId String                         @map("seller_id")
+  buyerId  String                         @map("buyer_id")
+  status   PersonalizedServiceOrderStatus @default(PENDING_PAYMENT)
+
+  // ── Snapshot of the service's terms at purchase time ────────────────────
+  titleSnapshot               String                  @map("title_snapshot")
+  descriptionSnapshot         String?                 @map("description_snapshot")
+  serviceTypeSnapshot         PersonalizedServiceType @map("service_type_snapshot")
+  deliverablesSnapshot        Json                    @map("deliverables_snapshot")
+  revisionLimitSnapshot       Int?                    @map("revision_limit_snapshot")
+  initialDeliveryDaysSnapshot Int                     @map("initial_delivery_days_snapshot")
+  supportWeeksSnapshot        Int?                    @map("support_weeks_snapshot")
+
+  // ── Payment (P0 cluster C2/C3) — real gateway checkout + escrow, same pipeline
+  // PT_CONTRACT/GYM_MEMBERSHIP use: the price sits in the PT's and platform's PENDING
+  // buckets from payment until the buyer accepts (or refunds before then), never available
+  // to withdraw in between. Rates are snapshotted here at checkout — the same immutable-once-
+  // signed discipline Contract.platformRate/ptRate already follows — so a later change to the
+  // platform's default commission rate cannot retroactively change an in-flight order's
+  // split. paymentTransactionId is set at checkout (before the gateway confirms), since
+  // release/refund need it regardless of confirmation timing. ─────────────────────────────
+  priceAtPurchase       Float     @map("price_at_purchase")
+  platformRateSnapshot  Float     @map("platform_rate_snapshot")
+  ptRateSnapshot        Float     @map("pt_rate_snapshot")
+  paymentTransactionId  String?   @map("payment_transaction_id")
+  purchasedAt           DateTime  @default(now()) @map("purchased_at")
+  /// Set once releaseOrder has actually moved the PT/platform's pending share to available
+  /// (buyer accepted, or the auto-accept sweep did on their behalf). Money-flow only — never
+  /// gates business logic, which always re-derives from payment-service's real wallet state.
+  releasedAt            DateTime? @map("released_at")
+  /// Drives the auto-accept sweep (mirrors Session.clientConfirmDeadline in user-service): a
+  /// PT must not wait forever on a buyer who never responds to a delivered draft. Set when the
+  /// order enters DRAFT_DELIVERED, cleared on any transition out of it (accepted, revision
+  /// requested, refunded, disputed).
+  autoAcceptDeadline    DateTime? @map("auto_accept_deadline")
+
+  // ── Intake + consent (§XIII/§XIV) — free-form JSON: the intake form's
+  // shape (body/goal/experience/training/health/lifestyle/nutrition/InBody
+  // selection/etc.) is inherently varied; a fixed relational shape would
+  // force a migration on every new question. consentCategories is the
+  // explicit opt-in list the client checked BEFORE any of intakeData is
+  // shared with the PT — never implicit. ──────────────────────────────────
+  intakeData        Json?     @map("intake_data")
+  consentCategories Json?     @map("consent_categories") // string[]
+  intakeSubmittedAt DateTime? @map("intake_submitted_at")
+
+  // ── PT-client authorization (§XII/§XV) — the Contract this order creates
+  // in user-service (ContractSource.MARKETPLACE) once intake is submitted.
+  // Every PT read of client data re-checks THIS relationship fresh via the
+  // existing cross-service authorization surface — no separate/cached
+  // "am I allowed" flag lives on this row. Plain cross-service id (no
+  // Prisma relation — user-service is a separate database), matching this
+  // codebase's existing convention for every other cross-service id. ──────
+  contractId String? @map("contract_id")
+
+  // ── Delivery deadline (§XXXVII) — clock starts at intakeSubmittedAt, not
+  // purchasedAt: the PT cannot start before the client answers Intake. ────
+  initialDeliveryDeadline DateTime? @map("initial_delivery_deadline")
+
+  // ── Draft + revision (§XVII-XXI). draftContent matches
+  // createManualProgramSchema's shape 1:1 (fitness-service) so Accept can
+  // commit it through the existing internal /workouts/manual-program
+  // endpoint unchanged — one program-creation implementation, not two. ────
+  draftContent  Json? @map("draft_content")
+  draftVersion  Int   @default(0) @map("draft_version")
+  revisionCount Int   @default(0) @map("revision_count")
+
+  acceptedAt         DateTime? @map("accepted_at")
+  committedProgramId String?   @map("committed_program_id") // fitness-service WorkoutProgram.id, set once ACCEPTED is committed
+
+  cancelledAt       DateTime? @map("cancelled_at")
+  cancelReason      String?   @map("cancel_reason")
+  refundRequestedAt DateTime? @map("refund_requested_at")
+  refundedAt        DateTime? @map("refunded_at")
+  disputeReason     String?   @map("dispute_reason")
+  disputedAt        DateTime? @map("disputed_at")
+  // The order's status immediately before it entered REFUND_REQUESTED —
+  // requestRefund() overwrites `status` (needed so REFUND_REQUESTED can gate
+  // other actions), so this is the only record of what to restore on DENY.
+  preRefundStatus String? @map("pre_refund_status")
+
+  // ── Refund resolution (admin) — separate from the buyer-facing
+  // REFUND_REQUESTED/REFUNDED status transition. cumulativeRefundedAmount
+  // is the running total ever actually refunded through payment-service's
+  // real generic refund endpoint (never assumed/auto-computed) — it is the
+  // ceiling check that makes double-refund structurally impossible: a
+  // second admin approval can never push the total past priceAtPurchase.
+  // No escrow/held-funds model exists anywhere in payment-service (verified
+  // — every purchase type transfers immediately); refund AMOUNT is
+  // therefore an explicit admin judgment call shown with the numbers behind
+  // it, not an automatic release computation. ──────────────────────────────
+  cumulativeRefundedAmount Float     @default(0) @map("cumulative_refunded_amount")
+  refundResolvedBy         String?   @map("refund_resolved_by")
+  refundResolvedAt         DateTime? @map("refund_resolved_at")
+  refundResolutionNote     String?   @map("refund_resolution_note")
+  refundDecision           String?   @map("refund_decision") // "APPROVED_FULL" | "APPROVED_PARTIAL" | "DENIED"
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  service          PersonalizedService                   @relation(fields: [serviceId], references: [id])
+  revisionRequests PersonalizedServiceRevisionRequest[]
+  planVersions     PersonalizedServicePlanVersion[]
+  checkIns         PersonalizedServiceCheckIn[]
+  review           PersonalizedServiceReview?
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([serviceId])
+  @@index([status])
+  // Drives the auto-accept sweep, which repeatedly asks for exactly this pair (mirrors
+  // Session's [status, clientConfirmDeadline] index in user-service).
+  @@index([status, autoAcceptDeadline])
+  @@map("personalized_service_orders")
+}
+
+enum PlanVersionStatus {
+  DELIVERED
+  ACCEPTED
+  SUPERSEDED
+}
+
+// §XVIII (versioning) — deliverDraft/acceptOrder used to overwrite
+// Order.draftContent in place; the previous version was gone the moment a
+// revision was redelivered. This table is the real history: one row per
+// deliver, never mutated after creation except the status transition
+// DELIVERED -> ACCEPTED (the one the buyer accepted) or -> SUPERSEDED (an
+// older delivered version once a newer one lands). Order.draftContent/
+// draftVersion stay as a denormalized "latest" pointer for cheap reads —
+// this table is the source of truth for history.
+model PersonalizedServicePlanVersion {
+  id           String            @id @default(uuid())
+  orderId      String            @map("order_id")
+  version      Int
+  content      Json
+  status       PlanVersionStatus @default(DELIVERED)
+  createdBy    String            @map("created_by") // sellerId who authored it
+  changeReason String?           @map("change_reason") // the revision comment that prompted this version, if any
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, version])
+  @@index([orderId])
+  @@map("personalized_service_plan_versions")
+}
+
+// §XIV/weekly check-in — deterministic-only. No AI diagnosis; requiresAttention
+// is a plain threshold flag computed server-side at write time so the PT
+// sees it without trusting a client-computed value.
+model PersonalizedServiceCheckIn {
+  id                 String   @id @default(uuid())
+  orderId            String   @map("order_id")
+  buyerId            String   @map("buyer_id")
+  weekNumber         Int?     @map("week_number")
+  weight             Float?
+  energyLevel        Int?     @map("energy_level") // 1-5
+  sleepQuality       Int?     @map("sleep_quality") // 1-5
+  stressLevel        Int?     @map("stress_level") // 1-5
+  overallRpe         Float?   @map("overall_rpe") // 1-10
+  workoutAdherence   Int?     @map("workout_adherence") // 0-100 %
+  nutritionAdherence Int?     @map("nutrition_adherence") // 0-100 %
+  painOrDiscomfort   Int?     @map("pain_or_discomfort") // 0-10
+  notes              String?
+  requiresAttention  Boolean  @default(false) @map("requires_attention")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("personalized_service_checkins")
+}
+
+// §XXIII — deliberately separate from PublishedPlan's review model: the
+// semantics differ (rating a PT's personalized coaching relationship, not a
+// static plan's content). One review per order, buyer-only, gated to
+// COMPLETED — the safest, most auditable eligibility per the spec's own
+// guidance when no stronger product requirement exists.
+model PersonalizedServiceReview {
+  id                    String   @id @default(uuid())
+  orderId               String   @unique @map("order_id")
+  buyerId               String   @map("buyer_id")
+  sellerId              String   @map("seller_id")
+  overallRating         Int      @map("overall_rating") // 1-5
+  communicationRating   Int?     @map("communication_rating")
+  personalizationRating Int?     @map("personalization_rating")
+  planQualityRating     Int?     @map("plan_quality_rating")
+  comment               String?
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@map("personalized_service_reviews")
+}
+
+enum RevisionRequestCategory {
+  EXERCISE
+  SCHEDULE
+  DIFFICULTY
+  EQUIPMENT
+  NUTRITION
+  OTHER
+}
+
+// Structured revision request (§XX) — separate rows (not just a counter) so
+// the PT sees the real history of what was asked across multiple rounds,
+// and a dispute (§XXXIII) has concrete evidence to reference.
+model PersonalizedServiceRevisionRequest {
+  id         String                   @id @default(uuid())
+  orderId    String                   @map("order_id")
+  category   RevisionRequestCategory
+  comment    String
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  resolvedAt DateTime?                @map("resolved_at")
+
+  order PersonalizedServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("personalized_service_revision_requests")
+}
+
+model NutritionPlan {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  name          String
+  goal          String
+  durationWeeks Int        @map("duration_weeks")
+  mealsPerDay   Int        @map("meals_per_day")
+  /// Structured JSON matching NutritionPlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+  plan          Json
+  status        PlanStatus @default(QUEUED)
+  jobId         String?    @map("job_id")
+  failReason    String?    @map("fail_reason")
+  archivedAt    DateTime?  @map("archived_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, status])
+  @@index([userId, archivedAt])
+  @@map("nutrition_plans")
+}
+
+enum KnowledgeSourceType {
+  RSS
+  API
+  WEB
+  LOCAL
+}
+
+enum KnowledgeDocumentTopic {
+  TRAINING
+  NUTRITION
+  RECOVERY
+  INJURY
+  BODY_COMPOSITION
+  GENERAL
+}
+
+enum KnowledgeDocumentStatus {
+  CRAWLED
+  CLEANED
+  SCORED
+  EMBEDDED
+  REJECTED
+  REVIEW
+}
+
+enum KnowledgePipelineRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum KnowledgeReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KnowledgeSource {
+  id            String              @id @default(uuid())
+  name          String
+  baseUrl       String              @unique @map("base_url")
+  sourceType    KnowledgeSourceType @map("source_type")
+  trustTier     Int                 @default(3) @map("trust_tier")
+  crawlCron     String              @default("0 2 * * *") @map("crawl_cron")
+  isActive      Boolean             @default(true) @map("is_active")
+  lastCrawledAt DateTime?           @map("last_crawled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  documents KnowledgeDocument[]
+
+  @@index([isActive])
+  @@map("knowledge_sources")
+}
+
+model KnowledgeDocument {
+  id              String                   @id @default(uuid())
+  sourceId        String                   @map("source_id")
+  url             String
+  title           String?
+  author          String?
+  language        String?
+  contentHash     String                   @unique @map("content_hash")
+  rawObjectKey    String?                  @map("raw_object_key")
+  cleanText       String?                  @map("clean_text")
+  topic           KnowledgeDocumentTopic?
+  trustScore      Decimal?                 @map("trust_score") @db.Decimal(4, 3)
+  qualityScore    Decimal?                 @map("quality_score") @db.Decimal(4, 3)
+  safetyFlag      Boolean                  @default(false) @map("safety_flag")
+  status          KnowledgeDocumentStatus  @default(CRAWLED)
+  rejectionReason String?                  @map("rejection_reason")
+  publishedAt     DateTime?                @map("published_at")
+  crawledAt       DateTime                 @default(now()) @map("crawled_at")
+  processedAt     DateTime?                @map("processed_at")
+
+  source      KnowledgeSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunks      KnowledgeChunk[]
+  reviewItems KnowledgeReviewItem[]
+
+  @@index([status])
+  @@index([topic])
+  @@index([sourceId])
+  @@index([contentHash])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  chunkIndex  Int      @map("chunk_index")
+  text        String
+  tokenCount  Int?     @map("token_count")
+  vectorId    String   @map("vector_id")
+  embeddedAt  DateTime @default(now()) @map("embedded_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([vectorId])
+  @@map("knowledge_chunks")
+}
+
+model KnowledgePipelineRun {
+  id           String                     @id @default(uuid())
+  runType      String                     @default("manual_local_evidence") @map("run_type")
+  startedAt    DateTime                   @default(now()) @map("started_at")
+  finishedAt   DateTime?                  @map("finished_at")
+  docsCrawled  Int                        @default(0) @map("docs_crawled")
+  docsAccepted Int                        @default(0) @map("docs_accepted")
+  docsRejected Int                        @default(0) @map("docs_rejected")
+  docsReview   Int                        @default(0) @map("docs_review")
+  status       KnowledgePipelineRunStatus @default(RUNNING)
+
+  @@index([startedAt])
+  @@index([status])
+  @@map("knowledge_pipeline_runs")
+}
+
+model KnowledgeReviewItem {
+  id         String                @id @default(uuid())
+  documentId String                @map("document_id")
+  reason     String?
+  status     KnowledgeReviewStatus @default(PENDING)
+  reviewedBy String?               @map("reviewed_by")
+  reviewedAt DateTime?             @map("reviewed_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([documentId])
+  @@map("knowledge_review_queue")
+}

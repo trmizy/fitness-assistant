@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /workspace
+ENV CI=true
+ENV PNPM_HOME=/root/.local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN apk add --no-cache openssl libc6-compat wget
+RUN corepack enable
+
+COPY . .
+RUN pnpm install --frozen-lockfile
+
+CMD ["sh", "docker/test/run-tests.sh"]

@@ -1,0 +1,196 @@
+plan_day_id,plan_id,day_number,day_title_vi,focus,warmup,cooldown,intensity_note
+WPD00001,WP0001,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00002,WP0001,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00003,WP0001,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00004,WP0002,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00005,WP0002,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00006,WP0002,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00007,WP0003,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00008,WP0003,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00009,WP0003,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00010,WP0003,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00011,WP0004,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00012,WP0004,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00013,WP0004,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00014,WP0004,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00015,WP0005,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00016,WP0005,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00017,WP0005,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00018,WP0006,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00019,WP0006,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00020,WP0006,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00021,WP0007,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00022,WP0007,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00023,WP0007,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00024,WP0007,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00025,WP0008,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00026,WP0008,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00027,WP0008,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00028,WP0008,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00029,WP0009,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00030,WP0009,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00031,WP0009,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00032,WP0010,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00033,WP0010,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00034,WP0010,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00035,WP0011,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00036,WP0011,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00037,WP0011,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00038,WP0011,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00039,WP0012,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00040,WP0012,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00041,WP0012,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00042,WP0012,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00043,WP0013,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00044,WP0013,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00045,WP0013,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00046,WP0014,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00047,WP0014,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00048,WP0014,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00049,WP0015,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00050,WP0015,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00051,WP0015,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00052,WP0015,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00053,WP0016,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00054,WP0016,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00055,WP0016,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00056,WP0016,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00057,WP0017,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00058,WP0017,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00059,WP0017,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00060,WP0018,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00061,WP0018,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00062,WP0018,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00063,WP0019,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00064,WP0019,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00065,WP0019,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00066,WP0019,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00067,WP0020,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00068,WP0020,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00069,WP0020,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00070,WP0020,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00071,WP0021,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00072,WP0021,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00073,WP0021,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00074,WP0022,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00075,WP0022,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00076,WP0022,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00077,WP0023,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00078,WP0023,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00079,WP0023,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00080,WP0023,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00081,WP0024,1,Ngày 1 - Upper,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00082,WP0024,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00083,WP0024,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00084,WP0024,4,Ngày 4 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00085,WP0025,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00086,WP0025,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00087,WP0025,3,Ngày 3 - Full Body C,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00088,WP0026,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00089,WP0026,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00090,WP0026,3,Ngày 3 - Full Body C,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00091,WP0027,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00092,WP0027,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00093,WP0027,3,Ngày 3 - Full Body C,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00094,WP0028,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00095,WP0028,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00096,WP0028,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00097,WP0029,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00098,WP0029,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00099,WP0029,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00100,WP0030,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00101,WP0030,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00102,WP0030,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00103,WP0031,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00104,WP0031,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00105,WP0031,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00106,WP0032,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00107,WP0032,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00108,WP0032,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00109,WP0033,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00110,WP0033,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00111,WP0033,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00112,WP0034,1,Ngày 1 - Mông & đùi sau,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00113,WP0034,2,Ngày 2 - Thân trên hỗ trợ,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00114,WP0034,3,Ngày 3 - Mông & đùi trước,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00115,WP0035,1,Ngày 1 - Glute Strength,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00116,WP0035,2,Ngày 2 - Upper hỗ trợ,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00117,WP0035,3,Ngày 3 - Glute Hypertrophy,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00118,WP0035,4,Ngày 4 - Lower + core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00119,WP0036,1,Ngày 1 - Mông & đùi sau,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00120,WP0036,2,Ngày 2 - Thân trên hỗ trợ,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00121,WP0036,3,Ngày 3 - Mông & đùi trước,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00122,WP0037,1,Ngày 1 - Glute Strength,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00123,WP0037,2,Ngày 2 - Upper hỗ trợ,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00124,WP0037,3,Ngày 3 - Glute Hypertrophy,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00125,WP0037,4,Ngày 4 - Lower + core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00126,WP0038,1,Ngày 1 - Mông & đùi sau,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00127,WP0038,2,Ngày 2 - Thân trên hỗ trợ,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00128,WP0038,3,Ngày 3 - Mông & đùi trước,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00129,WP0039,1,Ngày 1 - Glute Strength,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00130,WP0039,2,Ngày 2 - Upper hỗ trợ,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00131,WP0039,3,Ngày 3 - Glute Hypertrophy,glutes,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00132,WP0039,4,Ngày 4 - Lower + core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00133,WP0040,1,Ngày 1 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00134,WP0040,2,Ngày 2 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00135,WP0040,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00136,WP0041,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00137,WP0041,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00138,WP0041,3,Ngày 3 - Upper,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00139,WP0041,4,Ngày 4 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00140,WP0042,1,Ngày 1 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00141,WP0042,2,Ngày 2 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00142,WP0042,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00143,WP0043,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00144,WP0043,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00145,WP0043,3,Ngày 3 - Upper,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00146,WP0043,4,Ngày 4 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00147,WP0044,1,Ngày 1 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00148,WP0044,2,Ngày 2 - Toàn thân tại nhà,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00149,WP0044,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00150,WP0045,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00151,WP0045,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00152,WP0045,3,Ngày 3 - Upper,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00153,WP0045,4,Ngày 4 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00154,WP0046,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00155,WP0046,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00156,WP0046,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00157,WP0047,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00158,WP0047,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00159,WP0047,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00160,WP0048,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00161,WP0048,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00162,WP0048,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00163,WP0048,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00164,WP0049,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00165,WP0049,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00166,WP0049,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00167,WP0049,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00168,WP0050,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00169,WP0050,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00170,WP0050,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00171,WP0051,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00172,WP0051,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00173,WP0051,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00174,WP0052,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00175,WP0052,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00176,WP0052,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00177,WP0052,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00178,WP0053,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00179,WP0053,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00180,WP0053,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00181,WP0053,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00182,WP0054,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00183,WP0054,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00184,WP0054,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00185,WP0055,1,Ngày 1 - Full Body A,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00186,WP0055,2,Ngày 2 - Full Body B,full_body,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00187,WP0055,3,Ngày 3 - Core & conditioning,core_conditioning,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00188,WP0056,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00189,WP0056,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00190,WP0056,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00191,WP0056,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00192,WP0057,1,Ngày 1 - Upper Push,upper_push,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00193,WP0057,2,Ngày 2 - Lower,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00194,WP0057,3,Ngày 3 - Upper Pull,upper_pull,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.
+WPD00195,WP0057,4,Ngày 4 - Lower + Core,lower,5-8 phút cardio nhẹ + 2-4 bài mobility liên quan.,Đi bộ nhẹ 3-5 phút + giãn nhẹ các nhóm cơ vừa tập.,Giữ 1-3 RIR cho phần lớn set làm việc.

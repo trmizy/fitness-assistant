@@ -1,0 +1,328 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProviderType {
+  MOCK
+  VNPAY
+  MOMO
+  ZALOPAY
+  PAYOS
+  STRIPE
+  MANUAL_BANK_TRANSFER
+}
+
+enum PartnerType {
+  GYM
+  PT
+  CLIENT
+}
+
+enum CommissionStatus {
+  PENDING
+  SETTLED
+  CANCELLED
+}
+
+enum PurposeType {
+  GYM_MEMBERSHIP
+  PT_CONTRACT
+  GYM_PT_COMBO
+  WALLET_TOPUP
+  REFUND
+  TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
+  /// Money-flow plan 5.3: the dedicated PaymentTransaction row markPaid creates for a
+  /// WithdrawalRequest payout. Outbound money has no originating gateway PaymentTransaction
+  /// to reuse the way REFUND reuses the original purchase's — WalletLedgerEntry.transactionId
+  /// is a hard FK, so a payout needs a row of its own to point at.
+  WITHDRAWAL
+}
+
+enum WalletOwnerType {
+  CLIENT
+  PT
+  GYM
+  PLATFORM
+}
+
+enum WalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+/// Which of a wallet's three balances an entry moved. Releasing money from PENDING to
+/// AVAILABLE is written as two entries sharing one transactionId: a PENDING debit and an
+/// AVAILABLE credit, so the ledger stays double-entry and the release is auditable.
+/// P0 cluster F: LOCKED added — a wallet's already-unused `lockedBalance` column finally gets
+/// a ledger-writing path. A withdrawal request approval moves AVAILABLE -> LOCKED (a hard
+/// reservation a later clawback/refund cannot reach, since those only ever debit AVAILABLE);
+/// the actual payout later debits LOCKED (+ ESCROW); a rejection after approval moves LOCKED
+/// back to AVAILABLE.
+enum LedgerBucket {
+  PENDING
+  AVAILABLE
+  LOCKED
+}
+
+enum RelatedEntityType {
+  GYM_MEMBERSHIP
+  PT_CONTRACT
+  WALLET_TOPUP
+  TRAINING_PACKAGE_PURCHASE
+  PERSONALIZED_SERVICE_PURCHASE
+}
+
+enum ActivationStatus {
+  NOT_APPLICABLE
+  PENDING
+  ACTIVATED
+  ACTIVATION_FAILED
+}
+
+/// Two-bucket wallet.
+///
+/// `pendingBalance` is money already attributed to the owner but not yet earned — it backs
+/// the sessions of a contract that have not happened yet, and is exactly the pot a refund
+/// draws from. `availableBalance` is money the owner may withdraw.
+///
+/// Two PLATFORM wallets exist, distinguished by ownerId (see PLATFORM_ESCROW_ID /
+/// PLATFORM_REVENUE_ID): ESCROW holds every đồng the platform is custodian of, REVENUE
+/// holds commission the platform has actually earned. Keeping them apart is what makes the
+/// reconciliation invariant checkable — a single mixed wallet has no interpretable balance
+/// once several contracts run at once.
+model Wallet {
+  id               String          @id @default(uuid())
+  ownerType        WalletOwnerType @map("owner_type")
+  ownerId          String          @map("owner_id")
+  availableBalance Decimal         @db.Decimal(14, 2) @default(0) @map("available_balance")
+  pendingBalance   Decimal         @db.Decimal(14, 2) @default(0) @map("pending_balance")
+  lockedBalance    Decimal         @db.Decimal(14, 2) @default(0) @map("locked_balance")
+  status           WalletStatus    @default(ACTIVE)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  ledgerEntries WalletLedgerEntry[]
+  withdrawalRequests WithdrawalRequest[]
+
+  @@unique([ownerType, ownerId])
+  @@map("wallets")
+}
+
+model WalletLedgerEntry {
+  id            String          @id @default(uuid())
+  walletId      String          @map("wallet_id")
+  transactionId String          @map("transaction_id")
+  entryType     LedgerEntryType @map("entry_type")
+  /// Which balance moved. balanceBefore/balanceAfter are that bucket's running total, so a
+  /// wallet's two buckets each form their own unbroken chain.
+  bucket        LedgerBucket    @default(AVAILABLE)
+  amount        Decimal         @db.Decimal(14, 2)
+  balanceBefore Decimal         @db.Decimal(14, 2) @map("balance_before")
+  balanceAfter  Decimal         @db.Decimal(14, 2) @map("balance_after")
+  description   String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  wallet      Wallet             @relation(fields: [walletId], references: [id])
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([walletId, bucket, createdAt])
+  @@index([transactionId])
+  @@map("wallet_ledger_entries")
+}
+
+enum WithdrawalRequestStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+/// Money-flow redesign plan 5.3 — "luồng rút tiền bán thủ công". Deliberately minimal: no
+/// payout-API integration (chi ra ngoài vẫn thủ công, §5.3's explicit constraint). The ledger
+/// debit only happens at `markPaid`, when an admin confirms a real bank/e-wallet transfer
+/// already happened outside this system — this row exists to track that transfer, not to
+/// trigger it.
+model WithdrawalRequest {
+  id              String                  @id @default(uuid())
+  walletId        String                  @map("wallet_id")
+  ownerType       WalletOwnerType         @map("owner_type")
+  ownerId         String                  @map("owner_id")
+  amount          Decimal                 @db.Decimal(14, 2)
+  status          WithdrawalRequestStatus @default(PENDING)
+  /// Bank account / e-wallet details the requester provided — free text, no payout API to
+  /// validate a schema against.
+  payoutInfo      String                  @map("payout_info")
+  /// Filled in by the admin at markPaid — the paper trail for the transfer that happened
+  /// manually, outside this system.
+  bankReference   String?                 @map("bank_reference")
+  rejectionReason String?                 @map("rejection_reason")
+  reviewedBy      String?                 @map("reviewed_by")
+  reviewedAt      DateTime?               @map("reviewed_at")
+  paidAt          DateTime?               @map("paid_at")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  // The withdrawable-balance query (walletId, status) and the admin queue (status alone).
+  @@index([walletId, status])
+  @@index([status])
+  @@map("withdrawal_requests")
+}
+
+model PaymentTransaction {
+  id                    String              @id @default(uuid())
+  payerId               String              @map("payer_id")
+  purpose               PurposeType
+  gymId                 String?             @map("gym_id")
+  ptId                  String?             @map("pt_id")
+  membershipId          String?             @map("membership_id")
+  ptContractId          String?             @map("pt_contract_id")
+  amount                Decimal             @db.Decimal(12, 2)
+  currency              String              @default("VND")
+  status                PaymentStatus       @default(PENDING)
+  provider              PaymentProviderType @default(MOCK)
+  providerTransactionId String?             @map("provider_transaction_id")
+  paymentMethod         String?             @map("payment_method")
+  idempotencyKey        String              @unique @map("idempotency_key")
+  requestFingerprint    String?             @map("request_fingerprint")
+  extraData             String?             @map("extra_data")
+  paidAt                DateTime?           @map("paid_at")
+  failedAt              DateTime?           @map("failed_at")
+  refundedAt            DateTime?           @map("refunded_at")
+  metadata              Json?
+
+  payerWalletId       String?            @map("payer_wallet_id")
+  receiverWalletId    String?            @map("receiver_wallet_id")
+  relatedEntityType   RelatedEntityType? @map("related_entity_type")
+  relatedEntityId     String?            @map("related_entity_id")
+  activationStatus    ActivationStatus   @default(NOT_APPLICABLE) @map("activation_status")
+  // On REFUND-purpose rows, "activation" means "the downstream cancel-after-refund succeeded" —
+  // reusing this one status/retry pair for both flows avoids a near-duplicate set of columns.
+  activationRetryCount  Int              @default(0) @map("activation_retry_count")
+  lastActivationRetryAt DateTime?        @map("last_activation_retry_at")
+  initiatedBy           String?          @default("SYSTEM") @map("initiated_by")
+  sourceService         String?          @default("payment-service") @map("source_service")
+  refundOfTransactionId String?          @map("refund_of_transaction_id")
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  commissions   PlatformCommission[]
+  ledgerEntries WalletLedgerEntry[]
+
+  @@index([payerId, status])
+  @@index([status])
+  @@index([providerTransactionId])
+  @@index([purpose, status, activationStatus])
+  @@index([refundOfTransactionId])
+  @@map("payment_transactions")
+}
+
+model PlatformCommission {
+  id                   String           @id @default(uuid())
+  paymentTransactionId String           @map("payment_transaction_id")
+  partnerType          PartnerType      @map("partner_type")
+  partnerId            String           @map("partner_id")
+  grossAmount          Decimal          @db.Decimal(12, 2) @map("gross_amount")
+  platformFeeAmount    Decimal          @db.Decimal(12, 2) @map("platform_fee_amount")
+  partnerPayoutAmount  Decimal          @db.Decimal(12, 2) @map("partner_payout_amount")
+  commissionRate       Decimal          @db.Decimal(5, 4) @map("commission_rate")
+  status               CommissionStatus @default(PENDING)
+  settledAt            DateTime?        @map("settled_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+
+  transaction PaymentTransaction @relation(fields: [paymentTransactionId], references: [id])
+
+  @@index([partnerType, partnerId, status])
+  @@index([paymentTransactionId])
+  @@map("platform_commissions")
+}
+
+/// Money a partner owes back to the platform.
+///
+/// Raised when a client had to be made whole but the partner's buckets could not cover their
+/// share — a PT who missed enough sessions to exhaust their pending balance, typically. The
+/// platform fronts the cash so the client is never short-changed, and books the difference
+/// here. Without this row the shortfall would either push a wallet negative or silently break
+/// the reconciliation invariant; instead it stays visible and recoverable.
+model PartnerReceivable {
+  id            String      @id @default(uuid())
+  partnerType   PartnerType @map("partner_type")
+  partnerId     String      @map("partner_id")
+  amount        Decimal     @db.Decimal(14, 2)
+  /// Recovered so far, by withholding from the partner's later credits.
+  recovered     Decimal     @default(0) @db.Decimal(14, 2)
+  reason        String
+  contractId    String?     @map("contract_id")
+  transactionId String?     @map("transaction_id")
+  settledAt     DateTime?   @map("settled_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([partnerType, partnerId, settledAt])
+  @@map("partner_receivables")
+}
+
+/// Business-key idempotency for financial ledger operations that are NOT a
+/// PaymentTransaction (money-flow redesign plan item 1.1) — release-session,
+/// no-show compensation, contract termination, membership referral settle/
+/// clawback, membership pending-release. Each is written inside the SAME DB
+/// transaction as the wallet movements it guards (see contract-ledger.service.ts's
+/// / membership-ledger.service.ts's `withIdempotentLedgerOp`), so a crash between
+/// "money moved" and "this row committed" is impossible: either both land or
+/// neither does. A retry with the same `key` finds this row and replays `result`
+/// instead of moving money again — the "gọi lại cùng khoá phải là thao tác vô hại"
+/// requirement.
+///
+/// `key` follows a fixed per-operation-type format so it is self-describing in an
+/// audit query, e.g. `SESSION_RELEASE:<sessionId>`, `CONTRACT_TERMINATE:<contractId>`,
+/// `MEMBERSHIP_RELEASE:<membershipId>` — see docs/money-flow.md for the full list.
+model LedgerOperation {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ledger_operations")
+}
+
+model PaymentWebhookEvent {
+  id                    String              @id @default(uuid())
+  provider              PaymentProviderType
+  providerEventId       String              @map("provider_event_id")
+  providerTransactionId String?             @map("provider_transaction_id")
+  payload               Json
+  processedAt           DateTime?           @map("processed_at")
+  retryCount            Int                 @default(0) @map("retry_count")
+  lastRetryAt           DateTime?           @map("last_retry_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+
+  @@unique([provider, providerEventId])
+  @@index([processedAt, retryCount])
+  @@map("payment_webhook_events")
+}

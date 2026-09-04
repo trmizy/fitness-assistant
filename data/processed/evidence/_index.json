@@ -1,0 +1,431 @@
+[
+  {
+    "id": "espen-bia-1",
+    "title": "ESPEN BIA Guidelines Part I (2019)",
+    "file": "espen-bia-1.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "clinical_guideline",
+    "tags": [
+      "BIA",
+      "body composition",
+      "impedance",
+      "ESPEN",
+      "clinical"
+    ]
+  },
+  {
+    "id": "espen-bia-2",
+    "title": "ESPEN BIA Guidelines Part II (2019)",
+    "file": "espen-bia-2.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "clinical_guideline",
+    "tags": [
+      "BIA",
+      "body composition",
+      "disease",
+      "sports",
+      "ESPEN"
+    ]
+  },
+  {
+    "id": "hhs-pa-2018",
+    "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+    "file": "hhs-pa-2018.jsonl",
+    "category": "physical_activity",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "physical activity",
+      "exercise",
+      "HHS",
+      "aerobic",
+      "resistance training"
+    ]
+  },
+  {
+    "id": "who-pa-2020",
+    "title": "WHO Guidelines on Physical Activity (2020)",
+    "file": "who-pa-2020.jsonl",
+    "category": "physical_activity",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "physical activity",
+      "WHO",
+      "global",
+      "sedentary"
+    ]
+  },
+  {
+    "id": "issn-protein-2017",
+    "title": "ISSN Position Stand: Protein and Exercise (2017)",
+    "file": "issn-protein-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "protein",
+      "muscle",
+      "g/kg",
+      "ISSN",
+      "sports nutrition"
+    ]
+  },
+  {
+    "id": "issn-diets-2017",
+    "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+    "file": "issn-diets-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "diet",
+      "fat loss",
+      "macros",
+      "ISSN",
+      "body composition"
+    ]
+  },
+  {
+    "id": "issn-performance-2017",
+    "title": "ISSN Position Stand: Nutritional Performance (2017)",
+    "file": "issn-performance-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "performance",
+      "creatine",
+      "caffeine",
+      "carbohydrate",
+      "ISSN"
+    ]
+  },
+  {
+    "id": "issn-timing-2014",
+    "title": "ISSN Position Stand: Nutrient Timing (2014)",
+    "file": "issn-timing-2014.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "nutrient timing",
+      "pre-workout",
+      "post-workout",
+      "anabolic window",
+      "ISSN"
+    ]
+  },
+  {
+    "id": "asymmetry-thresholds-2021",
+    "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+    "file": "asymmetry-thresholds-2021.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "asymmetry",
+      "inter-limb",
+      "unilateral",
+      "measurement",
+      "threshold"
+    ]
+  },
+  {
+    "id": "unilateral-bilateral-training-2022",
+    "title": "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+    "file": "unilateral-bilateral-training-2022.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "bilateral",
+      "resistance training",
+      "jump",
+      "speed"
+    ]
+  },
+  {
+    "id": "unilateral-plyometric-asymmetry-2025",
+    "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+    "file": "unilateral-plyometric-asymmetry-2025.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "plyometric",
+      "asymmetry",
+      "lower limb",
+      "injury risk"
+    ]
+  },
+  {
+    "id": "hall-2011-dynamic-energy-balance",
+    "title": "Quantification of the effect of energy imbalance on bodyweight (Hall et al. 2011)",
+    "file": "hall-2011-dynamic-energy-balance.jsonl",
+    "category": "energy_balance",
+    "evidence_level": "primary_research",
+    "tags": [
+      "energy balance",
+      "weight loss",
+      "TDEE",
+      "dynamic model",
+      "calorie deficit"
+    ]
+  },
+  {
+    "id": "brewer-2021-inbody-validation",
+    "title": "Validation of InBody 770 bioelectrical impedance analysis compared to a four-compartment model criterion in young adults (Brewer et al. 2021)",
+    "file": "brewer-2021-inbody-validation.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "primary_research",
+    "tags": [
+      "BIA",
+      "InBody",
+      "body composition",
+      "validation",
+      "measurement error"
+    ]
+  },
+  {
+    "id": "tinsley-2022-bodycomp-standardization",
+    "title": "Tracking changes in body composition: comparison of methods and influence of pre-assessment standardisation (Tinsley et al. 2022)",
+    "file": "tinsley-2022-bodycomp-standardization.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "primary_research",
+    "tags": [
+      "BIA",
+      "body composition",
+      "standardization",
+      "measurement conditions",
+      "tracking"
+    ]
+  },
+  {
+    "id": "shcherbina-2017-wearable-accuracy",
+    "title": "Accuracy in Wrist-Worn, Sensor-Based Measurements of Heart Rate and Energy Expenditure in a Diverse Cohort (Shcherbina et al. 2017)",
+    "file": "shcherbina-2017-wearable-accuracy.jsonl",
+    "category": "wearable_validation",
+    "evidence_level": "primary_research",
+    "tags": [
+      "wearable",
+      "energy expenditure",
+      "heart rate",
+      "calories burned",
+      "accuracy"
+    ]
+  },
+  {
+    "id": "garthe-2011-weight-loss-rate-athletes",
+    "title": "Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes (Garthe et al. 2011)",
+    "file": "garthe-2011-weight-loss-rate-athletes.jsonl",
+    "category": "fat_loss_rate",
+    "evidence_level": "primary_research",
+    "tags": [
+      "weight loss rate",
+      "athletes",
+      "lean mass",
+      "body composition",
+      "fat loss"
+    ]
+  },
+  {
+    "id": "nunes-adaptive-thermogenesis",
+    "title": "Does adaptive thermogenesis occur after weight loss in adults? A systematic review (Nunes et al.)",
+    "file": "nunes-adaptive-thermogenesis.jsonl",
+    "category": "energy_balance",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "adaptive thermogenesis",
+      "metabolic adaptation",
+      "weight loss",
+      "energy expenditure"
+    ]
+  },
+  {
+    "id": "morton-2018-protein-meta-analysis",
+    "title": "Protein supplementation and resistance-training-induced gains in muscle mass and strength: a systematic review, meta-analysis and meta-regression (Morton et al. 2018)",
+    "file": "morton-2018-protein-meta-analysis.jsonl",
+    "category": "nutrition",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "protein",
+      "meta-analysis",
+      "muscle",
+      "resistance training",
+      "Morton"
+    ]
+  },
+  {
+    "id": "acsm-nutrition-athletic-performance-2016",
+    "title": "Nutrition and Athletic Performance — Joint Position Statement (Academy of Nutrition and Dietetics, Dietitians of Canada, ACSM 2016)",
+    "file": "acsm-nutrition-athletic-performance-2016.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "athletic performance",
+      "ACSM",
+      "energy availability",
+      "macronutrients",
+      "hydration"
+    ]
+  },
+  {
+    "id": "issn-nutrient-timing-2017",
+    "title": "ISSN Position Stand: Nutrient Timing (Kerksick et al. 2017)",
+    "file": "issn-nutrient-timing-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "nutrient timing",
+      "ISSN",
+      "protein timing",
+      "peri-workout"
+    ]
+  },
+  {
+    "id": "slater-2019-energy-surplus-hypertrophy",
+    "title": "Is an Energy Surplus Required to Maximize Skeletal Muscle Hypertrophy Associated With Resistance Training? (Slater et al. 2019)",
+    "file": "slater-2019-energy-surplus-hypertrophy.jsonl",
+    "category": "nutrition",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "energy surplus",
+      "hypertrophy",
+      "bulking",
+      "body recomposition",
+      "Slater"
+    ]
+  },
+  {
+    "id": "helms-2023-surplus-size-comparison",
+    "title": "Small vs. Large Energy Surplus for Hypertrophy and Body Composition (Helms et al.)",
+    "file": "helms-2023-surplus-size-comparison.jsonl",
+    "category": "nutrition",
+    "evidence_level": "primary_research",
+    "tags": [
+      "energy surplus",
+      "bulking",
+      "body composition",
+      "Helms"
+    ]
+  },
+  {
+    "id": "mifflin-1990-original-equation",
+    "title": "A new predictive equation for resting energy expenditure in healthy individuals (Mifflin, St Jeor et al. 1990)",
+    "file": "mifflin-1990-original-equation.jsonl",
+    "category": "energy_balance",
+    "evidence_level": "primary_research",
+    "tags": [
+      "Mifflin-St Jeor",
+      "RMR",
+      "BMR",
+      "resting energy expenditure"
+    ]
+  },
+  {
+    "id": "rmr-equation-accuracy-review",
+    "title": "Accuracy of predictive equations for resting metabolic rate: a systematic review",
+    "file": "rmr-equation-accuracy-review.jsonl",
+    "category": "energy_balance",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "RMR",
+      "predictive equations",
+      "accuracy",
+      "Mifflin-St Jeor"
+    ]
+  },
+  {
+    "id": "iom-amdr-macronutrients",
+    "title": "Acceptable Macronutrient Distribution Ranges (AMDR) — Dietary Reference Intakes for Macronutrients (National Academies / IOM)",
+    "file": "iom-amdr-macronutrients.jsonl",
+    "category": "nutrition",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "AMDR",
+      "macronutrients",
+      "carbohydrate",
+      "protein",
+      "fat",
+      "IOM",
+      "National Academies"
+    ]
+  },
+  {
+    "id": "dietary-guidelines-americans-2020-2025",
+    "title": "Dietary Guidelines for Americans, 2020-2025 (U.S. HHS / USDA)",
+    "file": "dietary-guidelines-americans-2020-2025.jsonl",
+    "category": "nutrition",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "Dietary Guidelines",
+      "USDA",
+      "added sugar",
+      "saturated fat",
+      "sodium",
+      "whole foods"
+    ]
+  },
+  {
+    "id": "issn-creatine-2017",
+    "title": "ISSN Position Stand: Safety and Efficacy of Creatine Supplementation in Exercise, Sport, and Medicine (Kreider et al. 2017)",
+    "file": "issn-creatine-2017.jsonl",
+    "category": "supplements",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "creatine",
+      "ISSN",
+      "supplements",
+      "ergogenic aid"
+    ]
+  },
+  {
+    "id": "issn-caffeine-2021",
+    "title": "International society of sports nutrition position stand: caffeine and exercise performance (Guest et al. 2021)",
+    "file": "issn-caffeine-2021.jsonl",
+    "category": "supplements",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "caffeine",
+      "ISSN",
+      "supplements",
+      "performance"
+    ]
+  },
+  {
+    "id": "ioc-dietary-supplements-consensus-2018",
+    "title": "IOC consensus statement: dietary supplements and the high-performance athlete (2018)",
+    "file": "ioc-dietary-supplements-consensus-2018.jsonl",
+    "category": "supplements",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "IOC",
+      "supplements",
+      "contamination",
+      "third-party testing",
+      "consensus"
+    ]
+  },
+  {
+    "id": "nata-fluid-replacement-2017",
+    "title": "National Athletic Trainers' Association Position Statement: Fluid Replacement for the Physically Active (2017 update)",
+    "file": "nata-fluid-replacement-2017.jsonl",
+    "category": "hydration",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "NATA",
+      "hydration",
+      "fluid replacement",
+      "sweat rate",
+      "hyponatremia"
+    ]
+  },
+  {
+    "id": "ioc-red-s-consensus-2023",
+    "title": "IOC consensus statement on Relative Energy Deficiency in Sport (REDs), 2023 update",
+    "file": "ioc-red-s-consensus-2023.jsonl",
+    "category": "safety",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "RED-S",
+      "REDs",
+      "low energy availability",
+      "IOC",
+      "safety"
+    ]
+  }
+]

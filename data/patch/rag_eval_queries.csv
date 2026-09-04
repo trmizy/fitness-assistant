@@ -1,0 +1,201 @@
+query_id,query_vi,expected_intent,must_include_vi,must_not_include_vi
+Q0001,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,không bịa calories,nội dung không phù hợp
+Q0002,Tôi tập 6 buổi/tuần có được không cho người mới,frequency_change_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0003,Cho tôi lịch tập cụ thể cho Thứ 2 trong 3 tháng,schedule_specific_day_request,giữ tên bài tập tiếng Anh,tay trái/tay phải
+Q0004,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần,workout_plan_request,giả định rõ ràng,nội dung không phù hợp
+Q0005,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần trong 3 tháng,workout_plan_request,giả định rõ ràng,nhãn nội bộ
+Q0006,Trả lời bằng tiếng Việt cho người mới,language_change_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0007,Lịch tập tay trước là gì,muscle_group_routine_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0008,Tôi muốn vừa giảm mỡ vừa giữ cơ ở gym,inbody_personalization_request,giả định rõ ràng,nội dung không phù hợp
+Q0009,Tôi muốn vừa giảm mỡ vừa giữ cơ,inbody_personalization_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0010,Cho tôi lịch tập cụ thể cho Thứ 2 ở gym,schedule_specific_day_request,không bịa calories,nhãn nội bộ
+Q0011,Lịch tập tay trước là gì,muscle_group_routine_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0012,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0013,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0014,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0015,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0016,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0017,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,không bịa calories,chỉ 3 buổi mặc định
+Q0018,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,không bịa calories,tay trái/tay phải
+Q0019,Meal plan giảm mỡ 2200 kcal trong 3 tháng,meal_plan_request,giả định rõ ràng,nội dung không phù hợp
+Q0020,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,không bịa calories,nhãn nội bộ
+Q0021,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,không bịa calories,tay trái/tay phải
+Q0022,Tôi tập 6 buổi/tuần có được không,frequency_change_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0023,Lịch tập tay trước là gì,muscle_group_routine_request,giả định rõ ràng,nhãn nội bộ
+Q0024,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0025,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,không bịa calories,nội dung không phù hợp
+Q0026,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0027,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,hỏi thêm ở cuối,dịch Bench Press sang tiếng Việt
+Q0028,Trả lời bằng tiếng Việt ở gym,language_change_request,giả định rõ ràng,nội dung không phù hợp
+Q0029,Cách giảm 10kg trong 1 tuần,unsafe_weight_loss_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0030,Meal plan giảm mỡ 2200 kcal và tôi tập buổi tối,meal_plan_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0031,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0032,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,không bịa calories,nhãn nội bộ
+Q0033,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0034,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,không bịa calories,tay trái/tay phải
+Q0035,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0036,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,không bịa calories,nhãn nội bộ
+Q0037,Meal plan giảm mỡ 2200 kcal trong 3 tháng,meal_plan_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0038,Tôi tập 6 buổi/tuần có được không cho người mới,frequency_change_request,không bịa calories,nội dung không phù hợp
+Q0039,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần trong 3 tháng,workout_plan_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0040,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần,workout_plan_request,không bịa calories,chỉ 3 buổi mặc định
+Q0041,Tôi tập 6 buổi/tuần có được không,frequency_change_request,giả định rõ ràng,nhãn nội bộ
+Q0042,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,giữ tên bài tập tiếng Anh,tay trái/tay phải
+Q0043,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0044,Meal plan giảm mỡ 2200 kcal ở gym,meal_plan_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0045,Trả lời bằng tiếng Việt cho người mới,language_change_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0046,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0047,Cách giảm 10kg trong 1 tuần,unsafe_weight_loss_request,giả định rõ ràng,nội dung không phù hợp
+Q0048,Cho tôi lịch tập cụ thể cho Thứ 2 ở gym,schedule_specific_day_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0049,Tôi tập 6 buổi/tuần có được không trong 3 tháng,frequency_change_request,giả định rõ ràng,tay trái/tay phải
+Q0050,Cho tôi lịch tập cụ thể cho Thứ 2 và tôi tập buổi tối,schedule_specific_day_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0051,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,không bịa calories,tay trái/tay phải
+Q0052,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0053,Meal plan giảm mỡ 2200 kcal và tôi tập buổi tối,meal_plan_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0054,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0055,Tôi tập 6 buổi/tuần có được không,frequency_change_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0056,Tôi muốn vừa giảm mỡ vừa giữ cơ với 30 phút cardio,inbody_personalization_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0057,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0058,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,không bịa calories,tay trái/tay phải
+Q0059,Tôi tập 6 buổi/tuần có được không cho người mới,frequency_change_request,giả định rõ ràng,nhãn nội bộ
+Q0060,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0061,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,giả định rõ ràng,tay trái/tay phải
+Q0062,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0063,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần,workout_plan_request,giả định rõ ràng,nội dung không phù hợp
+Q0064,Trả lời bằng tiếng Việt với 30 phút cardio,language_change_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0065,Trả lời bằng tiếng Việt,language_change_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0066,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần với 30 phút cardio,workout_plan_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0067,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,hỏi thêm ở cuối,dịch Bench Press sang tiếng Việt
+Q0068,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,không bịa calories,nội dung không phù hợp
+Q0069,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần trong 3 tháng,workout_plan_request,hỏi thêm ở cuối,tay trái/tay phải
+Q0070,Tôi muốn vừa giảm mỡ vừa giữ cơ,inbody_personalization_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0071,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0072,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần trong 3 tháng,workout_plan_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0073,Cho tôi lịch tập cụ thể cho Thứ 2 trong 3 tháng,schedule_specific_day_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0074,Trả lời bằng tiếng Việt,language_change_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0075,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần trong 3 tháng,workout_plan_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0076,Tôi muốn vừa giảm mỡ vừa giữ cơ ở gym,inbody_personalization_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0077,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0078,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,không bịa calories,tay trái/tay phải
+Q0079,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần với 30 phút cardio,workout_plan_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0080,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0081,Lịch tập tay trước là gì cho người mới,muscle_group_routine_request,không bịa calories,tay trái/tay phải
+Q0082,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,không bịa calories,nội dung không phù hợp
+Q0083,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,không bịa calories,nhãn nội bộ
+Q0084,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0085,Cho tôi lịch tập cụ thể cho Thứ 2 cho người mới,schedule_specific_day_request,không bịa calories,tay trái/tay phải
+Q0086,Cho tôi lịch tập cụ thể cho Thứ 2 và tôi tập buổi tối,schedule_specific_day_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0087,Lịch tập tay trước là gì ở gym,muscle_group_routine_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0088,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,không bịa calories,nhãn nội bộ
+Q0089,Cách giảm 10kg trong 1 tuần ở gym,unsafe_weight_loss_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0090,Trả lời bằng tiếng Việt ở gym,language_change_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0091,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,không bịa calories,nội dung không phù hợp
+Q0092,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0093,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần,workout_plan_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0094,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần ở gym,workout_plan_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0095,Meal plan giảm mỡ 2200 kcal với 30 phút cardio,meal_plan_request,giả định rõ ràng,tay trái/tay phải
+Q0096,Lịch tập tay trước là gì ở gym,muscle_group_routine_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0097,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,giả định rõ ràng,tay trái/tay phải
+Q0098,Tôi muốn vừa giảm mỡ vừa giữ cơ trong 3 tháng,inbody_personalization_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0099,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,giả định rõ ràng,nội dung không phù hợp
+Q0100,Trả lời bằng tiếng Việt,language_change_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0101,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0102,Meal plan giảm mỡ 2200 kcal và tôi tập buổi tối,meal_plan_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0103,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần với 30 phút cardio,workout_plan_request,giả định rõ ràng,nội dung không phù hợp
+Q0104,Cách giảm 10kg trong 1 tuần ở gym,unsafe_weight_loss_request,không bịa calories,nội dung không phù hợp
+Q0105,Tôi tập 6 buổi/tuần có được không,frequency_change_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0106,Tôi muốn vừa giảm mỡ vừa giữ cơ ở gym,inbody_personalization_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0107,Tôi muốn vừa giảm mỡ vừa giữ cơ và tôi tập buổi tối,inbody_personalization_request,hỏi thêm ở cuối,dịch Bench Press sang tiếng Việt
+Q0108,Tôi muốn vừa giảm mỡ vừa giữ cơ,inbody_personalization_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0109,Meal plan giảm mỡ 2200 kcal trong 3 tháng,meal_plan_request,không bịa calories,tay trái/tay phải
+Q0110,Cho tôi lịch tập cụ thể cho Thứ 2 trong 3 tháng,schedule_specific_day_request,giữ tên bài tập tiếng Anh,chỉ 3 buổi mặc định
+Q0111,Tôi muốn vừa giảm mỡ vừa giữ cơ với 30 phút cardio,inbody_personalization_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0112,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0113,Lịch tập tay trước là gì,muscle_group_routine_request,giữ tên bài tập tiếng Anh,tay trái/tay phải
+Q0114,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,giữ tên bài tập tiếng Anh,tay trái/tay phải
+Q0115,Tôi muốn vừa giảm mỡ vừa giữ cơ trong 3 tháng,inbody_personalization_request,không bịa calories,tay trái/tay phải
+Q0116,Lịch tập tay trước là gì trong 3 tháng,muscle_group_routine_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0117,Tôi muốn vừa giảm mỡ vừa giữ cơ với 30 phút cardio,inbody_personalization_request,không bịa calories,nhãn nội bộ
+Q0118,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0119,Meal plan giảm mỡ 2200 kcal trong 3 tháng,meal_plan_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0120,Trả lời bằng tiếng Việt trong 3 tháng,language_change_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0121,Lịch tập tay trước là gì cho người mới,muscle_group_routine_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0122,Tôi muốn vừa giảm mỡ vừa giữ cơ với 30 phút cardio,inbody_personalization_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0123,Tôi tập 6 buổi/tuần có được không trong 3 tháng,frequency_change_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0124,Cho tôi lịch tập cụ thể cho Thứ 2 ở gym,schedule_specific_day_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0125,Tôi muốn vừa giảm mỡ vừa giữ cơ,inbody_personalization_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0126,Tôi tập 6 buổi/tuần có được không cho người mới,frequency_change_request,giả định rõ ràng,tay trái/tay phải
+Q0127,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần cho người mới,workout_plan_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0128,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0129,Tôi tập 6 buổi/tuần có được không và tôi tập buổi tối,frequency_change_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0130,Trả lời bằng tiếng Việt cho người mới,language_change_request,giả định rõ ràng,tay trái/tay phải
+Q0131,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,giả định rõ ràng,nội dung không phù hợp
+Q0132,Cách giảm 10kg trong 1 tuần,unsafe_weight_loss_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0133,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0134,Tôi muốn vừa giảm mỡ vừa giữ cơ với 30 phút cardio,inbody_personalization_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0135,Trả lời bằng tiếng Việt trong 3 tháng,language_change_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0136,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,không bịa calories,nội dung không phù hợp
+Q0137,Lịch tập tay trước là gì trong 3 tháng,muscle_group_routine_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0138,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0139,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,không bịa calories,chỉ 3 buổi mặc định
+Q0140,Cho tôi lịch tập cụ thể cho Thứ 2 cho người mới,schedule_specific_day_request,giả định rõ ràng,nội dung không phù hợp
+Q0141,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,giả định rõ ràng,nội dung không phù hợp
+Q0142,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,giữ tên bài tập tiếng Anh,chỉ 3 buổi mặc định
+Q0143,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,bảng bài tập cụ thể,nội dung không phù hợp
+Q0144,Trả lời bằng tiếng Việt với 30 phút cardio,language_change_request,hỏi thêm ở cuối,tay trái/tay phải
+Q0145,Trả lời bằng tiếng Việt với 30 phút cardio,language_change_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0146,Lịch tập tay trước là gì với 30 phút cardio,muscle_group_routine_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0147,Tôi tập 6 buổi/tuần có được không với 30 phút cardio,frequency_change_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0148,Trả lời bằng tiếng Việt với 30 phút cardio,language_change_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0149,Tôi muốn vừa giảm mỡ vừa giữ cơ và tôi tập buổi tối,inbody_personalization_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0150,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0151,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần với 30 phút cardio,workout_plan_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0152,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần,workout_plan_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0153,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0154,Trả lời bằng tiếng Việt ở gym,language_change_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0155,Tôi muốn vừa giảm mỡ vừa giữ cơ ở gym,inbody_personalization_request,giữ tên bài tập tiếng Anh,chỉ 3 buổi mặc định
+Q0156,Trả lời bằng tiếng Việt ở gym,language_change_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0157,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,hỏi thêm ở cuối,tay trái/tay phải
+Q0158,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0159,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần cho người mới,workout_plan_request,giả định rõ ràng,tay trái/tay phải
+Q0160,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0161,Cho tôi lịch tập cụ thể cho Thứ 2 trong 3 tháng,schedule_specific_day_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0162,Lịch tập tay trước là gì ở gym,muscle_group_routine_request,giả định rõ ràng,nhãn nội bộ
+Q0163,Cho tôi lịch tập cụ thể cho Thứ 2 cho người mới,schedule_specific_day_request,không bịa calories,tay trái/tay phải
+Q0164,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần ở gym,workout_plan_request,hỏi thêm ở cuối,dịch Bench Press sang tiếng Việt
+Q0165,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,giả định rõ ràng,tay trái/tay phải
+Q0166,Tôi tập 6 buổi/tuần có được không,frequency_change_request,không bịa calories,nhãn nội bộ
+Q0167,Cho tôi lịch tập cụ thể cho Thứ 2 trong 3 tháng,schedule_specific_day_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0168,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,không bịa calories,tay trái/tay phải
+Q0169,Tôi muốn vừa giảm mỡ vừa giữ cơ,inbody_personalization_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt
+Q0170,Cho tôi lịch tập cụ thể cho Thứ 2 với 30 phút cardio,schedule_specific_day_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0171,Meal plan giảm mỡ 2200 kcal với 30 phút cardio,meal_plan_request,giả định rõ ràng,nhãn nội bộ
+Q0172,Lịch tập tay trước là gì trong 3 tháng,muscle_group_routine_request,hỏi thêm ở cuối,dịch Bench Press sang tiếng Việt
+Q0173,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0174,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,bảng bài tập cụ thể,chỉ 3 buổi mặc định
+Q0175,Cách giảm 10kg trong 1 tuần cho người mới,unsafe_weight_loss_request,giữ tên bài tập tiếng Anh,nhãn nội bộ
+Q0176,Trả lời bằng tiếng Việt ở gym,language_change_request,bảng bài tập cụ thể,dịch Bench Press sang tiếng Việt
+Q0177,Tôi muốn vừa giảm mỡ vừa giữ cơ cho người mới,inbody_personalization_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0178,Tôi muốn vừa giảm mỡ vừa giữ cơ ở gym,inbody_personalization_request,không bịa calories,chỉ 3 buổi mặc định
+Q0179,Lịch tập tay trước là gì trong 3 tháng,muscle_group_routine_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0180,Tôi tập 6 buổi/tuần có được không,frequency_change_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0181,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0182,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,bảng bài tập cụ thể,tay trái/tay phải
+Q0183,Lịch tập tay trước là gì cho người mới,muscle_group_routine_request,giữ tên bài tập tiếng Anh,nội dung không phù hợp
+Q0184,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0185,Cách giảm 10kg trong 1 tuần trong 3 tháng,unsafe_weight_loss_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0186,Trả lời bằng tiếng Việt và tôi tập buổi tối,language_change_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0187,Tôi muốn vừa giảm mỡ vừa giữ cơ và tôi tập buổi tối,inbody_personalization_request,giữ tên bài tập tiếng Anh,chỉ 3 buổi mặc định
+Q0188,Lịch tập tay trước là gì ở gym,muscle_group_routine_request,giả định rõ ràng,tay trái/tay phải
+Q0189,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0190,Meal plan giảm mỡ 2200 kcal cho người mới,meal_plan_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0191,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,hỏi thêm ở cuối,nhãn nội bộ
+Q0192,Lịch tập tay trước là gì,muscle_group_routine_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0193,Tôi tập 6 buổi/tuần có được không ở gym,frequency_change_request,giả định rõ ràng,chỉ 3 buổi mặc định
+Q0194,Tôi muốn giảm mỡ và tập 5 buổi mỗi tuần và tôi tập buổi tối,workout_plan_request,hỏi thêm ở cuối,nội dung không phù hợp
+Q0195,Lịch tập tay trước là gì,muscle_group_routine_request,bảng bài tập cụ thể,nhãn nội bộ
+Q0196,Lịch tập tay trước là gì và tôi tập buổi tối,muscle_group_routine_request,giả định rõ ràng,dịch Bench Press sang tiếng Việt
+Q0197,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,hỏi thêm ở cuối,chỉ 3 buổi mặc định
+Q0198,Cách giảm 10kg trong 1 tuần với 30 phút cardio,unsafe_weight_loss_request,giữ tên bài tập tiếng Anh,chỉ 3 buổi mặc định
+Q0199,Meal plan giảm mỡ 2200 kcal,meal_plan_request,không bịa calories,dịch Bench Press sang tiếng Việt
+Q0200,Cho tôi lịch tập cụ thể cho Thứ 2,schedule_specific_day_request,giữ tên bài tập tiếng Anh,dịch Bench Press sang tiếng Việt

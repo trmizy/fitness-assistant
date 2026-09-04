@@ -1,0 +1,370 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GymStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+/// Vòng 4 / Phase C3 — the owner's own "are we physically open" switch, orthogonal to
+/// GymStatus above (the admin's "is this gym allowed on the platform" moderation gate). Every
+/// checkpoint that requires APPROVED also requires OPEN — see membership.service.ts,
+/// checkin.service.ts, gym.repository.ts's public-listing queries.
+enum GymOperationalStatus {
+  OPEN
+  TEMPORARILY_CLOSED
+  /// One-way — nothing in this codebase transitions a gym back out of PERMANENTLY_CLOSED.
+  /// Creates an admin actionable item (gymService.listPermanentlyClosedNeedingReview) rather
+  /// than auto-refunding active memberships — see docs/vong-4.md's closure compensation table
+  /// (policy only, not code).
+  PERMANENTLY_CLOSED
+}
+
+enum GymMembershipPlanStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GymMembershipContractStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  /// P0 cluster E2 — the gym was suspended/closed/removed between checkout and the payment
+  /// webhook: money already settled into escrow + gym/platform pending, but activating a
+  /// membership at a gym no longer allowed to operate would be wrong. An auto-refund is
+  /// attempted immediately (see membershipService.resolvePendingIssue); if that itself fails
+  /// (payment-service unreachable), the row stays here as an admin queue until manually
+  /// resolved — never silently dropped.
+  PENDING_ISSUE
+}
+
+enum AffiliationStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum AffiliationEmployment {
+  IN_HOUSE
+  FREELANCE
+  PARTNER
+}
+
+enum GymTrainerVisibility {
+  PUBLIC
+  INTERNAL_ONLY
+}
+
+/// A chain: one owner, one name, many physical locations (Gym rows below). Optional —
+/// a gym created without ever choosing a brand stays exactly as it always has, a single
+/// standalone location with `brandId = null`. Client search groups branches under their
+/// brand's card; a gym with no brand is just its own card, same as before this feature.
+model GymBrand {
+  id           String   @id @default(uuid())
+  ownerId      String   @map("owner_id")
+  /// Vòng 4 / Phase C1 — `name` stays the owner's freely-editable working value (unchanged
+  /// role from before this phase); `approvedName`/`pendingName` are a moderation overlay only
+  /// PUBLIC pages read. `approvedName` is null until an admin approves this brand's FIRST
+  /// branch (gymService.setStatus backfills it then, same trigger C1 specifies — no new admin
+  /// action needed for the first approval). Every later rename sets `pendingName` only,
+  /// leaving `approvedName` untouched until the dedicated "Duyệt đổi tên thương hiệu" admin
+  /// action (brandService.approveRename) promotes it. Null pendingName means "nothing pending
+  /// — name is exactly what's approved."
+  name         String
+  approvedName String?  @map("approved_name")
+  pendingName  String?  @map("pending_name")
+  description  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  branches Gym[]
+
+  @@index([ownerId])
+  @@map("gym_brands")
+}
+
+model Gym {
+  id                String               @id @default(uuid())
+  ownerId           String               @map("owner_id")
+  /// Which brand this location belongs to, if any. A branch's own plans, wallet, checkins,
+  /// and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
+  /// a grouping label for search and owner navigation, not a second source of truth.
+  brandId           String?              @map("brand_id")
+  /// Vòng 4 / Phase C2 — same approvedX/pendingX overlay as GymBrand.name above, applied to
+  /// name AND address (the only two fields that need re-approval; every other field — phone,
+  /// email, city, description, hours — stays freely editable with no moderation at all).
+  /// `name`/`address` remain the live working values every non-public consumer already reads
+  /// (checkin receipts, membership listings, the owner's own dashboard); only the public
+  /// discovery endpoints (gymService.listApproved/getApprovedById) substitute approvedName/
+  /// approvedAddress in their place. `approvedName`/`approvedAddress` are backfilled from
+  /// name/address the first time this gym's `status` is set to APPROVED (mirrors the brand's
+  /// first-branch-approval trigger); every edit afterwards only moves pendingName/
+  /// pendingAddress until the "Duyệt đổi tên/địa chỉ" admin action (gymService.approveRename)
+  /// promotes them.
+  name              String
+  approvedName      String?              @map("approved_name")
+  pendingName       String?              @map("pending_name")
+  description       String?
+  address           String
+  approvedAddress   String?              @map("approved_address")
+  pendingAddress    String?              @map("pending_address")
+  city              String?
+  phone             String?
+  email             String?
+  status            GymStatus            @default(PENDING_REVIEW)
+  /// Vòng 4 / Phase C3 — independent from `status` (moderation: is this gym allowed to exist
+  /// on the platform at all) on purpose. This is the OWNER's own "are we open for business
+  /// right now" switch — a SUSPENDED gym is never OPEN-gated regardless of this value (both
+  /// axes must pass), but an APPROVED gym can still be temporarily/permanently closed by its
+  /// own owner without an admin ever touching `status`.
+  operationalStatus GymOperationalStatus @default(OPEN) @map("operational_status")
+  closureReason     String?              @map("closure_reason")
+  closedAt          DateTime?            @map("closed_at")
+  reopenedAt        DateTime?            @map("reopened_at")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  brand          GymBrand?               @relation(fields: [brandId], references: [id])
+  plans          GymMembershipPlan[]
+  memberships    GymMembershipContract[]
+  affiliations   GymTrainerAffiliation[]
+  reviews        GymReview[]
+  collaborations GymPtCollaboration[]
+
+  @@index([status])
+  @@index([operationalStatus])
+  @@index([ownerId])
+  @@index([brandId])
+  @@map("gyms")
+}
+
+model GymMembershipPlan {
+  id           String                  @id @default(uuid())
+  gymId        String                  @map("gym_id")
+  name         String
+  description  String?
+  price        Decimal                 @db.Decimal(12, 2)
+  durationDays Int                     @map("duration_days")
+  visitLimit   Int?                    @map("visit_limit")
+  status       GymMembershipPlanStatus @default(ACTIVE)
+  /// Optional marketing window: the plan can only be PURCHASED while now is inside
+  /// [saleStartAt, saleEndAt]. Distinct from durationDays, which is how long a membership
+  /// lasts once bought — the sale window closing never shortens a membership already sold.
+  /// Both null (the common case) means always on sale while status is ACTIVE.
+  saleStartAt  DateTime?               @map("sale_start_at")
+  saleEndAt    DateTime?               @map("sale_end_at")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  gym         Gym                     @relation(fields: [gymId], references: [id])
+  memberships GymMembershipContract[]
+
+  @@index([gymId, status])
+  @@map("gym_membership_plans")
+}
+
+model GymMembershipContract {
+  id                   String                      @id @default(uuid())
+  gymId                String                      @map("gym_id")
+  planId               String                      @map("plan_id")
+  clientId             String                      @map("client_id")
+  status               GymMembershipContractStatus @default(PENDING_PAYMENT)
+  paymentTxnId         String?                     @map("payment_txn_id")
+  startDate            DateTime?                   @map("start_date")
+  endDate              DateTime?                   @map("end_date")
+  priceAtPurchase      Decimal                     @map("price_at_purchase") @db.Decimal(12, 2)
+  durationDaysSnapshot Int                         @map("duration_days_snapshot")
+  totalVisits          Int?                        @map("total_visits")
+  usedVisits           Int                         @default(0) @map("used_visits")
+  /// Stamped once the pending-bucket payout (gym + platform + any un-clawed referral
+  /// commission) has been released to AVAILABLE. Set by the payout sweep on natural
+  /// expiry, or immediately on client self-cancel / admin refund — see docs/money-flow.md.
+  /// Guards membership-release against double-releasing the same membership.
+  payoutReleasedAt     DateTime?                   @map("payout_released_at")
+  /// True when the client confirmed purchase after being shown a warning that they already
+  /// hold an active membership at a different gym — evidence against "I didn't know I still
+  /// had one elsewhere" disputes.
+  multiGymWarned       Boolean                     @default(false) @map("multi_gym_warned")
+  /// Money-flow plan 1.7: set right after `refundByAdmin`'s referral-clawback step commits
+  /// its LOCAL bookkeeping (`GymMembershipReferral.clawedBack`). That local increment is not
+  /// itself idempotent — payment-service's own idempotency guard (plan 1.1) means a retried
+  /// `clawbackReferral` call just returns the FIRST attempt's cached amount rather than
+  /// re-debiting anything, but gym-service would still add that cached amount onto
+  /// `clawedBack` a second time if it re-entered the branch. `refundByAdmin` is one-shot per
+  /// membership (blocked once status flips to CANCELLED), so this flag only ever needs to
+  /// answer one question: did THIS refund's clawback step already run.
+  refundClawbackDone   Boolean                     @default(false) @map("refund_clawback_done")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+
+  gym      Gym                    @relation(fields: [gymId], references: [id])
+  plan     GymMembershipPlan      @relation(fields: [planId], references: [id])
+  checkIns GymCheckIn[]
+  referral GymMembershipReferral?
+
+  @@index([clientId, status])
+  @@index([gymId, status])
+  @@map("gym_membership_contracts")
+}
+
+model GymTrainerAffiliation {
+  id             String                @id @default(uuid())
+  gymId          String                @map("gym_id")
+  ptId           String                @map("pt_id")
+  status         AffiliationStatus     @default(PENDING)
+  employmentType AffiliationEmployment @default(FREELANCE) @map("employment_type")
+  visibility     GymTrainerVisibility  @default(PUBLIC)
+  commissionRate Decimal?              @map("commission_rate") @db.Decimal(5, 4)
+  invitedBy      String?               @map("invited_by")
+  joinedAt       DateTime?             @map("joined_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@unique([gymId, ptId])
+  @@index([ptId, status])
+  @@index([gymId, status])
+  @@map("gym_trainer_affiliations")
+}
+
+// ─── Gym Check-in (member scans in at the gym) ────────────────────────
+model GymCheckIn {
+  id           String   @id @default(uuid())
+  membershipId String   @map("membership_id")
+  gymId        String   @map("gym_id")
+  clientId     String   @map("client_id")
+  checkedInBy  String   @map("checked_in_by") // owner userId who scanned
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  membership GymMembershipContract @relation(fields: [membershipId], references: [id])
+
+  @@index([gymId, createdAt])
+  @@index([membershipId, createdAt])
+  @@map("gym_check_ins")
+}
+
+// ─── Gym Review / Rating (one per member per gym) ─────────────────────
+model GymReview {
+  id        String   @id @default(uuid())
+  gymId     String   @map("gym_id")
+  clientId  String   @map("client_id")
+  rating    Int // 1–5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@unique([gymId, clientId])
+  @@index([gymId])
+  @@map("gym_reviews")
+}
+
+// ─── PT ↔ gym collaboration (revenue-share negotiation) ───────────────
+
+enum CollaborationStatus {
+  PENDING // waiting on the other side's first answer
+  COUNTERED // the other side proposed different rates; the ball is back
+  ACCEPTED // terms agreed and locked
+  REJECTED // turned down outright
+  EXPIRED // ran out of time or out of negotiating rounds
+  TERMINATED // the partnership was ended after it had been accepted
+}
+
+enum CollaborationParty {
+  PT
+  GYM
+}
+
+/// A revenue-share agreement between a trainer and a gym.
+///
+/// A PT affiliated with a gym trains clients on the gym's floor and checks in free; in return
+/// the gym takes a cut of the contracts that PT signs there. Both sides have to agree on the
+/// split, so this row carries the negotiation as well as the outcome — each counter-offer
+/// overwrites the proposed rates and flips `proposedBy`, so whose turn it is is never
+/// ambiguous.
+///
+/// The rates here are a TEMPLATE, not the source of truth for any contract. When a contract is
+/// signed it copies them onto itself (see docs/money-flow.md §12); renegotiating afterwards
+/// leaves existing contracts on the terms their parties actually agreed to.
+model GymPtCollaboration {
+  id       String @id @default(uuid())
+  gymId    String @map("gym_id")
+  ptUserId String @map("pt_user_id")
+
+  /// Currently on the table. Must satisfy proposedPtRate + proposedGymRate + platformRate = 1.
+  proposedPtRate  Decimal @map("proposed_pt_rate") @db.Decimal(6, 4)
+  proposedGymRate Decimal @map("proposed_gym_rate") @db.Decimal(6, 4)
+  /// Stored so the accepted row is a complete snapshot rather than half a rate table.
+  platformRate    Decimal @default("0.10") @map("platform_rate") @db.Decimal(6, 4)
+
+  status     CollaborationStatus @default(PENDING)
+  /// Who made the offer currently on the table — i.e. whose turn it is NOT.
+  proposedBy CollaborationParty  @map("proposed_by")
+  /// Counter-offers so far. Capped so a negotiation cannot run forever.
+  round      Int                 @default(1)
+  expiresAt  DateTime            @map("expires_at")
+
+  acceptedAt   DateTime? @map("accepted_at")
+  terminatedAt DateTime? @map("terminated_at")
+  terminatedBy String?   @map("terminated_by")
+  /// Vòng 4 / Phase E3 — when set, this row is winding down: status STAYS 'ACCEPTED' (so
+  /// affiliation/roster display is unaffected) until this date, but activeRates() already
+  /// refuses NEW referral/rate lookups against it the moment this is set, regardless of the
+  /// date — "new collaborations blocked immediately, running contracts continue until
+  /// effectiveAt". Null = no pending termination. A lazy check (finalizeIfEffective, mirroring
+  /// expireIfStale above) flips status -> TERMINATED once effectiveAt has passed. terminate()
+  /// with no explicit date still terminates immediately (sets effectiveAt = now).
+  effectiveAt  DateTime? @map("effective_at")
+  note         String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@index([gymId, status])
+  @@index([ptUserId, status])
+  @@map("gym_pt_collaborations")
+}
+
+/// Commission owed to a PT for introducing a client who bought a gym membership.
+///
+/// Paid out of the GYM's share, never the platform's — the platform did no introducing. The
+/// `clawedBack` column exists because a refunded membership must reverse the commission in
+/// proportion; a referral system that pays on purchase but forgets to reclaim on refund leaks
+/// money on every cancellation.
+model GymMembershipReferral {
+  id                   String    @id @default(uuid())
+  membershipContractId String    @unique @map("membership_contract_id")
+  gymId                String    @map("gym_id")
+  referrerPtUserId     String    @map("referrer_pt_user_id")
+  rate                 Decimal   @db.Decimal(6, 4)
+  /// Gross commission earned at purchase time.
+  amount               Decimal   @db.Decimal(14, 2)
+  /// Reversed so far, following partial refunds of the membership.
+  clawedBack           Decimal   @default(0) @map("clawed_back") @db.Decimal(14, 2)
+  status               String    @default("PENDING")
+  releasedAt           DateTime? @map("released_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  membershipContract GymMembershipContract @relation(fields: [membershipContractId], references: [id])
+
+  @@index([referrerPtUserId, status])
+  @@index([gymId])
+  @@map("gym_membership_referrals")
+}

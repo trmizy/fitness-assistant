@@ -1,0 +1,24 @@
+# TEST STATE
+
+- Current branch: `feature/session-feedback-pt-mode`
+- Current commit: `327b296830c85845633d45e85fafa612fc8fe73b`
+- Services running: Docker Desktop and local Ollama processes are running; Compose stack status must be queried with `infra/compose/docker-compose.dev.yml`.
+- Current scenario: implementation/retest complete; final report generated. Remaining items are documented model-quality/product/provider gaps.
+- Last passed step: monorepo build PASS; payment 18/18; cycle/feedback persistence 80/80; user 36/36; gym 9/9; chat 9/9; gateway 21/21; browser onboarding persisted successfully and client route smoke completed.
+- Last failed step: fine-tuned direct-model golden quality is below release threshold: workout invariant 33.3%, safety recall 42.9%, citation precision/coverage 50%; base safety recall is 71.4%. This confirms the deterministic guard/pipeline cannot be bypassed.
+- Next exact action: address open P1 model safety/allergen/legacy-plan items; add provider sandbox credentials and dedicated E2E fixtures before production release.
+- Commands to resume:
+  - `git status --short`
+  - `docker compose -f infra/compose/docker-compose.dev.yml ps`
+  - `rg -n "normalize|repair|safeParse|weeklySchedule" backend/services/ai-service/src/workers/ai.worker.ts`
+  - `cd backend/services/ai-service; npm run build; npx tsx --test src/__tests__/workout-plan-invariant.test.ts`
+  - `cd backend/services/ai-service; npm run test:all; npm run test:evaluation:live`
+  - `docker exec -e DATABASE_URL=postgresql://gymcoach:gymcoach_password@postgres:5432/gymcoach_payment_test -e NODE_ENV=test gymcoach-payment-dev sh -lc 'npm exec -- tsx --test src/__tests__/*.test.ts'`
+  - `docker exec gymcoach-ai-dev npm run db:generate`
+  - `docker exec gymcoach-ai-dev npm exec -- tsx --test src/__tests__/plan-generation-equipment.integration.test.ts`
+- Test accounts: existing repository test accounts only; exact credentials/IDs to be recorded when E2E begins.
+- Important data IDs: live verified plans `b1126a6e-7757-4ed0-84b1-ffdf2aeb31f5`, `38a4c14d-99a1-446b-9250-6889380b8064`, `336813af-098e-42f3-bb68-c359476427a7`, `dc851b8d-7b78-41ce-9fea-40df83ffaa1b`, `76202ea3-d8ef-4130-a374-65a0b0439544`.
+- Important nutrition plan ID: `65a69792-d4ff-45e5-a667-5f64d3b1ae62` (live COMPLETED and invariant-valid). Deliberately failed diagnostic plan IDs are retained in test data for audit evidence.
+- Live evaluation artifacts: `backend/services/ai-service/artifacts/live-evaluation/raw-2026-08-17T05-34-13-375Z.jsonl` and matching `summary-2026-08-17T05-34-13-375Z.json`.
+- Browser test account: `testuser002@example.com`; onboarding was completed with beginner/muscle-gain/3-day/bodyweight-only QA values.
+- Safety note: the worktree contained extensive user changes before this task; do not overwrite or revert them.

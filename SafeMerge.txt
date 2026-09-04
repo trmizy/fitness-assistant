@@ -1,0 +1,38 @@
+Bối cảnh
+Nhánh feature/payment-gateways (commit 7b948d6) vừa hoàn tất một đợt sửa lỗi lớn về dòng tiền và luồng nghiệp vụ (đặt lịch, hợp đồng PT, gói hội viên gym, ví, rút tiền). Rất nhiều bug tiền thật (double-charge, tiền kẹt vĩnh viễn, thiếu bước trừ ví) đã được tìm và vá bằng TDD nghiêm ngặt. Khi merge, hai bên cùng sửa một file dùng chung rất dễ khiến Git tự động giữ lại bản CŨ đã có bug — Git không biết bên nào đúng về nghiệp vụ, nó chỉ thấy "cả hai đều là code hợp lệ".
+
+Mục tiêu: không một fix tiền/nghiệp vụ nào bị revert, dù chỉ vô tình. Merge xong không có nghĩa là git merge không báo conflict — một khối text giống hệt nhau ở hai bên vẫn có thể là bug nếu logic đã đổi ở một bên mà bạn không biết.
+
+Đọc trước khi resolve bất kỳ conflict nào
+docs/money-flow.md — công thức tiền, mô hình quyền lợi buổi tập, bất biến đối soát, luồng rút tiền. Đặc biệt §18 "Thu hẹp phạm vi" và §15 "Quyết định phát sinh".
+docs/business-rules-session-lifecycle.md — ma trận hậu quả huỷ/vắng buổi, quy tắc đặt lại lịch, chính sách check-in.
+Nếu code đang resolve mâu thuẫn với hai file này — nó sai, bất kể nằm bên nào của conflict.
+
+8 điểm cụ thể — đã chốt, không được để bản cũ đè lên
+Ví khách không còn nạp tiền — POST /me/wallet/topup trả 410. Nếu thấy nút "Top Up" gọi walletService.topup(...) ở WalletPage.tsx (client) — đó là bản cũ, bỏ.
+Khách tự huỷ gói gym: không hoàn tiền — route POST /me/gym-memberships/:id/refund (phía khách) đã bị gỡ khỏi backend. Đúng là .../cancel-membership (không chuyển tiền) + /admin/gym-memberships/:id/refund (chỉ admin).
+GYM_STAFF đã xoá hoàn toàn, kể cả enum Postgres. Không thêm lại điều kiện role === "gym_staff".
+totalSessions/price bất biến sau ký — PT vắng buổi tăng compensatedSessions, không còn trừ totalSessions. getRemainingEntitlements() là nơi tính duy nhất.
+runAutoConfirm phải đi qua deductQuotaOnce() (gồm cả releaseSessionMoney) — có bản cũ bỏ sót hoàn toàn bước trả tiền PT.
+resolveSessionOutcome() là nguồn sự thật duy nhất cho hậu quả huỷ/vắng buổi — addException/cancelSession/markNoShow đều phải gọi vào đây, không tự tính riêng.
+Idempotency key bắt buộc cho mọi thao tác tiền không phải PaymentTransaction gốc (bảng đầy đủ ở docs/money-flow.md §17) — thiếu là double-charge khi retry.
+markPaid trong luồng rút tiền phải trừ cả ví ESCROW, không chỉ ví người nhận — thiếu bước này từng vỡ bất biến đối soát thật.
+Quy tắc chung
+File bạn chưa từng sửa cho workout/nutrition/AI (payment-service, gym-service, phần lớn user-service liên quan hợp đồng/buổi tập/ví) → lấy nguyên bản feature/payment-gateways.
+File cả hai bên cùng sửa (routes.tsx, Sidebar.tsx, AppContext.tsx, api.ts, docker-compose.dev.yml) → merge tay, giữ cả hai phần thêm mới nếu không thật sự chống nhau.
+Cảnh giác với "merge sạch nhưng nhân đôi nội dung" — Git từng tự merge không báo conflict nhưng nhân đôi y hệt một khối (đã gặp ở enum TerminationReason trong schema.prisma và hàm computeAgeFromDob). Bắt bằng tsc --noEmit / prisma generate. pnpm-lock.yaml cũng có thể dính lỗi này (ERR_PNPM_BROKEN_LOCKFILE: duplicated mapping key).
+Bắt buộc kiểm thử sau merge
+
+grep -rl "^<<<<<<< HEAD$" --include="*.ts" --include="*.tsx" --include="*.prisma" backend frontend
+cd backend/services/<service> && npx prisma generate && npx tsc --noEmit
+DATABASE_URL="..." npx prisma migrate deploy   # cả DB dev lẫn _test
+DATABASE_URL="..." npx tsx --test src/__tests__/<file>.test.ts   # từng file, không glob
+cd frontend/web && npx vite build
+docker compose -f infra/compose/docker-compose.dev.yml up -d --no-deps --force-recreate <service>
+curl -s http://localhost:3000/admin/payments/reconciliation -H "Authorization: Bearer <admin_token>"
+Nếu bước cuối trả "balanced": false — dừng lại, đừng push. Nghĩa là một trong 8 điểm ở trên bị revert nhầm.
+
+Khi nào dừng lại hỏi thay vì tự quyết
+File không rõ thuộc phạm vi bên nào, và hai bên có nội dung thật sự khác nhau.
+Một trong 8 điểm ở trên có vẻ bị đổi lại có chủ đích ở nhánh đối tác (không phải do merge tự động) — đây là xung đột quyết định giữa hai đội, cần người quyết chứ không phải agent tự chọn.
+Đối soát không cân bằng và không tìm ra nguyên nhân trong 15 phút.

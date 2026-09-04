@@ -1,0 +1,912 @@
+##############################################################################
+# docker-compose.dev.yml  —  Hot-reload development environment
+#
+# Strategy
+# ─────────
+# Each application service uses a dedicated Dockerfile.dev that:
+#   1. Installs all Node (+ Python for user-service) dependencies.
+#   2. Pre-builds the @gym-coach/shared workspace package.
+#   3. Generates the Prisma client (where applicable).
+#   4. Does NOT copy src/ — that directory is bind-mounted from the host.
+#
+# When you save a .ts file inside any service's src/ folder:
+#   • Backend services  → tsx watch detects the change and restarts the server
+#                         in-process (< 1 s).
+#   • Frontend (Vite)   → Vite HMR patches the running browser tab instantly.
+#
+# Note: changes to backend/shared/src require rebuilding the affected image:
+#   docker compose -f docker-compose.dev.yml build <service>
+#   docker compose -f docker-compose.dev.yml restart <service>
+#
+# Usage
+# ─────
+#   First run (build images + start everything):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build
+#
+#   Subsequent runs (images already built):
+#     docker compose -f infra/compose/docker-compose.dev.yml up
+#
+#   Single service rebuild (e.g., after adding a package):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build auth-service
+#
+#   Tear down (keep volumes):
+#     docker compose -f infra/compose/docker-compose.dev.yml down
+#
+#   Tear down (remove volumes too):
+#     docker compose -f infra/compose/docker-compose.dev.yml down -v
+##############################################################################
+
+services:
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../..
+      dockerfile: frontend/web/Dockerfile.dev
+    container_name: gymcoach-web-dev
+    ports:
+      - "5173:5173" # Vite dev server (not nginx)
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      # VITE_API_URL / VITE_SOCKET_URL / VITE_CHAT_WS_URL are intentionally
+      # left unset — the frontend defaults to same-origin relative requests,
+      # which vite.config.ts proxies to the targets below over the Docker
+      # network. This is what makes login (and everything else) work both at
+      # http://localhost:5173 and through a Dev Tunnel/port-forwarded HTTPS
+      # URL: the browser only ever talks to one origin, so there's no CORS
+      # preflight and no https-page-calling-http mixed-content block — both
+      # of which broke login when this pointed at an absolute
+      # http://127.0.0.1:3000 (that address means "this machine", which is
+      # meaningless to whatever remote/tunneled browser opens the tunnel URL).
+      GATEWAY_PROXY_TARGET: http://api-gateway:3000
+      CHAT_PROXY_TARGET: http://chat-service:3005
+      # Extra Host headers Vite should accept beyond localhost and
+      # *.devtunnels.ms (always allowed, see vite.config.ts) — comma
+      # separated, for other tunnel providers. Empty by default.
+      VITE_EXTRA_ALLOWED_HOSTS: ${VITE_EXTRA_ALLOWED_HOSTS:-}
+      CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
+    volumes:
+      # Bind-mount React source so Vite HMR picks up every save
+      - ../../frontend/web/src:/app/frontend/web/src
+      - ../../frontend/web/public:/app/frontend/web/public
+      - ../../frontend/web/vite.config.ts:/app/frontend/web/vite.config.ts
+    depends_on:
+      - api-gateway
+    networks:
+      - default
+    dns:
+      - 8.8.8.8
+
+  # ── API Gateway ─────────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: backend/gateway/Dockerfile.dev
+    container_name: gymcoach-gateway-dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
+      AI_SERVICE_URL: http://ai-service:3003
+      CHAT_SERVICE_URL: http://chat-service:3005
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      N8N_BASE_URL: http://n8n:5678
+      N8N_EDITOR_BASE_PATH: /admin/workflows/studio
+      N8N_SMOKE_TEST_WEBHOOK_URL: http://n8n:5678/webhook/gym-smoke-test
+      N8N_E2E_WEBHOOK_URL: http://n8n:5678/webhook/gym-e2e-run
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      # Money-flow plan 5.2: same flag (and same hardcoded value) user-service uses below to
+      # decide whether to register its own /webhooks/dropbox-sign route — the gateway must not
+      # proxy to a route the target service no longer registers while e-signing is paused.
+      REQUIRE_CONTRACT_ESIGN: "false"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/gateway/src:/app/backend/gateway/src
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      fitness-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    dns:
+      - 8.8.8.8
+
+  # ── Auth Service ─────────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/auth-service/Dockerfile.dev
+    container_name: gymcoach-auth-dev
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      # Money-flow plan 2.6: locking a PT's account relays to user-service's
+      # ptDeactivationService (unwind live contracts + hide from discovery). Without this the
+      # client falls back to localhost:3004 → ECONNREFUSED inside Docker on every PT lock/unlock.
+      USER_SERVICE_URL: http://user-service:3004
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
+      - ../../backend/services/auth-service/prisma:/app/backend/services/auth-service/prisma
+      - ../../scripts:/app/scripts # Seed scripts — shared with db-seeder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    dns:
+      - 8.8.8.8
+
+  # ── User Service ─────────────────────────────────────────────────────────────
+  user-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/user-service/Dockerfile.dev
+    container_name: gymcoach-user-dev
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3004
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
+      AUTH_SERVICE_URL: http://auth-service:3001
+      # Phase 4: user-service calls payment-service for PT-contract wallet payments.
+      # Without this the client falls back to localhost:3007 → ECONNREFUSED inside Docker
+      # → "Pay Now" on a PENDING_PAYMENT contract fails with 500 (BUG-USERSVC-PAYMENT-URL).
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §1.4: requestContract asks gym-service for the frozen rate table of
+      # an accepted PT↔gym collaboration when a contract names a gymId. Without this,
+      # gym.client.ts would fall back to localhost:3006 → ECONNREFUSED inside Docker on
+      # every gym-affiliated PT contract request.
+      GYM_SERVICE_URL: http://gym-service:3006
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
+      # InBody scan extraction defaults to a local Ollama vision model, not
+      # Claude — see .env.example's "InBody scan extraction" section.
+      # Reuses ai-service's same Ollama instance (host.docker.internal, the
+      # dev laptop's own `ollama serve`); user-service had no OLLAMA_BASE_URL
+      # of its own before this since it never talked to Ollama previously.
+      INBODY_VISION_PROVIDER: ${INBODY_VISION_PROVIDER:-ollama}
+      INBODY_VISION_OLLAMA_MODEL: ${INBODY_VISION_OLLAMA_MODEL:-qwen2.5vl:3b}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      CHAT_SERVICE_URL: http://chat-service:3005
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      # TEMPORARY (requested to unblock local testing): this dev environment has no public
+      # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
+      # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
+      # integration itself is untouched. Flip to "true" (or remove) to re-require e-sign.
+      REQUIRE_CONTRACT_ESIGN: "false"
+    env_file:
+      - ../../.env
+    volumes:
+      # TypeScript source — hot-reloaded by tsx watch
+      - ../../backend/services/user-service/src:/app/backend/services/user-service/src
+      - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
+      # Persist uploaded files across container restarts
+      - user_uploads:/app/backend/services/user-service/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    dns:
+      - 8.8.8.8
+
+  # ── Fitness Service ──────────────────────────────────────────────────────────
+  fitness-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/fitness-service/Dockerfile.dev
+    container_name: gymcoach-fitness-dev
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3003
+      USER_SERVICE_URL: http://user-service:3004
+      # Was missing here (unlike gateway/user-service, which already override
+      # it) — without this, fitness-service inherited the root .env's
+      # CHAT_SERVICE_URL=http://localhost:3005, which inside this container
+      # means itself, not chat-service. Needed for the new
+      # "assessment ready" notification push (Adaptive Training Cycle
+      # Evaluation, Phase 5).
+      CHAT_SERVICE_URL: http://chat-service:3005
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/fitness-service/src:/app/backend/services/fitness-service/src
+      - ../../backend/services/fitness-service/prisma:/app/backend/services/fitness-service/prisma
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    dns:
+      - 8.8.8.8
+
+  # ── AI Service ───────────────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/ai-service/Dockerfile.dev
+    container_name: gymcoach-ai-dev
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3003
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      # Default dev mode: Ollama runs directly on the dev laptop (not
+      # RunPod/tunnel). Start it with `OLLAMA_HOST=0.0.0.0:11434 ollama serve`
+      # — 0.0.0.0 so host.docker.internal can reach it from the container.
+      # For Docker-local Ollama instead, run with --profile local-ollama and
+      # set LLM_BASE_URL=http://ollama:11434.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-fitness-coach-qwen2.5-1.5b:q4_K_M}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
+      # Opt-in real Ollama tool-calling for the LLM-bound chat intents
+      # (search_exercise_library / get_user_fitness_data). Off by default —
+      # the existing regex-routed deterministic paths already score well on
+      # the retrieval eval, so this is additive, not a replacement.
+      ENABLE_TOOL_CALLING: ${ENABLE_TOOL_CALLING:-false}
+      # Leave AI_PLAN_NUM_PREDICT / AI_PLAN_RETRY_NUM_PREDICT unset by default so
+      # ai.worker.ts's own size-adaptive formula (scales with daysPerWeek x
+      # exercisesPerDay, clamped 650-1250) picks the token budget. A fixed
+      # override here previously forced every plan to 650 regardless of size,
+      # truncating anything bigger than a tiny plan and producing sparse,
+      # under-optimized schedules — especially with the larger qwen3 model's
+      # more verbose JSON output. Set AI_PLAN_NUM_PREDICT in .env only if you
+      # need to force a specific value.
+      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-}
+      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-}
+      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-300000}
+      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-120000}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CHOKIDAR_USEPOLLING: "true"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
+      - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 30
+      start_period: 10m
+    dns:
+      - 8.8.8.8
+    extra_hosts:
+      # host.docker.internal is not reliably injected by the embedded DNS once
+      # `dns:` is overridden above (it forwards unknown names straight to
+      # 8.8.8.8, which has no route to it). Map it explicitly so Ollama
+      # running on the Windows host laptop is reachable from this container.
+      - "host.docker.internal:host-gateway"
+
+  # ── Chat Service ─────────────────────────────────────────────────────────────
+  knowledge-worker:
+    build:
+      context: ../..
+      dockerfile: backend/services/ai-service/Dockerfile.dev
+    container_name: gymcoach-knowledge-worker-dev
+    profiles:
+      - knowledge
+    command: pnpm run knowledge:worker
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      # Uses the same Ollama endpoint as ai-service — runs directly on the
+      # dev laptop by default; use --profile local-ollama plus env overrides
+      # to run against Docker-local Ollama instead.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-fitness-coach-qwen2.5-1.5b:q4_K_M}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
+      KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE: ${KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE:-false}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CHOKIDAR_USEPOLLING: "true"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
+      - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
+      - ../../data:/app/data
+    depends_on:
+      ai-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: "no"
+    dns:
+      - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  chat-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/chat-service/Dockerfile.dev
+    container_name: gymcoach-chat-dev
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3005
+      CHAT_SERVICE_PORT: 3005
+      CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CORS_ORIGIN: http://localhost:5173
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/chat-service/src:/app/backend/services/chat-service/src
+      - ../../backend/services/chat-service/prisma:/app/backend/services/chat-service/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    dns:
+      - 8.8.8.8
+
+  # ── Infrastructure (unchanged from production) ────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: gymcoach-postgres
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
+      POSTGRES_DB: ${POSTGRES_DB:-gymcoach}
+    env_file:
+      - ../../.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymcoach"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: gymcoach-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: gymcoach-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - TZ=Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__ENABLE_UI=true
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gymcoach-ollama
+    profiles:
+      - local-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      NVIDIA_VISIBLE_DEVICES: void
+      CUDA_VISIBLE_DEVICES: ""
+      OLLAMA_HOST: 0.0.0.0:11434
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - default
+
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: gymcoach-ollama-puller
+    profiles:
+      - local-ollama
+    depends_on:
+      - ollama
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
+      ]
+    networks:
+      - default
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: gymcoach-n8n
+    profiles:
+      - automation
+    ports:
+      - "5678:5678"
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_PATH: ${N8N_PATH:-/}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Ho_Chi_Minh}
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
+      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: "no"
+    networks:
+      - default
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: gymcoach-prometheus
+    profiles:
+      - observability
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    restart: "no"
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: gymcoach-grafana
+    profiles:
+      - observability
+    ports:
+      - "3100:3000"
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: "no"
+    networks:
+      - default
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: gymcoach-pg-exporter
+    profiles:
+      - observability
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - default
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: gymcoach-redis-exporter
+    profiles:
+      - observability
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - default
+
+  # ── Test-data seeder ─────────────────────────────────────────────────────────
+  # Runs automatically after ALL services are healthy (= all Prisma migrations done).
+  # Idempotent: ON CONFLICT DO NOTHING — safe to re-run on every `docker compose up`.
+  # Uses node:20-alpine + installs 3 tiny pure-JS packages (cached in seeder_modules volume).
+  # Set SKIP_SEED=true in .env to disable without removing the service definition.
+  #
+  # Does NOT seed vietnam_provinces/vietnam_wards (real Vietnam administrative
+  # location reference data, not test fixtures) — that's the user-service
+  # container's own job now (see its Dockerfile.dev's CMD:
+  # `prisma migrate deploy && tsx prisma/seed_vietnam_locations.ts && ...`,
+  # self-guarding, runs on every boot). Found 2026-09 that this data was
+  # never loaded into a fresh dev DB at all — see
+  # docs/features/VIETNAM_LOCATION_DATA_SEED_GAP.md.
+  db-seeder:
+    image: node:20-alpine
+    container_name: gymcoach-db-seeder
+    restart: "no"
+    working_dir: /app
+    command: >-
+      sh -c "
+        [ \"$$SKIP_SEED\" = 'true' ] && echo '[seeder] SKIP_SEED=true, exiting.' && exit 0;
+        [ -f node_modules/.seeder-ready ] || (npm install --no-save --quiet bcryptjs pg dotenv && touch node_modules/.seeder-ready);
+        node scripts/seed-test-users.mjs
+      "
+    volumes:
+      - ../../scripts:/app/scripts
+      - seeder_modules:/app/node_modules
+    environment:
+      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
+      SKIP_SEED: ${SKIP_SEED:-false}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      fitness-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+    networks:
+      - default
+
+  # ── Payment Service ──────────────────────────────────────────────────────────
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/payment-service/Dockerfile.dev
+    container_name: gymcoach-payment-dev
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3007
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment
+      AUTH_SERVICE_URL: http://auth-service:3001
+      GYM_SERVICE_URL: http://gym-service:3006
+      USER_SERVICE_URL: http://user-service:3004
+      # P0 cluster C2/C3: personalized-service purchase now goes through the same generic
+      # checkout+webhook pipeline PT_CONTRACT/GYM_MEMBERSHIP already use — needs this to tell
+      # ai-service to activate an order once payment is confirmed. Without it, a Personalized
+      # Service purchase's webhook settles the money correctly but the order itself is stuck
+      # PENDING_PAYMENT forever (ECONNREFUSED against localhost:3003 inside the container).
+      AI_SERVICE_URL: http://ai-service:3003
+      PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
+      TOPUP_STALE_MINUTES: ${TOPUP_STALE_MINUTES:-60}
+      # Sandbox gateways only — the MOCK provider was removed. This is just the fallback
+      # when the top-up request does not name one; the UI always sends an explicit choice.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-VNPAY}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      # MOMO_PARTNER_CODE / ACCESS_KEY / SECRET_KEY / IPN_URL come from the untracked
+      # ../../.env via env_file below. Declaring them here as ${VAR:-} would set them to the
+      # EMPTY STRING and override env_file, because compose interpolates against
+      # infra/compose/.env — not the repo-root .env the env_file directive loads. That is how
+      # they silently ended up unset. Same reason VNPAY_*/ZALOPAY_* are absent from this block.
+      MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn/v2/gateway/api/create}
+      MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-http://localhost:5173/client/payments/result}
+      # VNPay sandbox — VNPAY_TMN_CODE + VNPAY_HASH_SECRET are injected from the untracked
+      # ../../.env via env_file below (NOT declared here: an empty ${VAR:-} in this block
+      # would override the env_file value). This file carries only non-sensitive defaults.
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_API_URL: ${VNPAY_API_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      # VNPAY_RETURN_URL / FRONTEND_URL used to be declared here too, the exact mistake the
+      # comment above warns against: an unset ${VAR:-default} in THIS block resolves against
+      # the host shell (not ../../.env) and silently wins over the real value env_file would
+      # otherwise supply. Confirmed directly — mobile E2E kept getting the literal fallback
+      # (bare `localhost`) no matter what ../../.env said, because these two lines were
+      # clobbering it every time. Removed so env_file is the only source, same as
+      # MOMO_PARTNER_CODE/ZALOPAY_KEY1/PAYOS_* already correctly work.
+      # ZaloPay + PayOS creds come from the untracked ../../.env via env_file (declaring
+      # them here as empty ${VAR:-} would override that). Only non-sensitive defaults here.
+      ZALOPAY_ENDPOINT: ${ZALOPAY_ENDPOINT:-https://sb-openapi.zalopay.vn}
+      PAYOS_BASE_URL: ${PAYOS_BASE_URL:-https://api-merchant.payos.vn}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/payment-service/src:/app/backend/services/payment-service/src
+      - ../../backend/services/payment-service/prisma:/app/backend/services/payment-service/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    dns:
+      - 8.8.8.8
+
+  # ── Gym Service ──────────────────────────────────────────────────────────────
+  gym-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/gym-service/Dockerfile.dev
+    container_name: gymcoach-gym-dev
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      # Every container runs on Vietnam time.
+      #
+      # The app parses user input like "2026-08-10T19:30" with `new Date(...)` and reads
+      # wall-clock hours with `.getHours()` — both use the process timezone. On a UTC
+      # container a client who picked 19:30 had 19:30Z written, which their browser then
+      # rendered as 02:30 the next day, and an availability window of 06:00–22:00 was
+      # compared against UTC hours so evening slots appeared to wrap past midnight.
+      #
+      # Setting TZ here fixes every one of those in one place instead of threading an
+      # offset through bookSession, getAvailableSlots, the slot counter and rescheduling.
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3006
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §2.5: resolving a client's typed referral code to a PT userId is
+      # user-service's job (it owns UserProfile.referralCode). Without this gym-service falls
+      # back to localhost:3004 → ECONNREFUSED inside Docker on every referral-code purchase.
+      USER_SERVICE_URL: http://user-service:3004
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/gym-service/src:/app/backend/services/gym-service/src
+      - ../../backend/services/gym-service/prisma:/app/backend/services/gym-service/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    dns:
+      - 8.8.8.8
+
+volumes:
+  user_uploads:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  ollama_data:
+  n8n_data:
+  prometheus_data:
+  grafana_data:
+  seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)
+
+networks:
+  default:
+    name: gymcoach-network

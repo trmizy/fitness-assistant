@@ -1,0 +1,50 @@
+import { z } from "zod";
+
+export const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+
+export const registerStartSchema = registerSchema;
+
+export const registerVerifySchema = z.object({
+  email: z.string().email(),
+  otp: z.string().min(6).max(6),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string(),
+});
+
+export const updateMeSchema = z.object({
+  firstName: z.string().trim().min(1).max(100).optional(),
+  lastName: z.string().trim().min(1).max(100).optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+// Money-flow plan 5.1: GYM_STAFF removed — see schema.prisma's Role enum comment.
+export const roleSchema = z.enum(["ADMIN", "CUSTOMER", "PT", "GYM_OWNER"]);
+
+export const updateUserRoleSchema = z.object({
+  role: roleSchema,
+});
+
+export type RegisterDto = z.infer<typeof registerSchema>;
+export type RegisterStartDto = z.infer<typeof registerStartSchema>;
+export type RegisterVerifyDto = z.infer<typeof registerVerifySchema>;
+export type LoginDto = z.infer<typeof loginSchema>;
+export type RefreshDto = z.infer<typeof refreshSchema>;
+export type UpdateMeDto = z.infer<typeof updateMeSchema>;
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
+export type UpdateUserRoleDto = z.infer<typeof updateUserRoleSchema>;

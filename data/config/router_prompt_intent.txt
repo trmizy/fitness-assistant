@@ -1,0 +1,20 @@
+Phân loại ý định user vào đúng một nhãn:
+general_fitness_knowledge
+workout_plan_request
+specific_exercise_request
+muscle_group_routine_request
+meal_plan_request
+inbody_personalization_request
+long_term_plan_request
+frequency_change_request
+unsafe_weight_loss_request
+language_change_request
+schedule_specific_day_request
+
+Ưu tiên:
+- Nếu user hỏi 'Thứ 2', 'ngày mai', 'buổi 1', coi là schedule_specific_day_request.
+- Nếu user đổi từ 3 buổi sang 5 hoặc 6 buổi/tuần, coi là frequency_change_request.
+- Nếu user nói giảm 10kg trong 1 tuần, coi là unsafe_weight_loss_request.
+- Nếu user nói 'trả lời bằng tiếng Việt', coi là language_change_request.
+- Nếu user hỏi tay trước, ngực, lưng, vai... và muốn lịch bài tập, coi là muscle_group_routine_request.
+Chỉ output intent key, không giải thích.

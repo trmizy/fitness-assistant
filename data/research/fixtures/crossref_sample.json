@@ -1,0 +1,18 @@
+{
+  "external_id": "doi:10.1000/crossref-protein",
+  "title": "Protein intake and resistance training meta analysis",
+  "abstract_or_summary": "A meta analysis evaluating protein intake and resistance training adaptations.",
+  "source": "Crossref",
+  "source_url": "https://doi.org/10.1000/crossref-protein",
+  "doi": "10.1000/crossref-protein",
+  "authors": ["C Author"],
+  "journal": "Journal of Strength Research",
+  "publisher": "Example Publisher",
+  "year": 2021,
+  "date": "2021",
+  "license": "metadata",
+  "access_status": "metadata",
+  "topic": "protein_intake_resistance_training",
+  "raw_metadata": { "fixture": true },
+  "fetched_at": "2026-07-08T00:00:00.000Z"
+}

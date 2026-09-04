@@ -1,0 +1,219 @@
+{
+  "name": "Gym E2E - Orchestrator",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gym-e2e-run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b0000006-0001-0001-0001-000000000006",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "gym-e2e-run"
+    },
+    {
+      "parameters": {},
+      "id": "b0000006-0002-0002-0002-000000000006",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { startTime: new Date().toISOString(), startMs: Date.now(), triggeredBy: $input.first()?.json?.body?.source ?? 'manual' } }];"
+      },
+      "id": "b0000006-0003-0003-0003-000000000006",
+      "name": "Set Start Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/gym-test-auth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "source", "value": "orchestrator" }]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000006-0004-0004-0004-000000000006",
+      "name": "Call Auth Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/gym-test-profile",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "source", "value": "orchestrator" }]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000006-0005-0005-0005-000000000006",
+      "name": "Call Profile Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/gym-test-fitness",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "source", "value": "orchestrator" }]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000006-0006-0006-0006-000000000006",
+      "name": "Call Fitness Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 420],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/gym-test-ai",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "source", "value": "orchestrator" }]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000006-0007-0007-0007-000000000006",
+      "name": "Call AI Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 540],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/gym-test-pt-review",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "source", "value": "orchestrator" }]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000006-0008-0008-0008-000000000006",
+      "name": "Call PT Review Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 660],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeGet(nodeName, stepName) {\n  try {\n    const d = $(nodeName).first().json;\n    if (typeof d?.passed === 'boolean') return d;\n    return { passed: false, step: stepName, statusCode: 0, details: d?.message ?? JSON.stringify(d).slice(0, 120), durationMs: 0, checks: [] };\n  } catch(e) {\n    return { passed: false, step: stepName, statusCode: 0, details: e.message, durationMs: 0, checks: [] };\n  }\n}\n\nconst startInfo = $('Set Start Time').first().json;\nconst startMs = startInfo.startMs;\nconst startTime = startInfo.startTime;\n\nconst results = [\n  safeGet('Call Auth Test', 'Auth'),\n  safeGet('Call Profile Test', 'Profile'),\n  safeGet('Call Fitness Test', 'Fitness'),\n  safeGet('Call AI Test', 'AI'),\n  safeGet('Call PT Review Test', 'PT Review')\n];\n\nconst passed = results.every(r => r.passed);\nconst passedCount = results.filter(r => r.passed).length;\nconst totalDurationMs = Date.now() - startMs;\n\nreturn [{ json: {\n  passed,\n  summary: {\n    total: 5,\n    passed: passedCount,\n    failed: 5 - passedCount\n  },\n  results,\n  startedAt: startTime,\n  finishedAt: new Date().toISOString(),\n  durationMs: totalDurationMs\n} }];"
+      },
+      "id": "b0000006-0009-0009-0009-000000000006",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 420]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "b0000006-0010-0010-0010-000000000006",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1140, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Set Start Time", "type": "main", "index": 0 }]]
+    },
+    "Manual Trigger": {
+      "main": [[{ "node": "Set Start Time", "type": "main", "index": 0 }]]
+    },
+    "Set Start Time": {
+      "main": [[{ "node": "Call Auth Test", "type": "main", "index": 0 }]]
+    },
+    "Call Auth Test": {
+      "main": [[{ "node": "Call Profile Test", "type": "main", "index": 0 }]]
+    },
+    "Call Profile Test": {
+      "main": [[{ "node": "Call Fitness Test", "type": "main", "index": 0 }]]
+    },
+    "Call Fitness Test": {
+      "main": [[{ "node": "Call AI Test", "type": "main", "index": 0 }]]
+    },
+    "Call AI Test": {
+      "main": [[{ "node": "Call PT Review Test", "type": "main", "index": 0 }]]
+    },
+    "Call PT Review Test": {
+      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+    },
+    "Aggregate Results": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": [{ "name": "e2e-test" }, { "name": "orchestrator" }],
+  "_meta": {
+    "description": "Orchestrator: fans out to 5 sub-workflow webhooks in parallel, aggregates results. Triggered via POST /webhook/gym-e2e-run or Manual Trigger in Studio.",
+    "webhook_path": "gym-e2e-run",
+    "sub_workflows": [
+      "http://n8n:5678/webhook/gym-test-auth",
+      "http://n8n:5678/webhook/gym-test-profile",
+      "http://n8n:5678/webhook/gym-test-fitness",
+      "http://n8n:5678/webhook/gym-test-ai",
+      "http://n8n:5678/webhook/gym-test-pt-review"
+    ],
+    "response_schema": {
+      "passed": "boolean",
+      "summary": { "total": 5, "passed": "number", "failed": "number" },
+      "results": "SubWorkflowResult[]",
+      "startedAt": "ISO string",
+      "finishedAt": "ISO string",
+      "durationMs": "number"
+    },
+    "setup_steps": [
+      "1. Import all 5 sub-workflow JSONs (01-05) first and activate them",
+      "2. Import this file (06) and activate it",
+      "3. Add to .env: N8N_E2E_WEBHOOK_URL=http://n8n:5678/webhook/gym-e2e-run",
+      "4. Restart api-gateway"
+    ]
+  }
+}

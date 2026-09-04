@@ -1,0 +1,56 @@
+FROM node:20-slim
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ── Install Node dependencies (cached layer) ──────────────────────────────────
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY backend/shared/package.json                      ./backend/shared/
+COPY backend/services/user-service/package.json       ./backend/services/user-service/
+RUN pnpm install --filter @gym-coach/user-service
+
+# ── Pre-build @gym-coach/shared ───────────────────────────────────────────────
+COPY tsconfig.base.json                               ./
+COPY backend/shared/tsconfig.json                     ./backend/shared/
+COPY backend/shared/src                               ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+
+# ── Generate Prisma client ────────────────────────────────────────────────────
+COPY backend/services/user-service/prisma             ./backend/services/user-service/prisma
+RUN pnpm --filter @gym-coach/user-service db:generate
+
+# ── Copy service config (src/ & inbody_extractor/ are bind-mounted) ───────────
+COPY backend/services/user-service/tsconfig.json      ./backend/services/user-service/
+
+RUN mkdir -p /app/backend/services/user-service/uploads/pt-applications
+
+WORKDIR /app/backend/services/user-service
+EXPOSE 3004
+
+# Schema changes go through migrations, never `db push --accept-data-loss`.
+#
+# That flag does exactly what it says. When a schema edit is one Prisma cannot apply in
+# place, db push drops and recreates the table rather than refusing — and on 2026-08-11 it
+# emptied pt_applications and pt_training_locations and took contracts from 736 rows
+# (2.360.709.500đ) down to 61. Nothing warned anyone; the service just booted normally with
+# the data gone, and PT discovery silently returned zero results because it inner-joins
+# pt_applications.
+#
+# `migrate deploy` applies pending migrations and stops on anything it cannot apply. It has
+# no path that destroys a table. The other services already start this way.
+#
+# seed_vietnam_locations.ts self-guards (skips instantly if vietnam_provinces
+# already has rows — see the script's own `count() > 0` check), so running it
+# on every boot is cheap and never re-imports. Without this, `prisma migrate
+# deploy` creates the vietnam_provinces/vietnam_wards TABLES but leaves them
+# empty on any fresh DB (new dev machine, CI, a reset volume) — the PT
+# application form's "Chọn tỉnh/thành" dropdown (and every other feature
+# reading the same tables: PT training-location management, PT discovery's
+# province/ward filter) then silently renders with zero options and no
+# error anywhere in the stack. Found 2026-09 when exactly that happened on
+# this dev DB.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/tsx prisma/seed_vietnam_locations.ts && pnpm run dev"]

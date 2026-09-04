@@ -1,0 +1,18 @@
+file_name,row_count,description
+ref_muscles.csv,29,Muscle group reference table
+ref_equipment.csv,24,Equipment reference table
+ref_goals.csv,10,Training goal reference table
+ref_levels.csv,3,Experience level reference table
+ref_movement_patterns.csv,16,Movement pattern reference table
+gym_exercises.csv,205,Detailed exercise catalog
+gym_workout_plans.csv,57,Workout plan metadata
+gym_workout_plan_days.csv,195,Workout day schedule metadata
+gym_workout_plan_exercises.csv,1137,Exercises assigned to workout plan days
+gym_foods.csv,149,Approximate foods and macros
+gym_meal_plans.csv,120,Meal plan metadata
+gym_meal_plan_items.csv,1318,Foods assigned to meal plans
+gym_health_guidance.csv,400,Safety recovery and warning guidance
+gym_faq_qa.csv,5946,Vietnamese FAQ question-answer chunks
+gym_queries.csv,25220,Synthetic queries for RAG search and retrieval evaluation
+gym_rag_master_dataset.csv,7072,Main knowledge chunks for vector database indexing
+gym_instruction_tuning_pairs.csv,25220,Instruction examples for evaluation and future fine-tuning research; not used as a fine-tune pipeline today

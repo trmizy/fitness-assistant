@@ -1,0 +1,161 @@
+{
+  "generatedAt": "2026-08-19T15:48:56.064Z",
+  "environment": "local dev (gymcoach_fitness via docker-compose)",
+  "exercises": {
+    "totalExercises": 883,
+    "withVietnameseName": 0,
+    "withEnglishOnlyName": 883,
+    "withNoDescription": 5,
+    "withNoMuscleGroups": 0,
+    "withNoEquipmentLink": 0,
+    "withNoVideoUrl": 10,
+    "withVideoErrorsNote": "Not checked in this pass — verifying 873 external image URLs live would require a real network crawl; flagged as a follow-up, not included in this snapshot to avoid an inaccurate zero.",
+    "withExternalUrl": 873,
+    "primaryVsSecondaryMuscleNote": "The live schema stores muscleGroupsActivated as a single flat string[] with NO primary/secondary distinction — that distinction only exists in the unimported gym_exercises.csv catalog (primary_muscles / secondary_muscles columns). Cannot be computed from the live DB as-is; a real gap for Gate 4's canonical schema.",
+    "referencedInWorkoutLog": 782,
+    "referencedInProgramTemplate": 787,
+    "referencedInEitherWorkoutOrProgram": 787,
+    "neverReferenced": 96,
+    "referencedInAiPlanNote": "ai-service stores exerciseId inside JSON plan content (WorkoutPlan.content, PersonalizedServiceOrder.draftContent) — not queryable from fitness-service's own DB without a cross-service JSON scan; flagged as a follow-up requiring an ai-service-side script, not computed here.",
+    "exactDuplicateNameGroups": 0,
+    "exactDuplicateNameSamples": [],
+    "nearDuplicateNote": "Deferred to Gate 3 (multi-signal duplicate detection design) — not computed in this inventory pass.",
+    "idOrSlugDuplicateNote": "Exercise has no slug field at all today (only Equipment does) — 'ID/slug duplicate' is structurally impossible to check because there is no slug to compare; a real Gate 4 schema gap (canonicalName/slug is in the task's own proposed model).",
+    "unknownSourceOrLicense": 883,
+    "unknownSourceOrLicenseNote": "ALL 883 live rows — there is no ExerciseSource/source/license column on the live Exercise model at all. We know from reading seed_exercises_json.ts (file-level provenance, not DB-level) that all but ~10 rows trace to free-exercise-db (Unlicense, image rights undocumented) and ~10 to a hand-authored equipment-gap seed — but the DATABASE itself records none of this today. This is exactly the gap the task's proposed ExerciseSource table exists to close.",
+    "withMovementPattern": 883,
+    "withMechanics": 795,
+    "withDifficultyLevel": 882,
+    "withContraindications": 0
+  },
+  "foods": {
+    "totalFoods": 13159,
+    "genericFoodsBySourceType": [
+      {
+        "_count": {
+          "_all": 5403
+        },
+        "source": "survey_fndds"
+      },
+      {
+        "_count": {
+          "_all": 7756
+        },
+        "source": "sr_legacy"
+      }
+    ],
+    "brandedFoodsNote": "0 — no 'branded_food' source value present; only sr_legacy and survey_fndds were ever imported (both generic/ingredient-level USDA data, not manufacturer-branded products).",
+    "recipeCount": 0,
+    "recipeNote": "No Recipe/RecipeIngredient table exists in the live schema at all — Phase 3's Vietnamese-dish-from-ingredients model has zero implementation today. A real Gate 4 gap, not a partial one.",
+    "withCalories": 13159,
+    "withZeroOrNegativeCalories": 0,
+    "withMacroColumns": 13159,
+    "withMicronutrients": 0,
+    "micronutrientNote": "No FoodNutrient table — only flat calories/protein/carbs/fats columns exist. No fiber/sodium/sugar/vitamins/minerals stored anywhere for any of the 13,159 rows.",
+    "withServingInfo": 0,
+    "servingNote": "Food itself has no serving-size field (values are implicitly per-100g, USDA convention) — serving size only exists per-meal-item (NutritionProgramMealItem.quantity, default 100) not per-food-catalog-entry. No FoodServing-equivalent table.",
+    "withBarcode": 0,
+    "barcodeNote": "No barcode/GTIN column exists on Food at all.",
+    "withSource": 13159,
+    "withImage": 14,
+    "withNoImage": 13145,
+    "withNegativeMacro": 0,
+    "withUnrealisticMacro": 0,
+    "macroCalorieInconsistentCount": 231,
+    "macroCalorieInconsistentPct": 1.8,
+    "servingSizeZeroNote": "N/A — Food has no per-catalog-entry serving-size field to be zero (see servingNote above).",
+    "duplicateByNameGroups": 100,
+    "duplicateByNameSamples": [
+      {
+        "name": "honey",
+        "count": 2
+      },
+      {
+        "name": "cheese, provolone, reduced fat",
+        "count": 2
+      },
+      {
+        "name": "bread, oatmeal, toasted",
+        "count": 2
+      },
+      {
+        "name": "cheese spread, american or cheddar cheese base, reduced fat",
+        "count": 2
+      },
+      {
+        "name": "cream puff, eclair, custard or cream filled, iced",
+        "count": 2
+      },
+      {
+        "name": "eggnog",
+        "count": 2
+      },
+      {
+        "name": "cheese, parmesan, hard",
+        "count": 2
+      },
+      {
+        "name": "cheese, american, nonfat or fat free",
+        "count": 2
+      },
+      {
+        "name": "bread, potato",
+        "count": 2
+      },
+      {
+        "name": "natto",
+        "count": 2
+      },
+      {
+        "name": "miso",
+        "count": 2
+      },
+      {
+        "name": "crackers, milk",
+        "count": 2
+      },
+      {
+        "name": "cheese, cheddar, nonfat or fat free",
+        "count": 2
+      },
+      {
+        "name": "bread, cinnamon",
+        "count": 2
+      },
+      {
+        "name": "sour cream, fat free",
+        "count": 2
+      },
+      {
+        "name": "cheese, cottage, with vegetables",
+        "count": 2
+      },
+      {
+        "name": "cream, half and half, fat free",
+        "count": 2
+      },
+      {
+        "name": "peppers, sweet, green, raw",
+        "count": 2
+      },
+      {
+        "name": "broccoli, raw",
+        "count": 2
+      },
+      {
+        "name": "cheese, brie",
+        "count": 2
+      }
+    ],
+    "duplicateByBarcode": 0,
+    "duplicateByBarcodeNote": "N/A — no barcode field exists.",
+    "duplicateBySourceId": 0,
+    "duplicateBySourceIdNote": "fdcId has a DB-level @unique constraint — structurally 0 by construction, not just observed.",
+    "sameNameDifferentNutrientGroups": 35,
+    "referencedInMealPlans": 24,
+    "referencedInFoodLogHistoryNote": "Structurally 0 by design — NutritionLog stores foodName as free text with NO foodId column at all, so it can never reference the Food catalog by ID. This is itself a notable finding: the historical food-log domain and the catalog domain are already fully decoupled, which is GOOD for catalog-change safety but means food-log entries can never benefit from catalog enrichment (aliases, corrected macros) either.",
+    "foodsWithFoodFormClassified": 2117,
+    "foodsMarkedSupplement": 249,
+    "totalFoodAliases": 0
+  }
+}
