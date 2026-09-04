@@ -81,7 +81,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setActiveView("client");
       queryClient.clear();
-      navigate("/login", { replace: true });
+      // No useLocation() out here (this fires from outside any route render), so read the
+      // current URL directly — same "send them back after login" carry as AppShell's guard.
+      navigate("/login", {
+        replace: true,
+        state: { from: window.location.pathname + window.location.search },
+      });
     });
   }, [navigate, queryClient]);
 

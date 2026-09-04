@@ -22,10 +22,15 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated. Carries the page the user was actually on so
+  // LoginPage can send them back here instead of dumping everyone on their role's home
+  // screen — without this, a session that expires mid-flow (e.g. right after paying) loses
+  // the page entirely, which is confusing on its own and actively bad for a payment result.
   useEffect(() => {
-    if (!isAuthenticated) navigate("/login");
-  }, [isAuthenticated, navigate]);
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location.pathname + location.search } });
+    }
+  }, [isAuthenticated, navigate, location.pathname, location.search]);
 
   // Sync activeView from URL so back/forward navigation stays consistent
   useEffect(() => {

@@ -26,3 +26,22 @@ export function roleOf(user: { role?: string | null; isPT?: boolean | null } | n
 export function landingPathFor(user: { role?: string | null; isPT?: boolean | null } | null | undefined): string {
   return ROLE_HOME[roleOf(user)];
 }
+
+/**
+ * Whether a captured "return to this after login" path is safe to navigate to —
+ * a same-app relative path, never an absolute/external URL. `//evil.com` parses
+ * as a protocol-relative URL in a real browser (same as `https://evil.com`), so
+ * requiring exactly one leading slash (not two) matters, not just "starts with /".
+ *
+ * Deliberately excludes /login itself — a session-expiry redirect capturing
+ * "/login" as the return path would bounce right back to where it started.
+ */
+export function isSafeReturnPath(path: string | null | undefined): path is string {
+  return (
+    typeof path === "string" &&
+    path.length > 0 &&
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    path !== "/login"
+  );
+}
