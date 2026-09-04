@@ -24,12 +24,24 @@ function getIceServers() {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
   ];
+  // STUN alone only helps two peers on simple/compatible NATs find each other directly —
+  // it does nothing when either side is behind symmetric NAT (the default on most mobile
+  // carrier networks) or a restrictive firewall. Confirmed reproducing exactly that: a real
+  // phone (mobile data) calling a real laptop (a different home network) failed with
+  // "ice_failed" every time with STUN-only servers, even though signaling (initiate/accept)
+  // worked fine — TURN (a relay both sides CAN reach) is what's missing, not a signaling bug.
+  // TURN_URL takes a comma-separated list (same convention as CORS_ORIGIN below) since a
+  // real TURN deployment publishes several transports (UDP/TCP/TLS on different ports) for
+  // reliability across different network restrictions — one URL is rarely enough in practice.
   if (process.env.TURN_URL) {
-    servers.push({
-      urls: process.env.TURN_URL,
-      username: process.env.TURN_USERNAME || "",
-      credential: process.env.TURN_CREDENTIAL || "",
-    });
+    const urls = process.env.TURN_URL.split(",").map((u) => u.trim()).filter(Boolean);
+    if (urls.length > 0) {
+      servers.push({
+        urls,
+        username: process.env.TURN_USERNAME || "",
+        credential: process.env.TURN_CREDENTIAL || "",
+      });
+    }
   }
   return servers;
 }

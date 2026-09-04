@@ -509,6 +509,18 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       CORS_ORIGIN: http://localhost:5173
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      # WebRTC calls (call.handler.ts's getIceServers) were STUN-only — fine on the same LAN,
+      # but confirmed failing with "ice_failed" for any real cross-network pair (a phone on
+      # mobile data calling a laptop on a different home connection), because STUN alone
+      # can't traverse the symmetric NAT most mobile carriers use. These are the Open Relay
+      # Project's free, publicly-published test credentials (metered.ca/tools/openrelay,
+      # no signup) — fine for dev/test traffic, but NOT meant for production load/reliability.
+      # Before a real launch, replace with either a self-hosted coturn (needs a real public
+      # IP, which this dev machine behind a home router/tunnel does not have) or a paid
+      # hosted TURN provider (Twilio, Xirsys, Cloudflare Calls, metered.ca's paid tier).
+      TURN_URL: ${TURN_URL:-turn:openrelay.metered.ca:80,turn:openrelay.metered.ca:443,turn:openrelay.metered.ca:443?transport=tcp}
+      TURN_USERNAME: ${TURN_USERNAME:-openrelayproject}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-openrelayproject}
     env_file:
       - ../../.env
     volumes:
