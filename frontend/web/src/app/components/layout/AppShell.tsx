@@ -96,7 +96,7 @@ function AppShellInner() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">
         <Topbar />
         <main
-          className={`flex-1 overflow-y-auto bg-transparent relative z-10 overflow-x-hidden ${
+          className={`flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10 overflow-x-hidden ${
             isChatView ? "" : "pb-16 lg:pb-0"
           }`}
         >
@@ -127,10 +127,19 @@ function AppShellInner() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
-              // min-h-full (not h-full): fills the viewport on short pages so full-height
-              // children (e.g. the chat layout) still work, while letting tall pages grow to
-              // their real height.
-              className="min-h-full"
+              // flex-1 (not min-h-full): `<main>` is now the flex column, so this grows to
+              // fill its remaining space exactly — a real, definite box height, which is what
+              // a full-height descendant (e.g. ChatPage's own `h-full` root) needs to resolve
+              // against. min-h-full LOOKED right (it does stretch short pages visually) but
+              // `min-height` never counts as a definite size for a percentage-height CHILD to
+              // resolve against — only `height` does. That gap was invisible on every page
+              // whose content already reached full height on its own, and only showed up on
+              // Chat: confirmed reproducing a chat panel that stopped a few hundred px into
+              // the viewport with the page background showing through below it, because
+              // ChatPage's own `h-full` was resolving against `auto`, not the real box height.
+              // min-h-0 lets this shrink back down for a page taller than the viewport, so
+              // `<main>`'s own overflow-y-auto still scrolls the whole page exactly as before.
+              className="flex-1 flex flex-col min-h-0"
             >
               {/* Vòng 4 / Phase D2 — routes.tsx now lazy()s every page; this Suspense boundary
                   is scoped to JUST the content area (inside main, inside the animated box)
