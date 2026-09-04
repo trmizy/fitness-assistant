@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { logger } from "@gym-coach/shared";
+import { logger, readGatewayVerifiedUser } from "@gym-coach/shared";
 import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-service.client";
 
 export interface AuthRequest extends Request {
@@ -11,6 +11,16 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
+  // Security review 2026-09-03 (H1) — fast path: skip the auth-service round-trip entirely
+  // when the gateway already verified this request (see gatewayTrust.ts's own docstring for
+  // the full reasoning). Falls through to the original HTTP-verify below for anything not
+  // carrying a valid gateway secret.
+  const verified = readGatewayVerifiedUser(req.headers);
+  if (verified) {
+    req.user = verified;
+    return next();
+  }
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {

@@ -6,8 +6,19 @@ import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
 import { isAllowedOrigin } from "./utils/corsOrigins";
+import { validateInternalSecret } from "./utils/internal-secret";
 
 const app = express();
+
+// Security review 2026-09-03 (C5) — without this, express-rate-limit's default keyGenerator
+// (req.ip) resolves to whatever TCP peer dialed us directly: cloudflared in dev, the "web"
+// nginx container in prod (see docker-compose.prod.yml) — never the real client. Every real
+// user then collapses onto that one proxy IP, so the flat global budget (100 req/min) is
+// exhausted by aggregate traffic instead of per-caller, DoS-ing everyone at once. `1` trusts
+// exactly one hop of X-Forwarded-For (the immediate proxy in front of us), matching the
+// single-hop topology both deployments actually use — not `true` (trust every hop, spoofable
+// by the client itself supplying its own X-Forwarded-For).
+app.set("trust proxy", 1);
 
 app.use(
   helmet({
@@ -31,6 +42,11 @@ app.use(
 // sets x-user-* from the verified JWT. We also stamp a shared x-gateway-secret so downstream
 // services can prove a request actually came through the gateway (defense in depth even if an
 // internal port is exposed). Closing the internal ports entirely remains a deployment requirement.
+// Security review 2026-09-03 (M6) — validateInternalSecret already existed (tested in
+// gateway.secret.test.ts) but was never actually called anywhere, so this fell back to the
+// public, in-source-control default in production too if the env var was ever unset. Calling
+// it here makes that fail loudly at boot instead of silently trusting a known string.
+validateInternalSecret(process.env.INTERNAL_SERVICE_SECRET, process.env.NODE_ENV);
 const GATEWAY_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || "dev_internal_service_secret_change_in_production";
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -48,8 +64,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 // return-URL has to be reachable by whichever browser the payer ends up completing checkout
 // in, and that browser only ever knows to come back through the SAME door it went out —
 // hardcoding one value in `.env` (what this used to do) works for exactly one of those at a
-// time. `trust proxy` isn't set — cloudflared terminates TLS and forwards plain HTTP
-// internally — so the real scheme comes from its own X-Forwarded-Proto, not req.protocol.
+// time. Read directly from the header rather than the now-trust-proxy-aware `req.protocol`
+// (C5 added `app.set('trust proxy', 1)` above, for the rate limiter's `req.ip` — it also makes
+// `req.protocol` forwarding-aware, but this predates that and there's no reason to churn a
+// working block to use it) — cloudflared terminates TLS and forwards plain HTTP internally,
+// so the real scheme only ever comes from X-Forwarded-Proto either way.
 // Consumed by ai-service/gym-service/user-service's own `detectPlatform`-adjacent checkout
 // controllers, same forwarding pattern as x-gateway-secret above.
 app.use((req: Request, _res: Response, next: NextFunction) => {

@@ -72,11 +72,13 @@ export function registerChatHandlers(
           return;
         }
 
-        const ok = await chatRepository.isUserParticipant(
-          conversationId,
-          user.id,
-        );
-        if (!ok) {
+        // Security review 2026-09-03 (H3) — this used to re-query isUserParticipant on every
+        // single message, identical to the DB round-trip chat:join_conversation above already
+        // paid once. socket.rooms is Socket.IO's own built-in bookkeeping of which rooms THIS
+        // socket has actually joined — and joining a room already required passing that same
+        // DB check (above), so membership in the room is exactly as trustworthy as a fresh
+        // query, with no separate cache to keep in sync or ever go stale relative to reality.
+        if (!socket.rooms.has(conversationId)) {
           socket.emit("chat:error", {
             message: "Not a participant of this conversation",
           });

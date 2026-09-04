@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { getProvider } from '../services/payment.service';
 import { handleEvent } from '../services/webhook.service';
+import { webhookRepository } from '../repositories/webhook.repository';
+import type { Prisma } from '../generated/prisma';
 
 const router = Router();
 
@@ -36,6 +38,28 @@ router.post('/:provider', async (req: Request, res: Response) => {
 
   // MoMo: fire-and-forget with the immediate 204 it requires.
   if (providerName === 'MOMO') {
+    // Security review 2026-09-03 (C2) — used to ack 204 first and only THEN persist (inside
+    // the fired-and-forgotten processWebhook, below). A crash/restart between those two steps
+    // meant the event was gone forever: MoMo already saw 204 and never redelivers. Persisting
+    // the identifying fields synchronously first, before acking, closes that window — this is
+    // the exact same idempotent upsert() handleEvent() itself calls first (unique on
+    // (provider, providerEventId)), just done once more here, so processWebhook below still
+    // runs unchanged and safely re-upserts the same row rather than duplicating it.
+    try {
+      const { valid, payload } = getProvider('MOMO').verifyWebhookSignature(rawBody);
+      if (valid && payload) {
+        await webhookRepository.upsert({
+          provider: 'MOMO',
+          providerEventId: String(payload.transId ?? payload.orderId),
+          providerTransactionId: String(payload.orderId),
+          payload: payload as unknown as Prisma.InputJsonValue,
+        });
+      }
+    } catch (err) {
+      // Never let the pre-persist step itself block MoMo's required fast 204 — worst case
+      // here is falling back to the old fire-and-forget behavior for this one delivery.
+      logger.error({ error: '[Webhook] MoMo pre-persist failed', message: (err as Error).message });
+    }
     res.status(204).send();
     void processWebhook(providerName, rawBody);
     return;

@@ -19,6 +19,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { inbodyService, coachService, type AiChatSessionSummary } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import {
@@ -437,7 +438,7 @@ export function AICoachPage() {
         {evidence.map((item, index) => (
           <a
             key={`${item.source_url || item.title}-${index}`}
-            href={item.source_url || undefined}
+            href={isSafeHttpUrl(item.source_url) ? item.source_url : undefined}
             target="_blank"
             rel="noreferrer"
             className="group block rounded-lg border border-zinc-800 bg-zinc-950/70 px-2.5 py-2 hover:border-cyan-500/50 transition-colors"

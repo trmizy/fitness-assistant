@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dumbbell, MapPin, Loader2, Plus, X, Clock, CheckCircle, XCircle, Ban, Building2, ChevronDown, ChevronRight, Pencil, Check } from "lucide-react";
+import { Dumbbell, MapPin, Loader2, Plus, X, Clock, CheckCircle, XCircle, Ban, Building2, ChevronDown, ChevronRight, Pencil, Check, Star } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -25,11 +25,14 @@ function branchesForBrand(gyms: Gym[], brandId: string): Gym[] {
 
 function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
   const cfg = STATUS_CONFIG[gym.status];
+  // Stats (hội viên/sao) only exist for gyms the public can already see — a PENDING_REVIEW
+  // or REJECTED gym has never had a member or review, so the row would just show zeros.
+  const showStats = gym.status === "APPROVED" || gym.status === "SUSPENDED";
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-left bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors"
+      className="text-left bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors flex flex-col"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
@@ -42,6 +45,25 @@ function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
       <div className="text-sm font-bold text-zinc-200">{gym.name}</div>
       <div className="flex items-center gap-1 text-xs text-zinc-500 mt-1">
         <MapPin className="w-3 h-3" /> {gym.address}{gym.city ? `, ${gym.city}` : ""}
+      </div>
+      <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center justify-between">
+        {gym.status === "PENDING_REVIEW" ? (
+          <span className="text-xs text-amber-400">Đang chờ admin duyệt...</span>
+        ) : showStats ? (
+          <>
+            <span className="flex items-center gap-3 text-xs text-zinc-500">
+              <span>{gym.activeMemberCount ?? 0} hội viên</span>
+              <span className="flex items-center gap-1 text-amber-400">
+                <Star className="w-3 h-3 fill-amber-400" /> {(gym.averageRating ?? 0).toFixed(1)}
+              </span>
+            </span>
+            <span className="text-xs font-semibold text-green-400 flex items-center gap-0.5 shrink-0">
+              Quản lý <ChevronRight className="w-3 h-3" />
+            </span>
+          </>
+        ) : (
+          <span className="text-xs text-zinc-600">Đã bị từ chối</span>
+        )}
       </div>
     </button>
   );
@@ -272,6 +294,17 @@ export function MyGymsPage() {
             {standalone.map((g) => (
               <GymCard key={g.id} gym={g} onClick={() => navigate(`/gym-owner/gyms/${g.id}`)} />
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setGymForm({ name: "", address: "", city: "", description: "", brandId: "" });
+                setShowCreateGym(true);
+              }}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-700/60 p-4 text-zinc-500 hover:border-green-500/40 hover:text-green-400 transition-[transform,border-color,color] active:scale-[0.98] min-h-[104px]"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-xs font-semibold">Thêm phòng gym</span>
+            </button>
           </div>
         </div>
       )}

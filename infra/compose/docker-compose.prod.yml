@@ -343,6 +343,14 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__ENABLE_UI=false
+    # Security review 2026-09-03 (H4) — was unbounded, so a vector-search spike could starve
+    # every other container on the same single node. Override via .env to match the actual
+    # instance size; these are deliberately generous defaults, not a real sizing recommendation.
+    deploy:
+      resources:
+        limits:
+          cpus: "${QDRANT_CPU_LIMIT:-1.0}"
+          memory: ${QDRANT_MEMORY_LIMIT:-1G}
     networks:
       - default
 
@@ -363,6 +371,13 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    # Security review 2026-09-03 (H4) — same as qdrant above: an inference spike used to be
+    # able to starve api-gateway/services on this single node. Tune to the real instance.
+    deploy:
+      resources:
+        limits:
+          cpus: "${OLLAMA_CPU_LIMIT:-4.0}"
+          memory: ${OLLAMA_MEMORY_LIMIT:-6G}
     networks:
       - default
 

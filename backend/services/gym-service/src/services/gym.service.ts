@@ -74,8 +74,29 @@ export const gymService = {
     return gym;
   },
 
+  /**
+   * Attaches the same averageRating/reviewCount as the public listing, plus activeMemberCount
+   * (public DTOs never expose this — it's owner-only) — feeds the "Phòng gym của tôi" dashboard
+   * cards. The owner still sees their own raw name/address here (not toPublicGym's
+   * approved-name substitution); only what's PUBLICLY shown is approved-gated, not what the
+   * owner can see about their own gym.
+   */
   async listOwned(ownerId: string) {
-    return gymRepository.findByOwner(ownerId);
+    const gyms = await gymRepository.findByOwner(ownerId);
+    const gymIds = gyms.map((g) => g.id);
+    const [ratings, memberCounts] = await Promise.all([
+      reviewRepository.aggregateForGyms(gymIds),
+      membershipRepository.countActiveByGyms(gymIds),
+    ]);
+    return gyms.map((g) => {
+      const r = ratings.get(g.id);
+      return {
+        ...g,
+        averageRating: round2(r?.averageRating ?? 0),
+        reviewCount: r?.count ?? 0,
+        activeMemberCount: memberCounts.get(g.id) ?? 0,
+      };
+    });
   },
 
   /**

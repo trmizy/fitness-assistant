@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isSafeHttpUrl } from "../../utils/safeUrl";
 import {
   Brain,
   Loader2,
@@ -1824,7 +1825,7 @@ export function AIPlansPage() {
                                             {item.summary}
                                           </div>
                                         )}
-                                        {item.source_url && (
+                                        {item.source_url && isSafeHttpUrl(item.source_url) && (
                                           <a
                                             className="text-xs text-cyan-300 hover:underline mt-1 inline-block"
                                             href={item.source_url}

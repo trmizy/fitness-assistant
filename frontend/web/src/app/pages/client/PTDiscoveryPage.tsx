@@ -16,6 +16,7 @@ import {
   Instagram,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { isSafeHttpUrl } from "../../utils/safeUrl";
 import {
   profileService,
   chatService,
@@ -70,15 +71,6 @@ function safeParseSocialLinks(raw: any): Record<string, string> {
     }
   }
   return {};
-}
-
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 // Chips and their filter values are the same strings now — the two arrays used to be kept
@@ -843,7 +835,7 @@ export function PTDiscoveryPage() {
                         Links
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {app.linkedinUrl && isValidUrl(app.linkedinUrl) && (
+                        {app.linkedinUrl && isSafeHttpUrl(app.linkedinUrl) && (
                           <a
                             href={app.linkedinUrl}
                             target="_blank"
@@ -853,7 +845,7 @@ export function PTDiscoveryPage() {
                             <Linkedin className="w-3 h-3" /> LinkedIn
                           </a>
                         )}
-                        {app.websiteUrl && isValidUrl(app.websiteUrl) && (
+                        {app.websiteUrl && isSafeHttpUrl(app.websiteUrl) && (
                           <a
                             href={app.websiteUrl}
                             target="_blank"

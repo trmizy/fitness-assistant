@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import { logger } from "@gym-coach/shared";
+import { logger, readGatewayVerifiedUser } from "@gym-coach/shared";
 
 export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
@@ -31,6 +31,17 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
+  // Security review 2026-09-03 (H1) — fast path: skip the auth-service round-trip entirely
+  // when the gateway already verified this request (see gatewayTrust.ts's own docstring for
+  // the full reasoning). Falls through to the original HTTP-verify below for anything not
+  // carrying a valid gateway secret — local dev hitting this service's own published port
+  // directly, tests, or a misconfigured deployment all still work exactly as before.
+  const verified = readGatewayVerifiedUser(req.headers);
+  if (verified) {
+    req.user = verified;
+    return next();
+  }
+
   try {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token) {

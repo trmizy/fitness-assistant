@@ -449,6 +449,7 @@ export interface Gym {
   updatedAt: string;
   averageRating?: number; // public DTO only
   reviewCount?: number; // public DTO only
+  activeMemberCount?: number; // owner listing only (GET /owner/gyms)
   /** Included on public/owner listings so the client can group branches without a second call. */
   brand?: { id: string; name: string; approvedName?: string | null; pendingName?: string | null } | null;
 }

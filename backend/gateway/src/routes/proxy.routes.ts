@@ -53,9 +53,14 @@ function normalizeSetCookiePath(
       normalized = `${normalized}; Path=/`;
     }
 
-    // n8n may issue Secure cookies by default. Strip it for local HTTP gateway
-    // usage so browser can persist session on http://localhost.
-    normalized = normalized.replace(/;\s*Secure/gi, "");
+    // n8n may issue Secure cookies by default. Strip it ONLY outside production — for local
+    // HTTP gateway usage so the browser can persist session on http://localhost. Security
+    // review 2026-09-03 (M5): this used to strip unconditionally, which would silently
+    // downgrade n8n's session cookie in production too (defeats Secure the moment prod sits
+    // behind real HTTPS — see C3), for zero benefit since prod doesn't need this workaround.
+    if (process.env.NODE_ENV !== "production") {
+      normalized = normalized.replace(/;\s*Secure/gi, "");
+    }
 
     return normalized;
   });

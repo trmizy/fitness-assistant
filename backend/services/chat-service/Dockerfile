@@ -34,6 +34,9 @@ COPY --from=builder /app/backend/services/chat-service/dist ./backend/services/c
 COPY --from=builder /app/backend/services/chat-service/package.json ./backend/services/chat-service/package.json
 COPY --from=builder /app/backend/services/chat-service/prisma ./backend/services/chat-service/prisma
 WORKDIR /app/backend/services/chat-service
+# Security review 2026-09-03 (H5) — ran as root by default; base node:20-alpine already ships
+# a non-root "node" user (uid 1000) built for exactly this.
+USER node
 EXPOSE 3005
 # `exec` replaces the shell with the node process instead of forking it as a
 # child — without it, Docker's SIGTERM (sent to the shell, PID 1) never

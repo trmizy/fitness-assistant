@@ -37,6 +37,9 @@ COPY --from=builder /app/backend/services/auth-service/src/generated ./backend/s
 COPY --from=builder /app/backend/services/auth-service/package.json ./backend/services/auth-service/package.json
 COPY --from=builder /app/backend/services/auth-service/prisma ./backend/services/auth-service/prisma
 WORKDIR /app/backend/services/auth-service
+# Security review 2026-09-03 (H5) — ran as root by default; base node:20-alpine already ships
+# a non-root "node" user (uid 1000) built for exactly this.
+USER node
 EXPOSE 3001
 # `exec` replaces the shell with the node process instead of forking it as a
 # child — without it, Docker's SIGTERM (sent to the shell, PID 1) never
