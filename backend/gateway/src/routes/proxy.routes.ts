@@ -173,13 +173,29 @@ const MONITOR_SERVICES: ProbeService[] = [
 function serviceUnavailable(serviceName: string) {
   return (err: Error, _req: Request, res: Response) => {
     logger.error({ error: `${serviceName} proxy error`, message: err.message });
-    (res as Response).status(503).json({
-      success: false,
-      error: {
-        code: "SERVICE_UNAVAILABLE",
-        message: `${serviceName} is unavailable`,
-      },
-    });
+    // For a WebSocket-upgrade proxy (chatSocketProxy, the n8n studio proxy — anything with
+    // `ws: true`), http-proxy's ws-incoming error path calls this with the raw duplex socket
+    // in place of `res`, which has no .status()/.json(). Calling it unconditionally used to
+    // throw a TypeError straight out of a raw socket 'error' event — Node treats that as an
+    // uncaught exception and crashes the ENTIRE gateway process, taking down every route for
+    // every user, not just the one WebSocket connection that failed. Confirmed reproducing
+    // this exactly: chat-service was briefly unreachable during a routine container restart,
+    // chatSocketProxy's WS error fired, and the whole gateway went down until restarted by
+    // hand — nothing about it was specific to chat-service or to that one restart.
+    if (typeof (res as Response)?.status === "function") {
+      (res as Response).status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: `${serviceName} is unavailable`,
+        },
+      });
+      return;
+    }
+    const socket = res as unknown as { destroyed?: boolean; end?: (data: string) => void };
+    if (socket && !socket.destroyed && typeof socket.end === "function") {
+      socket.end("HTTP/1.1 503 Service Unavailable\r\n\r\n");
+    }
   };
 }
 
