@@ -86,6 +86,7 @@ export const inbodyController = {
       const { result, entryData } = await inbodyService.extractFromImage(
         req.user!.id,
         req.file.path,
+        req.file.mimetype,
       );
       return res.json({ result, entryData });
     } catch (error: any) {

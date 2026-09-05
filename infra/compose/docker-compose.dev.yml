@@ -229,12 +229,14 @@ services:
       GYM_SERVICE_URL: http://gym-service:3006
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
-      # InBody scan extraction defaults to a local Ollama vision model, not
-      # Claude — see .env.example's "InBody scan extraction" section.
+      # InBody scan extraction: temporarily reverted default to Claude
+      # (2026-09-05) — see .env.example's "InBody scan extraction" section.
+      # The local Ollama vision path is intentionally KEPT (not deleted, just
+      # commented out in inbody-vision.service.ts) for future re-enablement.
       # Reuses ai-service's same Ollama instance (host.docker.internal, the
       # dev laptop's own `ollama serve`); user-service had no OLLAMA_BASE_URL
       # of its own before this since it never talked to Ollama previously.
-      INBODY_VISION_PROVIDER: ${INBODY_VISION_PROVIDER:-ollama}
+      INBODY_VISION_PROVIDER: ${INBODY_VISION_PROVIDER:-anthropic}
       INBODY_VISION_OLLAMA_MODEL: ${INBODY_VISION_OLLAMA_MODEL:-qwen2.5vl:3b}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}

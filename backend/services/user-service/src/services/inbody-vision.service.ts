@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import axios, { AxiosError } from "axios";
+// axios/AxiosError were only used by the now-disabled extractWithOllama() below —
+// re-import when re-enabling the local Ollama vision path.
+// import axios, { AxiosError } from "axios";
 import fs from "fs";
 import path from "path";
 import { logger } from "@gym-coach/shared";
@@ -98,15 +100,20 @@ const INBODY_TOOL: Anthropic.Tool = {
 const EXTRACTION_PROMPT =
   "Extract all body composition metrics from this InBody report. IMPORTANT: Also extract the measurement_date printed on the report (the date when the test was taken) — it may appear near the patient name, header, or footer in formats like YYYY.MM.DD, MM/DD/YYYY, or similar. Convert it to YYYY-MM-DD format. The Segmental Lean Analysis and Segmental Fat Analysis sections show a body silhouette with kg values labeled per body part (right arm, left arm, trunk, right leg, left leg). Use null for any value that is not visible or cannot be read. Respond with ONLY the JSON object matching the schema — no extra commentary.";
 
-// Product decision (2026-09-01): InBody extraction defaults to a LOCAL
+// Product decision (2026-09-01): InBody extraction defaulted to a LOCAL
 // vision model via Ollama, not the Claude API — no image or health data
-// leaves the machine unless a caller explicitly opts back into
-// INBODY_VISION_PROVIDER=anthropic. This mirrors ai-service's own
-// LLM_PROVIDER default (`ollama`) and reuses the SAME Ollama instance/env
-// vars (LLM_BASE_URL/OLLAMA_BASE_URL) already documented in .env.example —
-// no second Ollama deployment to stand up.
-const INBODY_VISION_PROVIDER = (process.env.INBODY_VISION_PROVIDER || "ollama").toLowerCase();
+// would leave the machine unless a caller explicitly opted back into
+// INBODY_VISION_PROVIDER=anthropic.
+//
+// TEMPORARILY REVERTED (2026-09-05): back to Claude as the active provider
+// for now. The local-first Ollama architecture below is intentionally KEPT
+// (not deleted) for future re-enablement — see the commented-out constants
+// and `extractWithOllama`/`extractJsonPayload` further down, and the
+// commented-out branch in `extractInBodyVision`. To turn it back on: set
+// INBODY_VISION_PROVIDER=ollama and uncomment those blocks back in.
+const INBODY_VISION_PROVIDER = (process.env.INBODY_VISION_PROVIDER || "anthropic").toLowerCase();
 
+// --- Local Ollama vision path — inactive, kept for future re-enablement ---
 // qwen2.5vl:3b default — chosen for running CPU-only on a modest dev
 // machine (no GPU passthrough into the `ollama` container by default;
 // verified via `docker exec gymcoach-ollama nvidia-smi` failing). It has
@@ -117,13 +124,13 @@ const INBODY_VISION_PROVIDER = (process.env.INBODY_VISION_PROVIDER || "ollama").
 // minicpm-v) via INBODY_VISION_OLLAMA_MODEL if the host has a GPU or more
 // patience — accuracy on a health-data extraction task should win over
 // speed once the hardware allows it.
-const OLLAMA_VISION_MODEL = process.env.INBODY_VISION_OLLAMA_MODEL || "qwen2.5vl:3b";
-const OLLAMA_BASE_URL =
-  process.env.INBODY_VISION_OLLAMA_BASE_URL ||
-  process.env.OLLAMA_BASE_URL ||
-  process.env.LLM_BASE_URL ||
-  "http://host.docker.internal:11434";
-const OLLAMA_VISION_TIMEOUT_MS = Number(process.env.INBODY_VISION_OLLAMA_TIMEOUT_MS) || 150_000;
+// const OLLAMA_VISION_MODEL = process.env.INBODY_VISION_OLLAMA_MODEL || "qwen2.5vl:3b";
+// const OLLAMA_BASE_URL =
+//   process.env.INBODY_VISION_OLLAMA_BASE_URL ||
+//   process.env.OLLAMA_BASE_URL ||
+//   process.env.LLM_BASE_URL ||
+//   "http://host.docker.internal:11434";
+// const OLLAMA_VISION_TIMEOUT_MS = Number(process.env.INBODY_VISION_OLLAMA_TIMEOUT_MS) || 150_000;
 
 function toFiniteNumberOrNull(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -159,68 +166,68 @@ function normalizeVisionResult(raw: unknown): VisionResult {
   };
 }
 
-function extractJsonPayload(content: string): unknown {
-  // Ollama's `format` schema keeps this to a bare JSON object in practice,
-  // but strip a markdown code fence defensively — a smaller local model is
-  // more prone to it than a hosted frontier model would be.
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const jsonText = fenced ? fenced[1] : content;
-  return JSON.parse(jsonText);
-}
-
-async function extractWithOllama(base64Data: string): Promise<VisionResult> {
-  let response;
-  try {
-    response = await axios.post(
-      `${OLLAMA_BASE_URL}/api/chat`,
-      {
-        model: OLLAMA_VISION_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: EXTRACTION_PROMPT,
-            images: [base64Data],
-          },
-        ],
-        format: INBODY_JSON_SCHEMA,
-        stream: false,
-        // Ollama unloads a model 5 minutes after its last call by default —
-        // measured on this environment: ~135s cold (weights loading into
-        // RAM) vs ~16s warm for the same request. InBody uploads are
-        // infrequent but a user retrying a bad photo minutes apart
-        // shouldn't eat that cold-start cost twice; 30m keeps it resident
-        // through a realistic retry window without pinning it forever.
-        keep_alive: "30m",
-        options: {
-          temperature: 0, // deterministic reads of printed numbers, not creative writing
-          num_predict: 1024,
-        },
-      },
-      { timeout: OLLAMA_VISION_TIMEOUT_MS },
-    );
-  } catch (err) {
-    const isConnection = err instanceof AxiosError && !err.response;
-    logger.error({ err, provider: "ollama", model: OLLAMA_VISION_MODEL }, "InBody local vision call failed");
-    throw new Error(
-      isConnection
-        ? `Local AI (Ollama) unreachable at ${OLLAMA_BASE_URL}. Is Ollama running with a vision model pulled (ollama pull ${OLLAMA_VISION_MODEL})?`
-        : `Local AI (Ollama) call failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-
-  const content = response.data?.message?.content;
-  if (!content || typeof content !== "string") {
-    throw new Error("Local AI (Ollama) did not return InBody data");
-  }
-  let parsed: unknown;
-  try {
-    parsed = extractJsonPayload(content);
-  } catch {
-    logger.error({ content }, "InBody local vision returned non-JSON content");
-    throw new Error("Local AI (Ollama) returned unreadable data — try a clearer photo");
-  }
-  return normalizeVisionResult(parsed);
-}
+// function extractJsonPayload(content: string): unknown {
+//   // Ollama's `format` schema keeps this to a bare JSON object in practice,
+//   // but strip a markdown code fence defensively — a smaller local model is
+//   // more prone to it than a hosted frontier model would be.
+//   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+//   const jsonText = fenced ? fenced[1] : content;
+//   return JSON.parse(jsonText);
+// }
+//
+// async function extractWithOllama(base64Data: string): Promise<VisionResult> {
+//   let response;
+//   try {
+//     response = await axios.post(
+//       `${OLLAMA_BASE_URL}/api/chat`,
+//       {
+//         model: OLLAMA_VISION_MODEL,
+//         messages: [
+//           {
+//             role: "user",
+//             content: EXTRACTION_PROMPT,
+//             images: [base64Data],
+//           },
+//         ],
+//         format: INBODY_JSON_SCHEMA,
+//         stream: false,
+//         // Ollama unloads a model 5 minutes after its last call by default —
+//         // measured on this environment: ~135s cold (weights loading into
+//         // RAM) vs ~16s warm for the same request. InBody uploads are
+//         // infrequent but a user retrying a bad photo minutes apart
+//         // shouldn't eat that cold-start cost twice; 30m keeps it resident
+//         // through a realistic retry window without pinning it forever.
+//         keep_alive: "30m",
+//         options: {
+//           temperature: 0, // deterministic reads of printed numbers, not creative writing
+//           num_predict: 1024,
+//         },
+//       },
+//       { timeout: OLLAMA_VISION_TIMEOUT_MS },
+//     );
+//   } catch (err) {
+//     const isConnection = err instanceof AxiosError && !err.response;
+//     logger.error({ err, provider: "ollama", model: OLLAMA_VISION_MODEL }, "InBody local vision call failed");
+//     throw new Error(
+//       isConnection
+//         ? `Local AI (Ollama) unreachable at ${OLLAMA_BASE_URL}. Is Ollama running with a vision model pulled (ollama pull ${OLLAMA_VISION_MODEL})?`
+//         : `Local AI (Ollama) call failed: ${err instanceof Error ? err.message : String(err)}`,
+//     );
+//   }
+//
+//   const content = response.data?.message?.content;
+//   if (!content || typeof content !== "string") {
+//     throw new Error("Local AI (Ollama) did not return InBody data");
+//   }
+//   let parsed: unknown;
+//   try {
+//     parsed = extractJsonPayload(content);
+//   } catch {
+//     logger.error({ content }, "InBody local vision returned non-JSON content");
+//     throw new Error("Local AI (Ollama) returned unreadable data — try a clearer photo");
+//   }
+//   return normalizeVisionResult(parsed);
+// }
 
 async function extractWithClaude(
   base64Data: string,
@@ -253,19 +260,42 @@ async function extractWithClaude(
   return normalizeVisionResult(toolUse.input);
 }
 
-export async function extractInBodyVision(imagePath: string): Promise<VisionResult> {
+export async function extractInBodyVision(
+  imagePath: string,
+  uploadMimeType?: string,
+): Promise<VisionResult> {
   const base64Data = fs.readFileSync(imagePath).toString("base64");
-  const ext = path.extname(imagePath).toLowerCase();
-  const mediaType = (ext === ".png" ? "image/png" : "image/jpeg") as "image/png" | "image/jpeg";
+  // BUG FIX (2026-09-05): multer's disk storage names temp files with a random hex string and
+  // NO extension (see inbody.routes.ts's `dest:` config) — path.extname(imagePath) was ALWAYS
+  // "" for every real upload, so this silently defaulted every image to "image/jpeg" regardless
+  // of its actual type. Ollama's vision API tolerates a wrong declared type; Claude's does not
+  // and rejects the request outright ("specified using image/jpeg, but the image appears to be
+  // image/png") — invisible while Ollama was the active provider, now a hard failure. Prefer the
+  // browser-declared, already-validated (validateUploadMime) req.file.mimetype the controller
+  // passes in; only fall back to sniffing the path's extension for callers that don't have one
+  // (e.g. the Ollama integration test, which calls this directly with a real .png file path).
+  const mediaType: "image/png" | "image/jpeg" =
+    uploadMimeType === "image/png"
+      ? "image/png"
+      : uploadMimeType === "image/jpeg" || uploadMimeType === "image/jpg"
+        ? "image/jpeg"
+        : path.extname(imagePath).toLowerCase() === ".png"
+          ? "image/png"
+          : "image/jpeg";
 
-  if (INBODY_VISION_PROVIDER === "anthropic") {
-    return extractWithClaude(base64Data, mediaType);
-  }
-  if (INBODY_VISION_PROVIDER !== "ollama") {
+  // Ollama path temporarily disabled — see the "TEMPORARILY REVERTED" note
+  // near INBODY_VISION_PROVIDER above. Restore this branch (and uncomment
+  // extractWithOllama/extractJsonPayload + the OLLAMA_* constants) to
+  // re-enable local-first extraction:
+  //
+  // if (INBODY_VISION_PROVIDER === "ollama") {
+  //   return extractWithOllama(base64Data);
+  // }
+  if (INBODY_VISION_PROVIDER !== "anthropic") {
     logger.warn(
       { provider: INBODY_VISION_PROVIDER },
-      "Unrecognized INBODY_VISION_PROVIDER, falling back to ollama",
+      "Unrecognized INBODY_VISION_PROVIDER (local Ollama path is currently disabled), falling back to anthropic",
     );
   }
-  return extractWithOllama(base64Data);
+  return extractWithClaude(base64Data, mediaType);
 }

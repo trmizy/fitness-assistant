@@ -51,7 +51,11 @@ test.after(() => {
   fs.rmSync(tmpImagePath, { force: true });
 });
 
-test("extractInBodyVision (ollama): round-trips a real Ollama call and returns the exact VisionResult shape", async () => {
+// TEMPORARILY SKIPPED (2026-09-05): inbody-vision.service.ts reverted its default
+// provider to `anthropic` and commented out extractWithOllama/the Ollama constants
+// (kept, not deleted, for future re-enablement). This test now has nothing live to
+// exercise until that path is turned back on — see the note in that file.
+test.skip("extractInBodyVision (ollama): round-trips a real Ollama call and returns the exact VisionResult shape", async () => {
   const result = await extractInBodyVision(tmpImagePath);
 
   // Shape, not content — a 1x1 blank image has no real metrics to read,
