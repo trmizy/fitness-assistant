@@ -82,6 +82,12 @@ export const paymentClient = {
     return data.data;
   },
 
+  /** Open-room online session — PT joined after the grace window (half a no-show's rate). */
+  async lateArrival(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
   async terminate(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, body, { headers, timeout: 20_000 });
     return data.data;

@@ -2,6 +2,7 @@ import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import {
+  computeLateArrivalCompensation,
   computeNoShowCompensation,
   computeSessionRelease,
   computeTermination,
@@ -302,6 +303,80 @@ export async function compensateNoShow(params: {
         partnerType: 'PT',
         partnerId: parties.ptUserId,
         reason: `PT no-show compensation shortfall (${label})`,
+        transactionId,
+      });
+    }
+
+    return {
+      compensation: c.compensation.toFixed(2),
+      charged: {
+        pt: charged.pt.toFixed(2),
+        gym: charged.gym.toFixed(2),
+        platform: charged.platform.toFixed(2),
+      },
+      shortfall: shortfall.toFixed(2),
+    };
+    }),
+  );
+}
+
+/**
+ * Open-room online session — the PT joined the room, but after the grace window past the
+ * scheduled start. Half of compensateNoShow's rate (computeLateArrivalCompensation), same
+ * three-way charge/shortfall mechanics. A DELIBERATE near-duplicate of compensateNoShow rather
+ * than a shared refactor: compensateNoShow is relied on exactly as it already behaves by its
+ * existing callers, and touching it to parameterize the formula risks a regression there for
+ * zero benefit — this new function owns its own small blast radius instead.
+ */
+export async function compensateLateArrival(params: {
+  transactionId: string;
+  price: Prisma.Decimal;
+  totalSessions: number;
+  rates: RateTable;
+  parties: ContractParties;
+  label: string;
+  /** Business key `PT_LATE_ARRIVAL:<sessionId>` — a retry with the same key replays the
+   * first call's result instead of compensating the client a second time. */
+  idempotencyKey: string;
+}): Promise<NoShowResult> {
+  const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey } = params;
+  const wallets = await resolveWallets(parties);
+  const c = computeLateArrivalCompensation(price, totalSessions, rates);
+  assertGymConsistency(wallets, c.gym);
+
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+    const charged = { pt: ZERO, gym: ZERO, platform: ZERO };
+    let shortfall = ZERO;
+
+    const charge = async (walletId: string, amount: Prisma.Decimal, key: 'pt' | 'gym' | 'platform') => {
+      if (amount.lessThanOrEqualTo(0)) return;
+      let outstanding = amount;
+      for (const bucket of ['PENDING', 'AVAILABLE'] as const) {
+        if (outstanding.lessThanOrEqualTo(0)) break;
+        const held = ops.balance(walletId, bucket);
+        const taken = held.lessThan(outstanding) ? held : outstanding;
+        if (taken.greaterThan(0)) {
+          await ops.debit(walletId, taken, `${label} — PT late-arrival charge`, bucket);
+          charged[key] = charged[key].plus(taken);
+          outstanding = outstanding.minus(taken);
+        }
+      }
+      shortfall = shortfall.plus(outstanding);
+    };
+
+    await charge(wallets.ptId, c.pt, 'pt');
+    if (wallets.gymId) await charge(wallets.gymId, c.gym, 'gym');
+    else if (c.gym.greaterThan(0)) shortfall = shortfall.plus(c.gym);
+    await charge(wallets.revenueId, c.platform, 'platform');
+
+    await ops.credit(wallets.clientId, c.compensation, `${label} — compensation for the PT's late arrival`);
+
+    if (shortfall.greaterThan(0)) {
+      await coverShortfall(ops, wallets.revenueId, shortfall, {
+        partnerType: 'PT',
+        partnerId: parties.ptUserId,
+        reason: `PT late-arrival compensation shortfall (${label})`,
         transactionId,
       });
     }

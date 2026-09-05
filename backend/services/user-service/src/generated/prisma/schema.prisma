@@ -612,6 +612,15 @@ model Session {
   /// PT_REPEATED_NO_SHOW.
   ptAtFault          Boolean   @default(false) @map("pt_at_fault")
 
+  /// Open-room online sessions ("meeting room", not a 1:1 ring call) — first time each side
+  /// actually entered the room. Immutable once set: leaving and rejoining inside the open
+  /// window never overwrites it, since only the FIRST arrival matters for the on-time/late
+  /// check and for "did this person ever show up at all". Null forever if that person never
+  /// joined. Only meaningful for sessionMode ONLINE; OFFLINE sessions have no room and keep
+  /// the manual markNoShow/reportPtNoShow buttons instead.
+  roomPtJoinedAt     DateTime? @map("room_pt_joined_at")
+  roomClientJoinedAt DateTime? @map("room_client_joined_at")
+
   // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
   clientConfirmDeadline DateTime?           @map("client_confirm_deadline")
   autoConfirmed         Boolean             @default(false) @map("auto_confirmed")
@@ -983,6 +992,8 @@ enum SessionSettlementKind {
   PT_NO_SHOW_COMPENSATION
   SESSION_RELEASE
   CONTRACT_TERMINATION
+  /// Open-room online session — PT joined after the grace window (compensateLateArrivalMoney).
+  PT_LATE_ARRIVAL_COMPENSATION
 }
 
 enum SessionSettlementStatus {

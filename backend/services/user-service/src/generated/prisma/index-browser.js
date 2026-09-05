@@ -321,6 +321,8 @@ exports.Prisma.SessionScalarFieldEnum = {
   sessionDeducted: 'sessionDeducted',
   completedAt: 'completedAt',
   ptAtFault: 'ptAtFault',
+  roomPtJoinedAt: 'roomPtJoinedAt',
+  roomClientJoinedAt: 'roomClientJoinedAt',
   clientConfirmDeadline: 'clientConfirmDeadline',
   autoConfirmed: 'autoConfirmed',
   disputeReason: 'disputeReason',
@@ -718,7 +720,8 @@ exports.AuditEntityType = exports.$Enums.AuditEntityType = {
 exports.SessionSettlementKind = exports.$Enums.SessionSettlementKind = {
   PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
   SESSION_RELEASE: 'SESSION_RELEASE',
-  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION'
+  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION',
+  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION'
 };
 
 exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {

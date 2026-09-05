@@ -7,7 +7,7 @@ import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
-import { compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
+import { compensateLateArrival, compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
 import {
   settleMembershipReferral,
   clawbackMembershipReferral,
@@ -476,6 +476,31 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'no-show compensation failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+// POST /internal/contracts/late-arrival — open-room online session, PT joined after the
+// grace window: half a no-show's compensation, client's entitlement untouched.
+router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
+  const parsed = releaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await compensateLateArrival({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'late-arrival compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
   }
 });

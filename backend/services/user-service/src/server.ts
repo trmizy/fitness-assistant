@@ -8,6 +8,7 @@ import { startSessionAutoConfirmJob } from "./services/session-autoconfirm.servi
 import { startRescheduleExpiryJob } from "./services/reschedule-expiry.service";
 import { startSessionSettlementSweepJob } from "./services/session-settlement-sweep.service";
 import { startContractExpirySweepJob } from "./services/contract-expiry-sweep.service";
+import { startRoomCloseResolutionJob } from "./services/room-close-resolution.service";
 
 const PORT = process.env.PORT || 3004;
 
@@ -24,6 +25,10 @@ app.listen(PORT, () => {
   // sitting in pending for never-booked sessions does not stay stuck forever (P0 cluster A3)
   // — see contract-expiry-sweep.service.ts.
   startContractExpirySweepJob();
+  // Open-room online sessions: resolves who showed up once the room's own window has closed,
+  // so an ONLINE session's outcome no longer depends on either side clicking a manual
+  // complete/no-show button — see room-close-resolution.service.ts.
+  startRoomCloseResolutionJob();
 });
 
 process.on("SIGTERM", async () => {
