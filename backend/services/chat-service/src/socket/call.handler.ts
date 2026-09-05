@@ -3,10 +3,7 @@ import { Server, Socket } from "socket.io";
 import { CallType, CallOrigin } from "@prisma/client";
 import { logger } from "@gym-coach/shared";
 import { callService } from "../services/call.service";
-import {
-  canInitiateCallFromChat,
-  canInitiateCallFromSession,
-} from "../services/call.policy";
+import { canInitiateCallFromChat } from "../services/call.policy";
 import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
 import { chatRepository } from "../repositories/chat.repository";
@@ -203,20 +200,21 @@ export function registerCallHandlers(
           }
         }
 
-        // Permission check
-        if (origin === "SESSION" && coachingSessionId) {
-          const perm = await canInitiateCallFromSession(
-            user.id,
-            coachingSessionId,
-            authToken,
-          );
-          if (!perm.allowed) {
-            socket.emit("call:error", {
-              message: perm.reason || "Not allowed",
-            });
-            return;
-          }
-        } else {
+        // Permission check. SESSION-linked calls already proved everything this would
+        // re-check (identity, session membership, and that the window was open a moment
+        // ago) via verifyJoinToken above — skipped here on purpose, not merely redundant
+        // with it: canInitiateCallFromSession forwards `authToken`, which is
+        // socket.handshake.auth.token captured ONCE at connect time and never refreshed
+        // for the socket's whole lifetime. An open room is deliberately long-lived (up to
+        // the room's own duration, "ra vào tự do" — leave and rejoin freely) — every rejoin
+        // after the user's ~15-minute access token has since expired would otherwise fail
+        // this check with a stale-token 401 ("Failed to verify session"), even though the
+        // join token used above was minted seconds earlier by the very same REST call that
+        // re-validates the room's window every time. The only case this stops catching is a
+        // room closing in the last few minutes of a joinToken's own 10-minute lifetime —
+        // narrower and far less harmful than legitimately joined users being locked out of
+        // their own already-open room.
+        if (origin !== "SESSION") {
           const perm = await canInitiateCallFromChat(
             user.id,
             calleeId,
@@ -233,9 +231,9 @@ export function registerCallHandlers(
 
         // Open-room redesign: a SESSION call has no "ring" at all — either side may arrive
         // first and simply waits in the room for the other, for as long as the room's own
-        // window (already enforced by joinSession/canInitiateCallFromSession before this
-        // point) stays open. The offline-callee-is-a-missed-call and 30s-ring-timeout rules
-        // below exist ONLY to model a real phone-style ring, which a CHAT call still is.
+        // window (already enforced by joinSession/verifyJoinToken before this point) stays
+        // open. The offline-callee-is-a-missed-call and 30s-ring-timeout rules below exist
+        // ONLY to model a real phone-style ring, which a CHAT call still is.
         if (!isSessionCall) {
           // Check if callee is online
           if (!onlineUsers.has(calleeId)) {

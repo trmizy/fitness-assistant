@@ -10,7 +10,24 @@ export const callService = {
     origin?: CallOrigin;
     coachingSessionId?: string;
   }) {
-    // Check if either party is already in a call
+    // Open-room redesign: rejoining (or being the second arrival into) THIS session's own
+    // room must never trip the busy-check below — an open room's row deliberately stays
+    // "active" after someone leaves (see call:leave_room), so the very account rejoining it
+    // is *always* found by findActiveCallForUser as already a participant of this exact row.
+    // Checked first and unconditionally short-circuits: whether this is the row's original
+    // caller coming back, or the callee arriving for the first or the fifth time, it's the
+    // same row, never a genuine new call.
+    if (data.origin === "SESSION" && data.coachingSessionId) {
+      const existing = await callRepository.findActiveByCoachingSession(
+        data.coachingSessionId,
+      );
+      if (existing) {
+        return { existingCall: existing };
+      }
+    }
+
+    // Check if either party is already in a call — a genuinely different, unrelated one, now
+    // that a rejoin into this same session's own room was already handled above.
     const [callerBusy, calleeBusy] = await Promise.all([
       callRepository.findActiveCallForUser(data.callerId),
       callRepository.findActiveCallForUser(data.calleeId),
@@ -21,16 +38,6 @@ export const callService = {
     }
     if (calleeBusy) {
       return { error: "User is busy" };
-    }
-
-    // For session-linked calls, check if there's already an active call for this session
-    if (data.origin === "SESSION" && data.coachingSessionId) {
-      const existing = await callRepository.findActiveByCoachingSession(
-        data.coachingSessionId,
-      );
-      if (existing) {
-        return { existingCall: existing };
-      }
     }
 
     const call = await callRepository.create({

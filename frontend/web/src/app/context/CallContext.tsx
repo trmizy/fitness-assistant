@@ -280,6 +280,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // A stray event for a call this side is no longer part of (explicitly left, or never
+    // joined at all) must be ignored outright. Without this, ANY call:offer/peer_rejoined
+    // arriving on this socket — which stays connected long after the user backs out of the
+    // call UI, since leaving a SESSION room never disconnects the socket itself — would
+    // silently pull them straight back into "Connecting..." the instant the OTHER party
+    // (re)joins, even though THIS side never asked to rejoin anything. doCleanup() resets
+    // callInfo to null on every real exit (leave, hang up, error), so comparing against the
+    // CURRENTLY-tracked callSessionId is exactly "am I still meant to be part of this call
+    // right now" — a stale/unrelated event for any other id (or none at all) is a no-op.
+    const isRelevantCall = (callSessionId: string) =>
+      stateRef.current.callInfo?.callSessionId === callSessionId;
+
     // Whoever is this row's caller (re)sends an offer whenever the callee (re)joins — first
     // ever handshake (CHAT accept, or a SESSION room's second arrival) and every SESSION
     // reconnect afterward all funnel through here, since call:offer may only ever come from
@@ -312,7 +324,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Caller receives accepted (CHAT only — a SESSION room's equivalent is
     // call:existing/call:peer_rejoined below) → create PeerConnection + offer.
     const onAccepted = async (data: any) => {
-      if (!isCallerRef.current) return;
+      if (!isCallerRef.current || !isRelevantCall(data.callSessionId)) return;
       iceServersRef.current = data.iceServers || iceServersRef.current;
       await sendFreshOffer(data.callSessionId);
     };
@@ -320,7 +332,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Whoever is this row's callee receives an offer whenever the caller (re)sends one —
     // create PeerConnection + answer. Receiving one at all means the peer is right here now.
     const onOffer = async (data: any) => {
-      if (isCallerRef.current) return;
+      if (isCallerRef.current || !isRelevantCall(data.callSessionId)) return;
       dispatch({ type: "SET_PEER_PRESENT", payload: true });
       dispatch({ type: "SET_CONNECTING" });
       try {
@@ -338,6 +350,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onAnswer = async (data: any) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       try {
         await webrtcRef.current.setRemoteAnswer(data.sdp);
       } catch (err) {
@@ -346,6 +359,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onIceCandidate = async (data: any) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       try {
         await webrtcRef.current.addIceCandidate(data.candidate);
       } catch (err) {
@@ -353,9 +367,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const onCallEnd = () => doCleanup();
+    const onCallEnd = (data?: { callSessionId?: string }) => {
+      if (data?.callSessionId && !isRelevantCall(data.callSessionId)) return;
+      doCleanup();
+    };
 
-    const onMissed = () => {
+    const onMissed = (data?: { callSessionId?: string }) => {
+      if (data?.callSessionId && !isRelevantCall(data.callSessionId)) return;
       const s = stateRef.current;
       if (s.callInfo?.origin === "SESSION") {
         toast.info(
@@ -392,9 +410,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     // Open-room sessions only: sent to whoever is this row's caller when the callee
-    // (re)joins — the caller cannot otherwise learn this happened.
+    // (re)joins — the caller cannot otherwise learn this happened. Critically also gated on
+    // isRelevantCall: leaving a SESSION room never disconnects the socket (see
+    // call:leave_room), so a caller who has themselves already left — and is now sitting
+    // idle — is STILL registered in this row's caller slot and would otherwise be silently
+    // pulled back into "Connecting..." the instant the other party rejoins, despite never
+    // asking to rejoin anything themselves.
     const onPeerRejoined = async (data: any) => {
-      if (!isCallerRef.current) return;
+      if (!isCallerRef.current || !isRelevantCall(data.callSessionId)) return;
       dispatch({ type: "SET_PEER_PRESENT", payload: true });
       await sendFreshOffer(data.callSessionId);
     };
@@ -406,7 +429,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // end is gone and fire connectionState "failed" on its own a few seconds later, which
     // handleConnectionStateChange would misread as THIS side's connection having broken and
     // wrongly leave/end the call on the side that never actually left.
-    const onPeerLeftRoom = () => {
+    const onPeerLeftRoom = (data: { callSessionId: string }) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       webrtcRef.current.closePeerConnection();
       dispatch({ type: "SET_PEER_PRESENT", payload: false });
     };
@@ -415,17 +439,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // the peer connection for SESSION calls (same reasoning as onPeerLeftRoom above) — a
     // CHAT call's 30s grace-timer already ends it server-side regardless, so leaving CHAT's
     // existing behavior here untouched.
-    const onPeerDisconnected = () => {
+    const onPeerDisconnected = (data: { callSessionId: string }) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       if (stateRef.current.callInfo?.origin === "SESSION") {
         webrtcRef.current.closePeerConnection();
       }
       dispatch({ type: "SET_PEER_PRESENT", payload: false });
     };
-    const onPeerReconnected = () => {
+    const onPeerReconnected = (data: { callSessionId: string }) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       dispatch({ type: "SET_PEER_PRESENT", payload: true });
     };
 
     const onMediaToggled = (data: MediaToggledData) => {
+      if (!isRelevantCall(data.callSessionId)) return;
       dispatch({
         type: "SET_REMOTE_MEDIA",
         payload: { kind: data.kind, enabled: data.enabled },

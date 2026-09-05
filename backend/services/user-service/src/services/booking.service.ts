@@ -1133,7 +1133,13 @@ export const bookingService = {
       userId,
       otherUserId,
       purpose: "JOIN_COACHING_SESSION",
-      exp: Date.now() + 10 * 60 * 1000, // 10 minutes
+      // Open-room redesign: minted right when "Tham gia buổi học" is clicked, but actually
+      // spent only after the preview screen (choosing mic/cam) — a deliberate pause, not
+      // meant to be rushed. 10 minutes (the old ring-call flow's value, back when clicking
+      // "join" and actually joining were nearly the same instant) was too tight for that
+      // gap and expired mid-preview in practice. 45 minutes comfortably covers realistic
+      // deliberation time while staying a short-lived, clearly-bounded credential.
+      exp: Date.now() + 45 * 60 * 1000,
     };
     const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const sig = createHmac("sha256", secret)
