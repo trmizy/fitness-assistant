@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import {
   Search,
@@ -84,6 +85,20 @@ export function PTDiscoveryPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messagingPT, setMessagingPT] = useState(false);
+  // Mirrors this page's own `lg` (1024px) breakpoint exactly (the list/detail layout
+  // switches from flex-col to flex-row there) — deliberately not the shared useIsMobile
+  // hook, which is pinned to 768px and would disagree with this page's own CSS between
+  // 768–1024px. Drives whether the detail panel below renders inline (desktop) or as a
+  // portaled bottom-sheet modal (mobile) — see its own comment for why a portal at all.
+  const [isDesktopView, setIsDesktopView] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 1024,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsDesktopView(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   // Filter panel state
   const [filterOpen, setFilterOpen] = useState(false);
@@ -600,8 +615,21 @@ export function PTDiscoveryPage() {
             const socialLinks = safeParseSocialLinks(app?.socialLinks);
 
 
-            return (
-              <div className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden self-start">
+            // The page's own route content sits inside AppShell's animated
+            // <motion.div> (Framer Motion applies a `transform` there for the page-switch
+            // slide/fade — see AppShell.tsx). ANY transform on an ancestor gives
+            // `position: fixed` descendants a new containing block, so a plain `fixed
+            // inset-0` here would size itself against that div's own content box instead
+            // of the real viewport — exactly the "modal pinned near the top, with a dead
+            // gap before the bottom nav" bug just reported. A portal to document.body is
+            // the standard fix (same pattern already used by
+            // PlanMarketplacePage's modal): it renders the sheet as a sibling of the
+            // animated tree entirely, so `fixed` finally means the actual screen. Desktop
+            // is a completely different, non-portaled render (the plain inline panel this
+            // always was) — the two are simple enough to keep as separate branches rather
+            // than forcing one wrapper to serve both.
+            const content = (
+              <>
                 {/* Header */}
                 <div className="p-5 border-b border-zinc-800/60">
                   <div className="flex items-start gap-4">
@@ -968,7 +996,30 @@ export function PTDiscoveryPage() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </>
+            );
+
+            if (isDesktopView) {
+              return (
+                <div className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden self-start">
+                  {content}
+                </div>
+              );
+            }
+
+            return createPortal(
+              <div
+                className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end justify-center"
+                onClick={() => setSelectedId(null)}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800/60 bg-zinc-900"
+                >
+                  {content}
+                </div>
+              </div>,
+              document.body,
             );
           })()}
       </div>
