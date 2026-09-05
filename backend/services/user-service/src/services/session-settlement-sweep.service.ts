@@ -1,7 +1,7 @@
 import { logger } from "@gym-coach/shared";
 import { SessionSettlementKind } from "../generated/prisma";
 import { sessionSettlementRepository } from "../repositories/session-settlement.repository";
-import { compensateNoShowMoney, releaseSessionMoney, terminateContractMoney, type TerminationReason } from "./contract-payout.service";
+import { compensateLateArrivalMoney, compensateNoShowMoney, releaseSessionMoney, terminateContractMoney, type TerminationReason } from "./contract-payout.service";
 import { settleTracked } from "./session-settlement.service";
 
 /**
@@ -86,6 +86,8 @@ async function dispatch(
   switch (kind) {
     case SessionSettlementKind.PT_NO_SHOW_COMPENSATION:
       return compensateNoShowMoney(contractId, sessionId!);
+    case SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION:
+      return compensateLateArrivalMoney(contractId, sessionId!);
     case SessionSettlementKind.SESSION_RELEASE:
       return releaseSessionMoney(contractId, sessionId!);
     case SessionSettlementKind.CONTRACT_TERMINATION: {

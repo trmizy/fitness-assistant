@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-08-17T05:34:13.378Z",
+  "deterministicOptions": {
+    "temperature": 0,
+    "seed": 42,
+    "retries": 1,
+    "timeoutMs": 90000
+  },
+  "summary": [
+    {
+      "model": "qwen2.5:1.5b",
+      "cases": 12,
+      "schemaPassRate": 0.3333333333333333,
+      "finalSemanticPassRate": 0.6666666666666666,
+      "workoutInvariantPassRate": 0.3333333333333333,
+      "vietnamesePassRate": 0.75,
+      "citationPrecision": 1,
+      "citationCoverage": 1,
+      "unsupportedClaimRate": 0,
+      "safetyRecall": 0.7142857142857143,
+      "repairRate": 0.6666666666666666,
+      "failureAfterRepairRate": 0.6666666666666666,
+      "latencyP50Ms": 969,
+      "latencyP95Ms": 9168,
+      "errors": 0
+    },
+    {
+      "model": "fitness-coach-qwen2.5-1.5b:q4_K_M",
+      "cases": 12,
+      "schemaPassRate": 0.6666666666666666,
+      "finalSemanticPassRate": 0.4166666666666667,
+      "workoutInvariantPassRate": 0.3333333333333333,
+      "vietnamesePassRate": 0.75,
+      "citationPrecision": 0.5,
+      "citationCoverage": 0.5,
+      "unsupportedClaimRate": 0,
+      "safetyRecall": 0.42857142857142855,
+      "repairRate": 0.6666666666666666,
+      "failureAfterRepairRate": 0.6666666666666666,
+      "latencyP50Ms": 860,
+      "latencyP95Ms": 11359,
+      "errors": 0
+    }
+  ]
+}

@@ -42,6 +42,24 @@ const SESSION_STATUS: Record<
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
   },
+  // Merge note: these SessionStatus values exist on the payment-gateways branch's session
+  // lifecycle (client-confirmation window, dispute flow, reschedule requests) but predate
+  // this map — added so Record<SessionStatus, ...>'s completeness check stays meaningful.
+  PENDING_CLIENT_CONFIRMATION: {
+    label: "Awaiting client confirmation",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  DISPUTED: {
+    label: "Disputed",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  RESCHEDULE_PENDING: {
+    label: "Reschedule pending",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
 };
 
 function partyName(c: Contract) {
@@ -678,31 +696,41 @@ export function PTContractsPage() {
                                     )}
                                     {s.status === "CONFIRMED" && (
                                       <>
-                                        <button
-                                          onClick={() =>
-                                            completeSessionMut.mutate(s.id)
-                                          }
-                                          disabled={
-                                            completeSessionMut.isPending
-                                          }
-                                          className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-                                        >
-                                          <CheckCircle className="w-3 h-3" />{" "}
-                                          Complete
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            noShowMut.mutate({
-                                              id: s.id,
-                                              noShowBy: "CLIENT",
-                                            })
-                                          }
-                                          disabled={noShowMut.isPending}
-                                          className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
-                                        >
-                                          <AlertOctagon className="w-3 h-3" />{" "}
-                                          No-Show
-                                        </button>
+                                        {/* Open-room redesign: an ONLINE session's outcome
+                                            is now decided automatically by the room-close
+                                            sweep once its window passes — Complete/No-Show
+                                            would just race that same decision by hand. Cancel
+                                            stays for both modes (a different, earlier moment
+                                            in the session's life). */}
+                                        {s.sessionMode !== "ONLINE" && (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                completeSessionMut.mutate(s.id)
+                                              }
+                                              disabled={
+                                                completeSessionMut.isPending
+                                              }
+                                              className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                                            >
+                                              <CheckCircle className="w-3 h-3" />{" "}
+                                              Complete
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                noShowMut.mutate({
+                                                  id: s.id,
+                                                  noShowBy: "CLIENT",
+                                                })
+                                              }
+                                              disabled={noShowMut.isPending}
+                                              className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+                                            >
+                                              <AlertOctagon className="w-3 h-3" />{" "}
+                                              No-Show
+                                            </button>
+                                          </>
+                                        )}
                                         <button
                                           onClick={() =>
                                             cancelSessionMut.mutate({

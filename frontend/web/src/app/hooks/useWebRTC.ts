@@ -13,6 +13,9 @@ export interface WebRTCHandle {
   addIceCandidate: (candidate: RTCIceCandidateInit) => Promise<void>;
   toggleMute: () => boolean;
   toggleVideo: () => boolean;
+  /** Open-room sessions: tears down just the peer connection (a peer who left/dropped),
+   * keeping local media running — see the doc comment on the implementation. */
+  closePeerConnection: () => void;
   cleanup: () => void;
   localStream: MediaStream | null;
   remoteStream: MediaStream;
@@ -51,6 +54,15 @@ export function useWebRTC(
   /** Step 2: Create PeerConnection — can be called from socket handler */
   const createConnection = useCallback((iceServers: RTCIceServer[]) => {
     pcRef.current?.close();
+
+    // Open-room reconnects call this a second (or third...) time on the SAME hook instance.
+    // Any tracks left in the shared remoteStream belonged to the now-closed connection above
+    // and will never receive more frames — without clearing them, the old frame would freeze
+    // in place forever alongside the new track once the fresh connection comes up.
+    remoteStreamRef.current.getTracks().forEach((t) => {
+      remoteStreamRef.current.removeTrack(t);
+      t.stop();
+    });
 
     const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
@@ -145,6 +157,24 @@ export function useWebRTC(
     return !track.enabled;
   }, []);
 
+  /**
+   * Open-room sessions: tears down ONLY the peer connection to someone who just left —
+   * local media (camera/mic preview) stays running so this side's own UI stays exactly as
+   * it was. Closing here deliberately fires connectionState "closed", never "failed" — the
+   * caller (CallContext's onPeerLeftRoom/onPeerDisconnected) uses this specifically so the
+   * peer leaving doesn't get misread, a few seconds later, as THIS side's own connection
+   * having failed (which would otherwise wrongly end the call on the side that stayed).
+   */
+  const closePeerConnection = useCallback(() => {
+    pcRef.current?.close();
+    pcRef.current = null;
+    remoteStreamRef.current.getTracks().forEach((t) => {
+      remoteStreamRef.current.removeTrack(t);
+      t.stop();
+    });
+    iceQueueRef.current = [];
+  }, []);
+
   const cleanup = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
@@ -178,6 +208,7 @@ export function useWebRTC(
     addIceCandidate,
     toggleMute,
     toggleVideo,
+    closePeerConnection,
     cleanup,
   };
 }

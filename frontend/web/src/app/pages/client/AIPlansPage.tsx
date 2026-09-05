@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { BrainIcon as Brain, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, SparkleIcon as Sparkles, ClockIcon as Clock3, CheckCircleIcon as CircleCheck, XCircleIcon as CircleX, PlusIcon as Plus, MagicWandIcon as Wand2, SlidersIcon as SlidersHorizontal, CalendarBlankIcon as CalendarDays, BarbellIcon as Dumbbell, TargetIcon as Target, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, TrashIcon as Trash2 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
@@ -1807,7 +1808,7 @@ export function AIPlansPage() {
                                             {item.summary}
                                           </div>
                                         )}
-                                        {item.source_url && (
+                                        {item.source_url && isSafeHttpUrl(item.source_url) && (
                                           <a
                                             className="text-xs text-cyan-300 hover:underline mt-1 inline-block"
                                             href={item.source_url}

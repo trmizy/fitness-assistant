@@ -63,6 +63,24 @@ export const membershipRepository = {
     });
   },
 
+  /**
+   * How many currently-ACTIVE members each gym has — same groupBy shape as
+   * `reviewRepository.aggregateForGyms`, used for the owner's "Phòng gym của tôi" dashboard.
+   * `endDate > now` mirrors `findOtherActiveMemberships`'s guard: a row can be ACTIVE in the
+   * database but already past its own endDate if nothing has lazily expired it yet.
+   */
+  async countActiveByGyms(gymIds: string[]): Promise<Map<string, number>> {
+    const map = new Map<string, number>();
+    if (gymIds.length === 0) return map;
+    const rows = await prisma.gymMembershipContract.groupBy({
+      by: ['gymId'],
+      where: { gymId: { in: gymIds }, status: 'ACTIVE', endDate: { gt: new Date() } },
+      _count: true,
+    });
+    for (const r of rows) map.set(r.gymId, r._count);
+    return map;
+  },
+
   /** Lazy expiration: if this row is ACTIVE but past endDate, flip it to EXPIRED first. */
   async expireIfPastEndDate(contract: { id: string; status: string; endDate: Date | null }) {
     if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {

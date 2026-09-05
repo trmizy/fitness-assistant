@@ -337,6 +337,9 @@ export type CallUIState =
   | "idle"
   | "outgoing"
   | "incoming"
+  // Open-room sessions only, below — never reached by a CHAT-origin call.
+  | "preview" // choosing mic/cam before entering the room
+  | "waiting" // already joined, alone — waiting for the other party to arrive
   | "connecting"
   | "active";
 
@@ -349,6 +352,11 @@ export interface CallSessionInfo {
   origin: CallOrigin;
   conversationId: string;
   iceServers?: RTCIceServer[];
+  /** Open-room sessions only — the coaching session this room belongs to. */
+  coachingSessionId?: string;
+  /** Open-room sessions only — when the room closes for good (booking.service.ts's
+   * joinSession), drives the countdown/closing-warning UI. */
+  roomClosesAt?: string;
 }
 
 export interface CallState {
@@ -449,6 +457,7 @@ export interface Gym {
   updatedAt: string;
   averageRating?: number; // public DTO only
   reviewCount?: number; // public DTO only
+  activeMemberCount?: number; // owner listing only (GET /owner/gyms)
   /** Included on public/owner listings so the client can group branches without a second call. */
   brand?: { id: string; name: string; approvedName?: string | null; pendingName?: string | null } | null;
 }

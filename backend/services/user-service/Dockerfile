@@ -47,7 +47,13 @@ COPY --from=builder /app/backend/services/user-service/src/generated ./backend/s
 COPY --from=builder /app/backend/services/user-service/package.json ./backend/services/user-service/package.json
 COPY --from=builder /app/backend/services/user-service/prisma ./backend/services/user-service/prisma
 WORKDIR /app/backend/services/user-service
-RUN mkdir -p uploads/pt-applications
+# Security review 2026-09-03 (H5) — ran as root by default; base node:20-slim already ships a
+# non-root "node" user (uid 1000) built for exactly this. uploads/ is chowned to it explicitly
+# (unlike every sibling service's runner stage, this one writes to disk at runtime — PT
+# application documents — and the user_uploads named volume below is seeded from whatever
+# ownership this directory has at image-build time on its first mount).
+RUN mkdir -p uploads/pt-applications && chown -R node:node uploads
+USER node
 EXPOSE 3004
 # Every sibling service's production Dockerfile runs `prisma migrate deploy`
 # before starting (auth/fitness/chat/payment/gym) — this one didn't, which

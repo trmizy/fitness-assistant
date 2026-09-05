@@ -148,6 +148,41 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
   );
 }
 
+/**
+ * Open-room online session — the PT joined the room, but after the grace window past the
+ * scheduled start. The client's entitlement is untouched (this is not a no-show — the PT did
+ * show up), but they are compensated in cash at half a full no-show's rate. A near-duplicate
+ * of compensateNoShowMoney above rather than a shared helper, for the same reason
+ * payment-service's compensateLateArrival is its own function: that one is relied on exactly
+ * as-is by its existing callers.
+ */
+export async function compensateLateArrivalMoney(contractId: string, sessionId: string): Promise<void> {
+  const contract = payableOrNull(await contractRepository.findById(contractId));
+  if (!contract) return;
+
+  const idempotencyKey = `PT_LATE_ARRIVAL:${sessionId}`;
+  await settleTracked(
+    { kind: SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION, idempotencyKey, contractId, sessionId },
+    async () => {
+      const result = await paymentClient.lateArrival({
+        transactionId: contract.paymentTransactionId,
+        price: contract.price!.toString(),
+        totalSessions: contract.totalSessions,
+        rates: ratesOf(contract),
+        parties: partiesOf(contract),
+        label: `Contract ${contract.id} PT late arrival ${sessionId}`,
+        idempotencyKey,
+      });
+
+      if (Number(result.shortfall) > 0) {
+        logger.warn(
+          `[ContractPayout] Late-arrival shortfall ${result.shortfall} on ${contractId} — platform fronted it, receivable raised against the PT`,
+        );
+      }
+    },
+  );
+}
+
 export type TerminationReason =
   | "CLIENT_CANCELLED"
   | "PT_BANNED"

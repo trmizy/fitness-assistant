@@ -56,6 +56,20 @@ export const NO_SHOW_GRACE_MINUTES = Number(
 );
 const NO_SHOW_GRACE_MS = NO_SHOW_GRACE_MINUTES * 60 * 1000;
 
+// ── Open-room online sessions ("meeting room", not a 1:1 ring call) ─────────────
+// Room opens before the scheduled start so neither side has to hit the exact second, and
+// closes hard at scheduledEndAt (== scheduledStartAt + the contract's own session duration) —
+// no grace tail on the close, a session mid-sentence is cut exactly like a real Meet/Teams
+// call would be. ROOM_LATE_GRACE_MS deliberately reuses NO_SHOW_GRACE_MINUTES (same 15
+// minutes, same tunable) rather than a second constant — "how long is a reasonable grace
+// window past the start time" is one policy question, not two independent numbers to keep in
+// sync by hand.
+export const ROOM_OPEN_BEFORE_MINUTES = Number(
+  process.env.ROOM_OPEN_BEFORE_MINUTES ?? "15",
+);
+const ROOM_OPEN_BEFORE_MS = ROOM_OPEN_BEFORE_MINUTES * 60 * 1000;
+const ROOM_LATE_GRACE_MS = NO_SHOW_GRACE_MS;
+
 /** Collaborators of {@link deductQuotaOnce}, injectable so the once-only rule is testable. */
 export interface QuotaDeps {
   claimDeduction: (sessionId: string) => Promise<boolean>;
@@ -1079,6 +1093,34 @@ export const bookingService = {
       throw err("Session is not online — no call needed", 400);
     }
 
+    // Open-room window: opens ROOM_OPEN_BEFORE_MINUTES early, closes hard at scheduledEndAt.
+    // Re-checked on every join (not just the first), same as every other time-gated action in
+    // this file — a token handed out before the room opened, or kept past close, would let a
+    // stale client tab bypass the window entirely.
+    const now = Date.now();
+    const opensAt = session.scheduledStartAt.getTime() - ROOM_OPEN_BEFORE_MS;
+    const closesAt = session.scheduledEndAt.getTime();
+    if (now < opensAt) {
+      throw err(
+        `Phòng học mở trước giờ hẹn ${ROOM_OPEN_BEFORE_MINUTES} phút — vui lòng quay lại sau`,
+        400,
+      );
+    }
+    if (now >= closesAt) {
+      throw err("Phòng học đã đóng — buổi tập đã kết thúc", 400);
+    }
+
+    // First-arrival attendance, immutable once set — see recordRoomJoin's own doc comment.
+    // Best-effort: a write hiccup here must not block the join itself (the room-close sweep's
+    // own resolution already treats a session with neither timestamp set conservatively, as
+    // "nobody showed", so losing one write here is safe, just less generous to whoever it was).
+    const isPt = session.ptUserId === userId;
+    await sessionRepository
+      .recordRoomJoin(sessionId, isPt ? "pt" : "client")
+      .catch((e) =>
+        logger.error({ error: "recordRoomJoin failed", sessionId, message: (e as Error).message }),
+      );
+
     const otherUserId =
       session.ptUserId === userId ? session.clientUserId : session.ptUserId;
 
@@ -1091,7 +1133,13 @@ export const bookingService = {
       userId,
       otherUserId,
       purpose: "JOIN_COACHING_SESSION",
-      exp: Date.now() + 10 * 60 * 1000, // 10 minutes
+      // Open-room redesign: minted right when "Tham gia buổi học" is clicked, but actually
+      // spent only after the preview screen (choosing mic/cam) — a deliberate pause, not
+      // meant to be rushed. 10 minutes (the old ring-call flow's value, back when clicking
+      // "join" and actually joining were nearly the same instant) was too tight for that
+      // gap and expired mid-preview in practice. 45 minutes comfortably covers realistic
+      // deliberation time while staying a short-lived, clearly-bounded credential.
+      exp: Date.now() + 45 * 60 * 1000,
     };
     const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const sig = createHmac("sha256", secret)
@@ -1107,6 +1155,11 @@ export const bookingService = {
       status: session.status,
       scheduledStartAt: session.scheduledStartAt,
       scheduledEndAt: session.scheduledEndAt,
+      // So the frontend's room UI (countdown, "closes in 5 min" warning) never has to
+      // recompute or hardcode these constants itself.
+      roomOpensAt: new Date(opensAt),
+      roomClosesAt: session.scheduledEndAt,
+      ptLateAfter: new Date(session.scheduledStartAt.getTime() + ROOM_LATE_GRACE_MS),
     };
   },
 

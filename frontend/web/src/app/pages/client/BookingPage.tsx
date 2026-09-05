@@ -113,6 +113,15 @@ const SESSION_STATUS_CONFIG: Record<
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
+  // Merge note: SessionStatus gained this value on the payment-gateways branch
+  // (session-reschedule flow) after this map was last written — added here so
+  // TypeScript's Record<SessionStatus, ...> completeness check catches any
+  // future status this page doesn't yet render a label for.
+  RESCHEDULE_PENDING: {
+    label: "Chờ đổi lịch",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
 };
 
 type Tab = "book" | "upcoming" | "confirm" | "past";
@@ -120,7 +129,7 @@ type Tab = "book" | "upcoming" | "confirm" | "past";
 export function BookingPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
-  const { joinCoachingSession } = useCall();
+  const { startSessionPreview } = useCall();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -171,10 +180,11 @@ export function BookingPage() {
     setJoiningSessionId(s.id);
     try {
       const result = await sessionService.joinSession(s.id);
-      await joinCoachingSession({
+      await startSessionPreview({
         id: result.sessionId,
         otherUserId: result.otherUserId,
         joinToken: result.joinToken,
+        roomClosesAt: result.roomClosesAt,
       });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Không thể tham gia buổi học");
@@ -1271,7 +1281,12 @@ export function BookingPage() {
                         )}
                       </div>
                       <div>
+                        {/* Open-room redesign: an ONLINE session's outcome is now decided
+                            automatically by the room-close sweep the moment it reads who
+                            actually joined — this manual report is only meaningful for
+                            OFFLINE sessions, which have no room at all. */}
                         {s.status === "CONFIRMED" &&
+                          s.sessionMode !== "ONLINE" &&
                           new Date(s.scheduledStartAt).getTime() < Date.now() && (
                             <button
                               onClick={() => setNoShowReportId(s.id)}

@@ -352,7 +352,8 @@ export type AuditEntityType = (typeof AuditEntityType)[keyof typeof AuditEntityT
 export const SessionSettlementKind: {
   PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
   SESSION_RELEASE: 'SESSION_RELEASE',
-  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION'
+  CONTRACT_TERMINATION: 'CONTRACT_TERMINATION',
+  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION'
 };
 
 export type SessionSettlementKind = (typeof SessionSettlementKind)[keyof typeof SessionSettlementKind]
@@ -3112,8 +3113,6 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
-    unitSystem: string | null
-    energyUnit: string | null
     sessionDurationMinutes: number | null
     isAcceptingClients: boolean | null
     notAcceptingReason: string | null
@@ -3153,8 +3152,6 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
-    unitSystem: string | null
-    energyUnit: string | null
     sessionDurationMinutes: number | null
     isAcceptingClients: boolean | null
     notAcceptingReason: string | null
@@ -3198,8 +3195,6 @@ export namespace Prisma {
     startingWeightSource: number
     dietaryPreference: number
     photoUrl: number
-    unitSystem: number
-    energyUnit: number
     sessionDurationMinutes: number
     isAcceptingClients: number
     notAcceptingReason: number
@@ -3262,8 +3257,6 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
-    unitSystem?: true
-    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3303,8 +3296,6 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
-    unitSystem?: true
-    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3348,8 +3339,6 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
-    unitSystem?: true
-    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3481,8 +3470,6 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
-    unitSystem: string
-    energyUnit: string
     sessionDurationMinutes: number
     isAcceptingClients: boolean
     notAcceptingReason: string | null
@@ -3546,8 +3533,6 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
-    unitSystem?: boolean
-    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3596,8 +3581,6 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
-    unitSystem?: boolean
-    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3642,8 +3625,6 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
-    unitSystem?: boolean
-    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3703,8 +3684,6 @@ export namespace Prisma {
       startingWeightSource: string | null
       dietaryPreference: string | null
       photoUrl: string | null
-      unitSystem: string
-      energyUnit: string
       sessionDurationMinutes: number
       isAcceptingClients: boolean
       notAcceptingReason: string | null
@@ -4142,8 +4121,6 @@ export namespace Prisma {
     readonly startingWeightSource: FieldRef<"UserProfile", 'String'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
     readonly photoUrl: FieldRef<"UserProfile", 'String'>
-    readonly unitSystem: FieldRef<"UserProfile", 'String'>
-    readonly energyUnit: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
     readonly isAcceptingClients: FieldRef<"UserProfile", 'Boolean'>
     readonly notAcceptingReason: FieldRef<"UserProfile", 'String'>
@@ -9820,6 +9797,8 @@ export namespace Prisma {
     sessionDeducted: boolean | null
     completedAt: Date | null
     ptAtFault: boolean | null
+    roomPtJoinedAt: Date | null
+    roomClientJoinedAt: Date | null
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean | null
     disputeReason: string | null
@@ -9849,6 +9828,8 @@ export namespace Prisma {
     sessionDeducted: boolean | null
     completedAt: Date | null
     ptAtFault: boolean | null
+    roomPtJoinedAt: Date | null
+    roomClientJoinedAt: Date | null
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean | null
     disputeReason: string | null
@@ -9878,6 +9859,8 @@ export namespace Prisma {
     sessionDeducted: number
     completedAt: number
     ptAtFault: number
+    roomPtJoinedAt: number
+    roomClientJoinedAt: number
     clientConfirmDeadline: number
     autoConfirmed: number
     disputeReason: number
@@ -9909,6 +9892,8 @@ export namespace Prisma {
     sessionDeducted?: true
     completedAt?: true
     ptAtFault?: true
+    roomPtJoinedAt?: true
+    roomClientJoinedAt?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
@@ -9938,6 +9923,8 @@ export namespace Prisma {
     sessionDeducted?: true
     completedAt?: true
     ptAtFault?: true
+    roomPtJoinedAt?: true
+    roomClientJoinedAt?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
@@ -9967,6 +9954,8 @@ export namespace Prisma {
     sessionDeducted?: true
     completedAt?: true
     ptAtFault?: true
+    roomPtJoinedAt?: true
+    roomClientJoinedAt?: true
     clientConfirmDeadline?: true
     autoConfirmed?: true
     disputeReason?: true
@@ -10069,6 +10058,8 @@ export namespace Prisma {
     sessionDeducted: boolean
     completedAt: Date | null
     ptAtFault: boolean
+    roomPtJoinedAt: Date | null
+    roomClientJoinedAt: Date | null
     clientConfirmDeadline: Date | null
     autoConfirmed: boolean
     disputeReason: string | null
@@ -10115,6 +10106,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: boolean
     ptAtFault?: boolean
+    roomPtJoinedAt?: boolean
+    roomClientJoinedAt?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
@@ -10149,6 +10142,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: boolean
     ptAtFault?: boolean
+    roomPtJoinedAt?: boolean
+    roomClientJoinedAt?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
@@ -10179,6 +10174,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: boolean
     ptAtFault?: boolean
+    roomPtJoinedAt?: boolean
+    roomClientJoinedAt?: boolean
     clientConfirmDeadline?: boolean
     autoConfirmed?: boolean
     disputeReason?: boolean
@@ -10235,6 +10232,16 @@ export namespace Prisma {
        * PT_REPEATED_NO_SHOW.
        */
       ptAtFault: boolean
+      /**
+       * Open-room online sessions ("meeting room", not a 1:1 ring call) — first time each side
+       * actually entered the room. Immutable once set: leaving and rejoining inside the open
+       * window never overwrites it, since only the FIRST arrival matters for the on-time/late
+       * check and for "did this person ever show up at all". Null forever if that person never
+       * joined. Only meaningful for sessionMode ONLINE; OFFLINE sessions have no room and keep
+       * the manual markNoShow/reportPtNoShow buttons instead.
+       */
+      roomPtJoinedAt: Date | null
+      roomClientJoinedAt: Date | null
       clientConfirmDeadline: Date | null
       autoConfirmed: boolean
       disputeReason: string | null
@@ -10661,6 +10668,8 @@ export namespace Prisma {
     readonly sessionDeducted: FieldRef<"Session", 'Boolean'>
     readonly completedAt: FieldRef<"Session", 'DateTime'>
     readonly ptAtFault: FieldRef<"Session", 'Boolean'>
+    readonly roomPtJoinedAt: FieldRef<"Session", 'DateTime'>
+    readonly roomClientJoinedAt: FieldRef<"Session", 'DateTime'>
     readonly clientConfirmDeadline: FieldRef<"Session", 'DateTime'>
     readonly autoConfirmed: FieldRef<"Session", 'Boolean'>
     readonly disputeReason: FieldRef<"Session", 'String'>
@@ -25183,8 +25192,6 @@ export namespace Prisma {
     startingWeightSource: 'startingWeightSource',
     dietaryPreference: 'dietaryPreference',
     photoUrl: 'photoUrl',
-    unitSystem: 'unitSystem',
-    energyUnit: 'energyUnit',
     sessionDurationMinutes: 'sessionDurationMinutes',
     isAcceptingClients: 'isAcceptingClients',
     notAcceptingReason: 'notAcceptingReason',
@@ -25369,6 +25376,8 @@ export namespace Prisma {
     sessionDeducted: 'sessionDeducted',
     completedAt: 'completedAt',
     ptAtFault: 'ptAtFault',
+    roomPtJoinedAt: 'roomPtJoinedAt',
+    roomClientJoinedAt: 'roomClientJoinedAt',
     clientConfirmDeadline: 'clientConfirmDeadline',
     autoConfirmed: 'autoConfirmed',
     disputeReason: 'disputeReason',
@@ -26103,8 +26112,6 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
-    unitSystem?: StringFilter<"UserProfile"> | string
-    energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
@@ -26152,8 +26159,6 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
-    unitSystem?: SortOrder
-    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrderInput | SortOrder
@@ -26204,8 +26209,6 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
-    unitSystem?: StringFilter<"UserProfile"> | string
-    energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
@@ -26253,8 +26256,6 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
-    unitSystem?: SortOrder
-    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrderInput | SortOrder
@@ -26307,8 +26308,6 @@ export namespace Prisma {
     startingWeightSource?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
-    unitSystem?: StringWithAggregatesFilter<"UserProfile"> | string
-    energyUnit?: StringWithAggregatesFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
     isAcceptingClients?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
@@ -27109,6 +27108,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     ptAtFault?: BoolFilter<"Session"> | boolean
+    roomPtJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    roomClientJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
@@ -27142,6 +27143,8 @@ export namespace Prisma {
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     ptAtFault?: SortOrder
+    roomPtJoinedAt?: SortOrderInput | SortOrder
+    roomClientJoinedAt?: SortOrderInput | SortOrder
     clientConfirmDeadline?: SortOrderInput | SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrderInput | SortOrder
@@ -27178,6 +27181,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     ptAtFault?: BoolFilter<"Session"> | boolean
+    roomPtJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    roomClientJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
@@ -27211,6 +27216,8 @@ export namespace Prisma {
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     ptAtFault?: SortOrder
+    roomPtJoinedAt?: SortOrderInput | SortOrder
+    roomClientJoinedAt?: SortOrderInput | SortOrder
     clientConfirmDeadline?: SortOrderInput | SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrderInput | SortOrder
@@ -27246,6 +27253,8 @@ export namespace Prisma {
     sessionDeducted?: BoolWithAggregatesFilter<"Session"> | boolean
     completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     ptAtFault?: BoolWithAggregatesFilter<"Session"> | boolean
+    roomPtJoinedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    roomClientJoinedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     clientConfirmDeadline?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolWithAggregatesFilter<"Session"> | boolean
     disputeReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
@@ -28457,8 +28466,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28506,8 +28513,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28555,8 +28560,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28604,8 +28607,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28653,8 +28654,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28699,8 +28698,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28745,8 +28742,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29760,6 +29755,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -29793,6 +29790,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -29824,6 +29823,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29857,6 +29858,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29889,6 +29892,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -29917,6 +29922,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29946,6 +29953,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31484,8 +31493,6 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
-    unitSystem?: SortOrder
-    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -31536,8 +31543,6 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
-    unitSystem?: SortOrder
-    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -31577,8 +31582,6 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
-    unitSystem?: SortOrder
-    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -32594,6 +32597,8 @@ export namespace Prisma {
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
     ptAtFault?: SortOrder
+    roomPtJoinedAt?: SortOrder
+    roomClientJoinedAt?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
@@ -32623,6 +32628,8 @@ export namespace Prisma {
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
     ptAtFault?: SortOrder
+    roomPtJoinedAt?: SortOrder
+    roomClientJoinedAt?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
@@ -32652,6 +32659,8 @@ export namespace Prisma {
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
     ptAtFault?: SortOrder
+    roomPtJoinedAt?: SortOrder
+    roomClientJoinedAt?: SortOrder
     clientConfirmDeadline?: SortOrder
     autoConfirmed?: SortOrder
     disputeReason?: SortOrder
@@ -35780,8 +35789,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -35828,8 +35835,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -35952,8 +35957,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -36000,8 +36003,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -36530,6 +36531,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -36561,6 +36564,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -36678,6 +36683,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     ptAtFault?: BoolFilter<"Session"> | boolean
+    roomPtJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    roomClientJoinedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
     autoConfirmed?: BoolFilter<"Session"> | boolean
     disputeReason?: StringNullableFilter<"Session"> | string | null
@@ -37200,6 +37207,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -37232,6 +37241,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -37405,6 +37416,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37437,6 +37450,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37600,6 +37615,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -37632,6 +37649,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -37805,6 +37824,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37837,6 +37858,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38317,8 +38340,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38365,8 +38386,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38499,8 +38518,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38547,8 +38564,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38595,8 +38610,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38643,8 +38656,6 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
-    unitSystem?: string
-    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38707,8 +38718,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38755,8 +38764,6 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    unitSystem?: StringFieldUpdateOperationsInput | string
-    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38789,6 +38796,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -38821,6 +38830,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -38867,6 +38878,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38899,6 +38912,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -39133,6 +39148,8 @@ export namespace Prisma {
     sessionDeducted?: boolean
     completedAt?: Date | string | null
     ptAtFault?: boolean
+    roomPtJoinedAt?: Date | string | null
+    roomClientJoinedAt?: Date | string | null
     clientConfirmDeadline?: Date | string | null
     autoConfirmed?: boolean
     disputeReason?: string | null
@@ -39179,6 +39196,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -39210,6 +39229,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -39241,6 +39262,8 @@ export namespace Prisma {
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptAtFault?: BoolFieldUpdateOperationsInput | boolean
+    roomPtJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    roomClientJoinedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null

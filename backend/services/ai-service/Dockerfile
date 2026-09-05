@@ -42,6 +42,9 @@ COPY --from=builder /app/backend/services/ai-service/prisma ./backend/services/a
 # (by design), masking the gap in production.
 COPY --from=builder /app/backend/services/ai-service/data ./backend/services/ai-service/data
 WORKDIR /app/backend/services/ai-service
+# Security review 2026-09-03 (H5) — ran as root by default; base node:20-alpine already ships
+# a non-root "node" user (uid 1000) built for exactly this.
+USER node
 EXPOSE 3003
 # `exec` replaces the shell with the node process instead of forking it as a
 # child — without it, Docker's SIGTERM (sent to the shell, PID 1) never

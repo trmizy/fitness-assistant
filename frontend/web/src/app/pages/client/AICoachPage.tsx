@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { RobotIcon as Bot, PaperPlaneTiltIcon as Send, LightbulbIcon as Lightbulb, WarningCircleIcon as AlertCircle, ArrowsClockwiseIcon as RefreshCw, UserIcon as User, CircleNotchIcon as Loader2, BookOpenIcon as BookOpen, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, ChatTextIcon as MessageSquare, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { inbodyService, coachService, type AiChatSessionSummary } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import {
@@ -420,7 +421,7 @@ export function AICoachPage() {
         {evidence.map((item, index) => (
           <a
             key={`${item.source_url || item.title}-${index}`}
-            href={item.source_url || undefined}
+            href={isSafeHttpUrl(item.source_url) ? item.source_url : undefined}
             target="_blank"
             rel="noreferrer"
             className="group block rounded-lg border border-zinc-800 bg-zinc-950/70 px-2.5 py-2 hover:border-cyan-500/50 transition-colors"

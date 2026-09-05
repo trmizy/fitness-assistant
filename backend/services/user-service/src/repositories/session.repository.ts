@@ -33,6 +33,30 @@ export const sessionRepository = {
       include: { review: true, clientReview: true },
     }),
 
+  /**
+   * Open-room online sessions — records this side's FIRST arrival in the room. Guarded
+   * (`WHERE room<Side>JoinedAt IS NULL`) so re-entering later (leave-and-rejoin inside the
+   * open window is allowed) never overwrites the original timestamp, and two near-simultaneous
+   * join requests from the same side can't race each other into writing two different times.
+   */
+  recordRoomJoin: (id: string, side: "pt" | "client") => {
+    const field = side === "pt" ? "roomPtJoinedAt" : "roomClientJoinedAt";
+    return prisma.session.updateMany({
+      where: { id, [field]: null },
+      data: { [field]: new Date() },
+    });
+  },
+
+  /** Open-room online sessions whose window has just closed, still CONFIRMED (never entered
+   *  via the room at all, or entered but nobody ever called completeSession/markNoShow by
+   *  hand) — exactly what the room-close resolution sweep polls for. */
+  findConfirmedOnlineSessionsPastEnd: (before: Date, limit: number) =>
+    prisma.session.findMany({
+      where: { status: SessionStatus.CONFIRMED, sessionMode: "ONLINE", scheduledEndAt: { lte: before } },
+      take: limit,
+      orderBy: { scheduledEndAt: "asc" },
+    }),
+
   findByContract: (contractId: string) =>
     prisma.session.findMany({
       where: { contractId },

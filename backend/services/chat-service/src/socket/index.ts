@@ -111,6 +111,23 @@ export function initSocket(httpServer: http.Server) {
                     ? activeCall.calleeId
                     : activeCall.callerId;
 
+                // Open-room redesign: a SESSION call's own lifetime is bounded by the
+                // room's window, not by a 30s reconnect grace — a dropped connection here
+                // must behave exactly like an explicit call:leave_room (peer notified, row
+                // left untouched so a later rejoin reuses it), never an auto-end. Only a
+                // CHAT call still arms the grace-timer/auto-end below.
+                if (activeCall.origin === "SESSION") {
+                  io.to(`user:${otherUserId}`).emit("call:peer_disconnected", {
+                    callSessionId: activeCall.id,
+                    userId: user.id,
+                  });
+                  logger.info(
+                    { userId: user.id, callSessionId: activeCall.id },
+                    "Session room: peer disconnected, room stays open (no grace-timeout)",
+                  );
+                  return;
+                }
+
                 const timeout = setTimeout(async () => {
                   graceTimers.delete(user.id);
                   // Grace period expired — end the call

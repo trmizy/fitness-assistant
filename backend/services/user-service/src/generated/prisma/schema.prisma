@@ -145,17 +145,6 @@ model UserProfile {
   dietaryPreference String? @map("dietary_preference")
   photoUrl          String? @map("photo_url")
 
-  // Product Completeness pass — docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md §9.
-  // Display-only unit preferences for the Settings Center. Canonical storage for every
-  // domain field (heightCm, currentWeight, etc.) stays metric everywhere in this and every
-  // other service — these two columns only tell the frontend which unit to convert TO at
-  // the display/input boundary (frontend/web/src/app/utils/units.ts already has the pure
-  // conversion functions; this is the first time a *persisted* preference drives them).
-  // Deliberately plain strings, not enums: keeps this an additive, zero-downtime column add
-  // consistent with every other free-text preference field on this model (e.g. preferredSplit).
-  unitSystem String @default("metric") @map("unit_system") // "metric" | "imperial"
-  energyUnit String @default("kcal") @map("energy_unit") // "kcal" | "kj"
-
   sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
 
   // ── PT Acceptance status ────────────────────────────────────────────────
@@ -623,6 +612,15 @@ model Session {
   /// PT_REPEATED_NO_SHOW.
   ptAtFault          Boolean   @default(false) @map("pt_at_fault")
 
+  /// Open-room online sessions ("meeting room", not a 1:1 ring call) — first time each side
+  /// actually entered the room. Immutable once set: leaving and rejoining inside the open
+  /// window never overwrites it, since only the FIRST arrival matters for the on-time/late
+  /// check and for "did this person ever show up at all". Null forever if that person never
+  /// joined. Only meaningful for sessionMode ONLINE; OFFLINE sessions have no room and keep
+  /// the manual markNoShow/reportPtNoShow buttons instead.
+  roomPtJoinedAt     DateTime? @map("room_pt_joined_at")
+  roomClientJoinedAt DateTime? @map("room_client_joined_at")
+
   // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
   clientConfirmDeadline DateTime?           @map("client_confirm_deadline")
   autoConfirmed         Boolean             @default(false) @map("auto_confirmed")
@@ -994,6 +992,8 @@ enum SessionSettlementKind {
   PT_NO_SHOW_COMPENSATION
   SESSION_RELEASE
   CONTRACT_TERMINATION
+  /// Open-room online session — PT joined after the grace window (compensateLateArrivalMoney).
+  PT_LATE_ARRIVAL_COMPENSATION
 }
 
 enum SessionSettlementStatus {

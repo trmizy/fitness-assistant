@@ -4,6 +4,17 @@ import { AppProvider } from "./context/AppContext";
 import { AppShell } from "./components/layout/AppShell";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 
+/**
+ * Vòng 4 / Phase D2 — every page below used to be a static import (61 of them at last count),
+ * so visiting ANY single route pulled the entire app's JS into one bundle. Every page in this
+ * codebase is a NAMED export (verified: `grep -rl "export default" src/app/pages/` returns
+ * nothing), so the `.then(m => ({ default: m.X }))` mapping is uniform — lazy() itself only
+ * accepts a component that resolves as a default export, which is why every line needs it.
+ * The Suspense boundary that actually shows PageSkeleton while a chunk loads lives in
+ * AppShell.tsx (scoped to the content area only, so Topbar/Sidebar/BottomNav never flash) and
+ * in Root below (for the pre-login routes, which have no nav chrome to protect).
+ */
+
 // Dev-only pages
 const IconGalleryPage = lazy(() => import("./pages/dev/IconGalleryPage").then((m) => ({ default: m.IconGalleryPage })));
 
@@ -22,7 +33,9 @@ const PTApplicationPage = lazy(() => import("./pages/client/PTApplicationPage").
 const WalletPage = lazy(() => import("./pages/client/WalletPage").then((m) => ({ default: m.WalletPage })));
 const PaymentResultPage = lazy(() => import("./pages/client/PaymentResultPage").then((m) => ({ default: m.PaymentResultPage })));
 const GymDetailPage = lazy(() => import("./pages/client/GymDetailPage").then((m) => ({ default: m.GymDetailPage })));
-const ChatPage = lazy(() => import("./pages/client/ChatPage").then((m) => ({ default: m.ChatPage })));
+const ChatPage = lazy(() => import("./pages/client/ChatPage").then((m) => ({ default: m.ChatPage }))); // reused directly by /pt/chat (trainer workspace)
+// Merged tabbed pages — each combines two previously-separate nav entries
+// under one sidebar item (see TabbedPage) to shorten the nav for mobile.
 const PlansPage = lazy(() => import("./pages/client/PlansPage").then((m) => ({ default: m.PlansPage })));
 const TrainingPage = lazy(() => import("./pages/client/TrainingPage").then((m) => ({ default: m.TrainingPage })));
 const ServicesPage = lazy(() => import("./pages/client/ServicesPage").then((m) => ({ default: m.ServicesPage })));
@@ -91,6 +104,7 @@ import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      // Avoid repeated retries for auth/client-side errors that only slow initial render.
       retry: (failureCount, error: any) => {
         const status = error?.response?.status;
         if (typeof status === "number" && status < 500) return false;
@@ -104,6 +118,7 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Root layout — provides AppContext to the entire router tree */
 function Root() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -112,6 +127,9 @@ function Root() {
           <CallProvider>
             <Toaster position="top-center" expand={false} richColors />
             <PwaUpdatePrompt />
+            {/* Vòng 4 / Phase D2 — /login and /register are lazy now too; Root has no nav
+                chrome of its own (that only exists inside AppShell, per role), so wrapping the
+                whole Outlet here is already "content area only". */}
             <Suspense fallback={<PageSkeleton />}>
               <Outlet />
             </Suspense>
@@ -124,10 +142,14 @@ function Root() {
 
 export const router = createBrowserRouter([
   {
+    // Root wraps everything so AppProvider is always in context
     path: "/",
     Component: Root,
     errorElement: <RouteErrorBoundary />,
     children: [
+      // Not a hard redirect to /login — see RootRedirect. The Capacitor WebView always
+      // boots at "/", so this single line decided whether every app launch landed on the
+      // login screen or in the app.
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
@@ -136,10 +158,19 @@ export const router = createBrowserRouter([
       // reachable only by typing the URL — and the page component itself renders nothing
       // unless import.meta.env.DEV, so it's inert even if this route ships in a prod bundle.
       { path: "dev/icons", Component: IconGalleryPage },
+
+      // ── Client workspace ────────────────────────────────────────────────
       {
         path: "client",
         element: (
-          <RequireRole allow={["client"]}>
+          // "Một tài khoản, nhiều vai trò": a PT keeps full access to their own
+          // personal client-side experience (InBody, workouts, nutrition, ...) via the
+          // activeView toggle already built into Sidebar/Topbar/BottomNav — this guard
+          // must allow "pt" through too, or that toggle leads straight into this 403
+          // regardless of activeView. RequireOnboarding already anticipated this (it
+          // explicitly no-ops for any role !== "client"); this was the one guard that
+          // hadn't been updated to match.
+          <RequireRole allow={["client", "pt"]}>
             <RequireOnboarding>
               <AppShell />
             </RequireOnboarding>
@@ -188,6 +219,8 @@ export const router = createBrowserRouter([
           { path: "gym-memberships", Component: ServicesPage },
         ],
       },
+
+      // ── PT workspace ─────────────────────────────────────────────────────
       {
         path: "pt",
         element: (
@@ -209,6 +242,8 @@ export const router = createBrowserRouter([
           { path: "wallet", Component: PTWalletPage },
         ],
       },
+
+      // ── Gym owner workspace ──────────────────────────────────────────────
       {
         path: "gym-owner",
         element: (
@@ -223,6 +258,8 @@ export const router = createBrowserRouter([
           { path: "gyms/:id", Component: GymManagePage },
         ],
       },
+
+      // ── Admin workspace ──────────────────────────────────────────────────
       {
         path: "admin",
         element: (

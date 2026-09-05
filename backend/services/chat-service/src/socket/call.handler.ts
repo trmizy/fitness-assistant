@@ -3,10 +3,7 @@ import { Server, Socket } from "socket.io";
 import { CallType, CallOrigin } from "@prisma/client";
 import { logger } from "@gym-coach/shared";
 import { callService } from "../services/call.service";
-import {
-  canInitiateCallFromChat,
-  canInitiateCallFromSession,
-} from "../services/call.policy";
+import { canInitiateCallFromChat } from "../services/call.policy";
 import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
 import { chatRepository } from "../repositories/chat.repository";
@@ -203,20 +200,21 @@ export function registerCallHandlers(
           }
         }
 
-        // Permission check
-        if (origin === "SESSION" && coachingSessionId) {
-          const perm = await canInitiateCallFromSession(
-            user.id,
-            coachingSessionId,
-            authToken,
-          );
-          if (!perm.allowed) {
-            socket.emit("call:error", {
-              message: perm.reason || "Not allowed",
-            });
-            return;
-          }
-        } else {
+        // Permission check. SESSION-linked calls already proved everything this would
+        // re-check (identity, session membership, and that the window was open a moment
+        // ago) via verifyJoinToken above — skipped here on purpose, not merely redundant
+        // with it: canInitiateCallFromSession forwards `authToken`, which is
+        // socket.handshake.auth.token captured ONCE at connect time and never refreshed
+        // for the socket's whole lifetime. An open room is deliberately long-lived (up to
+        // the room's own duration, "ra vào tự do" — leave and rejoin freely) — every rejoin
+        // after the user's ~15-minute access token has since expired would otherwise fail
+        // this check with a stale-token 401 ("Failed to verify session"), even though the
+        // join token used above was minted seconds earlier by the very same REST call that
+        // re-validates the room's window every time. The only case this stops catching is a
+        // room closing in the last few minutes of a joinToken's own 10-minute lifetime —
+        // narrower and far less harmful than legitimately joined users being locked out of
+        // their own already-open room.
+        if (origin !== "SESSION") {
           const perm = await canInitiateCallFromChat(
             user.id,
             calleeId,
@@ -231,24 +229,31 @@ export function registerCallHandlers(
           }
         }
 
-        // Check if callee is online
-        if (!onlineUsers.has(calleeId)) {
-          // Create call as MISSED immediately
-          const result = await callService.initiateCall({
-            conversationId: conversationId || undefined,
-            callerId: user.id,
-            calleeId,
-            callType: callType as CallType,
-            origin: (origin as CallOrigin) || CallOrigin.CHAT,
-            coachingSessionId,
-          });
-          if ("call" in result && result.call) {
-            await callService.markMissed(result.call.id);
+        // Open-room redesign: a SESSION call has no "ring" at all — either side may arrive
+        // first and simply waits in the room for the other, for as long as the room's own
+        // window (already enforced by joinSession/verifyJoinToken before this point) stays
+        // open. The offline-callee-is-a-missed-call and 30s-ring-timeout rules below exist
+        // ONLY to model a real phone-style ring, which a CHAT call still is.
+        if (!isSessionCall) {
+          // Check if callee is online
+          if (!onlineUsers.has(calleeId)) {
+            // Create call as MISSED immediately
+            const result = await callService.initiateCall({
+              conversationId: conversationId || undefined,
+              callerId: user.id,
+              calleeId,
+              callType: callType as CallType,
+              origin: (origin as CallOrigin) || CallOrigin.CHAT,
+              coachingSessionId,
+            });
+            if ("call" in result && result.call) {
+              await callService.markMissed(result.call.id);
+            }
+            socket.emit("call:missed", {
+              callSessionId: result && "call" in result ? result.call?.id : null,
+            });
+            return;
           }
-          socket.emit("call:missed", {
-            callSessionId: result && "call" in result ? result.call?.id : null,
-          });
-          return;
         }
 
         const result = await callService.initiateCall({
@@ -265,54 +270,83 @@ export function registerCallHandlers(
           return;
         }
 
-        // Session-linked: existing call found, auto-join
+        // Session-linked: a room for this coaching session already exists (either the other
+        // party is waiting inside it, or this is the SAME person rejoining after a earlier
+        // leave/disconnect — the row is never ended just because one side stepped out, see
+        // call:leave_room below). `isCaller` tells the client which role it plays on THIS
+        // row — fixed for the row's whole lifetime, since call:offer/call:answer are only
+        // ever relayed caller→callee / callee→caller, never the other way, even on a rejoin.
         if ("existingCall" in result && result.existingCall) {
+          const existing = result.existingCall;
+          const isCaller = user.id === existing.callerId;
           socket.emit("call:existing", {
-            callSessionId: result.existingCall.id,
-            status: result.existingCall.status,
+            callSessionId: existing.id,
+            status: existing.status,
             iceServers: await getIceServers(),
+            isCaller,
           });
+          // The rejoining/joining party is the CALLEE — only the CALLER may ever send an
+          // offer, so the still-present (or previously-present) caller needs an explicit
+          // nudge to (re)negotiate; they have no other way to learn this arrival happened.
+          if (!isCaller) {
+            io.to(`user:${existing.callerId}`).emit("call:peer_rejoined", {
+              callSessionId: existing.id,
+            });
+          }
+          logger.info(
+            { callSessionId: existing.id, userId: user.id, isCaller },
+            "Session room (re)joined — existing call row reused",
+          );
           return;
         }
 
         const call = result.call!;
         const iceServers = await getIceServers();
 
-        // Notify callee (all tabs via user room)
-        io.to(`user:${calleeId}`).emit("call:incoming", {
-          callSessionId: call.id,
-          callerId: user.id,
-          callerName: user.email,
-          callType: call.callType,
-          origin: call.origin,
-          conversationId: call.conversationId,
-          iceServers,
-        });
+        if (!isSessionCall) {
+          // Notify callee (all tabs via user room) — a genuine ring, CHAT-origin only.
+          io.to(`user:${calleeId}`).emit("call:incoming", {
+            callSessionId: call.id,
+            callerId: user.id,
+            callerName: user.email,
+            callType: call.callType,
+            origin: call.origin,
+            conversationId: call.conversationId,
+            iceServers,
+          });
+        }
 
-        // Confirm to caller
+        // Confirm to caller. For a SESSION call this is the FIRST person in the room — they
+        // are always this row's caller (isCaller: true), and simply wait; nothing is sent to
+        // the other party at all (no ring — they'll see the room whenever they open it
+        // themselves, same as walking into an empty, already-open Meet/Teams meeting).
         socket.emit("call:initiated", {
           callSessionId: call.id,
           iceServers,
+          isCaller: true,
         });
 
-        // 30s ring timeout
-        const timeout = setTimeout(async () => {
-          ringTimeouts.delete(call.id);
-          const missed = await callService.markMissed(call.id);
-          if (missed) {
-            io.to(`user:${user.id}`).emit("call:missed", {
-              callSessionId: call.id,
-            });
-            io.to(`user:${calleeId}`).emit("call:missed", {
-              callSessionId: call.id,
-            });
-            await emitCallLogMessage(io, missed, true);
-          }
-        }, 30_000);
-        ringTimeouts.set(call.id, timeout);
+        if (!isSessionCall) {
+          // 30s ring timeout — CHAT-origin only; a SESSION room has no timeout of its own
+          // here, its ENTIRE lifetime is bounded by the room window enforced above instead.
+          const timeout = setTimeout(async () => {
+            ringTimeouts.delete(call.id);
+            const missed = await callService.markMissed(call.id);
+            if (missed) {
+              io.to(`user:${user.id}`).emit("call:missed", {
+                callSessionId: call.id,
+              });
+              io.to(`user:${calleeId}`).emit("call:missed", {
+                callSessionId: call.id,
+              });
+              await emitCallLogMessage(io, missed, true);
+            }
+          }, 30_000);
+          ringTimeouts.set(call.id, timeout);
+        }
 
         logger.info(
-          { callSessionId: call.id, callerId: user.id, calleeId },
+          { callSessionId: call.id, callerId: user.id, calleeId, isSessionCall },
           "Call initiated",
         );
       } catch (error) {
@@ -515,6 +549,35 @@ export function registerCallHandlers(
       } catch (error) {
         logger.error(error, "call:end error");
         socket.emit("call:error", { message: "Failed to end call" });
+      }
+    },
+  );
+
+  // ── Leave an open-room session (without ending it for the other party) ──
+  // The SESSION-call counterpart to call:end/call:cancel: unlike a CHAT call, one side
+  // stepping out of an open room must never end it for whoever's left — they may still be
+  // there, or may join later, right up until the room's own window closes (settled entirely
+  // by user-service's room-close-resolution sweep, not by anything here). No DB status
+  // change at all: the row stays exactly as it was, so a later rejoin finds the SAME
+  // "existingCall" and reconnects into it rather than starting a fresh one.
+  socket.on(
+    "call:leave_room",
+    async ({ callSessionId }: { callSessionId: string }) => {
+      try {
+        const call = await callService.findById(callSessionId);
+        if (!call || !isCallParticipant(user.id, call)) return;
+        if (call.origin !== CallOrigin.SESSION) return;
+
+        const otherUserId =
+          user.id === call.callerId ? call.calleeId : call.callerId;
+        io.to(`user:${otherUserId}`).emit("call:peer_left_room", {
+          callSessionId,
+          userId: user.id,
+        });
+
+        logger.info({ callSessionId, leftBy: user.id }, "Left open-room session (room stays open)");
+      } catch (error) {
+        logger.error(error, "call:leave_room error");
       }
     },
   );

@@ -18,6 +18,19 @@ const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
   "dev_internal_service_secret_change_in_production";
 
+// Security review 2026-09-03 (M6) — same fail-fast fitness-service's internalAuthMiddleware
+// already does: a missing/default/short secret in production means anyone who has read this
+// (public, in-source-control) file can forge internal-service calls against the endpoints
+// below. Refusing to boot beats silently accepting the well-known default.
+if (process.env.NODE_ENV === "production") {
+  const raw = process.env.INTERNAL_SERVICE_SECRET;
+  if (!raw || raw === "dev_internal_service_secret_change_in_production" || raw.length < 32) {
+    throw new Error(
+      "[auth-service] INTERNAL_SERVICE_SECRET must be set in production, must not be the default value, and must be at least 32 characters long.",
+    );
+  }
+}
+
 function getBearerToken(req: Request): string | null {
   const token = req.headers.authorization?.split(" ")[1];
   return token || null;

@@ -1,8 +1,17 @@
 import { z } from "zod";
 
+// Security review 2026-09-03 (L3) — min(8) alone accepted "password"/"12345678". Only
+// registration/password-change should require this shape; loginSchema below stays a bare
+// non-empty string on purpose — tightening login would reject existing users' real passwords
+// that predate this rule.
+const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z
+    .string()
+    .min(8)
+    .regex(PASSWORD_COMPLEXITY, "Password must contain an uppercase letter, a lowercase letter, and a number"),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });

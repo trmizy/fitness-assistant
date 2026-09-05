@@ -344,6 +344,29 @@ export function computeNoShowCompensation(
   return { compensation, ...split };
 }
 
+/**
+ * Open-room online sessions — the PT joined, but after the grace window (currently 15
+ * minutes past the scheduled start). Lighter than a full no-show: the PT did show up, so the
+ * client's entitlement is NOT touched (they neither lose the session nor get it re-billed),
+ * but they are compensated in cash for the lost time — at HALF a full no-show's rate.
+ *
+ * Deliberately a separate, additive function rather than a parameter added to
+ * computeNoShowCompensation above — that formula is relied on elsewhere exactly as it already
+ * behaves and must never change shape for its existing callers. This one simply calls it and
+ * keeps half of the result; if the full-no-show rate is ever retuned, this stays in lockstep
+ * by construction instead of drifting out of sync with a second hardcoded formula.
+ */
+export function computeLateArrivalCompensation(
+  price: Prisma.Decimal,
+  totalSessions: number,
+  rates: RateTable,
+): { compensation: Prisma.Decimal; pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal } {
+  const full = computeNoShowCompensation(price, totalSessions, rates);
+  const compensation = roundForClient(full.compensation.mul(0.5));
+  const split = splitThreeWays(compensation, rates);
+  return { compensation, ...split };
+}
+
 // ── Reporting ────────────────────────────────────────────────────────────────
 
 export interface MoneyBreakdown {

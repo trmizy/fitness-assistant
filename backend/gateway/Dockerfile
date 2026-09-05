@@ -33,5 +33,8 @@ COPY --from=builder /app/backend/gateway/node_modules ./backend/gateway/node_mod
 COPY --from=builder /app/backend/gateway/dist ./backend/gateway/dist
 COPY --from=builder /app/backend/gateway/package.json ./backend/gateway/package.json
 WORKDIR /app/backend/gateway
+# Security review 2026-09-03 (H5) — ran as root by default; base node:20-alpine already ships
+# a non-root "node" user (uid 1000) built for exactly this.
+USER node
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
