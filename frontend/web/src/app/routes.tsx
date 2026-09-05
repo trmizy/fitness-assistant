@@ -144,7 +144,14 @@ export const router = createBrowserRouter([
       {
         path: "client",
         element: (
-          <RequireRole allow={["client"]}>
+          // "Một tài khoản, nhiều vai trò": a PT keeps full access to their own
+          // personal client-side experience (InBody, workouts, nutrition, ...) via the
+          // activeView toggle already built into Sidebar/Topbar/BottomNav — this guard
+          // must allow "pt" through too, or that toggle leads straight into this 403
+          // regardless of activeView. RequireOnboarding already anticipated this (it
+          // explicitly no-ops for any role !== "client"); this was the one guard that
+          // hadn't been updated to match.
+          <RequireRole allow={["client", "pt"]}>
             <RequireOnboarding>
               <AppShell />
             </RequireOnboarding>
