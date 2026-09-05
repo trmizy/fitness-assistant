@@ -91,12 +91,21 @@ export async function canInitiateCallFromSession(
       };
     }
 
+    // Open-room redesign: the "meeting room" window this must agree with lives in
+    // user-service's booking.service.ts (ROOM_OPEN_BEFORE_MINUTES, hard close at
+    // scheduledEndAt with no grace tail — a room mid-sentence is cut exactly like a real
+    // Meet/Teams call would be). Same env var name on purpose, so ops sets one number, not
+    // two independently-drifting ones. This check is defense-in-depth behind the signed
+    // joinToken (already minted only inside that same window) — it must never be STRICTER
+    // than the window that already handed out the token, or a legitimately-issued token
+    // could get rejected here on every subsequent rejoin.
+    const roomOpenBeforeMs =
+      Number(process.env.ROOM_OPEN_BEFORE_MINUTES ?? "15") * 60 * 1000;
     const now = Date.now();
     const windowStart =
-      new Date(session.scheduledStartAt).getTime() - 10 * 60 * 1000;
-    const windowEnd =
-      new Date(session.scheduledEndAt).getTime() + 15 * 60 * 1000;
-    if (now < windowStart || now > windowEnd) {
+      new Date(session.scheduledStartAt).getTime() - roomOpenBeforeMs;
+    const windowEnd = new Date(session.scheduledEndAt).getTime();
+    if (now < windowStart || now >= windowEnd) {
       return {
         allowed: false,
         reason: "Outside the call time window for this session",

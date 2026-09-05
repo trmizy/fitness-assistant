@@ -4,6 +4,7 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
 import { getIo } from "./socket/index";
+import { callService } from "./services/call.service";
 
 const app: Express = express();
 
@@ -69,6 +70,31 @@ app.post("/internal/push-notification", (req: Request, res: Response): void => {
 
   res.json({ ok: true });
   return;
+});
+
+// Open-room sessions: force-ends a lingering CallSession row once user-service's own sweep
+// has resolved the coaching session it belongs to — see call.service.ts's
+// endCallsForCoachingSession doc comment. Best-effort, fire-and-forget from the caller's side.
+app.post("/internal/calls/end-by-session", async (req: Request, res: Response): Promise<void> => {
+  const secret = req.headers["x-internal-secret"];
+  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { coachingSessionId, reason } = req.body;
+  if (!coachingSessionId) {
+    res.status(400).json({ error: "Missing coachingSessionId" });
+    return;
+  }
+
+  try {
+    await callService.endCallsForCoachingSession(coachingSessionId, reason || "session_window_closed");
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error({ error: err.message, coachingSessionId }, "end-by-session failed");
+    res.status(500).json({ error: "Failed to end call" });
+  }
 });
 
 // 404 handler

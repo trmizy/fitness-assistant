@@ -337,6 +337,9 @@ export type CallUIState =
   | "idle"
   | "outgoing"
   | "incoming"
+  // Open-room sessions only, below — never reached by a CHAT-origin call.
+  | "preview" // choosing mic/cam before entering the room
+  | "waiting" // already joined, alone — waiting for the other party to arrive
   | "connecting"
   | "active";
 
@@ -349,6 +352,8 @@ export interface CallSessionInfo {
   origin: CallOrigin;
   conversationId: string;
   iceServers?: RTCIceServer[];
+  /** Open-room sessions only — the coaching session this room belongs to. */
+  coachingSessionId?: string;
 }
 
 export interface CallState {

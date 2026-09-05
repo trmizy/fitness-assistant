@@ -134,7 +134,7 @@ type Tab = "book" | "upcoming" | "confirm" | "past";
 export function BookingPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
-  const { joinCoachingSession } = useCall();
+  const { startSessionPreview } = useCall();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -185,7 +185,7 @@ export function BookingPage() {
     setJoiningSessionId(s.id);
     try {
       const result = await sessionService.joinSession(s.id);
-      await joinCoachingSession({
+      await startSessionPreview({
         id: result.sessionId,
         otherUserId: result.otherUserId,
         joinToken: result.joinToken,

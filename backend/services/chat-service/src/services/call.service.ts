@@ -142,6 +142,24 @@ export const callService = {
     });
   },
 
+  /**
+   * Open-room sessions: a lingering CallSession row for a coaching session whose own time
+   * window has just closed (per user-service's room-close-resolution sweep) is force-ended
+   * here — its real-world resolution already happened without this side ever being told, and
+   * a stale ACTIVE/CONNECTING row would otherwise sit there forever, wrongly counting as
+   * "already in a call" for findActiveCallForUser on a LATER, unrelated session for the same
+   * PT or client (e.g. back-to-back bookings). Not authorized by any user — this is a
+   * system/internal cleanup call, not something either party can trigger on their own.
+   */
+  async endCallsForCoachingSession(coachingSessionId: string, reason: string) {
+    const call = await callRepository.findActiveByCoachingSession(coachingSessionId);
+    if (!call) return null;
+    return callRepository.updateStatus(call.id, CallStatus.ENDED, {
+      endedAt: new Date(),
+      endReason: reason,
+    });
+  },
+
   async markFailed(callSessionId: string, reason: string) {
     const call = await callRepository.findById(callSessionId);
     if (!call) return null;

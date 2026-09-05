@@ -167,7 +167,7 @@ export function PTDashboard() {
     queryFn: () => ptPlanReviewService.getPendingReviews(),
   });
 
-  const { joinCoachingSession } = useCall();
+  const { startSessionPreview } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
 
   const handleJoinSession = async (s: Session) => {
@@ -175,7 +175,7 @@ export function PTDashboard() {
     setJoiningSessionId(s.id);
     try {
       const result = await sessionService.joinSession(s.id);
-      await joinCoachingSession({
+      await startSessionPreview({
         id: result.sessionId,
         otherUserId: result.otherUserId,
         joinToken: result.joinToken,

@@ -1,3 +1,4 @@
+import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import { SessionStatus } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
@@ -11,6 +12,30 @@ const INTERVAL_MS = Number(
 const BATCH_SIZE = 100;
 const NO_SHOW_GRACE_MS = Number(process.env.NO_SHOW_GRACE_MINUTES ?? "15") * 60 * 1000;
 const AUTO_CONFIRM_MS = Number(process.env.SESSION_AUTO_CONFIRM_DAYS ?? "3") * 24 * 60 * 60 * 1000;
+
+const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
+
+/**
+ * Best-effort, fire-and-forget: tells chat-service to force-end any lingering CallSession row
+ * for this coaching session, now that its room's own window has closed. chat-service's WebRTC
+ * signaling layer has no other way to learn this happened (it never sees Session rows) — see
+ * call.service.ts's endCallsForCoachingSession doc comment for why a stale row matters (it
+ * would otherwise wrongly count as "already in a call" for a LATER, unrelated session). Never
+ * awaited by the caller in a way that could delay or fail the sweep's own resolution — losing
+ * this call just leaves one harmless stale row, not an incorrect session outcome.
+ */
+function endOpenRoomCall(coachingSessionId: string, reason: string): void {
+  axios
+    .post(
+      `${CHAT_SERVICE_URL}/internal/calls/end-by-session`,
+      { coachingSessionId, reason },
+      { timeout: 3000, headers: { "x-internal-secret": INTERNAL_API_SECRET } },
+    )
+    .catch((err) =>
+      logger.warn({ err: err.message, coachingSessionId }, "Failed to end lingering call for a closed room"),
+    );
+}
 
 /**
  * "Meeting room" resolution for open-room online sessions — the counterpart to
@@ -136,6 +161,7 @@ export async function runRoomCloseResolution(
           });
           if (won) {
             resolved++;
+            endOpenRoomCall(session.id, "room_cancelled_nobody_joined");
             for (const userId of [session.clientUserId, session.ptUserId]) {
               await deps.notify({
                 userId,
@@ -161,6 +187,7 @@ export async function runRoomCloseResolution(
             await deps.compensateNoShowMoney(session.contractId, session.id);
             await deps.checkAndCompleteContract(session.contractId);
             resolved++;
+            endOpenRoomCall(session.id, "pt_no_show");
             // System-determined, not self-admitted — unlike markNoShow's PT-self-admit
             // branch, the PT here doesn't already know this happened, so (like
             // resolveDispute's PT_NO_SHOW_CONFIRMED branch) both sides are told.
@@ -199,6 +226,7 @@ export async function runRoomCloseResolution(
           });
           if (won) {
             resolved++;
+            endOpenRoomCall(session.id, "client_no_show");
             await deps.notify({
               userId: session.clientUserId,
               text: `Bạn đã không vào phòng học. Nếu có nhầm lẫn, hãy khiếu nại trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn buổi tập sẽ bị trừ và huấn luyện viên vẫn được thanh toán.`,
@@ -230,6 +258,7 @@ export async function runRoomCloseResolution(
         });
         if (won) {
           resolved++;
+          endOpenRoomCall(session.id, ptLate ? "session_completed_pt_late" : "session_completed");
           if (ptLate) {
             await deps.compensateLateArrivalMoney(session.contractId, session.id);
           }
