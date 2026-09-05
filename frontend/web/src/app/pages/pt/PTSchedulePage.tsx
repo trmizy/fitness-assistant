@@ -597,20 +597,31 @@ export function PTSchedulePage() {
                       )}
                       {s.status === "CONFIRMED" && (
                         <>
-                          <button
-                            onClick={() => completeMut.mutate(s.id)}
-                            disabled={completeMut.isPending}
-                            className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            <CheckCircle className="w-3 h-3" /> Complete
-                          </button>
-                          <button
-                            onClick={() => noShowMut.mutate(s.id)}
-                            disabled={noShowMut.isPending}
-                            className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
-                          >
-                            <AlertOctagon className="w-3 h-3" /> No-Show
-                          </button>
+                          {/* Open-room redesign: an ONLINE session's outcome (completed /
+                              no-show, either direction) is now decided automatically by the
+                              room-close sweep once its window passes, reading who actually
+                              joined — Complete/No-Show would just race that same decision by
+                              hand. Cancel stays for both modes: cancelling happens BEFORE the
+                              room's own window resolves anything, a different moment in the
+                              session's life entirely. */}
+                          {s.sessionMode !== "ONLINE" && (
+                            <>
+                              <button
+                                onClick={() => completeMut.mutate(s.id)}
+                                disabled={completeMut.isPending}
+                                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                              >
+                                <CheckCircle className="w-3 h-3" /> Complete
+                              </button>
+                              <button
+                                onClick={() => noShowMut.mutate(s.id)}
+                                disabled={noShowMut.isPending}
+                                className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+                              >
+                                <AlertOctagon className="w-3 h-3" /> No-Show
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => cancelSessionMut.mutate(s.id)}
                             disabled={cancelSessionMut.isPending}

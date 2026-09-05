@@ -31,6 +31,8 @@ interface PendingSessionJoin {
   id: string;
   otherUserId: string;
   joinToken: string;
+  /** When the room closes for good — see CallSessionInfo.roomClosesAt. */
+  roomClosesAt?: string;
 }
 interface MediaToggledData {
   callSessionId: string;
@@ -137,11 +139,7 @@ interface CallContextValue {
   ) => void;
   /** Open-room sessions: acquire media and show the mic/cam preview screen — does NOT
    * signal anything yet. See confirmJoinFromPreview. */
-  startSessionPreview: (session: {
-    id: string;
-    otherUserId: string;
-    joinToken: string;
-  }) => Promise<void>;
+  startSessionPreview: (session: PendingSessionJoin) => Promise<void>;
   /** Open-room sessions: actually enters the room after the preview screen — the point at
    * which call:initiate is finally emitted. */
   confirmJoinFromPreview: () => void;
@@ -576,6 +574,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           origin: "SESSION",
           conversationId: "",
           coachingSessionId: session.id,
+          roomClosesAt: session.roomClosesAt,
         },
       });
     },

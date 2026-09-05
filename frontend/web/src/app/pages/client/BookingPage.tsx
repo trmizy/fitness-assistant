@@ -189,6 +189,7 @@ export function BookingPage() {
         id: result.sessionId,
         otherUserId: result.otherUserId,
         joinToken: result.joinToken,
+        roomClosesAt: result.roomClosesAt,
       });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Không thể tham gia buổi học");
@@ -1285,7 +1286,12 @@ export function BookingPage() {
                         )}
                       </div>
                       <div>
+                        {/* Open-room redesign: an ONLINE session's outcome is now decided
+                            automatically by the room-close sweep the moment it reads who
+                            actually joined — this manual report is only meaningful for
+                            OFFLINE sessions, which have no room at all. */}
                         {s.status === "CONFIRMED" &&
+                          s.sessionMode !== "ONLINE" &&
                           new Date(s.scheduledStartAt).getTime() < Date.now() && (
                             <button
                               onClick={() => setNoShowReportId(s.id)}

@@ -3985,6 +3985,11 @@ export const sessionService = {
       scheduledStartAt: string;
       scheduledEndAt: string;
       joinToken: string;
+      // Open-room fields (booking.service.ts's joinSession) — let the room UI show a live
+      // countdown / closing warning without hardcoding or re-deriving these itself.
+      roomOpensAt: string;
+      roomClosesAt: string;
+      ptLateAfter: string;
     };
   },
 };

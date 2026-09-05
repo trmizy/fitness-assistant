@@ -179,6 +179,7 @@ export function PTDashboard() {
         id: result.sessionId,
         otherUserId: result.otherUserId,
         joinToken: result.joinToken,
+        roomClosesAt: result.roomClosesAt,
       });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Không thể tham gia buổi học");

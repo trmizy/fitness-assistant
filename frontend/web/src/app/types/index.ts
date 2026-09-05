@@ -354,6 +354,9 @@ export interface CallSessionInfo {
   iceServers?: RTCIceServer[];
   /** Open-room sessions only — the coaching session this room belongs to. */
   coachingSessionId?: string;
+  /** Open-room sessions only — when the room closes for good (booking.service.ts's
+   * joinSession), drives the countdown/closing-warning UI. */
+  roomClosesAt?: string;
 }
 
 export interface CallState {
