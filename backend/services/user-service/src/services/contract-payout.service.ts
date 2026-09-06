@@ -204,39 +204,53 @@ export async function terminateContractMoney(
   contractId: string,
   reason: TerminationReason,
 ): Promise<any> {
-  const contract = payableOrNull(await contractRepository.findById(contractId));
-  if (!contract) return null;
+  // BUG FIX (2026-09-06): this used to run payableOrNull() first and return null (a silent
+  // no-op) for ANY contract that failed its stricter checks — including one that legitimately
+  // exists but was never paid (no paymentTransactionId — e.g. terminate called on what should
+  // have gone through cancel instead) or predates the price/totalSessions columns being
+  // required (an old pre-migration row). The controller then reported HTTP 200 either way, so
+  // the caller had no way to tell "terminated" from "silently did nothing" apart from an
+  // empty `settlement` field nothing actually checks. Found live: two legacy ACTIVE contracts
+  // stayed ACTIVE forever across repeated "successful" terminate calls.
+  //
+  // The status transition below is the one thing that must ALWAYS land once the contract is
+  // confirmed to exist — that's the exact point of the comment that already lived here:
+  // without it the contract stays in its current status forever, and assertSlotBookable only
+  // gates on status, so a client could keep booking sessions against a contract with nothing
+  // (or nothing valid) behind it. Only the money-settlement call is conditional on the
+  // contract actually being payable — there's nothing to move otherwise.
+  const raw = await contractRepository.findById(contractId);
+  if (!raw) return null;
 
-  const result = await paymentClient.terminate({
-    transactionId: contract.paymentTransactionId,
-    price: contract.price!.toString(),
-    totalSessions: contract.totalSessions,
-    usedSessions: contract.usedSessions,
-    // Money-flow plan 1.5 / P0 cluster A1: without this, payment-service's remainingValue()
-    // does not know a no-show session was already compensated in cash, and counts it as
-    // still-unused entitlement on top of the cash payout the client already received —
-    // paying the same session's value twice.
-    compensatedSessions: contract.compensatedSessions,
-    rates: ratesOf(contract),
-    reason,
-    alreadyReleased: {
-      pt: contract.releasedToPt.toString(),
-      gym: contract.releasedToGym.toString(),
-      platform: contract.releasedToPlatform.toString(),
-    },
-    parties: partiesOf(contract),
-    label: `Contract ${contract.id} termination`,
-    // Money-flow redesign plan 1.1: a contract only ever terminates once, regardless of
-    // which reason triggers it — this key is stable across retries of the SAME termination.
-    idempotencyKey: `CONTRACT_TERMINATE:${contract.id}`,
-  });
+  const contract = payableOrNull(raw);
+  const result = contract
+    ? await paymentClient.terminate({
+        transactionId: contract.paymentTransactionId,
+        price: contract.price!.toString(),
+        totalSessions: contract.totalSessions,
+        usedSessions: contract.usedSessions,
+        // Money-flow plan 1.5 / P0 cluster A1: without this, payment-service's remainingValue()
+        // does not know a no-show session was already compensated in cash, and counts it as
+        // still-unused entitlement on top of the cash payout the client already received —
+        // paying the same session's value twice.
+        compensatedSessions: contract.compensatedSessions,
+        rates: ratesOf(contract),
+        reason,
+        alreadyReleased: {
+          pt: contract.releasedToPt.toString(),
+          gym: contract.releasedToGym.toString(),
+          platform: contract.releasedToPlatform.toString(),
+        },
+        parties: partiesOf(contract),
+        label: `Contract ${contract.id} termination`,
+        // Money-flow redesign plan 1.1: a contract only ever terminates once, regardless of
+        // which reason triggers it — this key is stable across retries of the SAME termination.
+        idempotencyKey: `CONTRACT_TERMINATE:${contract.id}`,
+      })
+    : null;
 
-  // Money settles above regardless — this must still land, or the contract stays ACTIVE
-  // forever with its escrow already emptied: assertSlotBookable only gates on status, so a
-  // client could keep booking new sessions against a contract that has no money left behind
-  // it.
   await prisma.contract.update({
-    where: { id: contract.id },
+    where: { id: raw.id },
     data: { terminationReason: reason as any, terminatedAt: new Date(), status: statusFor(reason) },
   });
 

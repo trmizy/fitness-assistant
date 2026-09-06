@@ -295,6 +295,12 @@ importers:
 
   backend/services/fitness-service:
     dependencies:
+      '@aws-sdk/client-lambda':
+        specifier: ^3.1118.0
+        version: 3.1119.0
+      '@aws-sdk/client-secrets-manager':
+        specifier: ^3.1118.0
+        version: 3.1118.0
       '@gym-coach/shared':
         specifier: workspace:*
         version: link:../../shared
@@ -319,6 +325,9 @@ importers:
       redis:
         specifier: ^4.6.12
         version: 4.7.1
+      serverless-http:
+        specifier: ^4.0.0
+        version: 4.0.0
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -558,6 +567,9 @@ importers:
       '@mui/material':
         specifier: 7.3.5
         version: 7.3.5(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@18.3.27)(react-dom@18.3.1)(react@18.3.1)
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@18.3.1)(react@18.3.1)
       '@popperjs/core':
         specifier: 2.11.8
         version: 2.11.8
@@ -672,9 +684,6 @@ importers:
       jsqr:
         specifier: ^1.4.0
         version: 1.4.0
-      lucide-react:
-        specifier: 0.487.0
-        version: 0.487.0(react@18.3.1)
       motion:
         specifier: 12.23.24
         version: 12.23.24(react-dom@18.3.1)(react@18.3.1)
@@ -2447,6 +2456,17 @@ packages:
     dependencies:
       '@noble/hashes': 1.8.0
     dev: true
+
+  /@phosphor-icons/react@2.1.10(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: false
 
   /@popperjs/core@2.11.8:
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
@@ -6876,14 +6896,6 @@ packages:
     dependencies:
       yallist: 3.1.1
     dev: true
-
-  /lucide-react@0.487.0(react@18.3.1):
-    resolution: {integrity: sha512-aKqhOQ+YmFnwq8dWgGjOuLc8V1R9/c/yOd+zDY4+ohsR2Jo05lSGc3WsstYPIzcTpeosN7LoCkLReUUITvaIvw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-    dependencies:
-      react: 18.3.1
-    dev: false
 
   /luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}

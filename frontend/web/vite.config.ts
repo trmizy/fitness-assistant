@@ -14,6 +14,22 @@ const GATEWAY_PROXY_TARGET =
 const CHAT_PROXY_TARGET =
   process.env.CHAT_PROXY_TARGET || "http://localhost:3005";
 
+// BUG FIX (2026-09-06): every proxy entry below sets changeOrigin: true, which rewrites the
+// outgoing request's Host header to match its OWN target (e.g. "api-gateway:3000") before
+// forwarding — necessary so the target doesn't reject the request, but it means the gateway
+// can no longer recover what the real browser's address bar says from req.get("host") alone
+// (that's exactly how a real ZaloPay payment ended up redirecting back to the literal,
+// browser-unreachable "api-gateway:3000" during a live demo). node-http-proxy's own `xfwd`
+// option would forward -for/-port/-proto automatically but never -host, so it has to be set
+// by hand here — once, from the ORIGINAL incoming request, before changeOrigin's rewrite ever
+// touches it. The gateway (backend/gateway/src/app.ts) already prefers this header over
+// req.get("host") when present, mirroring how it already trusted x-forwarded-proto.
+function forwardRealHost(proxy: any) {
+  proxy.on("proxyReq", (proxyReq: any, req: any) => {
+    if (req.headers.host) proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
+  });
+}
+
 // Extra Host headers Vite should accept beyond localhost (always allowed)
 // and *.devtunnels.ms (added below for VS Code Dev Tunnels / port
 // forwarding). Comma-separated so other tunnel providers (ngrok, Cloudflare
@@ -68,6 +84,7 @@ export default defineConfig({
       "/api": {
         target: GATEWAY_PROXY_TARGET,
         changeOrigin: true,
+        configure: forwardRealHost,
         // Frontend requests are prefixed with /api (see api.ts's default
         // baseURL); the gateway's own routes are NOT (e.g. "/auth/login",
         // not "/api/auth/login") — strip it before forwarding. The one
@@ -82,6 +99,7 @@ export default defineConfig({
       "/socket.io": {
         target: GATEWAY_PROXY_TARGET,
         changeOrigin: true,
+        configure: forwardRealHost,
         ws: true,
       },
       // Chat-service's Socket.IO (call/video signaling) is a second,
@@ -96,6 +114,7 @@ export default defineConfig({
       "/chat-socket.io": {
         target: CHAT_PROXY_TARGET,
         changeOrigin: true,
+        configure: forwardRealHost,
         ws: true,
         rewrite: (requestPath) =>
           requestPath.replace(/^\/chat-socket\.io/, "/socket.io"),

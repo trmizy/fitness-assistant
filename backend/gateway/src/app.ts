@@ -74,7 +74,21 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 app.use((req: Request, _res: Response, next: NextFunction) => {
   const forwardedProto = req.headers["x-forwarded-proto"];
   const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(",")[0]?.trim() || req.protocol;
-  const host = req.get("host");
+  // BUG FIX (2026-09-06): req.get("host") alone reflects whatever Host header the request
+  // arrived here WITH — correct only when the client reached this gateway directly. Every
+  // proxy hop in front of it (the Vite dev-server's own /api proxy locally, an ALB/CloudFront
+  // in front of it in a real deployment) rewrites Host to ITS OWN upstream target before
+  // forwarding, so req.get("host") silently returns that internal address instead of the
+  // one the payer's actual browser is on. Reproduced directly: a real ZaloPay payment through
+  // the local web dev server redirected back to the literal Docker-internal
+  // "api-gateway:3000", which no browser can ever resolve — money moved, contract stuck
+  // PENDING_PAYMENT forever, discovered live during a demo. x-forwarded-proto (above) already
+  // gets this right by checking the forwarded header first; host never did. Same fix, same
+  // pattern — matched on the frontend side by an explicit X-Forwarded-Host set in
+  // vite.config.ts's proxy `configure` hooks, since node-http-proxy's own `xfwd` option (also
+  // in that file) forwards -for/-port/-proto but never -host.
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(",")[0]?.trim() || req.get("host");
   delete req.headers["x-public-base-url"]; // never trust a client-supplied value, same rule as x-user-*
   if (host) req.headers["x-public-base-url"] = `${proto}://${host}`;
   next();
