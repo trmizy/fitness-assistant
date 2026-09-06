@@ -6,7 +6,6 @@ import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { BottomNav } from "./BottomNav";
 import { PageSkeleton } from "./PageSkeleton";
 import { CallOverlay } from "../call/CallOverlay";
 
@@ -63,10 +62,6 @@ function AppShellInner() {
   const { sidebarOpen, setSidebarOpen } = useApp();
   const location = useLocation();
 
-  const searchParams = new URLSearchParams(location.search);
-  const isChatView =
-    location.pathname.includes("/chat") && searchParams.has("conversationId");
-
   return (
     <div
       className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
@@ -96,14 +91,12 @@ function AppShellInner() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">
         <Topbar />
         <main
-          className={`flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10 overflow-x-hidden ${
-            isChatView ? "" : "pb-16 lg:pb-0"
-          }`}
+          className="flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10 overflow-x-hidden"
         >
           {/*
-            Only the content area animates. The topbar, bottom nav and sidebar live outside
-            this box and stay put, which is what makes a transition read as "app changed
-            screen" rather than "page reloaded".
+            Only the content area animates. The topbar and sidebar live outside this box
+            and stay put, which is what makes a transition read as "app changed screen"
+            rather than "page reloaded".
 
             Deliberately transform + opacity only, and deliberately short:
 
@@ -143,7 +136,7 @@ function AppShellInner() {
             >
               {/* Vòng 4 / Phase D2 — routes.tsx now lazy()s every page; this Suspense boundary
                   is scoped to JUST the content area (inside main, inside the animated box)
-                  precisely so Topbar/Sidebar/BottomNav — all outside <main> — never remount or
+                  precisely so Topbar/Sidebar — both outside <main> — never remount or
                   flash while a route chunk is still downloading. */}
               <Suspense fallback={<PageSkeleton />}>
                 <Outlet />
@@ -151,8 +144,6 @@ function AppShellInner() {
             </motion.div>
           </AnimatePresence>
         </main>
-        
-        {!isChatView && <BottomNav />}
       </div>
     </div>
   );

@@ -1024,9 +1024,14 @@ export function PTDiscoveryPage() {
           })()}
       </div>
 
-      {/* Request Coaching Modal */}
-      {showRequestModal && selectedPT && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      {/* Request Coaching Modal — portaled to <body> and above the mobile detail sheet's
+          z-[60] (see the PT-detail bottom sheet above). Without the portal, this fixed
+          overlay's containing block becomes AppShell's animated page-transition wrapper
+          (it applies a `transform`, which per spec creates a new containing block for any
+          `position: fixed` descendant) instead of the real viewport — same class of bug as
+          the PT-detail panel fix, just left unfixed here originally. */}
+      {showRequestModal && selectedPT && createPortal(
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">Yêu cầu huấn luyện</h3>
@@ -1201,7 +1206,8 @@ export function PTDiscoveryPage() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

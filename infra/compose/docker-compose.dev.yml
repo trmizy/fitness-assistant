@@ -164,7 +164,7 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-3h}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
