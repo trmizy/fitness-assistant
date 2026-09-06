@@ -404,6 +404,16 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
         redirectUrl: intent.redirectUrl,
         qrCodeUrl: intent.qrCodeUrl,
         platform: d.platform ?? 'web',
+        // BUG FIX (2026-09-06): only ever read transiently, to build VNPay's FIRST-hop
+        // effectiveReturnUrl (see vnpay.provider.ts), then discarded — VNPay's OWN return
+        // handler (vnpay-return.routes.ts, on this service) does a SECOND redirect once it
+        // has verified the callback, and that one fell back to the static .env FRONTEND_URL
+        // unconditionally, since by then the original request (and this value) was long
+        // gone. Same failure shape as the gateway/api-gateway "api-gateway:3000" redirect
+        // bug this session already fixed, just one hop further down the VNPay-only chain.
+        // Persisted here so the return handler can read the payer's REAL origin back,
+        // exactly like it already does for `platform` above.
+        returnBaseUrl: d.returnBaseUrl ?? null,
       } as Prisma.InputJsonValue,
     });
 

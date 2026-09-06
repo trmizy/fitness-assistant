@@ -94,6 +94,21 @@ export default defineConfig({
         // has its FIRST /api stripped here, correctly leaving "/api/translate".
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
       },
+      // BUG FIX (2026-09-06): VNPay's browser-side return trip is a real GET navigation to
+      // "<returnBaseUrl>/payments/vnpay/return" (see vnpay.provider.ts's effectiveReturnUrl)
+      // — unlike everything else here, that's the browser's OWN address bar navigating, not
+      // an XHR under /api. The gateway already proxies this literal path straight through to
+      // payment-service (backend/gateway/src/routes/proxy.routes.ts — added specifically so
+      // a tunneled gateway URL doubles as the return address), but nothing here ever
+      // forwarded it, so once returnBaseUrl correctly started resolving to THIS Vite origin
+      // (localhost:5173, not the gateway's own :3000) the browser had nowhere to go: Vite
+      // just served the SPA shell for a path its own router doesn't have, i.e. a 404.
+      // No rewrite — the gateway route expects this literal path, unlike /api's own prefix.
+      "/payments": {
+        target: GATEWAY_PROXY_TARGET,
+        changeOrigin: true,
+        configure: forwardRealHost,
+      },
       // Gateway's own Socket.IO (dashboard/notifications/chat-intent AI) —
       // same path both sides, no rewrite needed.
       "/socket.io": {

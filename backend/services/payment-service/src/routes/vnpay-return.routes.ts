@@ -89,10 +89,19 @@ router.get('/vnpay/return', async (req: Request, res: Response) => {
   // result page otherwise. Never trust `uiStatus` here either way — both destinations re-ask
   // the server via POST /me/payments/:id/sync before showing anything.
   const txn = await transactionRepository.findById(txnRef).catch(() => null);
-  const platform = (txn?.metadata as Record<string, unknown> | null)?.platform === 'mobile' ? 'mobile' : 'web';
+  const meta = txn?.metadata as Record<string, unknown> | null;
+  const platform = meta?.platform === 'mobile' ? 'mobile' : 'web';
+  // BUG FIX (2026-09-06): fell back to the static .env FRONTEND_URL unconditionally — the
+  // one hardcoded LAN IP/host that, unlike everything else in this file, was never wired to
+  // the payer's actual origin. Reproduced live: a real ZaloPay-class redirect ended up on a
+  // host the browser couldn't reach; VNPay's OWN return trip (this handler) had the identical
+  // exposure one hop further down its own two-hop chain. `returnBaseUrl` is now persisted on
+  // the transaction at checkout time (internal.routes.ts) for exactly this read-back — same
+  // pattern this file already used for `platform` above, just never extended to this value.
+  const webBase = typeof meta?.returnBaseUrl === 'string' ? meta.returnBaseUrl : FRONTEND_URL;
   const target = platform === 'mobile'
     ? `fitnessassistant://client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`
-    : `${FRONTEND_URL}/client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`;
+    : `${webBase}/client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`;
   return res.redirect(302, target);
 });
 
