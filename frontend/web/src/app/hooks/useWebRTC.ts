@@ -37,15 +37,36 @@ export function useWebRTC(
   const onConnStateRef = useRef(onConnectionStateChange);
   onConnStateRef.current = onConnectionStateChange;
 
-  /** Step 1: Acquire media — MUST be called from a user gesture (click) */
+  /**
+   * Step 1: Acquire media — MUST be called from a user gesture (click).
+   *
+   * BUG FIX: a VIDEO call used to ask for {audio: true, video: true} in one getUserMedia
+   * call — if the camera is missing/broken/in-use (NotFoundError, NotReadableError,
+   * OverconstrainedError, ...), the browser rejects the WHOLE request, including the mic
+   * that was perfectly fine, and the caller (CallContext) refused to let the user into the
+   * room at all. Reported live: a PT whose webcam had failed could not join their own
+   * coaching session. Camera-off is already a fully supported mid-call state (toggleVideo,
+   * broadcast via call:media_toggled) — the fix is just to reach that same state when the
+   * camera never worked in the first place, instead of failing the join outright. Only a
+   * genuinely broken microphone (the one thing an online session can't work without) should
+   * still block joining.
+   */
   const acquireMedia = useCallback(async (callType: "VOICE" | "VIDEO") => {
     // Stop any existing tracks
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: callType === "VIDEO",
-    });
+    let stream: MediaStream;
+    if (callType === "VIDEO") {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      } catch {
+        // Camera failed — retry audio-only rather than failing the whole join. If the mic
+        // ALSO fails, this second call throws for real and the caller's own catch handles it.
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      }
+    } else {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
     localStreamRef.current = stream;
     setLocalStream(stream);
     return stream;

@@ -10,6 +10,8 @@ import type {
   PTAvailabilitySlot,
   PTScheduleException,
 } from "../../types";
+import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
+import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -251,6 +253,27 @@ export function PTSchedulePage() {
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+  });
+
+  // The PT's own fixed weekly hours (Mon–Fri, say) are a default, not a ceiling — a PT who
+  // is unexpectedly out on a normal working day needs a way to move THAT session, same right
+  // the client side already had. requestReschedule doesn't care which side calls it; only
+  // the frontend never let the PT reach it.
+  const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
+  useBackDismissible(!!rescheduleTarget, () => setRescheduleTarget(null));
+  const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const requestRescheduleMut = useMutation({
+    mutationFn: ({ id, proposedStartAt, proposedEndAt, reason }: { id: string; proposedStartAt: string; proposedEndAt: string; reason: string }) =>
+      sessionService.requestReschedule(id, proposedStartAt, proposedEndAt, reason),
+    onSuccess: () => {
+      toast.success("Đã gửi yêu cầu dời lịch — chờ khách xác nhận");
+      setRescheduleTarget(null);
+      setRescheduleSlot(null);
+      setRescheduleReason("");
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu dời lịch"),
   });
 
   // Money-flow plan 4.3 — PT responds to a client's no-show report.
@@ -615,6 +638,21 @@ export function PTSchedulePage() {
                               </button>
                             </>
                           )}
+                          {/* PT's own right to propose a new time — same requestReschedule
+                              endpoint the client side already used, just never reachable
+                              from here. Hidden once there's already an open request on this
+                              session (server rejects a second one anyway with a 409 — no
+                              point letting the PT hit it) and inside the ≥12h cutoff
+                              requestReschedule itself enforces. */}
+                          {(!s.rescheduleRequests || s.rescheduleRequests.length === 0) &&
+                            new Date(s.scheduledStartAt).getTime() - Date.now() >= 12 * 60 * 60 * 1000 && (
+                              <button
+                                onClick={() => setRescheduleTarget(s)}
+                                className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+                              >
+                                <Calendar className="w-3 h-3" /> Đề xuất dời lịch
+                              </button>
+                            )}
                           <button
                             onClick={() => cancelSessionMut.mutate(s.id)}
                             disabled={cancelSessionMut.isPending}
@@ -893,6 +931,67 @@ export function PTSchedulePage() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PT ĐỀ XUẤT DỜI LỊCH ─── */}
+      {rescheduleTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
+            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
+              <h3 className="text-zinc-100 font-bold tracking-tight">Đề xuất dời lịch</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Buổi hiện tại: {new Date(rescheduleTarget.scheduledStartAt).toLocaleString("vi-VN")}
+              </p>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <DateSlotPicker
+                ptUserId={rescheduleTarget.ptUserId}
+                value={rescheduleSlot}
+                onChange={setRescheduleSlot}
+              />
+              <div>
+                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
+                <textarea
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                  rows={2}
+                  placeholder="Ví dụ: bận đột xuất, xin dời sang khung giờ khác..."
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
+              <button
+                onClick={() => {
+                  setRescheduleTarget(null);
+                  setRescheduleSlot(null);
+                  setRescheduleReason("");
+                }}
+                className="flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  if (!rescheduleTarget || !rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim()) return;
+                  const start = new Date(`${rescheduleSlot.dateStr}T${rescheduleSlot.slot}:00`);
+                  const end = new Date(start.getTime() + 60 * 60 * 1000); // server always recomputes the real end from the contract's own duration
+                  requestRescheduleMut.mutate({
+                    id: rescheduleTarget.id,
+                    proposedStartAt: start.toISOString(),
+                    proposedEndAt: end.toISOString(),
+                    reason: rescheduleReason,
+                  });
+                }}
+                disabled={!rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim() || requestRescheduleMut.isPending}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                {requestRescheduleMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Gửi yêu cầu
+              </button>
             </div>
           </div>
         </div>

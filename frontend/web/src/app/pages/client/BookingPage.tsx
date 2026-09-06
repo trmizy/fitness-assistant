@@ -12,6 +12,7 @@ import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import type { Contract, Session, SessionStatus } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -418,10 +419,10 @@ export function BookingPage() {
       toast.error(err?.response?.data?.error || "Không thể gửi đánh giá"),
   });
 
-  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
-  useBackDismissible(!!rescheduleId, () => setRescheduleId(null));
-  const [rescheduleDate, setRescheduleDate] = useState<string>("");
-  const [rescheduleTime, setRescheduleTime] = useState<string>("");
+  const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
+  const rescheduleId = rescheduleTarget?.id ?? null;
+  useBackDismissible(!!rescheduleTarget, () => setRescheduleTarget(null));
+  const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState<string>("");
 
   const rescheduleMutation = useMutation({
@@ -444,7 +445,8 @@ export function BookingPage() {
       ),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch!");
-      setRescheduleId(null);
+      setRescheduleTarget(null);
+      setRescheduleSlot(null);
       setRescheduleReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
@@ -989,7 +991,7 @@ export function BookingPage() {
                         <div className="flex gap-1.5">
                           {hoursUntil >= 12 && (
                             <button
-                              onClick={() => setRescheduleId(s.id)}
+                              onClick={() => setRescheduleTarget(s)}
                               className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                             >
                               <Calendar className="w-3.5 h-3.5" /> Dời lịch
@@ -1421,36 +1423,21 @@ export function BookingPage() {
       )}
 
       {/* ─── DỜI LỊCH ─── */}
-      {rescheduleId && (
+      {rescheduleTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
+          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
             <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
               <h3 className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Buổi hiện tại: {formatDateTime(rescheduleTarget.scheduledStartAt)}
+              </p>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Ngày đề xuất</label>
-                <input
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Giờ đề xuất</label>
-                <select
-                  value={rescheduleTime}
-                  onChange={(e) => setRescheduleTime(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                >
-                  <option value="">Chọn giờ</option>
-                  {FALLBACK_SLOTS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
+              <DateSlotPicker
+                ptUserId={rescheduleTarget.ptUserId}
+                value={rescheduleSlot}
+                onChange={setRescheduleSlot}
+              />
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
                 <textarea
@@ -1465,9 +1452,8 @@ export function BookingPage() {
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
                 onClick={() => {
-                  setRescheduleId(null);
-                  setRescheduleDate("");
-                  setRescheduleTime("");
+                  setRescheduleTarget(null);
+                  setRescheduleSlot(null);
                   setRescheduleReason("");
                 }}
                 className="flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
@@ -1476,9 +1462,9 @@ export function BookingPage() {
               </button>
               <button
                 onClick={() => {
-                  if (!rescheduleId || !rescheduleDate || !rescheduleTime) return;
-                  const start = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
-                  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour
+                  if (!rescheduleId || !rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim()) return;
+                  const start = new Date(`${rescheduleSlot.dateStr}T${rescheduleSlot.slot}:00`);
+                  const end = new Date(start.getTime() + 60 * 60 * 1000); // server always recomputes the real end from the contract's own duration
                   rescheduleMutation.mutate({
                     id: rescheduleId,
                     proposedStartAt: start.toISOString(),
@@ -1486,7 +1472,7 @@ export function BookingPage() {
                     reason: rescheduleReason,
                   });
                 }}
-                disabled={!rescheduleDate || !rescheduleTime || rescheduleMutation.isPending}
+                disabled={!rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim() || rescheduleMutation.isPending}
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {rescheduleMutation.isPending && (

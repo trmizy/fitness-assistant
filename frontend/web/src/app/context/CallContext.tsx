@@ -14,6 +14,18 @@ import { useWebRTC } from "../hooks/useWebRTC";
 import { useApp } from "./AppContext";
 import type { CallUIState, CallSessionInfo, CallType } from "../types";
 
+// BUG FIX: acquireMedia() now silently falls back to audio-only when the camera itself is
+// the problem (see useWebRTC.ts) — the stream it hands back is the only place that shows,
+// so tell the user their camera didn't come up instead of leaving them to wonder why the
+// other side never sees video. Called right after every acquireMedia() for a VIDEO call.
+function warnIfVideoUnavailable(stream: MediaStream, requestedType: CallType) {
+  if (requestedType === "VIDEO" && stream.getVideoTracks().length === 0) {
+    toast.warning(
+      "Không tìm thấy camera khả dụng — đã vào phòng chỉ với âm thanh. Bạn có thể bật lại camera bất cứ lúc nào.",
+    );
+  }
+}
+
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -529,7 +541,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        await webrtcRef.current.acquireMedia(callType);
+        const stream = await webrtcRef.current.acquireMedia(callType);
+        warnIfVideoUnavailable(stream, callType);
       } catch (err: any) {
         console.error("getUserMedia failed:", err?.name, err?.message, err);
         toast.error(
@@ -582,7 +595,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        await webrtcRef.current.acquireMedia("VIDEO");
+        const stream = await webrtcRef.current.acquireMedia("VIDEO");
+        warnIfVideoUnavailable(stream, "VIDEO");
       } catch (err: any) {
         toast.error(
           "Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.",
@@ -649,7 +663,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      await webrtcRef.current.acquireMedia(s.callInfo.callType || "VOICE");
+      const callType = s.callInfo.callType || "VOICE";
+      const stream = await webrtcRef.current.acquireMedia(callType);
+      warnIfVideoUnavailable(stream, callType);
     } catch (err: any) {
       console.error("getUserMedia failed:", err?.name, err?.message, err);
       toast.error(
