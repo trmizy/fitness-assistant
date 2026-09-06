@@ -2,25 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { nutritionService, planService } from "../../services/api";
-import {
-  Brain,
-  CalendarDays,
-  Loader2,
-  Target,
-  X,
-  Plus,
-  Sparkles,
-  ChevronDown,
-  ChevronRight,
-  Trash2,
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  MessageSquare,
-  SlidersHorizontal,
-  Eye,
-  Archive,
-} from "lucide-react";
+import { BrainIcon as Brain, CalendarBlankIcon as CalendarDays, CircleNotchIcon as Loader2, TargetIcon as Target, XIcon as X, PlusIcon as Plus, SparkleIcon as Sparkles, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, TrashIcon as Trash2, WarningIcon as AlertTriangle, CheckCircleIcon as CheckCircle, ArrowsClockwiseIcon as RefreshCw, ChatTextIcon as MessageSquare, SlidersIcon as SlidersHorizontal, EyeIcon as Eye, ArchiveIcon as Archive } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 

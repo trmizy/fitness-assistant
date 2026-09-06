@@ -19,6 +19,7 @@
  */
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import { invokeHttpLambda } from "./lambda-http.client";
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL ||
@@ -82,17 +83,35 @@ export async function createPersistentNotification(params: {
   entityId: string;
   link?: string;
 }): Promise<void> {
+  const payload = {
+    userId: params.userId,
+    text: params.text,
+    eventType: params.eventType,
+    entityType: params.eventType === "TRAINING_PLAN_UPDATED" ? "TRAINING_PROGRAM" : "WORKOUT_SCHEDULE",
+    entityId: params.entityId,
+    link: params.link,
+  };
+
   try {
+    if (process.env.USER_LAMBDA_NAME) {
+      const response = await invokeHttpLambda({
+        functionName: process.env.USER_LAMBDA_NAME,
+        method: "POST",
+        path: "/internal/notifications",
+        headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "" },
+        body: payload,
+      });
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw new Error(`User notification Lambda returned HTTP ${response.statusCode}`);
+      }
+
+      return;
+    }
+
     await axios.post(
       `${USER_SERVICE_URL}/internal/notifications`,
-      {
-        userId: params.userId,
-        text: params.text,
-        eventType: params.eventType,
-        entityType: params.eventType === "TRAINING_PLAN_UPDATED" ? "TRAINING_PROGRAM" : "WORKOUT_SCHEDULE",
-        entityId: params.entityId,
-        link: params.link,
-      },
+      payload,
       {
         headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "" },
         timeout: 3000,

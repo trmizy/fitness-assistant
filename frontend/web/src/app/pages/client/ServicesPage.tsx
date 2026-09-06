@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { Calendar, Dumbbell, FileText, Search, Store } from "lucide-react";
+import { CalendarIcon as Calendar, BarbellIcon as Dumbbell, FileTextIcon as FileText, MagnifyingGlassIcon as Search, StorefrontIcon as Store } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { BookingPage } from "./BookingPage";
 import { ContractPage } from "./ContractPage";

@@ -268,7 +268,11 @@ export const workoutController = {
         bodyParts,
       });
       res.status(202).json(result);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
       logger.error("Error queuing workout generation:", error);
       res.status(500).json({ error: "Failed to start workout generation" });
     }

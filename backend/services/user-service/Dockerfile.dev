@@ -42,4 +42,15 @@ EXPOSE 3004
 #
 # `migrate deploy` applies pending migrations and stops on anything it cannot apply. It has
 # no path that destroys a table. The other services already start this way.
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+#
+# seed_vietnam_locations.ts self-guards (skips instantly if vietnam_provinces
+# already has rows — see the script's own `count() > 0` check), so running it
+# on every boot is cheap and never re-imports. Without this, `prisma migrate
+# deploy` creates the vietnam_provinces/vietnam_wards TABLES but leaves them
+# empty on any fresh DB (new dev machine, CI, a reset volume) — the PT
+# application form's "Chọn tỉnh/thành" dropdown (and every other feature
+# reading the same tables: PT training-location management, PT discovery's
+# province/ward filter) then silently renders with zero options and no
+# error anywhere in the stack. Found 2026-09 when exactly that happened on
+# this dev DB.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/tsx prisma/seed_vietnam_locations.ts && pnpm run dev"]

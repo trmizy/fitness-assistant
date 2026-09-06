@@ -1,16 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import {
-  ChevronLeft,
-  MessageSquare,
-  Calendar,
-  FileText,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  ClipboardList,
-} from "lucide-react";
+import { CaretLeftIcon as ChevronLeft, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, FileTextIcon as FileText, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningCircleIcon as AlertCircle, ClipboardTextIcon as ClipboardList } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { formatVND } from "../../utils/currency";

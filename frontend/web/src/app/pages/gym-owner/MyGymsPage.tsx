@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dumbbell, MapPin, Loader2, Plus, X, Clock, CheckCircle, XCircle, Ban, Building2, ChevronDown, ChevronRight, Pencil, Check, Star } from "lucide-react";
+import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, PlusIcon as Plus, XIcon as X, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ProhibitIcon as Ban, BuildingsIcon as Building2, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, PencilSimpleIcon as Pencil, CheckIcon as Check, StarIcon as Star } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";

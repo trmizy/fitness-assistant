@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Loader2, Plus, Trash2, Search, Sparkles, AlertTriangle } from "lucide-react";
+import { XIcon as X, CircleNotchIcon as Loader2, PlusIcon as Plus, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SparkleIcon as Sparkles, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ptCoachService, workoutService } from "../../services/api";

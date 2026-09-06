@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Sparkles, Plus, Trash2, Search, AlertTriangle, Send, MessageSquare, Star } from "lucide-react";
+import { CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, SparkleIcon as Sparkles, PlusIcon as Plus, TrashIcon as Trash2, MagnifyingGlassIcon as Search, WarningIcon as AlertTriangle, PaperPlaneTiltIcon as Send, ChatTextIcon as MessageSquare, StarIcon as Star } from "@phosphor-icons/react";
 import {
   personalizedServiceApi,
   ptCoachService,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Star, Loader2, Trash2 } from "lucide-react";
+import { StarIcon as Star, CircleNotchIcon as Loader2, TrashIcon as Trash2 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { gymService } from "../../services/api";
 import type { GymReviewsResponse } from "../../types";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dumbbell, MapPin, Loader2, Search, Building2, ChevronDown } from "lucide-react";
+import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, MagnifyingGlassIcon as Search, BuildingsIcon as Building2, CaretDownIcon as ChevronDown } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";

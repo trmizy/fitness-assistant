@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { AlertTriangle } from "lucide-react";
+import type { Icon as LucideIcon } from "@phosphor-icons/react";
+import { WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 
 /** Row-shaped placeholder for a list that's still loading — matches the real row's height. */
 export function SkeletonRow() {

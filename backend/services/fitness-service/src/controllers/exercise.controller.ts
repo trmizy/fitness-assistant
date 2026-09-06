@@ -18,6 +18,9 @@ export const exerciseController = {
         typeOfActivity,
         typeOfEquipment,
         ids,
+        difficulty,
+        loggingMode,
+        hasVideo,
         page,
         limit,
       } = req.query as Record<string, string>;
@@ -31,6 +34,9 @@ export const exerciseController = {
         typeOfActivity,
         typeOfEquipment,
         ids,
+        difficulty,
+        loggingMode,
+        hasVideo,
         page,
         limit,
       });
@@ -104,6 +110,29 @@ export const exerciseController = {
       }
       logger.error({ err: error }, "Error fetching exercise muscle map");
       res.status(500).json({ error: "Failed to fetch exercise muscle map" });
+    }
+  },
+
+  // Product Completeness pass — GET /exercises/muscles/:muscleId/exercises:
+  // the Muscle Library detail page's "related exercises" list, correctly
+  // sourced from ExerciseMuscle (not the legacy muscleGroupsActivated
+  // string filter GET /exercises?muscleGroup= uses).
+  async listExercisesByMuscle(req: Request, res: Response): Promise<void> {
+    try {
+      const { muscleId } = req.params;
+      const { page, limit } = req.query as Record<string, string>;
+      const result = await exerciseService.listExercisesByMuscle(muscleId, {
+        page,
+        limit,
+      });
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error listing exercises by muscle");
+      res.status(500).json({ error: "Failed to list exercises for muscle" });
     }
   },
 

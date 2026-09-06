@@ -1,19 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Calendar,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  Loader2,
-  Star,
-  MapPin,
-  MessageSquare,
-  FileText,
-  RefreshCw,
-} from "lucide-react";
+import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, CircleNotchIcon as Loader2, StarIcon as Star, MapPinIcon as MapPin, ChatTextIcon as MessageSquare, FileTextIcon as FileText, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   contractService,
@@ -126,6 +112,15 @@ const SESSION_STATUS_CONFIG: Record<
     label: "Khách vắng mặt",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
+  },
+  // Merge note: SessionStatus gained this value on the payment-gateways branch
+  // (session-reschedule flow) after this map was last written — added here so
+  // TypeScript's Record<SessionStatus, ...> completeness check catches any
+  // future status this page doesn't yet render a label for.
+  RESCHEDULE_PENDING: {
+    label: "Chờ đổi lịch",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
   },
 };
 

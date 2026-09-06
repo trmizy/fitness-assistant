@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Loader2, ArrowLeft, FileJson, FileSpreadsheet } from "lucide-react";
+import { DownloadSimpleIcon as Download, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, FileCodeIcon as FileJson, TableIcon as FileSpreadsheet } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { exportService, triggerBrowserDownload } from "../../services/api";
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { RefreshCw, WifiOff } from "lucide-react";
+import { ArrowsClockwiseIcon as RefreshCw, WifiSlashIcon as WifiOff } from "@phosphor-icons/react";
 import { shouldRegisterPwa } from "./pwa-registration.utils";
 
 const SERVICE_WORKER_URL = "/sw.js";

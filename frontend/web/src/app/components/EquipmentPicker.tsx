@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Check, X } from "lucide-react";
+import { MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X } from "@phosphor-icons/react";
 import type { EquipmentCatalogItem } from "../services/api";
 
 // Internal-only fallback catalog entries — never meant to be picked by a

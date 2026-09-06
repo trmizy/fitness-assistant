@@ -1,4 +1,4 @@
-import { Languages } from "lucide-react";
+import { TranslateIcon as Languages } from "@phosphor-icons/react";
 import { useSettings, type AppLanguage } from "../../context/SettingsContext";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 

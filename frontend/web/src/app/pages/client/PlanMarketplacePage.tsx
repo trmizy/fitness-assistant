@@ -3,26 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Package,
-  Send,
-  ShoppingCart,
-  Star,
-  Store,
-  TrendingUp,
-  Trash2,
-  Upload,
-  CalendarPlus,
-  ChevronDown,
-  Gauge,
-  Sparkles,
-  ShieldCheck,
-  Briefcase,
-  Plus,
-  X,
-  MessageCircle,
-} from "lucide-react";
+import { CircleNotchIcon as Loader2, PackageIcon as Package, PaperPlaneTiltIcon as Send, ShoppingCartIcon as ShoppingCart, StarIcon as Star, StorefrontIcon as Store, TrendUpIcon as TrendingUp, TrashIcon as Trash2, UploadSimpleIcon as Upload, CalendarPlusIcon as CalendarPlus, CaretDownIcon as ChevronDown, GaugeIcon as Gauge, SparkleIcon as Sparkles, ShieldCheckIcon as ShieldCheck, BriefcaseIcon as Briefcase, PlusIcon as Plus, XIcon as X, ChatCircleIcon as MessageCircle } from "@phosphor-icons/react";
 import { StarRating } from "../../components/StarRating";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 import {

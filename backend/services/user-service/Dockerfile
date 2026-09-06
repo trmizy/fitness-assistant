@@ -36,6 +36,14 @@ COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.js
 COPY --from=builder /app/backend/services/user-service/node_modules ./backend/services/user-service/node_modules
 COPY --from=builder /app/backend/services/user-service/dist ./backend/services/user-service/dist
 COPY --from=builder /app/backend/services/user-service/src/generated ./backend/services/user-service/dist/generated
+# ALSO at src/generated (not just copied into dist/generated above) — the
+# runner image otherwise has no `src/` directory at all, but
+# seed_vietnam_locations.ts (run directly via tsx below, not compiled to
+# dist) imports "../src/generated/prisma" by that literal relative path.
+# Without this, running the seed script here throws MODULE_NOT_FOUND and
+# the container never starts — a straight `COPY` (generated Prisma client
+# output is already plain JS, nothing to compile) is the minimal fix.
+COPY --from=builder /app/backend/services/user-service/src/generated ./backend/services/user-service/src/generated
 COPY --from=builder /app/backend/services/user-service/package.json ./backend/services/user-service/package.json
 COPY --from=builder /app/backend/services/user-service/prisma ./backend/services/user-service/prisma
 WORKDIR /app/backend/services/user-service
@@ -52,4 +60,14 @@ EXPOSE 3004
 # means a fresh production database would have no user-service tables at
 # all. `exec` (not a plain `node dist/server.js` fork) so SIGTERM reaches
 # the app's shutdown handler instead of being swallowed by the shell.
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node dist/server.js"]
+#
+# seed_vietnam_locations.ts self-guards (skips instantly once
+# vietnam_provinces has any rows), so running it on every boot is cheap.
+# Without this, a fresh production database gets the vietnam_provinces/
+# vietnam_wards TABLES from the migration above but no rows in them — the
+# PT application form's province/ward dropdowns (and PT training-location
+# management, PT discovery's location filter) then silently render empty,
+# with no error anywhere in the stack. Confirmed happening on the dev DB
+# 2026-09 for exactly this reason (migrations ran, the one-time data load
+# never did).
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/tsx prisma/seed_vietnam_locations.ts && exec node dist/server.js"]

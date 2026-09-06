@@ -2,7 +2,7 @@ import { useState, useEffect, type Dispatch, type SetStateAction, type ReactNode
 import { useParams, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, CheckCircle, MessageSquare, ArrowLeft, ThumbsUp, Send, History, Star } from "lucide-react";
+import { CircleNotchIcon as Loader2, ShieldCheckIcon as ShieldCheck, CheckCircleIcon as CheckCircle, ChatTextIcon as MessageSquare, ArrowLeftIcon as ArrowLeft, ThumbsUpIcon as ThumbsUp, PaperPlaneTiltIcon as Send, ClockCounterClockwiseIcon as History, StarIcon as Star } from "@phosphor-icons/react";
 import {
   personalizedServiceApi,
   workoutService,

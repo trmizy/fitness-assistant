@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, Loader2, AlertTriangle, X } from "lucide-react";
+import { CreditCardIcon as CreditCard, CircleNotchIcon as Loader2, WarningIcon as AlertTriangle, XIcon as X } from "@phosphor-icons/react";
 import { paymentService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import { useBackDismissible } from "../../hooks/useBackDismissible";

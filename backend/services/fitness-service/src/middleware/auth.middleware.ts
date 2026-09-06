@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import axios from "axios";
 import { logger, readGatewayVerifiedUser } from "@gym-coach/shared";
+import { authServiceClient } from "../clients/auth-service.client";
 
 export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
@@ -48,17 +48,10 @@ export async function authMiddleware(
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const authServiceUrl =
-      process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-    const response = await axios.post(
-      `${authServiceUrl}/auth/verify`,
-      {},
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 5000,
-      },
-    );
-    req.user = response.data.user;
+    // authServiceClient (not a raw axios call) so this keeps working under the Lambda-invoke
+    // path too, not just plain HTTP — see auth-service.client.ts.
+    const response = await authServiceClient.verifyToken(`Bearer ${token}`);
+    req.user = response.user;
     return next();
   } catch (error) {
     logger.error("Auth verification failed:", error);

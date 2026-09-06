@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Search,
-  TrendingDown,
-  TrendingUp,
-  ChevronRight,
-  AlertCircle,
-} from "lucide-react";
+import { MagnifyingGlassIcon as Search, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, WarningCircleIcon as AlertCircle } from "@phosphor-icons/react";
 import { contractService } from "../../services/api";
 
 type Contract = {

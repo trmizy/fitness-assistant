@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
-import {
-  Dumbbell,
-  ArrowRight,
-  Check,
-  Mail,
-  Lock,
-  UserCircle,
-} from "lucide-react";
+import { BarbellIcon as Dumbbell, ArrowRightIcon as ArrowRight, CheckIcon as Check, EnvelopeSimpleIcon as Mail, LockIcon as Lock, UserCircleIcon as UserCircle } from "@phosphor-icons/react";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
 

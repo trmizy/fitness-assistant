@@ -1,26 +1,5 @@
 import { useState } from "react";
-import {
-  FileText,
-  Search,
-  CheckCircle,
-  Clock,
-  XCircle,
-  AlertTriangle,
-  User,
-  ChevronDown,
-  ChevronUp,
-  DollarSign,
-  Dumbbell,
-  PlayCircle,
-  Ban,
-  Loader2,
-  Check,
-  X,
-  MessageSquare,
-  Calendar,
-  AlertOctagon,
-  Star,
-} from "lucide-react";
+import { FileTextIcon as FileText, MagnifyingGlassIcon as Search, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, UserIcon as User, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CurrencyDollarIcon as DollarSign, BarbellIcon as Dumbbell, PlayCircleIcon as PlayCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, CheckIcon as Check, XIcon as X, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, WarningOctagonIcon as AlertOctagon, StarIcon as Star } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { toast } from "sonner";
@@ -62,6 +41,24 @@ const SESSION_STATUS: Record<
     label: "No Show",
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
+  },
+  // Merge note: these SessionStatus values exist on the payment-gateways branch's session
+  // lifecycle (client-confirmation window, dispute flow, reschedule requests) but predate
+  // this map — added so Record<SessionStatus, ...>'s completeness check stays meaningful.
+  PENDING_CLIENT_CONFIRMATION: {
+    label: "Awaiting client confirmation",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  DISPUTED: {
+    label: "Disputed",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  RESCHEDULE_PENDING: {
+    label: "Reschedule pending",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
   },
 };
 

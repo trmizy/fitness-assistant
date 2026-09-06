@@ -1,23 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router";
-import {
-  Bot,
-  Send,
-  Lightbulb,
-  AlertCircle,
-  RefreshCw,
-  User,
-  Loader2,
-  BookOpen,
-  ExternalLink,
-  Plus,
-  MessageSquare,
-  Pencil,
-  Trash2,
-  Check,
-  X,
-  ChevronLeft,
-} from "lucide-react";
+import { RobotIcon as Bot, PaperPlaneTiltIcon as Send, LightbulbIcon as Lightbulb, WarningCircleIcon as AlertCircle, ArrowsClockwiseIcon as RefreshCw, UserIcon as User, CircleNotchIcon as Loader2, BookOpenIcon as BookOpen, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, ChatTextIcon as MessageSquare, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { inbodyService, coachService, type AiChatSessionSummary } from "../../services/api";

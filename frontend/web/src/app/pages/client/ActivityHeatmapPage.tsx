@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CalendarBlankIcon as CalendarDays, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { statsService, type ActivityDayState } from "../../services/api";
 

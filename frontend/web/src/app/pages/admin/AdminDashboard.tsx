@@ -1,19 +1,5 @@
 import { useNavigate } from "react-router";
-import {
-  Users,
-  UserCheck,
-  FileText,
-  Calendar,
-  Activity,
-  AlertTriangle,
-  TrendingUp,
-  Server,
-  Loader2,
-  RefreshCw,
-  Wallet as WalletIcon,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { UsersIcon as Users, UserCheckIcon as UserCheck, FileTextIcon as FileText, CalendarIcon as Calendar, PulseIcon as Activity, WarningIcon as AlertTriangle, TrendUpIcon as TrendingUp, DatabaseIcon as Server, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, WalletIcon, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle } from "@phosphor-icons/react";
 import {
   LineChart,
   Line,

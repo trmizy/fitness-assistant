@@ -2,19 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
-import {
-  GitCompare,
-  Search,
-  X,
-  Check,
-  Link2,
-  PlusCircle,
-  HelpCircle,
-  Ban,
-  Loader2,
-  ShieldAlert,
-  History,
-} from "lucide-react";
+import { ArrowsLeftRightIcon as GitCompare, MagnifyingGlassIcon as Search, XIcon as X, CheckIcon as Check, LinkSimpleIcon as Link2, PlusCircleIcon as PlusCircle, QuestionIcon as HelpCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, ShieldWarningIcon as ShieldAlert, ClockCounterClockwiseIcon as History } from "@phosphor-icons/react";
 import {
   exerciseReviewService,
   type ExerciseReviewCandidate,

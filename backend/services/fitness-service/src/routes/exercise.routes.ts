@@ -11,6 +11,12 @@ router.get("/filter-options", exerciseController.getFilterOptions);
 // Gate 6 — must be registered BEFORE "/:id" or Express would treat
 // "muscles" as an :id value.
 router.get("/muscles", exerciseController.listMuscles);
+// Product Completeness pass — must also stay before "/:id" for the same
+// reason (":muscleId" here, not an exercise id).
+router.get(
+  "/muscles/:muscleId/exercises",
+  exerciseController.listExercisesByMuscle,
+);
 // Roadmap P1.5 "Custom exercises" — named routes, must stay before "/:id"
 // for the same reason as /muscles above.
 router.post("/custom", authMiddleware, exerciseController.createCustom as any);

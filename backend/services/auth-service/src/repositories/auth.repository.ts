@@ -36,6 +36,20 @@ export const authRepository = {
       },
     }),
 
+  findUserWithPasswordById: (id: string) =>
+    prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+    }),
+
   findUsersByIds: (ids: string[]) =>
     prisma.user.findMany({
       where: { id: { in: ids } },
@@ -52,6 +66,19 @@ export const authRepository = {
         ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
         ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
       },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    }),
+
+  updateUserPasswordById: (id: string, password: string) =>
+    prisma.user.update({
+      where: { id },
+      data: { password },
       select: {
         id: true,
         email: true,
@@ -110,6 +137,9 @@ export const authRepository = {
 
   deleteRefreshTokenByValue: (token: string) =>
     prisma.refreshToken.deleteMany({ where: { token } }),
+
+  deleteRefreshTokensByUserId: (userId: string) =>
+    prisma.refreshToken.deleteMany({ where: { userId } }),
 
   createAuditLog: (data: {
     userId: string;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Gavel, Loader2, UserX, X } from "lucide-react";
+import { WarningIcon as AlertTriangle, CheckIcon as Check, GavelIcon as Gavel, CircleNotchIcon as Loader2, UserMinusIcon as UserX, XIcon as X } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Session } from "../../types";
 

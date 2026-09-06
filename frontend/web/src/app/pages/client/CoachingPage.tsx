@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { Calendar, Search } from "lucide-react";
+import { CalendarIcon as Calendar, MagnifyingGlassIcon as Search } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { PTDiscoveryPage } from "./PTDiscoveryPage";
 import { BookingPage } from "./BookingPage";

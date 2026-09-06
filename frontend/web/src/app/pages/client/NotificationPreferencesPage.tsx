@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bell, Loader2 } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, BellIcon as Bell, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { notificationService, type NotificationPreferences } from "../../services/api";
 

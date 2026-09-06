@@ -82,6 +82,13 @@ export const exerciseService = {
     type?: string;
     search?: string;
     ids?: string;
+    // Product Completeness pass — Exercise Library's "Difficulty filter if
+    // real" / "Logging-mode filter" (spec §16). Both are real, already-
+    // seeded columns (difficultyLevel, loggingMode) that had no filter
+    // wired to them before this.
+    difficulty?: string;
+    loggingMode?: string;
+    hasVideo?: string | boolean;
     page?: string | number;
     limit?: string | number;
   }) {
@@ -138,6 +145,18 @@ export const exerciseService = {
     if (activityType && ACTIVITY_TYPES.has(activityType))
       and.push({ typeOfActivity: activityType });
     if (type && MOVEMENT_TYPES.has(type)) and.push({ type });
+    // difficultyLevel is advisory free text ("beginner"|"intermediate"|
+    // "expert" per the schema comment), never a hard-validated enum, so
+    // this filter matches case-insensitively rather than against a fixed
+    // Set like the enum filters above — an unrecognized value just yields
+    // zero matches instead of silently being dropped.
+    const difficulty = filters.difficulty?.trim().toLowerCase();
+    if (difficulty) and.push({ difficultyLevel: { equals: difficulty, mode: "insensitive" } });
+    const loggingMode = filters.loggingMode?.trim().toUpperCase();
+    if (loggingMode && LOGGING_MODES.has(loggingMode)) and.push({ loggingMode });
+    if (filters.hasVideo === true || filters.hasVideo === "true") {
+      and.push({ videoUrl: { not: null } });
+    }
     if (muscleGroup) {
       const muscleValues = MUSCLE_GROUP_ALIASES[muscleGroup] || [muscleGroup];
       and.push({
@@ -189,8 +208,11 @@ export const exerciseService = {
     };
   },
 
+  // Product Completeness pass — now additionally includes aliases and
+  // media/license attribution (spec §17) alongside every field this
+  // endpoint already returned. Purely additive to the response shape.
   async getExercise(id: string) {
-    const exercise = await exerciseRepository.findById(id);
+    const exercise = await exerciseRepository.findByIdWithDetails(id);
     if (!exercise) throw { status: 404, message: "Exercise not found" };
     return exercise;
   },
@@ -228,12 +250,49 @@ export const exerciseService = {
   async listMuscles() {
     const muscles = await exerciseRepository.listAllMuscles();
     return muscles.map((m) => ({
+      // `id` is additive (existing callers only ever destructured the
+      // fields below) — the Muscle Library needs a stable identifier to
+      // pass to listExercisesByMuscle, and `code` already doubles as one,
+      // but exposing the real `id` too keeps the two aligned with how
+      // ExerciseMuscle.muscleId itself is stored.
+      id: m.id,
       code: m.code,
       nameVi: m.nameVi,
       nameEn: m.nameEn,
       anatomyRegion: m.anatomyRegion,
       parentMuscleId: m.parentMuscleId,
     }));
+  },
+
+  // Product Completeness pass — Muscle Library detail page. Reuses the
+  // exact ExerciseMuscle-backed mapping getMuscleMap already trusts (never
+  // the legacy muscleGroupsActivated array), just inverted: exercises FOR a
+  // muscle instead of muscles FOR an exercise.
+  async listExercisesByMuscle(
+    muscleIdOrCode: string,
+    filters: { page?: string | number; limit?: string | number },
+  ) {
+    const muscle = await exerciseRepository.findMuscleByIdOrCode(muscleIdOrCode);
+    if (!muscle) throw { status: 404, message: "Muscle not found" };
+
+    const page = boundedInt(filters.page, 1, 1, 10_000);
+    const limit = boundedInt(filters.limit, 30, 1, 100);
+    const { exercises, total } = await exerciseRepository.findExercisesByMuscleId(
+      muscle.id,
+      { skip: (page - 1) * limit, take: limit },
+    );
+
+    return {
+      muscle: {
+        id: muscle.id,
+        code: muscle.code,
+        nameVi: muscle.nameVi,
+        nameEn: muscle.nameEn,
+        anatomyRegion: muscle.anatomyRegion,
+      },
+      exercises,
+      pagination: { page, limit, total },
+    };
   },
 
   /**

@@ -1,18 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Wallet as WalletIcon,
-  Users,
-  QrCode,
-  Star,
-  ChevronDown,
-  Settings,
-  Plus,
-  Building2,
-  UserCheck,
-  ClipboardList,
-  UsersRound,
-} from "lucide-react";
+import { WalletIcon, UsersIcon as Users, QrCodeIcon as QrCode, StarIcon as Star, CaretDownIcon as ChevronDown, GearSixIcon as Settings, PlusIcon as Plus, BuildingsIcon as Building2, UserCheckIcon as UserCheck, ClipboardTextIcon as ClipboardList, UsersFourIcon as UsersRound } from "@phosphor-icons/react";
 import {
   BarChart,
   Bar,

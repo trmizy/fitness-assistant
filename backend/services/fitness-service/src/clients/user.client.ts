@@ -6,6 +6,10 @@
  */
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import {
+  invokeHttpLambda,
+  throwForLambdaHttpError,
+} from "./lambda-http.client";
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL ||
@@ -17,6 +21,45 @@ function userServiceHeaders() {
   return {
     "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "",
   };
+}
+
+async function userServiceGet(path: string, params?: Record<string, string>) {
+  const functionName = process.env.USER_LAMBDA_NAME;
+  if (functionName) {
+    const result = await invokeHttpLambda({
+      functionName,
+      method: "GET",
+      path,
+      headers: userServiceHeaders(),
+      queryStringParameters: params,
+    });
+    throwForLambdaHttpError(result);
+    return { data: result.body };
+  }
+  return axios.get(`${USER_SERVICE_URL}${path}`, {
+    headers: userServiceHeaders(),
+    params,
+    timeout: 5000,
+  });
+}
+
+async function userServicePut(path: string, body: unknown) {
+  const functionName = process.env.USER_LAMBDA_NAME;
+  if (functionName) {
+    const result = await invokeHttpLambda({
+      functionName,
+      method: "PUT",
+      path,
+      headers: userServiceHeaders(),
+      body,
+    });
+    throwForLambdaHttpError(result);
+    return { data: result.body };
+  }
+  return axios.put(`${USER_SERVICE_URL}${path}`, body, {
+    headers: userServiceHeaders(),
+    timeout: 5000,
+  });
 }
 
 export interface UserProfileSnapshot {
@@ -61,9 +104,8 @@ export async function fetchUserProfile(
   userId: string,
 ): Promise<UserProfileSnapshot | null> {
   try {
-    const res = await axios.get(
-      `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`,
-      { headers: userServiceHeaders(), timeout: 5000 },
+    const res = await userServiceGet(
+      `/internal/profile/${encodeURIComponent(userId)}`,
     );
     const profile = res.data?.profile ?? res.data ?? null;
     if (!profile) return null;
@@ -98,10 +140,9 @@ export async function syncAvailableEquipmentToUserProfile(
   equipmentNames: string[],
 ): Promise<void> {
   try {
-    await axios.put(
-      `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}/available-equipment`,
+    await userServicePut(
+      `/internal/profile/${encodeURIComponent(userId)}/available-equipment`,
       { availableEquipment: equipmentNames },
-      { headers: userServiceHeaders(), timeout: 5000 },
     );
   } catch (error) {
     logger.warn(
@@ -115,9 +156,8 @@ export async function fetchInBodyHistory(
   userId: string,
 ): Promise<InBodyEntrySnapshot[]> {
   try {
-    const res = await axios.get(
-      `${USER_SERVICE_URL}/internal/inbody/${encodeURIComponent(userId)}`,
-      { headers: userServiceHeaders(), timeout: 5000 },
+    const res = await userServiceGet(
+      `/internal/inbody/${encodeURIComponent(userId)}`,
     );
     const raw: any[] = Array.isArray(res.data) ? res.data : [];
     return raw.map((e) => ({
@@ -187,10 +227,9 @@ export async function isActivePtClientRelationship(
   clientUserId: string,
 ): Promise<boolean> {
   try {
-    const res = await axios.get(`${USER_SERVICE_URL}/internal/contracts/active-relationship`, {
-      headers: userServiceHeaders(),
-      params: { ptUserId, clientUserId },
-      timeout: 5000,
+    const res = await userServiceGet("/internal/contracts/active-relationship", {
+      ptUserId,
+      clientUserId,
     });
     return res.data?.active === true;
   } catch (error) {

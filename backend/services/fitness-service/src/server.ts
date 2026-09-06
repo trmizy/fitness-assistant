@@ -37,6 +37,6 @@ process.on("SIGTERM", async () => {
   logger.info("SIGTERM received, shutting down gracefully");
   await prisma.$disconnect();
   await redisClient.quit();
-  await workoutWorker.close();
+  await workoutWorker?.close();
   process.exit(0);
 });

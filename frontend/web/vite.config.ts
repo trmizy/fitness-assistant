@@ -34,6 +34,13 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       "@": path.resolve(__dirname, "./src"),
+      // GYMINI ICON SYSTEM: no "lucide-react" alias — every file imports Phosphor
+      // (@phosphor-icons/react) directly (see
+      // docs/features/GYMINI_PHOSPHOR_ICON_MIGRATION_REPORT.md). An earlier version of this
+      // migration routed everything through an alias to a compatibility file instead of
+      // editing all 123 call sites; that worked but defeated per-page code-splitting (the
+      // shared compatibility module pulled all ~180 icons into one bundle, +450KB measured).
+      // Direct imports restore normal per-chunk tree-shaking.
     },
   },
 

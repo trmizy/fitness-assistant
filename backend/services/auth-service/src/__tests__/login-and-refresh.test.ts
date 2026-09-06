@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { authService } from "../services/auth.service";
 import { authRepository } from "../repositories/auth.repository";
 
@@ -16,6 +17,7 @@ import { authRepository } from "../repositories/auth.repository";
  * default) matches the real running secret regardless of what .env actually contains.
  */
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || "refresh-secret-key-change-in-production";
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || "dev_jwt_secret_change_in_production";
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];
@@ -23,6 +25,10 @@ function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknow
   return () => {
     obj[key] = original;
   };
+}
+
+function signAccessToken(userId: string, role = "CUSTOMER", email = "user@example.com"): string {
+  return jwt.sign({ userId, role, email }, ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
 }
 
 test("login() with the wrong password is rejected 401 and never issues a token", async () => {
@@ -106,6 +112,106 @@ test("login() for a disabled (isActive:false) account is rejected 403 even with 
     );
   } finally {
     restoreUser();
+  }
+});
+
+test("changePassword() rejects the wrong current password and leaves password/session rows untouched", async () => {
+  const passwordHash = await bcrypt.hash("correct-password", 10);
+  const updateCalls: unknown[] = [];
+  const revokeCalls: string[] = [];
+  const restoreVerify = patch(authRepository, "findUserById", async () => ({
+    id: "u1",
+    email: "user@example.com",
+    role: "CUSTOMER",
+    isActive: true,
+  }));
+  const restoreUser = patch(authRepository, "findUserWithPasswordById", async () => ({
+    id: "u1",
+    email: "user@example.com",
+    password: passwordHash,
+    firstName: "U",
+    lastName: "Ser",
+    role: "CUSTOMER",
+    isActive: true,
+  }));
+  const restoreUpdate = patch(authRepository, "updateUserPasswordById", async (...args: unknown[]) => {
+    updateCalls.push(args);
+    return {};
+  });
+  const restoreRevoke = patch(authRepository, "deleteRefreshTokensByUserId", async (userId: string) => {
+    revokeCalls.push(userId);
+    return { count: 0 };
+  });
+
+  try {
+    await assert.rejects(
+      () =>
+        authService.changePassword(signAccessToken("u1"), {
+          currentPassword: "wrong-password",
+          newPassword: "new-password-123",
+        }),
+      (err: any) => err.status === 401,
+    );
+    assert.equal(updateCalls.length, 0, "wrong current password must not update the password hash");
+    assert.equal(revokeCalls.length, 0, "wrong current password must not revoke sessions");
+  } finally {
+    restoreVerify();
+    restoreUser();
+    restoreUpdate();
+    restoreRevoke();
+  }
+});
+
+test("changePassword() hashes the new password and revokes refresh tokens for the account", async () => {
+  const oldHash = await bcrypt.hash("correct-password", 10);
+  const updateCalls: Array<{ id: string; password: string }> = [];
+  const revokeCalls: string[] = [];
+  const restoreVerify = patch(authRepository, "findUserById", async () => ({
+    id: "u1",
+    email: "user@example.com",
+    role: "CUSTOMER",
+    isActive: true,
+  }));
+  const restoreUser = patch(authRepository, "findUserWithPasswordById", async () => ({
+    id: "u1",
+    email: "user@example.com",
+    password: oldHash,
+    firstName: "U",
+    lastName: "Ser",
+    role: "CUSTOMER",
+    isActive: true,
+  }));
+  const restoreUpdate = patch(authRepository, "updateUserPasswordById", async (id: string, password: string) => {
+    updateCalls.push({ id, password });
+    return {
+      id,
+      email: "user@example.com",
+      firstName: "U",
+      lastName: "Ser",
+      role: "CUSTOMER",
+    };
+  });
+  const restoreRevoke = patch(authRepository, "deleteRefreshTokensByUserId", async (userId: string) => {
+    revokeCalls.push(userId);
+    return { count: 2 };
+  });
+
+  try {
+    const result = await authService.changePassword(signAccessToken("u1"), {
+      currentPassword: "correct-password",
+      newPassword: "new-password-123",
+    });
+    assert.equal(result.user.id, "u1");
+    assert.equal(updateCalls.length, 1, "password hash must be updated exactly once");
+    assert.equal(updateCalls[0].id, "u1");
+    assert.notEqual(updateCalls[0].password, "new-password-123", "new password must be stored as a hash");
+    assert.equal(await bcrypt.compare("new-password-123", updateCalls[0].password), true);
+    assert.deepEqual(revokeCalls, ["u1"], "all refresh tokens for the account must be revoked");
+  } finally {
+    restoreVerify();
+    restoreUser();
+    restoreUpdate();
+    restoreRevoke();
   }
 });
 

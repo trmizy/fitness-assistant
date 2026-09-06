@@ -1,16 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Users,
-  Calendar,
-  Wallet as WalletIcon,
-  TrendingUp,
-  AlertCircle,
-  Clock,
-  Brain,
-  CalendarX2,
-  CalendarCheck2,
-} from "lucide-react";
+import { UsersIcon as Users, CalendarIcon as Calendar, WalletIcon, TrendUpIcon as TrendingUp, WarningCircleIcon as AlertCircle, ClockIcon as Clock, BrainIcon as Brain, CalendarXIcon as CalendarX2, CalendarCheckIcon as CalendarCheck2 } from "@phosphor-icons/react";
 import {
   BarChart,
   Bar,

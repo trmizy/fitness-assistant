@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Share2, Download, ArrowLeft, Loader2, Users } from "lucide-react";
+import { ShareNetworkIcon as Share2, DownloadSimpleIcon as Download, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, UsersIcon as Users } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { templateService, workoutService, contractService, type WorkoutProgramTemplate } from "../../services/api";
 

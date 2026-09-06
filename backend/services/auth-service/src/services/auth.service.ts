@@ -6,6 +6,7 @@ import { logger } from "@gym-coach/shared";
 import { authRepository } from "../repositories/auth.repository";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
+  ChangePasswordDto,
   RegisterStartDto,
   RegisterVerifyDto,
   UpdateMeDto,
@@ -330,6 +331,43 @@ export const authService = {
       ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
       ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
     });
+
+    return {
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+      },
+    };
+  },
+
+  async changePassword(token: string, data: ChangePasswordDto) {
+    const verified = await this.verifyToken(token);
+    const user = await authRepository.findUserWithPasswordById(verified.id);
+    if (!user) throw { status: 401, message: "User not found" };
+
+    const validPassword = await bcrypt.compare(
+      data.currentPassword,
+      user.password,
+    );
+    if (!validPassword) {
+      throw { status: 401, message: "Current password is incorrect" };
+    }
+
+    const samePassword = await bcrypt.compare(data.newPassword, user.password);
+    if (samePassword) {
+      throw { status: 400, message: "New password must be different" };
+    }
+
+    const passwordHash = await bcrypt.hash(data.newPassword, 10);
+    const updated = await authRepository.updateUserPasswordById(
+      user.id,
+      passwordHash,
+    );
+
+    await authRepository.deleteRefreshTokensByUserId(user.id);
 
     return {
       user: {

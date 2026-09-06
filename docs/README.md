@@ -81,7 +81,7 @@ as historical evidence, not as a substitute for running the current tests.
 - [n8n integration](../infra/n8n/README.md)
 - [Docker test environment](../docker/test/README.md)
 - [Playwright E2E handoff](../fitnessassistant-playwright-e2e/AGENT_HANDOFF.md)
-- [InBody OCR extractor](../backend/services/user-service/inbody_extractor/README.md)
+- [InBody local vision extraction](features/INBODY_LOCAL_VISION_MIGRATION.md) — the live path (`inbody-vision.service.ts`, Ollama vision model by default). The `inbody_extractor/` Python folder linked here previously is dead code (Tesseract OCR prototype, never wired into the running service) — not the real pipeline.
 - [Optional fine-tuning pipeline](../training/README.md)
 - [RunPod training runbook](../training/RUNPOD_RUNBOOK.md)
 

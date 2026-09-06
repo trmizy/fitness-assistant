@@ -12,6 +12,9 @@ dist/
 build/
 **/.build/
 coverage/
+artifacts/
+**/artifacts/
+output/
 .turbo/
 .cache/
 *.tsbuildinfo
@@ -71,6 +74,8 @@ Thumbs.db
 .idea/
 .vscode/
 .claude/
+.expo/
+**/.expo/
 .playwright-cli/
 
 # ------------------------------
@@ -102,6 +107,9 @@ tmp/
 *.bak
 *.old
 *.orig
+
+# Local DB snapshots (pg_dump files — real user data, never commit)
+db_snapshots/
 
 # Temporary / local-only files
 skills-main.zip

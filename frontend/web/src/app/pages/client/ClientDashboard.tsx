@@ -17,21 +17,7 @@ import {
   workoutService,
   type WorkoutScheduleRecord,
 } from "../../services/api";
-import {
-  Award,
-  Bell,
-  Brain,
-  Calendar,
-  ChevronRight,
-  Dumbbell,
-  Flame,
-  Loader2,
-  MessageSquare,
-  Target,
-  TrendingDown,
-  TrendingUp,
-  Upload,
-} from "lucide-react";
+import { MedalIcon as Award, BellIcon as Bell, BrainIcon as Brain, CalendarIcon as Calendar, CaretRightIcon as ChevronRight, BarbellIcon as Dumbbell, FlameIcon as Flame, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, TargetIcon as Target, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, UploadSimpleIcon as Upload } from "@phosphor-icons/react";
 
 const tooltipStyle = {
   contentStyle: {

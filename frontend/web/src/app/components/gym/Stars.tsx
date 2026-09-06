@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { StarIcon as Star } from "@phosphor-icons/react";
 
 /** Read-only average-rating stars (supports halves via fill width). */
 export function Stars({ value, size = 14 }: { value: number; size?: number }) {

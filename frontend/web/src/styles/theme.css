@@ -325,6 +325,100 @@
     @apply bg-zinc-950/60 backdrop-blur-xl border border-zinc-700/50 shadow-2xl;
   }
 
+  /* GYMINI ICON SYSTEM: no default glow — the spec is explicit that glow is opt-in only
+     (achievement/hero/selected-major-feature moments), never a blanket default on every
+     icon. This used to carry a permanent drop-shadow + a forced 2.35 stroke-width for the
+     old procedural icons' heavier decoration; the hand-authored icons in
+     src/app/components/icons/gymini/ are tuned for their own default (2), so this rule is
+     now just the sizing hook + a visible-overflow safety net for strokes touching the
+     viewBox edge. */
+  .gymini-icon {
+    overflow: visible;
+    transition: color 160ms ease;
+  }
+
+  /* GYMINI ICON SYSTEM tone classes — used by GyminiIconProps#tone (base.tsx). Reuse the
+     project's existing theme tokens; no new colors invented. `accent`/`success` share
+     --primary-color deliberately: this brand's green already IS the success color, there's no
+     separate token for it. */
+  .gymini-icon-muted {
+    color: var(--muted-text-color);
+  }
+  .gymini-icon-accent {
+    color: var(--primary-color);
+  }
+  .gymini-icon-danger {
+    color: var(--destructive);
+  }
+  .gymini-icon-success {
+    color: var(--primary-color);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gymini-icon {
+      transition: none;
+    }
+  }
+
+  .gymini-icon.w-3,
+  .gymini-icon.h-3 {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .gymini-icon.w-3\.5,
+  .gymini-icon.h-3\.5 {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .gymini-icon.w-4,
+  .gymini-icon.h-4 {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .gymini-icon.w-5,
+  .gymini-icon.h-5 {
+    width: 1.65rem;
+    height: 1.65rem;
+  }
+
+  .gymini-icon.w-6,
+  .gymini-icon.h-6 {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  nav .gymini-icon {
+    stroke-width: 2.5;
+  }
+
+  nav .gymini-icon.w-4,
+  nav .gymini-icon.h-4 {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+
+  nav .gymini-icon.w-5,
+  nav .gymini-icon.h-5 {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  [class*="bottom-0"] .gymini-icon.w-6,
+  [class*="bottom-0"] .gymini-icon.h-6 {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  .rounded-lg > .gymini-icon:first-child,
+  .rounded-xl > .gymini-icon:first-child,
+  .rounded-2xl > .gymini-icon:first-child {
+    min-width: 1.45rem;
+    min-height: 1.45rem;
+  }
+
   .app-theme-overlay {
     background-color: rgb(0 0 0 / 0.4);
   }
@@ -364,6 +458,40 @@
   :root[data-theme="light"] .text-zinc-500,
   :root[data-theme="light"] .text-zinc-600 {
     color: #475569;
+  }
+
+  :root[data-theme="light"] .text-zinc-700 {
+    color: #334155;
+  }
+
+  :root[data-theme="light"] .text-green-300,
+  :root[data-theme="light"] .text-green-400,
+  :root[data-theme="light"] .text-emerald-300,
+  :root[data-theme="light"] .text-emerald-400 {
+    color: #047857;
+  }
+
+  :root[data-theme="light"] .text-amber-300,
+  :root[data-theme="light"] .text-amber-400 {
+    color: #b45309;
+  }
+
+  :root[data-theme="light"] .text-red-400,
+  :root[data-theme="light"] .text-rose-400 {
+    color: #be123c;
+  }
+
+  :root[data-theme="light"] .hover\:text-zinc-300:hover,
+  :root[data-theme="light"] .hover\:text-zinc-400:hover,
+  :root[data-theme="light"] .hover\:text-zinc-500:hover {
+    color: #334155;
+  }
+
+  :root[data-theme="light"] .hover\:text-green-300:hover,
+  :root[data-theme="light"] .hover\:text-green-400:hover,
+  :root[data-theme="light"] .hover\:text-emerald-300:hover,
+  :root[data-theme="light"] .hover\:text-emerald-400:hover {
+    color: #065f46;
   }
 
   :root[data-theme="dark"] .text-zinc-500,

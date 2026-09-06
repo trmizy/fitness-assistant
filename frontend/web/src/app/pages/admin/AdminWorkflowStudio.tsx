@@ -1,26 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_URL, adminService } from "../../services/api";
 import { tokenStore } from "../../services/tokenStore";
-import {
-  RefreshCw,
-  Workflow,
-  ExternalLink,
-  CircleCheck,
-  CircleX,
-  KeyRound,
-  Play,
-  ChevronRight,
-  ChevronDown,
-  Clock,
-  Zap,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Info,
-  LogIn,
-  UserPlus,
-} from "lucide-react";
+import { ArrowsClockwiseIcon as RefreshCw, FlowArrowIcon as Workflow, ArrowSquareOutIcon as ExternalLink, CheckCircleIcon as CircleCheck, XCircleIcon as CircleX, KeyIcon as KeyRound, PlayIcon as Play, CaretRightIcon as ChevronRight, CaretDownIcon as ChevronDown, ClockIcon as Clock, LightningIcon as Zap, WarningIcon as AlertTriangle, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CircleNotchIcon as Loader2, InfoIcon as Info, SignInIcon as LogIn, UserPlusIcon as UserPlus } from "@phosphor-icons/react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -1,10 +1,10 @@
-import { Moon, Sun } from "lucide-react";
+import { MoonIcon as Moon, SunIcon as Sun } from "@phosphor-icons/react";
 import { useSettings } from "../../context/SettingsContext";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 
 export function ThemeToggle() {
-  const { theme, language, toggleTheme } = useSettings();
-  const isDark = theme === "dark";
+  const { effectiveTheme, language, toggleTheme } = useSettings();
+  const isDark = effectiveTheme === "dark";
   const label =
     language === "vi" ? (isDark ? "Sáng" : "Tối") : isDark ? "Light" : "Dark";
   const { text: ariaLabel } = useAutoTranslate(

@@ -12,21 +12,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import {
-  Monitor,
-  Activity,
-  Server,
-  Cpu,
-  HardDrive,
-  Wifi,
-  AlertTriangle,
-  RefreshCw,
-  ExternalLink,
-  Loader2,
-  Wallet as WalletIcon,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { MonitorIcon as Monitor, PulseIcon as Activity, DatabaseIcon as Server, CpuIcon as Cpu, HardDriveIcon as HardDrive, WifiHighIcon as Wifi, WarningIcon as AlertTriangle, ArrowsClockwiseIcon as RefreshCw, ArrowSquareOutIcon as ExternalLink, CircleNotchIcon as Loader2, WalletIcon, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import { grafanaUrl } from "../../config/serverUrl";
 import { formatVND } from "../../utils/currency";

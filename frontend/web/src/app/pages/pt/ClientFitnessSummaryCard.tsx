@@ -1,4 +1,4 @@
-import { Dumbbell, AlertTriangle, TrendingUp } from "lucide-react";
+import { BarbellIcon as Dumbbell, WarningIcon as AlertTriangle, TrendUpIcon as TrendingUp } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { ptCoachService } from "../../services/api";
 

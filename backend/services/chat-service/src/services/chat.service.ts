@@ -2,6 +2,7 @@ import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
 import { canCreateDirectChat } from "./chat.policy";
+import { getIo } from "../socket";
 
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://localhost:3001";
@@ -154,6 +155,28 @@ export const chatService = {
       senderId,
       content,
     );
+
+    // BUG FIX (2026-09-05): this REST path persisted the message but never told anyone —
+    // only the Socket.IO path (chat.handler.ts's "chat:send_message" event) broadcast
+    // chat:new_message/chat:conversation_updated. Any caller that sends over REST instead
+    // of the socket (the mobile app, or a web client whose socket briefly dropped) had its
+    // message land silently: the recipient never got a live update and only saw it after
+    // reloading (which re-fetches via GET and finds the row already there). Mirror the
+    // socket handler's broadcast here so BOTH send paths notify participants identically.
+    const io = getIo();
+    if (io) {
+      io.to(conversationId).emit("chat:new_message", message);
+      const conversation = await chatRepository.findConversationById(conversationId);
+      if (conversation) {
+        for (const p of conversation.participants) {
+          io.to(`user:${p.userId}`).emit("chat:conversation_updated", {
+            conversationId,
+            lastMessage: { content: message.content, createdAt: message.createdAt },
+          });
+        }
+      }
+    }
+
     return {
       id: message.id,
       authorId: message.senderId,

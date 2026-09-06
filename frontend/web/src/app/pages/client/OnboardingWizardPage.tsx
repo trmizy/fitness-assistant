@@ -1,19 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Dumbbell,
-  Target,
-  CalendarDays,
-  ShieldAlert,
-  Ruler,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  Loader2,
-  Activity,
-} from "lucide-react";
+import { BarbellIcon as Dumbbell, TargetIcon as Target, CalendarBlankIcon as CalendarDays, ShieldWarningIcon as ShieldAlert, RulerIcon as Ruler, CheckCircleIcon as CheckCircle, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckIcon as Check, CircleNotchIcon as Loader2, PulseIcon as Activity } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
 import { profileService, equipmentService, type EquipmentCatalogItem } from "../../services/api";
 import { EquipmentPicker, TrainingLocationPresetRow } from "../../components/EquipmentPicker";

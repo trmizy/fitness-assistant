@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Dumbbell, Loader2, Save } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, FloppyDiskIcon as Save } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { equipmentService, profileService, type EquipmentCatalogItem } from "../../services/api";
 import { EquipmentPicker, TrainingLocationPresetRow, preselectFromLegacyEquipment } from "../../components/EquipmentPicker";

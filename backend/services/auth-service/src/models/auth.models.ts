@@ -39,6 +39,11 @@ export const updateMeSchema = z.object({
   lastName: z.string().trim().min(1).max(100).optional(),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
 // Money-flow plan 5.1: GYM_STAFF removed — see schema.prisma's Role enum comment.
 export const roleSchema = z.enum(["ADMIN", "CUSTOMER", "PT", "GYM_OWNER"]);
 
@@ -52,4 +57,5 @@ export type RegisterVerifyDto = z.infer<typeof registerVerifySchema>;
 export type LoginDto = z.infer<typeof loginSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;
 export type UpdateMeDto = z.infer<typeof updateMeSchema>;
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
 export type UpdateUserRoleDto = z.infer<typeof updateUserRoleSchema>;

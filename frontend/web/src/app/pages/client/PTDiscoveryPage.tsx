@@ -2,20 +2,20 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import {
-  Search,
-  Award,
-  Filter,
-  Check,
-  Loader2,
-  Users,
-  MessageSquare,
-  Clock,
-  X,
-  Globe,
-  MapPin,
-  Linkedin,
-  Instagram,
-} from "lucide-react";
+  MagnifyingGlassIcon as Search,
+  MedalIcon as Award,
+  FunnelIcon as Filter,
+  CheckIcon as Check,
+  CircleNotchIcon as Loader2,
+  UsersIcon as Users,
+  ChatTextIcon as MessageSquare,
+  ClockIcon as Clock,
+  XIcon as X,
+  GlobeIcon as Globe,
+  MapPinIcon as MapPin,
+  LinkedinLogoIcon as Linkedin,
+  InstagramLogoIcon as Instagram,
+} from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import {

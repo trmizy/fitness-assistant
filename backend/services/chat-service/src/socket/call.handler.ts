@@ -193,6 +193,19 @@ export function registerCallHandlers(
             calleeId,
           );
           if (!check.valid) {
+            // DIAGNOSTIC (2026-09-05): the client-facing message is intentionally generic,
+            // but that meant the ACTUAL reason (expired / user-mismatch / session-mismatch /
+            // bad signature — see joinToken.ts's `reason`) was never logged anywhere,
+            // making a real "can't join my own session" report unactionable from logs alone.
+            logger.warn(
+              {
+                userId: user.id,
+                coachingSessionId,
+                calleeId,
+                reason: check.reason,
+              },
+              "call:initiate rejected — invalid/expired join token",
+            );
             socket.emit("call:error", {
               message: "Invalid or expired join token",
             });

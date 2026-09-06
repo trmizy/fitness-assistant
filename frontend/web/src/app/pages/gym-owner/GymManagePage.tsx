@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, ListChecks, Banknote, Settings, Lock, Unlock, AlertTriangle } from "lucide-react";
+import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, PlusIcon as Plus, XIcon as X, WalletIcon, UsersIcon as Users, ListChecksIcon as ListChecks, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";

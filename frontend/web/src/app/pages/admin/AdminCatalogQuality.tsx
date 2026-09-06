@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Table2, Search, Video, VideoOff, Loader2 } from "lucide-react";
+import { TableIcon as Table2, MagnifyingGlassIcon as Search, VideoCameraIcon as Video, VideoCameraSlashIcon as VideoOff, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { catalogQualityService } from "../../services/api";
 
 /**

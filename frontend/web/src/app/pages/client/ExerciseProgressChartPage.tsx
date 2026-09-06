@@ -10,15 +10,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import {
-  ArrowLeft,
-  LineChart as LineChartIcon,
-  Loader2,
-  Trophy,
-  TrendingUp,
-  History,
-  Repeat,
-} from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ChartLineIcon as LineChartIcon, CircleNotchIcon as Loader2, TrophyIcon as Trophy, TrendUpIcon as TrendingUp, ClockCounterClockwiseIcon as History, RepeatIcon as Repeat } from "@phosphor-icons/react";
 import {
   workoutService,
   exerciseService,

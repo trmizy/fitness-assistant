@@ -1,19 +1,5 @@
 import { useState } from "react";
-import {
-  Calendar,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Plus,
-  Loader2,
-  Check,
-  CheckCircle,
-  XCircle,
-  AlertOctagon,
-  Ban,
-  Settings,
-} from "lucide-react";
+import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, XIcon as X, PlusIcon as Plus, CircleNotchIcon as Loader2, CheckIcon as Check, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningOctagonIcon as AlertOctagon, ProhibitIcon as Ban, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionService, availabilityService } from "../../services/api";
 import { toast } from "sonner";
@@ -102,6 +88,13 @@ const SESSION_STATUS_CFG: Record<
     label: "No Show",
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
+  },
+  // Merge note: added for the payment-gateways branch's reschedule-request flow — see the
+  // same note on BookingPage.tsx/PTContractsPage.tsx's SESSION_STATUS maps.
+  RESCHEDULE_PENDING: {
+    label: "Reschedule pending",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
   },
 };
 

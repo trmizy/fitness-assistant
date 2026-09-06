@@ -1,30 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Utensils,
-  Plus,
-  Search,
-  TrendingUp,
-  Loader2,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  Trash2,
-  Target,
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  Check,
-  SkipForward,
-  Minus,
-  CalendarDays,
-  Zap,
-  Calendar,
-  Sparkles,
-  History,
-} from "lucide-react";
+import { ForkKnifeIcon as Utensils, PlusIcon as Plus, MagnifyingGlassIcon as Search, TrendUpIcon as TrendingUp, CircleNotchIcon as Loader2, XIcon as X, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, PencilSimpleIcon as Pencil, TrashIcon as Trash2, TargetIcon as Target, WarningIcon as AlertTriangle, CheckCircleIcon as CheckCircle2, InfoIcon as Info, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CheckIcon as Check, SkipForwardIcon as SkipForward, MinusIcon as Minus, CalendarBlankIcon as CalendarDays, LightningIcon as Zap, CalendarIcon as Calendar, SparkleIcon as Sparkles, ClockCounterClockwiseIcon as History } from "@phosphor-icons/react";
 import {
   PieChart,
   Pie,

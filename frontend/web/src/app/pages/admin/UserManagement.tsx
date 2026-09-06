@@ -1,14 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Search,
-  Shield,
-  UserCheck,
-  UserX,
-  MoreVertical,
-  Loader2,
-  RefreshCw,
-  X,
-} from "lucide-react";
+import { MagnifyingGlassIcon as Search, ShieldIcon as Shield, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
 import { Button } from "../ui/button";
 // Goes through the shared `api` instance, not a bare axios import: only that instance
 // attaches the token, refreshes it on a 401, and queues concurrent callers behind one

@@ -1,4 +1,4 @@
-import { Brain, Store } from "lucide-react";
+import { BrainIcon as Brain, StorefrontIcon as Store } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { AIPlansPage } from "./AIPlansPage";
 import { PlanMarketplacePage } from "./PlanMarketplacePage";

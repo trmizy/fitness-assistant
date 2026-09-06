@@ -15,6 +15,9 @@ import { PageSkeleton } from "./components/layout/PageSkeleton";
  * in Root below (for the pre-login routes, which have no nav chrome to protect).
  */
 
+// Dev-only pages
+const IconGalleryPage = lazy(() => import("./pages/dev/IconGalleryPage").then((m) => ({ default: m.IconGalleryPage })));
+
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
@@ -45,6 +48,17 @@ const MuscleHeatmapPage = lazy(() => import("./pages/client/MuscleHeatmapPage").
 const ActivityHeatmapPage = lazy(() => import("./pages/client/ActivityHeatmapPage").then((m) => ({ default: m.ActivityHeatmapPage })));
 const ExerciseProgressChartPage = lazy(() => import("./pages/client/ExerciseProgressChartPage").then((m) => ({ default: m.ExerciseProgressChartPage })));
 const NotificationPreferencesPage = lazy(() => import("./pages/client/NotificationPreferencesPage").then((m) => ({ default: m.NotificationPreferencesPage })));
+const SettingsPage = lazy(() => import("./pages/client/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const LibraryPage = lazy(() => import("./pages/client/library/LibraryPage").then((m) => ({ default: m.LibraryPage })));
+const GlobalSearchPage = lazy(() => import("./pages/client/library/GlobalSearchPage").then((m) => ({ default: m.GlobalSearchPage })));
+const ExerciseLibraryPage = lazy(() => import("./pages/client/library/ExerciseLibraryPage").then((m) => ({ default: m.ExerciseLibraryPage })));
+const ExerciseDetailPage = lazy(() => import("./pages/client/library/ExerciseDetailPage").then((m) => ({ default: m.ExerciseDetailPage })));
+const FoodLibraryPage = lazy(() => import("./pages/client/library/FoodLibraryPage").then((m) => ({ default: m.FoodLibraryPage })));
+const FoodDetailPage = lazy(() => import("./pages/client/library/FoodDetailPage").then((m) => ({ default: m.FoodDetailPage })));
+const NutritionKnowledgePage = lazy(() => import("./pages/client/library/NutritionKnowledgePage").then((m) => ({ default: m.NutritionKnowledgePage })));
+const NutritionArticlePage = lazy(() => import("./pages/client/library/NutritionArticlePage").then((m) => ({ default: m.NutritionArticlePage })));
+const MuscleLibraryPage = lazy(() => import("./pages/client/library/MuscleLibraryPage").then((m) => ({ default: m.MuscleLibraryPage })));
+const MuscleDetailPage = lazy(() => import("./pages/client/library/MuscleDetailPage").then((m) => ({ default: m.MuscleDetailPage })));
 
 // PT pages
 const PTDashboard = lazy(() => import("./pages/pt/PTDashboard").then((m) => ({ default: m.PTDashboard })));
@@ -139,6 +153,11 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
+      // Dev-only Gymini icon system review page (spec: docs/features/GYMINI_ICON_SYSTEM_
+      // IMPLEMENTATION_REPORT.md §20). Deliberately not linked from Sidebar/BottomNav/Topbar —
+      // reachable only by typing the URL — and the page component itself renders nothing
+      // unless import.meta.env.DEV, so it's inert even if this route ships in a prod bundle.
+      { path: "dev/icons", Component: IconGalleryPage },
 
       // ── Client workspace ────────────────────────────────────────────────
       {
@@ -168,6 +187,17 @@ export const router = createBrowserRouter([
           { path: "activity-heatmap", Component: ActivityHeatmapPage },
           { path: "exercise-progress/:exerciseId", Component: ExerciseProgressChartPage },
           { path: "notification-preferences", Component: NotificationPreferencesPage },
+          { path: "settings", Component: SettingsPage },
+          { path: "library", Component: LibraryPage },
+          { path: "search", Component: GlobalSearchPage },
+          { path: "exercises", Component: ExerciseLibraryPage },
+          { path: "exercises/:id", Component: ExerciseDetailPage },
+          { path: "foods", Component: FoodLibraryPage },
+          { path: "foods/:id", Component: FoodDetailPage },
+          { path: "learn/nutrition", Component: NutritionKnowledgePage },
+          { path: "learn/nutrition/:slug", Component: NutritionArticlePage },
+          { path: "muscles", Component: MuscleLibraryPage },
+          { path: "muscles/:id", Component: MuscleDetailPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },

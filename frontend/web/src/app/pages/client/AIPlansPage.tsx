@@ -2,24 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
-import {
-  Brain,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  Clock3,
-  CircleCheck,
-  CircleX,
-  Plus,
-  Wand2,
-  SlidersHorizontal,
-  CalendarDays,
-  Dumbbell,
-  Target,
-  ChevronDown,
-  ChevronRight,
-  Trash2,
-} from "lucide-react";
+import { BrainIcon as Brain, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, SparkleIcon as Sparkles, ClockIcon as Clock3, CheckCircleIcon as CircleCheck, XCircleIcon as CircleX, PlusIcon as Plus, MagicWandIcon as Wand2, SlidersIcon as SlidersHorizontal, CalendarBlankIcon as CalendarDays, BarbellIcon as Dumbbell, TargetIcon as Target, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, TrashIcon as Trash2 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   AlertDialog,

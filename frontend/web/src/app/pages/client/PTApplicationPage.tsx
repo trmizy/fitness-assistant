@@ -1,33 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  User,
-  Shield,
-  Briefcase,
-  Award,
-  Users,
-  Calendar,
-  Globe,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Upload,
-  X,
-  Check,
-  AlertCircle,
-  Clock,
-  FileText,
-  Instagram,
-  Youtube,
-  Linkedin,
-  ArrowLeft,
-  Loader2,
-  Facebook,
-  Plus,
-  Trash2,
-  MapPin,
-} from "lucide-react";
+import { UserIcon as User, ShieldIcon as Shield, BriefcaseIcon as Briefcase, MedalIcon as Award, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, CheckCircleIcon as CheckCircle, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, UploadSimpleIcon as Upload, XIcon as X, CheckIcon as Check, WarningCircleIcon as AlertCircle, ClockIcon as Clock, FileTextIcon as FileText, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, FacebookLogoIcon as Facebook, PlusIcon as Plus, TrashIcon as Trash2, MapPinIcon as MapPin } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
 import {
   ptApplicationService,

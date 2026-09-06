@@ -20,7 +20,7 @@
     "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate && pnpm run --filter '@gym-coach/chat-service' db:migrate && pnpm run --filter '@gym-coach/gym-service' db:migrate && pnpm run --filter '@gym-coach/payment-service' db:migrate",
     "db:seed": "pnpm run --filter '@gym-coach/auth-service' db:seed && pnpm run --filter '@gym-coach/user-service' db:seed && pnpm run --filter '@gym-coach/fitness-service' db:seed",
     "test": "pnpm run --recursive test",
-    "seed:cleanup": "docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 gymcoach-auth-dev sh -c 'cd /app && node scripts/cleanup-test-users.mjs'",
+    "seed:cleanup": "docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_USER=gymcoach -e POSTGRES_PASSWORD=gymcoach_password gymcoach-auth-dev sh -c 'cd /app && node scripts/cleanup-test-users.mjs'",
     "lint": "node scripts/check-repo-hygiene.mjs",
     "docker:test": "pnpm docker:test:fast",
     "docker:test:fast": "node scripts/docker-test.mjs fast",
@@ -46,6 +46,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.3.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "prom-client": "^15.1.3"
   }
 }

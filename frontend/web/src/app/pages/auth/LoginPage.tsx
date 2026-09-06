@@ -1,22 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
-import {
-  Eye,
-  EyeOff,
-  Dumbbell,
-  User,
-  Zap,
-  Shield,
-  ArrowRight,
-  Activity,
-  Brain,
-  ServerCog,
-} from "lucide-react";
+import { EyeIcon as Eye, EyeSlashIcon as EyeOff, UserIcon as User, LightningIcon as Zap, ShieldIcon as Shield, ArrowRightIcon as ArrowRight, PulseIcon as Activity, BrainIcon as Brain, DatabaseIcon as ServerCog } from "@phosphor-icons/react";
 
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
 import { ROLE_HOME, landingPathFor, isSafeReturnPath } from "../../config/landing";
 import { Preferences } from "@capacitor/preferences";
+import { AppLogo } from "../../components/brand/AppLogo";
 
 const features = [
   { icon: Activity, text: "Phân tích thành phần cơ thể InBody" },
@@ -73,8 +63,26 @@ export function LoginPage() {
       } else {
         setError("Email hoặc mật khẩu không đúng");
       }
-    } catch (err) {
-      setError("Đã xảy ra lỗi. Vui lòng thử lại.");
+    } catch (err: any) {
+      // AppContext's login() rethrows anything that isn't a real 401, so this branch means
+      // rate-limit / network / server error — never mistake it for a wrong password.
+      const status = err?.response?.status;
+      if (status === 429) {
+        // Server messages differ by which layer rate-limited (gateway sends plain text,
+        // auth-service's own login limiter sends `{ error }` JSON with a retry countdown) —
+        // surface it when it's a readable string, otherwise fall back to a generic message.
+        const serverMessage =
+          typeof err.response?.data === "string"
+            ? err.response.data
+            : err.response?.data?.error;
+        setError(
+          typeof serverMessage === "string" && serverMessage.length > 0
+            ? serverMessage
+            : "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.",
+        );
+      } else {
+        setError("Đã xảy ra lỗi. Vui lòng thử lại.");
+      }
     } finally {
       setLoading(false);
     }
@@ -102,19 +110,7 @@ export function LoginPage() {
           <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-green-500/8 rounded-full blur-3xl" />
 
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                <Dumbbell className="w-5 h-5 text-black" />
-              </div>
-              <div>
-                <div className="font-bold text-lg text-white leading-tight tracking-tight">
-                  FITNESS AI
-                </div>
-                <div className="text-green-400 text-sm">
-                  Nền tảng AI Gym Coach
-                </div>
-              </div>
-            </div>
+            <AppLogo className="mb-8" imgClassName="h-28 w-44 object-left" />
 
             <h1 className="text-4xl font-bold leading-tight mb-4 text-white">
               Trợ lý tập luyện
@@ -153,14 +149,7 @@ export function LoginPage() {
         {/* ── Right panel: form ── */}
         <div className="bg-zinc-900 p-8 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
           {/* Mobile brand */}
-          <div className="lg:hidden flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/30">
-              <Dumbbell className="w-4 h-4 text-black" />
-            </div>
-            <span className="font-bold text-zinc-100 tracking-tight">
-              FITNESS AI
-            </span>
-          </div>
+          <AppLogo className="lg:hidden mb-6" imgClassName="h-16 w-32 object-left" />
 
           <h2 className="text-2xl font-bold text-zinc-100 mb-1">
             Chào mừng trở lại

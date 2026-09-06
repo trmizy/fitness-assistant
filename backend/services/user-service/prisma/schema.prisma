@@ -145,6 +145,17 @@ model UserProfile {
   dietaryPreference String? @map("dietary_preference")
   photoUrl          String? @map("photo_url")
 
+  // Product Completeness pass — docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md §9.
+  // Display-only unit preferences for the Settings Center. Canonical storage for every
+  // domain field (heightCm, currentWeight, etc.) stays metric everywhere in this and every
+  // other service — these two columns only tell the frontend which unit to convert TO at
+  // the display/input boundary (frontend/web/src/app/utils/units.ts already has the pure
+  // conversion functions; this is the first time a *persisted* preference drives them).
+  // Deliberately plain strings, not enums: keeps this an additive, zero-downtime column add
+  // consistent with every other free-text preference field on this model (e.g. preferredSplit).
+  unitSystem String @default("metric") @map("unit_system") // "metric" | "imperial"
+  energyUnit String @default("kcal") @map("energy_unit") // "kcal" | "kj"
+
   sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
 
   // ── PT Acceptance status ────────────────────────────────────────────────

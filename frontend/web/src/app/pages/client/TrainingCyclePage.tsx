@@ -11,28 +11,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Ban,
-  CalendarClock,
-  CheckCircle2,
-  Circle,
-  Dumbbell,
-  Flag,
-  Loader2,
-  MessageSquare,
-  RotateCw,
-  Scale,
-  ShieldAlert,
-  Sparkles,
-  Trash2,
-  TrendingDown,
-  TrendingUp,
-  Utensils,
-  X,
-  XCircle,
-} from "lucide-react";
+import { WarningIcon as AlertTriangle, ArrowRightIcon as ArrowRight, ProhibitIcon as Ban, CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, CircleIcon as Circle, BarbellIcon as Dumbbell, FlagIcon as Flag, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, ArrowClockwiseIcon as RotateCw, ScalesIcon as Scale, ShieldWarningIcon as ShieldAlert, SparkleIcon as Sparkles, TrashIcon as Trash2, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, ForkKnifeIcon as Utensils, XIcon as X, XCircleIcon as XCircle } from "@phosphor-icons/react";
 import {
   trainingCycleService,
   type AdaptiveCycleDecision,

@@ -1,29 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import {
-  User,
-  Edit3,
-  Check,
-  Zap,
-  ChevronRight,
-  Award,
-  Loader2,
-  Camera,
-  Dumbbell,
-  TrendingDown,
-  TrendingUp,
-  Target,
-  Upload,
-  Download,
-  Share2,
-  Flame,
-  CalendarDays,
-  Bell,
-} from "lucide-react";
+import { UserIcon as User, PencilSimpleIcon as Edit3, CheckIcon as Check, LightningIcon as Zap, CaretRightIcon as ChevronRight, MedalIcon as Award, CircleNotchIcon as Loader2, CameraIcon as Camera, BarbellIcon as Dumbbell, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, TargetIcon as Target, UploadSimpleIcon as Upload, DownloadSimpleIcon as Download, ShareNetworkIcon as Share2, FlameIcon as Flame, CalendarBlankIcon as CalendarDays, BellIcon as Bell, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../../services/api";
 import { toast } from "sonner";
+import { feetInchesFromCm, cmFromFeetInches, kgFromLb, lbFromKg } from "../../utils/units";
 
 const goals = [
   { key: "lose_fat", label: "Giảm mỡ", emoji: "🔥" },
@@ -91,6 +73,10 @@ export function ProfilePage() {
   const [experienceLevel, setExperienceLevel] = useState("");
   const [competesInSport, setCompetesInSport] = useState(false);
   const [injuriesText, setInjuriesText] = useState("");
+  // Settings → Units preference (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
+  // §9) — display/input boundary only, canonical height/weight state below
+  // stays cm/kg regardless.
+  const unitSystem: "metric" | "imperial" = profileData?.unitSystem ?? "metric";
 
   // Sync isPT from profile API into context/localStorage when user is approved
   useEffect(() => {
@@ -436,18 +422,6 @@ export function ProfilePage() {
                   type: "date",
                   maxDate: new Date().toISOString().slice(0, 10),
                 },
-                {
-                  label: "Chiều cao (cm)",
-                  value: height,
-                  setter: setHeight,
-                  type: "number",
-                },
-                {
-                  label: "Cân nặng (kg)",
-                  value: weight,
-                  setter: setWeight,
-                  type: "number",
-                },
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
@@ -468,6 +442,95 @@ export function ProfilePage() {
                   )}
                 </div>
               ))}
+
+              {/* Height/weight — display/input honors the persisted unitSystem
+                  preference (Settings → Units) at this boundary only; `height`/
+                  `weight` state stays canonical cm/kg and handleSave sends cm/kg
+                  unchanged, exactly like before this preference existed. */}
+              <div>
+                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                  Chiều cao {unitSystem === "metric" ? "(cm)" : "(ft-in)"}
+                </label>
+                {editing ? (
+                  unitSystem === "metric" ? (
+                    <input
+                      type="number"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className={inputClass}
+                    />
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        aria-label="Feet"
+                        value={height ? feetInchesFromCm(parseFloat(height)).feet : ""}
+                        onChange={(e) => {
+                          const feet = Number(e.target.value) || 0;
+                          const inches = height ? feetInchesFromCm(parseFloat(height)).inches : 0;
+                          setHeight(String(cmFromFeetInches(feet, inches)));
+                        }}
+                        placeholder="ft"
+                        className={inputClass}
+                      />
+                      <input
+                        type="number"
+                        aria-label="Inches"
+                        value={height ? feetInchesFromCm(parseFloat(height)).inches : ""}
+                        onChange={(e) => {
+                          const inches = Number(e.target.value) || 0;
+                          const feet = height ? feetInchesFromCm(parseFloat(height)).feet : 0;
+                          setHeight(String(cmFromFeetInches(feet, inches)));
+                        }}
+                        placeholder="in"
+                        className={inputClass}
+                      />
+                    </div>
+                  )
+                ) : (
+                  <div className="text-sm font-medium text-zinc-300 py-2">
+                    {height
+                      ? unitSystem === "metric"
+                        ? `${height} cm`
+                        : (() => {
+                            const { feet, inches } = feetInchesFromCm(parseFloat(height));
+                            return `${feet}'${inches}"`;
+                          })()
+                      : "Chưa thiết lập"}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                  Cân nặng {unitSystem === "metric" ? "(kg)" : "(lb)"}
+                </label>
+                {editing ? (
+                  <input
+                    type="number"
+                    value={
+                      unitSystem === "metric"
+                        ? weight
+                        : weight
+                          ? String(lbFromKg(parseFloat(weight)))
+                          : ""
+                    }
+                    onChange={(e) => {
+                      const raw = Number(e.target.value) || 0;
+                      setWeight(String(unitSystem === "metric" ? raw : kgFromLb(raw)));
+                    }}
+                    className={inputClass}
+                  />
+                ) : (
+                  <div className="text-sm font-medium text-zinc-300 py-2">
+                    {weight
+                      ? unitSystem === "metric"
+                        ? `${weight} kg`
+                        : `${lbFromKg(parseFloat(weight))} lb`
+                      : "Chưa thiết lập"}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
                   Giới tính
@@ -637,6 +700,30 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Product Completeness pass — Settings Center. Profile keeps owning
+          fitness/body facts (above); app/account preferences now live in a
+          dedicated Settings hub instead of being scattered further into
+          this page. */}
+      <button
+        type="button"
+        data-testid="settings-link"
+        onClick={() => navigate("/client/settings")}
+        className="w-full flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-4 transition-all text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-zinc-500/10 border border-zinc-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Settings className="w-5 h-5 text-zinc-300" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-200">Cài đặt</div>
+            <div className="text-xs text-zinc-600 mt-0.5">
+              Giao diện, đơn vị đo, thông báo, quyền riêng tư và các tùy chọn khác
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+      </button>
 
       {/* Training Setup → Available Equipment (gym-onboarding project §26) */}
       <button

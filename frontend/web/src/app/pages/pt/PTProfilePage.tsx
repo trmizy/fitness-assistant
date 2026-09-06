@@ -1,19 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Award,
-  Edit3,
-  Check,
-  Plus,
-  Star,
-  MapPin,
-  Pencil,
-  Trash2,
-  X,
-  Loader2,
-  Copy,
-  Gift,
-} from "lucide-react";
+import { MedalIcon as Award, PencilSimpleIcon as Edit3, CheckIcon as Check, PlusIcon as Plus, StarIcon as Star, MapPinIcon as MapPin, PencilSimpleIcon as Pencil, TrashIcon as Trash2, XIcon as X, CircleNotchIcon as Loader2, CopyIcon as Copy, GiftIcon as Gift } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";

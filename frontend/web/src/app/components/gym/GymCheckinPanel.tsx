@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "qrcode";
-import { QrCode, Loader2, Maximize2, X, RefreshCw } from "lucide-react";
+import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maximize2, XIcon as X, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import type { GymCheckIn } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";

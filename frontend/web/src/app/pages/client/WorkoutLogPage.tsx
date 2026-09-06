@@ -1,41 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Dumbbell,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Lock,
-  AlertCircle,
-  Share2,
-  Star,
-  ArrowUpDown,
-  ChevronDown,
-  Clock,
-  MessageSquare,
-  Timer,
-  Target,
-  BarChart3,
-  Zap,
-  Calendar,
-  CalendarDays,
-  TrendingUp,
-  Play,
-  GripVertical,
-  Trash2,
-  Check,
-  X,
-  SkipForward,
-  Pause,
-  RotateCcw,
-  Trophy,
-  PartyPopper,
-  Search,
-  SlidersHorizontal,
-  Loader2,
-  Repeat,
-} from "lucide-react";
+import { BarbellIcon as Dumbbell, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, PlusIcon as Plus, LockIcon as Lock, WarningCircleIcon as AlertCircle, ShareNetworkIcon as Share2, StarIcon as Star, ArrowsDownUpIcon as ArrowUpDown, CaretDownIcon as ChevronDown, ClockIcon as Clock, ChatTextIcon as MessageSquare, TimerIcon as Timer, TargetIcon as Target, ChartBarHorizontalIcon as BarChart3, LightningIcon as Zap, CalendarIcon as Calendar, CalendarBlankIcon as CalendarDays, TrendUpIcon as TrendingUp, PlayIcon as Play, DotsSixVerticalIcon as GripVertical, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, SkipForwardIcon as SkipForward, PauseIcon as Pause, ArrowCounterClockwiseIcon as RotateCcw, TrophyIcon as Trophy, ConfettiIcon as PartyPopper, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, CircleNotchIcon as Loader2, RepeatIcon as Repeat } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import {
@@ -88,6 +54,10 @@ import {
   APP_SCHEDULE_TIME_ZONE,
 } from "./schedule-lock.utils";
 import { requestWakeLockSafe, releaseWakeLockSafe } from "./wake-lock.utils";
+import {
+  playRestTimerFeedback,
+  useWorkoutSettings,
+} from "../../hooks/useWorkoutSettings";
 import {
   buildSetChainSegments,
   isSetChainValid,
@@ -1872,6 +1842,8 @@ export function WorkoutLogPage() {
   // false — the explanation is never permanently unreachable for anyone,
   // it just doesn't interrupt an experienced user unprompted.
   const [showRpeRirHint, setShowRpeRirHint] = useState(isBeginnerProfile);
+  // Settings Center → Workout — "Hiện chỉ số RPE/RIR" toggle.
+  const { settings: workoutSettings } = useWorkoutSettings();
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
   const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
@@ -2768,6 +2740,11 @@ export function WorkoutLogPage() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [restTimerRunning, setRestTimerRunning] = useState(false);
   const [restSeconds, setRestSeconds] = useState(90);
+  const defaultRestSeconds = workoutSettings.defaultRestSeconds;
+  const workoutSettingsRef = useRef(workoutSettings);
+  useEffect(() => {
+    workoutSettingsRef.current = workoutSettings;
+  }, [workoutSettings]);
   const [showCompletion, setShowCompletion] = useState(false);
   // PR/volume for the just-finished session — fetched once the workout is
   // saved (see loadCompletionSummary), shown on the completion screen.
@@ -2809,9 +2786,11 @@ export function WorkoutLogPage() {
   // decrementing keeps the displayed time accurate even if a tick or two
   // gets throttled/delayed.
   const restEndAtRef = useRef<number | null>(null);
+  const restFeedbackPlayedRef = useRef(false);
   const wakeLockRef = useRef<any>(null);
   const startRestTimer = useCallback((seconds: number) => {
     restEndAtRef.current = Date.now() + seconds * 1000;
+    restFeedbackPlayedRef.current = false;
     setRestSeconds(seconds);
     setRestTimerRunning(true);
   }, []);
@@ -3035,7 +3014,7 @@ export function WorkoutLogPage() {
       prescription: "3×10", // Default prescription
       sets: 3,
       reps: 10,
-      restSeconds: 90,
+      restSeconds: defaultRestSeconds,
       notes: "",
       img: formatVideoUrlToImg(dbEx.videoUrl, 0),
       img2: formatVideoUrlToImg(dbEx.videoUrl, 1),
@@ -3063,7 +3042,7 @@ export function WorkoutLogPage() {
                 exerciseName: dbEx.exerciseName,
                 sets: 3,
                 reps: 10,
-                restSeconds: 90,
+                restSeconds: defaultRestSeconds,
               },
             ],
           };
@@ -3215,6 +3194,10 @@ export function WorkoutLogPage() {
       const remaining = endAt == null ? 0 : Math.max(0, Math.round((endAt - Date.now()) / 1000));
       setRestSeconds(remaining);
       if (remaining <= 0) {
+        if (!restFeedbackPlayedRef.current) {
+          restFeedbackPlayedRef.current = true;
+          playRestTimerFeedback(workoutSettingsRef.current);
+        }
         setRestTimerRunning(false);
         restEndAtRef.current = null;
         clearPersistedRestTimer(selectedSchedule()?.id ?? null);
@@ -3235,7 +3218,8 @@ export function WorkoutLogPage() {
   // Lock thành dependency"). Held while either timer is actively running.
   useEffect(() => {
     const nav = navigator as any;
-    const active = restTimerRunning || timerRunning;
+    const active =
+      workoutSettings.keepScreenAwake && (restTimerRunning || timerRunning);
     if (active && !wakeLockRef.current) {
       requestWakeLockSafe(nav).then((lock) => {
         wakeLockRef.current = lock;
@@ -3245,12 +3229,16 @@ export function WorkoutLogPage() {
       wakeLockRef.current = null;
     }
     return () => {
-      if (!restTimerRunning && !timerRunning && wakeLockRef.current) {
+      if (
+        (!workoutSettings.keepScreenAwake ||
+          (!restTimerRunning && !timerRunning)) &&
+        wakeLockRef.current
+      ) {
         releaseWakeLockSafe(wakeLockRef.current);
         wakeLockRef.current = null;
       }
     };
-  }, [restTimerRunning, timerRunning]);
+  }, [restTimerRunning, timerRunning, workoutSettings.keepScreenAwake]);
 
   // "Previous performance" fetch — gap analysis P0 #1. Loads once per
   // exercise per session (cached in previousPerformanceByExercise), fires
@@ -3427,6 +3415,53 @@ export function WorkoutLogPage() {
       return;
     }
 
+    if (!workoutSettings.smartPrefill) {
+      const setRows = curEx?.programExerciseId
+        ? workoutSetsByExercise[curEx.programExerciseId]
+        : undefined;
+      const targetSetNumber = setRows?.find((row) => !row.completed)?.setNumber;
+      const plannedSet = (curEx as any)?.setPrescriptions?.find(
+        (prescription: any) => prescription.setNumber === targetSetNumber,
+      );
+      const selected = selectSmartSetPrefill({
+        loggingMode: exerciseLoggingMode(curEx),
+        progression: null,
+        previousSets: [],
+        exerciseDefaults: {
+          weight: curEx?.weight ?? null,
+          bodyWeightAtSetKg: curEx?.bodyWeightAtSetKg ?? null,
+          reps: curEx?.reps ?? null,
+          durationSeconds: curEx?.durationSeconds ?? null,
+          distanceMeters: curEx?.distanceMeters ?? null,
+          rpe: curEx?.rpe ?? null,
+          rir: curEx?.rir ?? null,
+        },
+        userCurrentWeightKg: userProfile?.currentWeight ?? null,
+        targetSetNumber,
+      });
+      const next = {
+        ...activeExerciseLogsRef.current,
+        [activeExIdx]: {
+          ...selected.draft,
+          setType:
+            setRows?.find((row) => row.setNumber === targetSetNumber)?.setType ??
+            selected.draft.setType,
+          tempo:
+            setRows?.find((row) => row.setNumber === targetSetNumber)?.tempo ??
+            selected.draft.tempo,
+          reps:
+            plannedSet?.isAmrap === true
+              ? String(plannedSet.minReps ?? plannedSet.targetReps ?? curEx?.reps ?? "")
+              : selected.draft.reps,
+          setTechnique: "STRAIGHT",
+          segments: [],
+        },
+      };
+      activeExerciseLogsRef.current = next;
+      setActiveExerciseLogs(next);
+      return;
+    }
+
     const previous = previousPerformanceByExercise[exerciseDbId];
     const progression = progressionByExercise[exerciseDbId];
     if (previous === undefined || progression === undefined) return;
@@ -3493,6 +3528,7 @@ export function WorkoutLogPage() {
     progressionByExercise,
     userProfile?.currentWeight,
     workoutSetsByExercise,
+    workoutSettings.smartPrefill,
   ]);
 
   const formatTime = (s: number) =>
@@ -4017,7 +4053,7 @@ export function WorkoutLogPage() {
             setTimerSeconds(0);
             startRestTimer(nextInterleavedStep.restSeconds);
             setActiveExIdx(nextInterleavedStep.exerciseIndex);
-            toast.success(`ÄÃ£ lÆ°u "${currentExercise?.name}" (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
+            toast.success(`Đã lưu "${currentExercise?.name}" (offline) — sẽ đồng bộ khi có mạng.`);
           } else if (exIdx < dayExercises.length - 1) {
             setTimerRunning(false);
             setTimerSeconds(0);
@@ -4041,13 +4077,13 @@ export function WorkoutLogPage() {
           setTimerSeconds(0);
           startRestTimer(nextInterleavedStep.restSeconds);
           setActiveExIdx(nextInterleavedStep.exerciseIndex);
-          toast.success(`ÄÃ£ lÆ°u set ${setRow.setNumber} (offline) â€” sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng.`);
+          toast.success(`Đã lưu set ${setRow.setNumber} (offline) — sẽ đồng bộ khi có mạng.`);
         } else {
           const nextLogs = { ...activeExerciseLogsRef.current };
           delete nextLogs[exIdx];
           activeExerciseLogsRef.current = nextLogs;
           setActiveExerciseLogs(nextLogs);
-          startRestTimer(90);
+          startRestTimer(defaultRestSeconds);
           toast.success(`Đã lưu set ${setRow.setNumber} (offline) — sẽ đồng bộ khi có mạng.`);
         }
         return;
@@ -4160,7 +4196,7 @@ export function WorkoutLogPage() {
         startRestTimer(nextInterleavedStep.restSeconds);
         setActiveExIdx(nextInterleavedStep.exerciseIndex);
       } else {
-        startRestTimer(90);
+        startRestTimer(defaultRestSeconds);
       }
 
       toast(`Đã hoàn thành set ${setRow.setNumber}`, {
@@ -4293,7 +4329,7 @@ export function WorkoutLogPage() {
     if (activeExIdx >= dayExercises.length - 1) return;
     setTimerRunning(false);
     setTimerSeconds(0);
-    startRestTimer(90);
+    startRestTimer(defaultRestSeconds);
     setActiveExIdx((index) => Math.min(index + 1, dayExercises.length - 1));
   };
 
@@ -6673,7 +6709,7 @@ export function WorkoutLogPage() {
                                 fill="none"
                                 stroke="#f59e0b"
                                 strokeWidth="3"
-                                strokeDasharray={`${(restSeconds / 90) * 245} 245`}
+                                strokeDasharray={`${(restSeconds / Math.max(defaultRestSeconds, restSeconds, 1)) * 245} 245`}
                                 strokeLinecap="round"
                                 transform="rotate(-90 45 45)"
                                 className="transition-all duration-1000"
@@ -7231,74 +7267,84 @@ export function WorkoutLogPage() {
                       )}
                     </label>
 
-                    {showRpeRirHint && (
-                      <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
-                        <MessageSquare className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                        <div className="flex-1 space-y-1.5">
-                          <p className="text-[11px] text-sky-100/90">
-                            <strong>RPE</strong> (mức độ gắng sức): set vừa rồi khó đến đâu, từ 1
-                            (rất nhẹ) đến 10 (dùng hết sức). Cách ước lượng dễ nhất: đếm xem nếu
-                            cố thêm, bạn còn làm được <strong>mấy reps nữa</strong> thì mới thật sự
-                            kiệt sức (thất bại) — đó chính là <strong>RIR</strong>.
-                          </p>
-                          <ul className="text-[10px] text-sky-200/80 space-y-0.5 pl-3.5 list-disc">
-                            <li>Còn làm thêm được ≥4 reps → RPE 6 (còn dư sức nhiều)</li>
-                            <li>Còn làm thêm được 2 reps → RPE 8</li>
-                            <li>Còn làm thêm được 1 rep → RPE 9</li>
-                            <li>Không thể làm thêm rep nào → RPE 10 (RIR = 0, hết sức)</li>
-                          </ul>
-                          <p className="text-[10px] text-sky-300/70">
-                            Không có câu trả lời "đúng/sai" — cứ ước lượng theo cảm nhận thật của
-                            bạn, sẽ chính xác dần sau vài buổi tập.
-                          </p>
+                    {/* Settings Center → Workout "Hiện chỉ số RPE/RIR" toggle
+                        (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
+                        §15) — off hides the explainer + both sliders below;
+                        activeLog.rpe/rir simply stay whatever they already
+                        were (unset for a set never touched), same as before
+                        this toggle existed. */}
+                    {workoutSettings.showRpeRir && (
+                      <>
+                        {showRpeRirHint && (
+                          <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
+                            <MessageSquare className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                            <div className="flex-1 space-y-1.5">
+                              <p className="text-[11px] text-sky-100/90">
+                                <strong>RPE</strong> (mức độ gắng sức): set vừa rồi khó đến đâu, từ 1
+                                (rất nhẹ) đến 10 (dùng hết sức). Cách ước lượng dễ nhất: đếm xem nếu
+                                cố thêm, bạn còn làm được <strong>mấy reps nữa</strong> thì mới thật sự
+                                kiệt sức (thất bại) — đó chính là <strong>RIR</strong>.
+                              </p>
+                              <ul className="text-[10px] text-sky-200/80 space-y-0.5 pl-3.5 list-disc">
+                                <li>Còn làm thêm được ≥4 reps → RPE 6 (còn dư sức nhiều)</li>
+                                <li>Còn làm thêm được 2 reps → RPE 8</li>
+                                <li>Còn làm thêm được 1 rep → RPE 9</li>
+                                <li>Không thể làm thêm rep nào → RPE 10 (RIR = 0, hết sức)</li>
+                              </ul>
+                              <p className="text-[10px] text-sky-300/70">
+                                Không có câu trả lời "đúng/sai" — cứ ước lượng theo cảm nhận thật của
+                                bạn, sẽ chính xác dần sau vài buổi tập.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowRpeRirHint(false)}
+                              aria-label="Đóng giải thích RPE/RIR"
+                              className="text-sky-400/60 hover:text-sky-300 shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        {/* The auto-shown hint above only appears once per session for
+                            a detected-beginner profile and can be dismissed — this
+                            button stays available to EVERYONE, always, so "what do
+                            RPE/RIR mean" is never more than one tap away regardless
+                            of profile or whether the hint was already closed. */}
+                        {!showRpeRirHint && (
+                          <button
+                            type="button"
+                            onClick={() => setShowRpeRirHint(true)}
+                            className="flex items-center gap-1.5 text-[11px] text-sky-400/80 hover:text-sky-300 transition-colors -mb-1"
+                          >
+                            <MessageSquare className="w-3 h-3" /> RPE/RIR là gì?
+                          </button>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                          <RulerSlider
+                            label="Mức độ gắng sức (RPE)"
+                            min={1}
+                            max={10}
+                            step={0.5}
+                            majorTickInterval={1}
+                            formatValue={(v) => `RPE ${v}`}
+                            disabled={isSelectedDayLocked}
+                            value={activeLog.rpe}
+                            onChange={(next) => updateActiveLog({ rpe: next })}
+                          />
+                          <RulerSlider
+                            label="Số reps còn có thể làm (RIR)"
+                            min={0}
+                            max={5}
+                            step={1}
+                            majorTickInterval={1}
+                            disabled={isSelectedDayLocked}
+                            value={activeLog.rir}
+                            onChange={(next) => updateActiveLog({ rir: next })}
+                          />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowRpeRirHint(false)}
-                          aria-label="Đóng giải thích RPE/RIR"
-                          className="text-sky-400/60 hover:text-sky-300 shrink-0"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      </>
                     )}
-                    {/* The auto-shown hint above only appears once per session for
-                        a detected-beginner profile and can be dismissed — this
-                        button stays available to EVERYONE, always, so "what do
-                        RPE/RIR mean" is never more than one tap away regardless
-                        of profile or whether the hint was already closed. */}
-                    {!showRpeRirHint && (
-                      <button
-                        type="button"
-                        onClick={() => setShowRpeRirHint(true)}
-                        className="flex items-center gap-1.5 text-[11px] text-sky-400/80 hover:text-sky-300 transition-colors -mb-1"
-                      >
-                        <MessageSquare className="w-3 h-3" /> RPE/RIR là gì?
-                      </button>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                      <RulerSlider
-                        label="Mức độ gắng sức (RPE)"
-                        min={1}
-                        max={10}
-                        step={0.5}
-                        majorTickInterval={1}
-                        formatValue={(v) => `RPE ${v}`}
-                        disabled={isSelectedDayLocked}
-                        value={activeLog.rpe}
-                        onChange={(next) => updateActiveLog({ rpe: next })}
-                      />
-                      <RulerSlider
-                        label="Số reps còn có thể làm (RIR)"
-                        min={0}
-                        max={5}
-                        step={1}
-                        majorTickInterval={1}
-                        disabled={isSelectedDayLocked}
-                        value={activeLog.rir}
-                        onChange={(next) => updateActiveLog({ rir: next })}
-                      />
-                    </div>
 
                     <button
                       disabled={isSelectedDayLocked}

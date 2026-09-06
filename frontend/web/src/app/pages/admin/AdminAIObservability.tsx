@@ -23,25 +23,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import {
-  Brain,
-  AlertTriangle,
-  Activity,
-  RefreshCw,
-  Clock,
-  Loader2,
-  ChevronRight,
-  X,
-  Layers,
-  CheckCircle2,
-  XCircle,
-  Zap,
-  Languages,
-  Filter,
-  Search,
-  ArrowLeft,
-  ArrowRight,
-} from "lucide-react";
+import { BrainIcon as Brain, WarningIcon as AlertTriangle, PulseIcon as Activity, ArrowsClockwiseIcon as RefreshCw, ClockIcon as Clock, CircleNotchIcon as Loader2, CaretRightIcon as ChevronRight, XIcon as X, StackIcon as Layers, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, LightningIcon as Zap, TranslateIcon as Languages, FunnelIcon as Filter, MagnifyingGlassIcon as Search, ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 

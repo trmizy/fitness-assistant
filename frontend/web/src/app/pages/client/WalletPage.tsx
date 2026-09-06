@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Loader2, Banknote } from "lucide-react";
+import { WalletIcon, ArrowCircleDownIcon as ArrowDownCircle, ArrowCircleUpIcon as ArrowUpCircle, CircleNotchIcon as Loader2, MoneyIcon as Banknote } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { walletService } from "../../services/api";

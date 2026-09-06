@@ -12,6 +12,7 @@ router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 router.post("/verify", authController.verify);
 router.patch("/me", authController.updateMe);
+router.patch("/me/password", authController.changePassword);
 router.get("/users", authController.listUsers);
 router.patch("/users/:userId/role", authController.updateUserRole);
 // BUG-002 / BUG-025 / BUG-026: admin can disable / re-enable a user account.

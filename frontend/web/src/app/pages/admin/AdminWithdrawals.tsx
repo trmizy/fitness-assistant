@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Banknote, Check, Loader2, X } from "lucide-react";
+import { MoneyIcon as Banknote, CheckIcon as Check, CircleNotchIcon as Loader2, XIcon as X } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 

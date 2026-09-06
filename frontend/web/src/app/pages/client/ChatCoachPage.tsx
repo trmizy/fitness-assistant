@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { Bot, MessageSquare } from "lucide-react";
+import { RobotIcon as Bot, ChatTextIcon as MessageSquare } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { ChatPage } from "./ChatPage";
 import { AICoachPage } from "./AICoachPage";

@@ -1,4 +1,5 @@
 import { Queue } from "bullmq";
+import { isRedisEnabled } from "../repositories/redis";
 import { prisma } from "../repositories/prisma";
 import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
@@ -503,12 +504,23 @@ async function assertWorkoutEditableByWorkoutId(workoutId: string) {
   if (workout) assertScheduleDateEditable(workout.date);
 }
 
-export const workoutQueue = new Queue("workout-generation", {
-  connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379"),
-  },
-});
+export const workoutQueue = isRedisEnabled()
+  ? new Queue("workout-generation", {
+      connection: {
+        host: process.env.REDIS_HOST || "localhost",
+        port: parseInt(process.env.REDIS_PORT || "6379"),
+      },
+    })
+  : {
+      async add() {
+        throw {
+          status: 503,
+          message:
+            "Async workout generation queue is not configured for this deployment",
+        };
+      },
+      async close() {},
+    };
 
 // Shared core of getExerciseProgression / getExerciseProgressionExplanation —
 // see docs/TRAINING_PROGRESSION_ARCHITECTURE.md §5. Every external lookup

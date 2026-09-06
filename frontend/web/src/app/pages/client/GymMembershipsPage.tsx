@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Dumbbell, Loader2, CheckCircle, Clock, XCircle, AlertTriangle, QrCode, RotateCcw } from "lucide-react";
+import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, QrCodeIcon as QrCode, ArrowCounterClockwiseIcon as RotateCcw } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { openPaymentGateway } from "../../services/paymentGateway";

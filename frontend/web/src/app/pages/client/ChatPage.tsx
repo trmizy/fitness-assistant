@@ -1,21 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import {
-  Send,
-  Paperclip,
-  Search,
-  MoreVertical,
-  Phone,
-  Video,
-  FileText,
-  Calendar,
-  ChevronLeft,
-  AlertCircle,
-  User,
-  Loader2,
-  Plus,
-  MessageSquare,
-} from "lucide-react";
+import { PaperPlaneTiltIcon as Send, PaperclipIcon as Paperclip, MagnifyingGlassIcon as Search, DotsThreeVerticalIcon as MoreVertical, PhoneIcon as Phone, VideoCameraIcon as Video, FileTextIcon as FileText, CalendarIcon as Calendar, CaretLeftIcon as ChevronLeft, WarningCircleIcon as AlertCircle, UserIcon as User, CircleNotchIcon as Loader2, PlusIcon as Plus, ChatTextIcon as MessageSquare } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
 import { useApp } from "../../context/AppContext";

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
-import { XIcon } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 
 import { cn } from "./utils";
 import { useBackDismissible, dismissViaEscapeKey } from "../../hooks/useBackDismissible";

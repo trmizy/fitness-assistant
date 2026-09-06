@@ -51,6 +51,9 @@ fitness-service container":
 | `equipment-filtering.integration.test.ts` | Hits the **already-running dev server over real HTTP** (`localhost:3002`) — its own Prisma writes (`UserEquipment` rows) must land in the SAME database that live server reads, which is `gymcoach_fitness` (whatever `DATABASE_URL` the running `gymcoach-fitness-dev` container actually has) |
 | `exercise-muscle-map.integration.test.ts` | Real `ExerciseMuscle`/`Muscle` taxonomy, seeded only in dev |
 | `food-serving-metadata.integration.test.ts` | Real 13k+-row USDA food catalog, seeded only in dev |
+| `food-library.integration.test.ts` | Product Completeness pass — Food Library browse/detail, same 13k+-row USDA catalog |
+| `muscle-library.integration.test.ts` | Product Completeness pass — Muscle Library "related exercises", real `ExerciseMuscle`/`Muscle` taxonomy |
+| `exercise-library-filters.integration.test.ts` | Product Completeness pass — difficulty/logging-mode filters, aliases/media-license enrichment, real seeded catalog |
 
 Run with:
 

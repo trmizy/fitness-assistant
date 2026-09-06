@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import jsQR from "jsqr";
-import { X, Loader2, CheckCircle2, XCircle, Camera } from "lucide-react";
+import { XIcon as X, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CameraIcon as Camera } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import type { CheckinResult } from "../../types";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, CheckCircle2, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
+import { UploadSimpleIcon as Upload, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, WarningIcon as AlertTriangle, ArrowLeftIcon as ArrowLeft } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import {
   importService,

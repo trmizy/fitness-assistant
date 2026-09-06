@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as MenubarPrimitive from "@radix-ui/react-menubar";
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import { CheckIcon, CaretRightIcon as ChevronRightIcon, CircleIcon } from "@phosphor-icons/react";
 
 import { cn } from "./utils";
 

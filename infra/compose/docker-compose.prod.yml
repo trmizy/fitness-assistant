@@ -34,8 +34,13 @@
 #   RDS_ENDPOINT, RDS_USER, RDS_PASSWORD
 #   JWT_SECRET, INTERNAL_SERVICE_SECRET, INTERNAL_API_SECRET (real random
 #     values — NOT the dev defaults baked into docker-compose.dev.yml)
-#   ANTHROPIC_API_KEY (InBody vision OCR, user-service — always required;
-#     also used for ai-service chat only if you opt into LLM_PROVIDER=anthropic)
+#   ANTHROPIC_API_KEY — needed only if either of these is set to anthropic:
+#     INBODY_VISION_PROVIDER (user-service, InBody vision OCR — defaults to
+#       ollama for local/dev, but a real AWS deploy has no Ollama server of
+#       its own provisioned, so set this to anthropic here unless one is
+#       stood up separately)
+#     LLM_PROVIDER (ai-service chat/plan-generation — same "no GPU instance
+#       in this deploy" reasoning, see docs/features/INBODY_LOCAL_VISION_MIGRATION.md)
 #   CORS_ORIGIN, FRONTEND_URL (the EC2 Elastic IP or domain, e.g.
 #     http://<elastic-ip>)
 #
@@ -157,6 +162,10 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
       PAYMENT_SERVICE_URL: http://payment-service:3007
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+      # Defaults to anthropic here (unlike docker-compose.dev.yml's `ollama`
+      # default) — this MVP prod surface has no Ollama server provisioned.
+      # Set to `ollama` + OLLAMA_BASE_URL/LLM_BASE_URL if one is stood up.
+      INBODY_VISION_PROVIDER: ${INBODY_VISION_PROVIDER:-anthropic}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
     env_file:

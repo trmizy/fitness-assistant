@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Check, X, MessageSquare, Clock, User } from "lucide-react";
+import { BrainIcon as Brain, CheckIcon as Check, XIcon as X, ChatTextIcon as MessageSquare, ClockIcon as Clock, UserIcon as User } from "@phosphor-icons/react";
 import { ptPlanReviewService } from "../../services/api";
 
 function getInitials(name: string | null | undefined): string {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Dumbbell, MapPin, Loader2, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
+import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, CheckCircleIcon as CheckCircle, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { openPaymentGateway } from "../../services/paymentGateway";

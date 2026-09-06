@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Check, X, Loader2, MapPin, AlertTriangle, Store } from "lucide-react";
+import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
 

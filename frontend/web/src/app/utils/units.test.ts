@@ -10,7 +10,16 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "./units";
+import {
+  cmFromFeetInches,
+  feetInchesFromCm,
+  kgFromLb,
+  lbFromKg,
+  kmFromMiles,
+  milesFromKm,
+  kjFromKcal,
+  kcalFromKj,
+} from "./units";
 
 test("cmFromFeetInches: 5'11\" -> 180.3cm (real-world reference value)", () => {
   assert.equal(cmFromFeetInches(5, 11), 180.3);
@@ -55,5 +64,39 @@ test("round trip: kg -> lb -> kg stays within 0.1kg rounding tolerance", () => {
     const lb = lbFromKg(kg);
     const back = kgFromLb(lb);
     assert.ok(Math.abs(back - kg) <= 0.1, `expected ${back} to be within 0.1 of ${kg}`);
+  }
+});
+
+// Settings Center → Units (kg/lb, cm/ft-in already covered above; km/mile
+// and kcal/kJ added for the same display-only preference).
+test("kmFromMiles: 1 mile -> ~1.61 km (real-world reference value)", () => {
+  assert.equal(kmFromMiles(1), 1.61);
+});
+
+test("milesFromKm: 5 km -> ~3.11 miles", () => {
+  assert.equal(milesFromKm(5), 3.11);
+});
+
+test("round trip: km -> miles -> km stays within 0.01km rounding tolerance", () => {
+  for (const km of [1, 5, 10, 21.1, 42.2]) {
+    const miles = milesFromKm(km);
+    const back = kmFromMiles(miles);
+    assert.ok(Math.abs(back - km) <= 0.01, `expected ${back} to be within 0.01 of ${km}`);
+  }
+});
+
+test("kjFromKcal: 100 kcal -> 418 kJ (real-world reference value)", () => {
+  assert.equal(kjFromKcal(100), 418);
+});
+
+test("kcalFromKj: 2000 kJ -> ~478 kcal", () => {
+  assert.equal(kcalFromKj(2000), 478);
+});
+
+test("round trip: kcal -> kJ -> kcal stays within 1 kcal rounding tolerance", () => {
+  for (const kcal of [50, 250, 500, 2000]) {
+    const kj = kjFromKcal(kcal);
+    const back = kcalFromKj(kj);
+    assert.ok(Math.abs(back - kcal) <= 1, `expected ${back} to be within 1 of ${kcal}`);
   }
 });

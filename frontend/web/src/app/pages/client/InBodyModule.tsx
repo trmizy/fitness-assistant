@@ -14,32 +14,10 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import {
-  Upload,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  XCircle,
-  Eye,
-  TrendingDown,
-  TrendingUp,
-  ChevronRight,
-  FileImage,
-  RefreshCw,
-  Check,
-  Activity,
-  ClipboardList,
-  Camera,
-  ArrowRight,
-  BarChart2,
-  History,
-  GitCompare,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon as Clock, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, EyeIcon as Eye, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, FileImageIcon as FileImage, ArrowsClockwiseIcon as RefreshCw, CheckIcon as Check, PulseIcon as Activity, ClipboardTextIcon as ClipboardList, CameraIcon as Camera, ArrowRightIcon as ArrowRight, ChartBarIcon as BarChart2, ClockCounterClockwiseIcon as History, ArrowsLeftRightIcon as GitCompare, PlusIcon as Plus, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock, Flag } from "lucide-react";
+import { WarningIcon as AlertTriangle, CalendarCheckIcon as CalendarClock, FlagIcon as Flag } from "@phosphor-icons/react";
 import { inbodyService, trainingCycleService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";

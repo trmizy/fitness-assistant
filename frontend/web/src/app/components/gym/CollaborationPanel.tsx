@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Handshake, Loader2, Check, X, Repeat, Trash2, AlertTriangle } from "lucide-react";
+import { HandshakeIcon as Handshake, CircleNotchIcon as Loader2, CheckIcon as Check, XIcon as X, RepeatIcon as Repeat, TrashIcon as Trash2, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { collaborationService } from "../../services/api";
 import { useBackDismissible } from "../../hooks/useBackDismissible";

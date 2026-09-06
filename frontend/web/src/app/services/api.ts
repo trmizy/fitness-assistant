@@ -289,6 +289,22 @@ export const authService = {
     // Same reasoning as clearSessionAndRedirectToLogin: router navigation, not a reload.
     emitSessionExpired();
   },
+
+  // Settings Center → Account. Backend (`PATCH /auth/me`) only accepts
+  // firstName/lastName — no email/phone change exists (verified, see
+  // docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md §6/§11).
+  updateMe: async (updates: { firstName?: string; lastName?: string }) => {
+    const { data } = await api.patch("/auth/me", updates);
+    return data;
+  },
+
+  changePassword: async (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const { data } = await api.patch("/auth/me/password", payload);
+    return data;
+  },
 };
 
 export const translationService = {
@@ -333,6 +349,16 @@ export const profileService = {
 
   listPTs: async (params?: Record<string, any>) => {
     const { data } = await api.get("/profile/pts", { params });
+    return data;
+  },
+
+  // Settings Center → Privacy & Data. This deletes ONLY the UserProfile
+  // row (+ a fire-and-forget AI-conversation cascade) — it does NOT delete
+  // the login account, workouts/programs, contracts, payments, or chat
+  // history (verified, see impact analysis §11). The UI must label this
+  // accurately as "xoá dữ liệu hồ sơ", never "xoá tài khoản".
+  deleteProfileData: async () => {
+    const { data } = await api.delete("/profile/me");
     return data;
   },
 };
@@ -606,6 +632,11 @@ export const workoutService = {
     muscleGroup?: string;
     equipment?: string;
     activityType?: string;
+    // Product Completeness pass — Exercise Library difficulty/logging-mode
+    // filters (spec §16).
+    difficulty?: string;
+    loggingMode?: string;
+    hasVideo?: boolean;
     page?: number;
     limit?: number;
   }) => {
@@ -615,6 +646,9 @@ export const workoutService = {
     if (params?.muscleGroup) qs.set("muscleGroup", params.muscleGroup);
     if (params?.equipment) qs.set("equipment", params.equipment);
     if (params?.activityType) qs.set("activityType", params.activityType);
+    if (params?.difficulty) qs.set("difficulty", params.difficulty);
+    if (params?.loggingMode) qs.set("loggingMode", params.loggingMode);
+    if (params?.hasVideo !== undefined) qs.set("hasVideo", String(params.hasVideo));
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
     const { data } = await api.get(
@@ -690,6 +724,33 @@ export const workoutService = {
     secondary: Array<{ code: string; nameVi: string; nameEn: string | null; anatomyRegion: string | null }>;
   }> => {
     const { data } = await api.get(`/exercises/${exerciseId}/muscle-map`);
+    return data;
+  },
+
+  // Product Completeness pass — Exercise Detail page. Bare single-exercise
+  // row (aliases/equipment need their own calls — see impact analysis §6).
+  getExercise: async (exerciseId: string) => {
+    const { data } = await api.get(`/exercises/${exerciseId}`);
+    return data;
+  },
+
+  // Product Completeness pass — Muscle Library detail page's "related
+  // exercises", correctly sourced from the canonical ExerciseMuscle table
+  // (never the legacy muscleGroup filter getExercises() above uses).
+  getExercisesByMuscle: async (
+    muscleIdOrCode: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<{
+    muscle: { id: string; code: string; nameVi: string; nameEn: string | null; anatomyRegion: string | null };
+    exercises: Array<Record<string, any> & { muscleRole: "primary" | "secondary" | null }>;
+    pagination: { page: number; limit: number; total: number };
+  }> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get(
+      `/exercises/muscles/${encodeURIComponent(muscleIdOrCode)}/exercises${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
     return data;
   },
 
@@ -3374,18 +3435,73 @@ export const adminService = {
   },
 };
 
+export interface FoodCatalogItem {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  imageUrl: string | null;
+  source?: string;
+  foodForm?: string | null;
+  isSupplement?: boolean;
+}
+
 export const foodService = {
   search: async (q: string) => {
     const { data } = await api.get(`/food/search?q=${encodeURIComponent(q)}`);
-    return data as Array<{
-      id: string;
-      name: string;
-      calories: number;
-      protein: number;
-      carbs: number;
-      fats: number;
-      imageUrl: string | null;
-    }>;
+    return data as FoodCatalogItem[];
+  },
+
+  // Product Completeness pass — Food Library browse page
+  // (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md §7). Plain
+  // paginated list off the same real USDA-backed `Food` table `search`
+  // already reads — no parallel food data source.
+  list: async (params?: {
+    page?: number;
+    limit?: number;
+    // "protein-rich / carb-rich / fat-rich" sort (spec §18) — real,
+    // computable from Food's own columns; not a fabricated food-group filter.
+    sortBy?: "name" | "protein" | "carbs" | "fats";
+    source?: string;
+    foodForm?: string;
+    isSupplement?: boolean;
+    hasImage?: boolean;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.sortBy) qs.set("sortBy", params.sortBy);
+    if (params?.source) qs.set("source", params.source);
+    if (params?.foodForm) qs.set("foodForm", params.foodForm);
+    if (params?.isSupplement !== undefined) {
+      qs.set("isSupplement", String(params.isSupplement));
+    }
+    if (params?.hasImage !== undefined) {
+      qs.set("hasImage", String(params.hasImage));
+    }
+    const { data } = await api.get(
+      `/food${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+    return data as {
+      foods: FoodCatalogItem[];
+      pagination: { page: number; limit: number; total: number };
+    };
+  },
+
+  getFilterOptions: async () => {
+    const { data } = await api.get("/food/filter-options");
+    return data as {
+      sources: string[];
+      foodForms: string[];
+      supplementValues: boolean[];
+    };
+  },
+
+  getById: async (id: string): Promise<FoodCatalogItem> => {
+    const { data } = await api.get(`/food/${id}`);
+    return data;
   },
 };
 

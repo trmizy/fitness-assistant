@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { Dumbbell, Search } from "lucide-react";
+import { BarbellIcon as Dumbbell, MagnifyingGlassIcon as Search } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { GymsPage } from "./GymsPage";
 import { GymMembershipsPage } from "./GymMembershipsPage";

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, X, LogOut, UserX, Clock, AlertTriangle } from "lucide-react";
+import { PhoneIcon as Phone, PhoneSlashIcon as PhoneOff, MicrophoneIcon as Mic, MicrophoneSlashIcon as MicOff, VideoCameraIcon as Video, VideoCameraSlashIcon as VideoOff, XIcon as X, SignOutIcon as LogOut, UserMinusIcon as UserX, ClockIcon as Clock, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useCall } from "../../context/CallContext";
 

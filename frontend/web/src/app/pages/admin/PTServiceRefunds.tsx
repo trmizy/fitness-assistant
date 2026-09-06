@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Banknote, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { CircleNotchIcon as Loader2, MoneyIcon as Banknote, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { personalizedServiceApi, type PersonalizedServiceOrder } from "../../services/api";
 
 /**

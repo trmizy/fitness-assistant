@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CheckCircle2, XCircle, Loader2, Clock, ArrowRight } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CircleNotchIcon as Loader2, ClockIcon as Clock, ArrowRightIcon as ArrowRight } from "@phosphor-icons/react";
 import { paymentService } from "../../services/api";
 
 type Phase = "checking" | "paid" | "pending" | "failed" | "error";

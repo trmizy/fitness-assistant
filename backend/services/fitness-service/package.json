@@ -16,17 +16,22 @@
     "db:process-usda": "tsx prisma/process-usda.ts",
     "test": "tsx --test src/__tests__/*.test.ts",
     "workout:test:completion": "tsx src/scripts/testWorkoutCompletion.ts",
-    "workout:check-consistency": "tsx src/scripts/checkWorkoutConsistency.ts"
+    "workout:check-consistency": "tsx src/scripts/checkWorkoutConsistency.ts",
+    "build:lambda-zip": "node scripts/build-lambda-artifact.js",
+    "build:migrate-lambda-zip": "node scripts/build-migrate-lambda-artifact.js"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
+    "@aws-sdk/client-lambda": "^3.1118.0",
+    "@aws-sdk/client-secrets-manager": "^3.1118.0",
     "axios": "^1.6.5",
     "bullmq": "^5.1.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "pg": "^8.11.1",
     "redis": "^4.6.12",
+    "serverless-http": "^4.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

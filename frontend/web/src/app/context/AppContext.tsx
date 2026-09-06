@@ -28,6 +28,9 @@ interface AppContextType {
   activeView: WorkspaceView;
   setActiveView: (view: WorkspaceView) => void;
   isAuthenticated: boolean;
+  // Resolves `false` only for a real wrong-email/password (401). Any other failure — rate
+  // limit, network, server error — rejects instead, so the caller can show what actually
+  // happened rather than a blanket "wrong password".
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setUser: (user: User | null) => void;
@@ -175,9 +178,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
       return false;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed:", err);
-      return false;
+      // Only a real 401 (wrong email/password) collapses to `false` — LoginPage shows its
+      // "Email hoặc mật khẩu không đúng" message for that. Anything else (429 rate-limit,
+      // network failure, 5xx) gets rethrown so LoginPage can tell the user what actually
+      // happened instead of falsely blaming their credentials (found during mobile QA: a
+      // rate-limited PT login showed the exact same "wrong password" message as a real one).
+      if (err?.response?.status === 401) return false;
+      throw err;
     }
   };
 

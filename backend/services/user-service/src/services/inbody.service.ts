@@ -127,10 +127,10 @@ export const inbodyService = {
     }
   },
 
-  async extractFromImage(_userId: string, imagePath: string) {
+  async extractFromImage(_userId: string, imagePath: string, uploadMimeType?: string) {
     const startTime = Date.now();
     try {
-      const result = await extractInBodyVision(imagePath);
+      const result = await extractInBodyVision(imagePath, uploadMimeType);
 
       const durationSec = (Date.now() - startTime) / 1000;
       ocrExtractionsTotal.inc({ status: "success" });

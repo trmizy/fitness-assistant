@@ -67,6 +67,8 @@ services:
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
       - ../../frontend/web/src:/app/frontend/web/src
+      - ../../frontend/web/public:/app/frontend/web/public
+      - ../../frontend/web/vite.config.ts:/app/frontend/web/vite.config.ts
     depends_on:
       - api-gateway
     networks:
@@ -227,6 +229,17 @@ services:
       GYM_SERVICE_URL: http://gym-service:3006
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
+      # InBody scan extraction: temporarily reverted default to Claude
+      # (2026-09-05) — see .env.example's "InBody scan extraction" section.
+      # The local Ollama vision path is intentionally KEPT (not deleted, just
+      # commented out in inbody-vision.service.ts) for future re-enablement.
+      # Reuses ai-service's same Ollama instance (host.docker.internal, the
+      # dev laptop's own `ollama serve`); user-service had no OLLAMA_BASE_URL
+      # of its own before this since it never talked to Ollama previously.
+      INBODY_VISION_PROVIDER: ${INBODY_VISION_PROVIDER:-anthropic}
+      INBODY_VISION_OLLAMA_MODEL: ${INBODY_VISION_OLLAMA_MODEL:-qwen2.5vl:3b}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
       # TEMPORARY (requested to unblock local testing): this dev environment has no public
@@ -734,6 +747,14 @@ services:
   # Idempotent: ON CONFLICT DO NOTHING — safe to re-run on every `docker compose up`.
   # Uses node:20-alpine + installs 3 tiny pure-JS packages (cached in seeder_modules volume).
   # Set SKIP_SEED=true in .env to disable without removing the service definition.
+  #
+  # Does NOT seed vietnam_provinces/vietnam_wards (real Vietnam administrative
+  # location reference data, not test fixtures) — that's the user-service
+  # container's own job now (see its Dockerfile.dev's CMD:
+  # `prisma migrate deploy && tsx prisma/seed_vietnam_locations.ts && ...`,
+  # self-guarding, runs on every boot). Found 2026-09 that this data was
+  # never loaded into a fresh dev DB at all — see
+  # docs/features/VIETNAM_LOCATION_DATA_SEED_GAP.md.
   db-seeder:
     image: node:20-alpine
     container_name: gymcoach-db-seeder

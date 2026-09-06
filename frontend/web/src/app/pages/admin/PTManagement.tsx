@@ -1,37 +1,5 @@
 import { useState } from "react";
-import {
-  Check,
-  X,
-  Award,
-  Zap,
-  Search,
-  ChevronRight,
-  Shield,
-  Briefcase,
-  Users,
-  Calendar,
-  Globe,
-  AlertCircle,
-  Clock,
-  Eye,
-  FileText,
-  MessageSquare,
-  CheckCircle,
-  XCircle,
-  ArrowLeft,
-  Phone,
-  MapPin,
-  Instagram,
-  Youtube,
-  Linkedin,
-  RefreshCw,
-  Image as ImageIcon,
-  Loader2,
-  ChevronLeft,
-  User,
-  ShieldCheck,
-  History as HistoryIcon,
-} from "lucide-react";
+import { CheckIcon as Check, XIcon as X, MedalIcon as Award, LightningIcon as Zap, MagnifyingGlassIcon as Search, CaretRightIcon as ChevronRight, ShieldIcon as Shield, BriefcaseIcon as Briefcase, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, WarningCircleIcon as AlertCircle, ClockIcon as Clock, EyeIcon as Eye, FileTextIcon as FileText, ChatTextIcon as MessageSquare, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ArrowLeftIcon as ArrowLeft, PhoneIcon as Phone, MapPinIcon as MapPin, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowsClockwiseIcon as RefreshCw, ImageIcon, CircleNotchIcon as Loader2, CaretLeftIcon as ChevronLeft, UserIcon as User, ShieldCheckIcon as ShieldCheck, ClockCounterClockwiseIcon as HistoryIcon } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { formatVND } from "../../utils/currency";
 import {

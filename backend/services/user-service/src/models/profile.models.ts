@@ -59,6 +59,10 @@ export const profileSchema = z.object({
   // Set true only by OnboardingWizardPage's final submit step — distinct
   // from "has some profile fields filled in" via the plain edit form.
   hasCompletedOnboarding: z.boolean().optional(),
+  // Product Completeness pass — Settings Center → Units. Display-only; every
+  // canonical field on this model stays metric regardless of this value.
+  unitSystem: z.enum(["metric", "imperial"]).optional(),
+  energyUnit: z.enum(["kcal", "kj"]).optional(),
 });
 
 export const adminPTStatusSchema = z.object({

@@ -1,20 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  FileText,
-  CheckCircle,
-  Clock,
-  XCircle,
-  AlertCircle,
-  Calendar,
-  User,
-  Loader2,
-  ChevronRight,
-  X,
-  Copy,
-  Check,
-  MessageSquare,
-  Hash,
-} from "lucide-react";
+import { FileTextIcon as FileText, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningCircleIcon as AlertCircle, CalendarIcon as Calendar, UserIcon as User, CircleNotchIcon as Loader2, CaretRightIcon as ChevronRight, XIcon as X, CopyIcon as Copy, CheckIcon as Check, ChatTextIcon as MessageSquare, HashIcon as Hash } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService } from "../../services/api";

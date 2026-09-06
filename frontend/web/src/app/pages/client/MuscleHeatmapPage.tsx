@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BodyChart, ViewSide, type BodyState } from "body-muscles";
-import { ArrowLeft, Flame, Loader2 } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, FlameIcon as Flame, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { MUSCLE_CODE_TO_BODY_MUSCLES_REGIONS, isBackViewMuscle } from "../../constants/muscleRegionMap";
 import { statsService, type MuscleHeatmapEntry } from "../../services/api";

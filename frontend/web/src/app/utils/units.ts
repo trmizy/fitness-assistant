@@ -40,3 +40,30 @@ export function kgFromLb(lb: number): number {
 export function lbFromKg(kg: number): number {
   return Math.round((kg / KG_PER_LB) * 10) / 10;
 }
+
+// Settings Center → Units (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
+// §8/§9) — same "display/input boundary only" rule as everything above:
+// canonical distance storage (WorkoutSet.distanceMeters) stays meters
+// everywhere; these only convert for the km/mile display preference.
+const KM_PER_MILE = 1.609344;
+
+export function milesFromKm(km: number): number {
+  return Math.round((km / KM_PER_MILE) * 100) / 100;
+}
+
+export function kmFromMiles(miles: number): number {
+  return Math.round(miles * KM_PER_MILE * 100) / 100;
+}
+
+// Settings Center → Nutrition energy-unit preference. Canonical storage
+// (Food.calories, NutritionLog.calories, NutritionGoal.calories) stays
+// kcal everywhere — this only converts for display.
+const KJ_PER_KCAL = 4.184;
+
+export function kjFromKcal(kcal: number): number {
+  return Math.round(kcal * KJ_PER_KCAL);
+}
+
+export function kcalFromKj(kj: number): number {
+  return Math.round(kj / KJ_PER_KCAL);
+}

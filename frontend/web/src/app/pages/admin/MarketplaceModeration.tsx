@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, ChevronDown, FileText, Loader2, ShieldAlert, ShieldCheck, Store, X } from "lucide-react";
+import { CheckIcon as Check, CaretDownIcon as ChevronDown, FileTextIcon as FileText, CircleNotchIcon as Loader2, ShieldWarningIcon as ShieldAlert, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store, XIcon as X } from "@phosphor-icons/react";
 import { marketplaceService } from "../../services/api";
 
 const FILTERS: Record<string, string> = {

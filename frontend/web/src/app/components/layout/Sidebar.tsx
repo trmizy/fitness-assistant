@@ -1,35 +1,34 @@
 import { NavLink, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
-import {
-  LayoutDashboard,
-  Activity,
-  Brain,
-  FileText,
-  MessageSquare,
-  Calendar,
-  Dumbbell,
-  Utensils,
-  Users,
-  Search,
-  User,
-  Shield,
-  UserCheck,
-  Monitor,
-  X,
-  LogOut,
-  ClipboardList,
-  Zap,
-  Workflow,
-  Wallet,
-  Store,
-  Gavel,
-  Banknote,
-  GitCompare,
-  Table2,
-  Building2,
-} from "lucide-react";
+import { UserIcon as User, ShieldIcon as Shield, XIcon as X, SignOutIcon as LogOut, LightningIcon as Zap } from "@phosphor-icons/react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
+import { AppLogo } from "../brand/AppLogo";
+import {
+  GyminiAdminIcon,
+  GyminiCatalogIcon,
+  GyminiChatIcon,
+  GyminiCompareIcon,
+  GyminiContractIcon,
+  GyminiDashboardIcon,
+  GyminiDiscoverIcon,
+  GyminiDisputeIcon,
+  GyminiGymIcon,
+  GyminiInBodyIcon,
+  GyminiMarketplaceIcon,
+  GyminiMoneyIcon,
+  GyminiNutritionIcon,
+  GyminiPlanIcon,
+  GyminiProfileIcon,
+  GyminiScheduleIcon,
+  GyminiServicesIcon,
+  GyminiSettingsIcon,
+  GyminiSystemIcon,
+  GyminiUsersIcon,
+  GyminiWalletIcon,
+  GyminiWorkflowIcon,
+  GyminiWorkoutIcon,
+} from "../brand/GyminiLucide";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
@@ -42,23 +41,29 @@ import type { AppLanguage } from "../../context/SettingsContext";
 const clientNavFull = [
   {
     label: "Dashboard",
-    icon: LayoutDashboard,
+    icon: GyminiDashboardIcon,
     to: "/client/dashboard",
     sourceLang: "en" as const,
   },
   {
     label: "InBody",
-    icon: Activity,
+    icon: GyminiInBodyIcon,
     to: "/client/inbody",
     sourceLang: "en" as const,
   },
-  { label: "Kế hoạch AI", icon: Brain, to: "/client/plans" },
-  { label: "Tập luyện", icon: Dumbbell, to: "/client/workout" },
-  { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
-  { label: "Dịch vụ", icon: Search, to: "/client/services" },
-  { label: "Trò chuyện", icon: MessageSquare, to: "/client/chat" },
-  { label: "Ví", icon: Wallet, to: "/client/wallet" },
-  { label: "Hồ sơ", icon: User, to: "/client/profile" },
+  { label: "Kế hoạch AI", icon: GyminiPlanIcon, to: "/client/plans" },
+  { label: "Tập luyện", icon: GyminiWorkoutIcon, to: "/client/workout" },
+  { label: "Dinh dưỡng", icon: GyminiNutritionIcon, to: "/client/nutrition" },
+  // Product Completeness pass — Discover/Library landing (PC7) and Settings
+  // Center (PC1). Kept out of the 5-slot mobile bottom nav per spec §4/§13
+  // — reachable here (desktop sidebar + mobile drawer) and via the Topbar
+  // user-menu / ProfilePage link-out cards instead.
+  { label: "Khám phá", icon: GyminiDiscoverIcon, to: "/client/library" },
+  { label: "Dịch vụ", icon: GyminiServicesIcon, to: "/client/services" },
+  { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
+  { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
+  { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
+  { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
 
 /** Gym owner nav — wallet balance is shown per-gym inside GymManagePage.
@@ -66,11 +71,11 @@ const clientNavFull = [
 const gymOwnerNav = [
   {
     label: "Dashboard",
-    icon: LayoutDashboard,
+    icon: GyminiDashboardIcon,
     to: "/gym-owner/dashboard",
     sourceLang: "en" as const,
   },
-  { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
+  { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
 ];
 
 // PT accounts can still use the unified client service hub for their own
@@ -81,51 +86,51 @@ const ptClientNav = clientNavFull;
 const ptWorkspaceNav = [
   {
     label: "PT Dashboard",
-    icon: LayoutDashboard,
+    icon: GyminiDashboardIcon,
     to: "/pt/dashboard",
     sourceLang: "en" as const,
   },
-  { label: "Học viên", icon: Users, to: "/pt/clients" },
-  { label: "Hợp đồng", icon: FileText, to: "/pt/contracts" },
-  { label: "Duyệt kế hoạch", icon: ClipboardList, to: "/pt/plans" },
-  { label: "Lịch dạy", icon: Calendar, to: "/pt/schedule" },
+  { label: "Học viên", icon: GyminiUsersIcon, to: "/pt/clients" },
+  { label: "Hợp đồng", icon: GyminiContractIcon, to: "/pt/contracts" },
+  { label: "Duyệt kế hoạch", icon: GyminiPlanIcon, to: "/pt/plans" },
+  { label: "Lịch dạy", icon: GyminiScheduleIcon, to: "/pt/schedule" },
   {
     label: "Chat",
-    icon: MessageSquare,
+    icon: GyminiChatIcon,
     to: "/pt/chat",
     sourceLang: "en" as const,
   },
-  { label: "Ví thu nhập", icon: Wallet, to: "/pt/wallet" },
-  { label: "Hồ sơ PT", icon: User, to: "/pt/profile" },
+  { label: "Ví thu nhập", icon: GyminiWalletIcon, to: "/pt/wallet" },
+  { label: "Hồ sơ PT", icon: GyminiProfileIcon, to: "/pt/profile" },
 ];
 
 /** Admin nav */
 const adminNav = [
   {
     label: "Dashboard",
-    icon: LayoutDashboard,
+    icon: GyminiDashboardIcon,
     to: "/admin/dashboard",
     sourceLang: "en" as const,
   },
-  { label: "Người dùng", icon: Users, to: "/admin/users" },
-  { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
-  { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
-  { label: "Duyệt bài tập trùng lặp", icon: GitCompare, to: "/admin/exercise-review" },
-  { label: "Ma trận chất lượng catalog", icon: Table2, to: "/admin/catalog-quality" },
-  { label: "Hoàn tiền dịch vụ PT", icon: Banknote, to: "/admin/pt-service-refunds" },
-  { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
-  { label: "Khiếu nại buổi tập", icon: Gavel, to: "/admin/disputes" },
-  { label: "Yêu cầu rút tiền", icon: Banknote, to: "/admin/withdrawals" },
-  { label: "Phòng gym & thương hiệu", icon: Building2, to: "/admin/gyms" },
+  { label: "Người dùng", icon: GyminiUsersIcon, to: "/admin/users" },
+  { label: "Quản lý PT", icon: GyminiAdminIcon, to: "/admin/pts" },
+  { label: "Chợ kế hoạch", icon: GyminiMarketplaceIcon, to: "/admin/marketplace" },
+  { label: "Duyệt bài tập trùng lặp", icon: GyminiCompareIcon, to: "/admin/exercise-review" },
+  { label: "Ma trận chất lượng catalog", icon: GyminiCatalogIcon, to: "/admin/catalog-quality" },
+  { label: "Hoàn tiền dịch vụ PT", icon: GyminiMoneyIcon, to: "/admin/pt-service-refunds" },
+  { label: "Giám sát hệ thống", icon: GyminiSystemIcon, to: "/admin/system" },
+  { label: "Khiếu nại buổi tập", icon: GyminiDisputeIcon, to: "/admin/disputes" },
+  { label: "Yêu cầu rút tiền", icon: GyminiMoneyIcon, to: "/admin/withdrawals" },
+  { label: "Phòng gym & thương hiệu", icon: GyminiGymIcon, to: "/admin/gyms" },
   {
     label: "Workflows",
-    icon: Workflow,
+    icon: GyminiWorkflowIcon,
     to: "/admin/workflows",
     sourceLang: "en" as const,
   },
   {
     label: "AI Observability",
-    icon: Brain,
+    icon: GyminiSystemIcon,
     to: "/admin/ai-observability",
     sourceLang: "en" as const,
   },
@@ -165,6 +170,7 @@ function NavGroup({
           {({ isActive }) => (
             <>
               <item.icon
+                weight={isActive ? "bold" : "regular"}
                 className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
               />
               <AutoText
@@ -270,17 +276,10 @@ export function Sidebar() {
     <div className="flex flex-col h-full bg-transparent text-white border-r border-zinc-800/60">
       {/* ── Brand header ── */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/30">
-            <Dumbbell className="w-4 h-4 text-black" />
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm leading-tight tracking-tight">
-              FITNESS AI
-            </div>
-            <div className="text-zinc-500 text-xs">AI Gym Coach</div>
-          </div>
-        </div>
+        <AppLogo
+          className="h-12 min-w-0"
+          imgClassName="h-12 w-[132px] object-left"
+        />
         <button
           className="lg:hidden text-zinc-500 hover:text-white p-1 rounded transition-colors"
           onClick={() => setSidebarOpen(false)}

@@ -10,6 +10,7 @@ import {
   loginSchema,
   refreshSchema,
   updateMeSchema,
+  changePasswordSchema,
   updateUserRoleSchema,
 } from "../models/auth.models";
 
@@ -231,6 +232,38 @@ export const authController = {
         return;
       }
       logger.error(error, "Update me error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: "No token provided" });
+        return;
+      }
+
+      const body = changePasswordSchema.parse(req.body);
+      const result = await authService.changePassword(token, body);
+      await authRepository.createAuditLog({
+        userId: result.user.id,
+        action: "PASSWORD_CHANGE",
+        ...auditMeta(req),
+      });
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "Change password error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

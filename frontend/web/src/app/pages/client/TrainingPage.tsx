@@ -1,4 +1,4 @@
-import { CalendarClock, Dumbbell } from "lucide-react";
+import { CalendarCheckIcon as CalendarClock, BarbellIcon as Dumbbell } from "@phosphor-icons/react";
 import { TabbedPage } from "../../components/TabbedPage";
 import { WorkoutLogPage } from "./WorkoutLogPage";
 import { TrainingCyclePage } from "./TrainingCyclePage";
