@@ -21,13 +21,22 @@ type StatsServiceModule = typeof import("../services/stats.service");
 
 let prisma: PrismaClientLike | undefined;
 let statsModule: StatsServiceModule | undefined;
+let exerciseId: string | undefined;
 
 async function loadModules() {
   if (!prisma) {
     prisma = (await import("../repositories/prisma")).prisma;
     statsModule = await import("../services/stats.service");
   }
-  return { prisma: prisma!, statsService: statsModule!.statsService };
+  if (!exerciseId) {
+    // Looked up by name rather than hardcoded — Exercise.exerciseName has
+    // no unique constraint and the seed script assigns fresh random ids
+    // on every re-run (prisma/seed_exercises_json.ts), so a literal id
+    // here goes silently stale the next time the catalog is reseeded.
+    const row = await prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Barbell Curl" } });
+    exerciseId = row.id;
+  }
+  return { prisma: prisma!, statsService: statsModule!.statsService, exerciseId: exerciseId! };
 }
 
 test.after(async () => {
@@ -58,8 +67,6 @@ function daysAgo(n: number): Date {
 }
 const label = (d: Date) => d.toISOString().slice(0, 10);
 
-const EXERCISE_ID = "f1b609bf-0994-4a70-b2d5-a22465438312"; // real seeded "Barbell Curl" (REPS_LOAD)
-
 async function cleanup(db: PrismaClientLike, userId: string) {
   await db.workoutSet.deleteMany({ where: { workoutExercise: { workout: { userId } } } });
   await db.workoutExercise.deleteMany({ where: { workout: { userId } } });
@@ -70,7 +77,7 @@ test(
   "getExerciseProgress: real chronological series, merging two WorkoutExercise rows in one workout into a single session point",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
     const userId = `exercise-progress-it-${Date.now()}`;
     try {
       const olderDate = daysAgo(20);
@@ -83,7 +90,7 @@ test(
           date: olderDate,
           exercises: {
             create: [{
-              exerciseId: EXERCISE_ID,
+              exerciseId,
               sets: 2,
               order: 0,
               workoutSets: {
@@ -106,7 +113,7 @@ test(
       await db.workoutExercise.create({
         data: {
           workoutId: newerWorkout.id,
-          exerciseId: EXERCISE_ID,
+          exerciseId,
           sets: 1,
           order: 0,
           workoutSets: { create: [{ setNumber: 1, weight: 50, reps: 5, completed: true }] },
@@ -115,15 +122,15 @@ test(
       await db.workoutExercise.create({
         data: {
           workoutId: newerWorkout.id,
-          exerciseId: EXERCISE_ID,
+          exerciseId,
           sets: 1,
           order: 1,
           workoutSets: { create: [{ setNumber: 1, weight: 45, reps: 12, completed: true }] },
         },
       });
 
-      const result: any = await svc.getExerciseProgress(userId, EXERCISE_ID, {});
-      assert.equal(result.exerciseId, EXERCISE_ID);
+      const result: any = await svc.getExerciseProgress(userId, exerciseId, {});
+      assert.equal(result.exerciseId, exerciseId);
       assert.equal(result.loggingMode, "REPS_LOAD");
       assert.equal(result.sessions.length, 2, "two real calendar sessions, not three");
 
@@ -148,7 +155,7 @@ test(
   "getExerciseProgress: from/to narrows the range to real sessions within it",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
     const userId = `exercise-progress-range-it-${Date.now()}`;
     try {
       const insideDate = daysAgo(10);
@@ -162,7 +169,7 @@ test(
             date: d,
             exercises: {
               create: [{
-                exerciseId: EXERCISE_ID,
+                exerciseId,
                 sets: 1,
                 order: 0,
                 workoutSets: { create: [{ setNumber: 1, weight: 30, reps: 10, completed: true }] },
@@ -172,7 +179,7 @@ test(
         });
       }
 
-      const result: any = await svc.getExerciseProgress(userId, EXERCISE_ID, {
+      const result: any = await svc.getExerciseProgress(userId, exerciseId, {
         from: label(daysAgo(15)),
         to: label(daysAgo(1)),
       });
@@ -188,7 +195,7 @@ test(
   "getExerciseProgress: 404s for a nonexistent exercise id and for another user's private USER_CUSTOM exercise",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
     const userId = `exercise-progress-vis-it-${Date.now()}`;
     const ownerId = `exercise-progress-owner-it-${Date.now()}`;
 

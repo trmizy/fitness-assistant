@@ -13,6 +13,8 @@ import { workoutService } from "../services/workout.service";
 import { createManualProgramSchema } from "../models/fitness.models";
 import { z } from "zod";
 import { formatZodErrors } from "../utils/workout-validation";
+import { bootstrapNutritionForUser } from "../services/nutrition-onboarding-bootstrap.service";
+import { maybeAutoTriggerInBodyReassessment } from "../services/inbody-reassessment.service";
 
 // Equipment allowed per training location / preference
 const HOME_EQUIPMENT = [
@@ -447,6 +449,22 @@ export const internalController = {
     }
   },
 
+  // AI Nutrition Cycle Engine (Gymini) — user-service calls this exactly
+  // once per user, right after OnboardingWizardPage's final submit flips
+  // hasCompletedOnboarding false->true (see profileService.upsertProfile).
+  // Idempotent — see nutrition-onboarding-bootstrap.service.ts's own doc
+  // comment for why a retry/refresh never creates a duplicate active plan.
+  async bootstrapNutrition(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await bootstrapNutritionForUser(userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      logger.error({ err }, "internal.bootstrapNutrition failed");
+      res.status(500).json({ success: false, error: "Failed to bootstrap nutrition" });
+    }
+  },
+
   // Hardening pass §7/§8 — ai-service calls this as a FINAL, authoritative
   // equipment-compliance check on a specific generated plan's exact
   // exerciseIds, right before persisting it. Deliberately separate from
@@ -496,6 +514,22 @@ export const internalController = {
       }
       logger.error({ err }, "internal.commitManualProgram failed");
       res.status(500).json({ success: false, error: "Failed to commit program" });
+    }
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) Phase 3 — user-service calls this
+  // (fire-and-forget, best-effort) right after a new InBody entry is
+  // recorded. Returns immediately — the actual evaluation (if triggered)
+  // runs detached inside this service; see inbody-reassessment.service.ts
+  // for the full gating/no-spam design.
+  async checkInBodyReassessment(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await maybeAutoTriggerInBodyReassessment(userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      logger.error({ err }, "internal.checkInBodyReassessment failed");
+      res.status(500).json({ success: false, error: "Failed to check InBody reassessment" });
     }
   },
 

@@ -3,6 +3,7 @@ import { inbodyRepository } from "../repositories/inbody.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
 import { extractInBodyVision } from "./inbody-vision.service";
+import { triggerInBodyReassessmentSafe } from "../clients/fitness-service.client";
 import {
   ocrExtractionsTotal,
   ocrExtractionDuration,
@@ -97,6 +98,13 @@ export const inbodyService = {
     );
     // Sync latest InBody metrics to the profile so AI always reads fresh data
     await syncLatestInBodyToProfile(userId).catch(() => {});
+    // AI Nutrition Cycle Engine (Gymini) Phase 3 — best-effort, non-blocking:
+    // ask fitness-service whether this new measurement warrants an
+    // automatic cycle reassessment (see inbody-reassessment.service.ts for
+    // the cooldown/no-spam gating). triggerInBodyReassessmentSafe never
+    // throws (short timeout, resolves to null on any failure), and never
+    // affects whether this InBody entry itself was saved successfully.
+    await triggerInBodyReassessmentSafe(userId);
     return entry;
   },
 
@@ -118,6 +126,8 @@ export const inbodyService = {
       const updated = await inbodyRepository.update(id, patch);
       // Re-sync: the edit might have changed weight on the latest entry
       await syncLatestInBodyToProfile(userId).catch(() => {});
+      // See createEntry above — same best-effort reassessment-check call.
+      await triggerInBodyReassessmentSafe(userId);
       return updated;
     } catch (e: any) {
       if (isUniqueViolation(e)) {

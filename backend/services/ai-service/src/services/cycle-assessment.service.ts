@@ -29,6 +29,7 @@ const NUTRITION_DECISION_LABEL: Record<
 > = {
   KEEP_PLAN: "giữ nguyên calo/macro hiện tại",
   PROPOSE_ADJUSTMENT: "đề xuất điều chỉnh calo/macro",
+  PROPOSE_DIET_BREAK: "đề xuất nghỉ tạm về mức calo duy trì (diet break) sau một thời gian dài cắt giảm calo",
   REQUEST_MORE_DATA: "cần thêm dữ liệu trước khi kết luận",
   EARLY_REVIEW: "cần xem xét sớm trước khi tiếp tục kế hoạch dinh dưỡng",
   ESCALATE: "cần chuyển cho chuyên gia y tế/PT xem xét ngay",
@@ -89,7 +90,8 @@ Hãy thêm trường "nutritionSummary" vào JSON trả về, với:
 - nutritionDecision: PHẢI đúng bằng "${req.nutrition.decision}", không đổi.
 - headline: một câu ngắn tóm tắt quyết định dinh dưỡng.
 - explanation: giải thích ngắn gọn, phân biệt rõ 3 phần: (1) Quan sát được (observation) từ signals, (2) Diễn giải (interpretation) — TẠI SAO lại đi đến quyết định này, (3) Khuyến nghị (recommendation) — người dùng nên làm gì tiếp theo. KHÔNG được tự đề xuất một con số calo/macro nào khác với proposedChanges ở trên. Nếu proposedChanges là null, không được bịa ra một con số.
-${req.nutrition.decision === "PROPOSE_ADJUSTMENT" ? "- Đây là một ĐỀ XUẤT — PHẢI nói rõ người dùng cần XÁC NHẬN trước khi thay đổi có hiệu lực, không phải đã được áp dụng." : ""}
+${req.nutrition.decision === "PROPOSE_ADJUSTMENT" || req.nutrition.decision === "PROPOSE_DIET_BREAK" ? "- Đây là một ĐỀ XUẤT — PHẢI nói rõ người dùng cần XÁC NHẬN trước khi thay đổi có hiệu lực, không phải đã được áp dụng." : ""}
+${req.nutrition.decision === "PROPOSE_DIET_BREAK" ? "- Giải thích rõ đây KHÔNG phải là dấu hiệu thất bại hay dừng hẳn việc giảm cân — đây là một khoảng nghỉ có kế hoạch ở mức calo duy trì, giúp cơ thể phục hồi trước khi tiếp tục cắt giảm calo." : ""}
 ${req.nutrition.decision === "ESCALATE" || req.nutrition.decision === "EARLY_REVIEW" ? "- KHÔNG được chẩn đoán nguyên nhân đau/khó chịu. Chỉ khuyên dừng lại và tham khảo chuyên gia y tế/PT phù hợp." : ""}
 `
       : ""

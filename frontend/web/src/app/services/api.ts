@@ -1345,7 +1345,7 @@ export interface CycleAssessment {
   // Phase 2 — Adaptive Nutrition Decision Engine, an independent decision
   // space/lifecycle evaluated at the same touchpoint (see
   // docs/body-state-and-adaptive-planning.md).
-  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
+  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "PROPOSE_DIET_BREAK" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
   nutritionConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
   nutritionSignals: Record<string, unknown> | null;
   nutritionProposedChanges: { calories?: number; protein?: number; carbs?: number; fat?: number } | null;
@@ -1460,6 +1460,18 @@ export const trainingCycleService = {
 
   getLatestAssessment: async (id: string) => {
     const { data } = await api.get<CycleAssessment>(`/training-cycles/${id}/assessments/latest`);
+    return data;
+  },
+
+  // Diet break / maintenance-phase modeling — "how close am I" status.
+  getDietBreakStatus: async (id: string) => {
+    const { data } = await api.get<{
+      applicable: boolean;
+      weeksSinceDeficitPhaseStarted: number | null;
+      thresholdWeeks: number;
+      weeksRemaining: number | null;
+      eligible: boolean;
+    }>(`/training-cycles/${id}/diet-break-status`);
     return data;
   },
 
@@ -3549,6 +3561,64 @@ export interface NutritionGoalPlanConsistency {
   recommendedAction: string;
 }
 
+// AI Nutrition Cycle Engine (Gymini) — mirrors fitness-service's
+// buildDailySummary (nutrition.service.ts). Signed remaining* values: a
+// negative number means the target was exceeded, presentation decides how
+// to phrase that.
+export interface NutritionDailySummary {
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFat: number;
+  consumedCalories: number;
+  consumedProtein: number;
+  consumedCarbs: number;
+  consumedFat: number;
+  remainingCalories: number;
+  remainingProtein: number;
+  remainingCarbs: number;
+  remainingFat: number;
+}
+
+export interface FoodSuggestionItem {
+  foodId: string;
+  foodName: string;
+  quantityG: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface FoodSuggestionOption {
+  label: string;
+  items: FoodSuggestionItem[];
+  sideNote: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+}
+
+export interface FoodSuggestionsResponse {
+  date: string;
+  remainingCalories: number;
+  remainingProtein: number;
+  budgetLevel: "LOW" | "NORMAL" | "FLEXIBLE";
+  region?: "BAC" | "TRUNG" | "NAM" | null;
+  options: FoodSuggestionOption[];
+}
+
+// Smart Substitute variants
+export type SubstituteMode = "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";
+
+export interface FoodSubstituteResult {
+  role: "PROTEIN" | "CARB";
+  mode: SubstituteMode;
+  candidates: FoodSuggestionItem[];
+  note: string;
+}
+
 export const nutritionService = {
   getLogs: async (startDate?: string, endDate?: string, mealType?: string) => {
     const params = new URLSearchParams();
@@ -3608,6 +3678,12 @@ export const nutritionService = {
       carbs: number;
       fat: number;
     } | null;
+    // AI Nutrition Cycle Engine (Gymini) — "how much do I have left today",
+    // computed from the active plan/goal vs. everything logged for the
+    // date. Null only when there is truly no target at all (no active
+    // program AND no active NutritionGoal) — see nutrition.service.ts's
+    // buildDailySummary.
+    dailySummary: NutritionDailySummary | null;
     message?: string;
   }> => {
     const qs = date ? `?date=${date}` : "";
@@ -3620,8 +3696,57 @@ export const nutritionService = {
         day: null,
         meals: [],
         actualProgress: null,
+        dailySummary: null,
       }
     );
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — spec §XII/§XIII: concrete,
+  // budget-aware food combos sized to cover what's left today. Called
+  // on-demand (button press), never on every dashboard load — see
+  // nutrition-food-suggestion.engine.ts's own doc comment on why this stays
+  // deterministic/cheap rather than an LLM call.
+  getFoodSuggestions: async (
+    date?: string,
+    budgetLevel?: "LOW" | "NORMAL" | "FLEXIBLE",
+  ): Promise<FoodSuggestionsResponse> => {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (budgetLevel) params.set("budgetLevel", budgetLevel);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const { data } = await api.get(`/nutrition/food-suggestions${qs}`);
+    return (
+      data?.data ?? {
+        date: date ?? "",
+        remainingCalories: 0,
+        remainingProtein: 0,
+        budgetLevel: budgetLevel ?? "NORMAL",
+        options: [],
+      }
+    );
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 §VI "Thêm bữa này": persists
+  // a real NutritionLog row per item (never a fake success toast — the
+  // response's `created` count reflects rows actually written).
+  applyFoodSuggestion: async (
+    date: string,
+    items: FoodSuggestionItem[],
+  ): Promise<{ created: number }> => {
+    const { data } = await api.post(`/nutrition/food-suggestions/apply`, { date, items });
+    return data?.data ?? { created: 0 };
+  },
+
+  // Smart Substitute variants — "Đổi món" / "Rẻ hơn" / "Nhiều đạm hơn" /
+  // "Món chay" for one food item, region- and dietary-preference-aware
+  // (from the user's saved profile — see nutrition-food-substitution.
+  // engine.ts).
+  getFoodSubstitute: async (
+    item: Pick<FoodSuggestionItem, "foodId" | "foodName" | "quantityG" | "calories" | "protein">,
+    mode: SubstituteMode,
+  ): Promise<FoodSubstituteResult> => {
+    const { data } = await api.post(`/nutrition/food-suggestions/substitute`, { ...item, mode });
+    return data?.data ?? { role: "PROTEIN", mode, candidates: [], note: "" };
   },
 
   upsertMealCompletion: async (
@@ -3948,6 +4073,32 @@ export interface CoachClientSummary {
   cycleSummary: CycleSummary | null;
   feedbackSummary: CycleFeedbackSummary | null;
   priorDecisions: CycleDecision[];
+  // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
+  nutrition?: {
+    activeGoal: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      triggeredBy: string | null;
+      goalMode: string;
+      validFrom?: string;
+    } | null;
+    latestNutritionDecision: {
+      assessmentId: string | null;
+      decision: string | null;
+      confidence: string | null;
+      headline: string | null;
+      explanation: string | null;
+      userDecision: string;
+      reviewedAt: string | null;
+      reviewedByRole: string | null;
+      ptNote: string | null;
+      // Phase 2 — true only when there's a real, still-actionable proposal
+      // (PENDING + proposedChanges present) for a PT to Approve/Modify/Reject.
+      canPtAct: boolean;
+    } | null;
+  };
 }
 
 // Named ptCoachService (not coachService) — that name is already taken by
@@ -3996,6 +4147,48 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 PT Approve/Modify/Reject
+  // (spec §XXIII). `cycleId` is the client's cycle carrying the pending
+  // recommendation — read it off getClientSummary().activeCycle.id.
+  approveNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/reject`,
+      { assessmentId, note },
+    );
+    return data;
+  },
+  modifyNutritionRecommendation: async (
+    clientId: string,
+    cycleId: string,
+    modifiedGoal: { calories: number; protein: number; carbs: number; fat: number },
+    assessmentId?: string,
+    note?: string,
+  ) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/modify`,
+      { ...modifiedGoal, assessmentId, note },
+    );
+    return data;
+  },
+  // Diet break / maintenance-phase modeling — PT-initiated trigger
+  // (2026-09-07). Creates a real new PENDING nutrition recommendation (the
+  // client still accepts/rejects it through the normal review UI) proposing
+  // the client's real, freshly-computed maintenance calories.
+  triggerDietBreakRecommendation: async (clientId: string, cycleId: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/trigger-diet-break`,
+      { note },
+    );
     return data;
   },
 };

@@ -27,7 +27,9 @@ export function startPersonalizedServiceAutoAcceptJob(): void {
   }, INTERVAL_MS);
 }
 
-export async function runAutoAcceptSweep(): Promise<{ autoAccepted: number; releaseRetried: number }> {
+export async function runAutoAcceptSweep(options?: {
+  orderIds?: string[];
+}): Promise<{ autoAccepted: number; releaseRetried: number }> {
   if (running) {
     logger.info("[PersonalizedServiceAutoAccept] Previous run still in progress — skipping tick");
     return { autoAccepted: 0, releaseRetried: 0 };
@@ -38,7 +40,11 @@ export async function runAutoAcceptSweep(): Promise<{ autoAccepted: number; rele
   let releaseRetried = 0;
   try {
     const due = await prisma.personalizedServiceOrder.findMany({
-      where: { status: "DRAFT_DELIVERED", autoAcceptDeadline: { lte: new Date() } },
+      where: {
+        status: "DRAFT_DELIVERED",
+        autoAcceptDeadline: { lte: new Date() },
+        ...(options?.orderIds?.length ? { id: { in: options.orderIds } } : {}),
+      },
       take: BATCH_SIZE,
     });
     if (due.length > 0) {
@@ -61,7 +67,12 @@ export async function runAutoAcceptSweep(): Promise<{ autoAccepted: number; rele
     }
 
     const unreleased = await prisma.personalizedServiceOrder.findMany({
-      where: { status: { in: ["ACCEPTED", "ACTIVE"] }, releasedAt: null, paymentTransactionId: { not: null } },
+      where: {
+        status: { in: ["ACCEPTED", "ACTIVE"] },
+        releasedAt: null,
+        paymentTransactionId: { not: null },
+        ...(options?.orderIds?.length ? { id: { in: options.orderIds } } : {}),
+      },
       take: BATCH_SIZE,
     });
     if (unreleased.length > 0) {

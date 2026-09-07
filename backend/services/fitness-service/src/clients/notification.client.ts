@@ -41,7 +41,12 @@ export async function pushCycleAssessmentNotification(
           entityType: "TRAINING_CYCLE",
           entityId: cycleId,
           text: `Chu kỳ tập luyện của bạn đã được đánh giá: ${decision}`,
-          link: `/training-cycles/${cycleId}`,
+          // Drive-by fix (found while adding CYCLE_REASSESSMENT_READY
+          // below): "/training-cycles/:id" has never been a real frontend
+          // route (frontend/web has no such path — the cycle-assessment
+          // review UI lives on /client/workout), so this real-time push's
+          // click-through was silently dead ever since it was written.
+          link: `/client/workout`,
           createdAt: new Date().toISOString(),
         },
       },
@@ -64,7 +69,9 @@ export type WorkoutNotificationEventType =
   | "WORKOUT_UPCOMING"
   | "WORKOUT_RESCHEDULED"
   | "WORKOUT_UNFINISHED"
-  | "TRAINING_PLAN_UPDATED";
+  | "TRAINING_PLAN_UPDATED"
+  | "NUTRITION_PLAN_READY"
+  | "CYCLE_REASSESSMENT_READY";
 
 /**
  * Roadmap P4.1 "Notifications/reminders" (§27) — persists a real,
@@ -87,7 +94,14 @@ export async function createPersistentNotification(params: {
     userId: params.userId,
     text: params.text,
     eventType: params.eventType,
-    entityType: params.eventType === "TRAINING_PLAN_UPDATED" ? "TRAINING_PROGRAM" : "WORKOUT_SCHEDULE",
+    entityType:
+      params.eventType === "TRAINING_PLAN_UPDATED"
+        ? "TRAINING_PROGRAM"
+        : params.eventType === "NUTRITION_PLAN_READY"
+          ? "NUTRITION_PROGRAM"
+          : params.eventType === "CYCLE_REASSESSMENT_READY"
+            ? "TRAINING_CYCLE"
+            : "WORKOUT_SCHEDULE",
     entityId: params.entityId,
     link: params.link,
   };

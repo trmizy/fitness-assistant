@@ -195,5 +195,109 @@ export const cycleThresholds = {
     // calorie change must never silently drag protein below this floor.
     proteinFloorGPerKg: num("NUTRITION_ADAPTIVE_PROTEIN_FLOOR_G_PER_KG", 1.4),
     proteinCeilingGPerKg: num("NUTRITION_ADAPTIVE_PROTEIN_CEILING_G_PER_KG", 2.0),
+
+    // Diet break / maintenance-phase modeling (2026-09-07). Researched but
+    // PRODUCT_HEURISTIC, not a direct copy of a study protocol — no
+    // real citable entry for this exists yet in data/processed/evidence/
+    // (checked; the closest hits, ACSM 2016 / IOC RED-S 2023, are athlete-
+    // energy-availability guidance, not general-population diet-break
+    // cadence, so neither is cited here as if it specifically supports
+    // these numbers).
+    //
+    // The real research this is grounded in is Byrne et al. 2017 (the
+    // MATADOR study, Int J Obes) — 2-week blocks of energy restriction
+    // alternated with 2-week blocks of energy balance ("metabolic rest
+    // periods") produced GREATER fat loss, less reduction in resting
+    // energy expenditure, and better weight-loss retention at 6 months
+    // than continuous restriction, in a supervised research protocol on
+    // obese men. That 2-week-on/2-week-off cadence is too aggressive/
+    // impractical to apply directly to a general consumer app with no
+    // clinical supervision — general practical coaching guidance
+    // (multiple sources, not a single RCT) instead converges on: a break
+    // becomes worth suggesting after roughly 8-12 continuous weeks of
+    // dieting, and should last 1-2 weeks at maintenance calories. This
+    // app uses the middle of each range.
+    //
+    // Continuous weeks in an active WEIGHT_LOSS deficit (across cycles,
+    // measured from either the start of the current unbroken run of
+    // WEIGHT_LOSS-goal cycles or the most recent diet break, whichever is
+    // more recent) before a break is proposed.
+    dietBreakThresholdWeeks: num("NUTRITION_ADAPTIVE_DIET_BREAK_THRESHOLD_WEEKS", 10),
+    // How many weeks the PROPOSED break note suggests staying at
+    // maintenance — purely a messaging default; the engine doesn't need
+    // to enforce an end date itself (the next normal cycle evaluation,
+    // ~weeks later, will naturally re-evaluate from a reset counter since
+    // the diet-break goal becomes the new reference point).
+    dietBreakDurationWeeks: num("NUTRITION_ADAPTIVE_DIET_BREAK_DURATION_WEEKS", 2),
+  },
+
+  // AI Nutrition Cycle Engine (spec §4/§5) — the ONE-TIME deterministic
+  // calculation that produces a user's very first NutritionGoal right after
+  // onboarding, before any weight-trend data exists to run
+  // nutritionAdaptive against. Every number here is a PRODUCT_HEURISTIC
+  // (see nutritionAdaptive's own comment above for what that means) — the
+  // Mifflin-St Jeor equation itself (mifflin-1990-original-equation) is the
+  // only part of this block backed by a specific paper; the deficit/
+  // surplus percentages and protein-by-experience table are product
+  // defaults, tunable via env, never to be described to a user as a
+  // scientific constant. Deliberately duplicated from (not imported from)
+  // ai-service's nutrition_calculator.ts — fitness-service must be able to
+  // produce a real prescription even if ai-service/the LLM is unavailable
+  // (spec §LI fallback rule), so this cannot depend on ai-service code.
+  nutritionBootstrap: {
+    // Mifflin-St Jeor activity multipliers — same bands as
+    // UserProfile.ActivityLevel (user-service), duplicated as plain numbers
+    // since Prisma enums don't cross service boundaries.
+    activityMultiplier: {
+      SEDENTARY: num("NUTRITION_BOOTSTRAP_ACTIVITY_SEDENTARY", 1.2),
+      LIGHTLY_ACTIVE: num("NUTRITION_BOOTSTRAP_ACTIVITY_LIGHT", 1.375),
+      MODERATELY_ACTIVE: num("NUTRITION_BOOTSTRAP_ACTIVITY_MODERATE", 1.55),
+      VERY_ACTIVE: num("NUTRITION_BOOTSTRAP_ACTIVITY_VERY", 1.725),
+      EXTREMELY_ACTIVE: num("NUTRITION_BOOTSTRAP_ACTIVITY_EXTREME", 1.9),
+    },
+    // Deficit for WEIGHT_LOSS, surplus for MUSCLE_GAIN, as a fraction of
+    // TDEE — deliberately modest ("Foundation" cycle, spec §5: the FIRST
+    // cycle target is never the same as the long-term goal weight). Values
+    // match ai-service's nutrition_calculator.ts FAT_LOSS_DEFICIT_PCT /
+    // MUSCLE_GAIN_SURPLUS_PCT exactly (same literature-cited ranges — see
+    // that file's comment) so the deterministic bootstrap prescription and
+    // the AI chat's own on-the-fly estimate never disagree for the same
+    // profile. A beginner gets a larger deficit allowance / smaller surplus
+    // than intermediate/advanced (more room to lose, more restraint needed
+    // once trained) per that same source.
+    deficitFractionByExperience: {
+      BEGINNER: num("NUTRITION_BOOTSTRAP_DEFICIT_BEGINNER", 0.15),
+      INTERMEDIATE: num("NUTRITION_BOOTSTRAP_DEFICIT_INTERMEDIATE", 0.12),
+      ADVANCED: num("NUTRITION_BOOTSTRAP_DEFICIT_ADVANCED", 0.1),
+    },
+    surplusFractionByExperience: {
+      BEGINNER: num("NUTRITION_BOOTSTRAP_SURPLUS_BEGINNER", 0.12),
+      INTERMEDIATE: num("NUTRITION_BOOTSTRAP_SURPLUS_INTERMEDIATE", 0.08),
+      ADVANCED: num("NUTRITION_BOOTSTRAP_SURPLUS_ADVANCED", 0.05),
+    },
+    // Protein target, g/kg body weight/day, by experience — same values as
+    // ai-service's EXPERIENCE_PROTEIN_MULTIPLIER, within the NUTRITION-001
+    // (issn-protein-2017) 1.4-2.0 g/kg general range the adaptive engine
+    // also enforces as a floor/ceiling. Applied for WEIGHT_LOSS/MUSCLE_GAIN;
+    // MAINTENANCE/ATHLETIC_PERFORMANCE use a flat, slightly lower rate
+    // (no specific experience-graded literature cited for those two goals).
+    proteinGPerKgByExperience: {
+      BEGINNER: num("NUTRITION_BOOTSTRAP_PROTEIN_BEGINNER", 1.7),
+      INTERMEDIATE: num("NUTRITION_BOOTSTRAP_PROTEIN_INTERMEDIATE", 1.9),
+      ADVANCED: num("NUTRITION_BOOTSTRAP_PROTEIN_ADVANCED", 2.0),
+    },
+    proteinGPerKgMaintenance: num("NUTRITION_BOOTSTRAP_PROTEIN_MAINTENANCE", 1.6),
+    // Dietary fat floor, g/kg body weight/day — below this, essential fatty
+    // acid and fat-soluble vitamin intake becomes a real concern regardless
+    // of how much room is left in the calorie budget (iom-amdr-macronutrients).
+    fatFloorGPerKg: num("NUTRITION_BOOTSTRAP_FAT_FLOOR_G_PER_KG", 0.6),
+    // Water guidance, ml per kg body weight/day — a simple, widely-cited
+    // general planning figure (nata-fluid-replacement-2017), not a
+    // personalized sweat-rate calculation.
+    waterMlPerKg: num("NUTRITION_BOOTSTRAP_WATER_ML_PER_KG", 35),
+    // First-cycle default length, days — "Fat Loss / Muscle Gain
+    // Foundation" (spec §V/§XXXIX); long enough to gather a meaningful
+    // weight trend (>= assessment.plateauWindowWeeks) before any review.
+    defaultCycleDurationDays: num("NUTRITION_BOOTSTRAP_CYCLE_DURATION_DAYS", 28),
   },
 } as const;

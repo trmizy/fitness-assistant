@@ -4,6 +4,7 @@ import { ptApplicationRepository } from "../repositories/pt_application.reposito
 import type { ProfileDto } from "../models/profile.models";
 import { authServiceClient } from "../clients/auth-service.client";
 import { toSignedProfilePhotoUrl } from "./s3-upload.service";
+import { bootstrapNutritionSafe } from "../clients/fitness-service.client";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:3006";
 const INTERNAL_SERVICE_SECRET =
@@ -147,8 +148,33 @@ export const profileService = {
         : null;
     }
 
+    // AI Nutrition Cycle Engine (Gymini) — read the PRE-write state only
+    // when this write could possibly be the onboarding completion moment,
+    // so every ordinary profile edit (the overwhelming majority of calls
+    // here) pays zero extra cost. hasCompletedOnboarding is a one-way flag
+    // (see UserProfile.hasCompletedOnboarding's schema comment) — only a
+    // real false->true transition should ever trigger a bootstrap attempt,
+    // never a re-submit of an already-completed onboarding.
+    const wasIncomplete =
+      data.hasCompletedOnboarding === true
+        ? ((await profileRepository.findByUserId(userId))?.hasCompletedOnboarding !== true)
+        : false;
+
     const profile = await profileRepository.upsert(userId, payload);
-    return { profile: await withSignedProfilePhoto(profile) };
+    const result: { profile: typeof profile; nutritionBootstrap?: unknown } = {
+      profile: await withSignedProfilePhoto(profile),
+    };
+
+    if (wasIncomplete) {
+      // Fire this AFTER the profile write commits (not before) so the
+      // bootstrap call reads back a profile that already has every field
+      // from this exact submission — including one submitted in the very
+      // same request as the onboarding-completion flag itself.
+      const bootstrap = await bootstrapNutritionSafe(userId);
+      if (bootstrap) result.nutritionBootstrap = bootstrap;
+    }
+
+    return result;
   },
 
   async becomePT(userId: string, currentRole: string) {

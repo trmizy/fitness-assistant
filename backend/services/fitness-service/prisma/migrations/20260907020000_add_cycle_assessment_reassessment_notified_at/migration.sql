@@ -1,0 +1,14 @@
+-- AI Nutrition Cycle Engine (Gymini) Phase 3 — closes a real duplicate-
+-- notification race found while writing the InBody-reassessment concurrency
+-- test: two near-simultaneous InBody writes (e.g. a double-tap submit) can
+-- both pass maybeAutoTriggerInBodyReassessment's gating check before either
+-- background evaluateCycle() call has created its CycleAssessment row —
+-- evaluateCycle's own create()+P2002-catch already dedupes the ASSESSMENT
+-- itself, but both callers could still independently decide to notify.
+-- This column is an atomic claim: only the caller whose conditional UPDATE
+-- (`SET notified_for_reassessment_at = now() WHERE ... AND
+-- notified_for_reassessment_at IS NULL`) actually affects a row sends the
+-- CYCLE_REASSESSMENT_READY notification. In-memory locking would not work
+-- here regardless (this service can run as multiple Lambda instances with
+-- no shared memory), so the claim has to live in the database.
+ALTER TABLE "cycle_assessments" ADD COLUMN IF NOT EXISTS "notified_for_reassessment_at" TIMESTAMP(3);

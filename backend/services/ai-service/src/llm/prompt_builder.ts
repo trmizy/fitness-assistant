@@ -228,8 +228,23 @@ function formatHistorySections(
   }
 
   // ── Nutrition: group by date, show all macros ────────────────────────────
-  if (context.nutritionHistory && context.nutritionHistory.length > 0) {
-    const logs = context.nutritionHistory as any[];
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2: `dailyConsumptionHistory`
+  // (fitness-service's canonical dailySummary, reused per-day) is preferred
+  // for the actual cal/pro/carbs/fat totals whenever present for a date —
+  // it respects SKIPPED/PARTIAL/COMPLETED meal-completion status and
+  // includes structured meal-item logging, neither of which the raw
+  // NutritionLog rows below ever captured. The raw logs are still used for
+  // the per-day FOOD NAME list (dailyConsumptionHistory has no per-item
+  // detail) and as the sole totals source for any date it doesn't cover.
+  // Gated on EITHER source having data — a user who only ever uses the
+  // structured meal-item flow has empty nutritionHistory but real
+  // dailyConsumptionHistory, and must not be silently treated as "no
+  // nutrition data at all".
+  if (
+    (context.nutritionHistory && context.nutritionHistory.length > 0) ||
+    (context.dailyConsumptionHistory && context.dailyConsumptionHistory.length > 0)
+  ) {
+    const logs = (context.nutritionHistory ?? []) as any[];
     // Group by date
     const byDate: Record<
       string,
@@ -247,6 +262,21 @@ function formatHistorySections(
         byDate[d].items.push(
           `${n.foodName}${n.quantity ? ` ${n.quantity}${n.unit || "g"}` : ""}`,
         );
+    }
+    // Canonical totals override the raw-log aggregation above wherever
+    // fitness-service actually has an entry for that date (it always
+    // reports one row per requested day, hasProgram or not — only a
+    // fetch failure ever leaves a date uncovered).
+    const canonicalByDate = new Map(
+      (context.dailyConsumptionHistory ?? []).map((d) => [d.date, d]),
+    );
+    for (const [date, canonical] of canonicalByDate) {
+      if (canonical.consumedCalories == null) continue; // no target at all for that day — nothing to override with
+      if (!byDate[date]) byDate[date] = { cal: 0, pro: 0, carbs: 0, fat: 0, items: [] };
+      byDate[date].cal = canonical.consumedCalories;
+      byDate[date].pro = canonical.consumedProtein ?? byDate[date].pro;
+      byDate[date].carbs = canonical.consumedCarbs ?? byDate[date].carbs;
+      byDate[date].fat = canonical.consumedFat ?? byDate[date].fat;
     }
     const dates = Object.keys(byDate).sort().reverse().slice(0, 7);
     const totalDays = dates.length;

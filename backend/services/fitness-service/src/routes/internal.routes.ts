@@ -40,5 +40,19 @@ router.post(
   internalAuthMiddleware,
   internalController.validateMarketplaceSchedules as any,
 );
+// AI Nutrition Cycle Engine (Gymini) — called by user-service right after
+// onboarding completes (see profileService.upsertProfile).
+router.post(
+  "/onboarding/bootstrap-nutrition",
+  internalAuthMiddleware,
+  internalController.bootstrapNutrition as any,
+);
+// AI Nutrition Cycle Engine (Gymini) Phase 3 — called by user-service right
+// after a new InBody entry is recorded (create or update).
+router.post(
+  "/inbody/reassessment-check",
+  internalAuthMiddleware,
+  internalController.checkInBodyReassessment as any,
+);
 
 export default router;

@@ -306,3 +306,51 @@ export async function generateClientPlanDraftSafe(
     return null;
   }
 }
+
+export interface QueueNutritionPlanResult {
+  planId: string;
+  jobId: string;
+  status: string;
+}
+
+/**
+ * AI Nutrition Cycle Engine (Gymini) — queues ai-service's existing AI
+ * meal-plan generator (POST /plans/nutrition/generate, same endpoint the
+ * frontend's manual "Generate Plan" flow already calls) using the exact
+ * internal-token + x-user-id path requireAuth already accepts from any
+ * trusted service (see this file's doc comment). `autoSaveOnComplete: true`
+ * tells ai-service's worker (nutrition.processor.ts) to push the finished
+ * 7-day plan straight into fitness-service's NutritionProgram the moment it
+ * completes, instead of waiting for the user to click "Save" — see spec
+ * §IV/§XXXIII: a beginner must never land on an empty Nutrition page.
+ *
+ * Fire-and-forget from the caller's point of view: the deterministic
+ * NutritionGoal (calorie/macro targets) computed by
+ * nutrition-bootstrap.engine.ts already exists and is usable the moment
+ * this call is made — the meal plan is a bonus that arrives a little later,
+ * and its failure (LLM down, timeout) must never fail onboarding itself
+ * (spec §LI fallback rule).
+ */
+export async function queueInitialNutritionPlanSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<QueueNutritionPlanResult | null> {
+  try {
+    const res = await axios.post(
+      `${resolveAiServiceUrl()}/plans/nutrition/generate`,
+      { ...payload, autoSaveOnComplete: true },
+      {
+        headers: internalHeaders(userId),
+        timeout: Number(process.env.NUTRITION_BOOTSTRAP_QUEUE_TIMEOUT_MS ?? 15_000),
+      },
+    );
+    const data = res.data?.success ? (res.data.data ?? res.data) : res.data;
+    return { planId: data.planId, jobId: data.jobId, status: data.status };
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[nutrition-bootstrap] queue-initial-nutrition-plan call failed",
+    );
+    return null;
+  }
+}

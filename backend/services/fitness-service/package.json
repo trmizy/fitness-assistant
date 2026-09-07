@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "prisma": {
-    "seed": "./node_modules/.bin/tsx prisma/seed_exercises_json.ts"
+    "seed": "./node_modules/.bin/tsx prisma/seed_all.ts"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -11,7 +11,7 @@
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "./node_modules/.bin/tsx prisma/seed_exercises_json.ts",
+    "db:seed": "./node_modules/.bin/tsx prisma/seed_all.ts",
     "db:seed:legacy": "tsx prisma/seed.ts",
     "db:process-usda": "tsx prisma/process-usda.ts",
     "test": "tsx --test src/__tests__/*.test.ts",

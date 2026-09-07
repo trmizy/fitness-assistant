@@ -879,3 +879,575 @@ prisma.$transaction([...])` đọc `updated` **trước** khi bước giải ph�
 chạy xong, nên hàm trả về một object có `releasedAt: null` ngay cả khi giải phóng đã thành
 công — sai dữ liệu trả về (không sai tiền, tiền đã giải phóng đúng), nhưng đủ để giao diện/log
 hiểu nhầm trạng thái. Sửa bằng `let [, updated]` rồi gán lại `updated` sau bước giải phóng.
+
+---
+
+<a id="merged-business-rules-session-lifecycle"></a>
+
+## Consolidated reference: business-rules-session-lifecycle.md
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+## Vòng đời buổi tập PT — trạng thái, đặt lại lịch, huỷ/bồi thường, check-in
+
+Tài liệu này mô tả **hành vi nghiệp vụ** của một buổi tập PT từ lúc đặt tới lúc kết thúc —
+tách riêng khỏi `docs/money-flow.md`, vốn nói về tiền. Đọc file đó trước nếu câu hỏi là "tiền
+đi đâu"; đọc file này nếu câu hỏi là "buổi tập chuyển trạng thái ra sao và ai được làm gì".
+
+| | |
+|---|---|
+| Nguồn sự thật duy nhất cho hậu quả huỷ/vắng | `backend/services/user-service/src/services/session-outcome.ts` |
+| Đặt lịch, huỷ, đặt lại lịch | `backend/services/user-service/src/services/booking.service.ts` |
+| Chặn ngày (PT tự đóng lịch) | `backend/services/user-service/src/services/availability.service.ts` |
+| Check-in phòng gym | `backend/services/gym-service/src/services/checkin.service.ts` |
+
+---
+
+### 1. Trạng thái một buổi tập (`SessionStatus`)
+
+```
+REQUESTED ──(PT xác nhận)──> CONFIRMED
+REQUESTED ──(huỷ)───────────> CANCELLED
+
+CONFIRMED ──(PT báo đã diễn ra)──> PENDING_CLIENT_CONFIRMATION
+CONFIRMED ──(huỷ, PT/khách/bất khả kháng)──> CANCELLED
+CONFIRMED ──(PT vắng, khách tự báo)──> PT_NO_SHOW_REPORTED
+
+PENDING_CLIENT_CONFIRMATION ──(khách xác nhận, hoặc tự động sau
+                                 SESSION_AUTO_CONFIRM_DAYS)──> COMPLETED
+PENDING_CLIENT_CONFIRMATION ──(khách khiếu nại)──> DISPUTED
+
+PT_NO_SHOW_REPORTED ──(PT đồng ý)──> NO_SHOW
+PT_NO_SHOW_REPORTED ──(PT phủ nhận)──> DISPUTED
+
+DISPUTED ──(quản trị viên phân xử)──> COMPLETED hoặc CANCELLED
+```
+
+`COMPLETED` là trạng thái **duy nhất** trừ quota bình thường (`usedSessions += 1`). `NO_SHOW`
+do PT gây ra không trừ quota bình thường — nó tăng `compensatedSessions` (xem
+`docs/money-flow.md` §2.1, §5). Không trạng thái nào đi lùi.
+
+#### 1.1 Trạng thái nào vẫn đang "giữ quyền lợi" (P0 cụm B1)
+
+Khi đếm "hợp đồng còn cho phép đặt thêm bao nhiêu buổi" (`sessionRepository.countActiveByContract`),
+**năm** trạng thái sau vẫn tính là đang giữ một suất quyền lợi của hợp đồng — chưa buổi nào
+trong số đó đã được giải phóng hay hoàn trả:
+
+```
+REQUESTED · CONFIRMED · PENDING_CLIENT_CONFIRMATION · DISPUTED · PT_NO_SHOW_REPORTED
+```
+
+Trước đây chỉ đếm `REQUESTED`/`CONFIRMED` — một buổi đang chờ khách xác nhận, đang tranh chấp,
+hay đang chờ PT phản hồi báo cáo vắng mặt đều **không bị tính**, nên khách có thể đặt vượt quá
+số buổi đã mua trong đúng lúc một buổi khác của họ đang ở một trong ba trạng thái đó. `COMPLETED`,
+`CANCELLED`, `NO_SHOW` không tính — mỗi trạng thái đó đã được hạch toán xong ở nơi khác
+(`usedSessions`, `compensatedSessions`, hoặc đơn giản là chưa từng diễn ra).
+
+#### 1.2 Đặt lịch không bao giờ được double-book PT (P0 cụm B2)
+
+Kiểm tra số buổi còn được đặt (§1.1) và kiểm tra trùng khung giờ của PT trước đây chỉ là hai
+lần đọc riêng lẻ, không có khoá nào — hai yêu cầu đặt lịch gửi gần như đồng thời có thể cùng
+đọc thấy "còn chỗ"/"còn trống" trước khi cái nào ghi xong, tạo ra hai buổi tập chồng giờ cho
+cùng một PT hoặc vượt quá số buổi hợp đồng cho phép.
+
+`bookSession` giờ khoá theo PT bằng `pg_advisory_xact_lock` (khoá cấp transaction, tự giải
+phóng khi commit/rollback, không cần đổi schema) **ngay trước** bước kiểm tra số buổi còn lại
+và kiểm tra trùng giờ, gộp cả hai kiểm tra đó cùng với việc tạo buổi tập vào **một** transaction
+có khoá. `respondToReschedule`'s nhánh ACCEPT (§3) dùng đúng cùng cơ chế khoá này. Các kiểm tra
+không cạnh tranh (giờ PT công bố, ngày PT nghỉ, thời hạn hợp đồng) vẫn chạy trước, ngoài khoá —
+chỉ phần thật sự có thể bị đua mới cần nằm trong khoá.
+
+#### Vì sao có `PENDING_CLIENT_CONFIRMATION` thay vì để PT tự quyết
+
+Trước đây PT một mình vừa khai buổi tập đã diễn ra, vừa được trả tiền ngay, không ai kiểm lại.
+Giờ PT chỉ **báo cáo**; khách xác nhận, khiếu nại, hoặc im lặng — sau `SESSION_AUTO_CONFIRM_DAYS`
+ngày (mặc định 3) hệ thống tự xác nhận thay, để một khách không phản hồi không giữ tiền của PT
+mắc kẹt vô thời hạn. Đây cũng là lý do có `PT_NO_SHOW_REPORTED` (chiều ngược lại — khách báo PT
+vắng, PT phải phản hồi) và `DISPUTED` (khi hai bên không đồng ý, một quản trị viên phân xử —
+màn `/admin/disputes`).
+
+---
+
+### 2. Ma trận hậu quả huỷ/vắng buổi — §0.1
+
+Nguồn sự thật duy nhất: `resolveSessionOutcome({ actor, event, hoursBeforeStart })` trong
+`session-outcome.ts`. **Ba nơi khác nhau từng tính hậu quả độc lập** (`addException` huỷ ngày
+của PT, `cancelSession` huỷ một buổi trực tiếp, `markNoShow`), và cùng một sự kiện thật —
+PT huỷ trễ — cho ra hai kết quả tiền khác nhau tuỳ đi qua đường nào. PT chọn đường nào **rẻ
+hơn cho họ**, không đường nào đúng cả. Giờ cả ba đều gọi vào đúng một hàm.
+
+**Mốc "trễ" = `SESSION_LATE_CANCEL_HOURS`, mặc định 24 giờ**, đọc từ biến môi trường một lần
+lúc nạp module.
+
+| # | Ai gây ra | Sự kiện | Báo trước | Trạng thái buổi | Quota | Bồi thường khách | PT được trả |
+|---|---|---|---|---|---|---|---|
+| 1 | Khách | Huỷ | ≥ 24h | `CANCELLED` | **Giữ** (không trừ) | Không | Không |
+| 2 | Khách | Huỷ | < 24h | `CANCELLED` | **Trừ** | Không | **Có** (PT hưởng trọn) |
+| 3 | PT | Huỷ/chặn ngày | ≥ 24h | `CANCELLED` | Giữ | Không | Không |
+| 4 | PT | Huỷ/chặn ngày | < 24h | `NO_SHOW` | Giữ | **Có** | Không |
+| 5 | PT | Không tới (vắng thật) | *(không áp dụng)* | `NO_SHOW` | Giữ | **Có** | Không |
+| 6 | Bất khả kháng | Huỷ | *(bất kỳ)* | `CANCELLED` | Giữ | Không | Không |
+
+Đọc cách khác:
+
+- **Khách huỷ sớm (≥24h) hoặc có bất khả kháng: không ai bị phạt**, buổi trả về, đặt lại được.
+- **Khách huỷ trễ (<24h): khách mất buổi, PT vẫn được trả** — vì PT đã giữ chỗ đó, không kịp
+  nhận khách khác.
+- **PT huỷ/chặn ngày sớm (≥24h): không ai bị phạt tiền**, chỉ buộc phải đặt lại — PT báo trước
+  đủ xa thì không có gì để phạt.
+- **PT huỷ/chặn ngày trễ (<24h) hoặc vắng mặt thật: luôn bồi thường khách, PT không được trả**
+  — hai trường hợp này **tài chính giống hệt nhau** dù trạng thái buổi khác nhau về mặt hiển
+  thị (đều gắn `NO_SHOW`), vì trải nghiệm của khách giống hệt nhau: một buổi họ tưởng sẽ diễn
+  ra thì không diễn ra, báo quá trễ để xoay sở.
+- **Dòng 5 không có khái niệm "báo trước"** — một buổi đã trôi qua mà PT không xuất hiện thì
+  không còn ý nghĩa để hỏi "báo trước bao lâu".
+
+**PT huỷ tính "trễ" không giảm `totalSessions`** — xem cảnh báo ở `money-flow.md` §2. Trừ quota
+kiểu KEEP/DEDUCT ở bảng trên chỉ nói buổi đó có tính là "đã dùng" (`u`) hay không; quyền lợi
+tổng của hợp đồng (`totalSessions`) không bao giờ đổi sau khi ký.
+
+#### 2.1 Chỉ được báo hoàn thành/vắng mặt sau đúng thời điểm (P0 cụm B3/B4)
+
+Hai mốc thời gian riêng biệt, không dùng chung:
+
+| Hành động | Mốc chặn | Vì sao dùng mốc này |
+|---|---|---|
+| PT báo **hoàn thành** (`completeSession`) | `scheduledEndAt` (giờ **kết thúc**) | "Hoàn thành" nghĩa là *toàn bộ* buổi đã diễn ra — báo được ngay sau khi vừa bắt đầu là sai, dù chỉ mới trôi qua vài phút |
+| PT báo **khách vắng mặt** / PT tự nhận **vắng mặt** (`markNoShow`, cả hai chiều) | `scheduledStartAt` (giờ **bắt đầu**) | "Vắng mặt" chỉ cần biết thời điểm hẹn đã trôi qua — không cần đợi hết cả buổi mới kết luận được ai không tới |
+| Khách báo **PT vắng mặt** (`reportPtNoShow`) | `scheduledStartAt` | Đã có từ trước — hai chiều báo vắng mặt giờ **đối xứng nhau**, dùng cùng một mốc |
+
+Trước đây `completeSession` và `markNoShow` (cả hai nhánh) không kiểm tra thời gian nào cả —
+PT có thể báo một buổi đã "hoàn thành" hoặc khách "vắng mặt" ngay sau khi vừa xác nhận, trước
+khi buổi tập thật sự diễn ra. Không có ngưỡng phút "cho phép sai số" nào ở đây — mốc chặn là
+tuyệt đối, giống hệt cách `reportPtNoShow` (chiều ngược lại) đã làm từ trước.
+
+---
+
+### 3. Đặt lại lịch (reschedule)
+
+- Bên đề xuất gửi giờ mới; bên kia **chấp nhận** hoặc **từ chối**. Không tự bên nào có thể ép.
+- **Giờ kết thúc đề xuất luôn tính từ máy chủ (P0 cụm H1)** — `sessionDurationMinutes` đóng
+  băng trên hợp đồng, không bao giờ đọc từ thân yêu cầu. Trước đây người gọi trực tiếp API có
+  thể tự gửi một giờ kết thúc bất kỳ, đề xuất dời sang một buổi dài/ngắn hẳn so với gói đã mua
+  — đúng lỗ hổng `bookSession` (đặt lịch ban đầu) đã vá từ trước (money-flow plan 3.4), giờ
+  `requestReschedule` cũng theo đúng kỷ luật đó.
+- Khi **chấp nhận**, hệ thống **kiểm tra lại slot còn trống** ngay trước khi ghi (`assertSlotBookable`)
+  — vì thời gian giữa lúc đề xuất và lúc chấp nhận có thể đã có buổi khác chen vào đúng khung
+  giờ đó. Không kiểm tra lại thì hai buổi có thể trùng giờ. **Chạy trong cùng khoá theo PT mà
+  §1.2 mô tả (P0 cụm H2)** — bản thân việc kiểm tra lại cũng có khoảng hở đua tương tự B2 nếu
+  hai lượt "chấp nhận" gửi gần như đồng thời, nên phải nằm trong cùng một transaction có khoá
+  với hai bước ghi (đổi trạng thái yêu cầu + đổi giờ buổi tập), không phải ba câu lệnh rời rạc.
+- Yêu cầu đặt lại lịch tự hết hạn sau một khoảng thời gian nếu không ai phản hồi (job nền —
+  "Reschedule expiry job", chạy mỗi 10 phút).
+- PT **không được công bố lịch rảnh trống** → mọi thao tác đặt lịch (kể cả đặt lại) bị chặn với
+  thông báo rõ ràng, thay vì âm thầm coi "trống hoàn toàn" = "rảnh cả ngày" (hành vi cũ, đã đảo
+  ngược — xem `money-flow.md` §15 nếu cần bối cảnh các quyết định đảo ngược hành vi khác).
+
+---
+
+### 4. Chính sách quét check-in phòng gym — §0.3
+
+Một lượt quét mã QR tại quầy = **một lượt ghé** (`usedVisits += 1`), miễn:
+
+- Cùng một gói hội viên, cách lượt quét **liền trước tối thiểu 60 giây** (`COOLDOWN_MS`) — chặn
+  quét đúp do mạng chậm hoặc bấm nhầm hai lần, không phải chặn ghé nhiều lần trong ngày.
+- **Không giới hạn số lượt ghé trong một ngày** — khách có thể vào-ra nhiều lần cùng ngày, mỗi
+  lần cách nhau ≥60 giây đều tính là một lượt ghé hợp lệ riêng.
+
+Khi `usedVisits` chạm `totalVisits` (gói giới hạn lượt ghé, không phải gói không giới hạn),
+gói **tự chuyển `EXPIRED` ngay trong cùng transaction** với lượt quét cuối cùng — tái dùng
+đúng luồng giải phóng tiền đã có ở `membershipPayout.sweep.ts` (§16 file money-flow.md), không
+viết thêm đường giải phóng thứ hai.
+
+Khoá `FOR UPDATE` khi ghi lượt ghé (giống cách `payment-service` khoá ví) — hai lượt quét gần
+như đồng thời của cùng một khách không thể cùng lọt qua kiểm tra cooldown.
+
+---
+
+### 5. Khiếu nại và phân xử
+
+`DISPUTED` chỉ phát sinh từ hai hướng: khách khiếu nại một `PENDING_CLIENT_CONFIRMATION`, hoặc
+PT phủ nhận một `PT_NO_SHOW_REPORTED`. Cả hai đều dừng lại chờ quản trị viên tại
+`/admin/disputes` — **không có đường tự động nào giải quyết tranh chấp**, tiền đứng yên
+(quota không trừ, không bên nào được/mất tiền) cho tới khi có kết luận kèm ghi chú bắt buộc.
+
+Quản trị viên chọn một trong **ba** kết luận — không còn chỉ hai (P0 cụm B5):
+
+| Kết luận | Khi nào dùng | Quota | Tiền |
+|---|---|---|---|
+| `COMPLETED` | Buổi tập coi như đã diễn ra | **Trừ** | PT được trả — công thức giải phóng bình thường |
+| `CANCELLED` | Buổi không diễn ra, không ai sai hẳn | Giữ | Không ai được trả |
+| `PT_NO_SHOW_CONFIRMED` | Quản trị viên xác nhận PT **thật sự** vắng mặt (chỉ có ý nghĩa cho tranh chấp đến từ nhánh PT phủ nhận báo cáo vắng mặt của khách) | Giữ | **Bồi thường khách** — đúng công thức PT-vắng-buổi ở `money-flow.md` §5, y hệt như khi PT tự nhận vắng mặt (`markNoShow`) |
+
+**`PT_NO_SHOW_CONFIRMED` là kết luận mới.** Trước đây tranh chấp đến từ việc PT phủ nhận báo
+cáo vắng mặt của khách (`respondToNoShowReport`'s nhánh DENY) chỉ có hai lựa chọn cũ — nếu quản
+trị viên xác nhận khách đúng (PT thật sự vắng), lựa chọn gần nhất là `CANCELLED`: huỷ buổi,
+không trừ quota, **nhưng cũng không bồi thường khách**. Cùng một sự thật (PT vắng mặt) nhưng
+cho ra hai kết cục tiền khác nhau tuỳ tranh chấp tới từ hướng nào — đúng khoảng trống đề bài mô
+tả. Kết luận này tái dùng **nguyên** luồng bồi thường `markNoShow`'s nhánh PT tự nhận đã dùng,
+không viết công thức tiền mới riêng cho tranh chấp.
+
+Không có lựa chọn thứ tư; mọi kết luận phải rơi đúng vào một trong ba nhánh tiền đã có sẵn công
+thức, không tạo nhánh tiền mới chỉ cho riêng một trường hợp tranh chấp.
+
+---
+
+### 6. PT báo cáo khách vắng mặt
+
+Song song với `PT_NO_SHOW_REPORTED` (khách báo PT vắng), PT cũng có thể báo **khách** không tới
+cho một buổi `CONFIRMED` đã quá giờ mà không ai xác nhận gì. Luồng này tái dùng đúng nhánh
+"PT tự nhận khách vắng" của `markNoShow` — khách bị trừ quota (dòng 2/4 tương ứng của ma trận
+§2 tuỳ báo trước hay không), không có bước xác nhận hai chiều riêng cho hướng này vì khách
+không có động lực tự nhận mình vắng oan.
+
+---
+
+### 7. Liên quan tới `docs/money-flow.md`
+
+Mọi con số tiền tạo ra từ các trạng thái/sự kiện ở tài liệu này đều được tính theo công thức ở
+`money-flow.md` — file đó là nơi duy nhất có quyền tính tiền (§12 "Vì sao công thức chỉ nằm ở
+payment-service"). Tài liệu này chỉ trả lời "chuyện gì đã xảy ra"; **không bao giờ tự tính lại
+số tiền** ở tầng user-service/gym-service.
+
+
+---
+
+<a id="merged-pt-service-packages"></a>
+
+## Consolidated reference: pt-service-packages.md
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+## Gói dịch vụ của PT, ảnh chụp giá, và cảnh báo lịch trống
+
+Tài liệu bàn giao Phase 1. Ai sắp sửa code liên quan tới **giá gói, tạo hợp đồng, hay con số
+slot trống hiện cho khách** thì đọc hết file này trước.
+
+| | |
+|---|---|
+| Model gói | `user-service/prisma/schema.prisma` — `PTServicePackage` |
+| Nghiệp vụ gói | `user-service/src/services/pt_service_package.service.ts` |
+| Ảnh chụp giá | `contract.service.ts` — `buildPackageSnapshot()` |
+| Đếm slot | `availability.service.ts` — `countSlotsFromRows()` |
+| Di trú | `user-service/src/scripts/migrate-pt-service-packages.ts` |
+| Kiểm thử ảnh chụp | `src/__tests__/contract-price-snapshot.test.ts` (7 test) |
+| Kiểm thử đếm slot | `src/__tests__/slot-counting.test.ts` (14 test) |
+
+Chạy kiểm thử:
+
+```bash
+cd backend/services/user-service && npm test
+```
+
+---
+
+### 1. Hệ thống có HAI khái niệm "gói" — không được gộp
+
+Đây là nguồn nhầm lẫn chính của cả phase.
+
+| | Gói **kế hoạch tập** | Gói **dịch vụ PT** |
+|---|---|---|
+| Model | `TrainingPackage` (ai-service) | `PTServicePackage` (user-service) |
+| Bán cái gì | **Nội dung** — một kế hoạch tập soạn sẵn | **Dịch vụ** — số buổi PT kèm cặp trực tiếp |
+| Mua xong nhận gì | Quyền xem kế hoạch | Hợp đồng có hạn mức buổi, ràng buộc, hoàn tiền |
+| Ai bán | Bất kỳ ai xuất bản kế hoạch | Chỉ PT đã được duyệt |
+| Đường dẫn | `/marketplace/plans` | `/profile/me/service-packages` |
+| Dính tới tiền hợp đồng | ❌ | ✅ — xem `docs/money-flow.md` |
+
+Nhãn ở chợ kế hoạch đã đổi thành **"Bán kế hoạch tập"** để không lẫn với gói buổi coaching
+(commit `c964361`).
+
+---
+
+### 2. Ảnh chụp giá vào hợp đồng
+
+#### Quy tắc
+
+Khi khách mua, `Contract` **sao chép** các giá trị dưới đây từ `PTServicePackage`, **không**
+tham chiếu động:
+
+```
+packageId              ← chỉ để tra cứu nguồn gốc
+packageName            ← ảnh chụp tên
+price                  ← ảnh chụp giá
+totalSessions          ← ảnh chụp số buổi
+sessionMode            ← ảnh chụp
+sessionDurationMinutes ← ảnh chụp
+```
+
+Cài đặt gom vào **một hàm thuần tuý** `buildPackageSnapshot(pkg)`.
+
+#### Vì sao là một hàm riêng, và vì sao nó chỉ nhận `pkg`
+
+Đây là tính chất **bảo mật**, không phải sở thích trình bày. Hàm không có tham số nào mang
+được thân yêu cầu của khách vào, nên **không có sửa đổi tương lai nào lỡ tay tin nó được**.
+
+Khách tự khai `price` là lỗ hổng kinh điển: gói 10 buổi bị mua với giá một đồng. Nếu để lời gọi
+`contractRepository.create` đọc trực tiếp từ `data`, chỉ cần một lần copy-paste là thủng.
+
+#### Vì sao là bản sao chứ không phải tham chiếu
+
+PT có quyền đổi giá hoặc lưu trữ gói bất cứ lúc nào. Hợp đồng đã ký **không được đổi theo** —
+khách đã đồng ý một con số, bên bán không được sửa nó về sau từ phía nào cả.
+
+Đây **cùng một nguyên tắc** với việc khoá bảng tỷ lệ chia hoa hồng tại thời điểm ký
+(`docs/money-flow.md` §12). Hai chỗ dùng chung một lý lẽ: *cái gì hai bên đã thoả thuận thì
+đóng băng tại thời điểm thoả thuận*.
+
+#### Ghi chú về kiểu số
+
+`price` được thu về `number` vì đó là kiểu `contractRepository.create` nhận. **An toàn có căn
+cứ, không phải may mắn**: cột là `Decimal(14,2)`, giá trị lớn nhất biểu diễn được là `10^12` với
+hai chữ số thập phân — tức `10^14` đơn vị nhỏ nhất, nằm gọn trong khoảng số nguyên mà `double`
+biểu diễn chính xác (`2^53 ≈ 9×10^15`).
+
+Có một test ghim đúng biên này (`999999999999.99` và `0.01`), nên nếu ai nới cột rộng ra thì
+test **vỡ ầm ĩ** thay vì âm thầm làm tròn hợp đồng của người ta.
+
+> ⚠️ Mọi **phép tính** trên tiền vẫn phải nằm ở payment-service và dùng `Decimal`. Chỗ này chỉ
+> là chép nguyên xi, không phải tính toán.
+
+---
+
+### 3. Đếm slot trống
+
+#### Công thức
+
+`countSlotsFromRows()` — hàm thuần tuý, nhận dữ liệu đã đọc sẵn từ CSDL:
+
+```
+Với mỗi ngày D trong [fromDate, toDate]:
+   nếu D nằm trong PTScheduleException  → bỏ qua cả ngày
+   ngược lại, với mỗi PTAvailability khớp thứ của D và isActive:
+        chia [startTime, endTime] thành các khối sessionDurationMinutes
+        khối nào chưa có buổi REQUESTED/CONFIRMED trùng giờ → +1
+```
+
+| Yếu tố bị trừ | Nguồn |
+|---|---|
+| Ngày nghỉ ngoại lệ | `PTScheduleException` — trừ **trọn ngày** |
+| Buổi đã đặt | `Session` ở trạng thái `REQUESTED` hoặc `CONFIRMED` |
+| Khối lịch đã tắt | `PTAvailability.isActive = false` |
+| Phần lẻ cuối khối | Không đủ một buổi thì không tính (09:00–17:30, buổi 60′ → 8 slot, không phải 8,5) |
+
+**Cửa sổ mặc định 28 ngày**, hằng số `availabilityService.SLOT_LOOKAHEAD_DAYS`. Chọn 4 tuần vì
+đủ dài để có tín hiệu, đủ ngắn để lịch PT còn tương đối ổn định.
+
+#### Hiệu năng
+
+Ba truy vấn gom cho **cả trang**, không phải 3N. Danh sách 20 PT vẫn là ba truy vấn.
+Chưa dùng Redis — ở quy mô hiện tại ba truy vấn đã đủ nhanh; nếu đo thấy chậm thì thêm đệm
+được mà không đổi giao diện hàm.
+
+#### 🐛 Lỗi múi giờ — đọc kỹ trước khi sửa chỗ này
+
+Bản cũ khoá ngày bằng `toISOString().slice(0, 10)` (**giờ UTC**) trong khi lấy thứ bằng
+`getDay()` và giờ bằng `getHours()` (**giờ địa phương**). Container chạy `TZ=Asia/Ho_Chi_Minh`
+(commit `78a3702`), nên nửa đêm địa phương ngày 12 là **17:00 UTC ngày 11** — hai vế lệch nhau
+đúng một ngày.
+
+Hậu quả **không phải** "bỏ qua buổi đã đặt", mà là **trừ nhầm sang ngày hôm sau**:
+
+| Tình huống | Bản cũ | Đúng ra |
+|---|---|---|
+| Buổi đặt ngày **thứ Sáu** | Đẩy sang thứ Bảy — ngày PT không làm việc — **biến mất hoàn toàn** | Trừ 1 |
+| Buổi đặt **ngay trước ngày nghỉ** | Đẩy vào ngày nghỉ, ngày đó bị bỏ qua → **biến mất** | Trừ 1 |
+| Buổi đặt **đúng ngày nghỉ** | Đẩy sang ngày làm việc kế tiếp → **trừ nhầm một slot đang trống thật** | Không trừ gì thêm |
+| Buổi đặt giữa tuần | Đẩy sang hôm sau; **tổng vô tình đúng** nhưng sai ngày | Trừ 1 đúng ngày |
+
+Nghĩa là PT kín lịch thứ Sáu vẫn quảng cáo thứ Sáu còn trống. Con số này gác cửa hộp thoại cảnh
+báo lúc mua, nên sai ở đây là khách mua nhầm.
+
+**Cách sửa:** hàm `localDateKey()` đọc `getFullYear/getMonth/getDate`, cùng đồng hồ với
+`getDay()` và `getHours()`. Nguyên tắc chung: **thứ gì so sánh ngày theo lịch treo tường thì
+phải đọc cùng một đồng hồ với thứ đọc giờ.**
+
+Bộ test dựng `Date` bằng hàm tạo giờ địa phương nên **đúng ở mọi múi giờ**, không chỉ UTC+7.
+
+---
+
+### 4. Ba lớp cảnh báo lịch trống
+
+**Không chặn cứng.** Slot sẽ trống dần theo thời gian; chặn cứng là chặn nhầm những hợp đồng
+hoàn toàn khả thi.
+
+| Lớp | Cơ chế | Vì sao |
+|---|---|---|
+| **1** | Công tắc `isAcceptingClients` trên `UserProfile` | PT tự biết năng lực của mình rõ hơn mọi thuật toán — hiệu quả nhất so với công sức |
+| **2** | `availableSlotsNext28Days` trả kèm hồ sơ và danh sách PT | Cho khách con số trước khi quyết định |
+| **3** | Hộp thoại xác nhận khi `slot < sessionCount` | Chỉ hỏi khi thật sự có rủi ro |
+
+Chi tiết từng lớp:
+
+- **Lớp 1.** PT tắt nhận khách → ẩn nút mua, hiện nhãn *"Tạm ngưng nhận khách mới"*. **Vẫn hiện
+  trong kết quả tìm kiếm** nhưng xếp cuối — khách vẫn cần xem được hồ sơ. Hợp đồng đang chạy
+  không bị ảnh hưởng.
+- **Lớp 3.** Máy chủ trả `409` kèm mã `LOW_AVAILABILITY`, `availableSlots`, `packageSessions` —
+  **không phải** tạo hợp đồng thành công. Giao diện hiện hộp thoại rồi gửi lại kèm
+  `acknowledgedLowAvailability: true`.
+
+**Lưu bằng chứng đã cảnh báo:** `Contract.lowAvailabilityWarned` và `Contract.slotsAtPurchase`.
+Dùng khi phân xử tranh chấp kiểu *"mua rồi không tập được"*. Cùng khuôn mẫu với
+`multiGymWarned` ở gói hội viên (`docs/money-flow.md` §13.7).
+
+---
+
+### 5. Kết quả di trú
+
+Chạy lại lúc bàn giao (`npx tsx src/scripts/migrate-pt-service-packages.ts`):
+
+```
+Tìm thấy 12 PT đang hoạt động.
+  PT đã có gói, bỏ qua : 5
+  Gói sẽ tạo           : 0
+  PT không sinh được   : 7
+```
+
+**Ba nhánh của script**, theo đúng đề bài:
+
+1. Có `offlinePackagePrice` → tạo gói `OFFLINE`
+2. Có `onlinePackagePrice` → tạo thêm gói `ONLINE`
+3. Chỉ có `packagePrice` → tạo một gói theo `serviceMode` của PT
+
+Tên tự sinh `"Gói {sessionCount} buổi"`, `isActive = true`, `sessionsPerPackage` rỗng thì mặc
+định 10 buổi.
+
+**Idempotent:** PT đã có gói chưa lưu trữ thì bỏ qua. Chạy lại sau lỗi giữa chừng **không nhân
+đôi gói của ai** — đã kiểm chứng bằng cách chạy lại và thấy tạo 0 gói.
+
+#### 7 PT không sinh được gói — và vì sao
+
+Cả bảy đều **không có bản ghi `PTApplication`**, nên không có giá nào để chuyển. Script **nêu
+đích danh từng người** thay vì lặng lẽ bỏ qua, đúng yêu cầu.
+
+Nguyên nhân gốc: sự cố `prisma db push --accept-data-loss` mô tả ở commit `5219cc8` đã **làm
+rỗng bảng `pt_applications`** (hiện chỉ còn 3 dòng cho 12 PT). Đây là **mất dữ liệu có thật**,
+không phải thiếu sót của script.
+
+> ⚠️ **Việc còn lại cho người vận hành.** Bảy PT này hiện **không bán được gì** — họ biến mất
+> khỏi luồng bán hàng đúng như đề bài cảnh báo. Không có cách nào tự khôi phục vì giá gốc đã mất.
+> Phải hoặc nhờ từng PT khai lại gói qua giao diện, hoặc phục hồi `pt_applications` từ bản sao
+> lưu trước sự cố rồi chạy lại script.
+
+---
+
+### 6. Điểm cuối
+
+| Phương thức | Đường dẫn | Ai gọi |
+|---|---|---|
+| `GET` | `/profile/me/service-packages` | PT xem gói của mình, gồm cả gói đã lưu trữ |
+| `POST` | `/profile/me/service-packages` | PT tạo gói |
+| `PATCH` | `/profile/me/service-packages/:id` | PT sửa gói |
+| `DELETE` | `/profile/me/service-packages/:id` | Lưu trữ gói (xoá mềm) |
+| `GET` | `/profile/pts/:ptUserId/service-packages` | Khách xem gói đang bán — **chỉ `isActive` và chưa lưu trữ** |
+
+⚠️ **Tiền tố `/profile` là bắt buộc khi đi qua gateway.** user-service mount bộ tuyến này ở
+**hai** chỗ — `app.use("/me/service-packages", ...)` trong `app.ts` và một lần nữa trong
+`profile.routes.ts` — nhưng gateway **chỉ proxy `/profile`**. Gọi thẳng `/me/service-packages`
+qua cổng 3000 trả `404`. Bản mount trong `app.ts` hiện **không tuyến nào ngoài chạm tới được**.
+
+---
+
+### 7. Ràng buộc nghiệp vụ
+
+- `sessionCount >= 1`, `price > 0`
+- `sessionMode` không nhận `HYBRID` — chỉ `ONLINE` hoặc `OFFLINE`
+- `sessionDurationMinutes` trong khoảng 15–240
+- Tối đa **10 gói chưa lưu trữ** mỗi PT — tránh làm rối giao diện khách
+- **Không xoá cứng**, chỉ đặt `archivedAt`, vì hợp đồng cũ còn tham chiếu `packageId`
+- Gói đã lưu trữ **không sửa được** nữa
+
+---
+
+### 8. Nhật ký kiểm toán
+
+Ba thao tác trên gói đều ghi `AuditLog` (bảng `audit_logs` của user-service):
+
+| Hành động | Ghi kèm |
+|---|---|
+| `SERVICE_PACKAGE_CREATED` | tên, giá, số buổi, hình thức |
+| `SERVICE_PACKAGE_UPDATED` | **chỉ những trường thật sự đổi**, dạng `{before, after}` |
+| `SERVICE_PACKAGE_ARCHIVED` | tên, có hợp đồng đang tham chiếu hay không |
+
+`SERVICE_PACKAGE_UPDATED` chỉ ghi phần thay đổi, vì ghi cả dòng mỗi lần sửa sẽ **chôn một lần
+đổi giá giữa hàng chục giá trị không đổi**. Đổi giá chính là bằng chứng mà tranh chấp về ảnh
+chụp giá cần tới.
+
+Chi tiết mô hình `AuditLog`: xem `docs/pt-scheduling-and-discovery.md` §6.
+
+---
+
+### 9. Quyết định phát sinh
+
+Ghi lại những chỗ khác với đề bài, kèm lý do — **không sửa lặng lẽ**.
+
+**Không dùng Redis để đệm số slot.** Đề bài yêu cầu "gom truy vấn **hoặc** lưu đệm Redis 5
+phút". Đã chọn vế đầu: ba truy vấn gom cho cả trang thoả yêu cầu "số truy vấn không tăng tuyến
+tính theo số PT" mà không thêm một tầng đệm nữa — mà đệm thì lại kéo theo câu hỏi làm mất hiệu
+lực lúc nào khi PT vừa đổi lịch.
+
+**`countAvailableSlotsForPT` tách khỏi phần đọc CSDL.** Phần số học nằm ở
+`countSlotsFromRows()`, thuần tuý và test được bằng dữ liệu cố định. Không tách thì lỗi múi giờ
+ở §3 vẫn còn nguyên tới hôm nay — nó chỉ lộ ra khi có test ghim từng ngày cụ thể.
+
+**Luồng khám phá đếm slot từ thời điểm gọi, không từ nửa đêm.** `enrichForDiscovery` truyền
+`new Date()` làm `fromDate`, nên ngày đầu tiên chỉ tính phần còn lại của hôm nay. Hợp lý cho
+danh sách (không mời khách đặt vào giờ đã trôi qua), nhưng **khác** với
+`countAvailableSlotsForPT` dùng ở luồng tạo hợp đồng — hàm đó lùi về nửa đêm địa phương. Hai
+con số có thể lệch nhau trong phạm vi một ngày. Chưa hợp nhất vì mỗi bên đang đúng với mục đích
+của mình; nếu sau này khách thắc mắc "sao trang danh sách ghi khác trang mua" thì đây là chỗ cần
+xem.
+
+**Các trường giá trong `PTApplication` giữ nguyên, không xoá.** Chúng trở thành **thông tin
+tham khảo lúc nộp hồ sơ**, không còn là nguồn sự thật. Giữ lại để không mất lịch sử hồ sơ.
+
+
+---
+
+<a id="merged-safemerge"></a>
+
+## Consolidated reference: SafeMerge.txt
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+Bối cảnh
+Nhánh feature/payment-gateways (commit 7b948d6) vừa hoàn tất một đợt sửa lỗi lớn về dòng tiền và luồng nghiệp vụ (đặt lịch, hợp đồng PT, gói hội viên gym, ví, rút tiền). Rất nhiều bug tiền thật (double-charge, tiền kẹt vĩnh viễn, thiếu bước trừ ví) đã được tìm và vá bằng TDD nghiêm ngặt. Khi merge, hai bên cùng sửa một file dùng chung rất dễ khiến Git tự động giữ lại bản CŨ đã có bug — Git không biết bên nào đúng về nghiệp vụ, nó chỉ thấy "cả hai đều là code hợp lệ".
+
+Mục tiêu: không một fix tiền/nghiệp vụ nào bị revert, dù chỉ vô tình. Merge xong không có nghĩa là git merge không báo conflict — một khối text giống hệt nhau ở hai bên vẫn có thể là bug nếu logic đã đổi ở một bên mà bạn không biết.
+
+Đọc trước khi resolve bất kỳ conflict nào
+docs/money-flow.md — công thức tiền, mô hình quyền lợi buổi tập, bất biến đối soát, luồng rút tiền. Đặc biệt §18 "Thu hẹp phạm vi" và §15 "Quyết định phát sinh".
+docs/business-rules-session-lifecycle.md — ma trận hậu quả huỷ/vắng buổi, quy tắc đặt lại lịch, chính sách check-in.
+Nếu code đang resolve mâu thuẫn với hai file này — nó sai, bất kể nằm bên nào của conflict.
+
+8 điểm cụ thể — đã chốt, không được để bản cũ đè lên
+Ví khách không còn nạp tiền — POST /me/wallet/topup trả 410. Nếu thấy nút "Top Up" gọi walletService.topup(...) ở WalletPage.tsx (client) — đó là bản cũ, bỏ.
+Khách tự huỷ gói gym: không hoàn tiền — route POST /me/gym-memberships/:id/refund (phía khách) đã bị gỡ khỏi backend. Đúng là .../cancel-membership (không chuyển tiền) + /admin/gym-memberships/:id/refund (chỉ admin).
+GYM_STAFF đã xoá hoàn toàn, kể cả enum Postgres. Không thêm lại điều kiện role === "gym_staff".
+totalSessions/price bất biến sau ký — PT vắng buổi tăng compensatedSessions, không còn trừ totalSessions. getRemainingEntitlements() là nơi tính duy nhất.
+runAutoConfirm phải đi qua deductQuotaOnce() (gồm cả releaseSessionMoney) — có bản cũ bỏ sót hoàn toàn bước trả tiền PT.
+resolveSessionOutcome() là nguồn sự thật duy nhất cho hậu quả huỷ/vắng buổi — addException/cancelSession/markNoShow đều phải gọi vào đây, không tự tính riêng.
+Idempotency key bắt buộc cho mọi thao tác tiền không phải PaymentTransaction gốc (bảng đầy đủ ở docs/money-flow.md §17) — thiếu là double-charge khi retry.
+markPaid trong luồng rút tiền phải trừ cả ví ESCROW, không chỉ ví người nhận — thiếu bước này từng vỡ bất biến đối soát thật.
+Quy tắc chung
+File bạn chưa từng sửa cho workout/nutrition/AI (payment-service, gym-service, phần lớn user-service liên quan hợp đồng/buổi tập/ví) → lấy nguyên bản feature/payment-gateways.
+File cả hai bên cùng sửa (routes.tsx, Sidebar.tsx, AppContext.tsx, api.ts, docker-compose.dev.yml) → merge tay, giữ cả hai phần thêm mới nếu không thật sự chống nhau.
+Cảnh giác với "merge sạch nhưng nhân đôi nội dung" — Git từng tự merge không báo conflict nhưng nhân đôi y hệt một khối (đã gặp ở enum TerminationReason trong schema.prisma và hàm computeAgeFromDob). Bắt bằng tsc --noEmit / prisma generate. pnpm-lock.yaml cũng có thể dính lỗi này (ERR_PNPM_BROKEN_LOCKFILE: duplicated mapping key).
+Bắt buộc kiểm thử sau merge
+
+grep -rl "^<<<<<<< HEAD$" --include="*.ts" --include="*.tsx" --include="*.prisma" backend frontend
+cd backend/services/<service> && npx prisma generate && npx tsc --noEmit
+DATABASE_URL="..." npx prisma migrate deploy   # cả DB dev lẫn _test
+DATABASE_URL="..." npx tsx --test src/__tests__/<file>.test.ts   # từng file, không glob
+cd frontend/web && npx vite build
+docker compose -f infra/compose/docker-compose.dev.yml up -d --no-deps --force-recreate <service>
+curl -s http://localhost:3000/admin/payments/reconciliation -H "Authorization: Bearer <admin_token>"
+Nếu bước cuối trả "balanced": false — dừng lại, đừng push. Nghĩa là một trong 8 điểm ở trên bị revert nhầm.
+
+Khi nào dừng lại hỏi thay vì tự quyết
+File không rõ thuộc phạm vi bên nào, và hai bên có nội dung thật sự khác nhau.
+Một trong 8 điểm ở trên có vẻ bị đổi lại có chủ đích ở nhánh đối tác (không phải do merge tự động) — đây là xung đột quyết định giữa hai đội, cần người quyết chứ không phải agent tự chọn.
+Đối soát không cân bằng và không tìm ra nguyên nhân trong 15 phút.

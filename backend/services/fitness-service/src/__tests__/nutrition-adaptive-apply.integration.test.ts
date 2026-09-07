@@ -226,6 +226,62 @@ test("accepting a KEEP_PLAN assessment succeeds as a no-op acknowledgment — ne
   }
 });
 
+// Phase 2 §VII (Nutrition Cycle independence audit) — evaluateCycle() is
+// documented to run "on an ACTIVE or already-closed cycle" (training-cycle
+// .service.ts's own comment), so a NutritionGoal can legitimately version
+// MORE THAN ONCE inside a single TrainingCycle's lifetime — e.g. a
+// mid-cycle review at week 4 of an 8-week cycle, without ever ending the
+// cycle. This test locks in that this already works end-to-end, so nobody
+// re-introduces a "one nutrition review per cycle" assumption later.
+test(
+  "Phase 2 §VII: a NutritionGoal can version TWICE inside the SAME TrainingCycle (two separate assessment reviews, cycle never closed)",
+  skipOpts,
+  async () => {
+    const { prisma: db, trainingCycleService: service, nutritionRepository: repo } = await loadModules();
+    const userId = randomUUID();
+    try {
+      const cycle = await db.trainingCycle.create({
+        data: { userId, startDate: new Date(), endDate: new Date(Date.now() + 56 * 86_400_000), durationDays: 56, status: "ACTIVE" },
+      });
+      const assessment1 = await db.cycleAssessment.create({
+        data: {
+          cycleId: cycle.id, assessmentVersion: 1, status: "COMPLETED", decision: "KEEP",
+          nutritionDecision: "PROPOSE_ADJUSTMENT", nutritionProposedChanges: { calories: 1900, protein: 150, carbs: 170, fat: 60 } as any,
+        },
+      });
+      const week1 = await service.acceptNutritionRecommendation(cycle.id, userId, assessment1.id);
+      assert.ok((week1 as any).appliedNutritionGoalId);
+
+      // Week 4 of the SAME 8-week cycle — a second, independent review,
+      // the cycle is still ACTIVE the whole time.
+      const stillActive = await db.trainingCycle.findUnique({ where: { id: cycle.id } });
+      assert.equal(stillActive!.status, "ACTIVE");
+
+      const assessment2 = await db.cycleAssessment.create({
+        data: {
+          cycleId: cycle.id, assessmentVersion: 2, status: "COMPLETED", decision: "PROGRESS",
+          nutritionDecision: "PROPOSE_ADJUSTMENT", nutritionProposedChanges: { calories: 1850, protein: 155, carbs: 160, fat: 58 } as any,
+        },
+      });
+      const week4 = await service.acceptNutritionRecommendation(cycle.id, userId, assessment2.id);
+      assert.ok((week4 as any).appliedNutritionGoalId);
+      assert.notEqual((week4 as any).appliedNutritionGoalId, (week1 as any).appliedNutritionGoalId);
+
+      const activeGoal = await repo.findGoalByUserId(userId);
+      assert.equal(activeGoal!.calories, 1850, "the SECOND review's numbers must be the ACTIVE goal");
+      assert.equal((activeGoal as any).trainingCycleId, cycle.id, "both versions belong to the SAME cycle — no new cycle was needed");
+
+      const history = await repo.findGoalHistoryByUserId(userId);
+      assert.equal(history.length, 2);
+      assert.ok(history.every((h) => (h as any).trainingCycleId === cycle.id));
+    } finally {
+      await db!.cycleAssessment.deleteMany({ where: { cycleId: { in: (await db!.trainingCycle.findMany({ where: { userId }, select: { id: true } })).map((c) => c.id) } } });
+      await db!.$executeRaw`DELETE FROM nutrition_goals WHERE user_id = ${userId}`;
+      await db!.trainingCycle.deleteMany({ where: { userId } });
+    }
+  },
+);
+
 test("accepting an assessment that never got a nutrition evaluation at all (nutritionDecision is null) 404s", skipOpts, async () => {
   const { prisma: db, trainingCycleService: service } = await loadModules();
   const userId = randomUUID();

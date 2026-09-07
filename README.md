@@ -184,8 +184,8 @@ For an isolated infrastructure-backed test run:
 pnpm docker:test:full
 ```
 
-The external browser harness is documented in
-[`fitnessassistant-playwright-e2e/AGENT_HANDOFF.md`](fitnessassistant-playwright-e2e/AGENT_HANDOFF.md).
+The Playwright E2E harness is maintained separately. Its checkout and
+`AGENT_HANDOFF.md` are not included in this repository.
 
 ## Repository Guide
 
@@ -217,5 +217,5 @@ in model-training datasets without explicit permission and anonymization.
 
 This is an actively developed portfolio project. Core web and backend flows are
 implemented; mobile, production deployment hardening, provider integrations,
-and advanced PT workflows remain evolving areas. Historical audits and plans
-are retained as engineering records and are labeled in the documentation index.
+and advanced PT workflows remain evolving areas. Current follow-ups live in [docs/STATUS.md](docs/STATUS.md); the documentation
+index lists operational guides and design records still referenced by code.

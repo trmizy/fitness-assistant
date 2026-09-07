@@ -21,6 +21,7 @@ import { labelLocalizer } from "../label_localizer";
 import { inputParser } from "../input_parser";
 import { intentRouter } from "../intent_router";
 import { extractSessionContext, promptBuilder } from "../prompt_builder";
+import { isFitnessScopeRefusal } from "../orchestrator.service";
 import type { InputIntent, RecommendationResult, UserProfile } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -819,6 +820,29 @@ describe("G. safetyGuard.check() — extended safety gate", () => {
       "toi can an bao nhieu protein moi ngay de tang co",
     );
     assert.equal(result.type, "safe", `Should be safe but got: ${result.type}`);
+  });
+
+  it("does NOT flag latest InBody analysis as off_topic", () => {
+    const result = safetyGuard.check("Phân tích InBody mới nhất của tôi");
+    assert.equal(result.type, "safe", `Should be safe but got: ${result.type}`);
+  });
+
+  it("does NOT flag shoulder injury help as off_topic", () => {
+    const result = safetyGuard.check("tôi bị chấn thương vai thì phải làm sao");
+    assert.equal(result.type, "safe", `Should be safe but got: ${result.type}`);
+  });
+
+  it("detects mistaken fitness-scope refusals so valid InBody questions can fall back", () => {
+    assert.equal(
+      isFitnessScopeRefusal(
+        "Xin lỗi, tôi là trợ lý thể hình nên chỉ hỗ trợ các vấn đề về sức khỏe/tập luyện...",
+      ),
+      true,
+    );
+    assert.equal(
+      isFitnessScopeRefusal("Bạn nên tập upper/lower 3 buổi mỗi tuần."),
+      false,
+    );
   });
 
   it("evaluates safe workout question as safe", () => {

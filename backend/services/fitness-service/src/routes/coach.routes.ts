@@ -15,4 +15,28 @@ router.get("/clients/:clientId/summary", authMiddleware, coachController.getClie
 router.post("/clients/:clientId/plans", authMiddleware, coachController.createAndAssignPlan as any);
 router.post("/clients/:clientId/plan-draft", authMiddleware, coachController.generatePlanDraft as any);
 
+// Phase 2 — PT Approve/Modify/Reject on a client's AI nutrition
+// recommendation (spec §XXIII).
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/approve",
+  authMiddleware,
+  coachController.approveNutritionRecommendation as any,
+);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/reject",
+  authMiddleware,
+  coachController.rejectNutritionRecommendation as any,
+);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/modify",
+  authMiddleware,
+  coachController.modifyNutritionRecommendation as any,
+);
+// Diet break / maintenance-phase modeling — PT-initiated trigger (2026-09-07).
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/trigger-diet-break",
+  authMiddleware,
+  coachController.triggerDietBreakRecommendation as any,
+);
+
 export default router;

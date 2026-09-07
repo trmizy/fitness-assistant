@@ -238,7 +238,6 @@ Common causes:
 | Port already allocated | Find the process/container using ports in the root service map |
 | Seed data is missing | `docker compose ... logs db-seeder`, then `pnpm run docker:reset-seeder` |
 
-For Windows Defender application-control issues, see
-[WINDOWS_DEFENDER_FIX.md](WINDOWS_DEFENDER_FIX.md). For database details, see
-[DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) and
-[DB_INSPECTION_COMMANDS.md](DB_INSPECTION_COMMANDS.md).
+For database ownership and inspection commands, see
+[Database architecture](DATABASE_ARCHITECTURE.md) and its
+[inspection reference](DATABASE_ARCHITECTURE.md#merged-db-inspection-commands).

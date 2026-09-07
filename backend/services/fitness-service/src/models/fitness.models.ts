@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { WORKOUT_LIMITS } from "../utils/workout-validation";
+import { cycleThresholds } from "../config/cycle-thresholds.config";
 
 const L = WORKOUT_LIMITS;
 
@@ -293,7 +294,20 @@ export const createNutritionSchema = z.object({
 });
 
 export const upsertNutritionGoalSchema = z.object({
-  calories: z.number().int().positive(),
+  // Safety-floor audit (2026-09-07): this was `.positive()` — no floor at
+  // all, so a client's own manual goal edit was the ONE path with weaker
+  // protection than even the (separately, also-inconsistent) PT-modify
+  // path. See nutrition-goal-macro-validator.ts's assertCalorieFloor doc
+  // comment for the full three-way inconsistency this closes; the
+  // service-level check there is the authoritative one with the
+  // actionable Vietnamese message, this is just the request-shape check.
+  calories: z
+    .number()
+    .int()
+    .min(
+      cycleThresholds.nutritionAdaptive.minPrescriptionCalories,
+      `Calo phải từ ${cycleThresholds.nutritionAdaptive.minPrescriptionCalories} kcal trở lên`,
+    ),
   protein: z.number().positive(),
   carbs: z.number().positive(),
   fat: z.number().positive(),

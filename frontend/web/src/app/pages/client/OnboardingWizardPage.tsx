@@ -330,9 +330,28 @@ export function OnboardingWizardPage() {
         // else in this component needs to write that field.
         equipmentService.setMyEquipment(equipmentIds).catch(() => null),
       ]);
-      return { profile: profileResult.profile, finishedAllSteps };
+      return {
+        profile: profileResult.profile,
+        // AI Nutrition Cycle Engine (Gymini) — present only on the request
+        // that actually flips hasCompletedOnboarding false->true (see
+        // user-service's profileService.upsertProfile). undefined on every
+        // other profile save, including a re-submit of an already-completed
+        // onboarding.
+        nutritionBootstrap: (profileResult as any).nutritionBootstrap as
+          | {
+              status: "created";
+              calories: number;
+              protein: number;
+              professionalReviewRequired: boolean;
+              safetyScreeningStatus: string;
+            }
+          | { status: "insufficient_data"; missingFields: string[] }
+          | { status: "already_initialized" }
+          | undefined,
+        finishedAllSteps,
+      };
     },
-    onSuccess: ({ profile, finishedAllSteps }) => {
+    onSuccess: ({ profile, nutritionBootstrap, finishedAllSteps }) => {
       // Write the fresh profile into the cache SYNCHRONOUSLY (not
       // invalidateQueries, which only schedules a background refetch) before
       // navigating — RequireOnboarding reads this same query key immediately
@@ -351,6 +370,24 @@ export function OnboardingWizardPage() {
         }
       }
       toast.success(finishedAllSteps ? "Đã lưu hồ sơ tập luyện" : "Đã bỏ qua — bạn có thể cập nhật lại trong Hồ sơ");
+      // Spec §IV/§XI/§XXXIII: a beginner must never have to go find and
+      // trigger nutrition generation themselves — surface it the moment
+      // it's ready, right where onboarding itself already congratulates
+      // them. Silent on "insufficient_data"/"already_initialized" — the
+      // Nutrition page's own empty state explains what's still missing;
+      // stacking a second toast about it here would just be noise.
+      if (nutritionBootstrap?.status === "created") {
+        if (nutritionBootstrap.professionalReviewRequired) {
+          toast.warning(
+            "Bạn đã báo cáo yếu tố sức khỏe cần lưu ý. Hãy tham khảo bác sĩ hoặc chuyên gia dinh dưỡng trước khi áp dụng mục tiêu dinh dưỡng mới.",
+            { duration: 10000 },
+          );
+        }
+        toast.success(
+          `Gymini đã chuẩn bị mục tiêu dinh dưỡng đầu tiên: ~${nutritionBootstrap.calories} kcal, ${nutritionBootstrap.protein}g protein/ngày`,
+          { duration: 6000 },
+        );
+      }
       navigate("/client/dashboard");
     },
     onError: (error: any) => {

@@ -14,6 +14,10 @@ type NutritionGoalRow = {
   triggeredBy?: string | null;
   reason?: string | null;
   goalMode?: string;
+  trainingCycleId?: string | null;
+  createdByUserId?: string | null;
+  previousGoalId?: string | null;
+  sourceAssessmentId?: string | null;
 };
 
 export const nutritionRepository = {
@@ -81,10 +85,32 @@ export const nutritionRepository = {
         valid_from AS "validFrom",
         triggered_by AS "triggeredBy",
         reason,
-        goal_mode AS "goalMode"
+        goal_mode AS "goalMode",
+        training_cycle_id AS "trainingCycleId",
+        created_by_user_id AS "createdByUserId",
+        previous_goal_id AS "previousGoalId",
+        source_assessment_id AS "sourceAssessmentId"
       FROM nutrition_goals
       WHERE user_id = ${userId} AND status = 'ACTIVE'
       LIMIT 1
+    `;
+    return rows[0] ?? null;
+  },
+
+  /** By id, any status — for rendering "Current: X -> Proposed: Y" in a PT
+   * review UI, which needs to read a specific (possibly SUPERSEDED) row. */
+  findGoalById: async (id: string): Promise<NutritionGoalRow | null> => {
+    const rows = await prisma.$queryRaw<NutritionGoalRow[]>`
+      SELECT
+        id, user_id AS "userId", calories, protein, carbs, fat,
+        water_ml AS "waterMl", status, valid_from AS "validFrom",
+        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode",
+        training_cycle_id AS "trainingCycleId",
+        created_by_user_id AS "createdByUserId",
+        previous_goal_id AS "previousGoalId",
+        source_assessment_id AS "sourceAssessmentId"
+      FROM nutrition_goals
+      WHERE id = ${id}
     `;
     return rows[0] ?? null;
   },
@@ -96,7 +122,11 @@ export const nutritionRepository = {
       SELECT
         id, user_id AS "userId", calories, protein, carbs, fat,
         water_ml AS "waterMl", status, valid_from AS "validFrom",
-        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode"
+        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode",
+        training_cycle_id AS "trainingCycleId",
+        created_by_user_id AS "createdByUserId",
+        previous_goal_id AS "previousGoalId",
+        source_assessment_id AS "sourceAssessmentId"
       FROM nutrition_goals
       WHERE user_id = ${userId}
       ORDER BY valid_from DESC
@@ -123,9 +153,18 @@ export const nutritionRepository = {
     options?: {
       reason?: string;
       triggeredBy?: "ONBOARDING" | "MANUAL" | "AI_ADAPTIVE" | "PT";
+      trainingCycleId?: string | null;
+      createdByUserId?: string | null;
+      sourceAssessmentId?: string | null;
     },
   ): Promise<NutritionGoalRow> => {
     const newId = randomUUID();
+    // Phase 2 (PT nutrition workflow) — capture whatever WAS active right
+    // before this call as previousGoalId. The append-only SUPERSEDED chain
+    // already makes this reconstructable from validFrom ordering, but an
+    // explicit pointer is what the PT "Current -> Proposed" review UI reads
+    // directly, with no ambiguity.
+    const current = await nutritionRepository.findGoalByUserId(userId);
     await prisma.$transaction([
       prisma.$executeRaw`
         UPDATE nutrition_goals
@@ -135,12 +174,15 @@ export const nutritionRepository = {
       prisma.$executeRaw`
         INSERT INTO nutrition_goals (
           id, user_id, calories, protein, carbs, fat, water_ml,
-          status, valid_from, reason, triggered_by, goal_mode, created_at, updated_at
+          status, valid_from, reason, triggered_by, goal_mode, training_cycle_id,
+          created_by_user_id, previous_goal_id, source_assessment_id, created_at, updated_at
         )
         VALUES (
           ${newId}, ${userId}, ${data.calories}, ${data.protein}, ${data.carbs}, ${data.fat},
           ${data.waterMl ?? null}, 'ACTIVE', NOW(), ${options?.reason ?? null},
-          ${options?.triggeredBy ?? "MANUAL"}, ${data.goalMode ?? "RECOMMENDED"}, NOW(), NOW()
+          ${options?.triggeredBy ?? "MANUAL"}, ${data.goalMode ?? "RECOMMENDED"},
+          ${options?.trainingCycleId ?? null}, ${options?.createdByUserId ?? null},
+          ${current?.id ?? null}, ${options?.sourceAssessmentId ?? null}, NOW(), NOW()
         )
       `,
     ]);
@@ -148,7 +190,11 @@ export const nutritionRepository = {
       SELECT
         id, user_id AS "userId", calories, protein, carbs, fat,
         water_ml AS "waterMl", status, valid_from AS "validFrom",
-        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode"
+        triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode",
+        training_cycle_id AS "trainingCycleId",
+        created_by_user_id AS "createdByUserId",
+        previous_goal_id AS "previousGoalId",
+        source_assessment_id AS "sourceAssessmentId"
       FROM nutrition_goals
       WHERE id = ${newId}
     `;

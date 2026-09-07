@@ -18,6 +18,7 @@ import type { NutritionGoalPlanConsistency } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1070,6 +1071,14 @@ export function NutritionPage() {
             bấm vào đây để thiết lập cá nhân hóa
           </button>
         </div>
+      )}
+
+      {/* ── Beginner-friendly "what should I eat" summary (spec §XI/§XII) ── */}
+      {isToday && (
+        <BeginnerNutritionSummary
+          dailySummary={(dailyTask as any)?.dailySummary}
+          dateStr={dateStr}
+        />
       )}
 
       {/* ── Current Nutrition Program ── */}

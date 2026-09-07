@@ -21,13 +21,22 @@ type StatsServiceModule = typeof import("../services/stats.service");
 
 let prisma: PrismaClientLike | undefined;
 let statsModule: StatsServiceModule | undefined;
+let exerciseId: string | undefined;
 
 async function loadModules() {
   if (!prisma) {
     prisma = (await import("../repositories/prisma")).prisma;
     statsModule = await import("../services/stats.service");
   }
-  return { prisma: prisma!, statsService: statsModule!.statsService };
+  if (!exerciseId) {
+    // Looked up by name rather than hardcoded — Exercise.exerciseName has
+    // no unique constraint and the seed script assigns fresh random ids
+    // on every re-run (prisma/seed_exercises_json.ts), so a literal id
+    // here goes silently stale the next time the catalog is reseeded.
+    const row = await prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Barbell Curl" } });
+    exerciseId = row.id;
+  }
+  return { prisma: prisma!, statsService: statsModule!.statsService, exerciseId: exerciseId! };
 }
 
 test.after(async () => {
@@ -57,8 +66,6 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-const EXERCISE_ID = "f1b609bf-0994-4a70-b2d5-a22465438312"; // real seeded "Barbell Curl"
-
 async function cleanup(db: PrismaClientLike, userId: string) {
   await db.workoutSchedule.deleteMany({ where: { userId } });
   await db.workoutSet.deleteMany({ where: { workoutExercise: { workout: { userId } } } });
@@ -70,7 +77,7 @@ test(
   "getActivityHeatmap: classifies all 5 real day states correctly from real seeded WorkoutSchedule rows",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
     const userId = `activity-heatmap-it-${Date.now()}`;
     try {
       const completedDate = daysAgo(10);
@@ -88,7 +95,7 @@ test(
           duration: 45,
           exercises: {
             create: [{
-              exerciseId: EXERCISE_ID,
+              exerciseId,
               sets: 2,
               order: 0,
               workoutSets: {
@@ -138,7 +145,7 @@ test(
   "getActivityDayDetail: a completed day returns real volume/duration/RPE, reusing getSessionSummary's real PR output; a rest day returns no workout",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
     const userId = `activity-detail-it-${Date.now()}`;
     try {
       const completedDate = daysAgo(10);
@@ -153,7 +160,7 @@ test(
           notes: "Felt strong",
           exercises: {
             create: [{
-              exerciseId: EXERCISE_ID,
+              exerciseId,
               sets: 2,
               order: 0,
               workoutSets: {

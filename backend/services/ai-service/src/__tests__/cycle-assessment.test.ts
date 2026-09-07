@@ -46,6 +46,48 @@ test("AssessCycleRequestSchema: rejects an invalid allowedChanges entry", () => 
   assert.throws(() => AssessCycleRequestSchema.parse(validRequest({ allowedChanges: ["NOT_A_REAL_TYPE"] })));
 });
 
+// Diet break (2026-09-07) — fitness-service's nutrition-decision.engine.ts
+// can now emit "PROPOSE_DIET_BREAK"; ai-service's own copy of this enum
+// (a separate microservice, its own Zod schema) must accept it too, or
+// assessCycleSafe's whole request gets rejected for any user a diet break
+// is actually proposed to.
+test("AssessCycleRequestSchema: accepts nutrition.decision = PROPOSE_DIET_BREAK", () => {
+  const parsed = AssessCycleRequestSchema.parse(
+    validRequest({
+      nutrition: {
+        decision: "PROPOSE_DIET_BREAK",
+        confidence: "HIGH",
+        signals: {},
+        proposedChanges: { calories: 2400, protein: 150, carbs: 250, fat: 65 },
+        reasonCodes: ["SUSTAINED_DEFICIT_DIET_BREAK_RECOMMENDED"],
+        evidenceIds: [],
+        requiresConfirmation: true,
+      },
+    }),
+  );
+  assert.equal(parsed.nutrition?.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("AssessCycleOutputSchema: accepts nutritionSummary.nutritionDecision = PROPOSE_DIET_BREAK", () => {
+  const parsed = AssessCycleOutputSchema.parse({
+    decision: "KEEP",
+    headline: "x",
+    summary: "y",
+    positiveSignals: [],
+    warningSignals: [],
+    proposedChanges: [],
+    missingData: [],
+    safetyNotice: null,
+    requiresConfirmation: true,
+    nutritionSummary: {
+      nutritionDecision: "PROPOSE_DIET_BREAK",
+      headline: "Đề xuất nghỉ diet break",
+      explanation: "...",
+    },
+  });
+  assert.equal(parsed.nutritionSummary?.nutritionDecision, "PROPOSE_DIET_BREAK");
+});
+
 test("AssessCycleOutputSchema: accepts a well-formed LLM output", () => {
   const parsed = AssessCycleOutputSchema.parse({
     decision: "ADJUST",
@@ -113,6 +155,41 @@ test("cycleAssessmentService.assessCycle: falls back to a deterministic template
   assert.equal(result.safetyNotice, "Dừng bài gây đau và tham khảo bác sĩ."); // pulled straight from safetyFlags, not LLM
   assert.deepEqual(result.proposedChanges, []);
   assert.equal(result.citations.length, 0); // no evidence retrieved -> no fabricated citations
+});
+
+test("cycleAssessmentService.assessCycle: deterministic fallback produces a real (not blank/undefined) headline for a PROPOSE_DIET_BREAK nutrition decision", async (t) => {
+  t.after(() => {
+    llmService.callLLM = originalCallLLM;
+    retriever.retrieveEvidence = originalRetrieveEvidence;
+  });
+  const originalCallLLM = llmService.callLLM;
+  const originalRetrieveEvidence = retriever.retrieveEvidence;
+
+  retriever.retrieveEvidence = async () => [];
+  llmService.callLLM = async () =>
+    ({ answer: "not valid json at all", model: "mock", promptTokens: 0, completionTokens: 0, totalTokens: 0 }) as any;
+
+  const req = AssessCycleRequestSchema.parse(
+    validRequest({
+      nutrition: {
+        decision: "PROPOSE_DIET_BREAK",
+        confidence: "HIGH",
+        signals: {},
+        proposedChanges: { calories: 2400, protein: 150, carbs: 250, fat: 65 },
+        reasonCodes: ["SUSTAINED_DEFICIT_DIET_BREAK_RECOMMENDED"],
+        evidenceIds: [],
+        requiresConfirmation: true,
+      },
+    }),
+  );
+
+  const result = await cycleAssessmentService.assessCycle(req);
+  assert.equal(result.nutritionSummary?.nutritionDecision, "PROPOSE_DIET_BREAK");
+  assert.ok(result.nutritionSummary?.headline && result.nutritionSummary.headline.length > 0);
+  assert.ok(
+    !result.nutritionSummary!.headline.includes("undefined"),
+    "a missing NUTRITION_DECISION_LABEL entry would silently interpolate 'undefined' into the headline",
+  );
 });
 
 test("cycleAssessmentService.assessCycle: the engine's decision always wins even if the LLM echoes a different one", async (t) => {

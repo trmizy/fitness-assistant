@@ -61,6 +61,12 @@ export const GenerateNutritionPlanRequestSchema = z.object({
   carbsAroundWorkout: z.boolean().optional(),
   preworkoutMeal: z.boolean().optional(),
   postworkoutMeal: z.boolean().optional(),
+
+  // AI Nutrition Cycle Engine (Gymini) — internal-only flag, set by
+  // fitness-service's nutrition-onboarding-bootstrap.service.ts (never by
+  // the frontend's manual "Generate Plan" form). See
+  // nutrition.processor.ts's NutritionPlanJobDataSchema for what it does.
+  autoSaveOnComplete: z.boolean().optional(),
 });
 
 export type GenerateNutritionPlanRequest = z.infer<
