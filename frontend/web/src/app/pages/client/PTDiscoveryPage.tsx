@@ -15,6 +15,7 @@ import {
   MapPinIcon as MapPin,
   LinkedinLogoIcon as Linkedin,
   InstagramLogoIcon as Instagram,
+  StarIcon as StarSolid,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
@@ -49,6 +50,35 @@ function serviceModeLabel(mode?: string) {
   if (mode === "OFFLINE") return "Offline tại phòng gym";
   if (mode === "HYBRID") return "Cả online và offline";
   return undefined;
+}
+
+// Same day codes/labels as PTApplicationPage.tsx's weekly-availability editor — kept as its
+// own small copy here rather than a shared import, since this file only needs the labels for
+// read-only display. availabilityBlocks replaced the older availableDays/availableFrom/
+// availableUntil fields; grouping+sorting is done fresh from the raw array on every render, no
+// state needed for it.
+const DAY_LABELS: Record<string, string> = {
+  Mon: "Thứ 2",
+  Tue: "Thứ 3",
+  Wed: "Thứ 4",
+  Thu: "Thứ 5",
+  Fri: "Thứ 6",
+  Sat: "Thứ 7",
+  Sun: "Chủ nhật",
+};
+const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function groupAvailabilityByDay(
+  raw: unknown,
+): { day: string; ranges: { startTime: string; endTime: string }[] }[] {
+  const blocks: { dayOfWeek: string; startTime: string; endTime: string }[] =
+    Array.isArray(raw) ? (raw as any[]) : [];
+  return DAY_ORDER.map((day) => ({
+    day,
+    ranges: blocks
+      .filter((b) => b.dayOfWeek === day)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+  })).filter((d) => d.ranges.length > 0);
 }
 
 function getLowestPerSessionPrice(app: any): number | null {
@@ -99,6 +129,14 @@ export function PTDiscoveryPage() {
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
   }, []);
+
+  // Detail modal — 3 tabs instead of one long stacked scroll: profile info, pricing, and
+  // reviews were competing for the same space, pushing pricing (the actual call to action)
+  // an unpredictable distance down depending on how much bio/certs/reviews a given PT has.
+  const [detailTab, setDetailTab] = useState<"detail" | "pricing" | "reviews">(
+    "detail",
+  );
+  useEffect(() => setDetailTab("detail"), [selectedId]);
 
   // Filter panel state
   const [filterOpen, setFilterOpen] = useState(false);
@@ -253,6 +291,14 @@ export function PTDiscoveryPage() {
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ["pt-packages", selectedId],
     queryFn: () => ptServicePackageService.getPackagesForPT(selectedId!),
+    enabled: !!selectedId,
+  });
+
+  // Only carries what the list row doesn't already have — recentReviews — but fetched
+  // whenever a PT is opened since the list endpoint has no comments at all.
+  const { data: ptDetail, isLoading: ptDetailLoading } = useQuery({
+    queryKey: ["pt-detail", selectedId],
+    queryFn: () => profileService.getPTDetail(selectedId!),
     enabled: !!selectedId,
   });
 
@@ -490,11 +536,9 @@ export function PTDiscoveryPage() {
         ))}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div>
         {/* PT cards */}
-        <div
-          className={`space-y-3 ${selectedId ? "lg:w-96 flex-shrink-0" : "flex-1"}`}
-        >
+        <div className="space-y-3">
           {filtered.length > 0 ? (
             filtered.map((pt: any) => {
               const lowestPrice = getLowestPerSessionPrice(pt.ptApplication);
@@ -621,13 +665,17 @@ export function PTDiscoveryPage() {
             // `position: fixed` descendants a new containing block, so a plain `fixed
             // inset-0` here would size itself against that div's own content box instead
             // of the real viewport — exactly the "modal pinned near the top, with a dead
-            // gap before the bottom nav" bug just reported. A portal to document.body is
-            // the standard fix (same pattern already used by
+            // gap before the bottom nav" bug fixed earlier for the mobile sheet. A portal
+            // to document.body is the standard fix (same pattern already used by
             // PlanMarketplacePage's modal): it renders the sheet as a sibling of the
-            // animated tree entirely, so `fixed` finally means the actual screen. Desktop
-            // is a completely different, non-portaled render (the plain inline panel this
-            // always was) — the two are simple enough to keep as separate branches rather
-            // than forcing one wrapper to serve both.
+            // animated tree entirely, so `fixed` finally means the actual screen.
+            //
+            // Desktop used to render this inline, next to the PT list, as a side panel —
+            // but that ties the panel's scroll position to the list's: click a PT near the
+            // bottom of a long list and the panel (pricing included) opens above the
+            // current scroll, invisible until you scroll back up. Now both breakpoints
+            // portal to a centered/overlay modal instead — only the shell around `content`
+            // (centered dialog vs. bottom sheet) differs.
             const content = (
               <>
                 {/* Header */}
@@ -718,27 +766,56 @@ export function PTDiscoveryPage() {
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-zinc-400 mt-3 leading-relaxed">
-                    {app?.professionalBio ||
-                      "Huấn luyện thể hình chuyên nghiệp. Kết nối với huấn luyện viên này để bắt đầu hành trình cá nhân hóa của bạn."}
-                  </p>
+                </div>
 
-                  {/* Certifications */}
-                  {certs.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {certs.map((c: any) => (
-                        <span
-                          key={c.certificateName}
-                          className="flex items-center gap-1 text-[10px] px-2 py-1 bg-green-500/5 border border-green-500/15 rounded-lg text-green-400"
-                        >
-                          <Award className="w-3 h-3" /> {c.certificateName}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                {/* Tabs */}
+                <div className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
+                  {(
+                    [
+                      { key: "detail", label: "Chi tiết" },
+                      { key: "pricing", label: "Giá gói" },
+                      { key: "reviews", label: "Đánh giá" },
+                    ] as const
+                  ).map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setDetailTab(t.key)}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        detailTab === t.key
+                          ? "bg-green-500 text-black shadow-sm"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="p-5 space-y-5">
+                  {detailTab === "detail" && (
+                    <>
+                  <div>
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                      {app?.professionalBio ||
+                        "Huấn luyện thể hình chuyên nghiệp. Kết nối với huấn luyện viên này để bắt đầu hành trình cá nhân hóa của bạn."}
+                    </p>
+
+                    {/* Certifications */}
+                    {certs.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {certs.map((c: any) => (
+                          <span
+                            key={c.certificateName}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 bg-green-500/5 border border-green-500/15 rounded-lg text-green-400"
+                          >
+                            <Award className="w-3 h-3" /> {c.certificateName}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Education & Work Experience */}
                   {(app?.educationBackground ||
                     app?.previousWorkExperience) && (
@@ -813,31 +890,40 @@ export function PTDiscoveryPage() {
                     </div>
                   )}
 
-                  {/* Availability schedule */}
-                  {app?.availableDays?.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                        Lịch làm việc
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {app.availableDays.map((d: string) => (
-                          <span
-                            key={d}
-                            className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-300 font-medium"
-                          >
-                            {d}
-                          </span>
-                        ))}
+                  {/* Availability schedule — reads availabilityBlocks (the day-grouped
+                      {dayOfWeek,startTime,endTime}[] shape the current PT application form
+                      writes), not the older availableDays/availableFrom/availableUntil fields:
+                      those have no input left in the form since it moved to
+                      availabilityBlocks, so they are always empty for any PT approved since —
+                      this section used to never render as a result. */}
+                  {(() => {
+                    const byDay = groupAvailabilityByDay(app?.availabilityBlocks);
+                    if (byDay.length === 0) return null;
+                    return (
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Lịch làm việc
+                        </h4>
+                        <div className="space-y-1">
+                          {byDay.map(({ day, ranges }) => (
+                            <div
+                              key={day}
+                              className="flex items-baseline gap-2 text-sm"
+                            >
+                              <span className="text-zinc-300 font-medium w-16 shrink-0">
+                                {DAY_LABELS[day] ?? day}
+                              </span>
+                              <span className="text-zinc-500">
+                                {ranges
+                                  .map((r) => `${r.startTime}-${r.endTime}`)
+                                  .join(", ")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      {(app.availableFrom || app.availableUntil) && (
-                        <p className="text-xs text-zinc-500 mt-1">
-                          {app.availableFrom && `Từ ${app.availableFrom}`}
-                          {app.availableFrom && app.availableUntil && " - "}
-                          {app.availableUntil && `đến ${app.availableUntil}`}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Gym affiliation */}
                   {app?.gymAffiliation && (
@@ -894,11 +980,121 @@ export function PTDiscoveryPage() {
                             YT {socialLinks.youtube}
                           </span>
                         )}
+                        {/* facebook/tiktok were already counted in the condition gating this
+                            whole section but never actually rendered — a PT with only these
+                            two filled in got a "Links" heading with nothing under it. */}
+                        {socialLinks.facebook && (
+                          <span className="flex items-center gap-1.5 text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20">
+                            FB {socialLinks.facebook}
+                          </span>
+                        )}
+                        {socialLinks.tiktok && (
+                          <span className="flex items-center gap-1.5 text-xs text-zinc-300 bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-700/60">
+                            TikTok {socialLinks.tiktok}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
+                    </>
+                  )}
+
+                  {/* Reviews — the list endpoint only ever sends the avgRating/ratingCount
+                      aggregate; the star breakdown and comments themselves come from
+                      getPTDetail, fetched only once this modal is open. */}
+                  {detailTab === "reviews" && (
+                  <div>
+                    {ptDetailLoading ? (
+                      <div className="flex justify-center py-6">
+                        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                      </div>
+                    ) : (ptDetail?.ratingCount ?? 0) > 0 ? (
+                      <>
+                        {/* Summary: overall average on the left, 5★→1★ distribution bars on
+                            the right — same shape as the familiar Play Store/Amazon rating
+                            header, so the breakdown reads at a glance before scrolling into
+                            individual comments. */}
+                        <div className="flex items-center gap-5 pb-4 mb-4 border-b border-zinc-800/60">
+                          <div className="flex flex-col items-center shrink-0 w-20">
+                            <span className="text-3xl font-bold text-zinc-100">
+                              {ptDetail.avgRating?.toFixed(1)}
+                            </span>
+                            <Stars value={ptDetail.avgRating ?? 0} size={13} />
+                            <span className="text-[11px] text-zinc-500 mt-1 text-center">
+                              {ptDetail.ratingCount} đánh giá
+                            </span>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[5, 4, 3, 2, 1].map((star) => {
+                              const count = ptDetail.ratingDistribution?.[star] ?? 0;
+                              const pct = Math.round(
+                                (count / ptDetail.ratingCount) * 100,
+                              );
+                              return (
+                                <div
+                                  key={star}
+                                  className="flex items-center gap-1.5 text-xs"
+                                >
+                                  <span className="text-zinc-500 w-2.5 text-right">
+                                    {star}
+                                  </span>
+                                  <StarSolid className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                                  <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-amber-400 rounded-full"
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-zinc-500 w-6 text-right">
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Bình luận
+                        </h4>
+                        {(ptDetail.recentReviews?.length ?? 0) > 0 ? (
+                          <div className="space-y-2">
+                            {ptDetail.recentReviews.map((r: any, i: number) => (
+                              <div
+                                key={i}
+                                className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3"
+                              >
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <Stars value={r.rating} size={13} />
+                                  <span className="text-[10px] text-zinc-600">
+                                    {new Date(r.createdAt).toLocaleDateString(
+                                      "vi-VN",
+                                    )}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-zinc-400 leading-relaxed">
+                                  {r.comment}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-zinc-600">
+                            Chưa có bình luận nào — phần lớn đánh giá của PT này không kèm
+                            nhận xét.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-zinc-600">
+                        Chưa có đánh giá nào.
+                      </p>
+                    )}
+                  </div>
+                  )}
 
                   {/* Pricing */}
+                  {detailTab === "pricing" && (
                   <div>
                     <h4 className="text-sm font-bold text-zinc-200 mb-3">
                       Bảng giá
@@ -984,37 +1180,38 @@ export function PTDiscoveryPage() {
                         </div>
                       )}
                     </div>
-
-                    {/* Message button */}
-                    <button
-                      onClick={() => handleMessage(selectedPT.userId)}
-                      disabled={messagingPT}
-                      className="w-full py-2.5 mt-3 border border-zinc-700/60 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      {messagingPT ? "Đang mở chat…" : "Nhắn tin"}
-                    </button>
                   </div>
+                  )}
+
+                  {/* Message button — persistent across all 3 tabs, not tied to any one
+                      of them, since messaging the PT is a fine follow-up whichever tab
+                      brought the client to that decision. */}
+                  <button
+                    onClick={() => handleMessage(selectedPT.userId)}
+                    disabled={messagingPT}
+                    className="w-full py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    {messagingPT ? "Đang mở chat…" : "Nhắn tin"}
+                  </button>
                 </div>
               </>
             );
 
-            if (isDesktopView) {
-              return (
-                <div className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden self-start">
-                  {content}
-                </div>
-              );
-            }
-
             return createPortal(
               <div
-                className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end justify-center"
+                className={`fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex justify-center ${
+                  isDesktopView ? "items-center p-4" : "items-end"
+                }`}
                 onClick={() => setSelectedId(null)}
               >
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800/60 bg-zinc-900"
+                  className={
+                    isDesktopView
+                      ? "w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-zinc-800/60 bg-zinc-900 shadow-2xl"
+                      : "w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800/60 bg-zinc-900"
+                  }
                 >
                   {content}
                 </div>

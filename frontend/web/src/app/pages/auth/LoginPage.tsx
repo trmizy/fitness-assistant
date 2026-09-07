@@ -4,7 +4,7 @@ import { useApp, UserRole } from "../../context/AppContext";
 import { EyeIcon as Eye, EyeSlashIcon as EyeOff, UserIcon as User, LightningIcon as Zap, ShieldIcon as Shield, ArrowRightIcon as ArrowRight, PulseIcon as Activity, BrainIcon as Brain, DatabaseIcon as ServerCog } from "@phosphor-icons/react";
 
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
-import { ROLE_HOME, landingPathFor, isSafeReturnPath } from "../../config/landing";
+import { ROLE_HOME, landingPathFor, isSafeReturnPath, isReturnPathForRole, roleOf } from "../../config/landing";
 import { Preferences } from "@capacitor/preferences";
 import { AppLogo } from "../../components/brand/AppLogo";
 
@@ -29,7 +29,12 @@ export function LoginPage() {
   // form and retyping a password they never needed to enter — the reported bug.
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(isSafeReturnPath(returnTo) ? returnTo : ROLE_HOME[role], { replace: true });
+      navigate(
+        isSafeReturnPath(returnTo) && isReturnPathForRole(returnTo, role)
+          ? returnTo
+          : ROLE_HOME[role],
+        { replace: true },
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, role, navigate]);
@@ -59,7 +64,21 @@ export function LoginPage() {
         // from AppShell's auth guard / a session-expiry redirect) over the generic role
         // home — otherwise a session that expires mid-flow (e.g. right after paying) strands
         // the user on their dashboard instead of the page they came back to check.
-        navigate(isSafeReturnPath(returnTo) ? returnTo : landingPathFor(storedUser), { replace: true });
+        //
+        // But that captured path belongs to whoever was signed in when it was captured —
+        // not necessarily the account signing in now. Logging out from /pt/dashboard (still
+        // ON that page) flips isAuthenticated to false, RequireRole redirects to /login with
+        // state.from: "/pt/dashboard", and a DIFFERENT account (a client) logging in right
+        // after inherited that PT-only return path — a same-app relative path, so
+        // isSafeReturnPath alone waved it through, landing the client on /pt/dashboard and
+        // straight into RequireRole's 403. isReturnPathForRole rejects a returnTo that
+        // belongs to another role's workspace before it is trusted.
+        navigate(
+          isSafeReturnPath(returnTo) && isReturnPathForRole(returnTo, roleOf(storedUser))
+            ? returnTo
+            : landingPathFor(storedUser),
+          { replace: true },
+        );
       } else {
         setError("Email hoặc mật khẩu không đúng");
       }

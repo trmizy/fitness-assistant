@@ -73,6 +73,33 @@ export const ptReviewRepository = {
     `;
     return rows.map((r) => ({ ...r, rating: Number(r.rating) }));
   },
+
+  /** How many 1★/2★/.../5★ ratings a PT has — the bar-chart breakdown next to the overall
+   *  average on the discovery detail modal's "Đánh giá" tab. Always returns all 5 keys (0 for
+   *  a star count with no reviews) so the frontend never has to guess a default. */
+  async ratingDistributionForPt(
+    ptUserId: string,
+  ): Promise<Record<1 | 2 | 3 | 4 | 5, number>> {
+    const dist: Record<1 | 2 | 3 | 4 | 5, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+    const rows = await prisma.$queryRaw<{ rating: number; count: bigint }[]>`
+      SELECT r.rating, COUNT(*) AS count
+      FROM session_reviews r
+      JOIN sessions s ON s.id = r.session_id
+      WHERE s.pt_user_id = ${ptUserId}
+      GROUP BY r.rating
+    `;
+    for (const row of rows) {
+      const r = Number(row.rating) as 1 | 2 | 3 | 4 | 5;
+      if (r in dist) dist[r] = Number(row.count);
+    }
+    return dist;
+  },
 };
 
 /** Attaches avgRating/ratingCount to a list of profiles in one aggregate query. */

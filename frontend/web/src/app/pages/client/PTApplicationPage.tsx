@@ -18,6 +18,30 @@ const inp =
 const lbl =
   "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
 
+// ── Weekly availability editor ──────────────────────────────────────────
+// Grouped by day (rather than a flat list of {day, start, end} rows) so that adding a
+// break — e.g. 08:00-11:00 then 14:00-18:00, same day — is an obvious "+" button inside
+// that day's own card, instead of something only discoverable by picking the same day
+// twice from a generic dropdown list.
+const DAY_ORDER: { value: string; label: string; short: string }[] = [
+  { value: "Mon", label: "Thứ 2", short: "T2" },
+  { value: "Tue", label: "Thứ 3", short: "T3" },
+  { value: "Wed", label: "Thứ 4", short: "T4" },
+  { value: "Thu", label: "Thứ 5", short: "T5" },
+  { value: "Fri", label: "Thứ 6", short: "T6" },
+  { value: "Sat", label: "Thứ 7", short: "T7" },
+  { value: "Sun", label: "Chủ nhật", short: "CN" },
+];
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function minutesToTimeStr(mins: number): string {
+  const wrapped = ((mins % 1440) + 1440) % 1440;
+  return `${String(Math.floor(wrapped / 60)).padStart(2, "0")}:${String(wrapped % 60).padStart(2, "0")}`;
+}
+
 const steps = [
   { key: "personal", label: "Thông tin cá nhân", icon: User },
   { key: "identity", label: "Xác thực danh tính", icon: Shield },
@@ -663,6 +687,21 @@ export function PTApplicationPage() {
           );
           return false;
         }
+      }
+    }
+
+    // A block narrower than the session duration can never fit a single booking — it
+    // would silently produce zero bookable slots for that block forever (getAvailableSlots
+    // only emits a slot when currentMinutes + duration <= blockEnd). Caught here instead of
+    // discovered later as "no client can ever book me on Saturdays."
+    const duration = formData.sessionDurationMinutes || 60;
+    for (const block of blocks) {
+      const width = timeToMinutes(block.endTime) - timeToMinutes(block.startTime);
+      if (width > 0 && width < duration) {
+        alert(
+          `Khung giờ ${block.dayOfWeek} ${block.startTime}-${block.endTime} chỉ dài ${width} phút, ngắn hơn thời lượng buổi tập bạn đã chọn (${duration} phút) — khách sẽ không thể đặt buổi nào trong khung này. Hãy nới rộng khung giờ hoặc chọn thời lượng buổi tập ngắn hơn.`,
+        );
+        return false;
       }
     }
     return true;
@@ -1439,112 +1478,189 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className={lbl}>Lịch làm việc hàng tuần *</label>
-                  <button
-                    type="button"
-                    onClick={() => {
+                <label className={lbl}>Lịch làm việc hàng tuần *</label>
+                <p className="text-[10px] text-zinc-600 mb-3 italic">
+                  Mỗi ngày có thể có nhiều khung giờ — bấm "Thêm khung khác" ngay trong
+                  một ngày để khai giờ nghỉ giữa ca (VD: làm 08:00-11:00, nghỉ, làm tiếp
+                  14:00-18:00 cùng ngày đó).
+                </p>
+
+                <div className="space-y-2">
+                  {DAY_ORDER.map((day) => {
+                    const allBlocks = formData.availabilityBlocks || [];
+                    const dayEntries = allBlocks
+                      .map((b: any, i: number) => ({ b, i }))
+                      .filter(({ b }: any) => b.dayOfWeek === day.value);
+
+                    const addBlockForDay = () => {
                       const current = formData.availabilityBlocks || [];
+                      const sameDay = current.filter(
+                        (b: any) => b.dayOfWeek === day.value,
+                      );
+                      const width = Math.max(
+                        formData.sessionDurationMinutes || 60,
+                        60,
+                      );
+                      let start = "08:00";
+                      if (sameDay.length > 0) {
+                        const lastEnd = sameDay.reduce(
+                          (max: string, b: any) =>
+                            b.endTime > max ? b.endTime : max,
+                          sameDay[0].endTime,
+                        );
+                        // Default the next block an hour after the last one ends — reads
+                        // as "here's your break", not two ranges butted up needing a fix.
+                        start = minutesToTimeStr(timeToMinutes(lastEnd) + 60);
+                      }
+                      const end = minutesToTimeStr(
+                        timeToMinutes(start) + width,
+                      );
                       updateField("availabilityBlocks", [
                         ...current,
-                        {
-                          dayOfWeek: "Mon",
-                          startTime: "08:00",
-                          endTime: "12:00",
-                        },
+                        { dayOfWeek: day.value, startTime: start, endTime: end },
                       ]);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-green-400 hover:bg-zinc-700 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Thêm khung giờ
-                  </button>
-                </div>
+                    };
 
-                <div className="space-y-3">
-                  {(formData.availabilityBlocks || []).map(
-                    (block: any, idx: number) => (
+                    const copyToDay = (targetDay: string) => {
+                      const current = formData.availabilityBlocks || [];
+                      const withoutTarget = current.filter(
+                        (b: any) => b.dayOfWeek !== targetDay,
+                      );
+                      const cloned = dayEntries.map(({ b }: any) => ({
+                        ...b,
+                        dayOfWeek: targetDay,
+                      }));
+                      updateField("availabilityBlocks", [
+                        ...withoutTarget,
+                        ...cloned,
+                      ]);
+                    };
+
+                    return (
                       <div
-                        key={idx}
-                        className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3 flex flex-wrap items-center gap-3"
+                        key={day.value}
+                        className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3"
                       >
-                        <div className="flex-1 min-w-[100px]">
-                          <select
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none"
-                            value={block.dayOfWeek}
-                            onChange={(e) => {
-                              const blocks = [
-                                ...(formData.availabilityBlocks || []),
-                              ];
-                              blocks[idx].dayOfWeek = e.target.value;
-                              updateField("availabilityBlocks", blocks);
-                            }}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-zinc-300 w-16 shrink-0">
+                            {day.label}
+                          </span>
+                          {dayEntries.length === 0 && (
+                            <span className="text-[11px] text-zinc-600 italic flex-1">
+                              Nghỉ
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={addBlockForDay}
+                            className={`flex items-center gap-1 px-2 py-1 text-[11px] text-green-400 hover:bg-zinc-700/60 rounded-lg transition-all shrink-0 ${dayEntries.length === 0 ? "" : "ml-auto"}`}
                           >
-                            {[
-                              "Mon",
-                              "Tue",
-                              "Wed",
-                              "Thu",
-                              "Fri",
-                              "Sat",
-                              "Sun",
-                            ].map((d) => (
-                              <option key={d} value={d}>
-                                {d}
-                              </option>
-                            ))}
-                          </select>
+                            <Plus className="w-3 h-3" />
+                            {dayEntries.length === 0
+                              ? "Thêm khung giờ"
+                              : "Thêm khung khác"}
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="time"
-                            className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
-                            value={block.startTime}
-                            onChange={(e) => {
-                              const blocks = [
-                                ...(formData.availabilityBlocks || []),
-                              ];
-                              blocks[idx].startTime = e.target.value;
-                              updateField("availabilityBlocks", blocks);
-                            }}
-                          />
-                          <span className="text-zinc-600">đến</span>
-                          <input
-                            type="time"
-                            className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
-                            value={block.endTime}
-                            onChange={(e) => {
-                              const blocks = [
-                                ...(formData.availabilityBlocks || []),
-                              ];
-                              blocks[idx].endTime = e.target.value;
-                              updateField("availabilityBlocks", blocks);
-                            }}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const blocks = [
-                              ...(formData.availabilityBlocks || []),
-                            ];
-                            blocks.splice(idx, 1);
-                            updateField("availabilityBlocks", blocks);
-                          }}
-                          className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+
+                        {dayEntries.length > 0 && (
+                          <div className="space-y-2 mt-2">
+                            {dayEntries.map(({ b: block, i: idx }: any) => {
+                              const width =
+                                timeToMinutes(block.endTime) -
+                                timeToMinutes(block.startTime);
+                              const duration =
+                                formData.sessionDurationMinutes || 60;
+                              const tooShort = width > 0 && width < duration;
+                              return (
+                                <div key={idx}>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                      type="time"
+                                      className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                                      value={block.startTime}
+                                      onChange={(e) => {
+                                        const blocks = [
+                                          ...(formData.availabilityBlocks ||
+                                            []),
+                                        ];
+                                        blocks[idx].startTime = e.target.value;
+                                        updateField(
+                                          "availabilityBlocks",
+                                          blocks,
+                                        );
+                                      }}
+                                    />
+                                    <span className="text-zinc-600 text-xs">
+                                      đến
+                                    </span>
+                                    <input
+                                      type="time"
+                                      className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                                      value={block.endTime}
+                                      onChange={(e) => {
+                                        const blocks = [
+                                          ...(formData.availabilityBlocks ||
+                                            []),
+                                        ];
+                                        blocks[idx].endTime = e.target.value;
+                                        updateField(
+                                          "availabilityBlocks",
+                                          blocks,
+                                        );
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const blocks = [
+                                          ...(formData.availabilityBlocks ||
+                                            []),
+                                        ];
+                                        blocks.splice(idx, 1);
+                                        updateField(
+                                          "availabilityBlocks",
+                                          blocks,
+                                        );
+                                      }}
+                                      className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  {tooShort && (
+                                    <p className="flex items-start gap-1 text-[10px] text-amber-400 mt-1">
+                                      <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                                      Khung này dài {width} phút, ngắn hơn thời
+                                      lượng buổi tập ({duration} phút) — khách
+                                      sẽ không đặt được buổi nào ở đây.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            <div className="flex flex-wrap items-center gap-1 pt-1">
+                              <span className="text-[10px] text-zinc-600 mr-0.5">
+                                Áp dụng giờ này cho:
+                              </span>
+                              {DAY_ORDER.filter(
+                                (d) => d.value !== day.value,
+                              ).map((d) => (
+                                <button
+                                  key={d.value}
+                                  type="button"
+                                  onClick={() => copyToDay(d.value)}
+                                  className="px-1.5 py-0.5 text-[10px] rounded-md bg-zinc-900 border border-zinc-700 text-zinc-500 hover:border-green-500/50 hover:text-green-400 transition-all"
+                                >
+                                  {d.short}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ),
-                  )}
-                  {(formData.availabilityBlocks || []).length === 0 && (
-                    <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
-                      <Clock className="w-6 h-6 text-zinc-700 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-600">
-                        Chưa thêm khung giờ nào.
-                      </p>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
 

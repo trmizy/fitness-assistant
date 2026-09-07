@@ -352,6 +352,14 @@ export const profileService = {
     return data;
   },
 
+  /** One PT's public profile for the discovery detail modal — adds avgRating/ratingCount
+   *  (already on the list rows too) plus recentReviews: the last 5 commented reviews, which
+   *  the list endpoint never sends. */
+  getPTDetail: async (ptUserId: string) => {
+    const { data } = await api.get(`/profile/pts/${ptUserId}`);
+    return data;
+  },
+
   // Settings Center → Privacy & Data. This deletes ONLY the UserProfile
   // row (+ a fire-and-forget AI-conversation cascade) — it does NOT delete
   // the login account, workouts/programs, contracts, payments, or chat

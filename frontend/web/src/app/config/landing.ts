@@ -45,3 +45,33 @@ export function isSafeReturnPath(path: string | null | undefined): path is strin
     path !== "/login"
   );
 }
+
+/** Each role's own top-level workspace segment, e.g. "/pt" for ROLE_HOME.pt's "/pt/dashboard". */
+function zoneOf(role: UserRole): string {
+  const home = ROLE_HOME[role];
+  return home.slice(0, home.indexOf("/", 1));
+}
+
+/**
+ * Whether a "return to this after login" path actually belongs to the role that just logged
+ * in — the bug this guards against: PT logs out from /pt/dashboard while still ON that page,
+ * RequireRole sees isAuthenticated flip to false and redirects to /login carrying
+ * `state.from: "/pt/dashboard"`; a DIFFERENT account (a client) then logs in on that same
+ * /login screen, and isSafeReturnPath alone says "/pt/dashboard" is a perfectly safe
+ * same-app relative path — which it is, just not for this role — so the client got dropped
+ * on /pt/dashboard and bounced off RequireRole's role check into "403 — Không có quyền truy
+ * cập". isSafeReturnPath stays a pure open-redirect check (still needed on its own); this is
+ * the separate "is it even reachable by this role" check, applied at the same call sites.
+ *
+ * Permissive by construction: only rejects a path that starts with a DIFFERENT role's own
+ * zone — a path outside every zone (there is currently no such route, but nothing here
+ * assumes otherwise) is left alone rather than guessed at.
+ */
+export function isReturnPathForRole(path: string, role: UserRole): boolean {
+  return (Object.keys(ROLE_HOME) as UserRole[])
+    .filter((r) => r !== role)
+    .every((otherRole) => {
+      const otherZone = zoneOf(otherRole);
+      return path !== otherZone && !path.startsWith(otherZone + "/");
+    });
+}

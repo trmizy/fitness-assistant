@@ -226,6 +226,11 @@ export const profileRepository = {
       availableDays: true,
       availableFrom: true,
       availableUntil: true,
+      // availableDays/From/Until are the legacy shape — the current PT application form has
+      // no input for them any more, so they are empty for every PT approved since it moved
+      // to availabilityBlocks. Selected here too so the discovery detail modal's "Lịch làm
+      // việc" section (PTDiscoveryPage.tsx) has real data to show.
+      availabilityBlocks: true,
       portfolioUrl: true,
       linkedinUrl: true,
       websiteUrl: true,

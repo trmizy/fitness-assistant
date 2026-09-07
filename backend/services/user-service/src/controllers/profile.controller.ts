@@ -273,15 +273,17 @@ export const profileController = {
       }
 
       await enrichProfilesWithAuthNames([profile] as any[]);
-      const [rating, recentReviews] = await Promise.all([
+      const [rating, recentReviews, ratingDistribution] = await Promise.all([
         ptReviewRepository.aggregateForPt(userId),
         ptReviewRepository.recentCommentsForPt(userId, 5),
+        ptReviewRepository.ratingDistributionForPt(userId),
       ]);
 
       res.json({
         ...((await withSignedProfilePhoto(profile as any)) as any),
         ...rating,
         recentReviews,
+        ratingDistribution,
       });
     } catch (error) {
       logger.error(error, "Get PT detail error");

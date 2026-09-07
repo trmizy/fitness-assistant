@@ -8,9 +8,9 @@ export function Stars({ value, size = 14 }: { value: number; size?: number }) {
         const fill = Math.max(0, Math.min(1, value - i)); // 0..1 for this star
         return (
           <span key={i} className="relative inline-block" style={{ width: size, height: size }}>
-            <Star className="absolute inset-0 text-zinc-700" style={{ width: size, height: size }} />
+            <Star weight="fill" className="absolute inset-0 text-zinc-700" style={{ width: size, height: size }} />
             <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
-              <Star className="text-amber-400 fill-amber-400" style={{ width: size, height: size }} />
+              <Star weight="fill" className="text-amber-400 fill-amber-400" style={{ width: size, height: size }} />
             </span>
           </span>
         );

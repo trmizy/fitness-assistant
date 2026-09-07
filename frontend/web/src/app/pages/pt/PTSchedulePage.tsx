@@ -13,6 +13,12 @@ import type {
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
+// Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
+// so this can drift by a few minutes from whatever the server actually enforces — harmless:
+// this only decides when the button appears, the server call it triggers is re-checked there
+// regardless).
+const NO_SHOW_GRACE_MIN = 15;
+
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
   "January",
@@ -382,8 +388,15 @@ export function PTSchedulePage() {
     saveAvailMut.mutate(slots);
   };
 
+  // w-full: without it, this root block sat inside AppShell's `flex flex-col` page-transition
+  // wrapper and, despite align-items:stretch being the flex default, ended up sized to its own
+  // content's max-content width instead of the container's full available width — the exact
+  // bug reported live: picking a day whose session card (buttons, longer names) is wider than
+  // the empty "No sessions on this day" state visibly widened the ENTIRE page, calendar column
+  // included, even though the calendar's own content never changed. w-full pins the block to
+  // 100% of its flex parent regardless of what any one child renders.
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+    <div className="w-full p-4 md:p-6 max-w-7xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
@@ -619,23 +632,38 @@ export function PTSchedulePage() {
                               joined — Complete/No-Show would just race that same decision by
                               hand. Cancel stays for both modes: cancelling happens BEFORE the
                               room's own window resolves anything, a different moment in the
-                              session's life entirely. */}
+                              session's life entirely.
+                              Both buttons were showing (and failing on click, with a 400 from
+                              the server) for sessions that had not happened yet — the backend
+                              has always gated on the clock (booking.service.ts's
+                              completeSession requires scheduledEndAt to have passed;
+                              markNoShow requires scheduledStartAt + a grace period), the
+                              buttons here just never mirrored that, letting a PT try to close
+                              out a session days in advance. NO_SHOW_GRACE_MIN mirrors that
+                              service's own default (NO_SHOW_GRACE_MINUTES=15) — a UI nicety,
+                              not the real guard; the server rejects either call regardless. */}
                           {s.sessionMode !== "ONLINE" && (
                             <>
-                              <button
-                                onClick={() => completeMut.mutate(s.id)}
-                                disabled={completeMut.isPending}
-                                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-                              >
-                                <CheckCircle className="w-3 h-3" /> Complete
-                              </button>
-                              <button
-                                onClick={() => noShowMut.mutate(s.id)}
-                                disabled={noShowMut.isPending}
-                                className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
-                              >
-                                <AlertOctagon className="w-3 h-3" /> No-Show
-                              </button>
+                              {Date.now() >= new Date(s.scheduledEndAt).getTime() && (
+                                <button
+                                  onClick={() => completeMut.mutate(s.id)}
+                                  disabled={completeMut.isPending}
+                                  className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                                >
+                                  <CheckCircle className="w-3 h-3" /> Complete
+                                </button>
+                              )}
+                              {Date.now() >=
+                                new Date(s.scheduledStartAt).getTime() +
+                                  NO_SHOW_GRACE_MIN * 60 * 1000 && (
+                                <button
+                                  onClick={() => noShowMut.mutate(s.id)}
+                                  disabled={noShowMut.isPending}
+                                  className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+                                >
+                                  <AlertOctagon className="w-3 h-3" /> No-Show
+                                </button>
+                              )}
                             </>
                           )}
                           {/* PT's own right to propose a new time — same requestReschedule
