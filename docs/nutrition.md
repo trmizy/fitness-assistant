@@ -361,45 +361,28 @@ protein-calorie share) as carb-role — lowered to 20%, regression-tested;
 breaking house style, on both the PT-modify and client-self-edit forms —
 fixed with custom Vietnamese messages, re-verified in the browser.
 
+All items previously listed here as open were closed later on 2026-09-07:
+the dev DB's ~553 stale `curated_vi_food_aliases` rows were deleted
+(confirmed clean — only the ~2,200 correct `manual_seed` rows remain); the
+Exercise/Equipment catalog seed gap was fixed at the root (self-healing
+skip guard + `prisma/seed_all.ts` chaining exercises/equipment/provenance/
+muscle-mapping into one idempotent pipeline, now the real `db:seed`
+entrypoint) and verified end-to-end (873/873 exercises, 0 generic-machine
+fallbacks, all equipment/muscle-heatmap/exercise-history tests pass); the
+"X weeks until diet-break eligible" progress card was added to
+TrainingCyclePage; and the PT-initiated manual diet-break trigger
+(`triggerDietBreakRecommendation`, full stack) was built and browser-
+verified against dev. See `docs/STATUS.md` for the detail on each.
+
 Genuinely still open:
-- Known minor, dev-environment-only data quirk (not a code bug — self-
-  heals on any fresh reseed from the now-corrected food_aliases.vi.json):
-  the dev DB's Food catalog was seeded fresh 2026-09-07, but its Vietnamese
-  aliases carry ~553 older rows (`source='curated_vi_food_aliases'`) from
-  before today's fix, alongside the ~2,200 newly added correct ones. The
-  fixed seed script only adds corrected links, it doesn't purge the old
-  wrong ones, so a handful of legacy mis-links can still surface as a
-  low-ranked (2nd/3rd, never 1st) candidate — e.g. "Fried eggplant" (still
-  vegetarian, just not protein-dense) appearing behind the correct "Tofu,
-  raw" pick in a VEGETARIAN substitute list. Not fixed here (would need a
-  narrow DELETE against dev's food_aliases table, a bigger ask than the
-  add-only reseed already approved); low severity since it never wins the
-  top slot in any case checked.
-- The Exercise-catalog seed gap is broader than first characterized: found
-  2026-09-07 that `seedExercises()` (prisma/seed_exercises_json.ts) skips
-  entirely whenever `Exercise.count() > 0`, so a test DB with ANY partial
-  exercise set (274, later 409 in this session — never re-investigated why
-  it changed, out of scope here) never reaches the full ~874-exercise
-  catalog, and `seed_equipment.ts` (Equipment/ExerciseEquipment, which
-  depends on that full set) never got run against the test DB at all —
-  confirmed via direct queries: `equipment`/`exercise_equipment` are 0 rows.
-  This inflates a from-scratch full-suite run to ~109 failures, ALL
-  confirmed unrelated to nutrition/PT-review/Smart-Substitute (none
-  reference nutrition/calorie/goal/region in their names — checked). Not
-  fixed here (`seedExercises`'s own skip guard would need `>=` some real
-  threshold instead of `>0`, plus running `seed_equipment.ts`, both a
-  separate, pre-existing test-infra task). The 22 PT-review/calorie-floor
-  tests and the earlier 122 nutrition/InBody/region tests were re-run in
-  isolation and are unaffected — see the calorie-floor section below.
 - Region-aware carb/veg-cooking-style personalization is coarser than
   protein (rice is genuinely near-uniform nationally per the research — see
   Smart Substitute section — so this was a deliberate choice, not an
   oversight, but a future carb-role prep-style note is a reasonable ask).
-- Optional cycle-history filtering (diet-break/maintenance-phase modeling
-  is done — see the section above).
-- No UI showing "X weeks until diet-break eligibility" ahead of time, and
-  no PT-initiated manual diet-break trigger outside the normal evaluate()
-  cadence (both noted as not-done in the section above).
+- Nothing else from the original nutrition mega-spec is outstanding. Any
+  further nutrition work from here is new scope, not a continuation of an
+  existing gap — needs a fresh decision on direction rather than another
+  "tiếp tục".
 
 Existing evidence and design references: [body state](body-state-and-adaptive-planning.md),
 [nutrition evidence](research/fitness-nutrition-evidence.md), and

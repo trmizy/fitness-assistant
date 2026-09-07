@@ -498,6 +498,7 @@ model BodyMetrics {
 
 // 💪 Workout Program Templates
 model WorkoutProgram {
+  agentActionId String? @unique @map("agent_action_id")
   id            String  @id @default(uuid())
   userId        String  @map("user_id")
   name          String // "Muscle Gain", "Cutting", etc.
@@ -647,6 +648,9 @@ model WorkoutProgramExerciseSetPrescription {
 // see the impact analysis's privacy audit) or exercise-group/superset
 // structure (disclosed simplification — see Scope decisions).
 model WorkoutProgramTemplate {
+  isPublic Boolean @default(false) @map("is_public")
+  dataOrigin String @default("REAL") @map("data_origin")
+  experienceLevel String? @map("experience_level")
   id                String   @id @default(uuid())
   createdByUserId   String   @map("created_by_user_id")
   name              String

@@ -195,7 +195,7 @@ test(
   "getExerciseProgress: 404s for a nonexistent exercise id and for another user's private USER_CUSTOM exercise",
   skipOpts,
   async () => {
-    const { prisma: db, statsService: svc, exerciseId } = await loadModules();
+    const { prisma: db, statsService: svc } = await loadModules();
     const userId = `exercise-progress-vis-it-${Date.now()}`;
     const ownerId = `exercise-progress-owner-it-${Date.now()}`;
 

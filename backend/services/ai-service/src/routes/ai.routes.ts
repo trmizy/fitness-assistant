@@ -15,11 +15,13 @@ import {
 } from "../schemas/ai.schemas";
 import sessionRoutes from "./session.routes";
 import memoryRoutes from "./memory.routes";
+import fitnessAgentRoutes from "./fitness-agent.routes";
 
 const router = Router();
 
 // All /ai/* routes require a verified user identity.
 router.use(requireAuth);
+router.use("/agent", fitnessAgentRoutes);
 
 router.use("/sessions", sessionRoutes);
 router.use("/memories", memoryRoutes);

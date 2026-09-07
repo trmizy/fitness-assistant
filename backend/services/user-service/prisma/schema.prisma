@@ -194,6 +194,12 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  dataOrigin         String @default("REAL") @map("data_origin")
+  goalIntent         Json? @map("goal_intent")
+  ptBudgetVnd        Int? @map("pt_budget_vnd")
+  journeys           ClientJourney[]
+  agentDrafts        AgentContractDraft[]
+
   ptApplication      PTApplication?
   trainingLocations  PTTrainingLocation[]
   servicePackages    PTServicePackage[]
@@ -300,6 +306,7 @@ model PTApplication {
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 
+  languages            String[] @default([])
   certificates         PTApplicationCertificate[]
   media                PTApplicationMedia[]
 
@@ -311,6 +318,8 @@ model PTApplication {
 model PTApplicationCertificate {
   id                   String        @id @default(uuid())
   applicationId        String        @map("application_id")
+  verificationStatus   String @default("UNVERIFIED") @map("verification_status")
+  certificationNumber  String? @map("certification_number")
   certificateName      String        @map("certificate_name")
   issuingOrganization  String        @map("issuing_organization")
   isCurrentlyValid     Boolean       @map("is_currently_valid")
@@ -510,6 +519,9 @@ enum RescheduleRequestedBy {
 // ─── Contract ─────────────────────────────────────────────────────
 
 model Contract {
+  agentActionId String? @unique @map("agent_action_id")
+  dataOrigin String @default("REAL") @map("data_origin")
+  journeys ClientJourney[]
   id                 String         @id @default(uuid())
   ptUserId           String         @map("pt_user_id")
   clientUserId       String         @map("client_user_id")
@@ -1075,4 +1087,60 @@ model SessionSettlement {
   // The sweep's own query: "everything not yet SETTLED".
   @@index([status])
   @@map("session_settlements")
+}
+
+// Cross-service training/nutrition IDs are references, not cross-database FKs.
+model ClientJourney {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  ptId String? @map("pt_id")
+  contractId String? @map("contract_id")
+  programId String? @map("program_id")
+  trainingCycleId String? @map("training_cycle_id")
+  nutritionGoalId String? @map("nutrition_goal_id")
+  goal String
+  experience String
+  ageBand String? @map("age_band")
+  baselineWeight Float @map("baseline_weight")
+  baselineBodyFat Float? @map("baseline_body_fat")
+  baselineLeanMass Float? @map("baseline_lean_mass")
+  trainingDays Int @map("training_days")
+  sessionMinutes Int @map("session_minutes")
+  constraints String[] @default([])
+  durationWeeks Int @map("duration_weeks")
+  sessionsPrescribed Int @map("sessions_prescribed")
+  sessionsCompleted Int @default(0) @map("sessions_completed")
+  nutritionAdherence Float? @map("nutrition_adherence")
+  endingWeight Float? @map("ending_weight")
+  endingBodyFat Float? @map("ending_body_fat")
+  endingLeanMass Float? @map("ending_lean_mass")
+  strengthChangePercent Float? @map("strength_change_percent")
+  goalAchievement String? @map("goal_achievement")
+  verificationStatus String @default("SELF_REPORTED") @map("verification_status")
+  dataOrigin String @default("REAL") @map("data_origin")
+  status String @default("ACTIVE")
+  startedAt DateTime @default(now()) @map("started_at")
+  endedAt DateTime? @map("ended_at")
+  baselineSnapshot Json? @map("baseline_snapshot")
+  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  contract Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  @@index([dataOrigin, status, goal, experience, baselineWeight])
+  @@index([ptId, dataOrigin, status])
+  @@index([programId, dataOrigin, status])
+  @@index([userId, startedAt])
+  @@map("client_journeys")
+}
+model AgentContractDraft {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  ptId String @map("pt_id")
+  packageId String @map("package_id")
+  snapshot Json
+  status String @default("PENDING")
+  contractId String? @map("contract_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@map("agent_contract_drafts")
 }

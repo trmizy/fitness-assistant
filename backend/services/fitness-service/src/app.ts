@@ -13,6 +13,9 @@ import importRoutes from "./routes/import.routes";
 import exportRoutes from "./routes/export.routes";
 import templateRoutes from "./routes/template.routes";
 
+import agentProgramRoutes from "./routes/agent-program.routes";
+import nutritionAgentRoutes from "./routes/nutrition-agent.routes";
+
 const app = express();
 
 // Roadmap P2 "Canonical import framework" — a Hevy CSV export posted as a
@@ -35,7 +38,9 @@ app.get("/metrics", async (_req, res) => {
 });
 
 app.use("/exercises", exerciseRoutes);
+app.use("/workouts/agent", agentProgramRoutes);
 app.use("/workouts", workoutRoutes);
+app.use("/nutrition/agent", nutritionAgentRoutes);
 app.use("/nutrition", nutritionRoutes);
 app.use("/stats", statsRoutes);
 app.use("/food", foodRoutes);

@@ -269,6 +269,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     carbsAroundWorkout?: boolean;
     preworkoutMeal?: boolean;
     postworkoutMeal?: boolean;
+    autoSaveOnComplete?: boolean;
   }) {
     const { userId, goal, durationWeeks, mealsPerDay } = params;
 
@@ -310,6 +311,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       carbsAroundWorkout: params.carbsAroundWorkout,
       preworkoutMeal: params.preworkoutMeal,
       postworkoutMeal: params.postworkoutMeal,
+      autoSaveOnComplete: params.autoSaveOnComplete,
     });
 
     await conversationRepository.updateNutritionPlanJob(plan.id, job.id!);

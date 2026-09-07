@@ -5,6 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { inbodyService, coachService, type AiChatSessionSummary } from "../../services/api";
 import { useApp } from "../../context/AppContext";
+import { FitnessAgentBlock } from "../../components/agent/FitnessAgentBlocks";
+import { fitnessAgentService, type AgentReply } from "../../services/fitnessAgent";
+import { appendAgentReply } from "../../stores/pendingAiTasks";
 import {
   useAiCoachSession,
   newDraftSessionKey,
@@ -85,6 +88,14 @@ export function AICoachPage() {
     activeSessionId ? "chat" : "list",
   );
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const receiveAgentReply = (reply: AgentReply) => {
+    appendAgentReply(userScopeId, reply);
+    if (reply.sessionId !== activeSessionId) setSearchParams({ sessionId: reply.sessionId });
+    setMobileView("chat");
+    void queryClient.invalidateQueries({ queryKey: ["ai-sessions", userScopeId] });
+  };
   const [renameValue, setRenameValue] = useState("");
   const [archiveTarget, setArchiveTarget] =
     useState<AiChatSessionSummary | null>(null);
@@ -618,6 +629,7 @@ export function AICoachPage() {
               >
                 {renderText(msg.text)}
                 {renderEvidenceSources(msg)}
+                {msg.structuredBlocks?.map((block, index) => <FitnessAgentBlock key={`${msg.id}-block-${index}`} block={block} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} />)}
               </div>
               {msg.from === "user" && (
                 <div className="w-7 h-7 bg-zinc-800 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-zinc-700">
@@ -649,6 +661,21 @@ export function AICoachPage() {
         </div>
 
         {/* Suggestions */}
+        <div className="px-4 py-2 border-t border-zinc-800 text-xs">
+          <label className="inline-flex min-h-11 items-center cursor-pointer text-emerald-300">
+            {imageBusy ? "Đang phân tích ảnh mục tiêu…" : "Gửi ảnh hình thể tham khảo"}
+            <input aria-label="Ảnh mục tiêu hình thể" type="file" accept="image/png,image/jpeg" disabled={imageBusy || aiLoading} className="ml-2 max-w-44" onChange={async e => {
+              const file = e.target.files?.[0]; e.target.value = "";
+              if (!file) return;
+              setImageBusy(true); setImageError("");
+              try { receiveAgentReply(await fitnessAgentService.image(file, activeSessionId ?? undefined)); }
+              catch (error: any) { setImageError(error.response?.data?.error?.message ?? error.message ?? "Không thể phân tích ảnh. Bạn có thể nhập mục tiêu bằng lời."); }
+              finally { setImageBusy(false); }
+            }} />
+          </label>
+          <p className="text-zinc-500">Ảnh được gửi tới dịch vụ AI đã cấu hình để gợi ý mục tiêu; không lưu ảnh làm phép đo cơ thể.</p>
+          {imageError && <p role="alert" className="text-red-300">{imageError}</p>}
+        </div>
         {messages.length <= 1 && (
           <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800/60 flex-shrink-0">
             <div className="flex items-center gap-1.5 mb-2">

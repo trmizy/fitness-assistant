@@ -59,6 +59,7 @@ export interface CoachEvidenceItem {
 }
 
 export interface CoachStreamDonePayload {
+  structuredBlocks?: import("./fitnessAgent").AgentChatBlock[];
   conversationId?: string;
   sessionId?: string;
   evidenceUsed?: CoachEvidenceItem[];
@@ -79,6 +80,7 @@ export interface AiChatSessionSummary {
 }
 
 export interface AiSessionMessage {
+  structuredBlocks?: import("./fitnessAgent").AgentChatBlock[];
   id: string;
   question: string;
   answer: string;

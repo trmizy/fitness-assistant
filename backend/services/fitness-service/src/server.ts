@@ -6,6 +6,7 @@ import { prisma } from "./repositories/prisma";
 import { redisClient } from "./repositories/redis";
 import { workoutWorker } from "./workers/workout.worker";
 import { startWorkoutUpcomingReminderJob, startWorkoutUnfinishedReminderJob } from "./services/workout-reminder.service";
+import { startCycleEvaluationSweepJob } from "./services/cycle-evaluation-sweep.service";
 import { logger } from "@gym-coach/shared";
 
 const PORT = process.env.PORT || 3002;
@@ -24,6 +25,7 @@ async function startServer() {
       // deployment of this service would correctly never start these.
       startWorkoutUpcomingReminderJob();
       startWorkoutUnfinishedReminderJob();
+      startCycleEvaluationSweepJob();
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

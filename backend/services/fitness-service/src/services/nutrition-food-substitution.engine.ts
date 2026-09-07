@@ -53,6 +53,18 @@ export interface SubstituteRequest {
   budgetLevel: BudgetLevel;
   region?: VietnameseRegion | null;
   vegetarianMode?: "LACTO_OVO" | "VEGAN" | null;
+  /** AI-coach agent action (2026-09-07, docs/agentic-fitness/01_NUTRITION_
+   * AGENT_TOOLS_PLAN.md) — when set, the caller named a SPECIFIC
+   * replacement ("tôi muốn ăn cá hồi thay ức gà" — cá hồi, not "an
+   * alternative"), unlike every mode above which picks FOR the user from a
+   * curated pool. Skips the pool search entirely and resolves this exact
+   * food by name instead — still through the same Vietnamese alias-backed
+   * catalog search (foodRepository.searchByName via firstUsableFood) and
+   * the same calorie-equivalent quantity math below, so the result is
+   * exactly as trustworthy as a pool-picked one; only candidate SELECTION
+   * differs. `mode` is still recorded on the result for audit/explanation
+   * but no longer drives which pool is searched when this is set. */
+  desiredFoodName?: string | null;
 }
 
 export interface SubstituteResult {
@@ -157,6 +169,28 @@ const MAX_CANDIDATES = 3;
 
 export async function findFoodSubstitute(req: SubstituteRequest): Promise<SubstituteResult> {
   const role = inferFoodRole(req.currentCalories, req.currentProtein);
+
+  if (req.desiredFoodName) {
+    const excludeIds = new Set<string>(req.currentFoodId ? [req.currentFoodId] : []);
+    const food = await firstUsableFood(req.desiredFoodName, excludeIds);
+    if (!food) {
+      return {
+        role,
+        mode: req.mode,
+        candidates: [],
+        note: `Không tìm thấy "${req.desiredFoodName}" trong danh mục món ăn hiện có.`,
+      };
+    }
+    const rawQtyG = food.calories > 0 ? (req.currentCalories / food.calories) * 100 : req.currentQuantityG;
+    const maxQtyG = food.realisticServingMaxG ?? 300;
+    const quantityG = Math.max(20, Math.min(Math.round(rawQtyG / 10) * 10, maxQtyG));
+    return {
+      role,
+      mode: req.mode,
+      candidates: [{ foodId: food.id, foodName: food.name, quantityG, ...macrosForQuantity(food, quantityG) }],
+      note: buildNote(req.region),
+    };
+  }
 
   if (role === "CARB" && (req.mode === "HIGHER_PROTEIN" || req.mode === "VEGETARIAN")) {
     return { role, mode: req.mode, candidates: [], note: NOT_APPLICABLE_NOTES[`CARB.${req.mode}`] };

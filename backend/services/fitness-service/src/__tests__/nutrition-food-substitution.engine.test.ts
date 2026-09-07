@@ -80,6 +80,47 @@ test("REPLACE: swapping ức gà (protein role) returns a different protein food
   }
 });
 
+test("desiredFoodName: resolves the SPECIFIC named food (\"cá hồi\" -> salmon), not a pool pick, calorie-equivalent quantity", skipOpts, async () => {
+  // AI-coach agent action (docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md):
+  // "tôi muốn ăn cá hồi thay ức gà" names the replacement explicitly —
+  // must resolve exactly that food via the same alias-backed catalog
+  // search Smart Substitute already uses, not a pool-ranked alternative.
+  const { findFoodSubstitute } = await load();
+  const result = await findFoodSubstitute({
+    currentFoodName: "Chicken breast, grilled without sauce, skin eaten",
+    currentQuantityG: 200,
+    currentCalories: 412,
+    currentProtein: 51.4,
+    mode: "REPLACE",
+    budgetLevel: "NORMAL",
+    desiredFoodName: "cá hồi",
+  });
+  assert.equal(result.candidates.length, 1, "a named food resolves to exactly one candidate, not a ranked pool");
+  assert.ok(
+    result.candidates[0].foodName.toLowerCase().includes("salmon"),
+    `expected a salmon food for "cá hồi", got: ${result.candidates[0].foodName}`,
+  );
+  // Calorie-equivalent quantity math is the SAME formula as the pool path —
+  // proves this isn't a fixed 100g default silently changing the meal total.
+  assert.ok(result.candidates[0].quantityG > 0);
+  assert.ok(result.candidates[0].calories > 0);
+});
+
+test("desiredFoodName: a name with no catalog match returns zero candidates with a clear note, never throws or guesses", skipOpts, async () => {
+  const { findFoodSubstitute } = await load();
+  const result = await findFoodSubstitute({
+    currentFoodName: "Chicken breast, grilled without sauce, skin eaten",
+    currentQuantityG: 200,
+    currentCalories: 412,
+    currentProtein: 51.4,
+    mode: "REPLACE",
+    budgetLevel: "NORMAL",
+    desiredFoodName: "xyzzy-mon-khong-ton-tai-nao-ca",
+  });
+  assert.equal(result.candidates.length, 0);
+  assert.ok(result.note.includes("Không tìm thấy"));
+});
+
 test("CHEAPER: forces the LOW-budget pool regardless of the caller's own FLEXIBLE budget", skipOpts, async () => {
   const { findFoodSubstitute } = await load();
   const cheap = await findFoodSubstitute({

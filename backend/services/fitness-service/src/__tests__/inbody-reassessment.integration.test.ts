@@ -262,6 +262,29 @@ test("runReassessmentAndNotify: training decision is actionable (ADJUST) even if
   }
 });
 
+// Phase E (docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md) — the
+// scheduled sweep reuses this exact function with trigger="SCHEDULED", and
+// the notification text must never claim "based on your latest InBody"
+// when nothing InBody-related actually happened.
+test("runReassessmentAndNotify: trigger=SCHEDULED sends the periodic-evaluation wording, never the InBody wording", skipOpts, async () => {
+  const { reassessment: svc } = await loadModules();
+  const originalDeps = { ...svc.inbodyReassessmentDeps };
+  let notifyPayload: any = null;
+  try {
+    Object.assign(svc.inbodyReassessmentDeps, {
+      evaluateCycle: async () => ({ id: randomUUID(), status: "COMPLETED", decision: "ADJUST", nutritionDecision: null }),
+      createPersistentNotification: async (params: any) => { notifyPayload = params; },
+      claimNotification: async () => true,
+    });
+    await svc.runReassessmentAndNotify(randomUUID(), "some-user", "SCHEDULED");
+    assert.ok(notifyPayload, "SCHEDULED trigger with an actionable decision must still notify");
+    assert.ok(notifyPayload.text.includes("định kỳ"), `expected periodic-evaluation wording, got: ${notifyPayload.text}`);
+    assert.ok(!notifyPayload.text.includes("InBody"), `must never claim InBody drove a SCHEDULED evaluation, got: ${notifyPayload.text}`);
+  } finally {
+    Object.assign(svc.inbodyReassessmentDeps, originalDeps);
+  }
+});
+
 test("runReassessmentAndNotify: nutrition decision is actionable (PROPOSE_ADJUSTMENT) even if training is KEEP -> notifies", skipOpts, async () => {
   const { reassessment: svc } = await loadModules();
   const originalDeps = { ...svc.inbodyReassessmentDeps };

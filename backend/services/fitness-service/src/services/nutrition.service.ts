@@ -41,6 +41,60 @@ function sumNutritionItems(items: any[]) {
   );
 }
 
+/**
+ * Found 2026-09-07 (AI agent food-substitution work): addMealItem/
+ * updateMealItem/deleteMealItem each write the single NutritionProgramMealItem
+ * row but never touched the parent NutritionProgramMeal.calories/proteinGrams/
+ * carbGrams/fatGrams or NutritionProgramDay.totalCalories/... rollup columns —
+ * so any edit (manual, or via the new AI substitute action) left those stored
+ * totals stale, and the frontend (CurrentNutritionProgram.tsx, NutritionPage.tsx)
+ * displays those stored fields directly, not a client-side re-sum. This is a
+ * real, pre-existing gap, independent of the agent feature — it just would
+ * have been directly exposed by it.
+ *
+ * At PLAN CREATION time (createProgramFromPlan below) the day/meal totals are
+ * trusted verbatim from the AI-generated payload rather than summed — a
+ * deliberate "trust the source, it already did the math" choice for that one
+ * path. Any edit AFTER creation breaks that trust, so it must be re-derived
+ * from the real items, not left stale or re-copied from the edit request.
+ *
+ * Call within the same transaction as the item mutation that triggered it,
+ * passing the mealId whose item just changed — recomputes that meal from its
+ * live items, then that meal's day from ALL of the day's now-current meals.
+ */
+async function recomputeMealAndDayTotals(tx: any, mealId: string): Promise<void> {
+  const meal = await tx.nutritionProgramMeal.findUnique({
+    where: { id: mealId },
+    include: { items: true },
+  });
+  if (!meal) return; // meal itself was deleted in the same transaction — nothing to roll up
+  const mealTotals = sumNutritionItems(meal.items);
+  await tx.nutritionProgramMeal.update({
+    where: { id: mealId },
+    data: {
+      calories: Math.round(mealTotals.calories),
+      proteinGrams: roundMacro(mealTotals.protein),
+      carbGrams: roundMacro(mealTotals.carbs),
+      fatGrams: roundMacro(mealTotals.fat),
+    },
+  });
+
+  // Re-fetch ALL of the day's meals fresh (not the `meal` object above,
+  // which is now stale for this one meal after the update just above it) so
+  // the day total reflects the meal we just recomputed plus every sibling.
+  const freshMeals = await tx.nutritionProgramMeal.findMany({ where: { dayId: meal.dayId } });
+  const dayTotals = sumNutritionItems(freshMeals);
+  await tx.nutritionProgramDay.update({
+    where: { id: meal.dayId },
+    data: {
+      totalCalories: Math.round(dayTotals.calories),
+      proteinGrams: roundMacro(dayTotals.protein),
+      carbGrams: roundMacro(dayTotals.carbs),
+      fatGrams: roundMacro(dayTotals.fat),
+    },
+  });
+}
+
 function normalizePlanMealItem(item: any) {
   return {
     ...item,
@@ -289,35 +343,39 @@ export const nutritionService = {
       if (!food) throw { status: 400, message: "Food not found in catalog" };
     }
 
-    return prisma.nutritionProgramMealItem.create({
-      data: {
-        mealId,
-        foodId: data.foodId || null,
-        customFoodName: data.customFoodName || data.name || null,
-        quantity: typeof data.quantity === "number" ? data.quantity : 100,
-        unit: data.unit || "g",
-        calories: typeof data.calories === "number" ? data.calories : 0,
-        proteinGrams:
-          typeof data.protein === "number"
-            ? data.protein
-            : typeof data.proteinGrams === "number"
-              ? data.proteinGrams
-              : 0,
-        carbGrams:
-          typeof data.carbs === "number"
-            ? data.carbs
-            : typeof data.carbGrams === "number"
-              ? data.carbGrams
-              : 0,
-        fatGrams:
-          typeof data.fat === "number"
-            ? data.fat
-            : typeof data.fatGrams === "number"
-              ? data.fatGrams
-              : 0,
-        notes: data.notes || null,
-      },
-      include: { food: true },
+    return prisma.$transaction(async (tx: any) => {
+      const created = await tx.nutritionProgramMealItem.create({
+        data: {
+          mealId,
+          foodId: data.foodId || null,
+          customFoodName: data.customFoodName || data.name || null,
+          quantity: typeof data.quantity === "number" ? data.quantity : 100,
+          unit: data.unit || "g",
+          calories: typeof data.calories === "number" ? data.calories : 0,
+          proteinGrams:
+            typeof data.protein === "number"
+              ? data.protein
+              : typeof data.proteinGrams === "number"
+                ? data.proteinGrams
+                : 0,
+          carbGrams:
+            typeof data.carbs === "number"
+              ? data.carbs
+              : typeof data.carbGrams === "number"
+                ? data.carbGrams
+                : 0,
+          fatGrams:
+            typeof data.fat === "number"
+              ? data.fat
+              : typeof data.fatGrams === "number"
+                ? data.fatGrams
+                : 0,
+          notes: data.notes || null,
+        },
+        include: { food: true },
+      });
+      await recomputeMealAndDayTotals(tx, mealId);
+      return created;
     });
   },
 
@@ -370,10 +428,14 @@ export const nutritionService = {
     if (typeof data.fatGrams === "number") patch.fatGrams = data.fatGrams;
     if (data.notes !== undefined) patch.notes = data.notes;
 
-    return prisma.nutritionProgramMealItem.update({
-      where: { id: itemId },
-      data: patch,
-      include: { food: true },
+    return prisma.$transaction(async (tx: any) => {
+      const updated = await tx.nutritionProgramMealItem.update({
+        where: { id: itemId },
+        data: patch,
+        include: { food: true },
+      });
+      await recomputeMealAndDayTotals(tx, (item as any).mealId);
+      return updated;
     });
   },
 
@@ -404,7 +466,11 @@ export const nutritionService = {
         status: 409,
         message: "Cannot delete items from a completed or partial meal",
       };
-    return prisma.nutritionProgramMealItem.delete({ where: { id: itemId } });
+    return prisma.$transaction(async (tx: any) => {
+      const deleted = await tx.nutritionProgramMealItem.delete({ where: { id: itemId } });
+      await recomputeMealAndDayTotals(tx, (item as any).mealId);
+      return deleted;
+    });
   },
 
   /**

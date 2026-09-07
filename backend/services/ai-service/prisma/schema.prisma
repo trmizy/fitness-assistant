@@ -10,6 +10,7 @@ datasource db {
 }
 
 model Conversation {
+  structuredBlocks Json? @map("structured_blocks")
   id                        String    @id @default(uuid())
   userId                    String?   @map("user_id")
   sessionId                 String?   @map("session_id")
@@ -813,4 +814,37 @@ model KnowledgeReviewItem {
   @@index([status])
   @@index([documentId])
   @@map("knowledge_review_queue")
+}
+
+model FitnessRecommendation {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  sessionId String @map("session_id")
+  type String
+  contextSnapshot Json @map("context_snapshot")
+  candidateIds String[] @map("candidate_ids")
+  scoringVersion String @map("scoring_version")
+  similarityVersion String @map("similarity_version")
+  evidenceIds String[] @map("evidence_ids")
+  historicalJourneyIds String[] @map("historical_journey_ids")
+  result Json
+  selectedCandidateId String? @map("selected_candidate_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([userId, sessionId, createdAt])
+  @@map("fitness_recommendations")
+}
+model FitnessAgentAction {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  sessionId String @map("session_id")
+  recommendationId String? @map("recommendation_id")
+  kind String
+  risk String
+  payload Json
+  status String @default("PENDING")
+  result Json?
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([userId, sessionId, createdAt])
+  @@map("fitness_agent_actions")
 }

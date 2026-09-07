@@ -4,7 +4,7 @@ import { prisma } from "../repositories/prisma";
 import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
-import { invalidateCycleProgressCache } from "./training-cycle.service";
+import { invalidateCycleProgressCache, trainingCycleService } from "./training-cycle.service";
 import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate, scheduledDateLabel } from "../utils/schedule-lock.util";
 import { createPersistentNotification } from "../clients/notification.client";
 import { withIdempotentEvent } from "../utils/workout-idempotency.util";
@@ -1576,7 +1576,7 @@ export const workoutService = {
     }));
   },
 
-  async createManualProgram(userId: string, input: CreateManualProgramDto) {
+  async createManualProgram(userId: string, input: CreateManualProgramDto, agent?: { actionId: string }) {
     if (input.days.length !== input.daysPerWeek) {
       throw {
         status: 400,
@@ -1604,6 +1604,20 @@ export const workoutService = {
     const shouldReplace = input.replaceExisting !== false;
 
     const result = await prisma.$transaction(async (tx) => {
+      if (agent) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"agent-plan:" + userId}, 0))`;
+        const prior = await tx.workoutProgram.findUnique({ where: { agentActionId: agent.actionId } });
+        if (prior) {
+          if (prior.userId !== userId) throw { status: 404, message: "Action not found" };
+          return { createdProgram: prior, createdScheduleCount: 0, cancelledScheduleCount: 0, skippedDuplicateCount: 0, schedulePreview: [] };
+        }
+      }
+      let agentCycleId: string | undefined;
+      if (agent) {
+        const active = await tx.trainingCycle.findFirst({ where: { userId, status: "ACTIVE", archivedAt: null } });
+        const cycle = active ?? await trainingCycleService.startCycle(userId, null, input.startDate, input.durationWeeks * 7, { name: input.name }, undefined, tx);
+        agentCycleId = cycle.id;
+      }
       let cancelledScheduleCount = 0;
       if (shouldReplace) {
         // Delete ALL of this user's incomplete schedules (any date, past or
@@ -1632,6 +1646,7 @@ export const workoutService = {
       const createdProgram = await (tx.workoutProgram as any).create({
         data: {
           userId,
+          agentActionId: agent?.actionId,
           name: input.name,
           description: "Manual workout program",
           sourceType: "MANUAL",
@@ -1691,6 +1706,7 @@ export const workoutService = {
           scheduleRows.push({
             userId,
             date: plannedDate,
+            trainingCycleId: agentCycleId,
             programDayId: day.id,
             sourceType: "MANUAL",
             notes: `${input.name} - Week ${weekIndex + 1} Day ${day.dayNumber}`,
@@ -1711,6 +1727,7 @@ export const workoutService = {
         skipDuplicates: true,
       });
 
+      if (agent) await tx.recommendationAudit.create({ data: { userId, cycleId: agentCycleId!, engineVersion: "fitness-agent-v1", decision: "APPLY_TRAINING_PLAN", reasonCodes: ["USER_CONFIRMED"], metricsSnapshot: { actionId: agent.actionId, programId: createdProgram.id } } });
       return {
         createdProgram,
         createdScheduleCount: createResult.count,
@@ -1721,7 +1738,7 @@ export const workoutService = {
         ),
         schedulePreview,
       };
-    });
+    }, { timeout: agent ? 30000 : 5000 });
 
     return {
       success: true,

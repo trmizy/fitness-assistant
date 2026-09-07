@@ -141,7 +141,7 @@ test(
   "getMuscleHeatmap: 30d range includes a workout the 7d range excludes",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc, airBikeId, carDriversId } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-30d-it-${Date.now()}`;
     try {
       await seedWorkout(db, userId, daysAgo(20), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);
@@ -162,7 +162,7 @@ test(
   "getMuscleHeatmap: cycle range uses the user's real ACTIVE TrainingCycle window; reports an explicit noActiveCycle state when there isn't one",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc, airBikeId, carDriversId } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-cycle-it-${Date.now()}`;
     try {
       const noCycleResult = await svc.getMuscleHeatmap(userId, { range: "cycle" });
@@ -190,7 +190,7 @@ test(
   "getMuscleHeatmap: custom range respects explicit from/to; rejects an invalid custom range",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc, airBikeId, carDriversId } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-custom-it-${Date.now()}`;
     try {
       await seedWorkout(db, userId, daysAgo(50), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);

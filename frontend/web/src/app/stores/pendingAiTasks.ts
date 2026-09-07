@@ -33,6 +33,7 @@ export interface PendingAiTask {
 }
 
 export interface AiChatMessage {
+  structuredBlocks?: import("../services/fitnessAgent").AgentChatBlock[];
   id: number | string;
   from: "user" | "ai";
   text: string;
@@ -407,6 +408,7 @@ export function hydrateSessionMessages(
       text: c.answer,
       time: c.createdAt,
       evidenceUsed: c.evidenceUsed,
+      structuredBlocks: c.structuredBlocks,
     },
   ]);
 
@@ -417,6 +419,16 @@ export function hydrateSessionMessages(
     lastError: null,
     updatedAt: nowIso(),
   });
+}
+
+export function appendAgentReply(userId: string, reply: import("../services/fitnessAgent").AgentReply) {
+  const current = getCoachSession(userId, reply.sessionId);
+  const id = `${reply.conversationId}-a`;
+  if (current.messages.some(m => m.id === id)) return;
+  setCoachSession(userId, reply.sessionId, { ...current, messages: [...current.messages, {
+    id, from: "ai", text: reply.block.type === "ACTION_RESULT" ? "Thao tác đã hoàn tất." : "Kiểm tra thông tin bên dưới.",
+    time: nowIso(), structuredBlocks: [reply.block],
+  }], updatedAt: nowIso() });
 }
 
 export function useAiCoachSession(userId?: string, sessionKey?: string) {
@@ -548,7 +560,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
           applyIfCurrent((sessionState) => {
             const nextMessages = sessionState.messages.map((message) =>
               message.id === placeholderMessage.id
-                ? { ...message, text: replyText, evidenceUsed }
+                ? { ...message, text: replyText, evidenceUsed, structuredBlocks: result?.structuredBlocks ?? [] }
                 : message,
             );
             return {
@@ -637,7 +649,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
             ...sessionState,
             messages: sessionState.messages.map((message) =>
               message.id === placeholderMessage.id
-                ? { ...message, evidenceUsed }
+                ? { ...message, evidenceUsed, structuredBlocks: payload.structuredBlocks ?? [] }
                 : message,
             ),
             status: "completed",

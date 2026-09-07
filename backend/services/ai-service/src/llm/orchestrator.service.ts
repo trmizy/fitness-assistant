@@ -1,5 +1,6 @@
 import { llmService } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
+import { fitnessAgent } from "../services/fitness-agent.service";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { logger } from "@gym-coach/shared";
 import {
@@ -147,6 +148,19 @@ function isBodyCompositionQuestion(question: string): boolean {
   );
 }
 
+export function isFitnessScopeRefusal(answer: string): boolean {
+  const q = foldForIntent(answer);
+  const apologyOrRefusal =
+    /\b(xin loi|sorry|khong the ho tro|khong the ho tro chinh xac|wouldn'?t be able|cannot help)\b/i.test(
+      q,
+    );
+  const fitnessScopeClaim =
+    /(chi ho tro|only support|specialized in|chuyen ve).{0,120}(fitness|the hinh|tap luyen|suc khoe|dinh duong|physical health)|ngoai linh vuc|outside (my )?(area|scope)/i.test(
+      q,
+    );
+  return apologyOrRefusal && fitnessScopeClaim;
+}
+
 function isTimeoutError(err: unknown): boolean {
   const message = safeErrorMessage(err);
   return /timeout|timed out|ECONNABORTED/i.test(message);
@@ -157,7 +171,10 @@ function buildDeterministicBodyCompFallback(
   bodyCompText: string,
   deterministicAnswer: string,
 ): string {
-  const analysis = bodyCompText.trim() || deterministicAnswer.trim();
+  const analysis = localizeBodyCompTextForFallback(
+    language,
+    bodyCompText.trim() || deterministicAnswer.trim(),
+  );
   if (language.responseLanguage === "vi") {
     return [
       "Tôi chưa dùng được LLM chi tiết lúc này, nên trả phân tích deterministic từ dữ liệu hiện có:",
@@ -174,6 +191,88 @@ function buildDeterministicBodyCompFallback(
     analysis,
     "",
     "If this is not detailed enough, check Ollama readiness and retry for the full narrative analysis.",
+  ].join("\n");
+}
+
+function localizeBodyCompTextForFallback(
+  language: LanguageDecision,
+  text: string,
+): string {
+  if (language.responseLanguage !== "vi") return text;
+  return text.replace(
+    "No InBody/DXA data available. Using self-reported profile weight. Body composition estimates will be less accurate. Recommend measuring InBody for better personalization.",
+    "Chưa tìm thấy dữ liệu InBody/DXA trong hồ sơ hiện tại. Nếu bạn vừa cập nhật InBody, hãy đồng bộ lại dữ liệu hoặc thử lại sau ít phút; nếu chưa có, hãy thêm lần đo InBody để phân tích cá nhân hóa chính xác hơn.",
+  );
+}
+
+function buildVerifiedBodyCompFallback(
+  language: LanguageDecision,
+  bodyCompText: string,
+  deterministicAnswer: string,
+): string {
+  const analysis = localizeBodyCompTextForFallback(
+    language,
+    bodyCompText.trim() || deterministicAnswer.trim(),
+  );
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là yêu cầu phân tích InBody/hồ sơ cơ thể.",
+      "",
+      analysis,
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as a body-composition/InBody analysis request.",
+    "",
+    analysis,
+  ].join("\n");
+}
+
+function buildVerifiedFitnessFallback(
+  language: LanguageDecision,
+  deterministicAnswer: string,
+): string {
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là câu hỏi thuộc phạm vi tập luyện/sức khỏe.",
+      "",
+      deterministicAnswer.trim(),
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as a training or physical-health question.",
+    "",
+    deterministicAnswer.trim(),
+  ].join("\n");
+}
+
+function buildInjuryScopeFallback(language: LanguageDecision): string {
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là câu hỏi về chấn thương/đau khi tập.",
+      "",
+      "## Việc nên làm ngay",
+      "1. Dừng các bài làm đau vai, đặc biệt là đẩy vai, bench press nặng, dips, upright row hoặc động tác đưa tay qua đầu.",
+      "2. Không cố tập xuyên đau. Nếu đau sắc, yếu tay, tê lan, sưng/bầm rõ, hoặc đau sau té/ngã, hãy đi khám bác sĩ/chuyên gia vật lý trị liệu.",
+      "3. Trong 24-48 giờ đầu, ưu tiên nghỉ tương đối, ngủ đủ, và chỉ vận động nhẹ trong biên độ không đau.",
+      "",
+      "## Khi quay lại tập",
+      "- Tập thân dưới, core nhẹ, đi bộ/cardio nhẹ nếu không làm vai đau.",
+      "- Với vai, chỉ bắt đầu bằng bài phục hồi rất nhẹ như external rotation bằng dây, scapular retraction, wall slide trong biên độ không đau.",
+      "- Giảm tải ít nhất 30-50% khi tập lại và tăng dần nếu không đau trong/sau buổi tập.",
+      "",
+      "Bạn cho mình biết đau ở vị trí nào của vai, đau khi làm động tác nào, mức đau 0-10, và chấn thương xảy ra từ khi nào nhé.",
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as an injury/pain question.",
+    "",
+    "Stop movements that provoke shoulder pain, avoid pressing or overhead work for now, and seek medical/physio care if pain is sharp, spreading, associated with weakness/numbness, visible swelling/bruising, or followed a fall.",
+    "",
+    "You can keep training pain-free lower-body, light core, and easy cardio. For the shoulder, restart only with very light pain-free rehab work, then ramp load gradually.",
   ].join("\n");
 }
 
@@ -331,6 +430,13 @@ export const llmOrchestrator = {
     }
 
     // Emit before any I/O - fires immediately after safety gate passes.
+    if (userId && sessionId) {
+      const agentResult = await fitnessAgent.tryTurn(question, { userId, authorizationHeader: authHeader }, sessionId);
+      if (agentResult) {
+        traceLogger.end(trace, { retrievalEmpty: false, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "fitness_agent" });
+        return { ...makeEarlyPayload(trace.traceId, agentResult.answer, language, "fitness_agent"), structuredBlocks: agentResult.blocks };
+      }
+    }
     onProgress?.("AI đang phân tích dữ liệu...");
 
     // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently -
@@ -773,6 +879,7 @@ export const llmOrchestrator = {
     const needsLlm =
       llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
     const bodyCompositionQuestion = isBodyCompositionQuestion(question);
+    let usedDeterministicFallbackBecauseOfValidation = false;
 
     // Merge evidence docs into retrieval so compactRetrieval() can format citations
     const mergedRetrieval =
@@ -820,6 +927,33 @@ export const llmOrchestrator = {
         promptTokens = llmResponse.promptTokens;
         completionTokens = llmResponse.completionTokens;
         totalTokens = llmResponse.totalTokens;
+        if (
+          safetyCheck.type === "safe" &&
+          isFitnessScopeRefusal(llmAnswer) &&
+          deterministicAnswer.trim()
+        ) {
+          llmAnswer =
+            bodyCompositionQuestion && bodyCompText.trim()
+              ? buildVerifiedBodyCompFallback(
+                  language,
+                  bodyCompText,
+                  deterministicAnswer,
+                )
+              : parsedInput.mentionsInjury
+                ? buildInjuryScopeFallback(language)
+              : buildVerifiedFitnessFallback(language, deterministicAnswer);
+          usedDeterministicFallbackBecauseOfValidation = true;
+          fallbackReason = bodyCompositionQuestion
+            ? "llm_scope_refusal_deterministic_body_comp"
+            : parsedInput.mentionsInjury
+              ? "llm_scope_refusal_injury_fallback"
+              : "llm_scope_refusal_deterministic_fitness";
+          onProgress?.(
+            bodyCompositionQuestion
+              ? "Đang dùng phân tích InBody đã kiểm chứng."
+              : "Đang dùng câu trả lời đã kiểm chứng.",
+          );
+        }
       } catch (err) {
         const useBodyCompDeterministicFallback =
           bodyCompositionQuestion && (bodyCompText.trim() || deterministicAnswer.trim());
@@ -861,7 +995,6 @@ export const llmOrchestrator = {
     // structural validation - injury/advisory answers legitimately lack workout structure.
     const injuryForcedLlm =
       parsedInput.mentionsInjury && !llmIntents.has(routedIntent.intent);
-    let usedDeterministicFallbackBecauseOfValidation = false;
     if (
       needsLlm &&
       !unsafe?.blocked &&

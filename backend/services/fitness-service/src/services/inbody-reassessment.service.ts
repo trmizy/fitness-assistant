@@ -82,12 +82,25 @@ export type ReassessmentTriggerResult =
   | { triggered: false; reason: "NO_ACTIVE_CYCLE" | "ASSESSMENT_ALREADY_PENDING" | "TOO_SOON_SINCE_LAST_REVIEW" }
   | { triggered: true; cycleId: string };
 
+// Phase E (docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md,
+// "scheduled/automatic cycle evaluation") — this file's cooldown/actionable-
+// only/atomic-claim gating is exactly what a periodic sweep needs too, so
+// cycle-evaluation-sweep.service.ts calls the SAME functions below with
+// trigger="SCHEDULED" rather than duplicating the gating logic. The only
+// thing that differs by trigger is the notification's own wording — it
+// must never claim "based on your latest InBody" when a scheduled sweep,
+// not a new InBody entry, is what actually caused this evaluation.
+export type ReassessmentTrigger = "INBODY" | "SCHEDULED";
+
 /**
  * Fast, synchronous-only gating — safe to await directly from an HTTP
  * handler (no LLM call happens in this function). The actual (potentially
  * slow, LLM-backed) evaluation is kicked off detached, never awaited here.
  */
-export async function maybeAutoTriggerInBodyReassessment(userId: string): Promise<ReassessmentTriggerResult> {
+export async function maybeAutoTriggerInBodyReassessment(
+  userId: string,
+  trigger: ReassessmentTrigger = "INBODY",
+): Promise<ReassessmentTriggerResult> {
   let activeCycle: Awaited<ReturnType<typeof trainingCycleService.getActiveCycle>> | null = null;
   try {
     activeCycle = await trainingCycleService.getActiveCycle(userId);
@@ -114,8 +127,9 @@ export async function maybeAutoTriggerInBodyReassessment(userId: string): Promis
 
   // Detached on purpose — evaluateCycle can call an LLM (up to ~90s
   // configured timeout) and this function must return immediately so the
-  // InBody-creation request that triggered it is never slowed down.
-  void runReassessmentAndNotify(cycle.id, userId).catch((err) => {
+  // InBody-creation request (or scheduled-sweep tick) that triggered it is
+  // never slowed down.
+  void runReassessmentAndNotify(cycle.id, userId, trigger).catch((err) => {
     logger.warn({ err: (err as Error).message, userId, cycleId: cycle.id }, "[inbody-reassessment] background evaluation failed");
   });
 
@@ -126,7 +140,7 @@ export async function maybeAutoTriggerInBodyReassessment(userId: string): Promis
 // above is the only real caller, always detached) purely so tests can
 // `await` the actionable/non-actionable notify decision directly instead
 // of racing a fire-and-forget background promise.
-export async function runReassessmentAndNotify(cycleId: string, userId: string): Promise<void> {
+export async function runReassessmentAndNotify(cycleId: string, userId: string, trigger: ReassessmentTrigger = "INBODY"): Promise<void> {
   const assessment = await inbodyReassessmentDeps.evaluateCycle(cycleId, userId);
 
   // Gate #2, part one: an assessment that hasn't finished being computed
@@ -169,7 +183,9 @@ export async function runReassessmentAndNotify(cycleId: string, userId: string):
 
   await inbodyReassessmentDeps.createPersistentNotification({
     userId,
-    text: "Gymini vừa đánh giá lại kế hoạch của bạn dựa trên chỉ số InBody mới nhất. Xem đề xuất ngay.",
+    text: trigger === "SCHEDULED"
+      ? "Gymini vừa đánh giá định kỳ chu kỳ tập của bạn. Xem đề xuất ngay."
+      : "Gymini vừa đánh giá lại kế hoạch của bạn dựa trên chỉ số InBody mới nhất. Xem đề xuất ngay.",
     eventType: "CYCLE_REASSESSMENT_READY",
     entityId: cycleId,
     link: "/client/workout",
