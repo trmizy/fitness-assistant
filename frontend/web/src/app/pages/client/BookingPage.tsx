@@ -1022,6 +1022,11 @@ export function BookingPage() {
                         ) : (
                           <div className="flex flex-col gap-2">
                             <div className="text-amber-400 font-medium">PT yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}</div>
+                            {s.rescheduleRequests[0].reason && (
+                              <div className="text-zinc-400 italic">
+                                Lý do: "{s.rescheduleRequests[0].reason}"
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button
                                 onClick={() => sessionService.respondToReschedule(s.rescheduleRequests![0].id, "ACCEPT").then(() => queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] }))}

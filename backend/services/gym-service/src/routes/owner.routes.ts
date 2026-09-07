@@ -47,9 +47,12 @@ router.get('/gyms/:gymId/wallet', asyncHandler(async (req, res) => {
   }
 }));
 
-router.post('/gyms/:gymId/plans', validateBody(planCreateSchema), asyncHandler(planController.create));
-router.get('/gyms/:gymId/plans', asyncHandler(planController.listOwned));
-router.patch('/gyms/:gymId/plans/:planId', validateBody(planUpdateSchema), asyncHandler(planController.update));
+// Plans are brand-scoped now (one owner, one brand — see GymMembershipPlan's schema doc
+// comment): a plan is sold by the brand, works at every branch, so these hang off /brands/:id
+// rather than any one gym.
+router.post('/brands/:brandId/plans', validateBody(planCreateSchema), asyncHandler(planController.create));
+router.get('/brands/:brandId/plans', asyncHandler(planController.listOwned));
+router.patch('/brands/:brandId/plans/:planId', validateBody(planUpdateSchema), asyncHandler(planController.update));
 
 router.get('/gyms/:gymId/memberships', asyncHandler(membershipController.listForOwner));
 

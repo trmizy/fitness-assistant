@@ -1,38 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, PlusIcon as Plus, XIcon as X, WalletIcon, UsersIcon as Users, ListChecksIcon as ListChecks, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
+import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, WalletIcon, UsersIcon as Users, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
-import type { Gym, GymBrand, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
+import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
-/** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
- * so the badge here always matches what the public listing would actually show. */
-function saleWindowLabel(plan: GymMembershipPlan): { text: string; color: string } | null {
-  if (!plan.saleStartAt && !plan.saleEndAt) return null;
-  const now = new Date();
-  if (plan.saleStartAt && now < new Date(plan.saleStartAt)) {
-    return { text: `Mở bán từ ${new Date(plan.saleStartAt).toLocaleDateString("vi-VN")}`, color: "text-blue-400" };
-  }
-  if (plan.saleEndAt && now > new Date(plan.saleEndAt)) {
-    return { text: "Đã hết hạn bán", color: "text-zinc-500" };
-  }
-  const until = plan.saleEndAt ? ` đến ${new Date(plan.saleEndAt).toLocaleDateString("vi-VN")}` : "";
-  return { text: `Đang mở bán${until}`, color: "text-green-400" };
-}
-
 export function GymManagePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showCreatePlan, setShowCreatePlan] = useState(false);
-  useBackDismissible(!!showCreatePlan, () => setShowCreatePlan(false));
-  const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -90,12 +72,6 @@ export function GymManagePage() {
     enabled: !!id,
   });
 
-  const { data: plans = [], isLoading: plansLoading } = useQuery<GymMembershipPlan[]>({
-    queryKey: ["owned-gym-plans", id],
-    queryFn: () => gymService.listOwnedPlans(id!),
-    enabled: !!id,
-  });
-
   const { data: memberships = [] } = useQuery<GymMembershipContract[]>({
     queryKey: ["owned-gym-memberships", id],
     queryFn: () => gymService.listOwnedMemberships(id!),
@@ -139,25 +115,6 @@ export function GymManagePage() {
     PAID: "Đã chi trả",
     REJECTED: "Bị từ chối",
   };
-
-  const createPlanMutation = useMutation({
-    mutationFn: () =>
-      gymService.createPlan(id!, {
-        name: plan.name,
-        price: Number(plan.price),
-        durationDays: Number(plan.durationDays),
-        visitLimit: plan.visitLimit ? Number(plan.visitLimit) : undefined,
-        saleStartAt: plan.saleStartAt || undefined,
-        saleEndAt: plan.saleEndAt || undefined,
-      }),
-    onSuccess: () => {
-      toast.success("Plan created");
-      setShowCreatePlan(false);
-      setPlan({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
-      queryClient.invalidateQueries({ queryKey: ["owned-gym-plans", id] });
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create plan"),
-  });
 
   if (gymLoading) {
     return (
@@ -403,54 +360,28 @@ export function GymManagePage() {
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />
 
-      {/* PT collaboration — component existed, fully built, but was never mounted on any
-          page: an owner had no way to reach it at all. */}
+      {/* PT collaboration for THIS branch specifically — proposing/inviting only makes sense
+          in a specific gym's context, which is why this stays here even though there is now
+          also a brand-wide aggregate view (see GymCollaborationsPage.tsx, reachable from the
+          "Quản lý cộng tác" nav entry) for just glancing at every branch's offers at once
+          without hunting through each gym's own page. */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
         <CollaborationPanel as="GYM" gymId={id!} />
       </div>
 
-      {/* Check-in */}
-      <GymCheckinPanel gymId={id!} />
-
-      {/* Plans */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-1.5"><ListChecks className="w-4 h-4" /> Membership Plans</h2>
-          <button
-            type="button"
-            onClick={() => setShowCreatePlan(true)}
-            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> New Plan
-          </button>
-        </div>
-        {plansLoading ? (
-          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-        ) : plans.length === 0 ? (
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-sm text-zinc-500">No plans yet</div>
-        ) : (
-          <div className="space-y-2">
-            {plans.map((p) => {
-              const saleWindow = saleWindowLabel(p);
-              return (
-                <div key={p.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-zinc-200">{p.name}</div>
-                    <div className="text-xs text-zinc-600">{p.durationDays} days{p.visitLimit ? ` · ${p.visitLimit} visits` : " · unlimited"}</div>
-                    {saleWindow && <div className={`text-[11px] mt-0.5 ${saleWindow.color}`}>{saleWindow.text}</div>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${p.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-zinc-700/50 border-zinc-700 text-zinc-400"}`}>
-                      {p.status}
-                    </span>
-                    <span className="text-sm font-bold text-green-400">{formatVND(Number(p.price))}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Plans moved to their own top-level page — a plan is sold by the BRAND now (see
+          GymPlansPage.tsx), not this one branch, so there is nothing gym-specific left to
+          manage here. */}
+      <button
+        type="button"
+        onClick={() => navigate("/gym-owner/plans")}
+        className="w-full flex items-center justify-between bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors text-left"
+      >
+        <span className="text-sm font-semibold text-zinc-300">
+          Gói hội viên được quản lý chung cho cả thương hiệu
+        </span>
+        <span className="text-xs font-semibold text-green-400 shrink-0">Quản lý gói →</span>
+      </button>
 
       {/* Memberships */}
       <div>
@@ -485,88 +416,6 @@ export function GymManagePage() {
         )}
       </div>
 
-      {/* Create plan dialog */}
-      {showCreatePlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">New Membership Plan</h3>
-              <button type="button" onClick={() => setShowCreatePlan(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <input
-                aria-label="Plan name"
-                value={plan.name}
-                onChange={(e) => setPlan({ ...plan, name: e.target.value })}
-                placeholder="Plan name (e.g. Monthly)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Price"
-                type="number"
-                value={plan.price}
-                onChange={(e) => setPlan({ ...plan, price: e.target.value })}
-                placeholder="Price (VND)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Duration in days"
-                type="number"
-                value={plan.durationDays}
-                onChange={(e) => setPlan({ ...plan, durationDays: e.target.value })}
-                placeholder="Duration (days)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Visit limit (optional)"
-                type="number"
-                value={plan.visitLimit}
-                onChange={(e) => setPlan({ ...plan, visitLimit: e.target.value })}
-                placeholder="Visit limit (blank = unlimited)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">
-                  Thời gian mở bán (tuỳ chọn — dùng cho gói khuyến mãi)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    aria-label="Sale start date"
-                    type="date"
-                    value={plan.saleStartAt}
-                    onChange={(e) => setPlan({ ...plan, saleStartAt: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  />
-                  <input
-                    aria-label="Sale end date"
-                    type="date"
-                    value={plan.saleEndAt}
-                    onChange={(e) => setPlan({ ...plan, saleEndAt: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  />
-                </div>
-                <p className="text-[11px] text-zinc-600 mt-1">Để trống cả hai = luôn mở bán.</p>
-              </div>
-            </div>
-            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setShowCreatePlan(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => createPlanMutation.mutate()}
-                disabled={!plan.name.trim() || !plan.price || createPlanMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
-              >
-                {createPlanMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

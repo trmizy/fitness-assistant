@@ -1,4 +1,4 @@
-import { gymService } from './gym.service';
+import { brandService } from './brand.service';
 import { planRepository } from '../repositories/plan.repository';
 
 function err(message: string, status: number) {
@@ -21,22 +21,27 @@ export function isPlanOnSale(plan: { saleStartAt: Date | null; saleEndAt: Date |
   return true;
 }
 
+/**
+ * One owner, one brand — a plan is sold by the brand, not any one branch (see
+ * GymMembershipPlan's own schema doc comment). Ownership here is always checked through
+ * brandService.getOwnedBrand, never a specific gym.
+ */
 export const planService = {
-  async listActiveByGym(gymId: string) {
-    return planRepository.findActiveByGym(gymId);
+  async listActiveByBrand(brandId: string) {
+    return planRepository.findActiveByBrand(brandId);
   },
 
   async createPlan(
-    gymId: string,
+    brandId: string,
     ownerId: string,
     data: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number; saleStartAt?: string; saleEndAt?: string },
   ) {
-    await gymService.getOwnedGym(gymId, ownerId);
+    await brandService.getOwnedBrand(brandId, ownerId);
     const saleStartAt = data.saleStartAt ? new Date(data.saleStartAt) : null;
     const saleEndAt = data.saleEndAt ? new Date(data.saleEndAt) : null;
     assertSaleWindowValid(saleStartAt, saleEndAt);
     return planRepository.create({
-      gym: { connect: { id: gymId } },
+      brand: { connect: { id: brandId } },
       name: data.name,
       description: data.description,
       price: data.price,
@@ -47,20 +52,20 @@ export const planService = {
     });
   },
 
-  async listOwnedPlans(gymId: string, ownerId: string) {
-    await gymService.getOwnedGym(gymId, ownerId);
-    return planRepository.findAllByGym(gymId);
+  async listOwnedPlans(brandId: string, ownerId: string) {
+    await brandService.getOwnedBrand(brandId, ownerId);
+    return planRepository.findAllByBrand(brandId);
   },
 
   async updatePlan(
-    gymId: string,
+    brandId: string,
     planId: string,
     ownerId: string,
     data: Partial<{ name: string; description: string; price: number; durationDays: number; visitLimit: number; status: 'ACTIVE' | 'INACTIVE'; saleStartAt: string | null; saleEndAt: string | null }>,
   ) {
-    await gymService.getOwnedGym(gymId, ownerId);
+    await brandService.getOwnedBrand(brandId, ownerId);
     const plan = await planRepository.findById(planId);
-    if (!plan || plan.gymId !== gymId) throw err('Plan not found', 404);
+    if (!plan || plan.brandId !== brandId) throw err('Plan not found', 404);
 
     const saleStartAt = data.saleStartAt !== undefined ? (data.saleStartAt ? new Date(data.saleStartAt) : null) : plan.saleStartAt;
     const saleEndAt = data.saleEndAt !== undefined ? (data.saleEndAt ? new Date(data.saleEndAt) : null) : plan.saleEndAt;

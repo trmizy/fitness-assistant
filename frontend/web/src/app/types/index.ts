@@ -11,6 +11,10 @@ export interface User {
   goal?: string;
   fitnessLevel?: "beginner" | "intermediate" | "advanced";
   isPT?: boolean;
+  /** True only for an admin-created account (currently just gym owners) still on its random
+   * temporary password. AppShell blocks all navigation behind a forced change-password
+   * screen while this is true; cleared server-side the moment any password change succeeds. */
+  mustChangePassword?: boolean;
 }
 
 export interface InBodyEntry {

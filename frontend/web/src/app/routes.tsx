@@ -75,6 +75,8 @@ const PTServiceOrderPage = lazy(() => import("./pages/pt/PTServiceOrderPage").th
 const GymOwnerDashboard = lazy(() => import("./pages/gym-owner/GymOwnerDashboard").then((m) => ({ default: m.GymOwnerDashboard })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
 const GymManagePage = lazy(() => import("./pages/gym-owner/GymManagePage").then((m) => ({ default: m.GymManagePage })));
+const GymPlansPage = lazy(() => import("./pages/gym-owner/GymPlansPage").then((m) => ({ default: m.GymPlansPage })));
+const GymCollaborationsPage = lazy(() => import("./pages/gym-owner/GymCollaborationsPage").then((m) => ({ default: m.GymCollaborationsPage })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
@@ -83,13 +85,12 @@ const PTManagement = lazy(() => import("./pages/admin/PTManagement").then((m) =>
 const MarketplaceModeration = lazy(() => import("./pages/admin/MarketplaceModeration").then((m) => ({ default: m.MarketplaceModeration })));
 const AdminExerciseReview = lazy(() => import("./pages/admin/AdminExerciseReview").then((m) => ({ default: m.AdminExerciseReview })));
 const AdminCatalogQuality = lazy(() => import("./pages/admin/AdminCatalogQuality").then((m) => ({ default: m.AdminCatalogQuality })));
-const PTServiceRefunds = lazy(() => import("./pages/admin/PTServiceRefunds").then((m) => ({ default: m.PTServiceRefunds })));
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring").then((m) => ({ default: m.SystemMonitoring })));
 const AdminWorkflowStudio = lazy(() => import("./pages/admin/AdminWorkflowStudio").then((m) => ({ default: m.AdminWorkflowStudio })));
 const AdminAIObservability = lazy(() => import("./pages/admin/AdminAIObservability").then((m) => ({ default: m.AdminAIObservability })));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes").then((m) => ({ default: m.AdminDisputes })));
-const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals").then((m) => ({ default: m.AdminWithdrawals })));
 const AdminGymModeration = lazy(() => import("./pages/admin/AdminGymModeration").then((m) => ({ default: m.AdminGymModeration })));
+const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
 
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -256,6 +257,8 @@ export const router = createBrowserRouter([
           { path: "dashboard", Component: GymOwnerDashboard },
           { path: "gyms", Component: MyGymsPage },
           { path: "gyms/:id", Component: GymManagePage },
+          { path: "plans", Component: GymPlansPage },
+          { path: "collaborations", Component: GymCollaborationsPage },
         ],
       },
 
@@ -275,10 +278,13 @@ export const router = createBrowserRouter([
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "exercise-review", Component: AdminExerciseReview },
           { path: "catalog-quality", Component: AdminCatalogQuality },
-          { path: "pt-service-refunds", Component: PTServiceRefunds },
+          { path: "finance", Component: AdminFinancePage },
+          // Gom vào "Tài chính" — giữ lại 2 đường dẫn cũ dưới dạng redirect để không vỡ
+          // bookmark/liên kết cũ, thay vì để 404.
+          { path: "pt-service-refunds", element: <Navigate to="/admin/finance" replace /> },
+          { path: "withdrawals", element: <Navigate to="/admin/finance" replace /> },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
-          { path: "withdrawals", Component: AdminWithdrawals },
           { path: "gyms", Component: AdminGymModeration },
           { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },

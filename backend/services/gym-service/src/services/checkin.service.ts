@@ -25,6 +25,8 @@ interface MembershipRow {
   gym_id: string;
   client_id: string;
   plan_id: string;
+  // The SCANNED gym's own status — not the membership's original purchase gym (which may now
+  // be a different branch entirely; see the query below).
   gym_status: string;
   gym_operational_status: string;
 }
@@ -72,17 +74,25 @@ export const checkinService = {
     const gymId = payload.gymId;
 
     const result = await prisma.$transaction(async (tx) => {
+      // Plans are brand-scoped (one owner, one brand — see GymMembershipPlan's schema doc
+      // comment): eligibility to check in here is "does this membership's PLAN belong to the
+      // SAME BRAND as the gym being scanned", not "did they buy it at this exact gym" —
+      // c.gym_id (which branch they originally checked out at) plays no part in this any
+      // more. A gym with no brand at all (legacy standalone) matches nothing.
+      //
       // Money-flow plan 2.5 — second chokepoint: joins to gyms so a SUSPENDED (or otherwise
       // not-APPROVED) gym's "suspended" status actually means something at the one place that
       // lets a member physically walk in, not just at the purchase flow. Vòng 4 / Phase C3
       // adds operational_status to the same join — a gym the owner closed must block check-in
-      // exactly like a SUSPENDED one.
+      // exactly like a SUSPENDED one. This status check is now on the SCANNED gym (the one the
+      // member is physically standing in front of), not the membership's original gym_id.
       const rows = await tx.$queryRaw<MembershipRow[]>`
         SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
-               g.status AS gym_status, g.operational_status AS gym_operational_status
-        FROM gym_membership_contracts c
-        JOIN gyms g ON g.id = c.gym_id
-        WHERE c.gym_id = ${gymId} AND c.client_id = ${clientId}
+               scanned.status AS gym_status, scanned.operational_status AS gym_operational_status
+        FROM gyms scanned
+        JOIN gym_membership_plans p ON p.brand_id = scanned.brand_id
+        JOIN gym_membership_contracts c ON c.plan_id = p.id
+        WHERE scanned.id = ${gymId} AND scanned.brand_id IS NOT NULL AND c.client_id = ${clientId}
           AND c.status IN ('ACTIVE', 'EXPIRED')
         ORDER BY CASE WHEN c.status = 'ACTIVE' THEN 0 ELSE 1 END, c.created_at DESC
         LIMIT 1

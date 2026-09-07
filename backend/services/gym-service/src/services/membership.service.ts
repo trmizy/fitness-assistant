@@ -88,12 +88,6 @@ export const membershipService = {
     platform?: 'web' | 'mobile',
     returnBaseUrl?: string,
   ) {
-    const plan = await planRepository.findById(planId);
-    if (!plan || plan.gymId !== gymId || plan.status !== 'ACTIVE') throw err('Plan not found or inactive', 404);
-    // Re-check server-side: the client may have had this plan open in a tab since before a
-    // marketing window closed. Never trust that what the browser is showing is still true.
-    if (!isPlanOnSale(plan)) throw err('Gói này hiện không còn trong thời gian mở bán', 409);
-
     // Money-flow plan 2.5 — the first of three status chokepoints: a gym that is not
     // APPROVED (still under review, rejected, or suspended for a violation) must not accept
     // new money. Without this, "suspended" was purely cosmetic on the purchase flow.
@@ -103,6 +97,19 @@ export const membershipService = {
     if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
     }
+
+    // Plans are brand-scoped (one owner, one brand — see GymMembershipPlan's schema doc
+    // comment): the client is checking out through THIS gym, but the plan itself only has to
+    // belong to the SAME brand, not this exact branch — that is what makes the membership
+    // usable at every branch once bought (checkin.service.ts's own eligibility check joins the
+    // same way). A gym with no brand at all (legacy standalone) can never match any plan.
+    const plan = await planRepository.findById(planId);
+    if (!plan || !gym.brandId || plan.brandId !== gym.brandId || plan.status !== 'ACTIVE') {
+      throw err('Plan not found or inactive', 404);
+    }
+    // Re-check server-side: the client may have had this plan open in a tab since before a
+    // marketing window closed. Never trust that what the browser is showing is still true.
+    if (!isPlanOnSale(plan)) throw err('Gói này hiện không còn trong thời gian mở bán', 409);
 
     const existingOpen = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
     if (existingOpen) {

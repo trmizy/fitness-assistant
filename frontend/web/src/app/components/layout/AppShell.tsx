@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { PageSkeleton } from "./PageSkeleton";
 import { CallOverlay } from "../call/CallOverlay";
+import { ForceChangePasswordScreen } from "../auth/ForceChangePasswordScreen";
 
 // Vòng 4 / Phase D1 — was a Vite ES import of a 6MB src/assets/bg-gym.jpg (duplicated
 // byte-for-byte in public/bg-gym.jpg, which public/offline.html and public/sw.js's precache
@@ -17,7 +18,7 @@ import { CallOverlay } from "../call/CallOverlay";
 const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
-  const { isAuthenticated, isPT, setActiveView } = useApp();
+  const { isAuthenticated, isPT, setActiveView, user } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -50,6 +51,15 @@ export function AppShell() {
   useNativeStatusBar();
 
   if (!isAuthenticated) return null;
+
+  // Blocks the entire app behind a forced password change for an admin-created account
+  // (currently gym owners) still on its random temporary password — see
+  // ForceChangePasswordScreen's own doc comment. Checked here, above everything else in the
+  // authenticated tree, so there is no route that can be reached around it.
+  if (user?.mustChangePassword) {
+    return <ForceChangePasswordScreen />;
+  }
+
   return (
     <>
       <CallOverlay />

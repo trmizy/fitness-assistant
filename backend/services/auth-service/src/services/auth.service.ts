@@ -216,9 +216,51 @@ export const authService = {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        mustChangePassword: (user as any).mustChangePassword ?? false,
       },
       accessToken,
       refreshToken,
+    };
+  },
+
+  /**
+   * Admin-only: a gym owner never self-registers (that would let a CUSTOMER pile on roles
+   * freely — becoming a gym owner is a real-world partnership the admin arranges directly,
+   * by phone/email, outside the app). This is the one place that account gets created: a
+   * random temporary password the admin relays out of band themselves, with
+   * mustChangePassword forcing a real one to be set before anything else happens.
+   *
+   * The temporary password is returned here ONCE, in plaintext — it is hashed before storage
+   * and never recoverable again after this call returns, same as any password anywhere else
+   * in this system.
+   */
+  async createGymOwnerAccount(data: { email: string; firstName: string; lastName?: string }) {
+    const existing = await authRepository.findUserByEmail(data.email);
+    if (existing) throw { status: 409, message: "Email đã được sử dụng" };
+
+    // URL-safe, no padding — 12 characters from a 9-byte source is plenty of entropy for a
+    // password that only has to survive until the very next login.
+    const temporaryPassword = crypto.randomBytes(9).toString("base64url");
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    const user = await authRepository.createUser({
+      email: data.email,
+      password: passwordHash,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      role: "GYM_OWNER" as any,
+      mustChangePassword: true,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+      temporaryPassword,
     };
   },
 

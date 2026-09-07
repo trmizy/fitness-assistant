@@ -28,7 +28,15 @@ export type GymBrand = $Result.DefaultSelection<Prisma.$GymBrandPayload>
 export type Gym = $Result.DefaultSelection<Prisma.$GymPayload>
 /**
  * Model GymMembershipPlan
- * 
+ * One owner, one brand (see GymBrand) — a plan is sold BY THE BRAND, not any one branch, so a
+ * client who buys it can check in (and draw down the shared visitLimit) at any of the
+ * brand's branches. Previously `gymId`-scoped: a plan belonged to exactly one gym, and a
+ * membership bought there only worked at that same gym. GymMembershipContract still carries
+ * its own `gymId` (which branch the client actually checked out at) — that stays gym-level,
+ * purely for revenue/collaboration/referral attribution; only the PLAN definition and
+ * check-in eligibility (checkin.service.ts) moved to brand-level. See migration
+ * 20260907000000_scope_membership_plans_to_brand for how existing plans (and any standalone
+ * gym that had one) were backfilled.
  */
 export type GymMembershipPlan = $Result.DefaultSelection<Prisma.$GymMembershipPlanPayload>
 /**
@@ -1676,10 +1684,12 @@ export namespace Prisma {
 
   export type GymBrandCountOutputType = {
     branches: number
+    plans: number
   }
 
   export type GymBrandCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     branches?: boolean | GymBrandCountOutputTypeCountBranchesArgs
+    plans?: boolean | GymBrandCountOutputTypeCountPlansArgs
   }
 
   // Custom InputTypes
@@ -1700,13 +1710,19 @@ export namespace Prisma {
     where?: GymWhereInput
   }
 
+  /**
+   * GymBrandCountOutputType without action
+   */
+  export type GymBrandCountOutputTypeCountPlansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymMembershipPlanWhereInput
+  }
+
 
   /**
    * Count Type GymCountOutputType
    */
 
   export type GymCountOutputType = {
-    plans: number
     memberships: number
     affiliations: number
     reviews: number
@@ -1714,7 +1730,6 @@ export namespace Prisma {
   }
 
   export type GymCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    plans?: boolean | GymCountOutputTypeCountPlansArgs
     memberships?: boolean | GymCountOutputTypeCountMembershipsArgs
     affiliations?: boolean | GymCountOutputTypeCountAffiliationsArgs
     reviews?: boolean | GymCountOutputTypeCountReviewsArgs
@@ -1730,13 +1745,6 @@ export namespace Prisma {
      * Select specific fields to fetch from the GymCountOutputType
      */
     select?: GymCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * GymCountOutputType without action
-   */
-  export type GymCountOutputTypeCountPlansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: GymMembershipPlanWhereInput
   }
 
   /**
@@ -2023,6 +2031,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
+    plans?: boolean | GymBrand$plansArgs<ExtArgs>
     _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymBrand"]>
 
@@ -2050,6 +2059,7 @@ export namespace Prisma {
 
   export type GymBrandInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
+    plans?: boolean | GymBrand$plansArgs<ExtArgs>
     _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymBrandIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2058,6 +2068,7 @@ export namespace Prisma {
     name: "GymBrand"
     objects: {
       branches: Prisma.$GymPayload<ExtArgs>[]
+      plans: Prisma.$GymMembershipPlanPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2443,6 +2454,7 @@ export namespace Prisma {
   export interface Prisma__GymBrandClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     branches<T extends GymBrand$branchesArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$branchesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findMany"> | Null>
+    plans<T extends GymBrand$plansArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$plansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipPlanPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2814,6 +2826,26 @@ export namespace Prisma {
   }
 
   /**
+   * GymBrand.plans
+   */
+  export type GymBrand$plansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipPlan
+     */
+    select?: GymMembershipPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipPlanInclude<ExtArgs> | null
+    where?: GymMembershipPlanWhereInput
+    orderBy?: GymMembershipPlanOrderByWithRelationInput | GymMembershipPlanOrderByWithRelationInput[]
+    cursor?: GymMembershipPlanWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymMembershipPlanScalarFieldEnum | GymMembershipPlanScalarFieldEnum[]
+  }
+
+  /**
    * GymBrand without action
    */
   export type GymBrandDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3113,7 +3145,6 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
-    plans?: boolean | Gym$plansArgs<ExtArgs>
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
     reviews?: boolean | Gym$reviewsArgs<ExtArgs>
@@ -3170,7 +3201,6 @@ export namespace Prisma {
 
   export type GymInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     brand?: boolean | Gym$brandArgs<ExtArgs>
-    plans?: boolean | Gym$plansArgs<ExtArgs>
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
     reviews?: boolean | Gym$reviewsArgs<ExtArgs>
@@ -3185,7 +3215,6 @@ export namespace Prisma {
     name: "Gym"
     objects: {
       brand: Prisma.$GymBrandPayload<ExtArgs> | null
-      plans: Prisma.$GymMembershipPlanPayload<ExtArgs>[]
       memberships: Prisma.$GymMembershipContractPayload<ExtArgs>[]
       affiliations: Prisma.$GymTrainerAffiliationPayload<ExtArgs>[]
       reviews: Prisma.$GymReviewPayload<ExtArgs>[]
@@ -3195,9 +3224,11 @@ export namespace Prisma {
       id: string
       ownerId: string
       /**
-       * Which brand this location belongs to, if any. A branch's own plans, wallet, checkins,
-       * and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
-       * a grouping label for search and owner navigation, not a second source of truth.
+       * Which brand this location belongs to, if any. This branch's own checkins, reviews, and
+       * affiliations stay keyed to this row exactly as for a standalone gym — brand is purely a
+       * grouping label for search and owner navigation EXCEPT for membership plans, which moved
+       * to brand-level entirely (see GymMembershipPlan's own doc comment): a branch has no plans
+       * of its own any more, only the brand does.
        */
       brandId: string | null
       /**
@@ -3602,7 +3633,6 @@ export namespace Prisma {
   export interface Prisma__GymClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     brand<T extends Gym$brandArgs<ExtArgs> = {}>(args?: Subset<T, Gym$brandArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
-    plans<T extends Gym$plansArgs<ExtArgs> = {}>(args?: Subset<T, Gym$plansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipPlanPayload<ExtArgs>, T, "findMany"> | Null>
     memberships<T extends Gym$membershipsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipContractPayload<ExtArgs>, T, "findMany"> | Null>
     affiliations<T extends Gym$affiliationsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$affiliationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymTrainerAffiliationPayload<ExtArgs>, T, "findMany"> | Null>
     reviews<T extends Gym$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymReviewPayload<ExtArgs>, T, "findMany"> | Null>
@@ -3989,26 +4019,6 @@ export namespace Prisma {
   }
 
   /**
-   * Gym.plans
-   */
-  export type Gym$plansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the GymMembershipPlan
-     */
-    select?: GymMembershipPlanSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: GymMembershipPlanInclude<ExtArgs> | null
-    where?: GymMembershipPlanWhereInput
-    orderBy?: GymMembershipPlanOrderByWithRelationInput | GymMembershipPlanOrderByWithRelationInput[]
-    cursor?: GymMembershipPlanWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: GymMembershipPlanScalarFieldEnum | GymMembershipPlanScalarFieldEnum[]
-  }
-
-  /**
    * Gym.memberships
    */
   export type Gym$membershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4129,7 +4139,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMinAggregateOutputType = {
     id: string | null
-    gymId: string | null
+    brandId: string | null
     name: string | null
     description: string | null
     price: Decimal | null
@@ -4144,7 +4154,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMaxAggregateOutputType = {
     id: string | null
-    gymId: string | null
+    brandId: string | null
     name: string | null
     description: string | null
     price: Decimal | null
@@ -4159,7 +4169,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanCountAggregateOutputType = {
     id: number
-    gymId: number
+    brandId: number
     name: number
     description: number
     price: number
@@ -4188,7 +4198,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMinAggregateInputType = {
     id?: true
-    gymId?: true
+    brandId?: true
     name?: true
     description?: true
     price?: true
@@ -4203,7 +4213,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMaxAggregateInputType = {
     id?: true
-    gymId?: true
+    brandId?: true
     name?: true
     description?: true
     price?: true
@@ -4218,7 +4228,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanCountAggregateInputType = {
     id?: true
-    gymId?: true
+    brandId?: true
     name?: true
     description?: true
     price?: true
@@ -4320,7 +4330,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanGroupByOutputType = {
     id: string
-    gymId: string
+    brandId: string
     name: string
     description: string | null
     price: Decimal
@@ -4354,7 +4364,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    gymId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     price?: boolean
@@ -4365,14 +4375,14 @@ export namespace Prisma {
     saleEndAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    gym?: boolean | GymDefaultArgs<ExtArgs>
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
     memberships?: boolean | GymMembershipPlan$membershipsArgs<ExtArgs>
     _count?: boolean | GymMembershipPlanCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymMembershipPlan"]>
 
   export type GymMembershipPlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    gymId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     price?: boolean
@@ -4383,12 +4393,12 @@ export namespace Prisma {
     saleEndAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    gym?: boolean | GymDefaultArgs<ExtArgs>
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymMembershipPlan"]>
 
   export type GymMembershipPlanSelectScalar = {
     id?: boolean
-    gymId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     price?: boolean
@@ -4402,23 +4412,23 @@ export namespace Prisma {
   }
 
   export type GymMembershipPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    gym?: boolean | GymDefaultArgs<ExtArgs>
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
     memberships?: boolean | GymMembershipPlan$membershipsArgs<ExtArgs>
     _count?: boolean | GymMembershipPlanCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymMembershipPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    gym?: boolean | GymDefaultArgs<ExtArgs>
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
   }
 
   export type $GymMembershipPlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "GymMembershipPlan"
     objects: {
-      gym: Prisma.$GymPayload<ExtArgs>
+      brand: Prisma.$GymBrandPayload<ExtArgs>
       memberships: Prisma.$GymMembershipContractPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      gymId: string
+      brandId: string
       name: string
       description: string | null
       price: Prisma.Decimal
@@ -4799,7 +4809,7 @@ export namespace Prisma {
    */
   export interface Prisma__GymMembershipPlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    brand<T extends GymBrandDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymBrandDefaultArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     memberships<T extends GymMembershipPlan$membershipsArgs<ExtArgs> = {}>(args?: Subset<T, GymMembershipPlan$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipContractPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4831,7 +4841,7 @@ export namespace Prisma {
    */ 
   interface GymMembershipPlanFieldRefs {
     readonly id: FieldRef<"GymMembershipPlan", 'String'>
-    readonly gymId: FieldRef<"GymMembershipPlan", 'String'>
+    readonly brandId: FieldRef<"GymMembershipPlan", 'String'>
     readonly name: FieldRef<"GymMembershipPlan", 'String'>
     readonly description: FieldRef<"GymMembershipPlan", 'String'>
     readonly price: FieldRef<"GymMembershipPlan", 'Decimal'>
@@ -11617,7 +11627,7 @@ export namespace Prisma {
 
   export const GymMembershipPlanScalarFieldEnum: {
     id: 'id',
-    gymId: 'gymId',
+    brandId: 'brandId',
     name: 'name',
     description: 'description',
     price: 'price',
@@ -11986,6 +11996,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
+    plans?: GymMembershipPlanListRelationFilter
   }
 
   export type GymBrandOrderByWithRelationInput = {
@@ -11998,6 +12009,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     branches?: GymOrderByRelationAggregateInput
+    plans?: GymMembershipPlanOrderByRelationAggregateInput
   }
 
   export type GymBrandWhereUniqueInput = Prisma.AtLeast<{
@@ -12013,6 +12025,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
+    plans?: GymMembershipPlanListRelationFilter
   }, "id">
 
   export type GymBrandOrderByWithAggregationInput = {
@@ -12068,7 +12081,6 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
-    plans?: GymMembershipPlanListRelationFilter
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
     reviews?: GymReviewListRelationFilter
@@ -12097,7 +12109,6 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     brand?: GymBrandOrderByWithRelationInput
-    plans?: GymMembershipPlanOrderByRelationAggregateInput
     memberships?: GymMembershipContractOrderByRelationAggregateInput
     affiliations?: GymTrainerAffiliationOrderByRelationAggregateInput
     reviews?: GymReviewOrderByRelationAggregateInput
@@ -12129,7 +12140,6 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
-    plans?: GymMembershipPlanListRelationFilter
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
     reviews?: GymReviewListRelationFilter
@@ -12193,7 +12203,7 @@ export namespace Prisma {
     OR?: GymMembershipPlanWhereInput[]
     NOT?: GymMembershipPlanWhereInput | GymMembershipPlanWhereInput[]
     id?: StringFilter<"GymMembershipPlan"> | string
-    gymId?: StringFilter<"GymMembershipPlan"> | string
+    brandId?: StringFilter<"GymMembershipPlan"> | string
     name?: StringFilter<"GymMembershipPlan"> | string
     description?: StringNullableFilter<"GymMembershipPlan"> | string | null
     price?: DecimalFilter<"GymMembershipPlan"> | Decimal | DecimalJsLike | number | string
@@ -12204,13 +12214,13 @@ export namespace Prisma {
     saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
-    gym?: XOR<GymRelationFilter, GymWhereInput>
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
     memberships?: GymMembershipContractListRelationFilter
   }
 
   export type GymMembershipPlanOrderByWithRelationInput = {
     id?: SortOrder
-    gymId?: SortOrder
+    brandId?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     price?: SortOrder
@@ -12221,7 +12231,7 @@ export namespace Prisma {
     saleEndAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    gym?: GymOrderByWithRelationInput
+    brand?: GymBrandOrderByWithRelationInput
     memberships?: GymMembershipContractOrderByRelationAggregateInput
   }
 
@@ -12230,7 +12240,7 @@ export namespace Prisma {
     AND?: GymMembershipPlanWhereInput | GymMembershipPlanWhereInput[]
     OR?: GymMembershipPlanWhereInput[]
     NOT?: GymMembershipPlanWhereInput | GymMembershipPlanWhereInput[]
-    gymId?: StringFilter<"GymMembershipPlan"> | string
+    brandId?: StringFilter<"GymMembershipPlan"> | string
     name?: StringFilter<"GymMembershipPlan"> | string
     description?: StringNullableFilter<"GymMembershipPlan"> | string | null
     price?: DecimalFilter<"GymMembershipPlan"> | Decimal | DecimalJsLike | number | string
@@ -12241,13 +12251,13 @@ export namespace Prisma {
     saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
-    gym?: XOR<GymRelationFilter, GymWhereInput>
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
     memberships?: GymMembershipContractListRelationFilter
   }, "id">
 
   export type GymMembershipPlanOrderByWithAggregationInput = {
     id?: SortOrder
-    gymId?: SortOrder
+    brandId?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     price?: SortOrder
@@ -12270,7 +12280,7 @@ export namespace Prisma {
     OR?: GymMembershipPlanScalarWhereWithAggregatesInput[]
     NOT?: GymMembershipPlanScalarWhereWithAggregatesInput | GymMembershipPlanScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"GymMembershipPlan"> | string
-    gymId?: StringWithAggregatesFilter<"GymMembershipPlan"> | string
+    brandId?: StringWithAggregatesFilter<"GymMembershipPlan"> | string
     name?: StringWithAggregatesFilter<"GymMembershipPlan"> | string
     description?: StringNullableWithAggregatesFilter<"GymMembershipPlan"> | string | null
     price?: DecimalWithAggregatesFilter<"GymMembershipPlan"> | Decimal | DecimalJsLike | number | string
@@ -12839,6 +12849,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUncheckedCreateInput = {
@@ -12851,6 +12862,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUpdateInput = {
@@ -12863,6 +12875,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandUncheckedUpdateInput = {
@@ -12875,6 +12888,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandCreateManyInput = {
@@ -12931,7 +12945,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -12959,7 +12972,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
@@ -12987,7 +12999,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -13015,7 +13026,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
@@ -13102,13 +13112,13 @@ export namespace Prisma {
     saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    gym: GymCreateNestedOneWithoutPlansInput
+    brand: GymBrandCreateNestedOneWithoutPlansInput
     memberships?: GymMembershipContractCreateNestedManyWithoutPlanInput
   }
 
   export type GymMembershipPlanUncheckedCreateInput = {
     id?: string
-    gymId: string
+    brandId: string
     name: string
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
@@ -13134,13 +13144,13 @@ export namespace Prisma {
     saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    gym?: GymUpdateOneRequiredWithoutPlansNestedInput
+    brand?: GymBrandUpdateOneRequiredWithoutPlansNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutPlanNestedInput
   }
 
   export type GymMembershipPlanUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -13156,7 +13166,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanCreateManyInput = {
     id?: string
-    gymId: string
+    brandId: string
     name: string
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
@@ -13185,7 +13195,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -13855,12 +13865,22 @@ export namespace Prisma {
     none?: GymWhereInput
   }
 
+  export type GymMembershipPlanListRelationFilter = {
+    every?: GymMembershipPlanWhereInput
+    some?: GymMembershipPlanWhereInput
+    none?: GymMembershipPlanWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
   }
 
   export type GymOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymMembershipPlanOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -13977,12 +13997,6 @@ export namespace Prisma {
     isNot?: GymBrandWhereInput | null
   }
 
-  export type GymMembershipPlanListRelationFilter = {
-    every?: GymMembershipPlanWhereInput
-    some?: GymMembershipPlanWhereInput
-    none?: GymMembershipPlanWhereInput
-  }
-
   export type GymMembershipContractListRelationFilter = {
     every?: GymMembershipContractWhereInput
     some?: GymMembershipContractWhereInput
@@ -14005,10 +14019,6 @@ export namespace Prisma {
     every?: GymPtCollaborationWhereInput
     some?: GymPtCollaborationWhereInput
     none?: GymPtCollaborationWhereInput
-  }
-
-  export type GymMembershipPlanOrderByRelationAggregateInput = {
-    _count?: SortOrder
   }
 
   export type GymMembershipContractOrderByRelationAggregateInput = {
@@ -14170,14 +14180,14 @@ export namespace Prisma {
     not?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel> | $Enums.GymMembershipPlanStatus
   }
 
-  export type GymRelationFilter = {
-    is?: GymWhereInput
-    isNot?: GymWhereInput
+  export type GymBrandRelationFilter = {
+    is?: GymBrandWhereInput
+    isNot?: GymBrandWhereInput
   }
 
   export type GymMembershipPlanCountOrderByAggregateInput = {
     id?: SortOrder
-    gymId?: SortOrder
+    brandId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     price?: SortOrder
@@ -14198,7 +14208,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMaxOrderByAggregateInput = {
     id?: SortOrder
-    gymId?: SortOrder
+    brandId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     price?: SortOrder
@@ -14213,7 +14223,7 @@ export namespace Prisma {
 
   export type GymMembershipPlanMinOrderByAggregateInput = {
     id?: SortOrder
-    gymId?: SortOrder
+    brandId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     price?: SortOrder
@@ -14300,6 +14310,11 @@ export namespace Prisma {
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type GymRelationFilter = {
+    is?: GymWhereInput
+    isNot?: GymWhereInput
   }
 
   export type GymMembershipPlanRelationFilter = {
@@ -14791,11 +14806,25 @@ export namespace Prisma {
     connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
   }
 
+  export type GymMembershipPlanCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput> | GymMembershipPlanCreateWithoutBrandInput[] | GymMembershipPlanUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutBrandInput | GymMembershipPlanCreateOrConnectWithoutBrandInput[]
+    createMany?: GymMembershipPlanCreateManyBrandInputEnvelope
+    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+  }
+
   export type GymUncheckedCreateNestedManyWithoutBrandInput = {
     create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
     connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
     createMany?: GymCreateManyBrandInputEnvelope
     connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+  }
+
+  export type GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput> | GymMembershipPlanCreateWithoutBrandInput[] | GymMembershipPlanUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutBrandInput | GymMembershipPlanCreateOrConnectWithoutBrandInput[]
+    createMany?: GymMembershipPlanCreateManyBrandInputEnvelope
+    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -14824,6 +14853,20 @@ export namespace Prisma {
     deleteMany?: GymScalarWhereInput | GymScalarWhereInput[]
   }
 
+  export type GymMembershipPlanUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput> | GymMembershipPlanCreateWithoutBrandInput[] | GymMembershipPlanUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutBrandInput | GymMembershipPlanCreateOrConnectWithoutBrandInput[]
+    upsert?: GymMembershipPlanUpsertWithWhereUniqueWithoutBrandInput | GymMembershipPlanUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymMembershipPlanCreateManyBrandInputEnvelope
+    set?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    disconnect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    delete?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    update?: GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput | GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymMembershipPlanUpdateManyWithWhereWithoutBrandInput | GymMembershipPlanUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
+  }
+
   export type GymUncheckedUpdateManyWithoutBrandNestedInput = {
     create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
     connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
@@ -14838,17 +14881,24 @@ export namespace Prisma {
     deleteMany?: GymScalarWhereInput | GymScalarWhereInput[]
   }
 
+  export type GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput> | GymMembershipPlanCreateWithoutBrandInput[] | GymMembershipPlanUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutBrandInput | GymMembershipPlanCreateOrConnectWithoutBrandInput[]
+    upsert?: GymMembershipPlanUpsertWithWhereUniqueWithoutBrandInput | GymMembershipPlanUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymMembershipPlanCreateManyBrandInputEnvelope
+    set?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    disconnect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    delete?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+    update?: GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput | GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymMembershipPlanUpdateManyWithWhereWithoutBrandInput | GymMembershipPlanUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
+  }
+
   export type GymBrandCreateNestedOneWithoutBranchesInput = {
     create?: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
     connectOrCreate?: GymBrandCreateOrConnectWithoutBranchesInput
     connect?: GymBrandWhereUniqueInput
-  }
-
-  export type GymMembershipPlanCreateNestedManyWithoutGymInput = {
-    create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
-    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
-    createMany?: GymMembershipPlanCreateManyGymInputEnvelope
-    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
   }
 
   export type GymMembershipContractCreateNestedManyWithoutGymInput = {
@@ -14877,13 +14927,6 @@ export namespace Prisma {
     connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutGymInput | GymPtCollaborationCreateOrConnectWithoutGymInput[]
     createMany?: GymPtCollaborationCreateManyGymInputEnvelope
     connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
-  }
-
-  export type GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput = {
-    create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
-    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
-    createMany?: GymMembershipPlanCreateManyGymInputEnvelope
-    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
   }
 
   export type GymMembershipContractUncheckedCreateNestedManyWithoutGymInput = {
@@ -14934,20 +14977,6 @@ export namespace Prisma {
     delete?: GymBrandWhereInput | boolean
     connect?: GymBrandWhereUniqueInput
     update?: XOR<XOR<GymBrandUpdateToOneWithWhereWithoutBranchesInput, GymBrandUpdateWithoutBranchesInput>, GymBrandUncheckedUpdateWithoutBranchesInput>
-  }
-
-  export type GymMembershipPlanUpdateManyWithoutGymNestedInput = {
-    create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
-    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
-    upsert?: GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput | GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput[]
-    createMany?: GymMembershipPlanCreateManyGymInputEnvelope
-    set?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    disconnect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    delete?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    update?: GymMembershipPlanUpdateWithWhereUniqueWithoutGymInput | GymMembershipPlanUpdateWithWhereUniqueWithoutGymInput[]
-    updateMany?: GymMembershipPlanUpdateManyWithWhereWithoutGymInput | GymMembershipPlanUpdateManyWithWhereWithoutGymInput[]
-    deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
   }
 
   export type GymMembershipContractUpdateManyWithoutGymNestedInput = {
@@ -15006,20 +15035,6 @@ export namespace Prisma {
     deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
   }
 
-  export type GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput = {
-    create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
-    connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
-    upsert?: GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput | GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput[]
-    createMany?: GymMembershipPlanCreateManyGymInputEnvelope
-    set?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    disconnect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    delete?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
-    update?: GymMembershipPlanUpdateWithWhereUniqueWithoutGymInput | GymMembershipPlanUpdateWithWhereUniqueWithoutGymInput[]
-    updateMany?: GymMembershipPlanUpdateManyWithWhereWithoutGymInput | GymMembershipPlanUpdateManyWithWhereWithoutGymInput[]
-    deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
-  }
-
   export type GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput = {
     create?: XOR<GymMembershipContractCreateWithoutGymInput, GymMembershipContractUncheckedCreateWithoutGymInput> | GymMembershipContractCreateWithoutGymInput[] | GymMembershipContractUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipContractCreateOrConnectWithoutGymInput | GymMembershipContractCreateOrConnectWithoutGymInput[]
@@ -15076,10 +15091,10 @@ export namespace Prisma {
     deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
   }
 
-  export type GymCreateNestedOneWithoutPlansInput = {
-    create?: XOR<GymCreateWithoutPlansInput, GymUncheckedCreateWithoutPlansInput>
-    connectOrCreate?: GymCreateOrConnectWithoutPlansInput
-    connect?: GymWhereUniqueInput
+  export type GymBrandCreateNestedOneWithoutPlansInput = {
+    create?: XOR<GymBrandCreateWithoutPlansInput, GymBrandUncheckedCreateWithoutPlansInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPlansInput
+    connect?: GymBrandWhereUniqueInput
   }
 
   export type GymMembershipContractCreateNestedManyWithoutPlanInput = {
@@ -15124,12 +15139,12 @@ export namespace Prisma {
     set?: $Enums.GymMembershipPlanStatus
   }
 
-  export type GymUpdateOneRequiredWithoutPlansNestedInput = {
-    create?: XOR<GymCreateWithoutPlansInput, GymUncheckedCreateWithoutPlansInput>
-    connectOrCreate?: GymCreateOrConnectWithoutPlansInput
-    upsert?: GymUpsertWithoutPlansInput
-    connect?: GymWhereUniqueInput
-    update?: XOR<XOR<GymUpdateToOneWithWhereWithoutPlansInput, GymUpdateWithoutPlansInput>, GymUncheckedUpdateWithoutPlansInput>
+  export type GymBrandUpdateOneRequiredWithoutPlansNestedInput = {
+    create?: XOR<GymBrandCreateWithoutPlansInput, GymBrandUncheckedCreateWithoutPlansInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPlansInput
+    upsert?: GymBrandUpsertWithoutPlansInput
+    connect?: GymBrandWhereUniqueInput
+    update?: XOR<XOR<GymBrandUpdateToOneWithWhereWithoutPlansInput, GymBrandUpdateWithoutPlansInput>, GymBrandUncheckedUpdateWithoutPlansInput>
   }
 
   export type GymMembershipContractUpdateManyWithoutPlanNestedInput = {
@@ -15796,7 +15811,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -15823,7 +15837,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
@@ -15837,6 +15850,46 @@ export namespace Prisma {
 
   export type GymCreateManyBrandInputEnvelope = {
     data: GymCreateManyBrandInput | GymCreateManyBrandInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymMembershipPlanCreateWithoutBrandInput = {
+    id?: string
+    name: string
+    description?: string | null
+    price: Decimal | DecimalJsLike | number | string
+    durationDays: number
+    visitLimit?: number | null
+    status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    memberships?: GymMembershipContractCreateNestedManyWithoutPlanInput
+  }
+
+  export type GymMembershipPlanUncheckedCreateWithoutBrandInput = {
+    id?: string
+    name: string
+    description?: string | null
+    price: Decimal | DecimalJsLike | number | string
+    durationDays: number
+    visitLimit?: number | null
+    status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutPlanInput
+  }
+
+  export type GymMembershipPlanCreateOrConnectWithoutBrandInput = {
+    where: GymMembershipPlanWhereUniqueInput
+    create: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymMembershipPlanCreateManyBrandInputEnvelope = {
+    data: GymMembershipPlanCreateManyBrandInput | GymMembershipPlanCreateManyBrandInput[]
     skipDuplicates?: boolean
   }
 
@@ -15882,6 +15935,40 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
   }
 
+  export type GymMembershipPlanUpsertWithWhereUniqueWithoutBrandInput = {
+    where: GymMembershipPlanWhereUniqueInput
+    update: XOR<GymMembershipPlanUpdateWithoutBrandInput, GymMembershipPlanUncheckedUpdateWithoutBrandInput>
+    create: XOR<GymMembershipPlanCreateWithoutBrandInput, GymMembershipPlanUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput = {
+    where: GymMembershipPlanWhereUniqueInput
+    data: XOR<GymMembershipPlanUpdateWithoutBrandInput, GymMembershipPlanUncheckedUpdateWithoutBrandInput>
+  }
+
+  export type GymMembershipPlanUpdateManyWithWhereWithoutBrandInput = {
+    where: GymMembershipPlanScalarWhereInput
+    data: XOR<GymMembershipPlanUpdateManyMutationInput, GymMembershipPlanUncheckedUpdateManyWithoutBrandInput>
+  }
+
+  export type GymMembershipPlanScalarWhereInput = {
+    AND?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
+    OR?: GymMembershipPlanScalarWhereInput[]
+    NOT?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
+    id?: StringFilter<"GymMembershipPlan"> | string
+    brandId?: StringFilter<"GymMembershipPlan"> | string
+    name?: StringFilter<"GymMembershipPlan"> | string
+    description?: StringNullableFilter<"GymMembershipPlan"> | string | null
+    price?: DecimalFilter<"GymMembershipPlan"> | Decimal | DecimalJsLike | number | string
+    durationDays?: IntFilter<"GymMembershipPlan"> | number
+    visitLimit?: IntNullableFilter<"GymMembershipPlan"> | number | null
+    status?: EnumGymMembershipPlanStatusFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
+    saleStartAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
+    saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
+    updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
+  }
+
   export type GymBrandCreateWithoutBranchesInput = {
     id?: string
     ownerId: string
@@ -15891,6 +15978,7 @@ export namespace Prisma {
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUncheckedCreateWithoutBranchesInput = {
@@ -15902,51 +15990,12 @@ export namespace Prisma {
     description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandCreateOrConnectWithoutBranchesInput = {
     where: GymBrandWhereUniqueInput
     create: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
-  }
-
-  export type GymMembershipPlanCreateWithoutGymInput = {
-    id?: string
-    name: string
-    description?: string | null
-    price: Decimal | DecimalJsLike | number | string
-    durationDays: number
-    visitLimit?: number | null
-    status?: $Enums.GymMembershipPlanStatus
-    saleStartAt?: Date | string | null
-    saleEndAt?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    memberships?: GymMembershipContractCreateNestedManyWithoutPlanInput
-  }
-
-  export type GymMembershipPlanUncheckedCreateWithoutGymInput = {
-    id?: string
-    name: string
-    description?: string | null
-    price: Decimal | DecimalJsLike | number | string
-    durationDays: number
-    visitLimit?: number | null
-    status?: $Enums.GymMembershipPlanStatus
-    saleStartAt?: Date | string | null
-    saleEndAt?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutPlanInput
-  }
-
-  export type GymMembershipPlanCreateOrConnectWithoutGymInput = {
-    where: GymMembershipPlanWhereUniqueInput
-    create: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput>
-  }
-
-  export type GymMembershipPlanCreateManyGymInputEnvelope = {
-    data: GymMembershipPlanCreateManyGymInput | GymMembershipPlanCreateManyGymInput[]
-    skipDuplicates?: boolean
   }
 
   export type GymMembershipContractCreateWithoutGymInput = {
@@ -16133,6 +16182,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandUncheckedUpdateWithoutBranchesInput = {
@@ -16144,40 +16194,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput = {
-    where: GymMembershipPlanWhereUniqueInput
-    update: XOR<GymMembershipPlanUpdateWithoutGymInput, GymMembershipPlanUncheckedUpdateWithoutGymInput>
-    create: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput>
-  }
-
-  export type GymMembershipPlanUpdateWithWhereUniqueWithoutGymInput = {
-    where: GymMembershipPlanWhereUniqueInput
-    data: XOR<GymMembershipPlanUpdateWithoutGymInput, GymMembershipPlanUncheckedUpdateWithoutGymInput>
-  }
-
-  export type GymMembershipPlanUpdateManyWithWhereWithoutGymInput = {
-    where: GymMembershipPlanScalarWhereInput
-    data: XOR<GymMembershipPlanUpdateManyMutationInput, GymMembershipPlanUncheckedUpdateManyWithoutGymInput>
-  }
-
-  export type GymMembershipPlanScalarWhereInput = {
-    AND?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
-    OR?: GymMembershipPlanScalarWhereInput[]
-    NOT?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
-    id?: StringFilter<"GymMembershipPlan"> | string
-    gymId?: StringFilter<"GymMembershipPlan"> | string
-    name?: StringFilter<"GymMembershipPlan"> | string
-    description?: StringNullableFilter<"GymMembershipPlan"> | string | null
-    price?: DecimalFilter<"GymMembershipPlan"> | Decimal | DecimalJsLike | number | string
-    durationDays?: IntFilter<"GymMembershipPlan"> | number
-    visitLimit?: IntNullableFilter<"GymMembershipPlan"> | number | null
-    status?: EnumGymMembershipPlanStatusFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
-    saleStartAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
-    saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
-    createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
-    updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymMembershipContractUpsertWithWhereUniqueWithoutGymInput = {
@@ -16320,63 +16337,33 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
   }
 
-  export type GymCreateWithoutPlansInput = {
+  export type GymBrandCreateWithoutPlansInput = {
     id?: string
     ownerId: string
     name: string
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
-    address: string
-    approvedAddress?: string | null
-    pendingAddress?: string | null
-    city?: string | null
-    phone?: string | null
-    email?: string | null
-    status?: $Enums.GymStatus
-    operationalStatus?: $Enums.GymOperationalStatus
-    closureReason?: string | null
-    closedAt?: Date | string | null
-    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
-    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
-    reviews?: GymReviewCreateNestedManyWithoutGymInput
-    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
+    branches?: GymCreateNestedManyWithoutBrandInput
   }
 
-  export type GymUncheckedCreateWithoutPlansInput = {
+  export type GymBrandUncheckedCreateWithoutPlansInput = {
     id?: string
     ownerId: string
-    brandId?: string | null
     name: string
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
-    address: string
-    approvedAddress?: string | null
-    pendingAddress?: string | null
-    city?: string | null
-    phone?: string | null
-    email?: string | null
-    status?: $Enums.GymStatus
-    operationalStatus?: $Enums.GymOperationalStatus
-    closureReason?: string | null
-    closedAt?: Date | string | null
-    reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
-    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
-    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
-    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
+    branches?: GymUncheckedCreateNestedManyWithoutBrandInput
   }
 
-  export type GymCreateOrConnectWithoutPlansInput = {
-    where: GymWhereUniqueInput
-    create: XOR<GymCreateWithoutPlansInput, GymUncheckedCreateWithoutPlansInput>
+  export type GymBrandCreateOrConnectWithoutPlansInput = {
+    where: GymBrandWhereUniqueInput
+    create: XOR<GymBrandCreateWithoutPlansInput, GymBrandUncheckedCreateWithoutPlansInput>
   }
 
   export type GymMembershipContractCreateWithoutPlanInput = {
@@ -16431,69 +16418,39 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type GymUpsertWithoutPlansInput = {
-    update: XOR<GymUpdateWithoutPlansInput, GymUncheckedUpdateWithoutPlansInput>
-    create: XOR<GymCreateWithoutPlansInput, GymUncheckedCreateWithoutPlansInput>
-    where?: GymWhereInput
+  export type GymBrandUpsertWithoutPlansInput = {
+    update: XOR<GymBrandUpdateWithoutPlansInput, GymBrandUncheckedUpdateWithoutPlansInput>
+    create: XOR<GymBrandCreateWithoutPlansInput, GymBrandUncheckedCreateWithoutPlansInput>
+    where?: GymBrandWhereInput
   }
 
-  export type GymUpdateToOneWithWhereWithoutPlansInput = {
-    where?: GymWhereInput
-    data: XOR<GymUpdateWithoutPlansInput, GymUncheckedUpdateWithoutPlansInput>
+  export type GymBrandUpdateToOneWithWhereWithoutPlansInput = {
+    where?: GymBrandWhereInput
+    data: XOR<GymBrandUpdateWithoutPlansInput, GymBrandUncheckedUpdateWithoutPlansInput>
   }
 
-  export type GymUpdateWithoutPlansInput = {
+  export type GymBrandUpdateWithoutPlansInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    address?: StringFieldUpdateOperationsInput | string
-    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
-    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
-    city?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    email?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
-    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
-    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
-    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
-    reviews?: GymReviewUpdateManyWithoutGymNestedInput
-    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
+    branches?: GymUpdateManyWithoutBrandNestedInput
   }
 
-  export type GymUncheckedUpdateWithoutPlansInput = {
+  export type GymBrandUncheckedUpdateWithoutPlansInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
-    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    address?: StringFieldUpdateOperationsInput | string
-    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
-    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
-    city?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    email?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
-    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
-    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
-    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
-    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
-    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+    branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymMembershipContractUpsertWithWhereUniqueWithoutPlanInput = {
@@ -16533,7 +16490,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
@@ -16560,7 +16516,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
@@ -16583,12 +16538,12 @@ export namespace Prisma {
     saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    gym: GymCreateNestedOneWithoutPlansInput
+    brand: GymBrandCreateNestedOneWithoutPlansInput
   }
 
   export type GymMembershipPlanUncheckedCreateWithoutMembershipsInput = {
     id?: string
-    gymId: string
+    brandId: string
     name: string
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
@@ -16695,7 +16650,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
@@ -16722,7 +16676,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
@@ -16751,12 +16704,12 @@ export namespace Prisma {
     saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    gym?: GymUpdateOneRequiredWithoutPlansNestedInput
+    brand?: GymBrandUpdateOneRequiredWithoutPlansNestedInput
   }
 
   export type GymMembershipPlanUncheckedUpdateWithoutMembershipsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -16855,7 +16808,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
@@ -16882,7 +16834,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
@@ -16925,7 +16876,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
@@ -16952,7 +16902,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
@@ -17079,7 +17028,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
@@ -17106,7 +17054,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
@@ -17149,7 +17096,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
@@ -17176,7 +17122,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
@@ -17203,7 +17148,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
-    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -17230,7 +17174,6 @@ export namespace Prisma {
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
@@ -17273,7 +17216,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -17300,7 +17242,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
@@ -17428,6 +17369,20 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type GymMembershipPlanCreateManyBrandInput = {
+    id?: string
+    name: string
+    description?: string | null
+    price: Decimal | DecimalJsLike | number | string
+    durationDays: number
+    visitLimit?: number | null
+    status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type GymUpdateWithoutBrandInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -17448,7 +17403,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -17475,7 +17429,6 @@ export namespace Prisma {
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
@@ -17504,18 +17457,48 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type GymMembershipPlanCreateManyGymInput = {
-    id?: string
-    name: string
-    description?: string | null
-    price: Decimal | DecimalJsLike | number | string
-    durationDays: number
-    visitLimit?: number | null
-    status?: $Enums.GymMembershipPlanStatus
-    saleStartAt?: Date | string | null
-    saleEndAt?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
+  export type GymMembershipPlanUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    memberships?: GymMembershipContractUpdateManyWithoutPlanNestedInput
+  }
+
+  export type GymMembershipPlanUncheckedUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutPlanNestedInput
+  }
+
+  export type GymMembershipPlanUncheckedUpdateManyWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymMembershipContractCreateManyGymInput = {
@@ -17576,50 +17559,6 @@ export namespace Prisma {
     note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-  }
-
-  export type GymMembershipPlanUpdateWithoutGymInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    durationDays?: IntFieldUpdateOperationsInput | number
-    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
-    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
-    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    memberships?: GymMembershipContractUpdateManyWithoutPlanNestedInput
-  }
-
-  export type GymMembershipPlanUncheckedUpdateWithoutGymInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    durationDays?: IntFieldUpdateOperationsInput | number
-    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
-    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
-    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    memberships?: GymMembershipContractUncheckedUpdateManyWithoutPlanNestedInput
-  }
-
-  export type GymMembershipPlanUncheckedUpdateManyWithoutGymInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    durationDays?: IntFieldUpdateOperationsInput | number
-    visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
-    status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
-    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymMembershipContractUpdateWithoutGymInput = {

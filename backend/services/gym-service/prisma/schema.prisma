@@ -90,6 +90,7 @@ model GymBrand {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   branches Gym[]
+  plans    GymMembershipPlan[]
 
   @@index([ownerId])
   @@map("gym_brands")
@@ -98,9 +99,11 @@ model GymBrand {
 model Gym {
   id            String    @id @default(uuid())
   ownerId       String    @map("owner_id")
-  /// Which brand this location belongs to, if any. A branch's own plans, wallet, checkins,
-  /// and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
-  /// a grouping label for search and owner navigation, not a second source of truth.
+  /// Which brand this location belongs to, if any. This branch's own checkins, reviews, and
+  /// affiliations stay keyed to this row exactly as for a standalone gym — brand is purely a
+  /// grouping label for search and owner navigation EXCEPT for membership plans, which moved
+  /// to brand-level entirely (see GymMembershipPlan's own doc comment): a branch has no plans
+  /// of its own any more, only the brand does.
   brandId       String?   @map("brand_id")
   /// Vòng 4 / Phase C2 — same approvedX/pendingX overlay as GymBrand.name above, applied to
   /// name AND address (the only two fields that need re-approval; every other field — phone,
@@ -137,7 +140,6 @@ model Gym {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   brand        GymBrand?               @relation(fields: [brandId], references: [id])
-  plans        GymMembershipPlan[]
   memberships  GymMembershipContract[]
   affiliations   GymTrainerAffiliation[]
   reviews        GymReview[]
@@ -150,9 +152,18 @@ model Gym {
   @@map("gyms")
 }
 
+/// One owner, one brand (see GymBrand) — a plan is sold BY THE BRAND, not any one branch, so a
+/// client who buys it can check in (and draw down the shared visitLimit) at any of the
+/// brand's branches. Previously `gymId`-scoped: a plan belonged to exactly one gym, and a
+/// membership bought there only worked at that same gym. GymMembershipContract still carries
+/// its own `gymId` (which branch the client actually checked out at) — that stays gym-level,
+/// purely for revenue/collaboration/referral attribution; only the PLAN definition and
+/// check-in eligibility (checkin.service.ts) moved to brand-level. See migration
+/// 20260907000000_scope_membership_plans_to_brand for how existing plans (and any standalone
+/// gym that had one) were backfilled.
 model GymMembershipPlan {
   id           String                   @id @default(uuid())
-  gymId        String                   @map("gym_id")
+  brandId      String                   @map("brand_id")
   name         String
   description  String?
   price        Decimal                  @db.Decimal(12, 2)
@@ -168,10 +179,10 @@ model GymMembershipPlan {
   createdAt    DateTime                 @default(now()) @map("created_at")
   updatedAt    DateTime                 @updatedAt @map("updated_at")
 
-  gym         Gym                     @relation(fields: [gymId], references: [id])
+  brand       GymBrand                @relation(fields: [brandId], references: [id])
   memberships GymMembershipContract[]
 
-  @@index([gymId, status])
+  @@index([brandId, status])
   @@map("gym_membership_plans")
 }
 

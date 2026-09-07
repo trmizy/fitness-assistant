@@ -15,12 +15,13 @@ export const planRepository = {
   },
 
   /** Public listing: active AND currently inside its sale window (or has none). A plan whose
-   * campaign already ended must disappear here without touching memberships already sold. */
-  async findActiveByGym(gymId: string) {
+   * campaign already ended must disappear here without touching memberships already sold.
+   * Brand-scoped — every branch under the brand shows the same list. */
+  async findActiveByBrand(brandId: string) {
     const now = new Date();
     return prisma.gymMembershipPlan.findMany({
       where: {
-        gymId,
+        brandId,
         status: 'ACTIVE',
         AND: [
           { OR: [{ saleStartAt: null }, { saleStartAt: { lte: now } }] },
@@ -31,7 +32,7 @@ export const planRepository = {
     });
   },
 
-  async findAllByGym(gymId: string) {
-    return prisma.gymMembershipPlan.findMany({ where: { gymId }, orderBy: { createdAt: 'asc' } });
+  async findAllByBrand(brandId: string) {
+    return prisma.gymMembershipPlan.findMany({ where: { brandId }, orderBy: { createdAt: 'asc' } });
   },
 };

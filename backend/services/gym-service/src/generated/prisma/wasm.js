@@ -158,7 +158,7 @@ exports.Prisma.GymScalarFieldEnum = {
 
 exports.Prisma.GymMembershipPlanScalarFieldEnum = {
   id: 'id',
-  gymId: 'gymId',
+  brandId: 'brandId',
   name: 'name',
   description: 'description',
   price: 'price',

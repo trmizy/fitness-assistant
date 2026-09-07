@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CircleNotchIcon as Loader2, MoneyIcon as Banknote, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
+import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { personalizedServiceApi, type PersonalizedServiceOrder } from "../../services/api";
 
 /**
@@ -147,16 +147,13 @@ function RefundCaseCard({ order }: { order: PersonalizedServiceOrder }) {
 export function PTServiceRefunds() {
   const q = useQuery({ queryKey: ["refund-requests"], queryFn: () => personalizedServiceApi.listRefundRequests() });
 
+  // Vòng "Tài chính" — moved from its own /admin/pt-service-refunds route into a tab of the
+  // consolidated AdminFinancePage; the page-level heading/padding now lives there instead.
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
-      <div>
-        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Banknote className="w-5 h-5 text-green-400" /> Hoàn tiền dịch vụ PT cá nhân hóa
-        </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">
-          Danh sách đơn hàng Personalized Service đang chờ xử lý hoàn tiền. Duyệt sẽ chuyển tiền thật qua payment-service.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <p className="text-zinc-500 text-sm">
+        Danh sách đơn hàng Personalized Service đang chờ xử lý hoàn tiền. Duyệt sẽ chuyển tiền thật qua payment-service.
+      </p>
 
       {q.isLoading && <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>}
       {q.data && q.data.length === 0 && (

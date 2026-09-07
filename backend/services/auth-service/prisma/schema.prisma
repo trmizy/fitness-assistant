@@ -31,6 +31,12 @@ model User {
   lastName  String?
   role      Role     @default(CUSTOMER)
   isActive  Boolean  @default(true)
+  /// Set true only when an admin creates the account directly (currently just gym owners —
+  /// see authService.createGymOwnerAccount) with a random temporary password the admin relays
+  /// out of band. Cleared the moment ANY password change succeeds (self-service or this
+  /// forced one go through the same changePassword path) — never touched anywhere else, so a
+  /// normal self-registered user is never affected by this flag at all.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

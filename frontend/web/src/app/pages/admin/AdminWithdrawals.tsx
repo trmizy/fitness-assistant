@@ -78,20 +78,17 @@ export function AdminWithdrawals() {
     onError: (error: any) => toast.error(error?.response?.data?.error?.message || "Không thể ghi nhận chi trả"),
   });
 
+  // Vòng "Tài chính" — moved from its own /admin/withdrawals route into a tab of the
+  // consolidated AdminFinancePage; the page-level heading/padding now lives there instead.
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Banknote className="w-5 h-5 text-green-400" /> Yêu cầu rút tiền
-        </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">
-          Số dư đã đủ điều kiện rút ngay khi tạo yêu cầu — không có bước "duyệt xem có được rút
-          hay không" nào cả. "Duyệt" chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc
-          chuyển khoản thật sẽ mất thời gian; nếu chuyển được ngay, có thể bấm thẳng "Đã chi trả"
-          mà không cần Duyệt trước. Chuyển khoản thủ công bên ngoài hệ thống xong thì nhập mã
-          tham chiếu — tiền chỉ thực sự bị trừ khỏi ví ở bước "Đã chi trả".
-        </p>
-      </div>
+    <div className="space-y-6">
+      <p className="text-zinc-500 text-sm">
+        Số dư đã đủ điều kiện rút ngay khi tạo yêu cầu — không có bước "duyệt xem có được rút
+        hay không" nào cả. "Duyệt" chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc
+        chuyển khoản thật sẽ mất thời gian; nếu chuyển được ngay, có thể bấm thẳng "Đã chi trả"
+        mà không cần Duyệt trước. Chuyển khoản thủ công bên ngoài hệ thống xong thì nhập mã
+        tham chiếu — tiền chỉ thực sự bị trừ khỏi ví ở bước "Đã chi trả".
+      </p>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">

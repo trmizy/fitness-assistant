@@ -3217,6 +3217,12 @@ export const adminService = {
     return data;
   },
 
+  // "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo ngày/tuần/tháng/quý.
+  getFinanceOverview: async (params: { groupBy: "day" | "week" | "month" | "quarter"; from?: string; to?: string }) => {
+    const { data } = await api.get("/admin/payments/finance-overview", { params });
+    return data;
+  },
+
   // Money-flow plan 5.3 — the manual withdrawal flow's admin side. approve/reject are optional
   // review steps; markPaid is the only one that actually moves money, and only after the admin
   // has already made a real bank/e-wallet transfer outside this system.
@@ -3239,6 +3245,13 @@ export const adminService = {
 
   // Vòng 4 / Phase C — gym/brand moderation. There was no admin-facing gym/brand list at all
   // before this phase.
+  // No self-registration path for GYM_OWNER — an admin creates the account directly after
+  // arranging the partnership out of band (phone/email); returns the random temporary
+  // password ONCE, never retrievable again after this call.
+  createGymOwner: async (payload: { email: string; firstName: string; lastName?: string }) => {
+    const { data } = await api.post('/admin/gym-owners', payload);
+    return data?.data ?? data;
+  },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
     const { data } = await api.get('/admin/gyms', { params: status ? { status } : undefined });
     return data?.data ?? data;
@@ -4449,7 +4462,7 @@ export const gymService = {
     const { data } = await api.get('/owner/gyms');
     return data?.data ?? data;
   },
-  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string; brandId?: string }) => {
+  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) => {
     const { data } = await api.post('/owner/gyms', payload);
     return data?.data ?? data;
   },
@@ -4486,23 +4499,25 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/withdrawals`);
     return data?.data ?? data;
   },
+  // Plans are brand-scoped now (one owner, one brand — a plan works at every branch under
+  // it), so these hang off /owner/brands/:brandId rather than any one gym's id.
   createPlan: async (
-    gymId: string,
+    brandId: string,
     payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number; saleStartAt?: string; saleEndAt?: string },
   ) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/plans`, payload);
+    const { data } = await api.post(`/owner/brands/${brandId}/plans`, payload);
     return data?.data ?? data;
   },
   updatePlan: async (
-    gymId: string,
+    brandId: string,
     planId: string,
     payload: Partial<{ name: string; description: string; price: number; durationDays: number; visitLimit: number; status: 'ACTIVE' | 'INACTIVE'; saleStartAt: string | null; saleEndAt: string | null }>,
   ) => {
-    const { data } = await api.patch(`/owner/gyms/${gymId}/plans/${planId}`, payload);
+    const { data } = await api.patch(`/owner/brands/${brandId}/plans/${planId}`, payload);
     return data?.data ?? data;
   },
-  listOwnedPlans: async (gymId: string) => {
-    const { data } = await api.get(`/owner/gyms/${gymId}/plans`);
+  listOwnedPlans: async (brandId: string) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/plans`);
     return data?.data ?? data;
   },
 

@@ -160,7 +160,9 @@ export function CollaborationPanel({ as, gymId }: { as: Party; gymId?: string })
           <div key={c.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-bold text-zinc-200 truncate">
-                {as === "PT" ? (c.gym?.name ?? c.gymId.slice(0, 8)) : `PT ${c.ptUserId.slice(0, 8)}`}
+                {as === "PT"
+                  ? (c.gym?.name ?? c.gymId.slice(0, 8))
+                  : `PT ${c.ptUserId.slice(0, 8)}${c.gym?.name ? ` · ${c.gym.name}` : ""}`}
               </span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.cls}`}>{cfg.label}</span>
             </div>

@@ -42,6 +42,15 @@ export const gymService = {
     });
   },
 
+  /** Just the brandId, for anything that only needs to resolve "which brand sells plans at
+   * this gym" (plan.controller.ts's public listing) without paying for the review aggregate
+   * getApprovedById computes. Returns null for a gym with no brand (legacy standalone) or one
+   * that does not exist — the caller treats both the same way: nothing to list. */
+  async getBrandIdForGym(gymId: string): Promise<string | null> {
+    const gym = await gymRepository.findById(gymId);
+    return gym?.brandId ?? null;
+  },
+
   async getApprovedById(id: string) {
     const gym = await gymRepository.findApprovedById(id);
     if (!gym) throw err('Gym not found', 404);
@@ -49,10 +58,24 @@ export const gymService = {
     return { ...toPublicGym(gym), averageRating: round2(r.averageRating), reviewCount: r.count };
   },
 
-  async createGym(ownerId: string, data: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string; brandId?: string }) {
-    // A branch must join a brand the same owner actually created — otherwise anyone could
-    // attach their gym to someone else's chain by guessing a brandId.
-    if (data.brandId) await brandService.getOwnedBrand(data.brandId, ownerId);
+  /**
+   * One owner, one brand: every gym an owner creates is a branch of THEIR brand. Which brand a
+   * gym joins is entirely server-decided from ownership, never client-supplied (a `brandId` in
+   * the request body is accepted for backward compatibility but ignored) — closing the old
+   * "guess someone else's brandId" concern for good, not just gating it.
+   *
+   * The brand itself is NOT auto-created here off the first gym's own name — that produced a
+   * brand named after whatever the owner happened to type as their first branch, never asked.
+   * MyGymsPage now prompts a brand-new owner to name their brand before they ever reach this
+   * call, so by the time createGym runs, a brand is expected to already exist; this throws
+   * rather than improvising one if it somehow doesn't.
+   */
+  async createGym(ownerId: string, data: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) {
+    const existingBrands = await brandService.listOwned(ownerId);
+    const brand = existingBrands[0];
+    if (!brand) {
+      throw err('Hãy đặt tên thương hiệu của bạn trước khi tạo phòng gym', 400);
+    }
     return gymRepository.create({
       ownerId,
       name: data.name,
@@ -63,7 +86,7 @@ export const gymService = {
       city: data.city,
       phone: data.phone,
       email: data.email,
-      ...(data.brandId ? { brand: { connect: { id: data.brandId } } } : {}),
+      brand: { connect: { id: brand.id } },
     });
   },
 

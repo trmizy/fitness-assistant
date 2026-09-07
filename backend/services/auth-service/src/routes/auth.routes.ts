@@ -18,6 +18,8 @@ router.patch("/users/:userId/role", authController.updateUserRole);
 // BUG-002 / BUG-025 / BUG-026: admin can disable / re-enable a user account.
 router.patch("/users/:userId/disable", authController.setUserActive);
 router.patch("/users/:userId/enable", authController.setUserActive);
+// Admin-only: create a gym-owner account directly — see authController.createGymOwner.
+router.post("/admin/gym-owners", authController.createGymOwner);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
 router.post("/internal/send-email", authController.sendEmailInternal);

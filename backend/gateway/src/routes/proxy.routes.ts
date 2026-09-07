@@ -882,6 +882,41 @@ for (const action of ["disable", "enable"] as const) {
   );
 }
 
+// Admin-only: create a gym-owner account directly — no self-registration path for this role
+// (see auth.service.ts's createGymOwnerAccount doc comment for why). Returns the randomly
+// generated temporary password ONCE, in the response body — never stored in plaintext, never
+// retrievable again after this call.
+router.post(
+  "/admin/gym-owners",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  json(),
+  async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const response = await axios.post(
+        `${AUTH_SERVICE_URL}/auth/admin/gym-owners`,
+        req.body,
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+          timeout: 5000,
+        },
+      );
+      res.status(response.status).json({ success: true, data: response.data });
+    } catch (error: any) {
+      logger.error({ error: error?.message }, "Create gym owner failed");
+      const status = error?.response?.status || 500;
+      res.status(status).json({
+        success: false,
+        error: {
+          code: "CREATE_GYM_OWNER_FAILED",
+          message: error?.response?.data?.error || "Failed to create gym owner account",
+        },
+      });
+    }
+  },
+);
+
 router.get(
   "/admin/workflows/meta",
   authMiddleware,

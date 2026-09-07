@@ -75,10 +75,12 @@ export const authRepository = {
       },
     }),
 
+  // Any successful password change clears mustChangePassword — a forced first-login change
+  // and a normal voluntary one both go through this same call, so both clear it the same way.
   updateUserPasswordById: (id: string, password: string) =>
     prisma.user.update({
       where: { id },
-      data: { password },
+      data: { password, mustChangePassword: false },
       select: {
         id: true,
         email: true,
@@ -118,6 +120,7 @@ export const authRepository = {
     firstName?: string;
     lastName?: string;
     role: Role;
+    mustChangePassword?: boolean;
   }) => prisma.user.create({ data }),
 
   createRefreshToken: (data: {

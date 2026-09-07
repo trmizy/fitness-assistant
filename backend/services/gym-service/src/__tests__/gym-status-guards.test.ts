@@ -22,9 +22,13 @@ function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknow
   };
 }
 
+// Plans are brand-scoped now (one owner, one brand) — purchase() matches plan.brandId against
+// the gym's own brandId, so every mocked gym below needs the same brand-1 to reach the checks
+// these tests actually care about (gym status/operational-status), rather than getting
+// rejected earlier for an unrelated "wrong brand" reason.
 const plan = {
   id: 'plan-1',
-  gymId: 'gym-1',
+  brandId: 'brand-1',
   status: 'ACTIVE',
   price: 500_000,
   durationDays: 30,
@@ -38,7 +42,7 @@ test('a client cannot buy a membership at a SUSPENDED gym', async () => {
   let thrown: Error | null = null;
   const restores = [
     patch(planRepository, 'findById', async () => plan as any),
-    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', status: 'SUSPENDED' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', brandId: 'brand-1', status: 'SUSPENDED' }) as any),
     patch(membershipRepository, 'findOpenByClientAndGym', async () => null),
     patch(membershipRepository, 'findOtherActiveMemberships', async () => []),
     patch(membershipRepository, 'create', async () => {
@@ -64,7 +68,7 @@ test('a client cannot buy a membership at a gym still PENDING_REVIEW', async () 
   let thrown: Error | null = null;
   const restores = [
     patch(planRepository, 'findById', async () => plan as any),
-    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', status: 'PENDING_REVIEW' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', brandId: 'brand-1', status: 'PENDING_REVIEW' }) as any),
     patch(membershipRepository, 'findOpenByClientAndGym', async () => null),
     patch(membershipRepository, 'findOtherActiveMemberships', async () => []),
     patch(membershipRepository, 'create', async () => {
@@ -91,7 +95,7 @@ test('a client cannot buy a membership at an APPROVED but TEMPORARILY_CLOSED gym
   let createCalled = false;
   const restores = [
     patch(planRepository, 'findById', async () => plan as any),
-    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', status: 'APPROVED', operationalStatus: 'TEMPORARILY_CLOSED' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', brandId: 'brand-1', status: 'APPROVED', operationalStatus: 'TEMPORARILY_CLOSED' }) as any),
     patch(membershipRepository, 'findOpenByClientAndGym', async () => null),
     patch(membershipRepository, 'findOtherActiveMemberships', async () => []),
     patch(membershipRepository, 'create', async () => {
@@ -128,7 +132,7 @@ test('purchase still succeeds normally at an APPROVED gym', async () => {
   let createCalled = false;
   const restores = [
     patch(planRepository, 'findById', async () => plan as any),
-    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', brandId: 'brand-1', status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
     patch(membershipRepository, 'findOpenByClientAndGym', async () => null),
     patch(membershipRepository, 'findOtherActiveMemberships', async () => []),
     patch(membershipRepository, 'create', async () => {

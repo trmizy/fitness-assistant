@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store } from "@phosphor-icons/react";
+import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, UserPlusIcon as UserPlus, CopyIcon as Copy } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
 
@@ -17,7 +17,7 @@ import type { Gym, GymBrand } from "../../types";
  * (reason GYM_CLOSED) — this tab only surfaces which gyms need that.
  */
 
-type Tab = "pending" | "gym-renames" | "brand-renames" | "closed";
+type Tab = "pending" | "gym-renames" | "brand-renames" | "closed" | "create-owner";
 
 function formatDateTime(iso?: string | null) {
   if (!iso) return "—";
@@ -35,6 +35,28 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 export function AdminGymModeration() {
   const [tab, setTab] = useState<Tab>("pending");
   const queryClient = useQueryClient();
+
+  // No self-registration path for GYM_OWNER (see authService.createGymOwnerAccount's doc
+  // comment) — this is the only place that account gets created. The random temporary
+  // password only ever comes back in THIS mutation's response, once; there is nowhere in the
+  // app to look it up again afterward, so it stays on screen (copyable) until the admin
+  // starts a new one.
+  const [ownerForm, setOwnerForm] = useState({ email: "", firstName: "", lastName: "" });
+  const [createdOwner, setCreatedOwner] = useState<{ email: string; temporaryPassword: string } | null>(null);
+  const createOwnerMutation = useMutation({
+    mutationFn: () =>
+      adminService.createGymOwner({
+        email: ownerForm.email.trim(),
+        firstName: ownerForm.firstName.trim(),
+        lastName: ownerForm.lastName.trim() || undefined,
+      }),
+    onSuccess: (data: any) => {
+      toast.success("Đã tạo tài khoản chủ gym");
+      setCreatedOwner({ email: data.user.email, temporaryPassword: data.temporaryPassword });
+      setOwnerForm({ email: "", firstName: "", lastName: "" });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tạo tài khoản"),
+  });
 
   const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
     queryKey: ["admin-gyms"],
@@ -85,6 +107,7 @@ export function AdminGymModeration() {
   const brandsWithPendingRename = brands.filter((b) => b.pendingName);
 
   const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: "create-owner", label: "Tạo tài khoản Owner", count: 0 },
     { key: "pending", label: "Chờ duyệt lần đầu", count: pendingGyms.length },
     { key: "gym-renames", label: "Đổi tên/địa chỉ gym", count: gymsWithPendingRename.length },
     { key: "brand-renames", label: "Đổi tên thương hiệu", count: brandsWithPendingRename.length },
@@ -95,12 +118,13 @@ export function AdminGymModeration() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Building2 className="w-5 h-5 text-green-400" /> Phòng gym & thương hiệu
+          <Building2 className="w-5 h-5 text-green-400" /> Quản lý gym & owner
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Duyệt phòng gym mới, duyệt đổi tên/địa chỉ (tên công khai chỉ đổi khi được duyệt ở
-          đây), duyệt đổi tên thương hiệu, và theo dõi các phòng gym đã đóng cửa vĩnh viễn còn
-          hội viên đang hoạt động cần hoàn tiền.
+          Tạo tài khoản cho đối tác chủ gym mới (không có đăng ký tự do — liên hệ ngoài ứng
+          dụng trước, admin tạo tài khoản ở đây), duyệt phòng gym mới, duyệt đổi tên/địa chỉ
+          (tên công khai chỉ đổi khi được duyệt ở đây), duyệt đổi tên thương hiệu, và theo dõi
+          các phòng gym đã đóng cửa vĩnh viễn còn hội viên đang hoạt động cần hoàn tiền.
         </p>
       </div>
 
@@ -121,6 +145,92 @@ export function AdminGymModeration() {
           </button>
         ))}
       </div>
+
+      {tab === "create-owner" && (
+        <div className="max-w-md space-y-4">
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Không có luồng tự đăng ký làm chủ gym — đối tác liên hệ trực tiếp (email/điện
+            thoại) ngoài ứng dụng, admin tạo tài khoản ở đây với mật khẩu ngẫu nhiên, rồi tự
+            gửi lại cho họ qua đúng kênh đã liên hệ. Đăng nhập lần đầu sẽ bị buộc đổi mật khẩu
+            trước khi dùng được gì khác.
+          </p>
+
+          {createdOwner ? (
+            <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-green-400">
+                <Check className="w-4 h-4" /> Đã tạo tài khoản cho {createdOwner.email}
+              </div>
+              <div>
+                <label className="text-[11px] text-zinc-500 uppercase tracking-wider block mb-1">
+                  Mật khẩu tạm thời — chỉ hiện đúng 1 lần, hãy gửi ngay
+                </label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono">
+                    {createdOwner.temporaryPassword}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdOwner.temporaryPassword).catch(() => {});
+                      toast.success("Đã sao chép");
+                    }}
+                    className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors shrink-0"
+                    title="Sao chép"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreatedOwner(null)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Tạo tài khoản khác
+              </button>
+            </div>
+          ) : (
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
+              <div>
+                <label className="text-xs text-zinc-500 mb-1.5 block">Email *</label>
+                <input
+                  value={ownerForm.email}
+                  onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })}
+                  placeholder="chusohuu@example.com"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1.5 block">Họ *</label>
+                <input
+                  value={ownerForm.firstName}
+                  onChange={(e) => setOwnerForm({ ...ownerForm, firstName: e.target.value })}
+                  placeholder="Nguyễn Văn"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1.5 block">Tên (tuỳ chọn)</label>
+                <input
+                  value={ownerForm.lastName}
+                  onChange={(e) => setOwnerForm({ ...ownerForm, lastName: e.target.value })}
+                  placeholder="A"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => createOwnerMutation.mutate()}
+                disabled={!ownerForm.email.trim() || !ownerForm.firstName.trim() || createOwnerMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-4 py-2.5 rounded-lg text-sm font-bold transition-all"
+              >
+                {createOwnerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                Tạo tài khoản
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {tab === "pending" && (
         <div className="space-y-3">

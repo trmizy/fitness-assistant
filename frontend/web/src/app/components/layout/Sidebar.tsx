@@ -76,6 +76,8 @@ const gymOwnerNav = [
     sourceLang: "en" as const,
   },
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
+  { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
+  { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations" },
 ];
 
 // PT accounts can still use the unified client service hub for their own
@@ -117,11 +119,10 @@ const adminNav = [
   { label: "Chợ kế hoạch", icon: GyminiMarketplaceIcon, to: "/admin/marketplace" },
   { label: "Duyệt bài tập trùng lặp", icon: GyminiCompareIcon, to: "/admin/exercise-review" },
   { label: "Ma trận chất lượng catalog", icon: GyminiCatalogIcon, to: "/admin/catalog-quality" },
-  { label: "Hoàn tiền dịch vụ PT", icon: GyminiMoneyIcon, to: "/admin/pt-service-refunds" },
+  { label: "Tài chính", icon: GyminiMoneyIcon, to: "/admin/finance" },
   { label: "Giám sát hệ thống", icon: GyminiSystemIcon, to: "/admin/system" },
   { label: "Khiếu nại buổi tập", icon: GyminiDisputeIcon, to: "/admin/disputes" },
-  { label: "Yêu cầu rút tiền", icon: GyminiMoneyIcon, to: "/admin/withdrawals" },
-  { label: "Phòng gym & thương hiệu", icon: GyminiGymIcon, to: "/admin/gyms" },
+  { label: "Quản lý gym & owner", icon: GyminiGymIcon, to: "/admin/gyms" },
   {
     label: "Workflows",
     icon: GyminiWorkflowIcon,
