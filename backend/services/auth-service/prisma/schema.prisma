@@ -42,8 +42,31 @@ model User {
 
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  passwordResets PasswordResetToken[]
 
   @@map("users")
+}
+
+/// Đặt lại mật khẩu bằng LINK, không bao giờ bằng mật khẩu gửi qua email — cùng nguyên
+/// tắc với thư mời đối tác (xem gym-service/PartnerInvitation): một mật khẩu gửi đi là
+/// credential sống trôi nổi vô thời hạn, và nếu người nhận không bao giờ dùng thì không
+/// ai biết.
+///
+/// ⚠️ LƯU BĂM (sha256), KHÔNG LƯU TOKEN GỐC. Token gốc chỉ tồn tại một lần trong phản hồi
+/// lúc tạo, để nhét vào link gửi đi.
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  /// Quản trị viên đã bấm "Đặt lại mật khẩu"; null nếu người dùng tự yêu cầu.
+  requestedBy String? @map("requested_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model RefreshToken {

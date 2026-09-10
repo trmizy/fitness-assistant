@@ -135,6 +135,16 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PasswordResetTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  requestedBy: 'requestedBy',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.RefreshTokenScalarFieldEnum = {
   id: 'id',
   token: 'token',
@@ -225,6 +235,7 @@ exports.PtDeactivationCallStatus = exports.$Enums.PtDeactivationCallStatus = {
 
 exports.Prisma.ModelName = {
   User: 'User',
+  PasswordResetToken: 'PasswordResetToken',
   RefreshToken: 'RefreshToken',
   EmailVerification: 'EmailVerification',
   AuditLog: 'AuditLog',

@@ -4,6 +4,7 @@ import type { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { logger } from "@gym-coach/shared";
 import { authRepository } from "../repositories/auth.repository";
+import type { Role } from "../generated/prisma";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
   ChangePasswordDto,
@@ -63,8 +64,8 @@ function generateOtp(): string {
 }
 
 export const authService = {
-  async listUsers() {
-    return authRepository.listUsers();
+  async listUsers(role?: Role) {
+    return authRepository.listUsers(role);
   },
 
   async register(data: RegisterStartDto) {
@@ -433,5 +434,118 @@ export const authService = {
         role: updated.role,
       },
     };
+  },
+
+  // ── Phase 2: đặt lại mật khẩu bằng link, buộc đăng xuất, lập tài khoản từ thư mời ──
+
+  /**
+   * Phát hành link đặt lại mật khẩu. Trả về token GỐC đúng một lần cho phía gọi để dựng
+   * link — chỉ băm được lưu lại.
+   *
+   * Mọi link cũ còn hiệu lực bị vô hiệu hoá: phát hành link mới mà để link cũ sống tiếp
+   * nghĩa là mỗi lần quản trị viên bấm nút lại thêm một credential trôi nổi.
+   */
+  async issuePasswordResetToken(userId: string, requestedBy?: string, ttlHours = 24) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) throw { status: 404, message: "Không tìm thấy người dùng" };
+
+    await authRepository.invalidatePasswordResets(userId);
+
+    const rawToken = crypto.randomBytes(32).toString("base64url");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+    await authRepository.createPasswordResetToken({
+      userId,
+      tokenHash,
+      expiresAt,
+      requestedBy: requestedBy ?? null,
+    });
+
+    return { rawToken, expiresAt, user: { id: user.id, email: user.email, firstName: user.firstName } };
+  },
+
+  /**
+   * Đổi mật khẩu bằng token đặt lại. Khác changePassword ở chỗ không cần mật khẩu cũ —
+   * bằng chứng danh tính chính là việc cầm được token gửi tới hộp thư của họ.
+   *
+   * Dùng xong đánh dấu usedAt ngay (một lần duy nhất) và huỷ mọi phiên đăng nhập đang mở:
+   * nếu lý do đặt lại là tài khoản bị chiếm, để phiên của kẻ chiếm sống tiếp thì việc đặt
+   * lại mật khẩu chẳng giải quyết được gì.
+   */
+  async resetPasswordWithToken(rawToken: string, newPassword: string) {
+    if (!rawToken) throw { status: 400, message: "Thiếu mã đặt lại" };
+    if (!newPassword || newPassword.length < 8) {
+      throw { status: 400, message: "Mật khẩu mới phải có ít nhất 8 ký tự" };
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const record = await authRepository.findPasswordResetByHash(tokenHash);
+    if (!record) throw { status: 404, message: "Liên kết đặt lại không hợp lệ" };
+    if (record.usedAt) throw { status: 409, message: "Liên kết này đã được sử dụng" };
+    if (record.expiresAt.getTime() <= Date.now()) {
+      throw { status: 410, message: "Liên kết đặt lại đã hết hạn" };
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    // updateUserPasswordById cũng xoá luôn cờ mustChangePassword — mọi đường đổi mật khẩu
+    // đều đi qua đó nên không cần xử lý riêng ở đây.
+    const updated = await authRepository.updateUserPasswordById(record.userId, passwordHash);
+    await authRepository.markPasswordResetUsed(record.id);
+    await authRepository.deleteRefreshTokensByUserId(record.userId);
+
+    return { user: updated };
+  },
+
+  /** Buộc đăng xuất: huỷ mọi refresh token, phiên hiện tại hết hiệu lực khi access token hết hạn. */
+  async revokeAllSessions(userId: string) {
+    const result = await authRepository.deleteRefreshTokensByUserId(userId);
+    return { revoked: result.count };
+  },
+
+  /**
+   * Lập tài khoản đăng nhập từ một thư mời đối tác đã được xác thực (gym-service gọi qua
+   * kênh nội bộ sau khi tự kiểm token của mình).
+   *
+   * Khác createGymOwnerAccount ở chỗ mật khẩu do CHÍNH NGƯỜI DÙNG đặt trong luồng nhận
+   * thư mời — không có mật khẩu tạm nào được sinh ra, không có gì để gửi qua email, nên
+   * mustChangePassword để false: họ vừa tự đặt mật khẩu xong, bắt đổi lại là vô nghĩa.
+   */
+  async createInvitedAccount(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName?: string;
+  }) {
+    const email = data.email.trim().toLowerCase();
+    const existing = await authRepository.findUserByEmail(email);
+    if (existing) throw { status: 409, message: "Email đã được sử dụng" };
+    if (!data.password || data.password.length < 8) {
+      throw { status: 400, message: "Mật khẩu phải có ít nhất 8 ký tự" };
+    }
+
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const user = await authRepository.createUser({
+      email,
+      password: passwordHash,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      role: "GYM_OWNER" as any,
+      mustChangePassword: false,
+    });
+
+    return { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role };
+  },
+
+  // "Quản lý gym & owner" — admin editing another user's display name. Deliberately reuses
+  // updateUserById (same repo call self-service updateMe uses) rather than adding a parallel
+  // one: the only thing that differs from updateMe is WHO the target id comes from (an admin
+  // acting on someone else's account vs. a user's own token), which is already enforced at
+  // the controller layer, not here. Email is intentionally not editable here — it doubles as
+  // the login credential, so a typo would lock the owner out with no self-service recovery
+  // (they'd have no working email to reset a password against).
+  async updateUserNameAsAdmin(userId: string, data: { firstName?: string; lastName?: string }) {
+    const updated = await authRepository.updateUserById(userId, data);
+    return { user: updated };
   },
 };

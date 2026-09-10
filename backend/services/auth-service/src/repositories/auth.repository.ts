@@ -3,9 +3,14 @@ import { PrismaClient, Role } from "../generated/prisma";
 export const prisma = new PrismaClient();
 
 export const authRepository = {
-  listUsers: () =>
+  // `role` narrows to one role (e.g. the admin "Quản lý gym & owner" page listing only
+  // GYM_OWNER accounts) — omitted, the original "everyone but ADMIN" behavior is unchanged.
+  // `isActive` was missing from this select entirely, which is why the generic admin user
+  // list hardcoded every row to "Active" (see gateway's /admin/users) — real disable/enable
+  // state existed in the column but no list endpoint ever surfaced it.
+  listUsers: (role?: Role) =>
     prisma.user.findMany({
-      where: { role: { not: "ADMIN" } },
+      where: role ? { role } : { role: { not: "ADMIN" } },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -13,6 +18,7 @@ export const authRepository = {
         firstName: true,
         lastName: true,
         role: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -143,6 +149,27 @@ export const authRepository = {
 
   deleteRefreshTokensByUserId: (userId: string) =>
     prisma.refreshToken.deleteMany({ where: { userId } }),
+
+  // ── Đặt lại mật khẩu bằng link (Phase 2) ────────────────────────────────
+  createPasswordResetToken: (data: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    requestedBy?: string | null;
+  }) => prisma.passwordResetToken.create({ data }),
+
+  findPasswordResetByHash: (tokenHash: string) =>
+    prisma.passwordResetToken.findUnique({ where: { tokenHash }, include: { user: true } }),
+
+  markPasswordResetUsed: (id: string) =>
+    prisma.passwordResetToken.update({ where: { id }, data: { usedAt: new Date() } }),
+
+  /** Vô hiệu hoá mọi link đặt lại còn hiệu lực của một người — dùng khi phát hành link mới. */
+  invalidatePasswordResets: (userId: string) =>
+    prisma.passwordResetToken.updateMany({
+      where: { userId, usedAt: null },
+      data: { usedAt: new Date() },
+    }),
 
   createAuditLog: (data: {
     userId: string;

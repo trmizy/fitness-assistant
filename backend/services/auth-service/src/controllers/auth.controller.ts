@@ -58,7 +58,9 @@ export const authController = {
         return;
       }
 
-      const users = await authService.listUsers();
+      const roleParam = typeof req.query.role === "string" ? req.query.role.toUpperCase() : undefined;
+      const role = roleParam && ["CUSTOMER", "PT", "GYM_OWNER"].includes(roleParam) ? (roleParam as any) : undefined;
+      const users = await authService.listUsers(role);
       res.json({ users });
     } catch (error: any) {
       if (error.status) {
@@ -449,6 +451,41 @@ export const authController = {
     }
   },
 
+  // "Quản lý gym & owner" — admin correcting/updating another user's display name (currently
+  // only exposed on the frontend for GYM_OWNER accounts, but not role-restricted here since
+  // there's nothing role-specific about a display name). Same manual Bearer+ADMIN check as
+  // setUserActive/createGymOwner above; email is deliberately not accepted here — see
+  // authService.updateUserNameAsAdmin's doc comment for why.
+  async updateUserName(req: Request, res: Response): Promise<void> {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        res.status(401).json({ error: "No token provided" });
+        return;
+      }
+      const token = authHeader.substring(7);
+      const verified = await authService.verifyToken(token);
+      if (!verified || verified.role !== "ADMIN") {
+        res.status(403).json({ error: "Admin role required" });
+        return;
+      }
+      const body = updateMeSchema.parse(req.body);
+      const result = await authService.updateUserNameAsAdmin(req.params.userId, body);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "updateUserName error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   // Admin-only: creates a gym-owner account directly (no self-registration path for this
   // role — see authService.createGymOwnerAccount's own doc comment for why). Same manual
   // Bearer-token + role check as setUserActive above; the gateway also gates this route with
@@ -482,6 +519,101 @@ export const authController = {
         return;
       }
       logger.error(error, "createGymOwner error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // ── Phase 2 (đối tác) — kênh nội bộ, chỉ gym-service gọi bằng x-service-secret ─────
+  //
+  // Gộp ba việc auth-service phải làm hộ luồng quản trị đối tác: phát hành link đặt lại
+  // mật khẩu, buộc đăng xuất, và lập tài khoản đăng nhập khi ai đó nhận thư mời. Đặt sau
+  // hàng rào service-secret chứ không phải token quản trị viên, vì phía gọi là một dịch
+  // vụ khác chứ không phải trình duyệt của người dùng.
+  async partnerAuthInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(401).json({ error: "Invalid service secret" });
+        return;
+      }
+
+      const op = req.params.op;
+      if (op === "password-reset") {
+        const { userId, requestedBy } = req.body ?? {};
+        if (!userId) {
+          res.status(400).json({ error: "userId là bắt buộc" });
+          return;
+        }
+        const result = await authService.issuePasswordResetToken(userId, requestedBy);
+        res.json(result);
+        return;
+      }
+
+      if (op === "revoke-sessions") {
+        const { userId } = req.body ?? {};
+        if (!userId) {
+          res.status(400).json({ error: "userId là bắt buộc" });
+          return;
+        }
+        const result = await authService.revokeAllSessions(userId);
+        res.json(result);
+        return;
+      }
+
+      if (op === "set-active") {
+        const { userId, isActive, actorUserId, reason } = req.body ?? {};
+        if (!userId || typeof isActive !== "boolean") {
+          res.status(400).json({ error: "userId và isActive (boolean) là bắt buộc" });
+          return;
+        }
+        const updated = await authService.setUserActive(userId, isActive, actorUserId || "SYSTEM", reason);
+        res.json({ user: updated });
+        return;
+      }
+
+      if (op === "create-invited-account") {
+        const { email, password, firstName, lastName } = req.body ?? {};
+        if (!email || !password || !firstName) {
+          res.status(400).json({ error: "email, password và firstName là bắt buộc" });
+          return;
+        }
+        const user = await authService.createInvitedAccount({ email, password, firstName, lastName });
+        res.status(201).json({ user });
+        return;
+      }
+
+      res.status(404).json({ error: "Thao tác không tồn tại" });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "partnerAuthInternal error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /**
+   * Công khai (không cần token): người nhận link đặt lại mật khẩu tự đặt mật khẩu mới.
+   * Bằng chứng danh tính chính là token trong link — xem authService.resetPasswordWithToken.
+   */
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { token, newPassword } = req.body ?? {};
+      const result = await authService.resetPasswordWithToken(token, newPassword);
+      await authRepository.createAuditLog({
+        userId: result.user.id,
+        action: "PASSWORD_RESET",
+        ...auditMeta(req),
+      });
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "resetPassword error");
       res.status(500).json({ error: "Internal server error" });
     }
   },
