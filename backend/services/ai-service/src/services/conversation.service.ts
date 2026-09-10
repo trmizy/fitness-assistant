@@ -5,7 +5,7 @@ import {
   PlanStatus,
 } from "../repositories/conversation.repository";
 import { llmService } from "./llm.service";
-import { aiQueue } from "../workers/ai.queue";
+import { enqueueAiTask } from "../workers/queue-provider";
 import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
 import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
 import { ApiError, LlmGenerationError } from "../errors/api-error";
@@ -139,7 +139,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       clientName,
     });
 
-    const job = await aiQueue.add("generate-plan", {
+    const job = await enqueueAiTask("generate-plan", {
       planId: plan.id,
       userId,
       goal,
@@ -209,7 +209,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       version: newVersion,
     });
 
-    const job = await aiQueue.add("generate-plan", {
+    const job = await enqueueAiTask("generate-plan", {
       planId: newPlan.id,
       userId: params.userId,
       goal: original.goal,
@@ -281,7 +281,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       mealsPerDay,
     });
 
-    const job = await aiQueue.add("generate-nutrition-plan", {
+    const job = await enqueueAiTask("generate-nutrition-plan", {
       planId: plan.id,
       userId,
       goal,

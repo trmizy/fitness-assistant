@@ -5,12 +5,8 @@
  * worker-user-context.ts, factored out here since that file fetches a much
  * heavier bundle (InBody, workouts, nutrition) this call site doesn't need.
  */
-import axios from "axios";
 import { logger } from "@gym-coach/shared";
-
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL ||
-  (process.env.NODE_ENV === "production" ? "http://user-service:3004" : "http://localhost:3004");
+import { requestService } from "./service-lambda.client";
 
 function userServiceHeaders() {
   return { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "" };
@@ -35,9 +31,12 @@ export interface PtMarketplaceEligibility {
 
 export async function fetchUserGoalAndLevel(userId: string): Promise<UserGoalLevelSnapshot | null> {
   try {
-    const res = await axios.get(`${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`, {
+    const res = await requestService({
+      service: "user",
+      method: "GET",
+      path: `/internal/profile/${encodeURIComponent(userId)}`,
       headers: userServiceHeaders(),
-      timeout: 5000,
+      timeoutMs: 5000,
     });
     const profile = res.data?.profile ?? res.data ?? null;
     if (!profile) return null;
@@ -50,13 +49,13 @@ export async function fetchUserGoalAndLevel(userId: string): Promise<UserGoalLev
 
 export async function fetchPtMarketplaceEligibility(userId: string): Promise<PtMarketplaceEligibility | null> {
   try {
-    const res = await axios.get(
-      `${USER_SERVICE_URL}/internal/pt-marketplace-eligibility/${encodeURIComponent(userId)}`,
-      {
-        headers: userServiceHeaders(),
-        timeout: 5000,
-      },
-    );
+    const res = await requestService({
+      service: "user",
+      method: "GET",
+      path: `/internal/pt-marketplace-eligibility/${encodeURIComponent(userId)}`,
+      headers: userServiceHeaders(),
+      timeoutMs: 5000,
+    });
     return {
       userId,
       isApprovedPt: res.data?.isApprovedPt === true,
@@ -90,10 +89,13 @@ export async function createMarketplaceContract(params: {
   price: number;
   paymentTransactionId?: string;
 }): Promise<string> {
-  const res = await axios.post(
-    `${USER_SERVICE_URL}/internal/contracts/marketplace`,
-    params,
-    { headers: userServiceHeaders(), timeout: 10000 },
-  );
+  const res = await requestService({
+    service: "user",
+    method: "POST",
+    path: "/internal/contracts/marketplace",
+    body: params,
+    headers: userServiceHeaders(),
+    timeoutMs: 10000,
+  });
   return res.data.contractId as string;
 }

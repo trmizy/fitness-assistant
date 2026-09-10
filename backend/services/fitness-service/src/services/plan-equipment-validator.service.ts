@@ -46,12 +46,6 @@ export type PlanDayRef = { day: string; exercises: PlanExerciseRef[] };
 
 export const planEquipmentValidatorService = {
   async validate(weeklySchedule: PlanDayRef[], userId: string): Promise<PlanEquipmentValidationResult> {
-    const ownedRows = await prisma.userEquipment.findMany({ where: { userId }, select: { equipmentId: true } });
-    if (ownedRows.length === 0) {
-      return { valid: true, violations: [], skippedNoUserEquipment: true };
-    }
-    const ownedIds = new Set(ownedRows.map((r) => r.equipmentId));
-
     const exerciseIds = Array.from(
       new Set(
         weeklySchedule.flatMap((day) => day.exercises.map((ex) => ex.exerciseId)).filter(Boolean),
@@ -61,9 +55,45 @@ export const planEquipmentValidatorService = {
       return { valid: true, violations: [], skippedNoUserEquipment: false };
     }
 
+    const visibleExercises = await prisma.exercise.findMany({
+      where: {
+        id: { in: exerciseIds },
+        archivedAt: null,
+        OR: [
+          { status: "PUBLISHED", source: "SYSTEM" },
+          { source: "USER_CUSTOM", ownerId: userId },
+        ],
+      },
+      select: { id: true, exerciseName: true },
+    });
+    const exerciseNameById = new Map(visibleExercises.map((exercise) => [exercise.id, exercise.exerciseName]));
+    const visibleIds = new Set(visibleExercises.map((exercise) => exercise.id));
+
+    const violations: PlanEquipmentViolation[] = [];
+    for (const [dayIndex, day] of weeklySchedule.entries()) {
+      for (const ex of day.exercises) {
+        if (visibleIds.has(ex.exerciseId)) continue;
+        violations.push({
+          exerciseId: ex.exerciseId,
+          exerciseName: ex.name ?? "",
+          day: day.day,
+          dayIndex,
+          required: ["valid-published-exercise"],
+          alternatives: [],
+          available: [],
+        });
+      }
+    }
+
+    const ownedRows = await prisma.userEquipment.findMany({ where: { userId }, select: { equipmentId: true } });
+    if (ownedRows.length === 0) {
+      return { valid: violations.length === 0, violations, skippedNoUserEquipment: true };
+    }
+    const ownedIds = new Set(ownedRows.map((r) => r.equipmentId));
+
     const [links, equipmentRows] = await Promise.all([
       prisma.exerciseEquipment.findMany({
-        where: { exerciseId: { in: exerciseIds } },
+        where: { exerciseId: { in: Array.from(visibleIds) } },
         select: { exerciseId: true, equipmentId: true, requirementType: true },
       }),
       prisma.equipment.findMany({ select: { id: true, slug: true } }),
@@ -77,14 +107,14 @@ export const planEquipmentValidatorService = {
       linksByExercise.set(link.exerciseId, arr);
     }
 
-    const violations: PlanEquipmentViolation[] = [];
     weeklySchedule.forEach((day, dayIndex) => {
       for (const ex of day.exercises) {
+        if (!visibleIds.has(ex.exerciseId)) continue;
         const exLinks = linksByExercise.get(ex.exerciseId) ?? [];
         if (isExerciseAvailable(exLinks, ownedIds)) continue;
         violations.push({
           exerciseId: ex.exerciseId,
-          exerciseName: ex.name ?? "",
+          exerciseName: exerciseNameById.get(ex.exerciseId) ?? ex.name ?? "",
           day: day.day,
           dayIndex,
           required: exLinks

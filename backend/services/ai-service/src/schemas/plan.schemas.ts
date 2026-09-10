@@ -463,6 +463,24 @@ export type AllowedExerciseItem = {
   typeOfActivity?: string;
   typeOfEquipment?: string;
   muscleGroupsActivated?: string[];
+  movementPattern?: string | null;
+  mechanics?: string | null;
+  difficultyLevel?: string | null;
+  loggingMode?: string | null;
+  contraindications?: string[] | null;
+  equipmentRequirements?: Array<{
+    equipmentId: string;
+    slug?: string | null;
+    name?: string | null;
+    requirementType: "REQUIRED" | "ALTERNATIVE" | "OPTIONAL";
+  }>;
+  muscles?: Array<{
+    muscleId: string;
+    code?: string | null;
+    nameVi?: string | null;
+    nameEn?: string | null;
+    role: "PRIMARY" | "SECONDARY" | "STABILIZER";
+  }>;
 };
 
 export type DayExerciseCatalog = {
@@ -511,6 +529,30 @@ export function buildPlanPrompt(
   let exerciseCatalogText = "";
   let exampleExerciseA: AllowedExerciseItem | undefined;
   let exampleExerciseB: AllowedExerciseItem | undefined;
+  const formatExerciseCatalogLine = (ex: AllowedExerciseItem): string => {
+    const primaryMuscles = (ex.muscles ?? [])
+      .filter((muscle) => muscle.role === "PRIMARY")
+      .map((muscle) => muscle.nameVi || muscle.nameEn || muscle.code)
+      .filter(Boolean)
+      .join(", ");
+    const legacyMuscles = (ex.muscleGroupsActivated ?? []).join(", ");
+    const equipment = (ex.equipmentRequirements ?? [])
+      .map((item) => `${item.slug || item.name || item.equipmentId}:${item.requirementType}`)
+      .join(", ");
+    const contraindications = (ex.contraindications ?? []).join(", ");
+    return [
+      `${ex.id} | ${ex.exerciseName}`,
+      `movement=${ex.movementPattern ?? ex.typeOfActivity ?? "GENERAL"}`,
+      `mechanics=${ex.mechanics ?? "UNKNOWN"}`,
+      `muscles=${primaryMuscles || legacyMuscles || "general"}`,
+      `equipment=${equipment || (ex.typeOfEquipment ?? "ANY")}`,
+      `difficulty=${ex.difficultyLevel ?? "UNKNOWN"}`,
+      `logging=${ex.loggingMode ?? "UNKNOWN"}`,
+      contraindications ? `contraindications=${contraindications}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  };
 
   if (exercisesByDay && exercisesByDay.length > 0) {
     exampleExerciseA = exercisesByDay[0]?.exercises?.[0];
@@ -522,7 +564,7 @@ export function buildPlanPrompt(
     for (const daySpec of exercisesByDay) {
       exerciseCatalogText += `[Day ${daySpec.dayIndex + 1}] ${daySpec.dayGoal} — muscles: ${daySpec.focusMuscleGroups.join(", ")}\n`;
       for (const ex of daySpec.exercises) {
-        exerciseCatalogText += `  ${ex.id} | ${ex.exerciseName}\n`;
+        exerciseCatalogText += `  ${formatExerciseCatalogLine(ex)}\n`;
       }
       exerciseCatalogText += "\n";
     }
@@ -532,10 +574,7 @@ export function buildPlanPrompt(
     exampleExerciseA = allowedExercises[0];
     exampleExerciseB = allowedExercises[1] ?? allowedExercises[0];
     exerciseCatalogText = `\nAllowed exercises (id | name | muscles | equipment):\n${allowedExercises
-      .map(
-        (e) =>
-          `${e.id} | ${e.exerciseName} | ${(e.muscleGroupsActivated ?? []).join(", ") || "general"} | ${e.typeOfEquipment ?? "ANY"}`,
-      )
+      .map((e) => formatExerciseCatalogLine(e))
       .join("\n")}\n\n`;
   }
 

@@ -204,7 +204,6 @@ function UploadBox({
     setIsUploading(true);
     try {
       const resp = await ptApplicationService.uploadDocument(file);
-      console.log("Upload response:", resp);
       setJustUploadedPreview(resp.previewUrl || null);
       onUpload(resp.url);
     } catch (error) {

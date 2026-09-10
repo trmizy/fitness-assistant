@@ -307,6 +307,55 @@ export async function generateClientPlanDraftSafe(
   }
 }
 
+export interface GenerateRoadmapDraftResult {
+  summary: string;
+  reasoningSummary: string;
+  confidence: number;
+  phases: Array<{
+    phaseType: string;
+    name: string;
+    plannedDurationWeeks: number;
+    objectiveMaxCycles?: number;
+    reason: string;
+  }>;
+  warnings: string[];
+  assumptions: string[];
+}
+
+/** Calls ai-service's POST /ai/generate-roadmap-draft — Phase B of the
+ * roadmap next-phase work. Draft-only: fitness-roadmap.service.ts never
+ * persists this response directly, only offers it back to the caller for
+ * review; see fitnessRoadmapService.generateAiRoadmapDraft. */
+export async function generateRoadmapDraft(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateRoadmapDraftResult> {
+  const res = await axios.post(
+    `${resolveAiServiceUrl()}/ai/generate-roadmap-draft`,
+    payload,
+    {
+      headers: internalHeaders(userId),
+      timeout: Number(process.env.ROADMAP_DRAFT_TIMEOUT_MS ?? 90_000),
+    },
+  );
+  return res.data.data as GenerateRoadmapDraftResult;
+}
+
+export async function generateRoadmapDraftSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateRoadmapDraftResult | null> {
+  try {
+    return await generateRoadmapDraft(userId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[fitness-roadmap] generate-roadmap-draft call failed",
+    );
+    return null;
+  }
+}
+
 export interface QueueNutritionPlanResult {
   planId: string;
   jobId: string;

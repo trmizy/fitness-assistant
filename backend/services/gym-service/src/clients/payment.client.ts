@@ -1,10 +1,37 @@
 import axios from 'axios';
+import { invokeHttpLambda, throwForLambdaHttpError } from './lambda-http.client';
 
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
+
+async function paymentRequest<T>(params: {
+  method: 'GET' | 'POST';
+  path: string;
+  body?: unknown;
+  timeout: number;
+}): Promise<T> {
+  if (process.env.PAYMENT_LAMBDA_NAME) {
+    const result = await invokeHttpLambda({
+      functionName: process.env.PAYMENT_LAMBDA_NAME,
+      method: params.method,
+      path: params.path,
+      headers,
+      body: params.body,
+    });
+    throwForLambdaHttpError(result);
+    return result.body.data as T;
+  }
+
+  const url = `${PAYMENT_SERVICE_URL}${params.path}`;
+  const response =
+    params.method === 'GET'
+      ? await axios.get(url, { headers, timeout: params.timeout })
+      : await axios.post(url, params.body ?? {}, { headers, timeout: params.timeout });
+  return response.data.data as T;
+}
 
 export interface WalletTransferResult {
   status: 'PAID' | 'FAILED';
@@ -43,9 +70,11 @@ export const paymentClient = {
   }): Promise<CheckoutResult> {
     const platformRateNum = Number(params.platformRate);
     try {
-      const { data } = await axios.post(
-        `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
-        {
+      return await paymentRequest<CheckoutResult>({
+        method: 'POST',
+        path: '/internal/payments/checkout',
+        timeout: 20_000,
+        body: {
           purpose: 'GYM_MEMBERSHIP',
           relatedEntityType: 'GYM_MEMBERSHIP',
           relatedEntityId: params.membershipId,
@@ -64,9 +93,7 @@ export const paymentClient = {
           platform: params.platform,
           returnBaseUrl: params.returnBaseUrl,
         },
-        { headers, timeout: 20_000 },
-      );
-      return data.data as CheckoutResult;
+      });
     } catch (e: any) {
       const code = e?.response?.data?.error?.code || 'CHECKOUT_FAILED';
       throw Object.assign(new Error(e?.response?.data?.error?.message || code), {
@@ -85,9 +112,11 @@ export const paymentClient = {
     initiatedBy: string;
     gymId?: string;
   }): Promise<WalletTransferResult> {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/payments/wallet-transfer`,
-      {
+    return paymentRequest<WalletTransferResult>({
+      method: 'POST',
+      path: '/internal/payments/wallet-transfer',
+      timeout: 15_000,
+      body: {
         payerOwnerType: 'CLIENT',
         payerOwnerId: params.payerOwnerId,
         receiverOwnerType: 'GYM',
@@ -102,28 +131,39 @@ export const paymentClient = {
         gymId: params.gymId,
         membershipId: params.relatedEntityId,
       },
-      { headers, timeout: 15_000 },
-    );
-    return data.data as WalletTransferResult;
+    });
   },
 
   async markActivated(transactionId: string): Promise<void> {
-    await axios.post(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}/mark-activated`, {}, { headers, timeout: 10_000 });
+    await paymentRequest<void>({
+      method: 'POST',
+      path: `/internal/payments/${transactionId}/mark-activated`,
+      timeout: 10_000,
+      body: {},
+    });
   },
 
-  /** ① Move a referral commission from the gym's pending bucket into the referring PT's. */
+  /** Move a referral commission from the gym's pending bucket into the referring PT's. */
   async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral`, body, { headers, timeout: 15_000 });
-    return data.data as { moved: string; shortfall: string };
+    return paymentRequest<{ moved: string; shortfall: string }>({
+      method: 'POST',
+      path: '/internal/contracts/referral',
+      timeout: 15_000,
+      body,
+    });
   },
 
-  /** ② Reclaim a proportional share of a referral commission when an admin refunds a membership. */
+  /** Reclaim a proportional share of a referral commission when an admin refunds a membership. */
   async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral/clawback`, body, { headers, timeout: 15_000 });
-    return data.data as { recovered: string; shortfall: string };
+    return paymentRequest<{ recovered: string; shortfall: string }>({
+      method: 'POST',
+      path: '/internal/contracts/referral/clawback',
+      timeout: 15_000,
+      body,
+    });
   },
 
-  /** ③ Release a terminal membership's remaining pending to gym/platform/referral-PT available. */
+  /** Release a terminal membership's remaining pending to gym/platform/referral-PT available. */
   async releaseMembershipPending(body: {
     transactionId: string;
     gymId: string;
@@ -134,15 +174,19 @@ export const paymentClient = {
     label: string;
     idempotencyKey: string;
   }) {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/membership-release`, body, { headers, timeout: 20_000 });
-    return data.data as {
+    return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
       refundedToClient: string;
       shortfall: string;
-    };
+    }>({
+      method: 'POST',
+      path: '/internal/contracts/membership-release',
+      timeout: 20_000,
+      body,
+    });
   },
 
-  /** ④ Client self-cancelled — forfeit everything to the parties immediately, no client credit. */
+  /** Client self-cancelled — forfeit everything to the parties immediately, no client credit. */
   async forfeitMembershipOnCancel(body: {
     transactionId: string;
     gymId: string;
@@ -151,16 +195,16 @@ export const paymentClient = {
     label: string;
     idempotencyKey: string;
   }) {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/contracts/membership-cancel-forfeit`,
-      { ...body, membershipStatus: 'CANCELLED' as const },
-      { headers, timeout: 20_000 },
-    );
-    return data.data as {
+    return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
       refundedToClient: string;
       shortfall: string;
-    };
+    }>({
+      method: 'POST',
+      path: '/internal/contracts/membership-cancel-forfeit',
+      timeout: 20_000,
+      body: { ...body, membershipStatus: 'CANCELLED' as const },
+    });
   },
 
   /** Prorated (partial) refund of a membership's original purchase transaction. */
@@ -172,17 +216,23 @@ export const paymentClient = {
     reason: string;
   }): Promise<{ transactionId: string; status: string; refundAmount: number; commissionAmount: number; netToReceiver: number }> {
     try {
-      const { data } = await axios.post(
-        `${PAYMENT_SERVICE_URL}/internal/payments/${params.originalTransactionId}/refund`,
-        {
+      return await paymentRequest<{
+        transactionId: string;
+        status: string;
+        refundAmount: number;
+        commissionAmount: number;
+        netToReceiver: number;
+      }>({
+        method: 'POST',
+        path: `/internal/payments/${params.originalTransactionId}/refund`,
+        timeout: 15_000,
+        body: {
           refundAmount: params.refundAmount,
           idempotencyKey: params.idempotencyKey,
           initiatedBy: params.initiatedBy,
           reason: params.reason,
         },
-        { headers, timeout: 15_000 },
-      );
-      return data.data;
+      });
     } catch (e: any) {
       const code = e?.response?.data?.error?.code || 'REFUND_FAILED';
       throw Object.assign(new Error(code), { status: e?.response?.status || 502 });
@@ -190,13 +240,19 @@ export const paymentClient = {
   },
 
   async getTransaction(transactionId: string): Promise<any> {
-    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}`, { headers, timeout: 10_000 });
-    return data.data;
+    return paymentRequest<any>({
+      method: 'GET',
+      path: `/internal/payments/${transactionId}`,
+      timeout: 10_000,
+    });
   },
 
   async getWallet(ownerType: 'GYM', ownerId: string): Promise<any> {
-    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/wallets/${ownerType}/${ownerId}`, { headers, timeout: 10_000 });
-    return data.data;
+    return paymentRequest<any>({
+      method: 'GET',
+      path: `/internal/wallets/${ownerType}/${ownerId}`,
+      timeout: 10_000,
+    });
   },
 
   // Money-flow plan 5.3 — gym-service verifies gym ownership itself (see
@@ -204,16 +260,20 @@ export const paymentClient = {
   // trusts the gymId because this call only comes over the service-secret-gated /internal
   // boundary, never from a browser.
   async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string): Promise<any> {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/withdrawals/gym/${gymId}`,
-      { amount, payoutInfo },
-      { headers, timeout: 10_000 },
-    );
-    return data.data;
+    return paymentRequest<any>({
+      method: 'POST',
+      path: `/internal/withdrawals/gym/${gymId}`,
+      timeout: 10_000,
+      body: { amount, payoutInfo },
+    });
   },
 
   async listGymWithdrawals(gymId: string): Promise<any> {
-    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/withdrawals/gym/${gymId}`, { headers, timeout: 10_000 });
-    return data.data;
+    return paymentRequest<any>({
+      method: 'GET',
+      path: `/internal/withdrawals/gym/${gymId}`,
+      timeout: 10_000,
+    });
   },
 };
+

@@ -16,9 +16,11 @@ import { planEquipmentValidatorService, type PlanDayRef } from "../services/plan
 const hasDatabaseUrl = Boolean(process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL);
 const integrationTest = hasDatabaseUrl ? test : test.skip;
 const cleanupUserIds: string[] = [];
+const cleanupExerciseIds: string[] = [];
 test.after(async () => {
   if (!hasDatabaseUrl) return;
   await prisma.userEquipment.deleteMany({ where: { userId: { in: cleanupUserIds } } });
+  await prisma.exercise.deleteMany({ where: { id: { in: cleanupExerciseIds } } });
   await prisma.$disconnect();
 });
 
@@ -72,6 +74,46 @@ integrationTest("skips validation entirely (valid=true) when the user has no sav
   const result = await planEquipmentValidatorService.validate(scheduleFor([legPressId]), userId);
   assert.equal(result.valid, true);
   assert.equal(result.skippedNoUserEquipment, true);
+});
+
+integrationTest("does not skip canonical exercise identity validation when the user has no saved equipment rows", async () => {
+  const userId = `validator-${randomUUID()}`; // deliberately never call setEquipment
+  const missingExerciseId = `missing-${randomUUID()}`;
+
+  const result = await planEquipmentValidatorService.validate(scheduleFor([missingExerciseId]), userId);
+
+  assert.equal(result.valid, false);
+  assert.equal(result.skippedNoUserEquipment, true);
+  assert.equal(result.violations.length, 1);
+  assert.equal(result.violations[0].exerciseId, missingExerciseId);
+  assert.deepEqual(result.violations[0].required, ["valid-published-exercise"]);
+});
+
+integrationTest("rejects archived catalog exercises before equipment validation", async () => {
+  const userId = `validator-${randomUUID()}`;
+  cleanupUserIds.push(userId);
+  const archived = await prisma.exercise.create({
+    data: {
+      exerciseName: `Validator Archived ${randomUUID()}`,
+      bodyPart: "UPPER_BODY",
+      type: "PUSH",
+      typeOfActivity: "STRENGTH",
+      typeOfEquipment: "BODYWEIGHT",
+      difficultyLevel: "BEGINNER",
+      muscleGroupsActivated: ["chest"],
+      instructions: "test",
+      source: "SYSTEM",
+      status: "PUBLISHED",
+      archivedAt: new Date(),
+    },
+  });
+  cleanupExerciseIds.push(archived.id);
+
+  await setEquipment(userId, ["bodyweight"]);
+  const result = await planEquipmentValidatorService.validate(scheduleFor([archived.id]), userId);
+
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.violations[0].required, ["valid-published-exercise"]);
 });
 
 integrationTest("violation reports the correct day index for a multi-day plan", async () => {

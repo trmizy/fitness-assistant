@@ -2,21 +2,9 @@
  * Fetches personal user data for use in plan generation workers.
  * Workers run without user auth tokens, so they use the internal service secret.
  */
-import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import { prisma } from "../repositories/conversation.repository";
-
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://user-service:3004"
-    : "http://localhost:3004");
-
-const FITNESS_SERVICE_URL =
-  process.env.FITNESS_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://fitness-service:3002"
-    : "http://localhost:3002");
+import { requestService } from "../clients/service-lambda.client";
 
 function userServiceHeaders() {
   return {
@@ -120,22 +108,41 @@ export async function fetchWorkerUserContext(
 
   const [profileRes, inBodyRes, workoutsRes, nutritionRes, latestCycleRes] =
     await Promise.allSettled([
-      axios.get(
-        `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`,
-        { headers: userHeaders, timeout },
-      ),
-      axios.get(
-        `${USER_SERVICE_URL}/internal/inbody/${encodeURIComponent(userId)}`,
-        { headers: userHeaders, timeout },
-      ),
-      axios.get(`${FITNESS_SERVICE_URL}/workouts?limit=10`, {
-        headers,
-        timeout,
+      requestService({
+        service: "user",
+        method: "GET",
+        path: `/internal/profile/${encodeURIComponent(userId)}`,
+        headers: userHeaders,
+        timeoutMs: timeout,
       }),
-      axios.get(`${FITNESS_SERVICE_URL}/nutrition`, { headers, timeout }),
-      axios.get(`${FITNESS_SERVICE_URL}/internal/training-cycles/latest-closed`, {
+      requestService({
+        service: "user",
+        method: "GET",
+        path: `/internal/inbody/${encodeURIComponent(userId)}`,
+        headers: userHeaders,
+        timeoutMs: timeout,
+      }),
+      requestService({
+        service: "fitness",
+        method: "GET",
+        path: "/workouts",
+        params: { limit: 10 },
         headers,
-        timeout,
+        timeoutMs: timeout,
+      }),
+      requestService({
+        service: "fitness",
+        method: "GET",
+        path: "/nutrition",
+        headers,
+        timeoutMs: timeout,
+      }),
+      requestService({
+        service: "fitness",
+        method: "GET",
+        path: "/internal/training-cycles/latest-closed",
+        headers,
+        timeoutMs: timeout,
       }),
     ]);
 

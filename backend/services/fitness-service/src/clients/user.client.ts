@@ -258,16 +258,46 @@ export async function fetchInBodyById(
   return history.find((e) => e.id === id) ?? null;
 }
 
-/** Latest InBody entry with date <= cutoff (history endpoint has no date filter, so filter client-side). */
+/** Latest InBody entry with date <= cutoff — a single bounded, server-
+ * side query (GET /internal/inbody/:userId/latest?before=...,
+ * user-service's own findLatestByUserIdOnOrBefore), not a full-history
+ * download filtered client-side. Fixed as part of Gymini Adaptive
+ * Roadmap Production Closure: getCurrentForecast's reconciliation loop
+ * calls this once per completed phase — a roadmap with N completed
+ * phases used to trigger N full-history downloads of this user's
+ * entire InBody history over HTTP; it now makes N single-row bounded
+ * queries instead (still N calls, but each one O(1) at the DB layer,
+ * never O(history length) — see
+ * docs/GYMINI_ADAPTIVE_ROADMAP_PRODUCTION_CLOSURE_DESIGN.md §6/§7/§8 for
+ * why per-phase-call-count itself was left unchanged this pass). */
 export async function fetchLatestInBodyOnOrBefore(
   userId: string,
   cutoff: Date,
 ): Promise<InBodyEntrySnapshot | null> {
-  const history = await fetchInBodyHistory(userId);
-  const eligible = history
-    .filter((e) => new Date(e.date).getTime() <= cutoff.getTime())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return eligible[0] ?? null;
+  try {
+    const res = await userServiceGet(
+      `/internal/inbody/${encodeURIComponent(userId)}/latest`,
+      { before: cutoff.toISOString() },
+    );
+    const e = res.data;
+    if (!e) return null;
+    return {
+      id: e.id,
+      date: e.date ?? e.dateOnly,
+      weight: e.weight,
+      bodyFatPct: e.bodyFatPct ?? null,
+      muscleMass: e.muscleMass,
+      visceralFat: e.visceralFat ?? null,
+      bmr: e.bmr ?? null,
+      status: e.status ?? null,
+    };
+  } catch (error) {
+    logger.warn(
+      { err: (error as Error).message, userId },
+      "[training-cycle] latest-on-or-before inbody fetch failed",
+    );
+    return null;
+  }
 }
 
 /** Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — the ONLY

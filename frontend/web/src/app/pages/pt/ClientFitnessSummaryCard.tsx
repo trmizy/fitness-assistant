@@ -54,6 +54,15 @@ const DECISION_LABEL: Record<string, string> = {
   INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
 };
 
+const CONSISTENCY_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
+  MATCHED: { label: "Khớp mục tiêu", cls: "bg-green-500/10 text-green-400 border-green-500/20" },
+  STALE_GOAL_CHANGED: { label: "Mục tiêu đã đổi — thực đơn cũ", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  MACRO_MISMATCH: { label: "Lệch mục tiêu", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  NO_ACTIVE_GOAL: { label: "Chưa có mục tiêu", cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40" },
+  NO_ACTIVE_PROGRAM: { label: "Chưa có thực đơn", cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40" },
+  LOW_CONFIDENCE: { label: "Chưa đủ dữ liệu so sánh", cls: "bg-zinc-700/60 text-zinc-500 border-zinc-600/40" },
+};
+
 /** Bottom-sheet form for a PT's Modify action — a controlled, explicit
  * calorie/protein/carb/fat patch (spec §IV: "PT modifies: 2100 kcal"),
  * never a free-for-all edit of every advanced field. */
@@ -168,7 +177,18 @@ function ModifyNutritionSheet({
  * ACTIVE; the backend independently re-checks this per request regardless
  * of what this component assumes). Phase 2 adds real Approve/Modify/Reject
  * actions on the client's pending AI nutrition recommendation. */
-export function ClientFitnessSummaryCard({ clientUserId }: { clientUserId: string }) {
+export function ClientFitnessSummaryCard({
+  clientUserId,
+  section = "both",
+}: {
+  clientUserId: string;
+  /** Tab restructuring (PT Coaching Workspace phase §7) — the SAME query
+   * (React Query dedupes by key) renders only the half relevant to the
+   * active tab. "both" preserves the original single-page behavior. */
+  section?: "training" | "nutrition" | "both";
+}) {
+  const showTraining = section === "training" || section === "both";
+  const showNutrition = section === "nutrition" || section === "both";
   const queryClient = useQueryClient();
   const [showModifySheet, setShowModifySheet] = useState(false);
   const { data, isLoading, isError } = useQuery({
@@ -226,6 +246,8 @@ export function ClientFitnessSummaryCard({ clientUserId }: { clientUserId: strin
 
   return (
     <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+      {showTraining && (
+      <>
       <div className="flex items-center gap-2 mb-3">
         <Dumbbell className="w-4 h-4 text-green-400" />
         <h4 className="text-sm font-semibold text-zinc-200">Dữ liệu tập luyện</h4>
@@ -301,12 +323,44 @@ export function ClientFitnessSummaryCard({ clientUserId }: { clientUserId: strin
               </p>
             </div>
           )}
+
+          {/* §21 — the training-side CycleAssessment's own reasoning (real
+              decision + AI summary, never raw chain-of-thought). */}
+          {data.latestAssessment?.decision && (
+            <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-2 mt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500">Đánh giá chu kỳ gần nhất</span>
+                <span className="text-[11px] font-semibold text-green-300">
+                  {DECISION_LABEL[data.latestAssessment.decision] ?? data.latestAssessment.decision}
+                </span>
+              </div>
+              {data.latestAssessment.aiSummary && (
+                <p className="text-[11px] text-zinc-400 mt-1">{data.latestAssessment.aiSummary}</p>
+              )}
+            </div>
+          )}
         </div>
+      )}
+      </>
+      )}
+
+      {/* Loading/error states for a nutrition-only render (the shared block
+          above already covers this when showTraining is also true). */}
+      {!showTraining && isLoading && (
+        <div className="flex items-center justify-center py-6">
+          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {!showTraining && isError && (
+        <p className="text-xs text-zinc-500 py-4 text-center">Không thể tải dữ liệu dinh dưỡng.</p>
+      )}
+      {!showTraining && !isLoading && !isError && showNutrition && !data?.nutrition?.activeGoal && !data?.nutrition?.latestNutritionDecision && (
+        <p className="text-xs text-zinc-500 py-4 text-center">Học viên chưa có mục tiêu dinh dưỡng.</p>
       )}
 
       {/* ── AI Nutrition Cycle Engine (Gymini) — spec §XXIII ── */}
-      {(data?.nutrition?.activeGoal || data?.nutrition?.latestNutritionDecision) && (
-        <div className="mt-4 pt-3 border-t border-zinc-800/60">
+      {showNutrition && (data?.nutrition?.activeGoal || data?.nutrition?.latestNutritionDecision) && (
+        <div className={showTraining ? "mt-4 pt-3 border-t border-zinc-800/60" : ""}>
           <div className="flex items-center gap-2 mb-2">
             <Utensils className="w-4 h-4 text-orange-400" />
             <h5 className="text-xs font-semibold text-zinc-300">Dinh dưỡng</h5>
@@ -320,6 +374,30 @@ export function ClientFitnessSummaryCard({ clientUserId }: { clientUserId: strin
                   <span className="block text-[10px] text-zinc-600">
                     {NUTRITION_TRIGGER_LABEL[data.nutrition.activeGoal.triggeredBy ?? ""] ?? "Không rõ nguồn"}
                   </span>
+                </span>
+              </div>
+            )}
+
+            {/* §19 — the actual meal plan the client is following, plus its
+                real, already-computed consistency status against the goal
+                above (never a second consistency check). */}
+            {data.nutrition.activeProgram && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Thực đơn hiện tại</span>
+                <span className="text-zinc-300 text-right">
+                  {data.nutrition.activeProgram.dailyCaloriesTarget ?? "–"} kcal · {data.nutrition.activeProgram.name}
+                </span>
+              </div>
+            )}
+            {data.nutrition.consistency?.status && (
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-500">Trạng thái khớp mục tiêu</span>
+                <span
+                  className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                    CONSISTENCY_STATUS_LABEL[data.nutrition.consistency.status]?.cls ?? CONSISTENCY_STATUS_LABEL.LOW_CONFIDENCE.cls
+                  }`}
+                >
+                  {CONSISTENCY_STATUS_LABEL[data.nutrition.consistency.status]?.label ?? data.nutrition.consistency.status}
                 </span>
               </div>
             )}

@@ -1,11 +1,10 @@
-import axios from 'axios';
 import { logger } from '@gym-coach/shared';
 import { prisma } from '../repositories/prisma';
 import { checkinRepository } from '../repositories/checkin.repository';
 import { gymService } from './gym.service';
 import { signGymCheckinToken, verifyGymCheckinToken } from '../utils/checkinToken';
+import { authServiceClient } from '../clients/auth-service.client';
 
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
@@ -37,10 +36,7 @@ interface MembershipRow {
  */
 async function fetchClientName(userId: string): Promise<string | null> {
   try {
-    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/internal/users/${userId}`, {
-      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
-      timeout: 3000,
-    });
+    const data = await authServiceClient.getInternalUser(userId, INTERNAL_SERVICE_SECRET);
     const u = data?.user ?? data;
     const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
     return name || u?.email || null;

@@ -135,18 +135,49 @@ files that explicitly remap it to `DATABASE_URL` in their own top-level code
 
 This is every file **except** the ones listed below.
 
+### Catalog seed parity on isolated `postgres-test`
+
+As of 2026-09-09, the core exercise catalog suites no longer require the
+dev database. The full docker test flow runs a deterministic, guarded fitness
+catalog seed after migrations.
+
+Run setup:
+
+```bash
+DATABASE_URL="postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public" \
+FITNESS_DATABASE_URL="$DATABASE_URL" \
+NODE_ENV=test \
+FITNESS_DISABLE_REDIS=true \
+  pnpm --filter @gym-coach/fitness-service run test:catalog:setup
+```
+
+Run catalog tests:
+
+```bash
+DATABASE_URL="postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public" \
+FITNESS_DATABASE_URL="$DATABASE_URL" \
+NODE_ENV=test \
+FITNESS_DISABLE_REDIS=true \
+  pnpm --filter @gym-coach/fitness-service run test:catalog
+```
+
+This covers:
+
+- `catalog-quality-matrix.integration.test.ts`
+- `exercise-substitution.test.ts`
+- `equipment-data-integrity.test.ts`
+- `movement-pattern.test.ts`
+- `exercise-catalog-seed-parity.integration.test.ts`
+
 ### Category 2 — real seeded dev DB (`gymcoach_fitness`), not `_test`
 
-These need the full seeded exercise/equipment/food catalog, which only
-exists in the dev database — `gymcoach_fitness_test` was never seeded with
-it (confirmed empty/inconsistent for this data, not a bug). Each file's own
-header comment says so; found by grepping for "dev DB"/"inside the
-fitness-service container":
+These still need the full dev-seeded catalog or live dev server shape that is
+not provided by the isolated `postgres-test` stack. Core catalog parity tests
+listed above are no longer in this category. Each file's own header comment
+says so; found by grepping for "dev DB"/"inside the fitness-service container":
 
 | File | Why it needs dev DB |
 |---|---|
-| `equipment-data-integrity.test.ts` | Real equipment catalog + 874-exercise mapping, seeded only in dev |
-| `movement-pattern.test.ts` | Real `movementPattern` backfill, seeded only in dev |
 | `equipment-filtering.integration.test.ts` | Hits the **already-running dev server over real HTTP** (`localhost:3002`) — its own Prisma writes (`UserEquipment` rows) must land in the SAME database that live server reads, which is `gymcoach_fitness` (whatever `DATABASE_URL` the running `gymcoach-fitness-dev` container actually has) |
 | `exercise-muscle-map.integration.test.ts` | Real `ExerciseMuscle`/`Muscle` taxonomy, seeded only in dev |
 | `food-serving-metadata.integration.test.ts` | Real 13k+-row USDA food catalog, seeded only in dev |
@@ -213,10 +244,16 @@ There is no single command — split by category:
 DATABASE_URL="postgresql://gymcoach:gymcoach_password@localhost:5433/gymcoach_fitness_test?schema=public" \
   npx tsx --test src/__tests__/*.test.ts
 
+# Catalog parity on isolated postgres-test:
+DATABASE_URL="postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public" \
+FITNESS_DATABASE_URL="$DATABASE_URL" \
+NODE_ENV=test \
+FITNESS_DISABLE_REDIS=true \
+  pnpm --filter @gym-coach/fitness-service run test:catalog
+
 # Category 2 (dev DB), run separately:
 DATABASE_URL="postgresql://gymcoach:gymcoach_password@localhost:5433/gymcoach_fitness?schema=public" \
-  npx tsx --test src/__tests__/equipment-data-integrity.test.ts src/__tests__/movement-pattern.test.ts \
-    src/__tests__/equipment-filtering.integration.test.ts src/__tests__/exercise-muscle-map.integration.test.ts \
+  npx tsx --test src/__tests__/equipment-filtering.integration.test.ts src/__tests__/exercise-muscle-map.integration.test.ts \
     src/__tests__/food-serving-metadata.integration.test.ts
 
 # Category 3 (cross-service), run separately with the two extra env vars above.

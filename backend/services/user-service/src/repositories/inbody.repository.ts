@@ -27,6 +27,21 @@ export const inbodyRepository = {
     });
   },
 
+  // Gymini Adaptive Roadmap Production Closure — a single bounded,
+  // server-side "latest measurement on/before a cutoff" query, for
+  // callers (fitness-service's fetchLatestInBodyOnOrBefore) that only
+  // ever need ONE row and previously had to download this user's ENTIRE
+  // InBody history over HTTP just to filter it client-side. Filters on
+  // the full `date` timestamp (not the day-only `dateOnly`) to stay
+  // byte-for-byte equivalent to the client-side filter it replaces
+  // (`new Date(e.date).getTime() <= cutoff.getTime()`).
+  async findLatestByUserIdOnOrBefore(userId: string, cutoff: Date) {
+    return prisma.inBodyEntry.findFirst({
+      where: { userId, date: { lte: cutoff } },
+      orderBy: { date: "desc" },
+    });
+  },
+
   async findById(id: string) {
     return prisma.inBodyEntry.findUnique({
       where: { id },

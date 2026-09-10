@@ -132,7 +132,14 @@ export function AssignPlanModal({
         days: days.map((d) => ({
           dayNumber: d.dayNumber,
           title: d.title.trim() || `Buổi ${d.dayNumber}`,
-          exercises: d.exercises.map((e, order) => ({ exerciseId: e.exerciseId, order, sets: e.sets, reps: e.reps })),
+          // 1-based — manualProgramExerciseSchema requires order >= 1
+          // (fitness.models.ts); the client's own manual-program builder
+          // (WorkoutLogPage.tsx) already uses `index + 1` for the same
+          // reason. A bare 0-based array index here made every day's
+          // first exercise fail validation, so assigning any plan always
+          // 400'd — found live while building the PT Coaching Workspace
+          // E2E suite (TC-PT-006).
+          exercises: d.exercises.map((e, index) => ({ exerciseId: e.exerciseId, order: index + 1, sets: e.sets, reps: e.reps })),
         })),
       });
     },

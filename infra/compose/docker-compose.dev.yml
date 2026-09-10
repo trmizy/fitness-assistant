@@ -227,6 +227,18 @@ services:
       # gym.client.ts would fall back to localhost:3006 → ECONNREFUSED inside Docker on
       # every gym-affiliated PT contract request.
       GYM_SERVICE_URL: http://gym-service:3006
+      # Gymini Cross-System Fitness Journey Integration phase — real bug
+      # found live: fitness-service.client.ts's resolveFitnessServiceUrl()
+      # falls back to http://localhost:3002 whenever this is unset AND
+      # NODE_ENV isn't literally "production" — inside this dev container
+      # that's the container itself, not fitness-service, so both
+      # bootstrapNutritionSafe (onboarding -> initial NutritionGoal) and
+      # triggerInBodyReassessmentSafe (new InBody -> cycle reassessment
+      # check) failed with ECONNREFUSED on every call, silently (both are
+      # explicitly best-effort/non-blocking, so nothing surfaced this until
+      # a real end-to-end run checked the DB for the resulting NutritionGoal
+      # row). Same class of gap as PAYMENT_SERVICE_URL/GYM_SERVICE_URL above.
+      FITNESS_SERVICE_URL: http://fitness-service:3002
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       # InBody scan extraction: temporarily reverted default to Claude

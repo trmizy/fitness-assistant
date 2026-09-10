@@ -1,10 +1,10 @@
 import http from "http";
 import { Server, Socket } from "socket.io";
-import axios from "axios";
 import { logger, websocketConnectionsActive } from "@gym-coach/shared";
 import { registerChatHandlers } from "./chat.handler";
 import { registerCallHandlers, graceTimers } from "./call.handler";
 import { callService } from "../services/call.service";
+import { verifyToken } from "../clients/auth-service.client";
 
 // Track online users: userId → Set of socket IDs (user may have multiple tabs)
 export const onlineUsers = new Map<string, Set<string>>();
@@ -31,13 +31,7 @@ export function initSocket(httpServer: http.Server) {
         return next(new Error("Authentication required"));
       }
 
-      const authServiceUrl =
-        process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-      const { data } = await axios.post(
-        `${authServiceUrl}/auth/verify`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
-      );
+      const data = await verifyToken(token);
 
       (socket as any).user = data.user;
       next();

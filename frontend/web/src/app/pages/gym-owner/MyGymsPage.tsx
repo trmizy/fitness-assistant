@@ -23,6 +23,14 @@ function branchesForBrand(gyms: Gym[], brandId: string): Gym[] {
   return gyms.filter((g) => g.brandId === brandId);
 }
 
+function apiErrorMessage(err: any, fallback: string): string {
+  const raw = err?.response?.data?.error;
+  if (typeof raw === "string") return raw;
+  if (typeof raw?.message === "string") return raw.message;
+  if (typeof err?.response?.data?.message === "string") return err.response.data.message;
+  return fallback;
+}
+
 function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
   const cfg = STATUS_CONFIG[gym.status];
   // Stats (hội viên/sao) only exist for gyms the public can already see — a PENDING_REVIEW
@@ -177,6 +185,9 @@ export function MyGymsPage() {
   });
 
   const isLoading = gymsLoading || brandsLoading;
+  const ownerBrand = brands[0] ?? null;
+  const hasBrand = Boolean(ownerBrand);
+  const defaultBrandId = ownerBrand?.id ?? "";
 
   const createGymMutation = useMutation({
     mutationFn: () =>
@@ -185,7 +196,7 @@ export function MyGymsPage() {
         address: gymForm.address,
         city: gymForm.city,
         description: gymForm.description,
-        brandId: gymForm.brandId || undefined,
+        brandId: gymForm.brandId || defaultBrandId || undefined,
       }),
     onSuccess: () => {
       toast.success(gymForm.brandId ? "Đã thêm chi nhánh — chờ admin duyệt" : "Gym created — awaiting admin approval");
@@ -193,7 +204,7 @@ export function MyGymsPage() {
       setGymForm({ name: "", address: "", city: "", description: "", brandId: "" });
       queryClient.invalidateQueries({ queryKey: ["owned-gyms"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create gym"),
+    onError: (err: any) => toast.error(apiErrorMessage(err, "Failed to create gym")),
   });
 
   const createBrandMutation = useMutation({
@@ -204,7 +215,12 @@ export function MyGymsPage() {
       setBrandForm({ name: "", description: "" });
       queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create brand"),
+    onError: (err: any) =>
+      toast.error(
+        err?.response?.status === 409
+          ? "Tài khoản Gym Owner chỉ có thể có 1 thương hiệu. Hãy thêm chi nhánh vào thương hiệu hiện tại."
+          : apiErrorMessage(err, "Failed to create brand"),
+      ),
   });
 
   // Vòng 4 / Phase C1 — a rename only ever moves pendingName; approvedName (what's shown
@@ -235,6 +251,7 @@ export function MyGymsPage() {
           <p className="text-zinc-500 text-sm mt-0.5">Quản lý thương hiệu, chi nhánh và phòng gym độc lập của bạn</p>
         </div>
         <div className="flex gap-2">
+          {!hasBrand && (
           <button
             type="button"
             onClick={() => setShowCreateBrand(true)}
@@ -242,10 +259,11 @@ export function MyGymsPage() {
           >
             <Building2 className="w-4 h-4" /> Tạo thương hiệu
           </button>
+          )}
           <button
             type="button"
             onClick={() => {
-              setGymForm({ name: "", address: "", city: "", description: "", brandId: "" });
+              setGymForm({ name: "", address: "", city: "", description: "", brandId: defaultBrandId });
               setShowCreateGym(true);
             }}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,background-color] active:scale-[0.98] shadow-lg shadow-green-500/25"
@@ -297,7 +315,7 @@ export function MyGymsPage() {
             <button
               type="button"
               onClick={() => {
-                setGymForm({ name: "", address: "", city: "", description: "", brandId: "" });
+                setGymForm({ name: "", address: "", city: "", description: "", brandId: defaultBrandId });
                 setShowCreateGym(true);
               }}
               className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-700/60 p-4 text-zinc-500 hover:border-green-500/40 hover:text-green-400 transition-[transform,border-color,color] active:scale-[0.98] min-h-[104px]"
@@ -322,14 +340,13 @@ export function MyGymsPage() {
             <div className="p-5 space-y-3">
               {brands.length > 0 && (
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1.5 block">Thương hiệu (tuỳ chọn)</label>
+                  <label className="text-xs text-zinc-500 mb-1.5 block">Thương hiệu</label>
                   <select
                     aria-label="Thương hiệu"
-                    value={gymForm.brandId}
+                    value={gymForm.brandId || defaultBrandId}
                     onChange={(e) => setGymForm({ ...gymForm, brandId: e.target.value })}
                     className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
                   >
-                    <option value="">Không thuộc thương hiệu nào</option>
                     {brands.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
@@ -385,7 +402,7 @@ export function MyGymsPage() {
       )}
 
       {/* Create brand dialog */}
-      {showCreateBrand && (
+      {showCreateBrand && !hasBrand && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">

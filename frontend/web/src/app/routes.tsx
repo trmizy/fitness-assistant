@@ -38,6 +38,11 @@ const ChatPage = lazy(() => import("./pages/client/ChatPage").then((m) => ({ def
 // under one sidebar item (see TabbedPage) to shorten the nav for mobile.
 const PlansPage = lazy(() => import("./pages/client/PlansPage").then((m) => ({ default: m.PlansPage })));
 const TrainingPage = lazy(() => import("./pages/client/TrainingPage").then((m) => ({ default: m.TrainingPage })));
+// Gymini Training Navigation Simplification (design doc §14) — TrainingCycle
+// is no longer an equal top-level tab; it now has its own drill-down route,
+// reached from RoadmapJourneyPage's inline current-cycle card ("Xem chi
+// tiết chu kỳ"). The component itself is unchanged/not deleted.
+const TrainingCyclePage = lazy(() => import("./pages/client/TrainingCyclePage").then((m) => ({ default: m.TrainingCyclePage })));
 const ServicesPage = lazy(() => import("./pages/client/ServicesPage").then((m) => ({ default: m.ServicesPage })));
 const ChatCoachPage = lazy(() => import("./pages/client/ChatCoachPage").then((m) => ({ default: m.ChatCoachPage })));
 const PersonalizedServiceOrderPage = lazy(() => import("./pages/client/PersonalizedServiceOrderPage").then((m) => ({ default: m.PersonalizedServiceOrderPage })));
@@ -207,6 +212,7 @@ export const router = createBrowserRouter([
           { path: "chat", Component: ChatCoachPage },
           { path: "booking", Component: ServicesPage },
           { path: "workout", Component: TrainingPage },
+          { path: "workout/cycle", Component: TrainingCyclePage },
           { path: "nutrition", Component: NutritionPage },
           { path: "coaches", Component: ServicesPage },
           { path: "ai-coach", Component: ChatCoachPage },

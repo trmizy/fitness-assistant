@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import { coachService } from "../services/coach.service";
 import { createManualProgramSchema } from "../models/fitness.models";
+import { createFitnessRoadmapSchema } from "../models/fitness-roadmap.models";
 import { cycleThresholds } from "../config/cycle-thresholds.config";
 
 const generatePlanDraftSchema = z.object({
@@ -60,6 +61,15 @@ export const coachController = {
       res.json(result);
     } catch (error: any) {
       handleServiceError(res, error, "Failed to fetch client summary");
+    }
+  },
+
+  async getClientProgress(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await coachService.getClientProgress(req.user!.id, req.params.clientId);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch client progress");
     }
   },
 
@@ -174,6 +184,29 @@ export const coachController = {
         return;
       }
       handleServiceError(res, error, "Failed to generate plan draft");
+    }
+  },
+
+  async getClientRoadmap(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const roadmap = await coachService.getClientRoadmap(req.user!.id, req.params.clientId);
+      res.json(roadmap);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch client's fitness roadmap");
+    }
+  },
+
+  async createRoadmapDraft(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const input = createFitnessRoadmapSchema.parse(req.body ?? {});
+      const roadmap = await coachService.createRoadmapDraftForClient(req.user!.id, req.params.clientId, input);
+      res.status(201).json(roadmap);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid input" });
+        return;
+      }
+      handleServiceError(res, error, "Failed to create roadmap draft for client");
     }
   },
 };

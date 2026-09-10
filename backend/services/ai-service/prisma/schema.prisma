@@ -1,7 +1,14 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  // "native" -> local dev (Windows/macOS). "linux-musl-openssl-3.0.x" -> the
+  // node:20-alpine Docker/EC2 runtime (see Dockerfile, docker-compose.prod.yml).
+  // "debian-openssl-3.0.x" -> any debian-based CI/build image.
+  // "rhel-openssl-3.0.x" -> AWS Lambda (Amazon Linux 2023 is glibc-based, not
+  // musl) — required for ai-lambda.zip / ai-migrate-lambda.zip per the AWS
+  // deployment-prep audit; without it the query engine binary fails to load
+  // at cold start on Lambda even though it works in every container target.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

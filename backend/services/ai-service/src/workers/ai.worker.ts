@@ -1,7 +1,7 @@
-import { Worker } from "bullmq";
+import { Job, Worker } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { llmService } from "../services/llm.service";
 import {
   conversationRepository,
@@ -1002,9 +1002,21 @@ const PlanJobDataSchema = z.object({
 });
 type PlanJobData = z.infer<typeof PlanJobDataSchema>;
 
-export const aiWorker = new Worker(
-  "ai-tasks",
-  async (job) => {
+/**
+ * The actual "ai-tasks" job processor — extracted to a standalone, exported
+ * function (rather than left as an inline arrow passed to `new Worker(...)`)
+ * so it can be invoked two ways with zero behavior difference:
+ *   1. The BullMQ Worker below (Redis-backed, used by the container/local
+ *      deployment and by docker-compose.prod.yml's single-EC2 MVP).
+ *   2. worker-lambda.ts's SQS-triggered Lambda handler (AWS deployment —
+ *      see the AWS deployment audit, section 7). Only `.name`, `.data`,
+ *      `.id`, and `.attemptsMade` are ever read from `job` in this function
+ *      (verified by grep before this extraction), so a plain object shaped
+ *      like a BullMQ Job — as worker-lambda.ts constructs per SQS record —
+ *      is a safe substitute; nothing here calls a BullMQ-specific Job method
+ *      (updateProgress/log/moveToFailed/etc.).
+ */
+export async function processAiTaskJob(job: Job): Promise<void> {
     if (job.name === "generate-nutrition-plan") {
       const { processNutritionPlanJob } =
         await import("../services/nutrition.processor");
@@ -1043,29 +1055,28 @@ export const aiWorker = new Worker(
       PlanStatus.PROCESSING,
     );
 
-    // 3. Fetch allowed exercises from fitness-service (internal API)
-    const fitnessServiceUrl =
-      process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
+    // 3. Fetch allowed exercises from fitness-service (internal API — direct
+    // Lambda invoke when FITNESS_LAMBDA_NAME is set, HTTP otherwise)
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
     let allowedExercises: AllowedExercise[] = [];
     try {
-      const resp = await axios.get(
-        `${fitnessServiceUrl}/internal/exercises/for-ai-plans`,
-        {
-          params: {
-            goal,
-            trainingLocation,
-            equipmentPreference,
-            limit: PLAN_EXERCISE_FETCH_LIMIT,
-          },
-          timeout: 10000,
-          headers: {
-            "x-internal-token": internalSecret,
-            "x-user-id": userId,
-          },
+      const resp = await requestService({
+        service: "fitness",
+        method: "GET",
+        path: "/internal/exercises/for-ai-plans",
+        params: {
+          goal,
+          trainingLocation,
+          equipmentPreference,
+          limit: PLAN_EXERCISE_FETCH_LIMIT,
         },
-      );
+        timeoutMs: 10000,
+        headers: {
+          "x-internal-token": internalSecret ?? "",
+          "x-user-id": userId,
+        },
+      });
       if (resp?.data?.success && Array.isArray(resp.data.data?.exercises)) {
         allowedExercises = resp.data.data.exercises.map((e: any) => ({
           id: e.id,
@@ -1361,14 +1372,14 @@ export const aiWorker = new Worker(
         return ["equipment_validator_missing_schedule"];
       }
       try {
-        const resp = await axios.post(
-          `${fitnessServiceUrl}/internal/exercises/validate-plan-equipment`,
-          { weeklySchedule: content.weeklySchedule },
-          {
-            timeout: 8000,
-            headers: { "x-internal-token": internalSecret, "x-user-id": userId },
-          },
-        );
+        const resp = await requestService({
+          service: "fitness",
+          method: "POST",
+          path: "/internal/exercises/validate-plan-equipment",
+          body: { weeklySchedule: content.weeklySchedule },
+          timeoutMs: 8000,
+          headers: { "x-internal-token": internalSecret ?? "", "x-user-id": userId },
+        });
         const result = resp?.data?.data as
           | { valid: boolean; violations: Array<{ exerciseId: string; dayIndex: number; exerciseName: string; required: string[] }>; skippedNoUserEquipment: boolean }
           | undefined;
@@ -1403,11 +1414,14 @@ export const aiWorker = new Worker(
           generationRepairReasons.push("replaced_equipment_incompatible_exercise");
         }
 
-        const reValidateResp = await axios.post(
-          `${fitnessServiceUrl}/internal/exercises/validate-plan-equipment`,
-          { weeklySchedule: content.weeklySchedule },
-          { timeout: 8000, headers: { "x-internal-token": internalSecret, "x-user-id": userId } },
-        );
+        const reValidateResp = await requestService({
+          service: "fitness",
+          method: "POST",
+          path: "/internal/exercises/validate-plan-equipment",
+          body: { weeklySchedule: content.weeklySchedule },
+          timeoutMs: 8000,
+          headers: { "x-internal-token": internalSecret ?? "", "x-user-id": userId },
+        });
         const reValidated = reValidateResp?.data?.data as { valid: boolean; violations: unknown[] } | undefined;
         if (!reValidated) return ["equipment_validator_invalid_response"];
         if (!reValidated.valid) {
@@ -2253,7 +2267,11 @@ export const aiWorker = new Worker(
 
     // 5. Persist structured plan
     await completePlan(content, "Plan generation completed successfully");
-  },
+}
+
+export const aiWorker = new Worker(
+  "ai-tasks",
+  processAiTaskJob,
   {
     connection: redisConnection,
     // Retry up to 2 times on transient LLM failures (network, timeout).

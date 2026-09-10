@@ -119,6 +119,16 @@ export type WorkoutProgramTemplate = $Result.DefaultSelection<Prisma.$WorkoutPro
  */
 export type WorkoutSchedule = $Result.DefaultSelection<Prisma.$WorkoutSchedulePayload>
 /**
+ * Model FitnessRoadmap
+ * 
+ */
+export type FitnessRoadmap = $Result.DefaultSelection<Prisma.$FitnessRoadmapPayload>
+/**
+ * Model RoadmapPhase
+ * 
+ */
+export type RoadmapPhase = $Result.DefaultSelection<Prisma.$RoadmapPhasePayload>
+/**
  * Model TrainingCycle
  * 
  */
@@ -303,6 +313,52 @@ export const MovementType: {
 
 export type MovementType = (typeof MovementType)[keyof typeof MovementType]
 
+
+export const FitnessRoadmapStatus: {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  ARCHIVED: 'ARCHIVED'
+};
+
+export type FitnessRoadmapStatus = (typeof FitnessRoadmapStatus)[keyof typeof FitnessRoadmapStatus]
+
+
+export const RoadmapCreatorRole: {
+  CLIENT: 'CLIENT',
+  PT: 'PT',
+  AI: 'AI',
+  SYSTEM: 'SYSTEM'
+};
+
+export type RoadmapCreatorRole = (typeof RoadmapCreatorRole)[keyof typeof RoadmapCreatorRole]
+
+
+export const RoadmapPhaseType: {
+  FAT_LOSS: 'FAT_LOSS',
+  DIET_BREAK: 'DIET_BREAK',
+  MAINTENANCE: 'MAINTENANCE',
+  LEAN_GAIN: 'LEAN_GAIN',
+  MINI_CUT: 'MINI_CUT',
+  RECOMPOSITION: 'RECOMPOSITION',
+  PERFORMANCE: 'PERFORMANCE',
+  RECOVERY: 'RECOVERY'
+};
+
+export type RoadmapPhaseType = (typeof RoadmapPhaseType)[keyof typeof RoadmapPhaseType]
+
+
+export const RoadmapPhaseStatus: {
+  PLANNED: 'PLANNED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  SKIPPED: 'SKIPPED'
+};
+
+export type RoadmapPhaseStatus = (typeof RoadmapPhaseStatus)[keyof typeof RoadmapPhaseStatus]
+
 }
 
 export type ExerciseType = $Enums.ExerciseType
@@ -320,6 +376,22 @@ export const BodyPart: typeof $Enums.BodyPart
 export type MovementType = $Enums.MovementType
 
 export const MovementType: typeof $Enums.MovementType
+
+export type FitnessRoadmapStatus = $Enums.FitnessRoadmapStatus
+
+export const FitnessRoadmapStatus: typeof $Enums.FitnessRoadmapStatus
+
+export type RoadmapCreatorRole = $Enums.RoadmapCreatorRole
+
+export const RoadmapCreatorRole: typeof $Enums.RoadmapCreatorRole
+
+export type RoadmapPhaseType = $Enums.RoadmapPhaseType
+
+export const RoadmapPhaseType: typeof $Enums.RoadmapPhaseType
+
+export type RoadmapPhaseStatus = $Enums.RoadmapPhaseStatus
+
+export const RoadmapPhaseStatus: typeof $Enums.RoadmapPhaseStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -653,6 +725,26 @@ export class PrismaClient<
     * ```
     */
   get workoutSchedule(): Prisma.WorkoutScheduleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.fitnessRoadmap`: Exposes CRUD operations for the **FitnessRoadmap** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FitnessRoadmaps
+    * const fitnessRoadmaps = await prisma.fitnessRoadmap.findMany()
+    * ```
+    */
+  get fitnessRoadmap(): Prisma.FitnessRoadmapDelegate<ExtArgs>;
+
+  /**
+   * `prisma.roadmapPhase`: Exposes CRUD operations for the **RoadmapPhase** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RoadmapPhases
+    * const roadmapPhases = await prisma.roadmapPhase.findMany()
+    * ```
+    */
+  get roadmapPhase(): Prisma.RoadmapPhaseDelegate<ExtArgs>;
 
   /**
    * `prisma.trainingCycle`: Exposes CRUD operations for the **TrainingCycle** model.
@@ -1385,6 +1477,8 @@ export namespace Prisma {
     WorkoutProgramExerciseSetPrescription: 'WorkoutProgramExerciseSetPrescription',
     WorkoutProgramTemplate: 'WorkoutProgramTemplate',
     WorkoutSchedule: 'WorkoutSchedule',
+    FitnessRoadmap: 'FitnessRoadmap',
+    RoadmapPhase: 'RoadmapPhase',
     TrainingCycle: 'TrainingCycle',
     CycleAssessment: 'CycleAssessment',
     RecommendationAudit: 'RecommendationAudit',
@@ -1427,7 +1521,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "workoutSetSegment" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutProgramExerciseSetPrescription" | "workoutProgramTemplate" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent"
+      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "workoutSetSegment" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutProgramExerciseSetPrescription" | "workoutProgramTemplate" | "workoutSchedule" | "fitnessRoadmap" | "roadmapPhase" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2898,6 +2992,146 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkoutScheduleCountArgs<ExtArgs>
             result: $Utils.Optional<WorkoutScheduleCountAggregateOutputType> | number
+          }
+        }
+      }
+      FitnessRoadmap: {
+        payload: Prisma.$FitnessRoadmapPayload<ExtArgs>
+        fields: Prisma.FitnessRoadmapFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FitnessRoadmapFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FitnessRoadmapFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          findFirst: {
+            args: Prisma.FitnessRoadmapFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FitnessRoadmapFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          findMany: {
+            args: Prisma.FitnessRoadmapFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>[]
+          }
+          create: {
+            args: Prisma.FitnessRoadmapCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          createMany: {
+            args: Prisma.FitnessRoadmapCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FitnessRoadmapCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>[]
+          }
+          delete: {
+            args: Prisma.FitnessRoadmapDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          update: {
+            args: Prisma.FitnessRoadmapUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          deleteMany: {
+            args: Prisma.FitnessRoadmapDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FitnessRoadmapUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.FitnessRoadmapUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRoadmapPayload>
+          }
+          aggregate: {
+            args: Prisma.FitnessRoadmapAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFitnessRoadmap>
+          }
+          groupBy: {
+            args: Prisma.FitnessRoadmapGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FitnessRoadmapGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FitnessRoadmapCountArgs<ExtArgs>
+            result: $Utils.Optional<FitnessRoadmapCountAggregateOutputType> | number
+          }
+        }
+      }
+      RoadmapPhase: {
+        payload: Prisma.$RoadmapPhasePayload<ExtArgs>
+        fields: Prisma.RoadmapPhaseFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RoadmapPhaseFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RoadmapPhaseFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          findFirst: {
+            args: Prisma.RoadmapPhaseFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RoadmapPhaseFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          findMany: {
+            args: Prisma.RoadmapPhaseFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>[]
+          }
+          create: {
+            args: Prisma.RoadmapPhaseCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          createMany: {
+            args: Prisma.RoadmapPhaseCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RoadmapPhaseCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>[]
+          }
+          delete: {
+            args: Prisma.RoadmapPhaseDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          update: {
+            args: Prisma.RoadmapPhaseUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          deleteMany: {
+            args: Prisma.RoadmapPhaseDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RoadmapPhaseUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.RoadmapPhaseUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RoadmapPhasePayload>
+          }
+          aggregate: {
+            args: Prisma.RoadmapPhaseAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRoadmapPhase>
+          }
+          groupBy: {
+            args: Prisma.RoadmapPhaseGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RoadmapPhaseGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RoadmapPhaseCountArgs<ExtArgs>
+            result: $Utils.Optional<RoadmapPhaseCountAggregateOutputType> | number
           }
         }
       }
@@ -5371,6 +5605,68 @@ export namespace Prisma {
    */
   export type WorkoutProgramExerciseCountOutputTypeCountSetPrescriptionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WorkoutProgramExerciseSetPrescriptionWhereInput
+  }
+
+
+  /**
+   * Count Type FitnessRoadmapCountOutputType
+   */
+
+  export type FitnessRoadmapCountOutputType = {
+    phases: number
+  }
+
+  export type FitnessRoadmapCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    phases?: boolean | FitnessRoadmapCountOutputTypeCountPhasesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * FitnessRoadmapCountOutputType without action
+   */
+  export type FitnessRoadmapCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmapCountOutputType
+     */
+    select?: FitnessRoadmapCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * FitnessRoadmapCountOutputType without action
+   */
+  export type FitnessRoadmapCountOutputTypeCountPhasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RoadmapPhaseWhereInput
+  }
+
+
+  /**
+   * Count Type RoadmapPhaseCountOutputType
+   */
+
+  export type RoadmapPhaseCountOutputType = {
+    trainingCycles: number
+  }
+
+  export type RoadmapPhaseCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    trainingCycles?: boolean | RoadmapPhaseCountOutputTypeCountTrainingCyclesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RoadmapPhaseCountOutputType without action
+   */
+  export type RoadmapPhaseCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhaseCountOutputType
+     */
+    select?: RoadmapPhaseCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RoadmapPhaseCountOutputType without action
+   */
+  export type RoadmapPhaseCountOutputTypeCountTrainingCyclesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingCycleWhereInput
   }
 
 
@@ -17430,6 +17726,10 @@ export namespace Prisma {
     reason: string | null
     triggeredBy: string | null
     goalMode: string | null
+    trainingCycleId: string | null
+    createdByUserId: string | null
+    previousGoalId: string | null
+    sourceAssessmentId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -17448,6 +17748,10 @@ export namespace Prisma {
     reason: string | null
     triggeredBy: string | null
     goalMode: string | null
+    trainingCycleId: string | null
+    createdByUserId: string | null
+    previousGoalId: string | null
+    sourceAssessmentId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -17466,6 +17770,10 @@ export namespace Prisma {
     reason: number
     triggeredBy: number
     goalMode: number
+    trainingCycleId: number
+    createdByUserId: number
+    previousGoalId: number
+    sourceAssessmentId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -17502,6 +17810,10 @@ export namespace Prisma {
     reason?: true
     triggeredBy?: true
     goalMode?: true
+    trainingCycleId?: true
+    createdByUserId?: true
+    previousGoalId?: true
+    sourceAssessmentId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -17520,6 +17832,10 @@ export namespace Prisma {
     reason?: true
     triggeredBy?: true
     goalMode?: true
+    trainingCycleId?: true
+    createdByUserId?: true
+    previousGoalId?: true
+    sourceAssessmentId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -17538,6 +17854,10 @@ export namespace Prisma {
     reason?: true
     triggeredBy?: true
     goalMode?: true
+    trainingCycleId?: true
+    createdByUserId?: true
+    previousGoalId?: true
+    sourceAssessmentId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -17643,6 +17963,10 @@ export namespace Prisma {
     reason: string | null
     triggeredBy: string | null
     goalMode: string
+    trainingCycleId: string | null
+    createdByUserId: string | null
+    previousGoalId: string | null
+    sourceAssessmentId: string | null
     createdAt: Date
     updatedAt: Date
     _count: NutritionGoalCountAggregateOutputType | null
@@ -17680,6 +18004,10 @@ export namespace Prisma {
     reason?: boolean
     triggeredBy?: boolean
     goalMode?: boolean
+    trainingCycleId?: boolean
+    createdByUserId?: boolean
+    previousGoalId?: boolean
+    sourceAssessmentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["nutritionGoal"]>
@@ -17698,6 +18026,10 @@ export namespace Prisma {
     reason?: boolean
     triggeredBy?: boolean
     goalMode?: boolean
+    trainingCycleId?: boolean
+    createdByUserId?: boolean
+    previousGoalId?: boolean
+    sourceAssessmentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["nutritionGoal"]>
@@ -17716,6 +18048,10 @@ export namespace Prisma {
     reason?: boolean
     triggeredBy?: boolean
     goalMode?: boolean
+    trainingCycleId?: boolean
+    createdByUserId?: boolean
+    previousGoalId?: boolean
+    sourceAssessmentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -17738,6 +18074,10 @@ export namespace Prisma {
       reason: string | null
       triggeredBy: string | null
       goalMode: string
+      trainingCycleId: string | null
+      createdByUserId: string | null
+      previousGoalId: string | null
+      sourceAssessmentId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["nutritionGoal"]>
@@ -18146,6 +18486,10 @@ export namespace Prisma {
     readonly reason: FieldRef<"NutritionGoal", 'String'>
     readonly triggeredBy: FieldRef<"NutritionGoal", 'String'>
     readonly goalMode: FieldRef<"NutritionGoal", 'String'>
+    readonly trainingCycleId: FieldRef<"NutritionGoal", 'String'>
+    readonly createdByUserId: FieldRef<"NutritionGoal", 'String'>
+    readonly previousGoalId: FieldRef<"NutritionGoal", 'String'>
+    readonly sourceAssessmentId: FieldRef<"NutritionGoal", 'String'>
     readonly createdAt: FieldRef<"NutritionGoal", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionGoal", 'DateTime'>
   }
@@ -19447,6 +19791,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMinAggregateOutputType = {
+    agentActionId: string | null
     id: string | null
     userId: string | null
     name: string | null
@@ -19465,6 +19810,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMaxAggregateOutputType = {
+    agentActionId: string | null
     id: string | null
     userId: string | null
     name: string | null
@@ -19483,6 +19829,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCountAggregateOutputType = {
+    agentActionId: number
     id: number
     userId: number
     name: number
@@ -19517,6 +19864,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMinAggregateInputType = {
+    agentActionId?: true
     id?: true
     userId?: true
     name?: true
@@ -19535,6 +19883,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMaxAggregateInputType = {
+    agentActionId?: true
     id?: true
     userId?: true
     name?: true
@@ -19553,6 +19902,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCountAggregateInputType = {
+    agentActionId?: true
     id?: true
     userId?: true
     name?: true
@@ -19658,6 +20008,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramGroupByOutputType = {
+    agentActionId: string | null
     id: string
     userId: string
     name: string
@@ -19695,6 +20046,7 @@ export namespace Prisma {
 
 
   export type WorkoutProgramSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    agentActionId?: boolean
     id?: boolean
     userId?: boolean
     name?: boolean
@@ -19715,6 +20067,7 @@ export namespace Prisma {
   }, ExtArgs["result"]["workoutProgram"]>
 
   export type WorkoutProgramSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    agentActionId?: boolean
     id?: boolean
     userId?: boolean
     name?: boolean
@@ -19733,6 +20086,7 @@ export namespace Prisma {
   }, ExtArgs["result"]["workoutProgram"]>
 
   export type WorkoutProgramSelectScalar = {
+    agentActionId?: boolean
     id?: boolean
     userId?: boolean
     name?: boolean
@@ -19762,6 +20116,7 @@ export namespace Prisma {
       days: Prisma.$WorkoutProgramDayPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
+      agentActionId: string | null
       id: string
       userId: string
       name: string
@@ -19860,8 +20215,8 @@ export namespace Prisma {
      * // Get first 10 WorkoutPrograms
      * const workoutPrograms = await prisma.workoutProgram.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const workoutProgramWithIdOnly = await prisma.workoutProgram.findMany({ select: { id: true } })
+     * // Only select the `agentActionId`
+     * const workoutProgramWithAgentActionIdOnly = await prisma.workoutProgram.findMany({ select: { agentActionId: true } })
      * 
      */
     findMany<T extends WorkoutProgramFindManyArgs>(args?: SelectSubset<T, WorkoutProgramFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "findMany">>
@@ -19905,9 +20260,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many WorkoutPrograms and only return the `id`
-     * const workoutProgramWithIdOnly = await prisma.workoutProgram.createManyAndReturn({ 
-     *   select: { id: true },
+     * // Create many WorkoutPrograms and only return the `agentActionId`
+     * const workoutProgramWithAgentActionIdOnly = await prisma.workoutProgram.createManyAndReturn({ 
+     *   select: { agentActionId: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -20171,6 +20526,7 @@ export namespace Prisma {
    * Fields of the WorkoutProgram model
    */ 
   interface WorkoutProgramFieldRefs {
+    readonly agentActionId: FieldRef<"WorkoutProgram", 'String'>
     readonly id: FieldRef<"WorkoutProgram", 'String'>
     readonly userId: FieldRef<"WorkoutProgram", 'String'>
     readonly name: FieldRef<"WorkoutProgram", 'String'>
@@ -25889,6 +26245,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMinAggregateOutputType = {
+    isPublic: boolean | null
+    dataOrigin: string | null
+    experienceLevel: string | null
     id: string | null
     createdByUserId: string | null
     name: string | null
@@ -25900,6 +26259,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMaxAggregateOutputType = {
+    isPublic: boolean | null
+    dataOrigin: string | null
+    experienceLevel: string | null
     id: string | null
     createdByUserId: string | null
     name: string | null
@@ -25911,6 +26273,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateCountAggregateOutputType = {
+    isPublic: number
+    dataOrigin: number
+    experienceLevel: number
     id: number
     createdByUserId: number
     name: number
@@ -25936,6 +26301,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMinAggregateInputType = {
+    isPublic?: true
+    dataOrigin?: true
+    experienceLevel?: true
     id?: true
     createdByUserId?: true
     name?: true
@@ -25947,6 +26315,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMaxAggregateInputType = {
+    isPublic?: true
+    dataOrigin?: true
+    experienceLevel?: true
     id?: true
     createdByUserId?: true
     name?: true
@@ -25958,6 +26329,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateCountAggregateInputType = {
+    isPublic?: true
+    dataOrigin?: true
+    experienceLevel?: true
     id?: true
     createdByUserId?: true
     name?: true
@@ -26058,6 +26432,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateGroupByOutputType = {
+    isPublic: boolean
+    dataOrigin: string
+    experienceLevel: string | null
     id: string
     createdByUserId: string
     name: string
@@ -26090,6 +26467,9 @@ export namespace Prisma {
 
 
   export type WorkoutProgramTemplateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    isPublic?: boolean
+    dataOrigin?: boolean
+    experienceLevel?: boolean
     id?: boolean
     createdByUserId?: boolean
     name?: boolean
@@ -26103,6 +26483,9 @@ export namespace Prisma {
   }, ExtArgs["result"]["workoutProgramTemplate"]>
 
   export type WorkoutProgramTemplateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    isPublic?: boolean
+    dataOrigin?: boolean
+    experienceLevel?: boolean
     id?: boolean
     createdByUserId?: boolean
     name?: boolean
@@ -26116,6 +26499,9 @@ export namespace Prisma {
   }, ExtArgs["result"]["workoutProgramTemplate"]>
 
   export type WorkoutProgramTemplateSelectScalar = {
+    isPublic?: boolean
+    dataOrigin?: boolean
+    experienceLevel?: boolean
     id?: boolean
     createdByUserId?: boolean
     name?: boolean
@@ -26133,6 +26519,9 @@ export namespace Prisma {
     name: "WorkoutProgramTemplate"
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
+      isPublic: boolean
+      dataOrigin: string
+      experienceLevel: string | null
       id: string
       createdByUserId: string
       name: string
@@ -26226,8 +26615,8 @@ export namespace Prisma {
      * // Get first 10 WorkoutProgramTemplates
      * const workoutProgramTemplates = await prisma.workoutProgramTemplate.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const workoutProgramTemplateWithIdOnly = await prisma.workoutProgramTemplate.findMany({ select: { id: true } })
+     * // Only select the `isPublic`
+     * const workoutProgramTemplateWithIsPublicOnly = await prisma.workoutProgramTemplate.findMany({ select: { isPublic: true } })
      * 
      */
     findMany<T extends WorkoutProgramTemplateFindManyArgs>(args?: SelectSubset<T, WorkoutProgramTemplateFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramTemplatePayload<ExtArgs>, T, "findMany">>
@@ -26271,9 +26660,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many WorkoutProgramTemplates and only return the `id`
-     * const workoutProgramTemplateWithIdOnly = await prisma.workoutProgramTemplate.createManyAndReturn({ 
-     *   select: { id: true },
+     * // Create many WorkoutProgramTemplates and only return the `isPublic`
+     * const workoutProgramTemplateWithIsPublicOnly = await prisma.workoutProgramTemplate.createManyAndReturn({ 
+     *   select: { isPublic: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -26536,6 +26925,9 @@ export namespace Prisma {
    * Fields of the WorkoutProgramTemplate model
    */ 
   interface WorkoutProgramTemplateFieldRefs {
+    readonly isPublic: FieldRef<"WorkoutProgramTemplate", 'Boolean'>
+    readonly dataOrigin: FieldRef<"WorkoutProgramTemplate", 'String'>
+    readonly experienceLevel: FieldRef<"WorkoutProgramTemplate", 'String'>
     readonly id: FieldRef<"WorkoutProgramTemplate", 'String'>
     readonly createdByUserId: FieldRef<"WorkoutProgramTemplate", 'String'>
     readonly name: FieldRef<"WorkoutProgramTemplate", 'String'>
@@ -28154,6 +28546,2261 @@ export namespace Prisma {
 
 
   /**
+   * Model FitnessRoadmap
+   */
+
+  export type AggregateFitnessRoadmap = {
+    _count: FitnessRoadmapCountAggregateOutputType | null
+    _avg: FitnessRoadmapAvgAggregateOutputType | null
+    _sum: FitnessRoadmapSumAggregateOutputType | null
+    _min: FitnessRoadmapMinAggregateOutputType | null
+    _max: FitnessRoadmapMaxAggregateOutputType | null
+  }
+
+  export type FitnessRoadmapAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type FitnessRoadmapSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type FitnessRoadmapMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    name: string | null
+    goalType: string | null
+    status: $Enums.FitnessRoadmapStatus | null
+    plannedStartAt: Date | null
+    plannedEndAt: Date | null
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    createdByUserId: string | null
+    createdByRole: $Enums.RoadmapCreatorRole | null
+    sourceAssessmentId: string | null
+    version: number | null
+    previousRoadmapId: string | null
+    idempotencyKey: string | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FitnessRoadmapMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    name: string | null
+    goalType: string | null
+    status: $Enums.FitnessRoadmapStatus | null
+    plannedStartAt: Date | null
+    plannedEndAt: Date | null
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    createdByUserId: string | null
+    createdByRole: $Enums.RoadmapCreatorRole | null
+    sourceAssessmentId: string | null
+    version: number | null
+    previousRoadmapId: string | null
+    idempotencyKey: string | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FitnessRoadmapCountAggregateOutputType = {
+    id: number
+    userId: number
+    name: number
+    goalType: number
+    status: number
+    plannedStartAt: number
+    plannedEndAt: number
+    actualStartAt: number
+    actualEndAt: number
+    createdByUserId: number
+    createdByRole: number
+    sourceAssessmentId: number
+    targetMetrics: number
+    configuration: number
+    version: number
+    previousRoadmapId: number
+    idempotencyKey: number
+    archivedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type FitnessRoadmapAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type FitnessRoadmapSumAggregateInputType = {
+    version?: true
+  }
+
+  export type FitnessRoadmapMinAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goalType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    createdByUserId?: true
+    createdByRole?: true
+    sourceAssessmentId?: true
+    version?: true
+    previousRoadmapId?: true
+    idempotencyKey?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FitnessRoadmapMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goalType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    createdByUserId?: true
+    createdByRole?: true
+    sourceAssessmentId?: true
+    version?: true
+    previousRoadmapId?: true
+    idempotencyKey?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FitnessRoadmapCountAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goalType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    createdByUserId?: true
+    createdByRole?: true
+    sourceAssessmentId?: true
+    targetMetrics?: true
+    configuration?: true
+    version?: true
+    previousRoadmapId?: true
+    idempotencyKey?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type FitnessRoadmapAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessRoadmap to aggregate.
+     */
+    where?: FitnessRoadmapWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRoadmaps to fetch.
+     */
+    orderBy?: FitnessRoadmapOrderByWithRelationInput | FitnessRoadmapOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FitnessRoadmapWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRoadmaps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRoadmaps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FitnessRoadmaps
+    **/
+    _count?: true | FitnessRoadmapCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: FitnessRoadmapAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: FitnessRoadmapSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FitnessRoadmapMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FitnessRoadmapMaxAggregateInputType
+  }
+
+  export type GetFitnessRoadmapAggregateType<T extends FitnessRoadmapAggregateArgs> = {
+        [P in keyof T & keyof AggregateFitnessRoadmap]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFitnessRoadmap[P]>
+      : GetScalarType<T[P], AggregateFitnessRoadmap[P]>
+  }
+
+
+
+
+  export type FitnessRoadmapGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FitnessRoadmapWhereInput
+    orderBy?: FitnessRoadmapOrderByWithAggregationInput | FitnessRoadmapOrderByWithAggregationInput[]
+    by: FitnessRoadmapScalarFieldEnum[] | FitnessRoadmapScalarFieldEnum
+    having?: FitnessRoadmapScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FitnessRoadmapCountAggregateInputType | true
+    _avg?: FitnessRoadmapAvgAggregateInputType
+    _sum?: FitnessRoadmapSumAggregateInputType
+    _min?: FitnessRoadmapMinAggregateInputType
+    _max?: FitnessRoadmapMaxAggregateInputType
+  }
+
+  export type FitnessRoadmapGroupByOutputType = {
+    id: string
+    userId: string
+    name: string
+    goalType: string
+    status: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date
+    plannedEndAt: Date | null
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    createdByUserId: string | null
+    createdByRole: $Enums.RoadmapCreatorRole
+    sourceAssessmentId: string | null
+    targetMetrics: JsonValue | null
+    configuration: JsonValue | null
+    version: number
+    previousRoadmapId: string | null
+    idempotencyKey: string | null
+    archivedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: FitnessRoadmapCountAggregateOutputType | null
+    _avg: FitnessRoadmapAvgAggregateOutputType | null
+    _sum: FitnessRoadmapSumAggregateOutputType | null
+    _min: FitnessRoadmapMinAggregateOutputType | null
+    _max: FitnessRoadmapMaxAggregateOutputType | null
+  }
+
+  type GetFitnessRoadmapGroupByPayload<T extends FitnessRoadmapGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FitnessRoadmapGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FitnessRoadmapGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FitnessRoadmapGroupByOutputType[P]>
+            : GetScalarType<T[P], FitnessRoadmapGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FitnessRoadmapSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goalType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    createdByUserId?: boolean
+    createdByRole?: boolean
+    sourceAssessmentId?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
+    version?: boolean
+    previousRoadmapId?: boolean
+    idempotencyKey?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    phases?: boolean | FitnessRoadmap$phasesArgs<ExtArgs>
+    _count?: boolean | FitnessRoadmapCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["fitnessRoadmap"]>
+
+  export type FitnessRoadmapSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goalType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    createdByUserId?: boolean
+    createdByRole?: boolean
+    sourceAssessmentId?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
+    version?: boolean
+    previousRoadmapId?: boolean
+    idempotencyKey?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["fitnessRoadmap"]>
+
+  export type FitnessRoadmapSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goalType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    createdByUserId?: boolean
+    createdByRole?: boolean
+    sourceAssessmentId?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
+    version?: boolean
+    previousRoadmapId?: boolean
+    idempotencyKey?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type FitnessRoadmapInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    phases?: boolean | FitnessRoadmap$phasesArgs<ExtArgs>
+    _count?: boolean | FitnessRoadmapCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type FitnessRoadmapIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $FitnessRoadmapPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FitnessRoadmap"
+    objects: {
+      phases: Prisma.$RoadmapPhasePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      name: string
+      goalType: string
+      status: $Enums.FitnessRoadmapStatus
+      plannedStartAt: Date
+      plannedEndAt: Date | null
+      actualStartAt: Date | null
+      actualEndAt: Date | null
+      createdByUserId: string | null
+      createdByRole: $Enums.RoadmapCreatorRole
+      sourceAssessmentId: string | null
+      targetMetrics: Prisma.JsonValue | null
+      configuration: Prisma.JsonValue | null
+      version: number
+      previousRoadmapId: string | null
+      idempotencyKey: string | null
+      archivedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["fitnessRoadmap"]>
+    composites: {}
+  }
+
+  type FitnessRoadmapGetPayload<S extends boolean | null | undefined | FitnessRoadmapDefaultArgs> = $Result.GetResult<Prisma.$FitnessRoadmapPayload, S>
+
+  type FitnessRoadmapCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<FitnessRoadmapFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: FitnessRoadmapCountAggregateInputType | true
+    }
+
+  export interface FitnessRoadmapDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FitnessRoadmap'], meta: { name: 'FitnessRoadmap' } }
+    /**
+     * Find zero or one FitnessRoadmap that matches the filter.
+     * @param {FitnessRoadmapFindUniqueArgs} args - Arguments to find a FitnessRoadmap
+     * @example
+     * // Get one FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FitnessRoadmapFindUniqueArgs>(args: SelectSubset<T, FitnessRoadmapFindUniqueArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one FitnessRoadmap that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {FitnessRoadmapFindUniqueOrThrowArgs} args - Arguments to find a FitnessRoadmap
+     * @example
+     * // Get one FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FitnessRoadmapFindUniqueOrThrowArgs>(args: SelectSubset<T, FitnessRoadmapFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first FitnessRoadmap that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapFindFirstArgs} args - Arguments to find a FitnessRoadmap
+     * @example
+     * // Get one FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FitnessRoadmapFindFirstArgs>(args?: SelectSubset<T, FitnessRoadmapFindFirstArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first FitnessRoadmap that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapFindFirstOrThrowArgs} args - Arguments to find a FitnessRoadmap
+     * @example
+     * // Get one FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FitnessRoadmapFindFirstOrThrowArgs>(args?: SelectSubset<T, FitnessRoadmapFindFirstOrThrowArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more FitnessRoadmaps that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FitnessRoadmaps
+     * const fitnessRoadmaps = await prisma.fitnessRoadmap.findMany()
+     * 
+     * // Get first 10 FitnessRoadmaps
+     * const fitnessRoadmaps = await prisma.fitnessRoadmap.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const fitnessRoadmapWithIdOnly = await prisma.fitnessRoadmap.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FitnessRoadmapFindManyArgs>(args?: SelectSubset<T, FitnessRoadmapFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a FitnessRoadmap.
+     * @param {FitnessRoadmapCreateArgs} args - Arguments to create a FitnessRoadmap.
+     * @example
+     * // Create one FitnessRoadmap
+     * const FitnessRoadmap = await prisma.fitnessRoadmap.create({
+     *   data: {
+     *     // ... data to create a FitnessRoadmap
+     *   }
+     * })
+     * 
+     */
+    create<T extends FitnessRoadmapCreateArgs>(args: SelectSubset<T, FitnessRoadmapCreateArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many FitnessRoadmaps.
+     * @param {FitnessRoadmapCreateManyArgs} args - Arguments to create many FitnessRoadmaps.
+     * @example
+     * // Create many FitnessRoadmaps
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FitnessRoadmapCreateManyArgs>(args?: SelectSubset<T, FitnessRoadmapCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FitnessRoadmaps and returns the data saved in the database.
+     * @param {FitnessRoadmapCreateManyAndReturnArgs} args - Arguments to create many FitnessRoadmaps.
+     * @example
+     * // Create many FitnessRoadmaps
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FitnessRoadmaps and only return the `id`
+     * const fitnessRoadmapWithIdOnly = await prisma.fitnessRoadmap.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FitnessRoadmapCreateManyAndReturnArgs>(args?: SelectSubset<T, FitnessRoadmapCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a FitnessRoadmap.
+     * @param {FitnessRoadmapDeleteArgs} args - Arguments to delete one FitnessRoadmap.
+     * @example
+     * // Delete one FitnessRoadmap
+     * const FitnessRoadmap = await prisma.fitnessRoadmap.delete({
+     *   where: {
+     *     // ... filter to delete one FitnessRoadmap
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FitnessRoadmapDeleteArgs>(args: SelectSubset<T, FitnessRoadmapDeleteArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one FitnessRoadmap.
+     * @param {FitnessRoadmapUpdateArgs} args - Arguments to update one FitnessRoadmap.
+     * @example
+     * // Update one FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FitnessRoadmapUpdateArgs>(args: SelectSubset<T, FitnessRoadmapUpdateArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more FitnessRoadmaps.
+     * @param {FitnessRoadmapDeleteManyArgs} args - Arguments to filter FitnessRoadmaps to delete.
+     * @example
+     * // Delete a few FitnessRoadmaps
+     * const { count } = await prisma.fitnessRoadmap.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FitnessRoadmapDeleteManyArgs>(args?: SelectSubset<T, FitnessRoadmapDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FitnessRoadmaps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FitnessRoadmaps
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FitnessRoadmapUpdateManyArgs>(args: SelectSubset<T, FitnessRoadmapUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one FitnessRoadmap.
+     * @param {FitnessRoadmapUpsertArgs} args - Arguments to update or create a FitnessRoadmap.
+     * @example
+     * // Update or create a FitnessRoadmap
+     * const fitnessRoadmap = await prisma.fitnessRoadmap.upsert({
+     *   create: {
+     *     // ... data to create a FitnessRoadmap
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FitnessRoadmap we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FitnessRoadmapUpsertArgs>(args: SelectSubset<T, FitnessRoadmapUpsertArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of FitnessRoadmaps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapCountArgs} args - Arguments to filter FitnessRoadmaps to count.
+     * @example
+     * // Count the number of FitnessRoadmaps
+     * const count = await prisma.fitnessRoadmap.count({
+     *   where: {
+     *     // ... the filter for the FitnessRoadmaps we want to count
+     *   }
+     * })
+    **/
+    count<T extends FitnessRoadmapCountArgs>(
+      args?: Subset<T, FitnessRoadmapCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FitnessRoadmapCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FitnessRoadmap.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FitnessRoadmapAggregateArgs>(args: Subset<T, FitnessRoadmapAggregateArgs>): Prisma.PrismaPromise<GetFitnessRoadmapAggregateType<T>>
+
+    /**
+     * Group by FitnessRoadmap.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRoadmapGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FitnessRoadmapGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FitnessRoadmapGroupByArgs['orderBy'] }
+        : { orderBy?: FitnessRoadmapGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FitnessRoadmapGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFitnessRoadmapGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FitnessRoadmap model
+   */
+  readonly fields: FitnessRoadmapFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FitnessRoadmap.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FitnessRoadmapClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    phases<T extends FitnessRoadmap$phasesArgs<ExtArgs> = {}>(args?: Subset<T, FitnessRoadmap$phasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FitnessRoadmap model
+   */ 
+  interface FitnessRoadmapFieldRefs {
+    readonly id: FieldRef<"FitnessRoadmap", 'String'>
+    readonly userId: FieldRef<"FitnessRoadmap", 'String'>
+    readonly name: FieldRef<"FitnessRoadmap", 'String'>
+    readonly goalType: FieldRef<"FitnessRoadmap", 'String'>
+    readonly status: FieldRef<"FitnessRoadmap", 'FitnessRoadmapStatus'>
+    readonly plannedStartAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly plannedEndAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly actualStartAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly actualEndAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly createdByUserId: FieldRef<"FitnessRoadmap", 'String'>
+    readonly createdByRole: FieldRef<"FitnessRoadmap", 'RoadmapCreatorRole'>
+    readonly sourceAssessmentId: FieldRef<"FitnessRoadmap", 'String'>
+    readonly targetMetrics: FieldRef<"FitnessRoadmap", 'Json'>
+    readonly configuration: FieldRef<"FitnessRoadmap", 'Json'>
+    readonly version: FieldRef<"FitnessRoadmap", 'Int'>
+    readonly previousRoadmapId: FieldRef<"FitnessRoadmap", 'String'>
+    readonly idempotencyKey: FieldRef<"FitnessRoadmap", 'String'>
+    readonly archivedAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly createdAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+    readonly updatedAt: FieldRef<"FitnessRoadmap", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FitnessRoadmap findUnique
+   */
+  export type FitnessRoadmapFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter, which FitnessRoadmap to fetch.
+     */
+    where: FitnessRoadmapWhereUniqueInput
+  }
+
+  /**
+   * FitnessRoadmap findUniqueOrThrow
+   */
+  export type FitnessRoadmapFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter, which FitnessRoadmap to fetch.
+     */
+    where: FitnessRoadmapWhereUniqueInput
+  }
+
+  /**
+   * FitnessRoadmap findFirst
+   */
+  export type FitnessRoadmapFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter, which FitnessRoadmap to fetch.
+     */
+    where?: FitnessRoadmapWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRoadmaps to fetch.
+     */
+    orderBy?: FitnessRoadmapOrderByWithRelationInput | FitnessRoadmapOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessRoadmaps.
+     */
+    cursor?: FitnessRoadmapWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRoadmaps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRoadmaps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessRoadmaps.
+     */
+    distinct?: FitnessRoadmapScalarFieldEnum | FitnessRoadmapScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRoadmap findFirstOrThrow
+   */
+  export type FitnessRoadmapFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter, which FitnessRoadmap to fetch.
+     */
+    where?: FitnessRoadmapWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRoadmaps to fetch.
+     */
+    orderBy?: FitnessRoadmapOrderByWithRelationInput | FitnessRoadmapOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessRoadmaps.
+     */
+    cursor?: FitnessRoadmapWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRoadmaps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRoadmaps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessRoadmaps.
+     */
+    distinct?: FitnessRoadmapScalarFieldEnum | FitnessRoadmapScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRoadmap findMany
+   */
+  export type FitnessRoadmapFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter, which FitnessRoadmaps to fetch.
+     */
+    where?: FitnessRoadmapWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRoadmaps to fetch.
+     */
+    orderBy?: FitnessRoadmapOrderByWithRelationInput | FitnessRoadmapOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FitnessRoadmaps.
+     */
+    cursor?: FitnessRoadmapWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRoadmaps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRoadmaps.
+     */
+    skip?: number
+    distinct?: FitnessRoadmapScalarFieldEnum | FitnessRoadmapScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRoadmap create
+   */
+  export type FitnessRoadmapCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * The data needed to create a FitnessRoadmap.
+     */
+    data: XOR<FitnessRoadmapCreateInput, FitnessRoadmapUncheckedCreateInput>
+  }
+
+  /**
+   * FitnessRoadmap createMany
+   */
+  export type FitnessRoadmapCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FitnessRoadmaps.
+     */
+    data: FitnessRoadmapCreateManyInput | FitnessRoadmapCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessRoadmap createManyAndReturn
+   */
+  export type FitnessRoadmapCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many FitnessRoadmaps.
+     */
+    data: FitnessRoadmapCreateManyInput | FitnessRoadmapCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessRoadmap update
+   */
+  export type FitnessRoadmapUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * The data needed to update a FitnessRoadmap.
+     */
+    data: XOR<FitnessRoadmapUpdateInput, FitnessRoadmapUncheckedUpdateInput>
+    /**
+     * Choose, which FitnessRoadmap to update.
+     */
+    where: FitnessRoadmapWhereUniqueInput
+  }
+
+  /**
+   * FitnessRoadmap updateMany
+   */
+  export type FitnessRoadmapUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FitnessRoadmaps.
+     */
+    data: XOR<FitnessRoadmapUpdateManyMutationInput, FitnessRoadmapUncheckedUpdateManyInput>
+    /**
+     * Filter which FitnessRoadmaps to update
+     */
+    where?: FitnessRoadmapWhereInput
+  }
+
+  /**
+   * FitnessRoadmap upsert
+   */
+  export type FitnessRoadmapUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * The filter to search for the FitnessRoadmap to update in case it exists.
+     */
+    where: FitnessRoadmapWhereUniqueInput
+    /**
+     * In case the FitnessRoadmap found by the `where` argument doesn't exist, create a new FitnessRoadmap with this data.
+     */
+    create: XOR<FitnessRoadmapCreateInput, FitnessRoadmapUncheckedCreateInput>
+    /**
+     * In case the FitnessRoadmap was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FitnessRoadmapUpdateInput, FitnessRoadmapUncheckedUpdateInput>
+  }
+
+  /**
+   * FitnessRoadmap delete
+   */
+  export type FitnessRoadmapDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+    /**
+     * Filter which FitnessRoadmap to delete.
+     */
+    where: FitnessRoadmapWhereUniqueInput
+  }
+
+  /**
+   * FitnessRoadmap deleteMany
+   */
+  export type FitnessRoadmapDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessRoadmaps to delete
+     */
+    where?: FitnessRoadmapWhereInput
+  }
+
+  /**
+   * FitnessRoadmap.phases
+   */
+  export type FitnessRoadmap$phasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    where?: RoadmapPhaseWhereInput
+    orderBy?: RoadmapPhaseOrderByWithRelationInput | RoadmapPhaseOrderByWithRelationInput[]
+    cursor?: RoadmapPhaseWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RoadmapPhaseScalarFieldEnum | RoadmapPhaseScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRoadmap without action
+   */
+  export type FitnessRoadmapDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRoadmap
+     */
+    select?: FitnessRoadmapSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FitnessRoadmapInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RoadmapPhase
+   */
+
+  export type AggregateRoadmapPhase = {
+    _count: RoadmapPhaseCountAggregateOutputType | null
+    _avg: RoadmapPhaseAvgAggregateOutputType | null
+    _sum: RoadmapPhaseSumAggregateOutputType | null
+    _min: RoadmapPhaseMinAggregateOutputType | null
+    _max: RoadmapPhaseMaxAggregateOutputType | null
+  }
+
+  export type RoadmapPhaseAvgAggregateOutputType = {
+    phaseIndex: number | null
+  }
+
+  export type RoadmapPhaseSumAggregateOutputType = {
+    phaseIndex: number | null
+  }
+
+  export type RoadmapPhaseMinAggregateOutputType = {
+    id: string | null
+    roadmapId: string | null
+    phaseIndex: number | null
+    name: string | null
+    phaseType: $Enums.RoadmapPhaseType | null
+    status: $Enums.RoadmapPhaseStatus | null
+    plannedStartAt: Date | null
+    plannedEndAt: Date | null
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RoadmapPhaseMaxAggregateOutputType = {
+    id: string | null
+    roadmapId: string | null
+    phaseIndex: number | null
+    name: string | null
+    phaseType: $Enums.RoadmapPhaseType | null
+    status: $Enums.RoadmapPhaseStatus | null
+    plannedStartAt: Date | null
+    plannedEndAt: Date | null
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RoadmapPhaseCountAggregateOutputType = {
+    id: number
+    roadmapId: number
+    phaseIndex: number
+    name: number
+    phaseType: number
+    status: number
+    plannedStartAt: number
+    plannedEndAt: number
+    actualStartAt: number
+    actualEndAt: number
+    objective: number
+    constraints: number
+    transitionRules: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type RoadmapPhaseAvgAggregateInputType = {
+    phaseIndex?: true
+  }
+
+  export type RoadmapPhaseSumAggregateInputType = {
+    phaseIndex?: true
+  }
+
+  export type RoadmapPhaseMinAggregateInputType = {
+    id?: true
+    roadmapId?: true
+    phaseIndex?: true
+    name?: true
+    phaseType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RoadmapPhaseMaxAggregateInputType = {
+    id?: true
+    roadmapId?: true
+    phaseIndex?: true
+    name?: true
+    phaseType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RoadmapPhaseCountAggregateInputType = {
+    id?: true
+    roadmapId?: true
+    phaseIndex?: true
+    name?: true
+    phaseType?: true
+    status?: true
+    plannedStartAt?: true
+    plannedEndAt?: true
+    actualStartAt?: true
+    actualEndAt?: true
+    objective?: true
+    constraints?: true
+    transitionRules?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type RoadmapPhaseAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RoadmapPhase to aggregate.
+     */
+    where?: RoadmapPhaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RoadmapPhases to fetch.
+     */
+    orderBy?: RoadmapPhaseOrderByWithRelationInput | RoadmapPhaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RoadmapPhaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RoadmapPhases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RoadmapPhases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RoadmapPhases
+    **/
+    _count?: true | RoadmapPhaseCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RoadmapPhaseAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RoadmapPhaseSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RoadmapPhaseMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RoadmapPhaseMaxAggregateInputType
+  }
+
+  export type GetRoadmapPhaseAggregateType<T extends RoadmapPhaseAggregateArgs> = {
+        [P in keyof T & keyof AggregateRoadmapPhase]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRoadmapPhase[P]>
+      : GetScalarType<T[P], AggregateRoadmapPhase[P]>
+  }
+
+
+
+
+  export type RoadmapPhaseGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RoadmapPhaseWhereInput
+    orderBy?: RoadmapPhaseOrderByWithAggregationInput | RoadmapPhaseOrderByWithAggregationInput[]
+    by: RoadmapPhaseScalarFieldEnum[] | RoadmapPhaseScalarFieldEnum
+    having?: RoadmapPhaseScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RoadmapPhaseCountAggregateInputType | true
+    _avg?: RoadmapPhaseAvgAggregateInputType
+    _sum?: RoadmapPhaseSumAggregateInputType
+    _min?: RoadmapPhaseMinAggregateInputType
+    _max?: RoadmapPhaseMaxAggregateInputType
+  }
+
+  export type RoadmapPhaseGroupByOutputType = {
+    id: string
+    roadmapId: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date
+    plannedEndAt: Date
+    actualStartAt: Date | null
+    actualEndAt: Date | null
+    objective: JsonValue | null
+    constraints: JsonValue | null
+    transitionRules: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: RoadmapPhaseCountAggregateOutputType | null
+    _avg: RoadmapPhaseAvgAggregateOutputType | null
+    _sum: RoadmapPhaseSumAggregateOutputType | null
+    _min: RoadmapPhaseMinAggregateOutputType | null
+    _max: RoadmapPhaseMaxAggregateOutputType | null
+  }
+
+  type GetRoadmapPhaseGroupByPayload<T extends RoadmapPhaseGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RoadmapPhaseGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RoadmapPhaseGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RoadmapPhaseGroupByOutputType[P]>
+            : GetScalarType<T[P], RoadmapPhaseGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RoadmapPhaseSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    roadmapId?: boolean
+    phaseIndex?: boolean
+    name?: boolean
+    phaseType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    objective?: boolean
+    constraints?: boolean
+    transitionRules?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    roadmap?: boolean | FitnessRoadmapDefaultArgs<ExtArgs>
+    trainingCycles?: boolean | RoadmapPhase$trainingCyclesArgs<ExtArgs>
+    _count?: boolean | RoadmapPhaseCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["roadmapPhase"]>
+
+  export type RoadmapPhaseSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    roadmapId?: boolean
+    phaseIndex?: boolean
+    name?: boolean
+    phaseType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    objective?: boolean
+    constraints?: boolean
+    transitionRules?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    roadmap?: boolean | FitnessRoadmapDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["roadmapPhase"]>
+
+  export type RoadmapPhaseSelectScalar = {
+    id?: boolean
+    roadmapId?: boolean
+    phaseIndex?: boolean
+    name?: boolean
+    phaseType?: boolean
+    status?: boolean
+    plannedStartAt?: boolean
+    plannedEndAt?: boolean
+    actualStartAt?: boolean
+    actualEndAt?: boolean
+    objective?: boolean
+    constraints?: boolean
+    transitionRules?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type RoadmapPhaseInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roadmap?: boolean | FitnessRoadmapDefaultArgs<ExtArgs>
+    trainingCycles?: boolean | RoadmapPhase$trainingCyclesArgs<ExtArgs>
+    _count?: boolean | RoadmapPhaseCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type RoadmapPhaseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roadmap?: boolean | FitnessRoadmapDefaultArgs<ExtArgs>
+  }
+
+  export type $RoadmapPhasePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RoadmapPhase"
+    objects: {
+      roadmap: Prisma.$FitnessRoadmapPayload<ExtArgs>
+      trainingCycles: Prisma.$TrainingCyclePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      roadmapId: string
+      phaseIndex: number
+      name: string
+      phaseType: $Enums.RoadmapPhaseType
+      status: $Enums.RoadmapPhaseStatus
+      plannedStartAt: Date
+      plannedEndAt: Date
+      actualStartAt: Date | null
+      actualEndAt: Date | null
+      objective: Prisma.JsonValue | null
+      constraints: Prisma.JsonValue | null
+      transitionRules: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["roadmapPhase"]>
+    composites: {}
+  }
+
+  type RoadmapPhaseGetPayload<S extends boolean | null | undefined | RoadmapPhaseDefaultArgs> = $Result.GetResult<Prisma.$RoadmapPhasePayload, S>
+
+  type RoadmapPhaseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<RoadmapPhaseFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: RoadmapPhaseCountAggregateInputType | true
+    }
+
+  export interface RoadmapPhaseDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RoadmapPhase'], meta: { name: 'RoadmapPhase' } }
+    /**
+     * Find zero or one RoadmapPhase that matches the filter.
+     * @param {RoadmapPhaseFindUniqueArgs} args - Arguments to find a RoadmapPhase
+     * @example
+     * // Get one RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RoadmapPhaseFindUniqueArgs>(args: SelectSubset<T, RoadmapPhaseFindUniqueArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one RoadmapPhase that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {RoadmapPhaseFindUniqueOrThrowArgs} args - Arguments to find a RoadmapPhase
+     * @example
+     * // Get one RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RoadmapPhaseFindUniqueOrThrowArgs>(args: SelectSubset<T, RoadmapPhaseFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first RoadmapPhase that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseFindFirstArgs} args - Arguments to find a RoadmapPhase
+     * @example
+     * // Get one RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RoadmapPhaseFindFirstArgs>(args?: SelectSubset<T, RoadmapPhaseFindFirstArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first RoadmapPhase that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseFindFirstOrThrowArgs} args - Arguments to find a RoadmapPhase
+     * @example
+     * // Get one RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RoadmapPhaseFindFirstOrThrowArgs>(args?: SelectSubset<T, RoadmapPhaseFindFirstOrThrowArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more RoadmapPhases that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RoadmapPhases
+     * const roadmapPhases = await prisma.roadmapPhase.findMany()
+     * 
+     * // Get first 10 RoadmapPhases
+     * const roadmapPhases = await prisma.roadmapPhase.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const roadmapPhaseWithIdOnly = await prisma.roadmapPhase.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RoadmapPhaseFindManyArgs>(args?: SelectSubset<T, RoadmapPhaseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a RoadmapPhase.
+     * @param {RoadmapPhaseCreateArgs} args - Arguments to create a RoadmapPhase.
+     * @example
+     * // Create one RoadmapPhase
+     * const RoadmapPhase = await prisma.roadmapPhase.create({
+     *   data: {
+     *     // ... data to create a RoadmapPhase
+     *   }
+     * })
+     * 
+     */
+    create<T extends RoadmapPhaseCreateArgs>(args: SelectSubset<T, RoadmapPhaseCreateArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many RoadmapPhases.
+     * @param {RoadmapPhaseCreateManyArgs} args - Arguments to create many RoadmapPhases.
+     * @example
+     * // Create many RoadmapPhases
+     * const roadmapPhase = await prisma.roadmapPhase.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RoadmapPhaseCreateManyArgs>(args?: SelectSubset<T, RoadmapPhaseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RoadmapPhases and returns the data saved in the database.
+     * @param {RoadmapPhaseCreateManyAndReturnArgs} args - Arguments to create many RoadmapPhases.
+     * @example
+     * // Create many RoadmapPhases
+     * const roadmapPhase = await prisma.roadmapPhase.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RoadmapPhases and only return the `id`
+     * const roadmapPhaseWithIdOnly = await prisma.roadmapPhase.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RoadmapPhaseCreateManyAndReturnArgs>(args?: SelectSubset<T, RoadmapPhaseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a RoadmapPhase.
+     * @param {RoadmapPhaseDeleteArgs} args - Arguments to delete one RoadmapPhase.
+     * @example
+     * // Delete one RoadmapPhase
+     * const RoadmapPhase = await prisma.roadmapPhase.delete({
+     *   where: {
+     *     // ... filter to delete one RoadmapPhase
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RoadmapPhaseDeleteArgs>(args: SelectSubset<T, RoadmapPhaseDeleteArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one RoadmapPhase.
+     * @param {RoadmapPhaseUpdateArgs} args - Arguments to update one RoadmapPhase.
+     * @example
+     * // Update one RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RoadmapPhaseUpdateArgs>(args: SelectSubset<T, RoadmapPhaseUpdateArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more RoadmapPhases.
+     * @param {RoadmapPhaseDeleteManyArgs} args - Arguments to filter RoadmapPhases to delete.
+     * @example
+     * // Delete a few RoadmapPhases
+     * const { count } = await prisma.roadmapPhase.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RoadmapPhaseDeleteManyArgs>(args?: SelectSubset<T, RoadmapPhaseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RoadmapPhases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RoadmapPhases
+     * const roadmapPhase = await prisma.roadmapPhase.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RoadmapPhaseUpdateManyArgs>(args: SelectSubset<T, RoadmapPhaseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one RoadmapPhase.
+     * @param {RoadmapPhaseUpsertArgs} args - Arguments to update or create a RoadmapPhase.
+     * @example
+     * // Update or create a RoadmapPhase
+     * const roadmapPhase = await prisma.roadmapPhase.upsert({
+     *   create: {
+     *     // ... data to create a RoadmapPhase
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RoadmapPhase we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RoadmapPhaseUpsertArgs>(args: SelectSubset<T, RoadmapPhaseUpsertArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of RoadmapPhases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseCountArgs} args - Arguments to filter RoadmapPhases to count.
+     * @example
+     * // Count the number of RoadmapPhases
+     * const count = await prisma.roadmapPhase.count({
+     *   where: {
+     *     // ... the filter for the RoadmapPhases we want to count
+     *   }
+     * })
+    **/
+    count<T extends RoadmapPhaseCountArgs>(
+      args?: Subset<T, RoadmapPhaseCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RoadmapPhaseCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RoadmapPhase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RoadmapPhaseAggregateArgs>(args: Subset<T, RoadmapPhaseAggregateArgs>): Prisma.PrismaPromise<GetRoadmapPhaseAggregateType<T>>
+
+    /**
+     * Group by RoadmapPhase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoadmapPhaseGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RoadmapPhaseGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RoadmapPhaseGroupByArgs['orderBy'] }
+        : { orderBy?: RoadmapPhaseGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RoadmapPhaseGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRoadmapPhaseGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RoadmapPhase model
+   */
+  readonly fields: RoadmapPhaseFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RoadmapPhase.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RoadmapPhaseClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    roadmap<T extends FitnessRoadmapDefaultArgs<ExtArgs> = {}>(args?: Subset<T, FitnessRoadmapDefaultArgs<ExtArgs>>): Prisma__FitnessRoadmapClient<$Result.GetResult<Prisma.$FitnessRoadmapPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    trainingCycles<T extends RoadmapPhase$trainingCyclesArgs<ExtArgs> = {}>(args?: Subset<T, RoadmapPhase$trainingCyclesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RoadmapPhase model
+   */ 
+  interface RoadmapPhaseFieldRefs {
+    readonly id: FieldRef<"RoadmapPhase", 'String'>
+    readonly roadmapId: FieldRef<"RoadmapPhase", 'String'>
+    readonly phaseIndex: FieldRef<"RoadmapPhase", 'Int'>
+    readonly name: FieldRef<"RoadmapPhase", 'String'>
+    readonly phaseType: FieldRef<"RoadmapPhase", 'RoadmapPhaseType'>
+    readonly status: FieldRef<"RoadmapPhase", 'RoadmapPhaseStatus'>
+    readonly plannedStartAt: FieldRef<"RoadmapPhase", 'DateTime'>
+    readonly plannedEndAt: FieldRef<"RoadmapPhase", 'DateTime'>
+    readonly actualStartAt: FieldRef<"RoadmapPhase", 'DateTime'>
+    readonly actualEndAt: FieldRef<"RoadmapPhase", 'DateTime'>
+    readonly objective: FieldRef<"RoadmapPhase", 'Json'>
+    readonly constraints: FieldRef<"RoadmapPhase", 'Json'>
+    readonly transitionRules: FieldRef<"RoadmapPhase", 'Json'>
+    readonly createdAt: FieldRef<"RoadmapPhase", 'DateTime'>
+    readonly updatedAt: FieldRef<"RoadmapPhase", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RoadmapPhase findUnique
+   */
+  export type RoadmapPhaseFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter, which RoadmapPhase to fetch.
+     */
+    where: RoadmapPhaseWhereUniqueInput
+  }
+
+  /**
+   * RoadmapPhase findUniqueOrThrow
+   */
+  export type RoadmapPhaseFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter, which RoadmapPhase to fetch.
+     */
+    where: RoadmapPhaseWhereUniqueInput
+  }
+
+  /**
+   * RoadmapPhase findFirst
+   */
+  export type RoadmapPhaseFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter, which RoadmapPhase to fetch.
+     */
+    where?: RoadmapPhaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RoadmapPhases to fetch.
+     */
+    orderBy?: RoadmapPhaseOrderByWithRelationInput | RoadmapPhaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RoadmapPhases.
+     */
+    cursor?: RoadmapPhaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RoadmapPhases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RoadmapPhases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RoadmapPhases.
+     */
+    distinct?: RoadmapPhaseScalarFieldEnum | RoadmapPhaseScalarFieldEnum[]
+  }
+
+  /**
+   * RoadmapPhase findFirstOrThrow
+   */
+  export type RoadmapPhaseFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter, which RoadmapPhase to fetch.
+     */
+    where?: RoadmapPhaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RoadmapPhases to fetch.
+     */
+    orderBy?: RoadmapPhaseOrderByWithRelationInput | RoadmapPhaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RoadmapPhases.
+     */
+    cursor?: RoadmapPhaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RoadmapPhases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RoadmapPhases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RoadmapPhases.
+     */
+    distinct?: RoadmapPhaseScalarFieldEnum | RoadmapPhaseScalarFieldEnum[]
+  }
+
+  /**
+   * RoadmapPhase findMany
+   */
+  export type RoadmapPhaseFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter, which RoadmapPhases to fetch.
+     */
+    where?: RoadmapPhaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RoadmapPhases to fetch.
+     */
+    orderBy?: RoadmapPhaseOrderByWithRelationInput | RoadmapPhaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RoadmapPhases.
+     */
+    cursor?: RoadmapPhaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RoadmapPhases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RoadmapPhases.
+     */
+    skip?: number
+    distinct?: RoadmapPhaseScalarFieldEnum | RoadmapPhaseScalarFieldEnum[]
+  }
+
+  /**
+   * RoadmapPhase create
+   */
+  export type RoadmapPhaseCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RoadmapPhase.
+     */
+    data: XOR<RoadmapPhaseCreateInput, RoadmapPhaseUncheckedCreateInput>
+  }
+
+  /**
+   * RoadmapPhase createMany
+   */
+  export type RoadmapPhaseCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RoadmapPhases.
+     */
+    data: RoadmapPhaseCreateManyInput | RoadmapPhaseCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RoadmapPhase createManyAndReturn
+   */
+  export type RoadmapPhaseCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many RoadmapPhases.
+     */
+    data: RoadmapPhaseCreateManyInput | RoadmapPhaseCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RoadmapPhase update
+   */
+  export type RoadmapPhaseUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RoadmapPhase.
+     */
+    data: XOR<RoadmapPhaseUpdateInput, RoadmapPhaseUncheckedUpdateInput>
+    /**
+     * Choose, which RoadmapPhase to update.
+     */
+    where: RoadmapPhaseWhereUniqueInput
+  }
+
+  /**
+   * RoadmapPhase updateMany
+   */
+  export type RoadmapPhaseUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RoadmapPhases.
+     */
+    data: XOR<RoadmapPhaseUpdateManyMutationInput, RoadmapPhaseUncheckedUpdateManyInput>
+    /**
+     * Filter which RoadmapPhases to update
+     */
+    where?: RoadmapPhaseWhereInput
+  }
+
+  /**
+   * RoadmapPhase upsert
+   */
+  export type RoadmapPhaseUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RoadmapPhase to update in case it exists.
+     */
+    where: RoadmapPhaseWhereUniqueInput
+    /**
+     * In case the RoadmapPhase found by the `where` argument doesn't exist, create a new RoadmapPhase with this data.
+     */
+    create: XOR<RoadmapPhaseCreateInput, RoadmapPhaseUncheckedCreateInput>
+    /**
+     * In case the RoadmapPhase was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RoadmapPhaseUpdateInput, RoadmapPhaseUncheckedUpdateInput>
+  }
+
+  /**
+   * RoadmapPhase delete
+   */
+  export type RoadmapPhaseDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    /**
+     * Filter which RoadmapPhase to delete.
+     */
+    where: RoadmapPhaseWhereUniqueInput
+  }
+
+  /**
+   * RoadmapPhase deleteMany
+   */
+  export type RoadmapPhaseDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RoadmapPhases to delete
+     */
+    where?: RoadmapPhaseWhereInput
+  }
+
+  /**
+   * RoadmapPhase.trainingCycles
+   */
+  export type RoadmapPhase$trainingCyclesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    where?: TrainingCycleWhereInput
+    orderBy?: TrainingCycleOrderByWithRelationInput | TrainingCycleOrderByWithRelationInput[]
+    cursor?: TrainingCycleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TrainingCycleScalarFieldEnum | TrainingCycleScalarFieldEnum[]
+  }
+
+  /**
+   * RoadmapPhase without action
+   */
+  export type RoadmapPhaseDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model TrainingCycle
    */
 
@@ -28168,11 +30815,13 @@ export namespace Prisma {
   export type TrainingCycleAvgAggregateOutputType = {
     cycleIndex: number | null
     durationDays: number | null
+    sequenceInPhase: number | null
   }
 
   export type TrainingCycleSumAggregateOutputType = {
     cycleIndex: number | null
     durationDays: number | null
+    sequenceInPhase: number | null
   }
 
   export type TrainingCycleMinAggregateOutputType = {
@@ -28194,6 +30843,8 @@ export namespace Prisma {
     name: string | null
     actualEndDate: Date | null
     timezoneAtStart: string | null
+    roadmapPhaseId: string | null
+    sequenceInPhase: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -28217,6 +30868,8 @@ export namespace Prisma {
     name: string | null
     actualEndDate: Date | null
     timezoneAtStart: string | null
+    roadmapPhaseId: string | null
+    sequenceInPhase: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -28245,6 +30898,8 @@ export namespace Prisma {
     baselineMetrics: number
     targetMetrics: number
     configuration: number
+    roadmapPhaseId: number
+    sequenceInPhase: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -28254,11 +30909,13 @@ export namespace Prisma {
   export type TrainingCycleAvgAggregateInputType = {
     cycleIndex?: true
     durationDays?: true
+    sequenceInPhase?: true
   }
 
   export type TrainingCycleSumAggregateInputType = {
     cycleIndex?: true
     durationDays?: true
+    sequenceInPhase?: true
   }
 
   export type TrainingCycleMinAggregateInputType = {
@@ -28280,6 +30937,8 @@ export namespace Prisma {
     name?: true
     actualEndDate?: true
     timezoneAtStart?: true
+    roadmapPhaseId?: true
+    sequenceInPhase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -28303,6 +30962,8 @@ export namespace Prisma {
     name?: true
     actualEndDate?: true
     timezoneAtStart?: true
+    roadmapPhaseId?: true
+    sequenceInPhase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -28331,6 +30992,8 @@ export namespace Prisma {
     baselineMetrics?: true
     targetMetrics?: true
     configuration?: true
+    roadmapPhaseId?: true
+    sequenceInPhase?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -28446,6 +31109,8 @@ export namespace Prisma {
     baselineMetrics: JsonValue | null
     targetMetrics: JsonValue | null
     configuration: JsonValue | null
+    roadmapPhaseId: string | null
+    sequenceInPhase: number | null
     createdAt: Date
     updatedAt: Date
     _count: TrainingCycleCountAggregateOutputType | null
@@ -28493,6 +31158,8 @@ export namespace Prisma {
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
+    roadmapPhaseId?: boolean
+    sequenceInPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     sessions?: boolean | TrainingCycle$sessionsArgs<ExtArgs>
@@ -28501,6 +31168,7 @@ export namespace Prisma {
     assessments?: boolean | TrainingCycle$assessmentsArgs<ExtArgs>
     feedbackSummary?: boolean | TrainingCycle$feedbackSummaryArgs<ExtArgs>
     feedbackAnalyses?: boolean | TrainingCycle$feedbackAnalysesArgs<ExtArgs>
+    roadmapPhase?: boolean | TrainingCycle$roadmapPhaseArgs<ExtArgs>
     _count?: boolean | TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["trainingCycle"]>
 
@@ -28528,8 +31196,11 @@ export namespace Prisma {
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
+    roadmapPhaseId?: boolean
+    sequenceInPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    roadmapPhase?: boolean | TrainingCycle$roadmapPhaseArgs<ExtArgs>
   }, ExtArgs["result"]["trainingCycle"]>
 
   export type TrainingCycleSelectScalar = {
@@ -28556,6 +31227,8 @@ export namespace Prisma {
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
+    roadmapPhaseId?: boolean
+    sequenceInPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -28567,9 +31240,12 @@ export namespace Prisma {
     assessments?: boolean | TrainingCycle$assessmentsArgs<ExtArgs>
     feedbackSummary?: boolean | TrainingCycle$feedbackSummaryArgs<ExtArgs>
     feedbackAnalyses?: boolean | TrainingCycle$feedbackAnalysesArgs<ExtArgs>
+    roadmapPhase?: boolean | TrainingCycle$roadmapPhaseArgs<ExtArgs>
     _count?: boolean | TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type TrainingCycleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type TrainingCycleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roadmapPhase?: boolean | TrainingCycle$roadmapPhaseArgs<ExtArgs>
+  }
 
   export type $TrainingCyclePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TrainingCycle"
@@ -28580,6 +31256,7 @@ export namespace Prisma {
       assessments: Prisma.$CycleAssessmentPayload<ExtArgs>[]
       feedbackSummary: Prisma.$CycleFeedbackSummaryPayload<ExtArgs> | null
       feedbackAnalyses: Prisma.$CycleFeedbackAnalysisAuditPayload<ExtArgs>[]
+      roadmapPhase: Prisma.$RoadmapPhasePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -28605,6 +31282,8 @@ export namespace Prisma {
       baselineMetrics: Prisma.JsonValue | null
       targetMetrics: Prisma.JsonValue | null
       configuration: Prisma.JsonValue | null
+      roadmapPhaseId: string | null
+      sequenceInPhase: number | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["trainingCycle"]>
@@ -28977,6 +31656,7 @@ export namespace Prisma {
     assessments<T extends TrainingCycle$assessmentsArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$assessmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findMany"> | Null>
     feedbackSummary<T extends TrainingCycle$feedbackSummaryArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$feedbackSummaryArgs<ExtArgs>>): Prisma__CycleFeedbackSummaryClient<$Result.GetResult<Prisma.$CycleFeedbackSummaryPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     feedbackAnalyses<T extends TrainingCycle$feedbackAnalysesArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$feedbackAnalysesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleFeedbackAnalysisAuditPayload<ExtArgs>, T, "findMany"> | Null>
+    roadmapPhase<T extends TrainingCycle$roadmapPhaseArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$roadmapPhaseArgs<ExtArgs>>): Prisma__RoadmapPhaseClient<$Result.GetResult<Prisma.$RoadmapPhasePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -29029,6 +31709,8 @@ export namespace Prisma {
     readonly baselineMetrics: FieldRef<"TrainingCycle", 'Json'>
     readonly targetMetrics: FieldRef<"TrainingCycle", 'Json'>
     readonly configuration: FieldRef<"TrainingCycle", 'Json'>
+    readonly roadmapPhaseId: FieldRef<"TrainingCycle", 'String'>
+    readonly sequenceInPhase: FieldRef<"TrainingCycle", 'Int'>
     readonly createdAt: FieldRef<"TrainingCycle", 'DateTime'>
     readonly updatedAt: FieldRef<"TrainingCycle", 'DateTime'>
   }
@@ -29252,6 +31934,10 @@ export namespace Prisma {
      */
     data: TrainingCycleCreateManyInput | TrainingCycleCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -29460,6 +32146,21 @@ export namespace Prisma {
   }
 
   /**
+   * TrainingCycle.roadmapPhase
+   */
+  export type TrainingCycle$roadmapPhaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoadmapPhase
+     */
+    select?: RoadmapPhaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoadmapPhaseInclude<ExtArgs> | null
+    where?: RoadmapPhaseWhereInput
+  }
+
+  /**
    * TrainingCycle without action
    */
   export type TrainingCycleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -29516,7 +32217,11 @@ export namespace Prisma {
     nutritionAiExplanation: string | null
     nutritionUserDecision: string | null
     nutritionReviewedAt: Date | null
+    nutritionReviewedByUserId: string | null
+    nutritionReviewedByRole: string | null
+    nutritionPtNote: string | null
     appliedNutritionGoalId: string | null
+    notifiedForReassessmentAt: Date | null
     createdAt: Date | null
   }
 
@@ -29538,7 +32243,11 @@ export namespace Prisma {
     nutritionAiExplanation: string | null
     nutritionUserDecision: string | null
     nutritionReviewedAt: Date | null
+    nutritionReviewedByUserId: string | null
+    nutritionReviewedByRole: string | null
+    nutritionPtNote: string | null
     appliedNutritionGoalId: string | null
+    notifiedForReassessmentAt: Date | null
     createdAt: Date | null
   }
 
@@ -29570,7 +32279,11 @@ export namespace Prisma {
     nutritionAiExplanation: number
     nutritionUserDecision: number
     nutritionReviewedAt: number
+    nutritionReviewedByUserId: number
+    nutritionReviewedByRole: number
+    nutritionPtNote: number
     appliedNutritionGoalId: number
+    notifiedForReassessmentAt: number
     createdAt: number
     _all: number
   }
@@ -29606,7 +32319,11 @@ export namespace Prisma {
     nutritionAiExplanation?: true
     nutritionUserDecision?: true
     nutritionReviewedAt?: true
+    nutritionReviewedByUserId?: true
+    nutritionReviewedByRole?: true
+    nutritionPtNote?: true
     appliedNutritionGoalId?: true
+    notifiedForReassessmentAt?: true
     createdAt?: true
   }
 
@@ -29628,7 +32345,11 @@ export namespace Prisma {
     nutritionAiExplanation?: true
     nutritionUserDecision?: true
     nutritionReviewedAt?: true
+    nutritionReviewedByUserId?: true
+    nutritionReviewedByRole?: true
+    nutritionPtNote?: true
     appliedNutritionGoalId?: true
+    notifiedForReassessmentAt?: true
     createdAt?: true
   }
 
@@ -29660,7 +32381,11 @@ export namespace Prisma {
     nutritionAiExplanation?: true
     nutritionUserDecision?: true
     nutritionReviewedAt?: true
+    nutritionReviewedByUserId?: true
+    nutritionReviewedByRole?: true
+    nutritionPtNote?: true
     appliedNutritionGoalId?: true
+    notifiedForReassessmentAt?: true
     createdAt?: true
     _all?: true
   }
@@ -29779,7 +32504,11 @@ export namespace Prisma {
     nutritionAiExplanation: string | null
     nutritionUserDecision: string
     nutritionReviewedAt: Date | null
+    nutritionReviewedByUserId: string | null
+    nutritionReviewedByRole: string | null
+    nutritionPtNote: string | null
     appliedNutritionGoalId: string | null
+    notifiedForReassessmentAt: Date | null
     createdAt: Date
     _count: CycleAssessmentCountAggregateOutputType | null
     _avg: CycleAssessmentAvgAggregateOutputType | null
@@ -29830,7 +32559,11 @@ export namespace Prisma {
     nutritionAiExplanation?: boolean
     nutritionUserDecision?: boolean
     nutritionReviewedAt?: boolean
+    nutritionReviewedByUserId?: boolean
+    nutritionReviewedByRole?: boolean
+    nutritionPtNote?: boolean
     appliedNutritionGoalId?: boolean
+    notifiedForReassessmentAt?: boolean
     createdAt?: boolean
     cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["cycleAssessment"]>
@@ -29863,7 +32596,11 @@ export namespace Prisma {
     nutritionAiExplanation?: boolean
     nutritionUserDecision?: boolean
     nutritionReviewedAt?: boolean
+    nutritionReviewedByUserId?: boolean
+    nutritionReviewedByRole?: boolean
+    nutritionPtNote?: boolean
     appliedNutritionGoalId?: boolean
+    notifiedForReassessmentAt?: boolean
     createdAt?: boolean
     cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["cycleAssessment"]>
@@ -29896,7 +32633,11 @@ export namespace Prisma {
     nutritionAiExplanation?: boolean
     nutritionUserDecision?: boolean
     nutritionReviewedAt?: boolean
+    nutritionReviewedByUserId?: boolean
+    nutritionReviewedByRole?: boolean
+    nutritionPtNote?: boolean
     appliedNutritionGoalId?: boolean
+    notifiedForReassessmentAt?: boolean
     createdAt?: boolean
   }
 
@@ -29940,7 +32681,11 @@ export namespace Prisma {
       nutritionAiExplanation: string | null
       nutritionUserDecision: string
       nutritionReviewedAt: Date | null
+      nutritionReviewedByUserId: string | null
+      nutritionReviewedByRole: string | null
+      nutritionPtNote: string | null
       appliedNutritionGoalId: string | null
+      notifiedForReassessmentAt: Date | null
       createdAt: Date
     }, ExtArgs["result"]["cycleAssessment"]>
     composites: {}
@@ -30363,7 +33108,11 @@ export namespace Prisma {
     readonly nutritionAiExplanation: FieldRef<"CycleAssessment", 'String'>
     readonly nutritionUserDecision: FieldRef<"CycleAssessment", 'String'>
     readonly nutritionReviewedAt: FieldRef<"CycleAssessment", 'DateTime'>
+    readonly nutritionReviewedByUserId: FieldRef<"CycleAssessment", 'String'>
+    readonly nutritionReviewedByRole: FieldRef<"CycleAssessment", 'String'>
+    readonly nutritionPtNote: FieldRef<"CycleAssessment", 'String'>
     readonly appliedNutritionGoalId: FieldRef<"CycleAssessment", 'String'>
+    readonly notifiedForReassessmentAt: FieldRef<"CycleAssessment", 'DateTime'>
     readonly createdAt: FieldRef<"CycleAssessment", 'DateTime'>
   }
     
@@ -56725,6 +59474,10 @@ export namespace Prisma {
     reason: 'reason',
     triggeredBy: 'triggeredBy',
     goalMode: 'goalMode',
+    trainingCycleId: 'trainingCycleId',
+    createdByUserId: 'createdByUserId',
+    previousGoalId: 'previousGoalId',
+    sourceAssessmentId: 'sourceAssessmentId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -56749,6 +59502,7 @@ export namespace Prisma {
 
 
   export const WorkoutProgramScalarFieldEnum: {
+    agentActionId: 'agentActionId',
     id: 'id',
     userId: 'userId',
     name: 'name',
@@ -56848,6 +59602,9 @@ export namespace Prisma {
 
 
   export const WorkoutProgramTemplateScalarFieldEnum: {
+    isPublic: 'isPublic',
+    dataOrigin: 'dataOrigin',
+    experienceLevel: 'experienceLevel',
     id: 'id',
     createdByUserId: 'createdByUserId',
     name: 'name',
@@ -56895,6 +59652,53 @@ export namespace Prisma {
   export type WorkoutScheduleScalarFieldEnum = (typeof WorkoutScheduleScalarFieldEnum)[keyof typeof WorkoutScheduleScalarFieldEnum]
 
 
+  export const FitnessRoadmapScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    name: 'name',
+    goalType: 'goalType',
+    status: 'status',
+    plannedStartAt: 'plannedStartAt',
+    plannedEndAt: 'plannedEndAt',
+    actualStartAt: 'actualStartAt',
+    actualEndAt: 'actualEndAt',
+    createdByUserId: 'createdByUserId',
+    createdByRole: 'createdByRole',
+    sourceAssessmentId: 'sourceAssessmentId',
+    targetMetrics: 'targetMetrics',
+    configuration: 'configuration',
+    version: 'version',
+    previousRoadmapId: 'previousRoadmapId',
+    idempotencyKey: 'idempotencyKey',
+    archivedAt: 'archivedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type FitnessRoadmapScalarFieldEnum = (typeof FitnessRoadmapScalarFieldEnum)[keyof typeof FitnessRoadmapScalarFieldEnum]
+
+
+  export const RoadmapPhaseScalarFieldEnum: {
+    id: 'id',
+    roadmapId: 'roadmapId',
+    phaseIndex: 'phaseIndex',
+    name: 'name',
+    phaseType: 'phaseType',
+    status: 'status',
+    plannedStartAt: 'plannedStartAt',
+    plannedEndAt: 'plannedEndAt',
+    actualStartAt: 'actualStartAt',
+    actualEndAt: 'actualEndAt',
+    objective: 'objective',
+    constraints: 'constraints',
+    transitionRules: 'transitionRules',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type RoadmapPhaseScalarFieldEnum = (typeof RoadmapPhaseScalarFieldEnum)[keyof typeof RoadmapPhaseScalarFieldEnum]
+
+
   export const TrainingCycleScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -56919,6 +59723,8 @@ export namespace Prisma {
     baselineMetrics: 'baselineMetrics',
     targetMetrics: 'targetMetrics',
     configuration: 'configuration',
+    roadmapPhaseId: 'roadmapPhaseId',
+    sequenceInPhase: 'sequenceInPhase',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -56954,7 +59760,11 @@ export namespace Prisma {
     nutritionAiExplanation: 'nutritionAiExplanation',
     nutritionUserDecision: 'nutritionUserDecision',
     nutritionReviewedAt: 'nutritionReviewedAt',
+    nutritionReviewedByUserId: 'nutritionReviewedByUserId',
+    nutritionReviewedByRole: 'nutritionReviewedByRole',
+    nutritionPtNote: 'nutritionPtNote',
     appliedNutritionGoalId: 'appliedNutritionGoalId',
+    notifiedForReassessmentAt: 'notifiedForReassessmentAt',
     createdAt: 'createdAt'
   };
 
@@ -57577,6 +60387,62 @@ export namespace Prisma {
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'FitnessRoadmapStatus'
+   */
+  export type EnumFitnessRoadmapStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FitnessRoadmapStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'FitnessRoadmapStatus[]'
+   */
+  export type ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FitnessRoadmapStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapCreatorRole'
+   */
+  export type EnumRoadmapCreatorRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapCreatorRole'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapCreatorRole[]'
+   */
+  export type ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapCreatorRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapPhaseType'
+   */
+  export type EnumRoadmapPhaseTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapPhaseType'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapPhaseType[]'
+   */
+  export type ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapPhaseType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapPhaseStatus'
+   */
+  export type EnumRoadmapPhaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapPhaseStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoadmapPhaseStatus[]'
+   */
+  export type ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoadmapPhaseStatus[]'>
     
   /**
    * Deep Input Types
@@ -58605,6 +61471,10 @@ export namespace Prisma {
     reason?: StringNullableFilter<"NutritionGoal"> | string | null
     triggeredBy?: StringNullableFilter<"NutritionGoal"> | string | null
     goalMode?: StringFilter<"NutritionGoal"> | string
+    trainingCycleId?: StringNullableFilter<"NutritionGoal"> | string | null
+    createdByUserId?: StringNullableFilter<"NutritionGoal"> | string | null
+    previousGoalId?: StringNullableFilter<"NutritionGoal"> | string | null
+    sourceAssessmentId?: StringNullableFilter<"NutritionGoal"> | string | null
     createdAt?: DateTimeFilter<"NutritionGoal"> | Date | string
     updatedAt?: DateTimeFilter<"NutritionGoal"> | Date | string
   }
@@ -58623,6 +61493,10 @@ export namespace Prisma {
     reason?: SortOrderInput | SortOrder
     triggeredBy?: SortOrderInput | SortOrder
     goalMode?: SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    previousGoalId?: SortOrderInput | SortOrder
+    sourceAssessmentId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -58644,6 +61518,10 @@ export namespace Prisma {
     reason?: StringNullableFilter<"NutritionGoal"> | string | null
     triggeredBy?: StringNullableFilter<"NutritionGoal"> | string | null
     goalMode?: StringFilter<"NutritionGoal"> | string
+    trainingCycleId?: StringNullableFilter<"NutritionGoal"> | string | null
+    createdByUserId?: StringNullableFilter<"NutritionGoal"> | string | null
+    previousGoalId?: StringNullableFilter<"NutritionGoal"> | string | null
+    sourceAssessmentId?: StringNullableFilter<"NutritionGoal"> | string | null
     createdAt?: DateTimeFilter<"NutritionGoal"> | Date | string
     updatedAt?: DateTimeFilter<"NutritionGoal"> | Date | string
   }, "id">
@@ -58662,6 +61540,10 @@ export namespace Prisma {
     reason?: SortOrderInput | SortOrder
     triggeredBy?: SortOrderInput | SortOrder
     goalMode?: SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    previousGoalId?: SortOrderInput | SortOrder
+    sourceAssessmentId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: NutritionGoalCountOrderByAggregateInput
@@ -58688,6 +61570,10 @@ export namespace Prisma {
     reason?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
     triggeredBy?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
     goalMode?: StringWithAggregatesFilter<"NutritionGoal"> | string
+    trainingCycleId?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
+    previousGoalId?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
+    sourceAssessmentId?: StringNullableWithAggregatesFilter<"NutritionGoal"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"NutritionGoal"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"NutritionGoal"> | Date | string
   }
@@ -58775,6 +61661,7 @@ export namespace Prisma {
     AND?: WorkoutProgramWhereInput | WorkoutProgramWhereInput[]
     OR?: WorkoutProgramWhereInput[]
     NOT?: WorkoutProgramWhereInput | WorkoutProgramWhereInput[]
+    agentActionId?: StringNullableFilter<"WorkoutProgram"> | string | null
     id?: StringFilter<"WorkoutProgram"> | string
     userId?: StringFilter<"WorkoutProgram"> | string
     name?: StringFilter<"WorkoutProgram"> | string
@@ -58794,6 +61681,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramOrderByWithRelationInput = {
+    agentActionId?: SortOrderInput | SortOrder
     id?: SortOrder
     userId?: SortOrder
     name?: SortOrder
@@ -58813,6 +61701,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramWhereUniqueInput = Prisma.AtLeast<{
+    agentActionId?: string
     id?: string
     userId_sourcePlanId?: WorkoutProgramUserIdSourcePlanIdCompoundUniqueInput
     AND?: WorkoutProgramWhereInput | WorkoutProgramWhereInput[]
@@ -58833,9 +61722,10 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     days?: WorkoutProgramDayListRelationFilter
-  }, "id" | "userId_sourcePlanId">
+  }, "id" | "agentActionId" | "userId_sourcePlanId">
 
   export type WorkoutProgramOrderByWithAggregationInput = {
+    agentActionId?: SortOrderInput | SortOrder
     id?: SortOrder
     userId?: SortOrder
     name?: SortOrder
@@ -58862,6 +61752,7 @@ export namespace Prisma {
     AND?: WorkoutProgramScalarWhereWithAggregatesInput | WorkoutProgramScalarWhereWithAggregatesInput[]
     OR?: WorkoutProgramScalarWhereWithAggregatesInput[]
     NOT?: WorkoutProgramScalarWhereWithAggregatesInput | WorkoutProgramScalarWhereWithAggregatesInput[]
+    agentActionId?: StringNullableWithAggregatesFilter<"WorkoutProgram"> | string | null
     id?: StringWithAggregatesFilter<"WorkoutProgram"> | string
     userId?: StringWithAggregatesFilter<"WorkoutProgram"> | string
     name?: StringWithAggregatesFilter<"WorkoutProgram"> | string
@@ -59309,6 +62200,9 @@ export namespace Prisma {
     AND?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
     OR?: WorkoutProgramTemplateWhereInput[]
     NOT?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    isPublic?: BoolFilter<"WorkoutProgramTemplate"> | boolean
+    dataOrigin?: StringFilter<"WorkoutProgramTemplate"> | string
+    experienceLevel?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
     id?: StringFilter<"WorkoutProgramTemplate"> | string
     createdByUserId?: StringFilter<"WorkoutProgramTemplate"> | string
     name?: StringFilter<"WorkoutProgramTemplate"> | string
@@ -59322,6 +62216,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateOrderByWithRelationInput = {
+    isPublic?: SortOrder
+    dataOrigin?: SortOrder
+    experienceLevel?: SortOrderInput | SortOrder
     id?: SortOrder
     createdByUserId?: SortOrder
     name?: SortOrder
@@ -59339,6 +62236,9 @@ export namespace Prisma {
     AND?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
     OR?: WorkoutProgramTemplateWhereInput[]
     NOT?: WorkoutProgramTemplateWhereInput | WorkoutProgramTemplateWhereInput[]
+    isPublic?: BoolFilter<"WorkoutProgramTemplate"> | boolean
+    dataOrigin?: StringFilter<"WorkoutProgramTemplate"> | string
+    experienceLevel?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
     createdByUserId?: StringFilter<"WorkoutProgramTemplate"> | string
     name?: StringFilter<"WorkoutProgramTemplate"> | string
     description?: StringNullableFilter<"WorkoutProgramTemplate"> | string | null
@@ -59351,6 +62251,9 @@ export namespace Prisma {
   }, "id">
 
   export type WorkoutProgramTemplateOrderByWithAggregationInput = {
+    isPublic?: SortOrder
+    dataOrigin?: SortOrder
+    experienceLevel?: SortOrderInput | SortOrder
     id?: SortOrder
     createdByUserId?: SortOrder
     name?: SortOrder
@@ -59372,6 +62275,9 @@ export namespace Prisma {
     AND?: WorkoutProgramTemplateScalarWhereWithAggregatesInput | WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
     OR?: WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
     NOT?: WorkoutProgramTemplateScalarWhereWithAggregatesInput | WorkoutProgramTemplateScalarWhereWithAggregatesInput[]
+    isPublic?: BoolWithAggregatesFilter<"WorkoutProgramTemplate"> | boolean
+    dataOrigin?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
+    experienceLevel?: StringNullableWithAggregatesFilter<"WorkoutProgramTemplate"> | string | null
     id?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
     createdByUserId?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
     name?: StringWithAggregatesFilter<"WorkoutProgramTemplate"> | string
@@ -59556,6 +62462,250 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
   }
 
+  export type FitnessRoadmapWhereInput = {
+    AND?: FitnessRoadmapWhereInput | FitnessRoadmapWhereInput[]
+    OR?: FitnessRoadmapWhereInput[]
+    NOT?: FitnessRoadmapWhereInput | FitnessRoadmapWhereInput[]
+    id?: StringFilter<"FitnessRoadmap"> | string
+    userId?: StringFilter<"FitnessRoadmap"> | string
+    name?: StringFilter<"FitnessRoadmap"> | string
+    goalType?: StringFilter<"FitnessRoadmap"> | string
+    status?: EnumFitnessRoadmapStatusFilter<"FitnessRoadmap"> | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    plannedEndAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    actualStartAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    actualEndAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFilter<"FitnessRoadmap"> | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    targetMetrics?: JsonNullableFilter<"FitnessRoadmap">
+    configuration?: JsonNullableFilter<"FitnessRoadmap">
+    version?: IntFilter<"FitnessRoadmap"> | number
+    previousRoadmapId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    idempotencyKey?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    archivedAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    createdAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    updatedAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    phases?: RoadmapPhaseListRelationFilter
+  }
+
+  export type FitnessRoadmapOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goalType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrderInput | SortOrder
+    actualStartAt?: SortOrderInput | SortOrder
+    actualEndAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdByRole?: SortOrder
+    sourceAssessmentId?: SortOrderInput | SortOrder
+    targetMetrics?: SortOrderInput | SortOrder
+    configuration?: SortOrderInput | SortOrder
+    version?: SortOrder
+    previousRoadmapId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    phases?: RoadmapPhaseOrderByRelationAggregateInput
+  }
+
+  export type FitnessRoadmapWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_idempotencyKey?: FitnessRoadmapUserIdIdempotencyKeyCompoundUniqueInput
+    AND?: FitnessRoadmapWhereInput | FitnessRoadmapWhereInput[]
+    OR?: FitnessRoadmapWhereInput[]
+    NOT?: FitnessRoadmapWhereInput | FitnessRoadmapWhereInput[]
+    userId?: StringFilter<"FitnessRoadmap"> | string
+    name?: StringFilter<"FitnessRoadmap"> | string
+    goalType?: StringFilter<"FitnessRoadmap"> | string
+    status?: EnumFitnessRoadmapStatusFilter<"FitnessRoadmap"> | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    plannedEndAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    actualStartAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    actualEndAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFilter<"FitnessRoadmap"> | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    targetMetrics?: JsonNullableFilter<"FitnessRoadmap">
+    configuration?: JsonNullableFilter<"FitnessRoadmap">
+    version?: IntFilter<"FitnessRoadmap"> | number
+    previousRoadmapId?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    idempotencyKey?: StringNullableFilter<"FitnessRoadmap"> | string | null
+    archivedAt?: DateTimeNullableFilter<"FitnessRoadmap"> | Date | string | null
+    createdAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    updatedAt?: DateTimeFilter<"FitnessRoadmap"> | Date | string
+    phases?: RoadmapPhaseListRelationFilter
+  }, "id" | "userId_idempotencyKey">
+
+  export type FitnessRoadmapOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goalType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrderInput | SortOrder
+    actualStartAt?: SortOrderInput | SortOrder
+    actualEndAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdByRole?: SortOrder
+    sourceAssessmentId?: SortOrderInput | SortOrder
+    targetMetrics?: SortOrderInput | SortOrder
+    configuration?: SortOrderInput | SortOrder
+    version?: SortOrder
+    previousRoadmapId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: FitnessRoadmapCountOrderByAggregateInput
+    _avg?: FitnessRoadmapAvgOrderByAggregateInput
+    _max?: FitnessRoadmapMaxOrderByAggregateInput
+    _min?: FitnessRoadmapMinOrderByAggregateInput
+    _sum?: FitnessRoadmapSumOrderByAggregateInput
+  }
+
+  export type FitnessRoadmapScalarWhereWithAggregatesInput = {
+    AND?: FitnessRoadmapScalarWhereWithAggregatesInput | FitnessRoadmapScalarWhereWithAggregatesInput[]
+    OR?: FitnessRoadmapScalarWhereWithAggregatesInput[]
+    NOT?: FitnessRoadmapScalarWhereWithAggregatesInput | FitnessRoadmapScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FitnessRoadmap"> | string
+    userId?: StringWithAggregatesFilter<"FitnessRoadmap"> | string
+    name?: StringWithAggregatesFilter<"FitnessRoadmap"> | string
+    goalType?: StringWithAggregatesFilter<"FitnessRoadmap"> | string
+    status?: EnumFitnessRoadmapStatusWithAggregatesFilter<"FitnessRoadmap"> | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeWithAggregatesFilter<"FitnessRoadmap"> | Date | string
+    plannedEndAt?: DateTimeNullableWithAggregatesFilter<"FitnessRoadmap"> | Date | string | null
+    actualStartAt?: DateTimeNullableWithAggregatesFilter<"FitnessRoadmap"> | Date | string | null
+    actualEndAt?: DateTimeNullableWithAggregatesFilter<"FitnessRoadmap"> | Date | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"FitnessRoadmap"> | string | null
+    createdByRole?: EnumRoadmapCreatorRoleWithAggregatesFilter<"FitnessRoadmap"> | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: StringNullableWithAggregatesFilter<"FitnessRoadmap"> | string | null
+    targetMetrics?: JsonNullableWithAggregatesFilter<"FitnessRoadmap">
+    configuration?: JsonNullableWithAggregatesFilter<"FitnessRoadmap">
+    version?: IntWithAggregatesFilter<"FitnessRoadmap"> | number
+    previousRoadmapId?: StringNullableWithAggregatesFilter<"FitnessRoadmap"> | string | null
+    idempotencyKey?: StringNullableWithAggregatesFilter<"FitnessRoadmap"> | string | null
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"FitnessRoadmap"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"FitnessRoadmap"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"FitnessRoadmap"> | Date | string
+  }
+
+  export type RoadmapPhaseWhereInput = {
+    AND?: RoadmapPhaseWhereInput | RoadmapPhaseWhereInput[]
+    OR?: RoadmapPhaseWhereInput[]
+    NOT?: RoadmapPhaseWhereInput | RoadmapPhaseWhereInput[]
+    id?: StringFilter<"RoadmapPhase"> | string
+    roadmapId?: StringFilter<"RoadmapPhase"> | string
+    phaseIndex?: IntFilter<"RoadmapPhase"> | number
+    name?: StringFilter<"RoadmapPhase"> | string
+    phaseType?: EnumRoadmapPhaseTypeFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    plannedEndAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    actualStartAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    actualEndAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    objective?: JsonNullableFilter<"RoadmapPhase">
+    constraints?: JsonNullableFilter<"RoadmapPhase">
+    transitionRules?: JsonNullableFilter<"RoadmapPhase">
+    createdAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    updatedAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    roadmap?: XOR<FitnessRoadmapRelationFilter, FitnessRoadmapWhereInput>
+    trainingCycles?: TrainingCycleListRelationFilter
+  }
+
+  export type RoadmapPhaseOrderByWithRelationInput = {
+    id?: SortOrder
+    roadmapId?: SortOrder
+    phaseIndex?: SortOrder
+    name?: SortOrder
+    phaseType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrderInput | SortOrder
+    actualEndAt?: SortOrderInput | SortOrder
+    objective?: SortOrderInput | SortOrder
+    constraints?: SortOrderInput | SortOrder
+    transitionRules?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    roadmap?: FitnessRoadmapOrderByWithRelationInput
+    trainingCycles?: TrainingCycleOrderByRelationAggregateInput
+  }
+
+  export type RoadmapPhaseWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    roadmapId_phaseIndex?: RoadmapPhaseRoadmapIdPhaseIndexCompoundUniqueInput
+    AND?: RoadmapPhaseWhereInput | RoadmapPhaseWhereInput[]
+    OR?: RoadmapPhaseWhereInput[]
+    NOT?: RoadmapPhaseWhereInput | RoadmapPhaseWhereInput[]
+    roadmapId?: StringFilter<"RoadmapPhase"> | string
+    phaseIndex?: IntFilter<"RoadmapPhase"> | number
+    name?: StringFilter<"RoadmapPhase"> | string
+    phaseType?: EnumRoadmapPhaseTypeFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    plannedEndAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    actualStartAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    actualEndAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    objective?: JsonNullableFilter<"RoadmapPhase">
+    constraints?: JsonNullableFilter<"RoadmapPhase">
+    transitionRules?: JsonNullableFilter<"RoadmapPhase">
+    createdAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    updatedAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    roadmap?: XOR<FitnessRoadmapRelationFilter, FitnessRoadmapWhereInput>
+    trainingCycles?: TrainingCycleListRelationFilter
+  }, "id" | "roadmapId_phaseIndex">
+
+  export type RoadmapPhaseOrderByWithAggregationInput = {
+    id?: SortOrder
+    roadmapId?: SortOrder
+    phaseIndex?: SortOrder
+    name?: SortOrder
+    phaseType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrderInput | SortOrder
+    actualEndAt?: SortOrderInput | SortOrder
+    objective?: SortOrderInput | SortOrder
+    constraints?: SortOrderInput | SortOrder
+    transitionRules?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: RoadmapPhaseCountOrderByAggregateInput
+    _avg?: RoadmapPhaseAvgOrderByAggregateInput
+    _max?: RoadmapPhaseMaxOrderByAggregateInput
+    _min?: RoadmapPhaseMinOrderByAggregateInput
+    _sum?: RoadmapPhaseSumOrderByAggregateInput
+  }
+
+  export type RoadmapPhaseScalarWhereWithAggregatesInput = {
+    AND?: RoadmapPhaseScalarWhereWithAggregatesInput | RoadmapPhaseScalarWhereWithAggregatesInput[]
+    OR?: RoadmapPhaseScalarWhereWithAggregatesInput[]
+    NOT?: RoadmapPhaseScalarWhereWithAggregatesInput | RoadmapPhaseScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RoadmapPhase"> | string
+    roadmapId?: StringWithAggregatesFilter<"RoadmapPhase"> | string
+    phaseIndex?: IntWithAggregatesFilter<"RoadmapPhase"> | number
+    name?: StringWithAggregatesFilter<"RoadmapPhase"> | string
+    phaseType?: EnumRoadmapPhaseTypeWithAggregatesFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusWithAggregatesFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeWithAggregatesFilter<"RoadmapPhase"> | Date | string
+    plannedEndAt?: DateTimeWithAggregatesFilter<"RoadmapPhase"> | Date | string
+    actualStartAt?: DateTimeNullableWithAggregatesFilter<"RoadmapPhase"> | Date | string | null
+    actualEndAt?: DateTimeNullableWithAggregatesFilter<"RoadmapPhase"> | Date | string | null
+    objective?: JsonNullableWithAggregatesFilter<"RoadmapPhase">
+    constraints?: JsonNullableWithAggregatesFilter<"RoadmapPhase">
+    transitionRules?: JsonNullableWithAggregatesFilter<"RoadmapPhase">
+    createdAt?: DateTimeWithAggregatesFilter<"RoadmapPhase"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"RoadmapPhase"> | Date | string
+  }
+
   export type TrainingCycleWhereInput = {
     AND?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
     OR?: TrainingCycleWhereInput[]
@@ -59583,6 +62733,8 @@ export namespace Prisma {
     baselineMetrics?: JsonNullableFilter<"TrainingCycle">
     targetMetrics?: JsonNullableFilter<"TrainingCycle">
     configuration?: JsonNullableFilter<"TrainingCycle">
+    roadmapPhaseId?: StringNullableFilter<"TrainingCycle"> | string | null
+    sequenceInPhase?: IntNullableFilter<"TrainingCycle"> | number | null
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     sessions?: WorkoutScheduleListRelationFilter
@@ -59591,6 +62743,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentListRelationFilter
     feedbackSummary?: XOR<CycleFeedbackSummaryNullableRelationFilter, CycleFeedbackSummaryWhereInput> | null
     feedbackAnalyses?: CycleFeedbackAnalysisAuditListRelationFilter
+    roadmapPhase?: XOR<RoadmapPhaseNullableRelationFilter, RoadmapPhaseWhereInput> | null
   }
 
   export type TrainingCycleOrderByWithRelationInput = {
@@ -59617,6 +62770,8 @@ export namespace Prisma {
     baselineMetrics?: SortOrderInput | SortOrder
     targetMetrics?: SortOrderInput | SortOrder
     configuration?: SortOrderInput | SortOrder
+    roadmapPhaseId?: SortOrderInput | SortOrder
+    sequenceInPhase?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     sessions?: WorkoutScheduleOrderByRelationAggregateInput
@@ -59625,10 +62780,12 @@ export namespace Prisma {
     assessments?: CycleAssessmentOrderByRelationAggregateInput
     feedbackSummary?: CycleFeedbackSummaryOrderByWithRelationInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditOrderByRelationAggregateInput
+    roadmapPhase?: RoadmapPhaseOrderByWithRelationInput
   }
 
   export type TrainingCycleWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    roadmapPhaseId_sequenceInPhase?: TrainingCycleRoadmapPhaseIdSequenceInPhaseCompoundUniqueInput
     AND?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
     OR?: TrainingCycleWhereInput[]
     NOT?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
@@ -59654,6 +62811,8 @@ export namespace Prisma {
     baselineMetrics?: JsonNullableFilter<"TrainingCycle">
     targetMetrics?: JsonNullableFilter<"TrainingCycle">
     configuration?: JsonNullableFilter<"TrainingCycle">
+    roadmapPhaseId?: StringNullableFilter<"TrainingCycle"> | string | null
+    sequenceInPhase?: IntNullableFilter<"TrainingCycle"> | number | null
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     sessions?: WorkoutScheduleListRelationFilter
@@ -59662,7 +62821,8 @@ export namespace Prisma {
     assessments?: CycleAssessmentListRelationFilter
     feedbackSummary?: XOR<CycleFeedbackSummaryNullableRelationFilter, CycleFeedbackSummaryWhereInput> | null
     feedbackAnalyses?: CycleFeedbackAnalysisAuditListRelationFilter
-  }, "id">
+    roadmapPhase?: XOR<RoadmapPhaseNullableRelationFilter, RoadmapPhaseWhereInput> | null
+  }, "id" | "roadmapPhaseId_sequenceInPhase">
 
   export type TrainingCycleOrderByWithAggregationInput = {
     id?: SortOrder
@@ -59688,6 +62848,8 @@ export namespace Prisma {
     baselineMetrics?: SortOrderInput | SortOrder
     targetMetrics?: SortOrderInput | SortOrder
     configuration?: SortOrderInput | SortOrder
+    roadmapPhaseId?: SortOrderInput | SortOrder
+    sequenceInPhase?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: TrainingCycleCountOrderByAggregateInput
@@ -59724,6 +62886,8 @@ export namespace Prisma {
     baselineMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     targetMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     configuration?: JsonNullableWithAggregatesFilter<"TrainingCycle">
+    roadmapPhaseId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    sequenceInPhase?: IntNullableWithAggregatesFilter<"TrainingCycle"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
   }
@@ -59759,7 +62923,11 @@ export namespace Prisma {
     nutritionAiExplanation?: StringNullableFilter<"CycleAssessment"> | string | null
     nutritionUserDecision?: StringFilter<"CycleAssessment"> | string
     nutritionReviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    nutritionReviewedByUserId?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionReviewedByRole?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionPtNote?: StringNullableFilter<"CycleAssessment"> | string | null
     appliedNutritionGoalId?: StringNullableFilter<"CycleAssessment"> | string | null
+    notifiedForReassessmentAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
     createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
     cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
   }
@@ -59792,7 +62960,11 @@ export namespace Prisma {
     nutritionAiExplanation?: SortOrderInput | SortOrder
     nutritionUserDecision?: SortOrder
     nutritionReviewedAt?: SortOrderInput | SortOrder
+    nutritionReviewedByUserId?: SortOrderInput | SortOrder
+    nutritionReviewedByRole?: SortOrderInput | SortOrder
+    nutritionPtNote?: SortOrderInput | SortOrder
     appliedNutritionGoalId?: SortOrderInput | SortOrder
+    notifiedForReassessmentAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     cycle?: TrainingCycleOrderByWithRelationInput
   }
@@ -59829,7 +63001,11 @@ export namespace Prisma {
     nutritionAiExplanation?: StringNullableFilter<"CycleAssessment"> | string | null
     nutritionUserDecision?: StringFilter<"CycleAssessment"> | string
     nutritionReviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    nutritionReviewedByUserId?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionReviewedByRole?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionPtNote?: StringNullableFilter<"CycleAssessment"> | string | null
     appliedNutritionGoalId?: StringNullableFilter<"CycleAssessment"> | string | null
+    notifiedForReassessmentAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
     createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
     cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
   }, "id" | "cycleId_assessmentVersion">
@@ -59862,7 +63038,11 @@ export namespace Prisma {
     nutritionAiExplanation?: SortOrderInput | SortOrder
     nutritionUserDecision?: SortOrder
     nutritionReviewedAt?: SortOrderInput | SortOrder
+    nutritionReviewedByUserId?: SortOrderInput | SortOrder
+    nutritionReviewedByRole?: SortOrderInput | SortOrder
+    nutritionPtNote?: SortOrderInput | SortOrder
     appliedNutritionGoalId?: SortOrderInput | SortOrder
+    notifiedForReassessmentAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: CycleAssessmentCountOrderByAggregateInput
     _avg?: CycleAssessmentAvgOrderByAggregateInput
@@ -59902,7 +63082,11 @@ export namespace Prisma {
     nutritionAiExplanation?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
     nutritionUserDecision?: StringWithAggregatesFilter<"CycleAssessment"> | string
     nutritionReviewedAt?: DateTimeNullableWithAggregatesFilter<"CycleAssessment"> | Date | string | null
+    nutritionReviewedByUserId?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
+    nutritionReviewedByRole?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
+    nutritionPtNote?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
     appliedNutritionGoalId?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
+    notifiedForReassessmentAt?: DateTimeNullableWithAggregatesFilter<"CycleAssessment"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"CycleAssessment"> | Date | string
   }
 
@@ -63319,6 +66503,10 @@ export namespace Prisma {
     reason?: string | null
     triggeredBy?: string | null
     goalMode?: string
+    trainingCycleId?: string | null
+    createdByUserId?: string | null
+    previousGoalId?: string | null
+    sourceAssessmentId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -63337,6 +66525,10 @@ export namespace Prisma {
     reason?: string | null
     triggeredBy?: string | null
     goalMode?: string
+    trainingCycleId?: string | null
+    createdByUserId?: string | null
+    previousGoalId?: string | null
+    sourceAssessmentId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -63355,6 +66547,10 @@ export namespace Prisma {
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
     goalMode?: StringFieldUpdateOperationsInput | string
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    previousGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -63373,6 +66569,10 @@ export namespace Prisma {
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
     goalMode?: StringFieldUpdateOperationsInput | string
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    previousGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -63391,6 +66591,10 @@ export namespace Prisma {
     reason?: string | null
     triggeredBy?: string | null
     goalMode?: string
+    trainingCycleId?: string | null
+    createdByUserId?: string | null
+    previousGoalId?: string | null
+    sourceAssessmentId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -63409,6 +66613,10 @@ export namespace Prisma {
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
     goalMode?: StringFieldUpdateOperationsInput | string
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    previousGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -63427,6 +66635,10 @@ export namespace Prisma {
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
     goalMode?: StringFieldUpdateOperationsInput | string
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    previousGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -63523,6 +66735,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCreateInput = {
+    agentActionId?: string | null
     id?: string
     userId: string
     name: string
@@ -63542,6 +66755,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUncheckedCreateInput = {
+    agentActionId?: string | null
     id?: string
     userId: string
     name: string
@@ -63561,6 +66775,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUpdateInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -63580,6 +66795,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUncheckedUpdateInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -63599,6 +66815,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCreateManyInput = {
+    agentActionId?: string | null
     id?: string
     userId: string
     name: string
@@ -63617,6 +66834,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUpdateManyMutationInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -63635,6 +66853,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUncheckedUpdateManyInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -64111,6 +67330,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateCreateInput = {
+    isPublic?: boolean
+    dataOrigin?: string
+    experienceLevel?: string | null
     id?: string
     createdByUserId: string
     name: string
@@ -64124,6 +67346,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateUncheckedCreateInput = {
+    isPublic?: boolean
+    dataOrigin?: string
+    experienceLevel?: string | null
     id?: string
     createdByUserId: string
     name: string
@@ -64137,6 +67362,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateUpdateInput = {
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    experienceLevel?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -64150,6 +67378,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateUncheckedUpdateInput = {
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    experienceLevel?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -64163,6 +67394,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateCreateManyInput = {
+    isPublic?: boolean
+    dataOrigin?: string
+    experienceLevel?: string | null
     id?: string
     createdByUserId: string
     name: string
@@ -64176,6 +67410,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateUpdateManyMutationInput = {
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    experienceLevel?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -64189,6 +67426,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateUncheckedUpdateManyInput = {
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    experienceLevel?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -64405,6 +67645,300 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type FitnessRoadmapCreateInput = {
+    id?: string
+    userId: string
+    name: string
+    goalType: string
+    status?: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date | string
+    plannedEndAt?: Date | string | null
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    createdByUserId?: string | null
+    createdByRole?: $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: number
+    previousRoadmapId?: string | null
+    idempotencyKey?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    phases?: RoadmapPhaseCreateNestedManyWithoutRoadmapInput
+  }
+
+  export type FitnessRoadmapUncheckedCreateInput = {
+    id?: string
+    userId: string
+    name: string
+    goalType: string
+    status?: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date | string
+    plannedEndAt?: Date | string | null
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    createdByUserId?: string | null
+    createdByRole?: $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: number
+    previousRoadmapId?: string | null
+    idempotencyKey?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    phases?: RoadmapPhaseUncheckedCreateNestedManyWithoutRoadmapInput
+  }
+
+  export type FitnessRoadmapUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    phases?: RoadmapPhaseUpdateManyWithoutRoadmapNestedInput
+  }
+
+  export type FitnessRoadmapUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    phases?: RoadmapPhaseUncheckedUpdateManyWithoutRoadmapNestedInput
+  }
+
+  export type FitnessRoadmapCreateManyInput = {
+    id?: string
+    userId: string
+    name: string
+    goalType: string
+    status?: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date | string
+    plannedEndAt?: Date | string | null
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    createdByUserId?: string | null
+    createdByRole?: $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: number
+    previousRoadmapId?: string | null
+    idempotencyKey?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FitnessRoadmapUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessRoadmapUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RoadmapPhaseCreateInput = {
+    id?: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    roadmap: FitnessRoadmapCreateNestedOneWithoutPhasesInput
+    trainingCycles?: TrainingCycleCreateNestedManyWithoutRoadmapPhaseInput
+  }
+
+  export type RoadmapPhaseUncheckedCreateInput = {
+    id?: string
+    roadmapId: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingCycles?: TrainingCycleUncheckedCreateNestedManyWithoutRoadmapPhaseInput
+  }
+
+  export type RoadmapPhaseUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roadmap?: FitnessRoadmapUpdateOneRequiredWithoutPhasesNestedInput
+    trainingCycles?: TrainingCycleUpdateManyWithoutRoadmapPhaseNestedInput
+  }
+
+  export type RoadmapPhaseUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roadmapId?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingCycles?: TrainingCycleUncheckedUpdateManyWithoutRoadmapPhaseNestedInput
+  }
+
+  export type RoadmapPhaseCreateManyInput = {
+    id?: string
+    roadmapId: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoadmapPhaseUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RoadmapPhaseUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roadmapId?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type TrainingCycleCreateInput = {
     id?: string
     userId: string
@@ -64429,6 +67963,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -64437,6 +67972,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateInput = {
@@ -64463,6 +67999,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -64497,6 +68035,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -64505,6 +68044,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateInput = {
@@ -64531,6 +68071,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -64565,6 +68107,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -64593,6 +68137,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64621,6 +68166,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64652,7 +68199,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
     cycle: TrainingCycleCreateNestedOneWithoutAssessmentsInput
   }
@@ -64685,7 +68236,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -64716,7 +68271,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     cycle?: TrainingCycleUpdateOneRequiredWithoutAssessmentsNestedInput
   }
@@ -64749,7 +68308,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -64781,7 +68344,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -64812,7 +68379,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -64844,7 +68415,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -68524,6 +72099,10 @@ export namespace Prisma {
     reason?: SortOrder
     triggeredBy?: SortOrder
     goalMode?: SortOrder
+    trainingCycleId?: SortOrder
+    createdByUserId?: SortOrder
+    previousGoalId?: SortOrder
+    sourceAssessmentId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -68550,6 +72129,10 @@ export namespace Prisma {
     reason?: SortOrder
     triggeredBy?: SortOrder
     goalMode?: SortOrder
+    trainingCycleId?: SortOrder
+    createdByUserId?: SortOrder
+    previousGoalId?: SortOrder
+    sourceAssessmentId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -68568,6 +72151,10 @@ export namespace Prisma {
     reason?: SortOrder
     triggeredBy?: SortOrder
     goalMode?: SortOrder
+    trainingCycleId?: SortOrder
+    createdByUserId?: SortOrder
+    previousGoalId?: SortOrder
+    sourceAssessmentId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -68649,6 +72236,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCountOrderByAggregateInput = {
+    agentActionId?: SortOrder
     id?: SortOrder
     userId?: SortOrder
     name?: SortOrder
@@ -68674,6 +72262,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMaxOrderByAggregateInput = {
+    agentActionId?: SortOrder
     id?: SortOrder
     userId?: SortOrder
     name?: SortOrder
@@ -68692,6 +72281,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramMinOrderByAggregateInput = {
+    agentActionId?: SortOrder
     id?: SortOrder
     userId?: SortOrder
     name?: SortOrder
@@ -69065,6 +72655,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateCountOrderByAggregateInput = {
+    isPublic?: SortOrder
+    dataOrigin?: SortOrder
+    experienceLevel?: SortOrder
     id?: SortOrder
     createdByUserId?: SortOrder
     name?: SortOrder
@@ -69083,6 +72676,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMaxOrderByAggregateInput = {
+    isPublic?: SortOrder
+    dataOrigin?: SortOrder
+    experienceLevel?: SortOrder
     id?: SortOrder
     createdByUserId?: SortOrder
     name?: SortOrder
@@ -69094,6 +72690,9 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramTemplateMinOrderByAggregateInput = {
+    isPublic?: SortOrder
+    dataOrigin?: SortOrder
+    experienceLevel?: SortOrder
     id?: SortOrder
     createdByUserId?: SortOrder
     name?: SortOrder
@@ -69265,6 +72864,20 @@ export namespace Prisma {
     durationSeconds?: SortOrder
     caloriesEstimate?: SortOrder
   }
+
+  export type EnumFitnessRoadmapStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.FitnessRoadmapStatus | EnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel> | $Enums.FitnessRoadmapStatus
+  }
+
+  export type EnumRoadmapCreatorRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapCreatorRole | EnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel> | $Enums.RoadmapCreatorRole
+  }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -69286,6 +72899,249 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type RoadmapPhaseListRelationFilter = {
+    every?: RoadmapPhaseWhereInput
+    some?: RoadmapPhaseWhereInput
+    none?: RoadmapPhaseWhereInput
+  }
+
+  export type RoadmapPhaseOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type FitnessRoadmapUserIdIdempotencyKeyCompoundUniqueInput = {
+    userId: string
+    idempotencyKey: string
+  }
+
+  export type FitnessRoadmapCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goalType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdByRole?: SortOrder
+    sourceAssessmentId?: SortOrder
+    targetMetrics?: SortOrder
+    configuration?: SortOrder
+    version?: SortOrder
+    previousRoadmapId?: SortOrder
+    idempotencyKey?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FitnessRoadmapAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type FitnessRoadmapMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goalType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdByRole?: SortOrder
+    sourceAssessmentId?: SortOrder
+    version?: SortOrder
+    previousRoadmapId?: SortOrder
+    idempotencyKey?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FitnessRoadmapMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goalType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdByRole?: SortOrder
+    sourceAssessmentId?: SortOrder
+    version?: SortOrder
+    previousRoadmapId?: SortOrder
+    idempotencyKey?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FitnessRoadmapSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type EnumFitnessRoadmapStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FitnessRoadmapStatus | EnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFitnessRoadmapStatusWithAggregatesFilter<$PrismaModel> | $Enums.FitnessRoadmapStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel>
+    _max?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel>
+  }
+
+  export type EnumRoadmapCreatorRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapCreatorRole | EnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapCreatorRoleWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapCreatorRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type EnumRoadmapPhaseTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseType | EnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel> | $Enums.RoadmapPhaseType
+  }
+
+  export type EnumRoadmapPhaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseStatus | EnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel> | $Enums.RoadmapPhaseStatus
+  }
+
+  export type FitnessRoadmapRelationFilter = {
+    is?: FitnessRoadmapWhereInput
+    isNot?: FitnessRoadmapWhereInput
+  }
+
+  export type TrainingCycleListRelationFilter = {
+    every?: TrainingCycleWhereInput
+    some?: TrainingCycleWhereInput
+    none?: TrainingCycleWhereInput
+  }
+
+  export type TrainingCycleOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RoadmapPhaseRoadmapIdPhaseIndexCompoundUniqueInput = {
+    roadmapId: string
+    phaseIndex: number
+  }
+
+  export type RoadmapPhaseCountOrderByAggregateInput = {
+    id?: SortOrder
+    roadmapId?: SortOrder
+    phaseIndex?: SortOrder
+    name?: SortOrder
+    phaseType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    objective?: SortOrder
+    constraints?: SortOrder
+    transitionRules?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RoadmapPhaseAvgOrderByAggregateInput = {
+    phaseIndex?: SortOrder
+  }
+
+  export type RoadmapPhaseMaxOrderByAggregateInput = {
+    id?: SortOrder
+    roadmapId?: SortOrder
+    phaseIndex?: SortOrder
+    name?: SortOrder
+    phaseType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RoadmapPhaseMinOrderByAggregateInput = {
+    id?: SortOrder
+    roadmapId?: SortOrder
+    phaseIndex?: SortOrder
+    name?: SortOrder
+    phaseType?: SortOrder
+    status?: SortOrder
+    plannedStartAt?: SortOrder
+    plannedEndAt?: SortOrder
+    actualStartAt?: SortOrder
+    actualEndAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RoadmapPhaseSumOrderByAggregateInput = {
+    phaseIndex?: SortOrder
+  }
+
+  export type EnumRoadmapPhaseTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseType | EnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseTypeWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapPhaseType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel>
+  }
+
+  export type EnumRoadmapPhaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseStatus | EnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapPhaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel>
   }
 
   export type CycleSessionFeedbackListRelationFilter = {
@@ -69317,6 +73173,11 @@ export namespace Prisma {
     none?: CycleFeedbackAnalysisAuditWhereInput
   }
 
+  export type RoadmapPhaseNullableRelationFilter = {
+    is?: RoadmapPhaseWhereInput | null
+    isNot?: RoadmapPhaseWhereInput | null
+  }
+
   export type CycleSessionFeedbackOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -69331,6 +73192,11 @@ export namespace Prisma {
 
   export type CycleFeedbackAnalysisAuditOrderByRelationAggregateInput = {
     _count?: SortOrder
+  }
+
+  export type TrainingCycleRoadmapPhaseIdSequenceInPhaseCompoundUniqueInput = {
+    roadmapPhaseId: string
+    sequenceInPhase: number
   }
 
   export type TrainingCycleCountOrderByAggregateInput = {
@@ -69357,6 +73223,8 @@ export namespace Prisma {
     baselineMetrics?: SortOrder
     targetMetrics?: SortOrder
     configuration?: SortOrder
+    roadmapPhaseId?: SortOrder
+    sequenceInPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -69364,6 +73232,7 @@ export namespace Prisma {
   export type TrainingCycleAvgOrderByAggregateInput = {
     cycleIndex?: SortOrder
     durationDays?: SortOrder
+    sequenceInPhase?: SortOrder
   }
 
   export type TrainingCycleMaxOrderByAggregateInput = {
@@ -69385,6 +73254,8 @@ export namespace Prisma {
     name?: SortOrder
     actualEndDate?: SortOrder
     timezoneAtStart?: SortOrder
+    roadmapPhaseId?: SortOrder
+    sequenceInPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -69408,6 +73279,8 @@ export namespace Prisma {
     name?: SortOrder
     actualEndDate?: SortOrder
     timezoneAtStart?: SortOrder
+    roadmapPhaseId?: SortOrder
+    sequenceInPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -69415,31 +73288,7 @@ export namespace Prisma {
   export type TrainingCycleSumOrderByAggregateInput = {
     cycleIndex?: SortOrder
     durationDays?: SortOrder
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
+    sequenceInPhase?: SortOrder
   }
 
   export type TrainingCycleRelationFilter = {
@@ -69480,7 +73329,11 @@ export namespace Prisma {
     nutritionAiExplanation?: SortOrder
     nutritionUserDecision?: SortOrder
     nutritionReviewedAt?: SortOrder
+    nutritionReviewedByUserId?: SortOrder
+    nutritionReviewedByRole?: SortOrder
+    nutritionPtNote?: SortOrder
     appliedNutritionGoalId?: SortOrder
+    notifiedForReassessmentAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -69508,7 +73361,11 @@ export namespace Prisma {
     nutritionAiExplanation?: SortOrder
     nutritionUserDecision?: SortOrder
     nutritionReviewedAt?: SortOrder
+    nutritionReviewedByUserId?: SortOrder
+    nutritionReviewedByRole?: SortOrder
+    nutritionPtNote?: SortOrder
     appliedNutritionGoalId?: SortOrder
+    notifiedForReassessmentAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -69530,7 +73387,11 @@ export namespace Prisma {
     nutritionAiExplanation?: SortOrder
     nutritionUserDecision?: SortOrder
     nutritionReviewedAt?: SortOrder
+    nutritionReviewedByUserId?: SortOrder
+    nutritionReviewedByRole?: SortOrder
+    nutritionPtNote?: SortOrder
     appliedNutritionGoalId?: SortOrder
+    notifiedForReassessmentAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -72342,6 +76203,120 @@ export namespace Prisma {
     update?: XOR<XOR<CycleSessionFeedbackUpdateToOneWithWhereWithoutWorkoutScheduleInput, CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput>, CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput>
   }
 
+  export type RoadmapPhaseCreateNestedManyWithoutRoadmapInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput> | RoadmapPhaseCreateWithoutRoadmapInput[] | RoadmapPhaseUncheckedCreateWithoutRoadmapInput[]
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutRoadmapInput | RoadmapPhaseCreateOrConnectWithoutRoadmapInput[]
+    createMany?: RoadmapPhaseCreateManyRoadmapInputEnvelope
+    connect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+  }
+
+  export type RoadmapPhaseUncheckedCreateNestedManyWithoutRoadmapInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput> | RoadmapPhaseCreateWithoutRoadmapInput[] | RoadmapPhaseUncheckedCreateWithoutRoadmapInput[]
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutRoadmapInput | RoadmapPhaseCreateOrConnectWithoutRoadmapInput[]
+    createMany?: RoadmapPhaseCreateManyRoadmapInputEnvelope
+    connect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+  }
+
+  export type EnumFitnessRoadmapStatusFieldUpdateOperationsInput = {
+    set?: $Enums.FitnessRoadmapStatus
+  }
+
+  export type EnumRoadmapCreatorRoleFieldUpdateOperationsInput = {
+    set?: $Enums.RoadmapCreatorRole
+  }
+
+  export type RoadmapPhaseUpdateManyWithoutRoadmapNestedInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput> | RoadmapPhaseCreateWithoutRoadmapInput[] | RoadmapPhaseUncheckedCreateWithoutRoadmapInput[]
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutRoadmapInput | RoadmapPhaseCreateOrConnectWithoutRoadmapInput[]
+    upsert?: RoadmapPhaseUpsertWithWhereUniqueWithoutRoadmapInput | RoadmapPhaseUpsertWithWhereUniqueWithoutRoadmapInput[]
+    createMany?: RoadmapPhaseCreateManyRoadmapInputEnvelope
+    set?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    disconnect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    delete?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    connect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    update?: RoadmapPhaseUpdateWithWhereUniqueWithoutRoadmapInput | RoadmapPhaseUpdateWithWhereUniqueWithoutRoadmapInput[]
+    updateMany?: RoadmapPhaseUpdateManyWithWhereWithoutRoadmapInput | RoadmapPhaseUpdateManyWithWhereWithoutRoadmapInput[]
+    deleteMany?: RoadmapPhaseScalarWhereInput | RoadmapPhaseScalarWhereInput[]
+  }
+
+  export type RoadmapPhaseUncheckedUpdateManyWithoutRoadmapNestedInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput> | RoadmapPhaseCreateWithoutRoadmapInput[] | RoadmapPhaseUncheckedCreateWithoutRoadmapInput[]
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutRoadmapInput | RoadmapPhaseCreateOrConnectWithoutRoadmapInput[]
+    upsert?: RoadmapPhaseUpsertWithWhereUniqueWithoutRoadmapInput | RoadmapPhaseUpsertWithWhereUniqueWithoutRoadmapInput[]
+    createMany?: RoadmapPhaseCreateManyRoadmapInputEnvelope
+    set?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    disconnect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    delete?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    connect?: RoadmapPhaseWhereUniqueInput | RoadmapPhaseWhereUniqueInput[]
+    update?: RoadmapPhaseUpdateWithWhereUniqueWithoutRoadmapInput | RoadmapPhaseUpdateWithWhereUniqueWithoutRoadmapInput[]
+    updateMany?: RoadmapPhaseUpdateManyWithWhereWithoutRoadmapInput | RoadmapPhaseUpdateManyWithWhereWithoutRoadmapInput[]
+    deleteMany?: RoadmapPhaseScalarWhereInput | RoadmapPhaseScalarWhereInput[]
+  }
+
+  export type FitnessRoadmapCreateNestedOneWithoutPhasesInput = {
+    create?: XOR<FitnessRoadmapCreateWithoutPhasesInput, FitnessRoadmapUncheckedCreateWithoutPhasesInput>
+    connectOrCreate?: FitnessRoadmapCreateOrConnectWithoutPhasesInput
+    connect?: FitnessRoadmapWhereUniqueInput
+  }
+
+  export type TrainingCycleCreateNestedManyWithoutRoadmapPhaseInput = {
+    create?: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput> | TrainingCycleCreateWithoutRoadmapPhaseInput[] | TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput[]
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput | TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput[]
+    createMany?: TrainingCycleCreateManyRoadmapPhaseInputEnvelope
+    connect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+  }
+
+  export type TrainingCycleUncheckedCreateNestedManyWithoutRoadmapPhaseInput = {
+    create?: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput> | TrainingCycleCreateWithoutRoadmapPhaseInput[] | TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput[]
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput | TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput[]
+    createMany?: TrainingCycleCreateManyRoadmapPhaseInputEnvelope
+    connect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+  }
+
+  export type EnumRoadmapPhaseTypeFieldUpdateOperationsInput = {
+    set?: $Enums.RoadmapPhaseType
+  }
+
+  export type EnumRoadmapPhaseStatusFieldUpdateOperationsInput = {
+    set?: $Enums.RoadmapPhaseStatus
+  }
+
+  export type FitnessRoadmapUpdateOneRequiredWithoutPhasesNestedInput = {
+    create?: XOR<FitnessRoadmapCreateWithoutPhasesInput, FitnessRoadmapUncheckedCreateWithoutPhasesInput>
+    connectOrCreate?: FitnessRoadmapCreateOrConnectWithoutPhasesInput
+    upsert?: FitnessRoadmapUpsertWithoutPhasesInput
+    connect?: FitnessRoadmapWhereUniqueInput
+    update?: XOR<XOR<FitnessRoadmapUpdateToOneWithWhereWithoutPhasesInput, FitnessRoadmapUpdateWithoutPhasesInput>, FitnessRoadmapUncheckedUpdateWithoutPhasesInput>
+  }
+
+  export type TrainingCycleUpdateManyWithoutRoadmapPhaseNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput> | TrainingCycleCreateWithoutRoadmapPhaseInput[] | TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput[]
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput | TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput[]
+    upsert?: TrainingCycleUpsertWithWhereUniqueWithoutRoadmapPhaseInput | TrainingCycleUpsertWithWhereUniqueWithoutRoadmapPhaseInput[]
+    createMany?: TrainingCycleCreateManyRoadmapPhaseInputEnvelope
+    set?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    disconnect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    delete?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    connect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    update?: TrainingCycleUpdateWithWhereUniqueWithoutRoadmapPhaseInput | TrainingCycleUpdateWithWhereUniqueWithoutRoadmapPhaseInput[]
+    updateMany?: TrainingCycleUpdateManyWithWhereWithoutRoadmapPhaseInput | TrainingCycleUpdateManyWithWhereWithoutRoadmapPhaseInput[]
+    deleteMany?: TrainingCycleScalarWhereInput | TrainingCycleScalarWhereInput[]
+  }
+
+  export type TrainingCycleUncheckedUpdateManyWithoutRoadmapPhaseNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput> | TrainingCycleCreateWithoutRoadmapPhaseInput[] | TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput[]
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput | TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput[]
+    upsert?: TrainingCycleUpsertWithWhereUniqueWithoutRoadmapPhaseInput | TrainingCycleUpsertWithWhereUniqueWithoutRoadmapPhaseInput[]
+    createMany?: TrainingCycleCreateManyRoadmapPhaseInputEnvelope
+    set?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    disconnect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    delete?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    connect?: TrainingCycleWhereUniqueInput | TrainingCycleWhereUniqueInput[]
+    update?: TrainingCycleUpdateWithWhereUniqueWithoutRoadmapPhaseInput | TrainingCycleUpdateWithWhereUniqueWithoutRoadmapPhaseInput[]
+    updateMany?: TrainingCycleUpdateManyWithWhereWithoutRoadmapPhaseInput | TrainingCycleUpdateManyWithWhereWithoutRoadmapPhaseInput[]
+    deleteMany?: TrainingCycleScalarWhereInput | TrainingCycleScalarWhereInput[]
+  }
+
   export type WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput = {
     create?: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput> | WorkoutScheduleCreateWithoutTrainingCycleInput[] | WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput[]
     connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput | WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput[]
@@ -72381,6 +76356,12 @@ export namespace Prisma {
     connectOrCreate?: CycleFeedbackAnalysisAuditCreateOrConnectWithoutCycleInput | CycleFeedbackAnalysisAuditCreateOrConnectWithoutCycleInput[]
     createMany?: CycleFeedbackAnalysisAuditCreateManyCycleInputEnvelope
     connect?: CycleFeedbackAnalysisAuditWhereUniqueInput | CycleFeedbackAnalysisAuditWhereUniqueInput[]
+  }
+
+  export type RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedCreateWithoutTrainingCyclesInput>
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutTrainingCyclesInput
+    connect?: RoadmapPhaseWhereUniqueInput
   }
 
   export type WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput = {
@@ -72502,6 +76483,16 @@ export namespace Prisma {
     update?: CycleFeedbackAnalysisAuditUpdateWithWhereUniqueWithoutCycleInput | CycleFeedbackAnalysisAuditUpdateWithWhereUniqueWithoutCycleInput[]
     updateMany?: CycleFeedbackAnalysisAuditUpdateManyWithWhereWithoutCycleInput | CycleFeedbackAnalysisAuditUpdateManyWithWhereWithoutCycleInput[]
     deleteMany?: CycleFeedbackAnalysisAuditScalarWhereInput | CycleFeedbackAnalysisAuditScalarWhereInput[]
+  }
+
+  export type RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput = {
+    create?: XOR<RoadmapPhaseCreateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedCreateWithoutTrainingCyclesInput>
+    connectOrCreate?: RoadmapPhaseCreateOrConnectWithoutTrainingCyclesInput
+    upsert?: RoadmapPhaseUpsertWithoutTrainingCyclesInput
+    disconnect?: RoadmapPhaseWhereInput | boolean
+    delete?: RoadmapPhaseWhereInput | boolean
+    connect?: RoadmapPhaseWhereUniqueInput
+    update?: XOR<XOR<RoadmapPhaseUpdateToOneWithWhereWithoutTrainingCyclesInput, RoadmapPhaseUpdateWithoutTrainingCyclesInput>, RoadmapPhaseUncheckedUpdateWithoutTrainingCyclesInput>
   }
 
   export type WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput = {
@@ -73622,6 +77613,40 @@ export namespace Prisma {
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
+
+  export type NestedEnumFitnessRoadmapStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.FitnessRoadmapStatus | EnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel> | $Enums.FitnessRoadmapStatus
+  }
+
+  export type NestedEnumRoadmapCreatorRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapCreatorRole | EnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel> | $Enums.RoadmapCreatorRole
+  }
+
+  export type NestedEnumFitnessRoadmapStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FitnessRoadmapStatus | EnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FitnessRoadmapStatus[] | ListEnumFitnessRoadmapStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFitnessRoadmapStatusWithAggregatesFilter<$PrismaModel> | $Enums.FitnessRoadmapStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel>
+    _max?: NestedEnumFitnessRoadmapStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRoadmapCreatorRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapCreatorRole | EnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapCreatorRole[] | ListEnumRoadmapCreatorRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapCreatorRoleWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapCreatorRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapCreatorRoleFilter<$PrismaModel>
+  }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -73643,6 +77668,40 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumRoadmapPhaseTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseType | EnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel> | $Enums.RoadmapPhaseType
+  }
+
+  export type NestedEnumRoadmapPhaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseStatus | EnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel> | $Enums.RoadmapPhaseStatus
+  }
+
+  export type NestedEnumRoadmapPhaseTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseType | EnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseType[] | ListEnumRoadmapPhaseTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseTypeWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapPhaseType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapPhaseTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRoadmapPhaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoadmapPhaseStatus | EnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoadmapPhaseStatus[] | ListEnumRoadmapPhaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoadmapPhaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.RoadmapPhaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumRoadmapPhaseStatusFilter<$PrismaModel>
   }
 
   export type NestedBoolNullableFilter<$PrismaModel = never> = {
@@ -75603,6 +79662,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramCreateWithoutDaysInput = {
+    agentActionId?: string | null
     id?: string
     userId: string
     name: string
@@ -75621,6 +79681,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUncheckedCreateWithoutDaysInput = {
+    agentActionId?: string | null
     id?: string
     userId: string
     name: string
@@ -75795,6 +79856,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUpdateWithoutDaysInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -75813,6 +79875,7 @@ export namespace Prisma {
   }
 
   export type WorkoutProgramUncheckedUpdateWithoutDaysInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -76633,6 +80696,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
@@ -76640,6 +80704,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutSessionsInput = {
@@ -76666,6 +80731,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
@@ -76840,6 +80907,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
@@ -76847,6 +80915,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutSessionsInput = {
@@ -76873,6 +80942,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
@@ -76937,6 +81008,326 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exerciseFeedback?: ExerciseSessionFeedbackUncheckedUpdateManyWithoutSessionFeedbackNestedInput
+  }
+
+  export type RoadmapPhaseCreateWithoutRoadmapInput = {
+    id?: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingCycles?: TrainingCycleCreateNestedManyWithoutRoadmapPhaseInput
+  }
+
+  export type RoadmapPhaseUncheckedCreateWithoutRoadmapInput = {
+    id?: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingCycles?: TrainingCycleUncheckedCreateNestedManyWithoutRoadmapPhaseInput
+  }
+
+  export type RoadmapPhaseCreateOrConnectWithoutRoadmapInput = {
+    where: RoadmapPhaseWhereUniqueInput
+    create: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput>
+  }
+
+  export type RoadmapPhaseCreateManyRoadmapInputEnvelope = {
+    data: RoadmapPhaseCreateManyRoadmapInput | RoadmapPhaseCreateManyRoadmapInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RoadmapPhaseUpsertWithWhereUniqueWithoutRoadmapInput = {
+    where: RoadmapPhaseWhereUniqueInput
+    update: XOR<RoadmapPhaseUpdateWithoutRoadmapInput, RoadmapPhaseUncheckedUpdateWithoutRoadmapInput>
+    create: XOR<RoadmapPhaseCreateWithoutRoadmapInput, RoadmapPhaseUncheckedCreateWithoutRoadmapInput>
+  }
+
+  export type RoadmapPhaseUpdateWithWhereUniqueWithoutRoadmapInput = {
+    where: RoadmapPhaseWhereUniqueInput
+    data: XOR<RoadmapPhaseUpdateWithoutRoadmapInput, RoadmapPhaseUncheckedUpdateWithoutRoadmapInput>
+  }
+
+  export type RoadmapPhaseUpdateManyWithWhereWithoutRoadmapInput = {
+    where: RoadmapPhaseScalarWhereInput
+    data: XOR<RoadmapPhaseUpdateManyMutationInput, RoadmapPhaseUncheckedUpdateManyWithoutRoadmapInput>
+  }
+
+  export type RoadmapPhaseScalarWhereInput = {
+    AND?: RoadmapPhaseScalarWhereInput | RoadmapPhaseScalarWhereInput[]
+    OR?: RoadmapPhaseScalarWhereInput[]
+    NOT?: RoadmapPhaseScalarWhereInput | RoadmapPhaseScalarWhereInput[]
+    id?: StringFilter<"RoadmapPhase"> | string
+    roadmapId?: StringFilter<"RoadmapPhase"> | string
+    phaseIndex?: IntFilter<"RoadmapPhase"> | number
+    name?: StringFilter<"RoadmapPhase"> | string
+    phaseType?: EnumRoadmapPhaseTypeFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFilter<"RoadmapPhase"> | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    plannedEndAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    actualStartAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    actualEndAt?: DateTimeNullableFilter<"RoadmapPhase"> | Date | string | null
+    objective?: JsonNullableFilter<"RoadmapPhase">
+    constraints?: JsonNullableFilter<"RoadmapPhase">
+    transitionRules?: JsonNullableFilter<"RoadmapPhase">
+    createdAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+    updatedAt?: DateTimeFilter<"RoadmapPhase"> | Date | string
+  }
+
+  export type FitnessRoadmapCreateWithoutPhasesInput = {
+    id?: string
+    userId: string
+    name: string
+    goalType: string
+    status?: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date | string
+    plannedEndAt?: Date | string | null
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    createdByUserId?: string | null
+    createdByRole?: $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: number
+    previousRoadmapId?: string | null
+    idempotencyKey?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FitnessRoadmapUncheckedCreateWithoutPhasesInput = {
+    id?: string
+    userId: string
+    name: string
+    goalType: string
+    status?: $Enums.FitnessRoadmapStatus
+    plannedStartAt: Date | string
+    plannedEndAt?: Date | string | null
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    createdByUserId?: string | null
+    createdByRole?: $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: number
+    previousRoadmapId?: string | null
+    idempotencyKey?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FitnessRoadmapCreateOrConnectWithoutPhasesInput = {
+    where: FitnessRoadmapWhereUniqueInput
+    create: XOR<FitnessRoadmapCreateWithoutPhasesInput, FitnessRoadmapUncheckedCreateWithoutPhasesInput>
+  }
+
+  export type TrainingCycleCreateWithoutRoadmapPhaseInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    archivedAt?: Date | string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
+    feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
+    feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    archivedAt?: Date | string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput
+    feedbackSummary?: CycleFeedbackSummaryUncheckedCreateNestedOneWithoutCycleInput
+    feedbackAnalyses?: CycleFeedbackAnalysisAuditUncheckedCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleCreateOrConnectWithoutRoadmapPhaseInput = {
+    where: TrainingCycleWhereUniqueInput
+    create: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput>
+  }
+
+  export type TrainingCycleCreateManyRoadmapPhaseInputEnvelope = {
+    data: TrainingCycleCreateManyRoadmapPhaseInput | TrainingCycleCreateManyRoadmapPhaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FitnessRoadmapUpsertWithoutPhasesInput = {
+    update: XOR<FitnessRoadmapUpdateWithoutPhasesInput, FitnessRoadmapUncheckedUpdateWithoutPhasesInput>
+    create: XOR<FitnessRoadmapCreateWithoutPhasesInput, FitnessRoadmapUncheckedCreateWithoutPhasesInput>
+    where?: FitnessRoadmapWhereInput
+  }
+
+  export type FitnessRoadmapUpdateToOneWithWhereWithoutPhasesInput = {
+    where?: FitnessRoadmapWhereInput
+    data: XOR<FitnessRoadmapUpdateWithoutPhasesInput, FitnessRoadmapUncheckedUpdateWithoutPhasesInput>
+  }
+
+  export type FitnessRoadmapUpdateWithoutPhasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessRoadmapUncheckedUpdateWithoutPhasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goalType?: StringFieldUpdateOperationsInput | string
+    status?: EnumFitnessRoadmapStatusFieldUpdateOperationsInput | $Enums.FitnessRoadmapStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByRole?: EnumRoadmapCreatorRoleFieldUpdateOperationsInput | $Enums.RoadmapCreatorRole
+    sourceAssessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    previousRoadmapId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleUpsertWithWhereUniqueWithoutRoadmapPhaseInput = {
+    where: TrainingCycleWhereUniqueInput
+    update: XOR<TrainingCycleUpdateWithoutRoadmapPhaseInput, TrainingCycleUncheckedUpdateWithoutRoadmapPhaseInput>
+    create: XOR<TrainingCycleCreateWithoutRoadmapPhaseInput, TrainingCycleUncheckedCreateWithoutRoadmapPhaseInput>
+  }
+
+  export type TrainingCycleUpdateWithWhereUniqueWithoutRoadmapPhaseInput = {
+    where: TrainingCycleWhereUniqueInput
+    data: XOR<TrainingCycleUpdateWithoutRoadmapPhaseInput, TrainingCycleUncheckedUpdateWithoutRoadmapPhaseInput>
+  }
+
+  export type TrainingCycleUpdateManyWithWhereWithoutRoadmapPhaseInput = {
+    where: TrainingCycleScalarWhereInput
+    data: XOR<TrainingCycleUpdateManyMutationInput, TrainingCycleUncheckedUpdateManyWithoutRoadmapPhaseInput>
+  }
+
+  export type TrainingCycleScalarWhereInput = {
+    AND?: TrainingCycleScalarWhereInput | TrainingCycleScalarWhereInput[]
+    OR?: TrainingCycleScalarWhereInput[]
+    NOT?: TrainingCycleScalarWhereInput | TrainingCycleScalarWhereInput[]
+    id?: StringFilter<"TrainingCycle"> | string
+    userId?: StringFilter<"TrainingCycle"> | string
+    planId?: StringNullableFilter<"TrainingCycle"> | string | null
+    cycleIndex?: IntFilter<"TrainingCycle"> | number
+    startDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    endDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    durationDays?: IntFilter<"TrainingCycle"> | number
+    goal?: StringNullableFilter<"TrainingCycle"> | string | null
+    status?: StringFilter<"TrainingCycle"> | string
+    archivedAt?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    startInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    endInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    summary?: JsonNullableFilter<"TrainingCycle">
+    lowConfidence?: BoolFilter<"TrainingCycle"> | boolean
+    decision?: StringNullableFilter<"TrainingCycle"> | string | null
+    aiAnalysis?: JsonNullableFilter<"TrainingCycle">
+    nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    name?: StringNullableFilter<"TrainingCycle"> | string | null
+    actualEndDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    timezoneAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
+    baselineMetrics?: JsonNullableFilter<"TrainingCycle">
+    targetMetrics?: JsonNullableFilter<"TrainingCycle">
+    configuration?: JsonNullableFilter<"TrainingCycle">
+    roadmapPhaseId?: StringNullableFilter<"TrainingCycle"> | string | null
+    sequenceInPhase?: IntNullableFilter<"TrainingCycle"> | number | null
+    createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
   }
 
   export type WorkoutScheduleCreateWithoutTrainingCycleInput = {
@@ -77112,7 +81503,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -77143,7 +81538,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -77278,6 +81677,47 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RoadmapPhaseCreateWithoutTrainingCyclesInput = {
+    id?: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    roadmap: FitnessRoadmapCreateNestedOneWithoutPhasesInput
+  }
+
+  export type RoadmapPhaseUncheckedCreateWithoutTrainingCyclesInput = {
+    id?: string
+    roadmapId: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoadmapPhaseCreateOrConnectWithoutTrainingCyclesInput = {
+    where: RoadmapPhaseWhereUniqueInput
+    create: XOR<RoadmapPhaseCreateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedCreateWithoutTrainingCyclesInput>
+  }
+
   export type WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput = {
     where: WorkoutScheduleWhereUniqueInput
     update: XOR<WorkoutScheduleUpdateWithoutTrainingCycleInput, WorkoutScheduleUncheckedUpdateWithoutTrainingCycleInput>
@@ -77409,7 +81849,11 @@ export namespace Prisma {
     nutritionAiExplanation?: StringNullableFilter<"CycleAssessment"> | string | null
     nutritionUserDecision?: StringFilter<"CycleAssessment"> | string
     nutritionReviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    nutritionReviewedByUserId?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionReviewedByRole?: StringNullableFilter<"CycleAssessment"> | string | null
+    nutritionPtNote?: StringNullableFilter<"CycleAssessment"> | string | null
     appliedNutritionGoalId?: StringNullableFilter<"CycleAssessment"> | string | null
+    notifiedForReassessmentAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
     createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
   }
 
@@ -77533,6 +81977,53 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"CycleFeedbackAnalysisAudit"> | Date | string
   }
 
+  export type RoadmapPhaseUpsertWithoutTrainingCyclesInput = {
+    update: XOR<RoadmapPhaseUpdateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedUpdateWithoutTrainingCyclesInput>
+    create: XOR<RoadmapPhaseCreateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedCreateWithoutTrainingCyclesInput>
+    where?: RoadmapPhaseWhereInput
+  }
+
+  export type RoadmapPhaseUpdateToOneWithWhereWithoutTrainingCyclesInput = {
+    where?: RoadmapPhaseWhereInput
+    data: XOR<RoadmapPhaseUpdateWithoutTrainingCyclesInput, RoadmapPhaseUncheckedUpdateWithoutTrainingCyclesInput>
+  }
+
+  export type RoadmapPhaseUpdateWithoutTrainingCyclesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roadmap?: FitnessRoadmapUpdateOneRequiredWithoutPhasesNestedInput
+  }
+
+  export type RoadmapPhaseUncheckedUpdateWithoutTrainingCyclesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roadmapId?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type TrainingCycleCreateWithoutAssessmentsInput = {
     id?: string
     userId: string
@@ -77557,6 +82048,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -77564,6 +82056,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutAssessmentsInput = {
@@ -77590,6 +82083,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -77639,6 +82134,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -77646,6 +82142,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutAssessmentsInput = {
@@ -77672,6 +82169,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -77705,6 +82204,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -77712,6 +82212,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutSessionFeedbackInput = {
@@ -77738,6 +82239,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -77878,6 +82381,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -77885,6 +82389,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutSessionFeedbackInput = {
@@ -77911,6 +82416,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -78150,6 +82657,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -78157,6 +82665,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutFeedbackSummaryInput = {
@@ -78183,6 +82692,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -78232,6 +82743,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -78239,6 +82751,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutFeedbackSummaryInput = {
@@ -78265,6 +82778,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -78298,6 +82813,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -78305,6 +82821,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutFeedbackAnalysesInput = {
@@ -78331,6 +82848,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -78380,6 +82899,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -78387,6 +82907,7 @@ export namespace Prisma {
     inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutFeedbackAnalysesInput = {
@@ -78413,6 +82934,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -78446,6 +82969,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
@@ -78453,6 +82977,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
     feedbackSummary?: CycleFeedbackSummaryCreateNestedOneWithoutCycleInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditCreateNestedManyWithoutCycleInput
+    roadmapPhase?: RoadmapPhaseCreateNestedOneWithoutTrainingCyclesInput
   }
 
   export type TrainingCycleUncheckedCreateWithoutInbodyLinksInput = {
@@ -78479,6 +83004,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: string | null
+    sequenceInPhase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
@@ -78528,6 +83055,7 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
@@ -78535,6 +83063,7 @@ export namespace Prisma {
     assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
     feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
     feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+    roadmapPhase?: RoadmapPhaseUpdateOneWithoutTrainingCyclesNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateWithoutInbodyLinksInput = {
@@ -78561,6 +83090,8 @@ export namespace Prisma {
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
+    roadmapPhaseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
@@ -81677,6 +86208,204 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RoadmapPhaseCreateManyRoadmapInput = {
+    id?: string
+    phaseIndex: number
+    name: string
+    phaseType: $Enums.RoadmapPhaseType
+    status?: $Enums.RoadmapPhaseStatus
+    plannedStartAt: Date | string
+    plannedEndAt: Date | string
+    actualStartAt?: Date | string | null
+    actualEndAt?: Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoadmapPhaseUpdateWithoutRoadmapInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingCycles?: TrainingCycleUpdateManyWithoutRoadmapPhaseNestedInput
+  }
+
+  export type RoadmapPhaseUncheckedUpdateWithoutRoadmapInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingCycles?: TrainingCycleUncheckedUpdateManyWithoutRoadmapPhaseNestedInput
+  }
+
+  export type RoadmapPhaseUncheckedUpdateManyWithoutRoadmapInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    phaseIndex?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    phaseType?: EnumRoadmapPhaseTypeFieldUpdateOperationsInput | $Enums.RoadmapPhaseType
+    status?: EnumRoadmapPhaseStatusFieldUpdateOperationsInput | $Enums.RoadmapPhaseStatus
+    plannedStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plannedEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actualStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objective?: NullableJsonNullValueInput | InputJsonValue
+    constraints?: NullableJsonNullValueInput | InputJsonValue
+    transitionRules?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleCreateManyRoadmapPhaseInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    archivedAt?: Date | string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingCycleUpdateWithoutRoadmapPhaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
+    feedbackSummary?: CycleFeedbackSummaryUpdateOneWithoutCycleNestedInput
+    feedbackAnalyses?: CycleFeedbackAnalysisAuditUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateWithoutRoadmapPhaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput
+    feedbackSummary?: CycleFeedbackSummaryUncheckedUpdateOneWithoutCycleNestedInput
+    feedbackAnalyses?: CycleFeedbackAnalysisAuditUncheckedUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateManyWithoutRoadmapPhaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    sequenceInPhase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type WorkoutScheduleCreateManyTrainingCycleInput = {
     id?: string
     userId: string
@@ -81760,7 +86489,11 @@ export namespace Prisma {
     nutritionAiExplanation?: string | null
     nutritionUserDecision?: string
     nutritionReviewedAt?: Date | string | null
+    nutritionReviewedByUserId?: string | null
+    nutritionReviewedByRole?: string | null
+    nutritionPtNote?: string | null
     appliedNutritionGoalId?: string | null
+    notifiedForReassessmentAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -81980,7 +86713,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -82011,7 +86748,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -82042,7 +86783,11 @@ export namespace Prisma {
     nutritionAiExplanation?: NullableStringFieldUpdateOperationsInput | string | null
     nutritionUserDecision?: StringFieldUpdateOperationsInput | string
     nutritionReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    nutritionReviewedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionReviewedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionPtNote?: NullableStringFieldUpdateOperationsInput | string | null
     appliedNutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    notifiedForReassessmentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -82557,6 +87302,14 @@ export namespace Prisma {
      */
     export type WorkoutProgramExerciseCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramExerciseCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use FitnessRoadmapCountOutputTypeDefaultArgs instead
+     */
+    export type FitnessRoadmapCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FitnessRoadmapCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use RoadmapPhaseCountOutputTypeDefaultArgs instead
+     */
+    export type RoadmapPhaseCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = RoadmapPhaseCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use TrainingCycleCountOutputTypeDefaultArgs instead
      */
     export type TrainingCycleCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
@@ -82672,6 +87425,14 @@ export namespace Prisma {
      * @deprecated Use WorkoutScheduleDefaultArgs instead
      */
     export type WorkoutScheduleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutScheduleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use FitnessRoadmapDefaultArgs instead
+     */
+    export type FitnessRoadmapArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FitnessRoadmapDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use RoadmapPhaseDefaultArgs instead
+     */
+    export type RoadmapPhaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = RoadmapPhaseDefaultArgs<ExtArgs>
     /**
      * @deprecated Use TrainingCycleDefaultArgs instead
      */

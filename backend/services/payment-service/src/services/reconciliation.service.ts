@@ -1,21 +1,18 @@
-import axios from 'axios';
 import { logger } from '@gym-coach/shared';
 import { webhookRepository } from '../repositories/webhook.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
 import type { PaymentTransaction } from '../generated/prisma';
 import { pollAndSettle } from './webhook.service';
+import { postServiceJson } from '../clients/service-lambda.client';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 10;
 const NON_TOPUP_STALE_MINUTES = 10;
 const TOPUP_STALE_MINUTES = Number(process.env.TOPUP_STALE_MINUTES ?? '60');
 
-const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
 // Cụm C2/C3: personalized-service purchase now goes through the generic checkout+webhook
 // pipeline, same as PT_CONTRACT/GYM_MEMBERSHIP — needs a way to tell ai-service to activate
 // the order once payment is confirmed, which payment-service never previously called at all.
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
@@ -24,7 +21,7 @@ export function startReconciliationJob(): void {
   setInterval(() => { void runReconciliation(); }, INTERVAL_MS);
 }
 
-async function runReconciliation(): Promise<void> {
+export async function runReconciliation(): Promise<void> {
   await reconcileTopupWebhookBookkeeping();
   await pollGatewayConfirmations();
   await reconcilePendingActivations();
@@ -107,11 +104,11 @@ export async function callActivateEndpoint(txn: PaymentTransaction): Promise<voi
   const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
   if (txn.relatedEntityType === 'GYM_MEMBERSHIP') {
-    await axios.post(`${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, { headers, timeout: 10_000 });
+    await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, headers });
   } else if (txn.relatedEntityType === 'PT_CONTRACT') {
-    await axios.post(`${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, { headers, timeout: 10_000 });
+    await postServiceJson({ service: 'user', path: `/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, headers });
   } else if (txn.relatedEntityType === 'PERSONALIZED_SERVICE_PURCHASE') {
-    await axios.post(`${AI_SERVICE_URL}/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, { headers, timeout: 10_000 });
+    await postServiceJson({ service: 'ai', path: `/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, headers });
   } else {
     throw new Error(`Unknown relatedEntityType for activation: ${txn.relatedEntityType}`);
   }
@@ -147,9 +144,9 @@ async function callCancelAfterRefundEndpoint(refundTxn: PaymentTransaction): Pro
   const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
   if (refundTxn.relatedEntityType === 'GYM_MEMBERSHIP') {
-    await axios.post(`${GYM_SERVICE_URL}/internal/gym-memberships/${refundTxn.relatedEntityId}/cancel-after-refund`, body, { headers, timeout: 10_000 });
+    await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${refundTxn.relatedEntityId}/cancel-after-refund`, body, headers });
   } else if (refundTxn.relatedEntityType === 'PT_CONTRACT') {
-    await axios.post(`${USER_SERVICE_URL}/internal/contracts/${refundTxn.relatedEntityId}/cancel-after-refund`, body, { headers, timeout: 10_000 });
+    await postServiceJson({ service: 'user', path: `/internal/contracts/${refundTxn.relatedEntityId}/cancel-after-refund`, body, headers });
   } else {
     throw new Error(`Unknown relatedEntityType for refund cancellation: ${refundTxn.relatedEntityType}`);
   }

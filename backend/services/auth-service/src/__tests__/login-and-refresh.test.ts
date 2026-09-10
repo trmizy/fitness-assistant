@@ -115,6 +115,26 @@ test("login() for a disabled (isActive:false) account is rejected 403 even with 
   }
 });
 
+test("verifyToken() rejects a disabled account even when the JWT itself is valid", async () => {
+  const restoreUser = patch(authRepository, "findUserById", async () => ({
+    id: "u1",
+    email: "disabled@example.com",
+    firstName: null,
+    lastName: null,
+    role: "CUSTOMER",
+    isActive: false,
+  }));
+
+  try {
+    await assert.rejects(
+      () => authService.verifyToken(signAccessToken("u1")),
+      (err: any) => err.status === 403,
+    );
+  } finally {
+    restoreUser();
+  }
+});
+
 test("changePassword() rejects the wrong current password and leaves password/session rows untouched", async () => {
   const passwordHash = await bcrypt.hash("correct-password", 10);
   const updateCalls: unknown[] = [];
@@ -294,6 +314,45 @@ test("refresh() with an expired stored token is rejected 401 and the stale row i
   } finally {
     restoreFind();
     restoreDelete();
+  }
+});
+
+test("refresh() for a disabled account is rejected 403 and the stored refresh token is revoked", async () => {
+  const deleteCalls: string[] = [];
+  const createCalls: unknown[] = [];
+  const restoreFind = patch(authRepository, "findRefreshToken", async () => ({
+    id: "rt-disabled",
+    token: "disabled-refresh-token",
+    userId: "u1",
+    expiresAt: new Date(Date.now() + 60_000),
+    user: {
+      id: "u1",
+      email: "disabled@example.com",
+      role: "CUSTOMER",
+      isActive: false,
+    },
+  }));
+  const restoreDelete = patch(authRepository, "deleteRefreshToken", async (id: string) => {
+    deleteCalls.push(id);
+  });
+  const restoreCreate = patch(authRepository, "createRefreshToken", async (data: unknown) => {
+    createCalls.push(data);
+    return {};
+  });
+  const jwt = await import("jsonwebtoken");
+  const signedForDisabledUser = jwt.default.sign({ userId: "u1" }, REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+  try {
+    await assert.rejects(
+      () => authService.refresh(signedForDisabledUser),
+      (err: any) => err.status === 403,
+    );
+    assert.deepEqual(deleteCalls, ["rt-disabled"]);
+    assert.equal(createCalls.length, 0, "disabled account refresh must not issue a new token");
+  } finally {
+    restoreFind();
+    restoreDelete();
+    restoreCreate();
   }
 });
 

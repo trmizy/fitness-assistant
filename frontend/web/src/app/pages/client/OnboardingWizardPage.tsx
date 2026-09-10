@@ -722,11 +722,11 @@ export function OnboardingWizardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={lbl}>Tuổi</label>
-                <input type="number" value={age} onChange={(e) => setAge(e.target.value)} className={inp} />
+                <input data-testid="onboarding-age" type="number" value={age} onChange={(e) => setAge(e.target.value)} className={inp} />
               </div>
               <div>
                 <label className={lbl}>Giới tính</label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className={inp}>
+                <select data-testid="onboarding-gender" value={gender} onChange={(e) => setGender(e.target.value)} className={inp}>
                   <option value="">Chưa thiết lập</option>
                   <option value="MALE">Nam</option>
                   <option value="FEMALE">Nữ</option>
@@ -772,7 +772,7 @@ export function OnboardingWizardPage() {
                   </div>
                 </div>
                 {heightUnit === "cm" ? (
-                  <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inp} placeholder="175" />
+                  <input data-testid="onboarding-height-cm" type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inp} placeholder="175" />
                 ) : (
                   <div className="flex gap-2">
                     <input
@@ -812,6 +812,7 @@ export function OnboardingWizardPage() {
                   <div>
                     <label className="text-[11px] text-zinc-600 mb-1 block">Hiện tại</label>
                     <input
+                      data-testid="onboarding-current-weight"
                       type="number"
                       value={displayWeight(currentWeight)}
                       onChange={(e) => updateWeightFromDisplay(e.target.value, setCurrentWeight)}
@@ -821,6 +822,7 @@ export function OnboardingWizardPage() {
                   <div>
                     <label className="text-[11px] text-zinc-600 mb-1 block">Mục tiêu (nếu có)</label>
                     <input
+                      data-testid="onboarding-target-weight"
                       type="number"
                       value={displayWeight(targetWeight)}
                       onChange={(e) => updateWeightFromDisplay(e.target.value, setTargetWeight)}

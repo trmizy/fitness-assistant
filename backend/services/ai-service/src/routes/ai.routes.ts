@@ -4,6 +4,7 @@ import { cycleAnalysisController } from "../controllers/cycle-analysis.controlle
 import { cycleAssessmentController } from "../controllers/cycle-assessment.controller";
 import { feedbackAnalysisController } from "../controllers/feedback-analysis.controller";
 import { clientPlanDraftController } from "../controllers/client-plan-draft.controller";
+import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
@@ -81,6 +82,14 @@ router.post("/analyze-feedback", feedbackAnalysisController.analyzeFeedback);
 // real plan here; the PT must review/edit and explicitly submit via the
 // existing POST /coach/clients/:clientId/plans.
 router.post("/generate-client-plan-draft", clientPlanDraftController.generateDraft);
+
+// FitnessRoadmap AI Draft generation (Phase B of the roadmap next-phase
+// work) — called by fitness-service's POST /fitness-roadmaps/ai-draft.
+// Returns a DRAFT phase-sequence proposal only, never persisted here; the
+// user/PT must explicitly accept it via fitness-service's own
+// POST /fitness-roadmaps/ai-draft/accept before a real FitnessRoadmap row
+// is created. See docs/FITNESS_ROADMAP_AI_DRAFT_DESIGN.md.
+router.post("/generate-roadmap-draft", roadmapDraftController.generateDraft);
 
 // openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
 // §5. Called by fitness-service's GET /workouts/exercises/:id/progression/

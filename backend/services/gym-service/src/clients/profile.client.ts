@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { invokeHttpLambda, throwForLambdaHttpError } from './lambda-http.client';
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
 const INTERNAL_SERVICE_SECRET =
@@ -11,6 +12,18 @@ export const profileClient = {
    * an invalid code is an ordinary user-input case for the caller to surface, not an error. */
   async resolveReferralCode(code: string): Promise<string | null> {
     try {
+      if (process.env.USER_LAMBDA_NAME) {
+        const result = await invokeHttpLambda({
+          functionName: process.env.USER_LAMBDA_NAME,
+          method: 'GET',
+          path: `/internal/profile/by-referral-code/${encodeURIComponent(code)}`,
+          headers,
+        });
+        if (result.statusCode === 404) return null;
+        throwForLambdaHttpError(result);
+        return result.body.userId as string;
+      }
+
       const { data } = await axios.get(`${USER_SERVICE_URL}/internal/profile/by-referral-code/${encodeURIComponent(code)}`, {
         headers,
         timeout: 5_000,

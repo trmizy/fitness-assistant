@@ -1,12 +1,19 @@
 import { Router } from "express";
 import { adminController } from "../controllers/admin.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { requireRole } from "../middleware/requireRole.middleware";
 
 const router = Router();
 
 // All admin endpoints require a verified gateway identity.
-// The API gateway enforces ADMIN role before forwarding to this service.
+// The API gateway enforces ADMIN role before forwarding to this service —
+// requireRole below is defense-in-depth for that same check, not a
+// replacement for it: it protects this route the same way if ai-service is
+// ever reached through a path that forwards x-user-role without having
+// verified it first (e.g. a misconfigured API Gateway integration in the
+// AWS deployment — see the AWS deployment audit, section 17).
 router.use(requireAuth);
+router.use(requireRole(["ADMIN"]));
 
 /** GET /admin/ai/overview — aggregate stats */
 router.get("/overview", adminController.getOverview);

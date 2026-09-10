@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import axios from 'axios';
 import { logger } from '@gym-coach/shared';
+import { authServiceClient } from '../clients/auth-service.client';
 
 export interface AuthUser {
   userId: string;
@@ -16,8 +16,6 @@ declare global {
     }
   }
 }
-
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 
 /**
  * Verifies the caller's JWT directly against auth-service — the same
@@ -51,11 +49,7 @@ export async function extractUser(req: Request, _res: Response, next: NextFuncti
 
   const token = authHeader.substring(7);
   try {
-    const { data } = await axios.post(
-      `${AUTH_SERVICE_URL}/auth/verify`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
-    );
+    const data = await authServiceClient.verifyToken(`Bearer ${token}`);
     const payload = data?.user;
     req.user = payload?.id
       ? { userId: payload.id, role: payload.role ?? '', email: payload.email ?? '' }

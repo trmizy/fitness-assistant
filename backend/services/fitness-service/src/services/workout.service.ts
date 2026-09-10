@@ -2,8 +2,6 @@ import { Queue } from "bullmq";
 import { isRedisEnabled } from "../repositories/redis";
 import { prisma } from "../repositories/prisma";
 import { workoutRepository } from "../repositories/workout.repository";
-import { exerciseRepository } from "../repositories/exercise.repository";
-import { checkMissingExerciseIds } from "../utils/workout-validation";
 import { invalidateCycleProgressCache, trainingCycleService } from "./training-cycle.service";
 import { assertScheduleDateEditable, todayAsScheduleDate, compareScheduleDate, scheduledDateLabel } from "../utils/schedule-lock.util";
 import { createPersistentNotification } from "../clients/notification.client";
@@ -21,6 +19,8 @@ import {
   explainExerciseProgressionSafe,
   type ExplainExerciseProgressionPayload,
 } from "../clients/ai.client";
+import { exerciseReferenceResolver } from "./exercise-reference-resolver.service";
+import { planEquipmentValidatorService } from "./plan-equipment-validator.service";
 import type {
   CompleteScheduleExerciseDto,
   CreateManualProgramDto,
@@ -30,12 +30,6 @@ import type {
   ManualSetPrescriptionDto,
 } from "../models/fitness.models";
 import { SET_TYPES, SET_SIDES } from "../models/fitness.models";
-
-type NormalizedExerciseCatalogItem = {
-  id: string;
-  name: string;
-  rawName: string;
-};
 
 type MappedAiExercise = {
   exerciseId: string;
@@ -55,6 +49,71 @@ type MappedAiDay = {
 type SetPrescriptionLike = Partial<ManualSetPrescriptionDto> & {
   setNumber: number;
 };
+
+async function resolveScheduleTrainingCycleId(
+  tx: any,
+  userId: string,
+  options: { allowCreate: boolean; startDate: string; durationDays: number; name: string },
+): Promise<string | undefined> {
+  const [activeCycle, activeRoadmap] = await Promise.all([
+    tx.trainingCycle.findFirst({
+      where: { userId, status: "ACTIVE", archivedAt: null },
+      select: { id: true, roadmapPhaseId: true },
+    }),
+    tx.fitnessRoadmap.findFirst({
+      where: { userId, status: "ACTIVE", archivedAt: null },
+      include: {
+        phases: {
+          where: { status: "ACTIVE" },
+          orderBy: { phaseIndex: "asc" },
+          take: 1,
+        },
+      },
+    }),
+  ]);
+  const activePhase = activeRoadmap?.phases?.[0] ?? null;
+
+  if (activeCycle) {
+    if (activePhase && activeCycle.roadmapPhaseId !== activePhase.id) {
+      throw { status: 409, message: "Active training cycle does not belong to the active roadmap phase" };
+    }
+    return activeCycle.id;
+  }
+
+  if (activePhase && !options.allowCreate) {
+    throw { status: 409, message: "Active roadmap phase requires an active training cycle before scheduling workouts" };
+  }
+  if (!options.allowCreate) return undefined;
+
+  const cycle = await trainingCycleService.startCycle(
+    userId,
+    null,
+    options.startDate,
+    options.durationDays,
+    {
+      name: options.name,
+      configuration: activePhase
+        ? { roadmapPhaseType: activePhase.phaseType, roadmapPhaseId: activePhase.id }
+        : undefined,
+    },
+    undefined,
+    tx,
+  );
+
+  if (!activePhase) return cycle.id;
+
+  const latest = await tx.trainingCycle.findFirst({
+    where: { roadmapPhaseId: activePhase.id },
+    orderBy: { sequenceInPhase: "desc" },
+    select: { sequenceInPhase: true },
+  });
+  const sequenceInPhase = (latest?.sequenceInPhase ?? 0) + 1;
+  const linked = await tx.trainingCycle.update({
+    where: { id: cycle.id },
+    data: { roadmapPhaseId: activePhase.id, sequenceInPhase },
+  });
+  return linked.id;
+}
 
 const GOAL_LABELS: Record<string, string> = {
   WEIGHT_LOSS: "Giam mo",
@@ -468,13 +527,38 @@ function nextDateForWeekday(
   return plannedDate;
 }
 
-async function validateExerciseIds(ids: string[]): Promise<void> {
+async function validateExerciseIds(ids: string[], userId: string): Promise<void> {
   if (ids.length === 0) return;
-  const found = await exerciseRepository.findManyByIds(ids);
-  const foundSet = new Set(found.map((e) => e.id));
-  const missing = checkMissingExerciseIds(ids, foundSet);
-  if (missing.length > 0) {
-    throw { status: 400, message: `Exercise not found: ${missing.join(", ")}` };
+  const result = await exerciseReferenceResolver.validatePlanningExerciseIds(ids, {
+    kind: "user",
+    userId,
+  });
+  if (!result.ok) {
+    throw { status: 400, message: `Exercise not available: ${result.missing.join(", ")}` };
+  }
+}
+
+async function validateAiPlanExerciseEquipment(
+  userId: string,
+  days: Array<{ title?: string; day?: string; exercises: Array<{ exerciseId: string; exerciseName?: string; name?: string }> }>,
+): Promise<void> {
+  const result = await planEquipmentValidatorService.validate(
+    days.map((day, dayIndex) => ({
+      day: day.title || day.day || `Day ${dayIndex + 1}`,
+      exercises: day.exercises.map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        name: exercise.exerciseName || exercise.name,
+      })),
+    })),
+    userId,
+  );
+  if (!result.valid) {
+    throw {
+      status: 400,
+      message: `AI plan contains exercises unavailable for your equipment: ${result.violations
+        .map((violation) => violation.exerciseName || violation.exerciseId)
+        .join(", ")}`,
+    };
   }
 }
 
@@ -641,7 +725,7 @@ export const workoutService = {
   },
 
   async createWorkout(userId: string, data: CreateWorkoutDto) {
-    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
+    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId), userId);
     const workoutData: any = { ...data };
     if ((data as any).scheduleId) {
       const schedule = await prisma.workoutSchedule.findFirst({
@@ -683,7 +767,7 @@ export const workoutService = {
   async updateWorkout(id: string, userId: string, data: CreateWorkoutDto) {
     const existing = await workoutRepository.findOne(id, userId);
     if (!existing) throw { status: 404, message: "Workout not found" };
-    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
+    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId), userId);
     const workoutData: any = { ...data };
     if ((data as any).scheduleId) {
       const schedule = await prisma.workoutSchedule.findFirst({
@@ -1108,7 +1192,7 @@ export const workoutService = {
     if (!workout) throw { status: 404, message: "Workout not found" };
     await assertWorkoutEditableByWorkoutId(workoutId);
 
-    await validateExerciseIds([body.exerciseId]);
+    await validateExerciseIds([body.exerciseId], userId);
     return workoutRepository.appendSet(workoutId, body.exerciseId, body);
   },
 
@@ -1327,7 +1411,7 @@ export const workoutService = {
     // (the WorkoutProgramExercise row) is never written to, so the
     // underlying program/plan and any other schedule stay untouched.
     if (performed?.exerciseId) {
-      await validateExerciseIds([performed.exerciseId]);
+      await validateExerciseIds([performed.exerciseId], userId);
     }
     // Roadmap P1.4 "Active-workout offline resilience" — see
     // workout-idempotency.util.ts's own doc comment. Optional eventId,
@@ -1597,7 +1681,7 @@ export const workoutService = {
     const exerciseIds = input.days.flatMap((day) =>
       day.exercises.map((exercise) => exercise.exerciseId),
     );
-    await validateExerciseIds([...new Set(exerciseIds)]);
+    await validateExerciseIds([...new Set(exerciseIds)], userId);
 
     const startDate = parseDateOnly(input.startDate);
     const repeatWeeks = input.repeatWeeks ?? input.durationWeeks;
@@ -1612,12 +1696,12 @@ export const workoutService = {
           return { createdProgram: prior, createdScheduleCount: 0, cancelledScheduleCount: 0, skippedDuplicateCount: 0, schedulePreview: [] };
         }
       }
-      let agentCycleId: string | undefined;
-      if (agent) {
-        const active = await tx.trainingCycle.findFirst({ where: { userId, status: "ACTIVE", archivedAt: null } });
-        const cycle = active ?? await trainingCycleService.startCycle(userId, null, input.startDate, input.durationWeeks * 7, { name: input.name }, undefined, tx);
-        agentCycleId = cycle.id;
-      }
+      const linkedCycleId = await resolveScheduleTrainingCycleId(tx, userId, {
+        allowCreate: Boolean(agent),
+        startDate: input.startDate,
+        durationDays: input.durationWeeks * 7,
+        name: input.name,
+      });
       let cancelledScheduleCount = 0;
       if (shouldReplace) {
         // Delete ALL of this user's incomplete schedules (any date, past or
@@ -1706,7 +1790,7 @@ export const workoutService = {
           scheduleRows.push({
             userId,
             date: plannedDate,
-            trainingCycleId: agentCycleId,
+            trainingCycleId: linkedCycleId,
             programDayId: day.id,
             sourceType: "MANUAL",
             notes: `${input.name} - Week ${weekIndex + 1} Day ${day.dayNumber}`,
@@ -1727,7 +1811,7 @@ export const workoutService = {
         skipDuplicates: true,
       });
 
-      if (agent) await tx.recommendationAudit.create({ data: { userId, cycleId: agentCycleId!, engineVersion: "fitness-agent-v1", decision: "APPLY_TRAINING_PLAN", reasonCodes: ["USER_CONFIRMED"], metricsSnapshot: { actionId: agent.actionId, programId: createdProgram.id } } });
+      if (agent) await tx.recommendationAudit.create({ data: { userId, cycleId: linkedCycleId!, engineVersion: "fitness-agent-v1", decision: "APPLY_TRAINING_PLAN", reasonCodes: ["USER_CONFIRMED"], metricsSnapshot: { actionId: agent.actionId, programId: createdProgram.id } } });
       return {
         createdProgram,
         createdScheduleCount: createResult.count,
@@ -1867,7 +1951,7 @@ export const workoutService = {
     if (!data.exerciseId || typeof data.exerciseId !== "string") {
       throw { status: 400, message: "exerciseId is required" };
     }
-    await validateExerciseIds([data.exerciseId]);
+    await validateExerciseIds([data.exerciseId], userId);
 
     return prisma.workoutProgramExercise.create({
       data: {
@@ -1905,7 +1989,7 @@ export const workoutService = {
     if (!existing) throw { status: 404, message: "Program exercise not found" };
 
     if (data.exerciseId) {
-      await validateExerciseIds([data.exerciseId]);
+      await validateExerciseIds([data.exerciseId], userId);
     }
 
     const patch: any = {};
@@ -2304,8 +2388,29 @@ export const workoutService = {
         }
       }
 
+      const existingExerciseIds = (existingProgram.days as any[]).flatMap((day) =>
+        (day.exercises ?? []).map((exercise: any) => exercise.exerciseId),
+      );
+      await validateExerciseIds(existingExerciseIds, userId);
+      await validateAiPlanExerciseEquipment(
+        userId,
+        (existingProgram.days as any[]).map((day: any) => ({
+          title: day.title,
+          exercises: (day.exercises ?? []).map((exercise: any) => ({
+            exerciseId: exercise.exerciseId,
+            name: exercise.exercise?.exerciseName,
+          })),
+        })),
+      );
+
       const result = await prisma.$transaction(async (tx) => {
         let cancelledScheduleCount = 0;
+        const linkedCycleId = await resolveScheduleTrainingCycleId(tx, userId, {
+          allowCreate: false,
+          startDate: formatDateOnly(startDate),
+          durationDays: input.durationWeeks * 7,
+          name: input.sourcePlanName || goalLabel(input.goal),
+        });
         const shouldReplace = input.replaceExisting !== false;
         if (shouldReplace) {
           // Any date, not just >= startDate — see the matching comment in
@@ -2392,6 +2497,7 @@ export const workoutService = {
               scheduleRows.push({
                 userId,
                 date: plannedDate,
+                trainingCycleId: linkedCycleId,
                 programDayId: day.id,
                 sourcePlanId: input.sourcePlanId,
                 sourceType: "AI_PLAN",
@@ -2418,6 +2524,7 @@ export const workoutService = {
               scheduleRows.push({
                 userId,
                 date: plannedDate,
+                trainingCycleId: linkedCycleId,
                 programDayId: day.id,
                 sourcePlanId: input.sourcePlanId,
                 sourceType: "AI_PLAN",
@@ -2475,102 +2582,61 @@ export const workoutService = {
       };
     }
 
-    const exerciseCatalog = await exerciseRepository.findMany({});
-    const catalog = (
-      exerciseCatalog.data as Array<{ id: string; exerciseName: string }>
-    ).map((exercise) => ({
-      id: exercise.id,
-      rawName: exercise.exerciseName,
-      name: normalizeExerciseName(exercise.exerciseName),
-    }));
-
     const unmatchedExercises = new Set<string>();
-    const mappedDays: MappedAiDay[] = input.weeklySchedule.map(
-      (day, dayIndex) => {
-        const rawTitle =
-          day.goal || day.focus || String(day.day ?? "AI Workout Day");
-        const title = sanitizeImportedDayTitle(rawTitle, dayIndex);
-        const exercises: MappedAiExercise[] = [];
+    const mappedDays: MappedAiDay[] = [];
+    for (const [dayIndex, day] of input.weeklySchedule.entries()) {
+      const rawTitle =
+        day.goal || day.focus || String(day.day ?? "AI Workout Day");
+      const title = sanitizeImportedDayTitle(rawTitle, dayIndex);
+      const exercises: MappedAiExercise[] = [];
 
-        for (const exercise of day.exercises) {
-          // If the AI provided an exerciseId, prefer it and DO NOT fallback to name matching.
-          if (
-            exercise.exerciseId &&
-            typeof exercise.exerciseId === "string" &&
-            exercise.exerciseId.trim()
-          ) {
-            const found = catalog.find((c) => c.id === exercise.exerciseId);
-            if (!found) {
-              const match = findExerciseMatch(catalog, exercise.name);
-              if (!match) {
-                unmatchedExercises.add(exercise.name);
-                continue;
-              }
-              const parsedReps = Number.parseInt(
-                String(exercise.reps).match(/\d+/)?.[0] ?? "",
-                10,
-              );
-              exercises.push({
-                exerciseId: match.id,
-                order: exercise.order ?? exercises.length + 1,
-                sets: exercise.sets,
-                reps: Number.isFinite(parsedReps) ? parsedReps : null,
-                restSeconds: exercise.restSeconds,
-                notes: sanitizeImportedExerciseNote(exercise.note),
-              });
-              continue;
-            }
-            const parsedReps = Number.parseInt(
-              String(exercise.reps).match(/\d+/)?.[0] ?? "",
-              10,
-            );
-            exercises.push({
-              exerciseId: found.id,
-              order: exercise.order ?? exercises.length + 1,
-              sets: exercise.sets,
-              reps: Number.isFinite(parsedReps) ? parsedReps : null,
-              restSeconds: exercise.restSeconds,
-              notes: sanitizeImportedExerciseNote(exercise.note),
-            });
-            continue;
-          }
-
-          // No exerciseId provided: fallback to name matching (legacy support)
-          const match = findExerciseMatch(catalog, exercise.name);
-          if (!match) {
-            unmatchedExercises.add(exercise.name);
-            continue;
-          }
-
-          const parsedReps = Number.parseInt(
-            String(exercise.reps).match(/\d+/)?.[0] ?? "",
-            10,
+      for (const exercise of day.exercises) {
+        const resolved = await exerciseReferenceResolver.resolve(
+          {
+            exerciseId:
+              typeof exercise.exerciseId === "string" && exercise.exerciseId.trim()
+                ? exercise.exerciseId
+                : undefined,
+            name: exercise.name,
+          },
+          { kind: "user", userId },
+        );
+        if (!resolved.ok) {
+          unmatchedExercises.add(
+            `${exercise.exerciseId || exercise.name || "unknown exercise"} (${resolved.code})`,
           );
-
-          exercises.push({
-            exerciseId: match.id,
-            order: exercise.order ?? exercises.length + 1,
-            sets: exercise.sets,
-            reps: Number.isFinite(parsedReps) ? parsedReps : null,
-            restSeconds: exercise.restSeconds,
-            notes: sanitizeImportedExerciseNote(exercise.note),
-          });
+          continue;
         }
 
-        if (exercises.length === 0) {
-          unmatchedExercises.add(title);
-        }
+        const parsedReps = Number.parseInt(
+          String(exercise.reps).match(/\d+/)?.[0] ?? "",
+          10,
+        );
 
-        return {
-          title,
-          description: sanitizeImportedText(
-            day.cardio || day.notes,
-            "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
-          ),
-          exercises,
-        };
-      },
-    );
+        exercises.push({
+          exerciseId: resolved.exercise.id,
+          order: exercise.order ?? exercises.length + 1,
+          sets: exercise.sets,
+          reps: Number.isFinite(parsedReps) ? parsedReps : null,
+          restSeconds: exercise.restSeconds,
+          notes: sanitizeImportedExerciseNote(exercise.note),
+        });
+      }
+
+      if (exercises.length === 0) {
+        unmatchedExercises.add(title);
+      }
+
+      const mappedDay = {
+        title,
+        description: sanitizeImportedText(
+          day.cardio || day.notes,
+          "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
+        ),
+        exercises,
+      };
+      mappedDays.push(mappedDay);
+    }
 
     if (unmatchedExercises.size > 0) {
       throw {
@@ -2578,6 +2644,8 @@ export const workoutService = {
         message: `Unable to map AI exercises to exercise master: ${Array.from(unmatchedExercises).join(", ")}`,
       };
     }
+
+    await validateAiPlanExerciseEquipment(userId, mappedDays);
 
     const repeatWeeks = input.repeatWeeks ?? input.durationWeeks;
     const startDate = parseDateOnly(input.startDate);
@@ -2600,6 +2668,12 @@ export const workoutService = {
 
     const result = await prisma.$transaction(async (tx) => {
       let cancelledScheduleCount = 0;
+      const linkedCycleId = await resolveScheduleTrainingCycleId(tx, userId, {
+        allowCreate: false,
+        startDate: formatDateOnly(startDate),
+        durationDays: input.durationWeeks * 7,
+        name: input.sourcePlanName || goalLabel(input.goal),
+      });
 
       if (shouldReplace) {
         // Delete ALL incomplete schedules for this user, any date — not just
@@ -2696,6 +2770,7 @@ export const workoutService = {
             scheduleRows.push({
               userId,
               date: plannedDate,
+              trainingCycleId: linkedCycleId,
               programDayId: day.id,
               sourcePlanId: input.sourcePlanId,
               sourceType: "AI_PLAN",
@@ -2722,6 +2797,7 @@ export const workoutService = {
             scheduleRows.push({
               userId,
               date: plannedDate,
+              trainingCycleId: linkedCycleId,
               programDayId: day.id,
               sourcePlanId: input.sourcePlanId,
               sourceType: "AI_PLAN",
@@ -2774,7 +2850,7 @@ export const workoutService = {
    * Batch, read-only check: for each given weeklySchedule, do ALL its exercises resolve
    * to a real catalog entry (by exerciseId or name match)? Mirrors the exact same
    * exercise-mapping logic importAiPlanToSchedule enforces at apply-time — reuses
-   * findExerciseMatch/normalizeExerciseName below as the single source of truth, just
+   * strict exerciseReferenceResolver as the single source of truth, just
    * without building the mapped program structure or writing anything.
    *
    * Exists so ai-service's marketplace browse() can filter out listings (often leftover
@@ -2785,16 +2861,8 @@ export const workoutService = {
   async validateMarketplaceSchedules(
     schedules: Array<{ listingId: string; weeklySchedule: unknown }>,
   ): Promise<Array<{ listingId: string; mappable: boolean; unmatchedExercises: string[] }>> {
-    const exerciseCatalog = await exerciseRepository.findMany({});
-    const catalog: NormalizedExerciseCatalogItem[] = (
-      exerciseCatalog.data as Array<{ id: string; exerciseName: string }>
-    ).map((exercise) => ({
-      id: exercise.id,
-      rawName: exercise.exerciseName,
-      name: normalizeExerciseName(exercise.exerciseName),
-    }));
-
-    return schedules.map(({ listingId, weeklySchedule }) => {
+    const results: Array<{ listingId: string; mappable: boolean; unmatchedExercises: string[] }> = [];
+    for (const { listingId, weeklySchedule } of schedules) {
       const unmatched = new Set<string>();
       const days = Array.isArray(weeklySchedule) ? (weeklySchedule as any[]) : [];
       for (const day of days) {
@@ -2804,108 +2872,28 @@ export const workoutService = {
           continue;
         }
         for (const exercise of exercises) {
-          const byId =
-            exercise?.exerciseId && typeof exercise.exerciseId === "string"
-              ? catalog.find((c) => c.id === exercise.exerciseId)
-              : undefined;
-          if (byId) continue;
-          const byName = exercise?.name ? findExerciseMatch(catalog, exercise.name) : undefined;
-          if (!byName) unmatched.add(exercise?.name || "unknown exercise");
+          const resolved = await exerciseReferenceResolver.resolve(
+            {
+              exerciseId:
+                typeof exercise?.exerciseId === "string" && exercise.exerciseId.trim()
+                  ? exercise.exerciseId
+                  : undefined,
+              name: exercise?.name,
+            },
+            { kind: "public" },
+          );
+          if (!resolved.ok) {
+            unmatched.add(
+              `${exercise?.exerciseId || exercise?.name || "unknown exercise"} (${resolved.code})`,
+            );
+          }
         }
       }
-      return { listingId, mappable: unmatched.size === 0, unmatchedExercises: Array.from(unmatched) };
-    });
+      results.push({ listingId, mappable: unmatched.size === 0, unmatchedExercises: Array.from(unmatched) });
+    }
+    return results;
   },
 };
-
-function normalizeExerciseName(name: string) {
-  const aliasNormalized = name
-    .toLowerCase()
-    .replace(
-      /\boverhead\s+dumbbell\s+extension\b/gi,
-      "overhead triceps extension",
-    )
-    .replace(
-      /\boverhead\s+tricep[s]?\s+extension\b/gi,
-      "overhead triceps extension",
-    )
-    .replace(/\btricep[s]?\s+pushdowns?\b/gi, "triceps pushdown")
-    .replace(/\blat\s+pull[-\s]?downs?\b/gi, "lat pulldown")
-    .replace(/\bpull[-\s]?downs?\b/gi, "pulldown")
-    .replace(/\bpull[-\s]?ups?\b/gi, "pull up")
-    .replace(/\btricep\b/gi, "triceps");
-
-  return aliasNormalized
-    .replace(/[^a-z0-9]+/gi, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function findExerciseMatch(
-  catalog: NormalizedExerciseCatalogItem[],
-  exerciseName: string,
-) {
-  const normalized = normalizeExerciseName(exerciseName);
-  const exact = catalog.find((exercise) => exercise.name === normalized);
-  if (exact) return exact;
-  // Token-based matching with simple singularization to handle plurals (rows -> row)
-  const tokens = normalized.split(" ").filter(Boolean);
-  const tokenVariants = new Set<string>();
-  for (const t of tokens) {
-    tokenVariants.add(t);
-    // naive singularization: drop trailing 's' for common plurals, avoid words like 'press' (ends with 'ss')
-    if (t.length > 3 && t.endsWith("s") && !t.endsWith("ss")) {
-      tokenVariants.add(t.slice(0, -1));
-    }
-  }
-
-  const subsetMatch = catalog.find((exercise) => {
-    const catalogTokens = exercise.name.split(" ").filter(Boolean);
-    const catalogTokenSet = new Set<string>();
-    for (const ct of catalogTokens) {
-      catalogTokenSet.add(ct);
-      if (ct.length > 3 && ct.endsWith("s") && !ct.endsWith("ss")) {
-        catalogTokenSet.add(ct.slice(0, -1));
-      }
-    }
-
-    // Check if all input token variants are present in catalog tokens
-    const allInputPresent = [...tokenVariants].every((tok) =>
-      catalogTokenSet.has(tok),
-    );
-    if (allInputPresent) return true;
-
-    // Check weaker match: any input token appears in catalog tokens
-    const anyInputPresent = [...tokenVariants].some((tok) =>
-      catalogTokenSet.has(tok),
-    );
-    // And catalog contains a key token like 'barbell' or movement name
-    const strongCatalogToken = [
-      "barbell",
-      "dumbbell",
-      "press",
-      "row",
-      "squat",
-      "deadlift",
-      "curl",
-    ];
-    const hasStrong = strongCatalogToken.some((k) => catalogTokenSet.has(k));
-    return anyInputPresent && hasStrong;
-  });
-  if (subsetMatch) return subsetMatch;
-
-  // Fallback: substring contains checks against normalized raw names
-  const contains = catalog.find(
-    (exercise) =>
-      exercise.name.includes(normalized) || normalized.includes(exercise.name),
-  );
-  if (contains) return contains;
-
-  return catalog.find((exercise) => {
-    const raw = exercise.rawName.toLowerCase();
-    return raw.includes(normalized) || normalized.includes(raw);
-  });
-}
 
 function parseDateOnly(dateValue?: string) {
   // No date given -> "today", computed the SAME way

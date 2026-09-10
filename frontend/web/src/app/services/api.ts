@@ -232,6 +232,45 @@ api.interceptors.response.use(
   },
 );
 
+export interface PresignedUploadTarget {
+  uploadUrl: string;
+  key: string;
+  url?: string;
+  photoUrl?: string;
+  previewUrl?: string;
+  expiresInSeconds?: number;
+  maxBytes?: number;
+}
+
+function profilePhotoContentType(file: File): string {
+  const explicit = file.type?.trim();
+  if (explicit) return explicit;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
+
+export async function uploadFileToPresignedUrl(
+  target: PresignedUploadTarget,
+  file: File,
+  contentType: string,
+): Promise<void> {
+  if (typeof target.maxBytes === "number" && file.size > target.maxBytes) {
+    throw new Error(`File quá lớn. Giới hạn tối đa ${(target.maxBytes / 1024 / 1024).toFixed(0)} MB.`);
+  }
+
+  const response = await fetch(target.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error("Không thể tải file lên kho lưu trữ. Vui lòng thử lại.");
+  }
+}
+
 export const authService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post("/auth/login", { email, password });
@@ -336,10 +375,14 @@ export const profileService = {
   },
 
   uploadPhoto: async (file: File) => {
-    const formData = new FormData();
-    formData.append("photo", file);
-    const { data } = await api.post("/profile/me/photo", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+    const contentType = profilePhotoContentType(file);
+    const { data: target } = await api.post<PresignedUploadTarget>(
+      "/profile/me/photo/presign",
+      { contentType },
+    );
+    await uploadFileToPresignedUrl(target, file, contentType);
+    const { data } = await api.post("/profile/me/photo/confirm", {
+      key: target.key,
     });
     return data as { photoUrl: string };
   },
@@ -1540,6 +1583,469 @@ export const trainingCycleService = {
   // (no-AI) aggregate stats over every session-feedback row in the cycle.
   getSessionFeedbackSummary: async (id: string) => {
     const { data } = await api.get<CycleFeedbackSummary>(`/training-cycles/${id}/session-feedback-summary`);
+    return data;
+  },
+};
+
+// ── FitnessRoadmap + RoadmapPhase (long-horizon journey orchestration on
+// top of TrainingCycle — see docs/fitness-roadmap-phase-integration-plan.md
+// and docs/FITNESS_ROADMAP_REBUILD_DESIGN.md /
+// docs/FITNESS_ROADMAP_AI_DRAFT_DESIGN.md). Orchestration metadata only —
+// calories/macros/workout content stay on NutritionGoal/WorkoutProgram,
+// never duplicated here. ─────────────────────────────────────────────────
+
+export type FitnessRoadmapStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+export type RoadmapCreatorRole = "CLIENT" | "PT" | "AI" | "SYSTEM";
+export type RoadmapPhaseType =
+  | "FAT_LOSS"
+  | "DIET_BREAK"
+  | "MAINTENANCE"
+  | "LEAN_GAIN"
+  | "MINI_CUT"
+  | "RECOMPOSITION"
+  | "PERFORMANCE"
+  | "RECOVERY";
+export type RoadmapPhaseStatus = "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "SKIPPED";
+
+export interface FitnessRoadmap {
+  id: string;
+  userId: string;
+  name: string;
+  goalType: string;
+  status: FitnessRoadmapStatus;
+  plannedStartAt: string;
+  plannedEndAt: string | null;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+  createdByUserId: string | null;
+  createdByRole: RoadmapCreatorRole;
+  sourceAssessmentId: string | null;
+  targetMetrics: Record<string, unknown> | null;
+  configuration: Record<string, unknown> | null;
+  version: number;
+  previousRoadmapId: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapPhaseObjective {
+  maxCycles?: number;
+  completed?: boolean;
+}
+
+export interface RoadmapPhaseWithCycles {
+  id: string;
+  roadmapId: string;
+  phaseIndex: number;
+  name: string;
+  phaseType: RoadmapPhaseType;
+  status: RoadmapPhaseStatus;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+  objective: RoadmapPhaseObjective | null;
+  constraints: Record<string, unknown> | null;
+  transitionRules: { completeOnPlannedEndDate?: boolean; allowDeloadCycle?: boolean } | null;
+  trainingCycles: Array<
+    TrainingCycle & {
+      latestAssessment: CycleAssessment | null;
+      schedules: Array<{ id: string; status: string; date: string; programDay: { id: string; title: string; program: { id: string; name: string; status: string } } | null }>;
+      nutritionGoals: Array<{ id: string; status: string; calories: number; protein: number; carbs: number; fat: number; validFrom: string }>;
+      nutritionPrograms: Array<{ id: string; name: string; status: string }>;
+    }
+  >;
+  progress: { plannedCycleCount: number; cycleCount: number; completedCycleCount: number };
+}
+
+// Gymini Adaptive Roadmap Production Closure (Gap C, design doc §8/§9) —
+// only populated when roadmap.status === "COMPLETED". Every field is
+// null when the underlying data doesn't exist (no original snapshot,
+// no real final measurement) — never fabricated.
+export interface RoadmapFinalSummary {
+  startWeightKg: number | null;
+  startBodyFatPct: number | null;
+  originalProjectedEndWeightKg: number | null;
+  originalProjectedEndBodyFatPct: number | null;
+  actualFinalWeightKg: number | null;
+  actualFinalBodyFatPct: number | null;
+  actualMeasuredAt: string | null;
+  totalWeeks: number | null;
+  completedPhaseCount: number;
+  totalPhaseCount: number;
+  cycleCount: number;
+  rebuildCount: number;
+}
+
+export interface RoadmapTrainingReadiness {
+  status: "READY" | "NEEDS_GENERATION";
+  lastAssessmentDecision: string | null;
+  canReuseLastProgram: boolean;
+}
+
+export interface RoadmapNutritionReadiness {
+  status: "READY" | "NEEDS_GENERATION";
+}
+
+export interface FitnessRoadmapProjection {
+  roadmap: FitnessRoadmap;
+  phases: RoadmapPhaseWithCycles[];
+  activePhase: RoadmapPhaseWithCycles | null;
+  activeCycle: RoadmapPhaseWithCycles["trainingCycles"][number] | null;
+  pendingRebuild: { assessmentId: string; cycleId: string; phaseId: string } | null;
+  finalSummary: RoadmapFinalSummary | null;
+  trainingReadiness: RoadmapTrainingReadiness | null;
+  nutritionReadiness: RoadmapNutritionReadiness | null;
+}
+
+export interface CreateRoadmapPhaseInput {
+  phaseIndex: number;
+  name: string;
+  phaseType: RoadmapPhaseType;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  objective?: RoadmapPhaseObjective;
+  constraints?: Record<string, unknown>;
+  transitionRules?: { completeOnPlannedEndDate?: boolean; allowDeloadCycle?: boolean };
+}
+
+export interface RoadmapRebuildProposal {
+  assessmentId: string;
+  cycleId: string;
+  currentPhaseId: string;
+  proposedPhases: Array<{
+    name: string;
+    phaseType: RoadmapPhaseType;
+    plannedStartAt: string;
+    plannedEndAt: string;
+    objective?: RoadmapPhaseObjective;
+  }>;
+}
+
+export interface RoadmapAiDraft {
+  goalType: string;
+  plannedStartAt: string;
+  summary: string;
+  reasoningSummary: string;
+  confidence: number;
+  warnings: string[];
+  assumptions: string[];
+  phases: Array<{
+    phaseIndex: number;
+    name: string;
+    phaseType: RoadmapPhaseType;
+    plannedStartAt: string;
+    plannedEndAt: string;
+    objective?: RoadmapPhaseObjective;
+  }>;
+}
+
+// Gymini Guided Roadmap Creation (design doc §15) — POST /fitness-roadmaps/diagnosis
+// request/response shapes. Read-only: mirrors fitness-diagnosis.engine.ts's
+// output exactly, never a second source of truth.
+export interface FitnessDiagnosisInput {
+  weightKg?: number;
+  heightCm?: number;
+  age?: number;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  bodyFatPct?: number;
+  bodyFatMethod?: "manual" | "visual_reference" | "inbody";
+  activityLevel?: "SEDENTARY" | "LIGHTLY_ACTIVE" | "MODERATELY_ACTIVE" | "VERY_ACTIVE" | "EXTREMELY_ACTIVE";
+  trainingDaysPerWeek?: number;
+  dailyGoalSteps?: number;
+  goal?: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE";
+  targetWeightKg?: number;
+  targetBodyFatPercent?: number;
+  timeframeWeeks?: number;
+}
+
+export interface FitnessDiagnosisResult {
+  current: {
+    weightKg: number | null;
+    heightCm: number | null;
+    age: number | null;
+    gender: string | null;
+    activityLevel: string | null;
+    experienceLevel: string | null;
+    bodyFatPct: number | null;
+    bodyFatMethod: string | null;
+    ffmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  };
+  target: {
+    weightKg: number | null;
+    bodyFatPct: number | null;
+    timeframeWeeks: number | null;
+    ffmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  };
+  energyBreakdown: {
+    bmr: number;
+    bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+    tdee: number;
+    components: Array<{ label: string; kcal: number; estimated: boolean }>;
+  } | null;
+  dataCompleteness: {
+    weight: boolean;
+    height: boolean;
+    age: boolean;
+    gender: boolean;
+    activityLevel: boolean;
+    bodyFatPct: boolean;
+  };
+  safety: { safetyScreeningStatus: string; professionalReviewRequired: boolean };
+  targetRealism: { warnings: string[]; suggestedMinTimeframeWeeks: number | null };
+  reasoning: string;
+}
+
+// Gymini Roadmap Projection & Strategy Report Hardening (design doc §13)
+// — POST /fitness-roadmaps/projection request/response shapes. Read-only:
+// mirrors fitness-roadmap-forecast.engine.ts's output exactly, never a
+// second source of truth. Every field is named `projected*`/`estimated*`
+// so it can never be confused with a real TrainingCycle/NutritionGoal/
+// InBody value.
+export interface RoadmapPhaseForecastPhaseInput {
+  phaseIndex: number;
+  phaseType: RoadmapPhaseType;
+  name: string;
+  plannedStartAt: string;
+  plannedEndAt: string;
+}
+
+export interface RoadmapPhaseForecastInput {
+  weightKg?: number;
+  heightCm?: number;
+  age?: number;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  bodyFatPct?: number;
+  bodyFatMethod?: "manual" | "visual_reference" | "inbody";
+  activityLevel?: "SEDENTARY" | "LIGHTLY_ACTIVE" | "MODERATELY_ACTIVE" | "VERY_ACTIVE" | "EXTREMELY_ACTIVE";
+  phases: RoadmapPhaseForecastPhaseInput[];
+}
+
+export type StrategyBucket = "CUT" | "BUILD" | "STABILIZE";
+
+export interface StrategyGroupResult {
+  key: string;
+  bucket: StrategyBucket;
+  phaseIndexes: number[];
+}
+
+// Gymini Adaptive Forecast Reconciliation additions (design doc §7/§8) —
+// explicitly a categorical uncertainty band tied to confidence tier, NOT
+// a statistical confidence interval (see fitness-roadmap-forecast.engine.ts's
+// own computeForecastRange doc comment).
+export interface ForecastRange {
+  low: number;
+  expected: number;
+  high: number;
+}
+
+export type ForecastConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
+
+export interface ForecastConfidence {
+  tier: ForecastConfidenceTier;
+  score: number;
+  reasonCodes: string[];
+}
+
+export interface PhaseForecastResult {
+  phaseIndex: number;
+  phaseType: RoadmapPhaseType;
+  name: string;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  durationWeeks: number;
+  projectedStartWeightKg: number;
+  projectedEndWeightKg: number;
+  projectedStartBodyFatPct: number | null;
+  projectedEndBodyFatPct: number | null;
+  projectedStartFfmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  projectedEndFfmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  projectedEndWeightRangeKg: ForecastRange;
+  projectedEndBodyFatPctRange: ForecastRange | null;
+  confidence: ForecastConfidence;
+  estimatedStartBmr: number;
+  estimatedStartTdee: number;
+  estimatedEndBmr: number;
+  estimatedEndTdee: number;
+  bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+  projectedCalories: number;
+  projectedDeficitOrSurplusKcal: number;
+  projectedDeficitOrSurplusPercent: number | null;
+  projectedMacros: { proteinGrams: number; carbGrams: number; fatGrams: number };
+  dataCompleteness: { bodyComposition: boolean };
+  assumptions: string[];
+}
+
+export interface RoadmapPhaseForecastResult {
+  strategyGroups: StrategyGroupResult[];
+  phaseForecasts: PhaseForecastResult[];
+  dataCompleteness: { baseline: boolean; bodyComposition: boolean };
+}
+
+// Gymini Adaptive Forecast Reconciliation (design doc §15) —
+// GET /fitness-roadmaps/current/forecast response shape. Read-only.
+export type ReconciliationStatus = "ON_TRACK" | "AHEAD_OF_FORECAST" | "BEHIND_FORECAST" | "INSUFFICIENT_DATA";
+
+export interface ReconciliationMetricComparison {
+  expected: number;
+  actual: number;
+  delta: number;
+}
+
+export interface PhaseReconciliationResult {
+  phaseIndex: number;
+  weight: ReconciliationMetricComparison | null;
+  bodyFat: ReconciliationMetricComparison | null;
+  adherenceRate: number | null;
+  strengthProgressScore: number | null;
+  status: ReconciliationStatus;
+  reasonCodes: string[];
+}
+
+export interface CurrentForecastResult {
+  roadmapId: string;
+  // The immutable, creation-time baseline — verbatim from
+  // configuration.roadmapProjectionSnapshot, never overwritten.
+  originalForecast: RoadmapPhaseForecastResult | null;
+  // Freshly computed every request from the roadmap's remaining
+  // (ACTIVE+PLANNED) phases + the user's LATEST real actual state —
+  // never persisted (design doc §6). Null only when the roadmap has zero
+  // remaining phases or insufficient baseline data.
+  currentForecast: { strategyGroups: StrategyGroupResult[]; phaseForecasts: PhaseForecastResult[] } | null;
+  reconciliations: PhaseReconciliationResult[];
+  // Deterministic, template-based Vietnamese explanation (never raw AI
+  // reasoning) for why the current forecast differs from the original.
+  changeReasonCodes: string[];
+  changeExplanation: string;
+}
+
+export const fitnessRoadmapService = {
+  getCurrent: async () => {
+    const { data } = await api.get<FitnessRoadmapProjection>("/fitness-roadmaps/current");
+    return data;
+  },
+
+  // Self-service DRAFT lookup — surfaces a PT-created (or the user's own
+  // not-yet-activated) draft that getCurrent (ACTIVE-only) cannot.
+  getCurrentDraft: async () => {
+    const { data } = await api.get<FitnessRoadmapProjection>("/fitness-roadmaps/draft/current");
+    return data;
+  },
+
+  getById: async (roadmapId: string) => {
+    const { data } = await api.get<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}`);
+    return data;
+  },
+
+  create: async (input: {
+    name: string;
+    goalType: string;
+    plannedStartAt: string;
+    plannedEndAt?: string;
+    idempotencyKey?: string;
+    phases?: CreateRoadmapPhaseInput[];
+  }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>("/fitness-roadmaps", input);
+    return data;
+  },
+
+  addPhase: async (roadmapId: string, input: CreateRoadmapPhaseInput) => {
+    const { data } = await api.post(`/fitness-roadmaps/${roadmapId}/phases`, input);
+    return data;
+  },
+
+  activate: async (roadmapId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/activate`, {});
+    return data;
+  },
+
+  activatePhase: async (roadmapId: string, phaseId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(
+      `/fitness-roadmaps/${roadmapId}/phases/${phaseId}/activate`,
+      {},
+    );
+    return data;
+  },
+
+  advance: async (roadmapId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/advance`, {});
+    return data;
+  },
+
+  // Read-only computation, but exposed as POST server-side (no request
+  // body needed) — matches the real route exactly.
+  previewRebuild: async (roadmapId: string) => {
+    const { data } = await api.post<RoadmapRebuildProposal>(`/fitness-roadmaps/${roadmapId}/rebuild/preview`, {});
+    return data;
+  },
+
+  applyRebuild: async (roadmapId: string, input: { assessmentId: string; phases?: CreateRoadmapPhaseInput[] }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/rebuild/apply`, input);
+    return data;
+  },
+
+  archive: async (roadmapId: string) => {
+    const { data } = await api.post<{ roadmapId: string; archived: boolean }>(
+      `/fitness-roadmaps/${roadmapId}/archive`,
+      {},
+    );
+    return data;
+  },
+
+  // Gymini Guided Roadmap Creation — read-only, zero DB write, zero AI call.
+  // Powers Step 2's energy breakdown and Step 4's Fitness Diagnosis screen.
+  getDiagnosis: async (input: FitnessDiagnosisInput) => {
+    const { data } = await api.post<FitnessDiagnosisResult>("/fitness-roadmaps/diagnosis", input);
+    return data;
+  },
+
+  // Gymini Roadmap Projection & Strategy Report Hardening — read-only,
+  // zero DB write, zero AI call. Powers Step 4's collapsible strategy
+  // timeline + per-phase forecast cards.
+  getPhaseForecast: async (input: RoadmapPhaseForecastInput) => {
+    const { data } = await api.post<RoadmapPhaseForecastResult>("/fitness-roadmaps/projection", input);
+    return data;
+  },
+
+  // Gymini Adaptive Forecast Reconciliation — read-only, zero DB write.
+  // Original forecast (immutable baseline) + freshly-computed current
+  // forecast (chained from the user's latest real actual state) +
+  // reconciliation for every completed phase.
+  getCurrentForecast: async () => {
+    const { data } = await api.get<CurrentForecastResult>("/fitness-roadmaps/current/forecast");
+    return data;
+  },
+
+  generateAiDraft: async (input: {
+    goalType: string;
+    timeframeWeeks?: number;
+    plannedStartAt?: string;
+    constraints?: string[];
+    goalVisualAttributes?: { muscularity: string | null; relativeLeanness: string | null; focusMuscles: string[] };
+    targetWeightKg?: number;
+    targetBodyFatPercent?: number;
+    trainingDaysPerWeek?: number;
+  }) => {
+    // Real LLM round-trip (ai-service -> callLlmJson, up to 3 attempts) —
+    // the shared `api` instance's flat 10s default timeout was aborting
+    // this client-side before the server-side generation finished (found
+    // via real browser E2E: request stuck pending, "Lưu bản nháp" never
+    // appeared). Same 120s override already used for other LLM-heavy calls
+    // (trainingCycleService.evaluate, coachService.chat).
+    const { data } = await api.post<RoadmapAiDraft>("/fitness-roadmaps/ai-draft", input, { timeout: 120000 });
+    return data;
+  },
+
+  acceptAiDraft: async (input: {
+    name: string;
+    goalType: string;
+    plannedStartAt: string;
+    sourceAssessmentId?: string;
+    phases: CreateRoadmapPhaseInput[];
+    configuration?: Record<string, unknown>;
+  }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>("/fitness-roadmaps/ai-draft/accept", input);
     return data;
   },
 };
@@ -2992,18 +3498,38 @@ export const planService = {
   },
 };
 
+function aiFriendlyErrorMessage(status?: number): string {
+  if (status === 408 || status === 504) {
+    return "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
+  }
+  if (status === 429) {
+    return "AI Coach đang nhận quá nhiều yêu cầu. Vui lòng chờ một chút rồi thử lại.";
+  }
+  if (status === 502 || status === 503) {
+    return "AI Coach hiện chưa sẵn sàng. Bạn vẫn có thể dùng các tính năng khác và thử lại sau.";
+  }
+  if (typeof status === "number" && status >= 500) {
+    return "AI Coach đang gặp lỗi tạm thời. Vui lòng thử lại sau.";
+  }
+  return "Không thể kết nối AI Coach. Vui lòng thử lại.";
+}
+
 export const coachService = {
   chat: async (message: string, sessionId?: string) => {
-    const { data } = await api.post(
-      "/ai/ask",
-      { question: message, ...(sessionId ? { sessionId } : {}) },
-      {
-        // AI generation can take longer than standard API calls.
-        timeout: 120000,
-      },
-    );
-    // AI service wraps responses in {success, data}; unwrap to get answer at top level.
-    return data?.data ?? data;
+    try {
+      const { data } = await api.post(
+        "/ai/ask",
+        { question: message, ...(sessionId ? { sessionId } : {}) },
+        {
+          // API Gateway/Lambda HTTP integrations are bounded around 30s.
+          timeout: 30000,
+        },
+      );
+      // AI service wraps responses in {success, data}; unwrap to get answer at top level.
+      return data?.data ?? data;
+    } catch (err: any) {
+      throw new Error(aiFriendlyErrorMessage(err?.response?.status));
+    }
   },
 
   getConversations: async () => {
@@ -3046,12 +3572,12 @@ export const coachService = {
     const controller = new AbortController();
     const slowNoticeTimer = window.setTimeout(() => {
       callbacks.onStatus(
-        "Model local có thể đang khởi động, vui lòng chờ thêm...",
+        "AI Coach đang chuẩn bị câu trả lời, vui lòng chờ thêm một chút...",
       );
     }, 10000);
     const timeoutTimer = window.setTimeout(() => {
       controller.abort();
-    }, 75000);
+    }, 30000);
 
     (async () => {
       try {
@@ -3089,11 +3615,7 @@ export const coachService = {
         }
 
         if (!response.ok || !response.body) {
-          callbacks.onError(
-            response.status === 503
-              ? "AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau."
-              : "Không thể kết nối AI Coach. Vui lòng thử lại.",
-          );
+          callbacks.onError(aiFriendlyErrorMessage(response.status));
           return;
         }
 
@@ -3101,6 +3623,36 @@ export const coachService = {
         const decoder = new TextDecoder();
         let buffer = "";
         let receivedFinalEvent = false;
+        const processLine = (line: string) => {
+          if (!line.startsWith("data: ")) return;
+          try {
+            const event = JSON.parse(line.slice(6)) as Record<
+              string,
+              unknown
+            >;
+            if (event["type"] === "status") {
+              callbacks.onStatus(
+                typeof event["message"] === "string" ? event["message"] : "",
+              );
+            } else if (event["type"] === "token") {
+              callbacks.onToken(
+                typeof event["content"] === "string" ? event["content"] : "",
+              );
+            } else if (event["type"] === "done") {
+              receivedFinalEvent = true;
+              callbacks.onDone(event as CoachStreamDonePayload);
+            } else if (event["type"] === "error") {
+              receivedFinalEvent = true;
+              callbacks.onError(
+                typeof event["message"] === "string"
+                  ? event["message"]
+                  : "AI Coach đang gặp lỗi tạm thời.",
+              );
+            }
+          } catch {
+            // Ignore malformed SSE lines.
+          }
+        };
 
         for (;;) {
           const { done, value } = await reader.read();
@@ -3111,45 +3663,26 @@ export const coachService = {
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as Record<
-                string,
-                unknown
-              >;
-              if (event["type"] === "status") {
-                callbacks.onStatus(
-                  typeof event["message"] === "string" ? event["message"] : "",
-                );
-              } else if (event["type"] === "token") {
-                callbacks.onToken(
-                  typeof event["content"] === "string" ? event["content"] : "",
-                );
-              } else if (event["type"] === "done") {
-                receivedFinalEvent = true;
-                callbacks.onDone(event as CoachStreamDonePayload);
-              } else if (event["type"] === "error") {
-                receivedFinalEvent = true;
-                callbacks.onError(
-                  typeof event["message"] === "string"
-                    ? event["message"]
-                    : "Unknown error",
-                );
-              }
-            } catch {
-              // Ignore malformed SSE lines.
-            }
+            processLine(line);
+          }
+        }
+
+        const tail = decoder.decode();
+        if (tail) buffer += tail;
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) {
+            processLine(line.trim());
           }
         }
 
         // Stream ended without a final event: connection was dropped unexpectedly.
         if (!receivedFinalEvent) {
-          callbacks.onError("Connection lost. Please try again.");
+          callbacks.onError("Kết nối AI bị ngắt. Vui lòng thử lại.");
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") {
           callbacks.onError(
-            "AI phản hồi quá lâu. Vui lòng thử lại sau hoặc kiểm tra Ollama/Qdrant.",
+            "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.",
           );
           return;
         }
@@ -4075,6 +4608,16 @@ export interface CoachClientSummary {
   cycleSummary: CycleSummary | null;
   feedbackSummary: CycleFeedbackSummary | null;
   priorDecisions: CycleDecision[];
+  // PT Coaching Workspace phase §21 — the training-side CycleAssessment's
+  // own reasoning (decision + AI-summary + reason codes), reusing exactly
+  // the fields the client's own Journey UI already reads. Never a new
+  // decision engine, never raw chain-of-thought.
+  latestAssessment?: {
+    decision: string | null;
+    aiSummary: string | null;
+    reasonCodes: string[] | null;
+    confidenceScore: number | null;
+  } | null;
   // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
   nutrition?: {
     activeGoal: {
@@ -4086,6 +4629,21 @@ export interface CoachClientSummary {
       goalMode: string;
       validFrom?: string;
     } | null;
+    // PT Coaching Workspace phase §19 — the actual meal plan (distinct
+    // from the goal) plus its live consistency status against the
+    // current goal, reusing nutrition-goal-plan-consistency.service.ts
+    // verbatim (never a second consistency check).
+    activeProgram?: {
+      id: string;
+      name: string;
+      dailyCaloriesTarget: number | null;
+      proteinTargetGrams: number | null;
+      carbTargetGrams: number | null;
+      fatTargetGrams: number | null;
+      sourceGoalId: string | null;
+      createdAt: string;
+    } | null;
+    consistency?: NutritionGoalPlanConsistency | null;
     latestNutritionDecision: {
       assessmentId: string | null;
       decision: string | null;
@@ -4103,11 +4661,21 @@ export interface CoachClientSummary {
   };
 }
 
+export interface CoachClientProgress {
+  latest: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null } | null;
+  recent: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null }[];
+}
+
 // Named ptCoachService (not coachService) — that name is already taken by
 // the unrelated AI Coach chat service above.
 export const ptCoachService = {
   getClientSummary: async (clientId: string) => {
     const { data } = await api.get<CoachClientSummary>(`/coach/clients/${clientId}/summary`);
+    return data;
+  },
+  // §23/§32 — lazy-loaded only when the Progress tab is opened.
+  getClientProgress: async (clientId: string) => {
+    const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
   createAndAssignPlan: async (
@@ -4191,6 +4759,36 @@ export const ptCoachService = {
       `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/trigger-diet-break`,
       { note },
     );
+    return data;
+  },
+
+  // FitnessRoadmap PT-assisted integration (Phase E). A PT may only view a
+  // client's current (ACTIVE) roadmap and create a new DRAFT for the
+  // client's later review — never activate/advance/rebuild/archive
+  // directly (those stay 100% client-initiated). See
+  // docs/FITNESS_ROADMAP_PT_INTEGRATION_DESIGN.md.
+  // Returns BOTH the client's current ACTIVE roadmap and their pending
+  // (not-yet-activated) DRAFT — lets the PT UI tell "no roadmap at all"
+  // apart from "a draft is already waiting on the client's own review"
+  // (closure-phase fix — previously only the ACTIVE roadmap was checked,
+  // which could offer to create a redundant second draft).
+  getClientRoadmap: async (
+    clientId: string,
+  ): Promise<{ activeRoadmap: FitnessRoadmapProjection | null; pendingDraft: FitnessRoadmapProjection | null }> => {
+    const { data } = await api.get(`/coach/clients/${clientId}/roadmap`);
+    return data;
+  },
+  createRoadmapDraft: async (
+    clientId: string,
+    input: {
+      name: string;
+      goalType: string;
+      plannedStartAt: string;
+      plannedEndAt?: string;
+      phases?: CreateRoadmapPhaseInput[];
+    },
+  ): Promise<FitnessRoadmapProjection> => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/coach/clients/${clientId}/roadmap/draft`, input);
     return data;
   },
 };

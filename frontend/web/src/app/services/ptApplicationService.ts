@@ -1,4 +1,13 @@
-import api from "./api";
+import api, { uploadFileToPresignedUrl, type PresignedUploadTarget } from "./api";
+
+function ptDocumentContentType(file: File): string {
+  const explicit = file.type?.trim();
+  if (explicit) return explicit;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  if (name.endsWith(".png")) return "image/png";
+  return "application/pdf";
+}
 
 export interface PTApplicationCertificate {
   id?: string;
@@ -114,12 +123,16 @@ export const ptApplicationService = {
   uploadDocument: async (
     file: File,
   ): Promise<{ url: string; previewUrl?: string; filename: string }> => {
-    const formData = new FormData();
-    formData.append("document", file);
-    const { data } = await api.post("/pt-applications/me/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+    const contentType = ptDocumentContentType(file);
+    const { data: target } = await api.post<PresignedUploadTarget>(
+      "/pt-applications/me/upload/presign",
+      { contentType },
+    );
+    await uploadFileToPresignedUrl(target, file, contentType);
+    const { data } = await api.post("/pt-applications/me/upload/confirm", {
+      key: target.key,
     });
-    return data;
+    return { ...data, filename: file.name };
   },
 
   // Admin methods

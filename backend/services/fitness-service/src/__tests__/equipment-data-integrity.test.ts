@@ -25,12 +25,12 @@ test.after(async () => {
   await prisma.$disconnect();
 });
 
-test("every exercise has at least one equipment link", async () => {
+test("every seeded catalog exercise has at least one equipment link", async () => {
   const missing = await prisma.exercise.findMany({
-    where: { equipmentLinks: { none: {} } },
+    where: { sources: { some: {} }, equipmentLinks: { none: {} } },
     select: { exerciseName: true },
   });
-  assert.deepEqual(missing, [], `exercises missing equipment: ${missing.map((m) => m.exerciseName).join(", ")}`);
+  assert.deepEqual(missing, [], `catalog exercises missing equipment: ${missing.map((m) => m.exerciseName).join(", ")}`);
 });
 
 test("no duplicate equipment slugs", async () => {

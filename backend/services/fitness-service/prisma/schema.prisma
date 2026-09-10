@@ -43,6 +43,40 @@ enum MovementType {
   STRETCH
 }
 
+enum FitnessRoadmapStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum RoadmapCreatorRole {
+  CLIENT
+  PT
+  AI
+  SYSTEM
+}
+
+enum RoadmapPhaseType {
+  FAT_LOSS
+  DIET_BREAK
+  MAINTENANCE
+  LEAN_GAIN
+  MINI_CUT
+  RECOMPOSITION
+  PERFORMANCE
+  RECOVERY
+}
+
+enum RoadmapPhaseStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  SKIPPED
+}
+
 model Exercise {
   id                    String        @id @default(uuid())
   exerciseName          String        @map("exercise_name")
@@ -724,6 +758,61 @@ model WorkoutSchedule {
   @@map("workout_schedules")
 }
 
+model FitnessRoadmap {
+  id                 String               @id @default(uuid())
+  userId             String               @map("user_id")
+  name               String
+  goalType           String               @map("goal_type")
+  status             FitnessRoadmapStatus @default(DRAFT)
+  plannedStartAt     DateTime             @map("planned_start_at")
+  plannedEndAt       DateTime?            @map("planned_end_at")
+  actualStartAt      DateTime?            @map("actual_start_at")
+  actualEndAt        DateTime?            @map("actual_end_at")
+  createdByUserId    String?              @map("created_by_user_id")
+  createdByRole      RoadmapCreatorRole   @default(CLIENT) @map("created_by_role")
+  sourceAssessmentId String?              @map("source_assessment_id")
+  targetMetrics      Json?                @map("target_metrics")
+  configuration      Json?
+  version            Int                  @default(1)
+  previousRoadmapId  String?              @map("previous_roadmap_id")
+  idempotencyKey     String?              @map("idempotency_key")
+  archivedAt         DateTime?            @map("archived_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  phases RoadmapPhase[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, status])
+  @@index([userId, plannedStartAt])
+  @@map("fitness_roadmaps")
+}
+
+model RoadmapPhase {
+  id              String             @id @default(uuid())
+  roadmapId       String             @map("roadmap_id")
+  phaseIndex      Int                @map("phase_index")
+  name            String
+  phaseType       RoadmapPhaseType   @map("phase_type")
+  status          RoadmapPhaseStatus @default(PLANNED)
+  plannedStartAt  DateTime           @map("planned_start_at")
+  plannedEndAt    DateTime           @map("planned_end_at")
+  actualStartAt   DateTime?          @map("actual_start_at")
+  actualEndAt     DateTime?          @map("actual_end_at")
+  objective       Json?
+  constraints     Json?
+  transitionRules Json?              @map("transition_rules")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  roadmap        FitnessRoadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  trainingCycles TrainingCycle[]
+
+  @@unique([roadmapId, phaseIndex])
+  @@index([roadmapId, status])
+  @@map("roadmap_phases")
+}
+
 // 📅 Monthly Training Cycle — continuous InBody/workout monitoring during the
 // cycle, deterministic pre-classification (progressSignals) at close, and an
 // AI-proposed decision (KEEP/ADJUST/NEW_PLAN) the user reviews before the
@@ -783,6 +872,8 @@ model TrainingCycle {
   baselineMetrics Json?     @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
   targetMetrics   Json?     @map("target_metrics") // user/PT-set targets for this cycle, optional
   configuration   Json? // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring
+  roadmapPhaseId  String?   @map("roadmap_phase_id")
+  sequenceInPhase Int?      @map("sequence_in_phase")
 
   sessions         WorkoutSchedule[]
   sessionFeedback  CycleSessionFeedback[]
@@ -790,12 +881,15 @@ model TrainingCycle {
   assessments      CycleAssessment[]
   feedbackSummary  CycleFeedbackSummary?
   feedbackAnalyses CycleFeedbackAnalysisAudit[]
+  roadmapPhase     RoadmapPhase?              @relation(fields: [roadmapPhaseId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@index([userId, startDate])
+  @@index([roadmapPhaseId])
+  @@unique([roadmapPhaseId, sequenceInPhase])
   @@map("training_cycles")
 }
 

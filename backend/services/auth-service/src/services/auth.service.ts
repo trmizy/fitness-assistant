@@ -278,6 +278,11 @@ export const authService = {
       throw { status: 401, message: "Refresh token expired" };
     }
 
+    if ((storedToken.user as any).isActive === false) {
+      await authRepository.deleteRefreshToken(storedToken.id);
+      throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
+    }
+
     const accessToken = generateAccessToken(
       storedToken.user.id,
       storedToken.user.role,
@@ -322,6 +327,9 @@ export const authService = {
 
     const user = await authRepository.findUserById(decoded.userId);
     if (!user) throw { status: 401, message: "User not found" };
+    if ((user as any).isActive === false) {
+      throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
+    }
     return user;
   },
 

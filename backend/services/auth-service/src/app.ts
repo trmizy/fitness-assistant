@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes";
 
 const app = express();
 
+app.disable("x-powered-by");
 app.use(helmet());
 // No CORS middleware here on purpose: this service is only ever reached
 // server-to-server (via the gateway's proxy, or directly from other backend
@@ -16,7 +17,7 @@ app.use(helmet());
 // carefully origin-scoped CORS header (which reflects a specific allowed
 // origin + Access-Control-Allow-Credentials: true) with an invalid
 // wildcard-plus-credentials combination once proxied back to the browser.
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(pinoHttp({ logger }));
 app.use(metricsMiddleware());
 

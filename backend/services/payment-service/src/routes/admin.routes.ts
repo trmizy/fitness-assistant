@@ -2,7 +2,6 @@ import { randomUUID } from 'crypto';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
-import axios from 'axios';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService } from '../services/wallet.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
@@ -10,9 +9,8 @@ import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middl
 import { Prisma } from '../generated/prisma';
 import { buildReconciliationReport } from '../services/reconcile.service';
 import { withdrawalService } from '../services/withdrawal.service';
+import { postServiceJson } from '../clients/service-lambda.client';
 
-const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
@@ -231,10 +229,21 @@ router.post('/:id/refund', async (req: Request, res: Response) => {
   try {
     const body = { originalTransactionId: original.id, refundTransactionId: refundTxn.id };
     const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
-    const url = original.relatedEntityType === 'GYM_MEMBERSHIP'
-      ? `${GYM_SERVICE_URL}/internal/gym-memberships/${original.relatedEntityId}/cancel-after-refund`
-      : `${USER_SERVICE_URL}/internal/contracts/${original.relatedEntityId}/cancel-after-refund`;
-    await axios.post(url, body, { headers, timeout: 10_000 });
+    if (original.relatedEntityType === 'GYM_MEMBERSHIP') {
+      await postServiceJson({
+        service: 'gym',
+        path: `/internal/gym-memberships/${original.relatedEntityId}/cancel-after-refund`,
+        body,
+        headers,
+      });
+    } else {
+      await postServiceJson({
+        service: 'user',
+        path: `/internal/contracts/${original.relatedEntityId}/cancel-after-refund`,
+        body,
+        headers,
+      });
+    }
     await transactionRepository.markActivated(refundTxn.id);
   } catch (err) {
     logger.warn({ error: 'cancel-after-refund call failed, reconciliation will retry', transactionId: refundTxn.id, message: (err as Error).message });
@@ -257,16 +266,38 @@ router.post('/:transactionId/retry-activation', async (req: Request, res: Respon
   try {
     if (txn.purpose === 'REFUND') {
       const body = { originalTransactionId: txn.refundOfTransactionId, refundTransactionId: txn.id };
-      const url = txn.relatedEntityType === 'GYM_MEMBERSHIP'
-        ? `${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/cancel-after-refund`
-        : `${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/cancel-after-refund`;
-      await axios.post(url, body, { headers, timeout: 10_000 });
+      if (txn.relatedEntityType === 'GYM_MEMBERSHIP') {
+        await postServiceJson({
+          service: 'gym',
+          path: `/internal/gym-memberships/${txn.relatedEntityId}/cancel-after-refund`,
+          body,
+          headers,
+        });
+      } else {
+        await postServiceJson({
+          service: 'user',
+          path: `/internal/contracts/${txn.relatedEntityId}/cancel-after-refund`,
+          body,
+          headers,
+        });
+      }
     } else {
       const body = { transactionId: txn.id };
-      const url = txn.relatedEntityType === 'GYM_MEMBERSHIP'
-        ? `${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/activate`
-        : `${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/activate-after-payment`;
-      await axios.post(url, body, { headers, timeout: 10_000 });
+      if (txn.relatedEntityType === 'GYM_MEMBERSHIP') {
+        await postServiceJson({
+          service: 'gym',
+          path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`,
+          body,
+          headers,
+        });
+      } else {
+        await postServiceJson({
+          service: 'user',
+          path: `/internal/contracts/${txn.relatedEntityId}/activate-after-payment`,
+          body,
+          headers,
+        });
+      }
     }
     await transactionRepository.markActivated(txn.id);
     return res.json({ success: true });

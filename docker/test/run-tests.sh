@@ -23,6 +23,9 @@ pnpm run prisma:generate
 if [ "$PROFILE" = "full" ]; then
   printf '\n[docker-test] applying test database migrations\n'
   pnpm run prisma:migrate:test
+
+  printf '\n[docker-test] seeding isolated fitness catalog\n'
+  pnpm --filter @gym-coach/fitness-service run test:catalog:setup
 fi
 
 printf '\n[docker-test] root build\n'

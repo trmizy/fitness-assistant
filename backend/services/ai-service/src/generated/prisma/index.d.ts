@@ -128,6 +128,16 @@ export type KnowledgePipelineRun = $Result.DefaultSelection<Prisma.$KnowledgePip
  * 
  */
 export type KnowledgeReviewItem = $Result.DefaultSelection<Prisma.$KnowledgeReviewItemPayload>
+/**
+ * Model FitnessRecommendation
+ * 
+ */
+export type FitnessRecommendation = $Result.DefaultSelection<Prisma.$FitnessRecommendationPayload>
+/**
+ * Model FitnessAgentAction
+ * 
+ */
+export type FitnessAgentAction = $Result.DefaultSelection<Prisma.$FitnessAgentActionPayload>
 
 /**
  * Enums
@@ -705,6 +715,26 @@ export class PrismaClient<
     * ```
     */
   get knowledgeReviewItem(): Prisma.KnowledgeReviewItemDelegate<ExtArgs>;
+
+  /**
+   * `prisma.fitnessRecommendation`: Exposes CRUD operations for the **FitnessRecommendation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FitnessRecommendations
+    * const fitnessRecommendations = await prisma.fitnessRecommendation.findMany()
+    * ```
+    */
+  get fitnessRecommendation(): Prisma.FitnessRecommendationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.fitnessAgentAction`: Exposes CRUD operations for the **FitnessAgentAction** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FitnessAgentActions
+    * const fitnessAgentActions = await prisma.fitnessAgentAction.findMany()
+    * ```
+    */
+  get fitnessAgentAction(): Prisma.FitnessAgentActionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1168,7 +1198,9 @@ export namespace Prisma {
     KnowledgeDocument: 'KnowledgeDocument',
     KnowledgeChunk: 'KnowledgeChunk',
     KnowledgePipelineRun: 'KnowledgePipelineRun',
-    KnowledgeReviewItem: 'KnowledgeReviewItem'
+    KnowledgeReviewItem: 'KnowledgeReviewItem',
+    FitnessRecommendation: 'FitnessRecommendation',
+    FitnessAgentAction: 'FitnessAgentAction'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1184,7 +1216,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2798,6 +2830,146 @@ export namespace Prisma {
           }
         }
       }
+      FitnessRecommendation: {
+        payload: Prisma.$FitnessRecommendationPayload<ExtArgs>
+        fields: Prisma.FitnessRecommendationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FitnessRecommendationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FitnessRecommendationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          findFirst: {
+            args: Prisma.FitnessRecommendationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FitnessRecommendationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          findMany: {
+            args: Prisma.FitnessRecommendationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>[]
+          }
+          create: {
+            args: Prisma.FitnessRecommendationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          createMany: {
+            args: Prisma.FitnessRecommendationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FitnessRecommendationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>[]
+          }
+          delete: {
+            args: Prisma.FitnessRecommendationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          update: {
+            args: Prisma.FitnessRecommendationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          deleteMany: {
+            args: Prisma.FitnessRecommendationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FitnessRecommendationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.FitnessRecommendationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessRecommendationPayload>
+          }
+          aggregate: {
+            args: Prisma.FitnessRecommendationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFitnessRecommendation>
+          }
+          groupBy: {
+            args: Prisma.FitnessRecommendationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FitnessRecommendationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FitnessRecommendationCountArgs<ExtArgs>
+            result: $Utils.Optional<FitnessRecommendationCountAggregateOutputType> | number
+          }
+        }
+      }
+      FitnessAgentAction: {
+        payload: Prisma.$FitnessAgentActionPayload<ExtArgs>
+        fields: Prisma.FitnessAgentActionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FitnessAgentActionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FitnessAgentActionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          findFirst: {
+            args: Prisma.FitnessAgentActionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FitnessAgentActionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          findMany: {
+            args: Prisma.FitnessAgentActionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>[]
+          }
+          create: {
+            args: Prisma.FitnessAgentActionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          createMany: {
+            args: Prisma.FitnessAgentActionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FitnessAgentActionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>[]
+          }
+          delete: {
+            args: Prisma.FitnessAgentActionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          update: {
+            args: Prisma.FitnessAgentActionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          deleteMany: {
+            args: Prisma.FitnessAgentActionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FitnessAgentActionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.FitnessAgentActionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FitnessAgentActionPayload>
+          }
+          aggregate: {
+            args: Prisma.FitnessAgentActionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFitnessAgentAction>
+          }
+          groupBy: {
+            args: Prisma.FitnessAgentActionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FitnessAgentActionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FitnessAgentActionCountArgs<ExtArgs>
+            result: $Utils.Optional<FitnessAgentActionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3312,6 +3484,7 @@ export namespace Prisma {
   }
 
   export type ConversationCountAggregateOutputType = {
+    structuredBlocks: number
     id: number
     userId: number
     sessionId: number
@@ -3409,6 +3582,7 @@ export namespace Prisma {
   }
 
   export type ConversationCountAggregateInputType = {
+    structuredBlocks?: true
     id?: true
     userId?: true
     sessionId?: true
@@ -3521,6 +3695,7 @@ export namespace Prisma {
   }
 
   export type ConversationGroupByOutputType = {
+    structuredBlocks: JsonValue | null
     id: string
     userId: string | null
     sessionId: string | null
@@ -3565,6 +3740,7 @@ export namespace Prisma {
 
 
   export type ConversationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    structuredBlocks?: boolean
     id?: boolean
     userId?: boolean
     sessionId?: boolean
@@ -3590,6 +3766,7 @@ export namespace Prisma {
   }, ExtArgs["result"]["conversation"]>
 
   export type ConversationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    structuredBlocks?: boolean
     id?: boolean
     userId?: boolean
     sessionId?: boolean
@@ -3615,6 +3792,7 @@ export namespace Prisma {
   }, ExtArgs["result"]["conversation"]>
 
   export type ConversationSelectScalar = {
+    structuredBlocks?: boolean
     id?: boolean
     userId?: boolean
     sessionId?: boolean
@@ -3644,6 +3822,7 @@ export namespace Prisma {
     name: "Conversation"
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
+      structuredBlocks: Prisma.JsonValue | null
       id: string
       userId: string | null
       sessionId: string | null
@@ -3749,8 +3928,8 @@ export namespace Prisma {
      * // Get first 10 Conversations
      * const conversations = await prisma.conversation.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const conversationWithIdOnly = await prisma.conversation.findMany({ select: { id: true } })
+     * // Only select the `structuredBlocks`
+     * const conversationWithStructuredBlocksOnly = await prisma.conversation.findMany({ select: { structuredBlocks: true } })
      * 
      */
     findMany<T extends ConversationFindManyArgs>(args?: SelectSubset<T, ConversationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConversationPayload<ExtArgs>, T, "findMany">>
@@ -3794,9 +3973,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many Conversations and only return the `id`
-     * const conversationWithIdOnly = await prisma.conversation.createManyAndReturn({ 
-     *   select: { id: true },
+     * // Create many Conversations and only return the `structuredBlocks`
+     * const conversationWithStructuredBlocksOnly = await prisma.conversation.createManyAndReturn({ 
+     *   select: { structuredBlocks: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -4059,6 +4238,7 @@ export namespace Prisma {
    * Fields of the Conversation model
    */ 
   interface ConversationFieldRefs {
+    readonly structuredBlocks: FieldRef<"Conversation", 'Json'>
     readonly id: FieldRef<"Conversation", 'String'>
     readonly userId: FieldRef<"Conversation", 'String'>
     readonly sessionId: FieldRef<"Conversation", 'String'>
@@ -27599,6 +27779,1902 @@ export namespace Prisma {
 
 
   /**
+   * Model FitnessRecommendation
+   */
+
+  export type AggregateFitnessRecommendation = {
+    _count: FitnessRecommendationCountAggregateOutputType | null
+    _min: FitnessRecommendationMinAggregateOutputType | null
+    _max: FitnessRecommendationMaxAggregateOutputType | null
+  }
+
+  export type FitnessRecommendationMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    type: string | null
+    scoringVersion: string | null
+    similarityVersion: string | null
+    selectedCandidateId: string | null
+    createdAt: Date | null
+  }
+
+  export type FitnessRecommendationMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    type: string | null
+    scoringVersion: string | null
+    similarityVersion: string | null
+    selectedCandidateId: string | null
+    createdAt: Date | null
+  }
+
+  export type FitnessRecommendationCountAggregateOutputType = {
+    id: number
+    userId: number
+    sessionId: number
+    type: number
+    contextSnapshot: number
+    candidateIds: number
+    scoringVersion: number
+    similarityVersion: number
+    evidenceIds: number
+    historicalJourneyIds: number
+    result: number
+    selectedCandidateId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type FitnessRecommendationMinAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    type?: true
+    scoringVersion?: true
+    similarityVersion?: true
+    selectedCandidateId?: true
+    createdAt?: true
+  }
+
+  export type FitnessRecommendationMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    type?: true
+    scoringVersion?: true
+    similarityVersion?: true
+    selectedCandidateId?: true
+    createdAt?: true
+  }
+
+  export type FitnessRecommendationCountAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    type?: true
+    contextSnapshot?: true
+    candidateIds?: true
+    scoringVersion?: true
+    similarityVersion?: true
+    evidenceIds?: true
+    historicalJourneyIds?: true
+    result?: true
+    selectedCandidateId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type FitnessRecommendationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessRecommendation to aggregate.
+     */
+    where?: FitnessRecommendationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRecommendations to fetch.
+     */
+    orderBy?: FitnessRecommendationOrderByWithRelationInput | FitnessRecommendationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FitnessRecommendationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRecommendations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRecommendations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FitnessRecommendations
+    **/
+    _count?: true | FitnessRecommendationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FitnessRecommendationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FitnessRecommendationMaxAggregateInputType
+  }
+
+  export type GetFitnessRecommendationAggregateType<T extends FitnessRecommendationAggregateArgs> = {
+        [P in keyof T & keyof AggregateFitnessRecommendation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFitnessRecommendation[P]>
+      : GetScalarType<T[P], AggregateFitnessRecommendation[P]>
+  }
+
+
+
+
+  export type FitnessRecommendationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FitnessRecommendationWhereInput
+    orderBy?: FitnessRecommendationOrderByWithAggregationInput | FitnessRecommendationOrderByWithAggregationInput[]
+    by: FitnessRecommendationScalarFieldEnum[] | FitnessRecommendationScalarFieldEnum
+    having?: FitnessRecommendationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FitnessRecommendationCountAggregateInputType | true
+    _min?: FitnessRecommendationMinAggregateInputType
+    _max?: FitnessRecommendationMaxAggregateInputType
+  }
+
+  export type FitnessRecommendationGroupByOutputType = {
+    id: string
+    userId: string
+    sessionId: string
+    type: string
+    contextSnapshot: JsonValue
+    candidateIds: string[]
+    scoringVersion: string
+    similarityVersion: string
+    evidenceIds: string[]
+    historicalJourneyIds: string[]
+    result: JsonValue
+    selectedCandidateId: string | null
+    createdAt: Date
+    _count: FitnessRecommendationCountAggregateOutputType | null
+    _min: FitnessRecommendationMinAggregateOutputType | null
+    _max: FitnessRecommendationMaxAggregateOutputType | null
+  }
+
+  type GetFitnessRecommendationGroupByPayload<T extends FitnessRecommendationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FitnessRecommendationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FitnessRecommendationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FitnessRecommendationGroupByOutputType[P]>
+            : GetScalarType<T[P], FitnessRecommendationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FitnessRecommendationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    type?: boolean
+    contextSnapshot?: boolean
+    candidateIds?: boolean
+    scoringVersion?: boolean
+    similarityVersion?: boolean
+    evidenceIds?: boolean
+    historicalJourneyIds?: boolean
+    result?: boolean
+    selectedCandidateId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["fitnessRecommendation"]>
+
+  export type FitnessRecommendationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    type?: boolean
+    contextSnapshot?: boolean
+    candidateIds?: boolean
+    scoringVersion?: boolean
+    similarityVersion?: boolean
+    evidenceIds?: boolean
+    historicalJourneyIds?: boolean
+    result?: boolean
+    selectedCandidateId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["fitnessRecommendation"]>
+
+  export type FitnessRecommendationSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    type?: boolean
+    contextSnapshot?: boolean
+    candidateIds?: boolean
+    scoringVersion?: boolean
+    similarityVersion?: boolean
+    evidenceIds?: boolean
+    historicalJourneyIds?: boolean
+    result?: boolean
+    selectedCandidateId?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $FitnessRecommendationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FitnessRecommendation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      sessionId: string
+      type: string
+      contextSnapshot: Prisma.JsonValue
+      candidateIds: string[]
+      scoringVersion: string
+      similarityVersion: string
+      evidenceIds: string[]
+      historicalJourneyIds: string[]
+      result: Prisma.JsonValue
+      selectedCandidateId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["fitnessRecommendation"]>
+    composites: {}
+  }
+
+  type FitnessRecommendationGetPayload<S extends boolean | null | undefined | FitnessRecommendationDefaultArgs> = $Result.GetResult<Prisma.$FitnessRecommendationPayload, S>
+
+  type FitnessRecommendationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<FitnessRecommendationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: FitnessRecommendationCountAggregateInputType | true
+    }
+
+  export interface FitnessRecommendationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FitnessRecommendation'], meta: { name: 'FitnessRecommendation' } }
+    /**
+     * Find zero or one FitnessRecommendation that matches the filter.
+     * @param {FitnessRecommendationFindUniqueArgs} args - Arguments to find a FitnessRecommendation
+     * @example
+     * // Get one FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FitnessRecommendationFindUniqueArgs>(args: SelectSubset<T, FitnessRecommendationFindUniqueArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one FitnessRecommendation that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {FitnessRecommendationFindUniqueOrThrowArgs} args - Arguments to find a FitnessRecommendation
+     * @example
+     * // Get one FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FitnessRecommendationFindUniqueOrThrowArgs>(args: SelectSubset<T, FitnessRecommendationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first FitnessRecommendation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationFindFirstArgs} args - Arguments to find a FitnessRecommendation
+     * @example
+     * // Get one FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FitnessRecommendationFindFirstArgs>(args?: SelectSubset<T, FitnessRecommendationFindFirstArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first FitnessRecommendation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationFindFirstOrThrowArgs} args - Arguments to find a FitnessRecommendation
+     * @example
+     * // Get one FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FitnessRecommendationFindFirstOrThrowArgs>(args?: SelectSubset<T, FitnessRecommendationFindFirstOrThrowArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more FitnessRecommendations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FitnessRecommendations
+     * const fitnessRecommendations = await prisma.fitnessRecommendation.findMany()
+     * 
+     * // Get first 10 FitnessRecommendations
+     * const fitnessRecommendations = await prisma.fitnessRecommendation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const fitnessRecommendationWithIdOnly = await prisma.fitnessRecommendation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FitnessRecommendationFindManyArgs>(args?: SelectSubset<T, FitnessRecommendationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a FitnessRecommendation.
+     * @param {FitnessRecommendationCreateArgs} args - Arguments to create a FitnessRecommendation.
+     * @example
+     * // Create one FitnessRecommendation
+     * const FitnessRecommendation = await prisma.fitnessRecommendation.create({
+     *   data: {
+     *     // ... data to create a FitnessRecommendation
+     *   }
+     * })
+     * 
+     */
+    create<T extends FitnessRecommendationCreateArgs>(args: SelectSubset<T, FitnessRecommendationCreateArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many FitnessRecommendations.
+     * @param {FitnessRecommendationCreateManyArgs} args - Arguments to create many FitnessRecommendations.
+     * @example
+     * // Create many FitnessRecommendations
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FitnessRecommendationCreateManyArgs>(args?: SelectSubset<T, FitnessRecommendationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FitnessRecommendations and returns the data saved in the database.
+     * @param {FitnessRecommendationCreateManyAndReturnArgs} args - Arguments to create many FitnessRecommendations.
+     * @example
+     * // Create many FitnessRecommendations
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FitnessRecommendations and only return the `id`
+     * const fitnessRecommendationWithIdOnly = await prisma.fitnessRecommendation.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FitnessRecommendationCreateManyAndReturnArgs>(args?: SelectSubset<T, FitnessRecommendationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a FitnessRecommendation.
+     * @param {FitnessRecommendationDeleteArgs} args - Arguments to delete one FitnessRecommendation.
+     * @example
+     * // Delete one FitnessRecommendation
+     * const FitnessRecommendation = await prisma.fitnessRecommendation.delete({
+     *   where: {
+     *     // ... filter to delete one FitnessRecommendation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FitnessRecommendationDeleteArgs>(args: SelectSubset<T, FitnessRecommendationDeleteArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one FitnessRecommendation.
+     * @param {FitnessRecommendationUpdateArgs} args - Arguments to update one FitnessRecommendation.
+     * @example
+     * // Update one FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FitnessRecommendationUpdateArgs>(args: SelectSubset<T, FitnessRecommendationUpdateArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more FitnessRecommendations.
+     * @param {FitnessRecommendationDeleteManyArgs} args - Arguments to filter FitnessRecommendations to delete.
+     * @example
+     * // Delete a few FitnessRecommendations
+     * const { count } = await prisma.fitnessRecommendation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FitnessRecommendationDeleteManyArgs>(args?: SelectSubset<T, FitnessRecommendationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FitnessRecommendations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FitnessRecommendations
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FitnessRecommendationUpdateManyArgs>(args: SelectSubset<T, FitnessRecommendationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one FitnessRecommendation.
+     * @param {FitnessRecommendationUpsertArgs} args - Arguments to update or create a FitnessRecommendation.
+     * @example
+     * // Update or create a FitnessRecommendation
+     * const fitnessRecommendation = await prisma.fitnessRecommendation.upsert({
+     *   create: {
+     *     // ... data to create a FitnessRecommendation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FitnessRecommendation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FitnessRecommendationUpsertArgs>(args: SelectSubset<T, FitnessRecommendationUpsertArgs<ExtArgs>>): Prisma__FitnessRecommendationClient<$Result.GetResult<Prisma.$FitnessRecommendationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of FitnessRecommendations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationCountArgs} args - Arguments to filter FitnessRecommendations to count.
+     * @example
+     * // Count the number of FitnessRecommendations
+     * const count = await prisma.fitnessRecommendation.count({
+     *   where: {
+     *     // ... the filter for the FitnessRecommendations we want to count
+     *   }
+     * })
+    **/
+    count<T extends FitnessRecommendationCountArgs>(
+      args?: Subset<T, FitnessRecommendationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FitnessRecommendationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FitnessRecommendation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FitnessRecommendationAggregateArgs>(args: Subset<T, FitnessRecommendationAggregateArgs>): Prisma.PrismaPromise<GetFitnessRecommendationAggregateType<T>>
+
+    /**
+     * Group by FitnessRecommendation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessRecommendationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FitnessRecommendationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FitnessRecommendationGroupByArgs['orderBy'] }
+        : { orderBy?: FitnessRecommendationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FitnessRecommendationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFitnessRecommendationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FitnessRecommendation model
+   */
+  readonly fields: FitnessRecommendationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FitnessRecommendation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FitnessRecommendationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FitnessRecommendation model
+   */ 
+  interface FitnessRecommendationFieldRefs {
+    readonly id: FieldRef<"FitnessRecommendation", 'String'>
+    readonly userId: FieldRef<"FitnessRecommendation", 'String'>
+    readonly sessionId: FieldRef<"FitnessRecommendation", 'String'>
+    readonly type: FieldRef<"FitnessRecommendation", 'String'>
+    readonly contextSnapshot: FieldRef<"FitnessRecommendation", 'Json'>
+    readonly candidateIds: FieldRef<"FitnessRecommendation", 'String[]'>
+    readonly scoringVersion: FieldRef<"FitnessRecommendation", 'String'>
+    readonly similarityVersion: FieldRef<"FitnessRecommendation", 'String'>
+    readonly evidenceIds: FieldRef<"FitnessRecommendation", 'String[]'>
+    readonly historicalJourneyIds: FieldRef<"FitnessRecommendation", 'String[]'>
+    readonly result: FieldRef<"FitnessRecommendation", 'Json'>
+    readonly selectedCandidateId: FieldRef<"FitnessRecommendation", 'String'>
+    readonly createdAt: FieldRef<"FitnessRecommendation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FitnessRecommendation findUnique
+   */
+  export type FitnessRecommendationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessRecommendation to fetch.
+     */
+    where: FitnessRecommendationWhereUniqueInput
+  }
+
+  /**
+   * FitnessRecommendation findUniqueOrThrow
+   */
+  export type FitnessRecommendationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessRecommendation to fetch.
+     */
+    where: FitnessRecommendationWhereUniqueInput
+  }
+
+  /**
+   * FitnessRecommendation findFirst
+   */
+  export type FitnessRecommendationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessRecommendation to fetch.
+     */
+    where?: FitnessRecommendationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRecommendations to fetch.
+     */
+    orderBy?: FitnessRecommendationOrderByWithRelationInput | FitnessRecommendationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessRecommendations.
+     */
+    cursor?: FitnessRecommendationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRecommendations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRecommendations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessRecommendations.
+     */
+    distinct?: FitnessRecommendationScalarFieldEnum | FitnessRecommendationScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRecommendation findFirstOrThrow
+   */
+  export type FitnessRecommendationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessRecommendation to fetch.
+     */
+    where?: FitnessRecommendationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRecommendations to fetch.
+     */
+    orderBy?: FitnessRecommendationOrderByWithRelationInput | FitnessRecommendationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessRecommendations.
+     */
+    cursor?: FitnessRecommendationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRecommendations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRecommendations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessRecommendations.
+     */
+    distinct?: FitnessRecommendationScalarFieldEnum | FitnessRecommendationScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRecommendation findMany
+   */
+  export type FitnessRecommendationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessRecommendations to fetch.
+     */
+    where?: FitnessRecommendationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessRecommendations to fetch.
+     */
+    orderBy?: FitnessRecommendationOrderByWithRelationInput | FitnessRecommendationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FitnessRecommendations.
+     */
+    cursor?: FitnessRecommendationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessRecommendations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessRecommendations.
+     */
+    skip?: number
+    distinct?: FitnessRecommendationScalarFieldEnum | FitnessRecommendationScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessRecommendation create
+   */
+  export type FitnessRecommendationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * The data needed to create a FitnessRecommendation.
+     */
+    data: XOR<FitnessRecommendationCreateInput, FitnessRecommendationUncheckedCreateInput>
+  }
+
+  /**
+   * FitnessRecommendation createMany
+   */
+  export type FitnessRecommendationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FitnessRecommendations.
+     */
+    data: FitnessRecommendationCreateManyInput | FitnessRecommendationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessRecommendation createManyAndReturn
+   */
+  export type FitnessRecommendationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many FitnessRecommendations.
+     */
+    data: FitnessRecommendationCreateManyInput | FitnessRecommendationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessRecommendation update
+   */
+  export type FitnessRecommendationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * The data needed to update a FitnessRecommendation.
+     */
+    data: XOR<FitnessRecommendationUpdateInput, FitnessRecommendationUncheckedUpdateInput>
+    /**
+     * Choose, which FitnessRecommendation to update.
+     */
+    where: FitnessRecommendationWhereUniqueInput
+  }
+
+  /**
+   * FitnessRecommendation updateMany
+   */
+  export type FitnessRecommendationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FitnessRecommendations.
+     */
+    data: XOR<FitnessRecommendationUpdateManyMutationInput, FitnessRecommendationUncheckedUpdateManyInput>
+    /**
+     * Filter which FitnessRecommendations to update
+     */
+    where?: FitnessRecommendationWhereInput
+  }
+
+  /**
+   * FitnessRecommendation upsert
+   */
+  export type FitnessRecommendationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * The filter to search for the FitnessRecommendation to update in case it exists.
+     */
+    where: FitnessRecommendationWhereUniqueInput
+    /**
+     * In case the FitnessRecommendation found by the `where` argument doesn't exist, create a new FitnessRecommendation with this data.
+     */
+    create: XOR<FitnessRecommendationCreateInput, FitnessRecommendationUncheckedCreateInput>
+    /**
+     * In case the FitnessRecommendation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FitnessRecommendationUpdateInput, FitnessRecommendationUncheckedUpdateInput>
+  }
+
+  /**
+   * FitnessRecommendation delete
+   */
+  export type FitnessRecommendationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+    /**
+     * Filter which FitnessRecommendation to delete.
+     */
+    where: FitnessRecommendationWhereUniqueInput
+  }
+
+  /**
+   * FitnessRecommendation deleteMany
+   */
+  export type FitnessRecommendationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessRecommendations to delete
+     */
+    where?: FitnessRecommendationWhereInput
+  }
+
+  /**
+   * FitnessRecommendation without action
+   */
+  export type FitnessRecommendationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessRecommendation
+     */
+    select?: FitnessRecommendationSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model FitnessAgentAction
+   */
+
+  export type AggregateFitnessAgentAction = {
+    _count: FitnessAgentActionCountAggregateOutputType | null
+    _min: FitnessAgentActionMinAggregateOutputType | null
+    _max: FitnessAgentActionMaxAggregateOutputType | null
+  }
+
+  export type FitnessAgentActionMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    recommendationId: string | null
+    kind: string | null
+    risk: string | null
+    status: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type FitnessAgentActionMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    recommendationId: string | null
+    kind: string | null
+    risk: string | null
+    status: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type FitnessAgentActionCountAggregateOutputType = {
+    id: number
+    userId: number
+    sessionId: number
+    recommendationId: number
+    kind: number
+    risk: number
+    payload: number
+    status: number
+    result: number
+    expiresAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type FitnessAgentActionMinAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    recommendationId?: true
+    kind?: true
+    risk?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type FitnessAgentActionMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    recommendationId?: true
+    kind?: true
+    risk?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type FitnessAgentActionCountAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    recommendationId?: true
+    kind?: true
+    risk?: true
+    payload?: true
+    status?: true
+    result?: true
+    expiresAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type FitnessAgentActionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessAgentAction to aggregate.
+     */
+    where?: FitnessAgentActionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessAgentActions to fetch.
+     */
+    orderBy?: FitnessAgentActionOrderByWithRelationInput | FitnessAgentActionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FitnessAgentActionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessAgentActions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessAgentActions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FitnessAgentActions
+    **/
+    _count?: true | FitnessAgentActionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FitnessAgentActionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FitnessAgentActionMaxAggregateInputType
+  }
+
+  export type GetFitnessAgentActionAggregateType<T extends FitnessAgentActionAggregateArgs> = {
+        [P in keyof T & keyof AggregateFitnessAgentAction]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFitnessAgentAction[P]>
+      : GetScalarType<T[P], AggregateFitnessAgentAction[P]>
+  }
+
+
+
+
+  export type FitnessAgentActionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FitnessAgentActionWhereInput
+    orderBy?: FitnessAgentActionOrderByWithAggregationInput | FitnessAgentActionOrderByWithAggregationInput[]
+    by: FitnessAgentActionScalarFieldEnum[] | FitnessAgentActionScalarFieldEnum
+    having?: FitnessAgentActionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FitnessAgentActionCountAggregateInputType | true
+    _min?: FitnessAgentActionMinAggregateInputType
+    _max?: FitnessAgentActionMaxAggregateInputType
+  }
+
+  export type FitnessAgentActionGroupByOutputType = {
+    id: string
+    userId: string
+    sessionId: string
+    recommendationId: string | null
+    kind: string
+    risk: string
+    payload: JsonValue
+    status: string
+    result: JsonValue | null
+    expiresAt: Date
+    createdAt: Date
+    _count: FitnessAgentActionCountAggregateOutputType | null
+    _min: FitnessAgentActionMinAggregateOutputType | null
+    _max: FitnessAgentActionMaxAggregateOutputType | null
+  }
+
+  type GetFitnessAgentActionGroupByPayload<T extends FitnessAgentActionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FitnessAgentActionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FitnessAgentActionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FitnessAgentActionGroupByOutputType[P]>
+            : GetScalarType<T[P], FitnessAgentActionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FitnessAgentActionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    recommendationId?: boolean
+    kind?: boolean
+    risk?: boolean
+    payload?: boolean
+    status?: boolean
+    result?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["fitnessAgentAction"]>
+
+  export type FitnessAgentActionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    recommendationId?: boolean
+    kind?: boolean
+    risk?: boolean
+    payload?: boolean
+    status?: boolean
+    result?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["fitnessAgentAction"]>
+
+  export type FitnessAgentActionSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    recommendationId?: boolean
+    kind?: boolean
+    risk?: boolean
+    payload?: boolean
+    status?: boolean
+    result?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $FitnessAgentActionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FitnessAgentAction"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      sessionId: string
+      recommendationId: string | null
+      kind: string
+      risk: string
+      payload: Prisma.JsonValue
+      status: string
+      result: Prisma.JsonValue | null
+      expiresAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["fitnessAgentAction"]>
+    composites: {}
+  }
+
+  type FitnessAgentActionGetPayload<S extends boolean | null | undefined | FitnessAgentActionDefaultArgs> = $Result.GetResult<Prisma.$FitnessAgentActionPayload, S>
+
+  type FitnessAgentActionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<FitnessAgentActionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: FitnessAgentActionCountAggregateInputType | true
+    }
+
+  export interface FitnessAgentActionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FitnessAgentAction'], meta: { name: 'FitnessAgentAction' } }
+    /**
+     * Find zero or one FitnessAgentAction that matches the filter.
+     * @param {FitnessAgentActionFindUniqueArgs} args - Arguments to find a FitnessAgentAction
+     * @example
+     * // Get one FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FitnessAgentActionFindUniqueArgs>(args: SelectSubset<T, FitnessAgentActionFindUniqueArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one FitnessAgentAction that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {FitnessAgentActionFindUniqueOrThrowArgs} args - Arguments to find a FitnessAgentAction
+     * @example
+     * // Get one FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FitnessAgentActionFindUniqueOrThrowArgs>(args: SelectSubset<T, FitnessAgentActionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first FitnessAgentAction that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionFindFirstArgs} args - Arguments to find a FitnessAgentAction
+     * @example
+     * // Get one FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FitnessAgentActionFindFirstArgs>(args?: SelectSubset<T, FitnessAgentActionFindFirstArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first FitnessAgentAction that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionFindFirstOrThrowArgs} args - Arguments to find a FitnessAgentAction
+     * @example
+     * // Get one FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FitnessAgentActionFindFirstOrThrowArgs>(args?: SelectSubset<T, FitnessAgentActionFindFirstOrThrowArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more FitnessAgentActions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FitnessAgentActions
+     * const fitnessAgentActions = await prisma.fitnessAgentAction.findMany()
+     * 
+     * // Get first 10 FitnessAgentActions
+     * const fitnessAgentActions = await prisma.fitnessAgentAction.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const fitnessAgentActionWithIdOnly = await prisma.fitnessAgentAction.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FitnessAgentActionFindManyArgs>(args?: SelectSubset<T, FitnessAgentActionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a FitnessAgentAction.
+     * @param {FitnessAgentActionCreateArgs} args - Arguments to create a FitnessAgentAction.
+     * @example
+     * // Create one FitnessAgentAction
+     * const FitnessAgentAction = await prisma.fitnessAgentAction.create({
+     *   data: {
+     *     // ... data to create a FitnessAgentAction
+     *   }
+     * })
+     * 
+     */
+    create<T extends FitnessAgentActionCreateArgs>(args: SelectSubset<T, FitnessAgentActionCreateArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many FitnessAgentActions.
+     * @param {FitnessAgentActionCreateManyArgs} args - Arguments to create many FitnessAgentActions.
+     * @example
+     * // Create many FitnessAgentActions
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FitnessAgentActionCreateManyArgs>(args?: SelectSubset<T, FitnessAgentActionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FitnessAgentActions and returns the data saved in the database.
+     * @param {FitnessAgentActionCreateManyAndReturnArgs} args - Arguments to create many FitnessAgentActions.
+     * @example
+     * // Create many FitnessAgentActions
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FitnessAgentActions and only return the `id`
+     * const fitnessAgentActionWithIdOnly = await prisma.fitnessAgentAction.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FitnessAgentActionCreateManyAndReturnArgs>(args?: SelectSubset<T, FitnessAgentActionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a FitnessAgentAction.
+     * @param {FitnessAgentActionDeleteArgs} args - Arguments to delete one FitnessAgentAction.
+     * @example
+     * // Delete one FitnessAgentAction
+     * const FitnessAgentAction = await prisma.fitnessAgentAction.delete({
+     *   where: {
+     *     // ... filter to delete one FitnessAgentAction
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FitnessAgentActionDeleteArgs>(args: SelectSubset<T, FitnessAgentActionDeleteArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one FitnessAgentAction.
+     * @param {FitnessAgentActionUpdateArgs} args - Arguments to update one FitnessAgentAction.
+     * @example
+     * // Update one FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FitnessAgentActionUpdateArgs>(args: SelectSubset<T, FitnessAgentActionUpdateArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more FitnessAgentActions.
+     * @param {FitnessAgentActionDeleteManyArgs} args - Arguments to filter FitnessAgentActions to delete.
+     * @example
+     * // Delete a few FitnessAgentActions
+     * const { count } = await prisma.fitnessAgentAction.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FitnessAgentActionDeleteManyArgs>(args?: SelectSubset<T, FitnessAgentActionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FitnessAgentActions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FitnessAgentActions
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FitnessAgentActionUpdateManyArgs>(args: SelectSubset<T, FitnessAgentActionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one FitnessAgentAction.
+     * @param {FitnessAgentActionUpsertArgs} args - Arguments to update or create a FitnessAgentAction.
+     * @example
+     * // Update or create a FitnessAgentAction
+     * const fitnessAgentAction = await prisma.fitnessAgentAction.upsert({
+     *   create: {
+     *     // ... data to create a FitnessAgentAction
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FitnessAgentAction we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FitnessAgentActionUpsertArgs>(args: SelectSubset<T, FitnessAgentActionUpsertArgs<ExtArgs>>): Prisma__FitnessAgentActionClient<$Result.GetResult<Prisma.$FitnessAgentActionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of FitnessAgentActions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionCountArgs} args - Arguments to filter FitnessAgentActions to count.
+     * @example
+     * // Count the number of FitnessAgentActions
+     * const count = await prisma.fitnessAgentAction.count({
+     *   where: {
+     *     // ... the filter for the FitnessAgentActions we want to count
+     *   }
+     * })
+    **/
+    count<T extends FitnessAgentActionCountArgs>(
+      args?: Subset<T, FitnessAgentActionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FitnessAgentActionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FitnessAgentAction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FitnessAgentActionAggregateArgs>(args: Subset<T, FitnessAgentActionAggregateArgs>): Prisma.PrismaPromise<GetFitnessAgentActionAggregateType<T>>
+
+    /**
+     * Group by FitnessAgentAction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FitnessAgentActionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FitnessAgentActionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FitnessAgentActionGroupByArgs['orderBy'] }
+        : { orderBy?: FitnessAgentActionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FitnessAgentActionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFitnessAgentActionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FitnessAgentAction model
+   */
+  readonly fields: FitnessAgentActionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FitnessAgentAction.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FitnessAgentActionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FitnessAgentAction model
+   */ 
+  interface FitnessAgentActionFieldRefs {
+    readonly id: FieldRef<"FitnessAgentAction", 'String'>
+    readonly userId: FieldRef<"FitnessAgentAction", 'String'>
+    readonly sessionId: FieldRef<"FitnessAgentAction", 'String'>
+    readonly recommendationId: FieldRef<"FitnessAgentAction", 'String'>
+    readonly kind: FieldRef<"FitnessAgentAction", 'String'>
+    readonly risk: FieldRef<"FitnessAgentAction", 'String'>
+    readonly payload: FieldRef<"FitnessAgentAction", 'Json'>
+    readonly status: FieldRef<"FitnessAgentAction", 'String'>
+    readonly result: FieldRef<"FitnessAgentAction", 'Json'>
+    readonly expiresAt: FieldRef<"FitnessAgentAction", 'DateTime'>
+    readonly createdAt: FieldRef<"FitnessAgentAction", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FitnessAgentAction findUnique
+   */
+  export type FitnessAgentActionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessAgentAction to fetch.
+     */
+    where: FitnessAgentActionWhereUniqueInput
+  }
+
+  /**
+   * FitnessAgentAction findUniqueOrThrow
+   */
+  export type FitnessAgentActionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessAgentAction to fetch.
+     */
+    where: FitnessAgentActionWhereUniqueInput
+  }
+
+  /**
+   * FitnessAgentAction findFirst
+   */
+  export type FitnessAgentActionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessAgentAction to fetch.
+     */
+    where?: FitnessAgentActionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessAgentActions to fetch.
+     */
+    orderBy?: FitnessAgentActionOrderByWithRelationInput | FitnessAgentActionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessAgentActions.
+     */
+    cursor?: FitnessAgentActionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessAgentActions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessAgentActions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessAgentActions.
+     */
+    distinct?: FitnessAgentActionScalarFieldEnum | FitnessAgentActionScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessAgentAction findFirstOrThrow
+   */
+  export type FitnessAgentActionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessAgentAction to fetch.
+     */
+    where?: FitnessAgentActionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessAgentActions to fetch.
+     */
+    orderBy?: FitnessAgentActionOrderByWithRelationInput | FitnessAgentActionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FitnessAgentActions.
+     */
+    cursor?: FitnessAgentActionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessAgentActions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessAgentActions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FitnessAgentActions.
+     */
+    distinct?: FitnessAgentActionScalarFieldEnum | FitnessAgentActionScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessAgentAction findMany
+   */
+  export type FitnessAgentActionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter, which FitnessAgentActions to fetch.
+     */
+    where?: FitnessAgentActionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FitnessAgentActions to fetch.
+     */
+    orderBy?: FitnessAgentActionOrderByWithRelationInput | FitnessAgentActionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FitnessAgentActions.
+     */
+    cursor?: FitnessAgentActionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FitnessAgentActions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FitnessAgentActions.
+     */
+    skip?: number
+    distinct?: FitnessAgentActionScalarFieldEnum | FitnessAgentActionScalarFieldEnum[]
+  }
+
+  /**
+   * FitnessAgentAction create
+   */
+  export type FitnessAgentActionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a FitnessAgentAction.
+     */
+    data: XOR<FitnessAgentActionCreateInput, FitnessAgentActionUncheckedCreateInput>
+  }
+
+  /**
+   * FitnessAgentAction createMany
+   */
+  export type FitnessAgentActionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FitnessAgentActions.
+     */
+    data: FitnessAgentActionCreateManyInput | FitnessAgentActionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessAgentAction createManyAndReturn
+   */
+  export type FitnessAgentActionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many FitnessAgentActions.
+     */
+    data: FitnessAgentActionCreateManyInput | FitnessAgentActionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FitnessAgentAction update
+   */
+  export type FitnessAgentActionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a FitnessAgentAction.
+     */
+    data: XOR<FitnessAgentActionUpdateInput, FitnessAgentActionUncheckedUpdateInput>
+    /**
+     * Choose, which FitnessAgentAction to update.
+     */
+    where: FitnessAgentActionWhereUniqueInput
+  }
+
+  /**
+   * FitnessAgentAction updateMany
+   */
+  export type FitnessAgentActionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FitnessAgentActions.
+     */
+    data: XOR<FitnessAgentActionUpdateManyMutationInput, FitnessAgentActionUncheckedUpdateManyInput>
+    /**
+     * Filter which FitnessAgentActions to update
+     */
+    where?: FitnessAgentActionWhereInput
+  }
+
+  /**
+   * FitnessAgentAction upsert
+   */
+  export type FitnessAgentActionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the FitnessAgentAction to update in case it exists.
+     */
+    where: FitnessAgentActionWhereUniqueInput
+    /**
+     * In case the FitnessAgentAction found by the `where` argument doesn't exist, create a new FitnessAgentAction with this data.
+     */
+    create: XOR<FitnessAgentActionCreateInput, FitnessAgentActionUncheckedCreateInput>
+    /**
+     * In case the FitnessAgentAction was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FitnessAgentActionUpdateInput, FitnessAgentActionUncheckedUpdateInput>
+  }
+
+  /**
+   * FitnessAgentAction delete
+   */
+  export type FitnessAgentActionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+    /**
+     * Filter which FitnessAgentAction to delete.
+     */
+    where: FitnessAgentActionWhereUniqueInput
+  }
+
+  /**
+   * FitnessAgentAction deleteMany
+   */
+  export type FitnessAgentActionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FitnessAgentActions to delete
+     */
+    where?: FitnessAgentActionWhereInput
+  }
+
+  /**
+   * FitnessAgentAction without action
+   */
+  export type FitnessAgentActionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FitnessAgentAction
+     */
+    select?: FitnessAgentActionSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -27613,6 +29689,7 @@ export namespace Prisma {
 
 
   export const ConversationScalarFieldEnum: {
+    structuredBlocks: 'structuredBlocks',
     id: 'id',
     userId: 'userId',
     sessionId: 'sessionId',
@@ -28046,12 +30123,56 @@ export namespace Prisma {
   export type KnowledgeReviewItemScalarFieldEnum = (typeof KnowledgeReviewItemScalarFieldEnum)[keyof typeof KnowledgeReviewItemScalarFieldEnum]
 
 
+  export const FitnessRecommendationScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    sessionId: 'sessionId',
+    type: 'type',
+    contextSnapshot: 'contextSnapshot',
+    candidateIds: 'candidateIds',
+    scoringVersion: 'scoringVersion',
+    similarityVersion: 'similarityVersion',
+    evidenceIds: 'evidenceIds',
+    historicalJourneyIds: 'historicalJourneyIds',
+    result: 'result',
+    selectedCandidateId: 'selectedCandidateId',
+    createdAt: 'createdAt'
+  };
+
+  export type FitnessRecommendationScalarFieldEnum = (typeof FitnessRecommendationScalarFieldEnum)[keyof typeof FitnessRecommendationScalarFieldEnum]
+
+
+  export const FitnessAgentActionScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    sessionId: 'sessionId',
+    recommendationId: 'recommendationId',
+    kind: 'kind',
+    risk: 'risk',
+    payload: 'payload',
+    status: 'status',
+    result: 'result',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt'
+  };
+
+  export type FitnessAgentActionScalarFieldEnum = (typeof FitnessAgentActionScalarFieldEnum)[keyof typeof FitnessAgentActionScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
   };
 
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
   export const JsonNullValueInput: {
@@ -28061,12 +30182,13 @@ export namespace Prisma {
   export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
-  export const NullableJsonNullValueInput: {
+  export const JsonNullValueFilter: {
     DbNull: typeof DbNull,
-    JsonNull: typeof JsonNull
+    JsonNull: typeof JsonNull,
+    AnyNull: typeof AnyNull
   };
 
-  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
   export const QueryMode: {
@@ -28085,18 +30207,16 @@ export namespace Prisma {
   export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
-  export const JsonNullValueFilter: {
-    DbNull: typeof DbNull,
-    JsonNull: typeof JsonNull,
-    AnyNull: typeof AnyNull
-  };
-
-  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
   /**
    * Field references 
    */
+
+
+  /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
 
 
   /**
@@ -28159,13 +30279,6 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
     
 
 
@@ -28400,6 +30513,7 @@ export namespace Prisma {
     AND?: ConversationWhereInput | ConversationWhereInput[]
     OR?: ConversationWhereInput[]
     NOT?: ConversationWhereInput | ConversationWhereInput[]
+    structuredBlocks?: JsonNullableFilter<"Conversation">
     id?: StringFilter<"Conversation"> | string
     userId?: StringNullableFilter<"Conversation"> | string | null
     sessionId?: StringNullableFilter<"Conversation"> | string | null
@@ -28425,6 +30539,7 @@ export namespace Prisma {
   }
 
   export type ConversationOrderByWithRelationInput = {
+    structuredBlocks?: SortOrderInput | SortOrder
     id?: SortOrder
     userId?: SortOrderInput | SortOrder
     sessionId?: SortOrderInput | SortOrder
@@ -28454,6 +30569,7 @@ export namespace Prisma {
     AND?: ConversationWhereInput | ConversationWhereInput[]
     OR?: ConversationWhereInput[]
     NOT?: ConversationWhereInput | ConversationWhereInput[]
+    structuredBlocks?: JsonNullableFilter<"Conversation">
     userId?: StringNullableFilter<"Conversation"> | string | null
     sessionId?: StringNullableFilter<"Conversation"> | string | null
     question?: StringFilter<"Conversation"> | string
@@ -28478,6 +30594,7 @@ export namespace Prisma {
   }, "id">
 
   export type ConversationOrderByWithAggregationInput = {
+    structuredBlocks?: SortOrderInput | SortOrder
     id?: SortOrder
     userId?: SortOrderInput | SortOrder
     sessionId?: SortOrderInput | SortOrder
@@ -28511,6 +30628,7 @@ export namespace Prisma {
     AND?: ConversationScalarWhereWithAggregatesInput | ConversationScalarWhereWithAggregatesInput[]
     OR?: ConversationScalarWhereWithAggregatesInput[]
     NOT?: ConversationScalarWhereWithAggregatesInput | ConversationScalarWhereWithAggregatesInput[]
+    structuredBlocks?: JsonNullableWithAggregatesFilter<"Conversation">
     id?: StringWithAggregatesFilter<"Conversation"> | string
     userId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     sessionId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
@@ -30621,7 +32739,182 @@ export namespace Prisma {
     reviewedAt?: DateTimeNullableWithAggregatesFilter<"KnowledgeReviewItem"> | Date | string | null
   }
 
+  export type FitnessRecommendationWhereInput = {
+    AND?: FitnessRecommendationWhereInput | FitnessRecommendationWhereInput[]
+    OR?: FitnessRecommendationWhereInput[]
+    NOT?: FitnessRecommendationWhereInput | FitnessRecommendationWhereInput[]
+    id?: StringFilter<"FitnessRecommendation"> | string
+    userId?: StringFilter<"FitnessRecommendation"> | string
+    sessionId?: StringFilter<"FitnessRecommendation"> | string
+    type?: StringFilter<"FitnessRecommendation"> | string
+    contextSnapshot?: JsonFilter<"FitnessRecommendation">
+    candidateIds?: StringNullableListFilter<"FitnessRecommendation">
+    scoringVersion?: StringFilter<"FitnessRecommendation"> | string
+    similarityVersion?: StringFilter<"FitnessRecommendation"> | string
+    evidenceIds?: StringNullableListFilter<"FitnessRecommendation">
+    historicalJourneyIds?: StringNullableListFilter<"FitnessRecommendation">
+    result?: JsonFilter<"FitnessRecommendation">
+    selectedCandidateId?: StringNullableFilter<"FitnessRecommendation"> | string | null
+    createdAt?: DateTimeFilter<"FitnessRecommendation"> | Date | string
+  }
+
+  export type FitnessRecommendationOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    type?: SortOrder
+    contextSnapshot?: SortOrder
+    candidateIds?: SortOrder
+    scoringVersion?: SortOrder
+    similarityVersion?: SortOrder
+    evidenceIds?: SortOrder
+    historicalJourneyIds?: SortOrder
+    result?: SortOrder
+    selectedCandidateId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessRecommendationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: FitnessRecommendationWhereInput | FitnessRecommendationWhereInput[]
+    OR?: FitnessRecommendationWhereInput[]
+    NOT?: FitnessRecommendationWhereInput | FitnessRecommendationWhereInput[]
+    userId?: StringFilter<"FitnessRecommendation"> | string
+    sessionId?: StringFilter<"FitnessRecommendation"> | string
+    type?: StringFilter<"FitnessRecommendation"> | string
+    contextSnapshot?: JsonFilter<"FitnessRecommendation">
+    candidateIds?: StringNullableListFilter<"FitnessRecommendation">
+    scoringVersion?: StringFilter<"FitnessRecommendation"> | string
+    similarityVersion?: StringFilter<"FitnessRecommendation"> | string
+    evidenceIds?: StringNullableListFilter<"FitnessRecommendation">
+    historicalJourneyIds?: StringNullableListFilter<"FitnessRecommendation">
+    result?: JsonFilter<"FitnessRecommendation">
+    selectedCandidateId?: StringNullableFilter<"FitnessRecommendation"> | string | null
+    createdAt?: DateTimeFilter<"FitnessRecommendation"> | Date | string
+  }, "id">
+
+  export type FitnessRecommendationOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    type?: SortOrder
+    contextSnapshot?: SortOrder
+    candidateIds?: SortOrder
+    scoringVersion?: SortOrder
+    similarityVersion?: SortOrder
+    evidenceIds?: SortOrder
+    historicalJourneyIds?: SortOrder
+    result?: SortOrder
+    selectedCandidateId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: FitnessRecommendationCountOrderByAggregateInput
+    _max?: FitnessRecommendationMaxOrderByAggregateInput
+    _min?: FitnessRecommendationMinOrderByAggregateInput
+  }
+
+  export type FitnessRecommendationScalarWhereWithAggregatesInput = {
+    AND?: FitnessRecommendationScalarWhereWithAggregatesInput | FitnessRecommendationScalarWhereWithAggregatesInput[]
+    OR?: FitnessRecommendationScalarWhereWithAggregatesInput[]
+    NOT?: FitnessRecommendationScalarWhereWithAggregatesInput | FitnessRecommendationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    userId?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    sessionId?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    type?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    contextSnapshot?: JsonWithAggregatesFilter<"FitnessRecommendation">
+    candidateIds?: StringNullableListFilter<"FitnessRecommendation">
+    scoringVersion?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    similarityVersion?: StringWithAggregatesFilter<"FitnessRecommendation"> | string
+    evidenceIds?: StringNullableListFilter<"FitnessRecommendation">
+    historicalJourneyIds?: StringNullableListFilter<"FitnessRecommendation">
+    result?: JsonWithAggregatesFilter<"FitnessRecommendation">
+    selectedCandidateId?: StringNullableWithAggregatesFilter<"FitnessRecommendation"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"FitnessRecommendation"> | Date | string
+  }
+
+  export type FitnessAgentActionWhereInput = {
+    AND?: FitnessAgentActionWhereInput | FitnessAgentActionWhereInput[]
+    OR?: FitnessAgentActionWhereInput[]
+    NOT?: FitnessAgentActionWhereInput | FitnessAgentActionWhereInput[]
+    id?: StringFilter<"FitnessAgentAction"> | string
+    userId?: StringFilter<"FitnessAgentAction"> | string
+    sessionId?: StringFilter<"FitnessAgentAction"> | string
+    recommendationId?: StringNullableFilter<"FitnessAgentAction"> | string | null
+    kind?: StringFilter<"FitnessAgentAction"> | string
+    risk?: StringFilter<"FitnessAgentAction"> | string
+    payload?: JsonFilter<"FitnessAgentAction">
+    status?: StringFilter<"FitnessAgentAction"> | string
+    result?: JsonNullableFilter<"FitnessAgentAction">
+    expiresAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+    createdAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+  }
+
+  export type FitnessAgentActionOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    recommendationId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    risk?: SortOrder
+    payload?: SortOrder
+    status?: SortOrder
+    result?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessAgentActionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: FitnessAgentActionWhereInput | FitnessAgentActionWhereInput[]
+    OR?: FitnessAgentActionWhereInput[]
+    NOT?: FitnessAgentActionWhereInput | FitnessAgentActionWhereInput[]
+    userId?: StringFilter<"FitnessAgentAction"> | string
+    sessionId?: StringFilter<"FitnessAgentAction"> | string
+    recommendationId?: StringNullableFilter<"FitnessAgentAction"> | string | null
+    kind?: StringFilter<"FitnessAgentAction"> | string
+    risk?: StringFilter<"FitnessAgentAction"> | string
+    payload?: JsonFilter<"FitnessAgentAction">
+    status?: StringFilter<"FitnessAgentAction"> | string
+    result?: JsonNullableFilter<"FitnessAgentAction">
+    expiresAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+    createdAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+  }, "id">
+
+  export type FitnessAgentActionOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    recommendationId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    risk?: SortOrder
+    payload?: SortOrder
+    status?: SortOrder
+    result?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: FitnessAgentActionCountOrderByAggregateInput
+    _max?: FitnessAgentActionMaxOrderByAggregateInput
+    _min?: FitnessAgentActionMinOrderByAggregateInput
+  }
+
+  export type FitnessAgentActionScalarWhereWithAggregatesInput = {
+    AND?: FitnessAgentActionScalarWhereWithAggregatesInput | FitnessAgentActionScalarWhereWithAggregatesInput[]
+    OR?: FitnessAgentActionScalarWhereWithAggregatesInput[]
+    NOT?: FitnessAgentActionScalarWhereWithAggregatesInput | FitnessAgentActionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    userId?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    sessionId?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    recommendationId?: StringNullableWithAggregatesFilter<"FitnessAgentAction"> | string | null
+    kind?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    risk?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    payload?: JsonWithAggregatesFilter<"FitnessAgentAction">
+    status?: StringWithAggregatesFilter<"FitnessAgentAction"> | string
+    result?: JsonNullableWithAggregatesFilter<"FitnessAgentAction">
+    expiresAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
+  }
+
   export type ConversationCreateInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: string
     userId?: string | null
     sessionId?: string | null
@@ -30647,6 +32940,7 @@ export namespace Prisma {
   }
 
   export type ConversationUncheckedCreateInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: string
     userId?: string | null
     sessionId?: string | null
@@ -30672,6 +32966,7 @@ export namespace Prisma {
   }
 
   export type ConversationUpdateInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     sessionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30697,6 +32992,7 @@ export namespace Prisma {
   }
 
   export type ConversationUncheckedUpdateInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     sessionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30722,6 +33018,7 @@ export namespace Prisma {
   }
 
   export type ConversationCreateManyInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: string
     userId?: string | null
     sessionId?: string | null
@@ -30747,6 +33044,7 @@ export namespace Prisma {
   }
 
   export type ConversationUpdateManyMutationInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     sessionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30772,6 +33070,7 @@ export namespace Prisma {
   }
 
   export type ConversationUncheckedUpdateManyInput = {
+    structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     sessionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -33218,6 +35517,238 @@ export namespace Prisma {
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type FitnessRecommendationCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    type: string
+    contextSnapshot: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationCreatecandidateIdsInput | string[]
+    scoringVersion: string
+    similarityVersion: string
+    evidenceIds?: FitnessRecommendationCreateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationCreatehistoricalJourneyIdsInput | string[]
+    result: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type FitnessRecommendationUncheckedCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    type: string
+    contextSnapshot: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationCreatecandidateIdsInput | string[]
+    scoringVersion: string
+    similarityVersion: string
+    evidenceIds?: FitnessRecommendationCreateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationCreatehistoricalJourneyIdsInput | string[]
+    result: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type FitnessRecommendationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    contextSnapshot?: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationUpdatecandidateIdsInput | string[]
+    scoringVersion?: StringFieldUpdateOperationsInput | string
+    similarityVersion?: StringFieldUpdateOperationsInput | string
+    evidenceIds?: FitnessRecommendationUpdateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationUpdatehistoricalJourneyIdsInput | string[]
+    result?: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessRecommendationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    contextSnapshot?: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationUpdatecandidateIdsInput | string[]
+    scoringVersion?: StringFieldUpdateOperationsInput | string
+    similarityVersion?: StringFieldUpdateOperationsInput | string
+    evidenceIds?: FitnessRecommendationUpdateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationUpdatehistoricalJourneyIdsInput | string[]
+    result?: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessRecommendationCreateManyInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    type: string
+    contextSnapshot: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationCreatecandidateIdsInput | string[]
+    scoringVersion: string
+    similarityVersion: string
+    evidenceIds?: FitnessRecommendationCreateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationCreatehistoricalJourneyIdsInput | string[]
+    result: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type FitnessRecommendationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    contextSnapshot?: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationUpdatecandidateIdsInput | string[]
+    scoringVersion?: StringFieldUpdateOperationsInput | string
+    similarityVersion?: StringFieldUpdateOperationsInput | string
+    evidenceIds?: FitnessRecommendationUpdateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationUpdatehistoricalJourneyIdsInput | string[]
+    result?: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessRecommendationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    contextSnapshot?: JsonNullValueInput | InputJsonValue
+    candidateIds?: FitnessRecommendationUpdatecandidateIdsInput | string[]
+    scoringVersion?: StringFieldUpdateOperationsInput | string
+    similarityVersion?: StringFieldUpdateOperationsInput | string
+    evidenceIds?: FitnessRecommendationUpdateevidenceIdsInput | string[]
+    historicalJourneyIds?: FitnessRecommendationUpdatehistoricalJourneyIdsInput | string[]
+    result?: JsonNullValueInput | InputJsonValue
+    selectedCandidateId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessAgentActionCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    recommendationId?: string | null
+    kind: string
+    risk: string
+    payload: JsonNullValueInput | InputJsonValue
+    status?: string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type FitnessAgentActionUncheckedCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    recommendationId?: string | null
+    kind: string
+    risk: string
+    payload: JsonNullValueInput | InputJsonValue
+    status?: string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type FitnessAgentActionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    recommendationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    risk?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessAgentActionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    recommendationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    risk?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessAgentActionCreateManyInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    recommendationId?: string | null
+    kind: string
+    risk: string
+    payload: JsonNullValueInput | InputJsonValue
+    status?: string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type FitnessAgentActionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    recommendationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    risk?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FitnessAgentActionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    recommendationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    risk?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+  export type JsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -33314,6 +35845,7 @@ export namespace Prisma {
   }
 
   export type ConversationCountOrderByAggregateInput = {
+    structuredBlocks?: SortOrder
     id?: SortOrder
     userId?: SortOrder
     sessionId?: SortOrder
@@ -33406,6 +35938,31 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrder
     warningCount?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -33981,28 +36538,6 @@ export namespace Prisma {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
   }
-  export type JsonNullableFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type PlanReviewPublishedPlanIdReviewerIdCompoundUniqueInput = {
     publishedPlanId: string
@@ -34088,31 +36623,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBoolNullableFilter<$PrismaModel>
     _max?: NestedBoolNullableFilter<$PrismaModel>
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type PlanImprovementSuggestionCountOrderByAggregateInput = {
@@ -35340,6 +37850,90 @@ export namespace Prisma {
     _max?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
   }
 
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
+  export type FitnessRecommendationCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    type?: SortOrder
+    contextSnapshot?: SortOrder
+    candidateIds?: SortOrder
+    scoringVersion?: SortOrder
+    similarityVersion?: SortOrder
+    evidenceIds?: SortOrder
+    historicalJourneyIds?: SortOrder
+    result?: SortOrder
+    selectedCandidateId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessRecommendationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    type?: SortOrder
+    scoringVersion?: SortOrder
+    similarityVersion?: SortOrder
+    selectedCandidateId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessRecommendationMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    type?: SortOrder
+    scoringVersion?: SortOrder
+    similarityVersion?: SortOrder
+    selectedCandidateId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessAgentActionCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    recommendationId?: SortOrder
+    kind?: SortOrder
+    risk?: SortOrder
+    payload?: SortOrder
+    status?: SortOrder
+    result?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessAgentActionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    recommendationId?: SortOrder
+    kind?: SortOrder
+    risk?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type FitnessAgentActionMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    recommendationId?: SortOrder
+    kind?: SortOrder
+    risk?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -36238,6 +38832,33 @@ export namespace Prisma {
     update?: XOR<XOR<KnowledgeDocumentUpdateToOneWithWhereWithoutReviewItemsInput, KnowledgeDocumentUpdateWithoutReviewItemsInput>, KnowledgeDocumentUncheckedUpdateWithoutReviewItemsInput>
   }
 
+  export type FitnessRecommendationCreatecandidateIdsInput = {
+    set: string[]
+  }
+
+  export type FitnessRecommendationCreateevidenceIdsInput = {
+    set: string[]
+  }
+
+  export type FitnessRecommendationCreatehistoricalJourneyIdsInput = {
+    set: string[]
+  }
+
+  export type FitnessRecommendationUpdatecandidateIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type FitnessRecommendationUpdateevidenceIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type FitnessRecommendationUpdatehistoricalJourneyIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -36324,6 +38945,28 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
@@ -36555,28 +39198,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBoolNullableFilter<$PrismaModel>
     _max?: NestedBoolNullableFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedEnumTrainingPackageStatusFilter<$PrismaModel = never> = {
@@ -40745,6 +43366,14 @@ export namespace Prisma {
      * @deprecated Use KnowledgeReviewItemDefaultArgs instead
      */
     export type KnowledgeReviewItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeReviewItemDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use FitnessRecommendationDefaultArgs instead
+     */
+    export type FitnessRecommendationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FitnessRecommendationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use FitnessAgentActionDefaultArgs instead
+     */
+    export type FitnessAgentActionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FitnessAgentActionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

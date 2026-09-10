@@ -779,6 +779,17 @@ function CycleFeedbackSummaryCard({ cycleId }: { cycleId: string }) {
 // marks the recommendation reviewed, it does NOT itself activate any new
 // plan or schedule change.
 
+// confidenceScore/nutritionConfidence are internal deterministic heuristic
+// scores (data-quality × decision-strength), never a statistical
+// probability — always shown as a Cao/Trung bình/Thấp tier, never as a
+// raw "%" (Adaptive Roadmap Production Closure design doc §19-§23).
+function confidenceScoreTier(score: number): "HIGH" | "MEDIUM" | "LOW" {
+  if (score >= 0.7) return "HIGH";
+  if (score >= 0.4) return "MEDIUM";
+  return "LOW";
+}
+const CONFIDENCE_TIER_LABEL_VI: Record<string, string> = { HIGH: "Cao", MEDIUM: "Trung bình", LOW: "Thấp" };
+
 const ADAPTIVE_DECISION_CONFIG: Record<AdaptiveCycleDecision, { label: string; className: string }> = {
   KEEP: { label: "Giữ nguyên", className: "border-green-500/30 bg-green-500/5 text-green-400" },
   PROGRESS: { label: "Tăng tải", className: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
@@ -905,7 +916,9 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
             {cfg.label}
           </span>
           {assessment.confidenceScore != null && (
-            <span className="text-xs text-zinc-500">Độ tin cậy: {Math.round(assessment.confidenceScore * 100)}%</span>
+            <span className="text-xs text-zinc-500">
+              Độ tin cậy dữ liệu: {CONFIDENCE_TIER_LABEL_VI[confidenceScoreTier(assessment.confidenceScore)]}
+            </span>
           )}
         </div>
         <span className="text-[11px] text-zinc-600">Đánh giá lần {assessment.assessmentVersion}</span>
@@ -1013,7 +1026,9 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
               {nutritionCfg.label}
             </span>
             {assessment.nutritionConfidence && (
-              <span className="text-xs text-zinc-500">Độ tin cậy: {assessment.nutritionConfidence}</span>
+              <span className="text-xs text-zinc-500">
+                Độ tin cậy dữ liệu: {CONFIDENCE_TIER_LABEL_VI[assessment.nutritionConfidence] ?? assessment.nutritionConfidence}
+              </span>
             )}
           </div>
           <span className="text-[11px] text-zinc-600">Đề xuất dinh dưỡng</span>
