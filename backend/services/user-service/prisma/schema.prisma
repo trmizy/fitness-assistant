@@ -482,6 +482,15 @@ enum NotificationEventType {
   // instant) — this one is persistent and only fires when there's
   // something worth a user coming back to look at.
   CYCLE_REASSESSMENT_READY
+  // GYM_MANAGEMENT master spec, Phase 5 (Complaints) — gym-service-originated, written here
+  // via the same /internal/notifications endpoint. Deliberately no
+  // PREFERENCE_FIELD_BY_EVENT_TYPE entry (see notification.service.ts) — this is a direct
+  // reply to something the reporter themselves initiated, not an opt-outable reminder.
+  GYM_COMPLAINT_RESOLVED
+  // GYM_BRANCH_FORM_SPEC.md, Phase 4 — admin flagged issues on a branch's wizard submission
+  // and sent it back for the owner to fix. Same "direct reply to something the recipient
+  // initiated" reasoning as GYM_COMPLAINT_RESOLVED — no opt-out preference entry either.
+  GYM_BRANCH_CHANGES_REQUESTED
 }
 
 enum NotificationEntityType {
@@ -501,6 +510,11 @@ enum NotificationEntityType {
   NUTRITION_PROGRAM
   // CYCLE_REASSESSMENT_READY's entityId (fitness-service's TrainingCycle.id).
   TRAINING_CYCLE
+  // GYM_MANAGEMENT master spec, Phase 5 — entityId = gym-service's GymComplaint.id (a
+  // cross-service reference by convention, same as WORKOUT_SCHEDULE/TRAINING_PROGRAM above).
+  GYM_COMPLAINT
+  // GYM_BRANCH_FORM_SPEC.md, Phase 4 — entityId = gym-service's Gym.id (the branch itself).
+  GYM_BRANCH
 }
 
 enum RescheduleStatus {

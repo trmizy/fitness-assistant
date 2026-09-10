@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
+import { principalId } from '../middleware/partner-context.middleware';
 
 // See the identical helper's comment in ai-service/controllers/personalized-service.controller.ts
 // — same signal (Capacitor's fixed `http://localhost` WebView origin), same purpose (pick the
@@ -160,7 +161,7 @@ export const membershipController = {
 
   async listForOwner(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const list = await membershipService.listForOwner(req.params.gymId, ownerId);
       res.json({ success: true, data: list });
     } catch (e: any) {

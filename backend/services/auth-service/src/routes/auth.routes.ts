@@ -18,6 +18,14 @@ router.patch("/users/:userId/role", authController.updateUserRole);
 // BUG-002 / BUG-025 / BUG-026: admin can disable / re-enable a user account.
 router.patch("/users/:userId/disable", authController.setUserActive);
 router.patch("/users/:userId/enable", authController.setUserActive);
+// "Quản lý gym & owner" — admin correcting another user's display name.
+router.patch("/users/:userId/name", authController.updateUserName);
+// Admin-only: create a gym-owner account directly — see authController.createGymOwner.
+router.post("/admin/gym-owners", authController.createGymOwner);
+// Phase 2 (quản trị đối tác) — người nhận link tự đặt mật khẩu mới, không cần đăng nhập.
+router.post("/password-reset", authController.resetPassword);
+// Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
+router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
 router.post("/internal/send-email", authController.sendEmailInternal);

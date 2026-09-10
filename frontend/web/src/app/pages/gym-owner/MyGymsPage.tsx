@@ -6,29 +6,34 @@ import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymBrand, GymStatus } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+  // GYM_BRANCH_FORM_SPEC.md Phase 1 — never actually rendered through GymCard (drafts get
+  // their own section below, filtered out of the normal brand groups), but Record<GymStatus,
+  // …> requires an entry for every status value regardless.
+  DRAFT:          { label: "Nháp",           color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Pencil },
   PENDING_REVIEW: { label: "Pending Review", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
   APPROVED:       { label: "Approved",       color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
   REJECTED:       { label: "Rejected",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     icon: XCircle },
   SUSPENDED:      { label: "Suspended",      color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Ban },
 };
 
+const WIZARD_TOTAL_STEPS = 7;
+
+/** GYM_BRANCH_FORM_SPEC.md §9/§10 — drafts get their own "Continue Setup" section, never
+ * mixed into the real brand-grouped branch cards below (they aren't real branches yet). */
+function draftGyms(gyms: Gym[]): Gym[] {
+  return gyms.filter((g) => g.status === "DRAFT");
+}
+
 /** Gyms that never joined a brand, grouped separately from chains below. */
 function standaloneGyms(gyms: Gym[]): Gym[] {
-  return gyms.filter((g) => !g.brandId);
+  return gyms.filter((g) => !g.brandId && g.status !== "DRAFT");
 }
 
 function branchesForBrand(gyms: Gym[], brandId: string): Gym[] {
-  return gyms.filter((g) => g.brandId === brandId);
-}
-
-function apiErrorMessage(err: any, fallback: string): string {
-  const raw = err?.response?.data?.error;
-  if (typeof raw === "string") return raw;
-  if (typeof raw?.message === "string") return raw.message;
-  if (typeof err?.response?.data?.message === "string") return err.response.data.message;
-  return fallback;
+  return gyms.filter((g) => g.brandId === brandId && g.status !== "DRAFT");
 }
 
 function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
@@ -84,13 +89,17 @@ function BrandGroup({
   onAddBranch,
   onRename,
   isRenaming,
+  isOwner,
 }: {
   brand: GymBrand;
   branches: Gym[];
   onOpenBranch: (gymId: string) => void;
-  onAddBranch: (brandId: string) => void;
+  onAddBranch: () => void;
   onRename: (brandId: string, newName: string) => void;
   isRenaming: boolean;
+  /** GYM_MANAGEMENT master spec §61 — a MANAGER never sees brand-editing or "add branch"
+   * controls; OWNER-only actions are hidden here rather than shown-then-403'd. */
+  isOwner: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -116,7 +125,7 @@ function BrandGroup({
           )}
           <span className="text-xs text-zinc-600 shrink-0">{branches.length} chi nhánh</span>
         </button>
-        {editing ? (
+        {isOwner && (editing ? (
           <button
             type="button"
             data-testid="brand-rename-save-button"
@@ -135,7 +144,7 @@ function BrandGroup({
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
-        )}
+        ))}
         <button type="button" onClick={() => setExpanded((v) => !v)} className="shrink-0">
           {expanded ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
         </button>
@@ -150,14 +159,16 @@ function BrandGroup({
           {branches.map((g) => (
             <GymCard key={g.id} gym={g} onClick={() => onOpenBranch(g.id)} />
           ))}
-          <button
-            type="button"
-            onClick={() => onAddBranch(brand.id)}
-            className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-700/60 p-4 text-zinc-500 hover:border-green-500/40 hover:text-green-400 transition-[transform,border-color,color] active:scale-[0.98]"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="text-xs font-semibold">Thêm chi nhánh</span>
-          </button>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={onAddBranch}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-700/60 p-4 text-zinc-500 hover:border-green-500/40 hover:text-green-400 transition-[transform,border-color,color] active:scale-[0.98]"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-xs font-semibold">Thêm chi nhánh</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -169,9 +180,14 @@ export function MyGymsPage() {
   const queryClient = useQueryClient();
   const [showCreateGym, setShowCreateGym] = useState(false);
   useBackDismissible(!!showCreateGym, () => setShowCreateGym(false));
-  const [showCreateBrand, setShowCreateBrand] = useState(false);
-  useBackDismissible(!!showCreateBrand, () => setShowCreateBrand(false));
-  const [gymForm, setGymForm] = useState({ name: "", address: "", city: "", description: "", brandId: "" });
+  const [gymForm, setGymForm] = useState({ name: "", address: "", city: "", description: "" });
+  const [gymLocation, setGymLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
+
+  // First-run brand setup — dismissible (X), not a hard block: an owner who closes it and
+  // tries "New Gym" anyway just gets createGym's own "set up your brand first" error, so
+  // there is no actual way around naming the brand before a gym can exist, this is just not a
+  // modal they are trapped behind while looking around.
+  const [brandPromptDismissed, setBrandPromptDismissed] = useState(false);
   const [brandForm, setBrandForm] = useState({ name: "", description: "" });
 
   const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
@@ -184,11 +200,22 @@ export function MyGymsPage() {
     queryFn: () => gymService.listOwnedBrands(),
   });
 
-  const isLoading = gymsLoading || brandsLoading;
-  const ownerBrand = brands[0] ?? null;
-  const hasBrand = Boolean(ownerBrand);
-  const defaultBrandId = ownerBrand?.id ?? "";
+  // GYM_MANAGEMENT master spec §61 — same cache key AppShell's onboarding gate already
+  // populates; a MANAGER never sees brand/create-branch controls here (hidden, not 403'd).
+  const { data: onboardingStatus } = useQuery({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const isOwner = onboardingStatus?.role !== "MANAGER";
 
+  const isLoading = gymsLoading || brandsLoading;
+  const needsBrandSetup = !isLoading && brands.length === 0;
+  useBackDismissible(needsBrandSetup && !brandPromptDismissed, () => setBrandPromptDismissed(true));
+
+  // One owner, one brand — every gym the owner creates joins THEIR brand, decided
+  // server-side from ownership alone (see gym.service.ts's createGym). The brand itself is
+  // only ever created through the prompt below, once, by the owner naming it themselves —
+  // never auto-derived from whatever they happen to call their first branch.
   const createGymMutation = useMutation({
     mutationFn: () =>
       gymService.createGym({
@@ -196,31 +223,29 @@ export function MyGymsPage() {
         address: gymForm.address,
         city: gymForm.city,
         description: gymForm.description,
-        brandId: gymForm.brandId || defaultBrandId || undefined,
+        ...gymLocation,
       }),
     onSuccess: () => {
-      toast.success(gymForm.brandId ? "Đã thêm chi nhánh — chờ admin duyệt" : "Gym created — awaiting admin approval");
+      toast.success(
+        brands.length > 0 ? "Đã thêm chi nhánh — chờ admin duyệt" : "Gym created — awaiting admin approval",
+      );
       setShowCreateGym(false);
-      setGymForm({ name: "", address: "", city: "", description: "", brandId: "" });
+      setGymForm({ name: "", address: "", city: "", description: "" });
+      setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
       queryClient.invalidateQueries({ queryKey: ["owned-gyms"] });
+      queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
     },
-    onError: (err: any) => toast.error(apiErrorMessage(err, "Failed to create gym")),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create gym"),
   });
 
   const createBrandMutation = useMutation({
     mutationFn: () => gymService.createBrand(brandForm),
     onSuccess: () => {
-      toast.success("Đã tạo thương hiệu");
-      setShowCreateBrand(false);
+      toast.success("Đã đặt tên thương hiệu — giờ có thể thêm chi nhánh đầu tiên");
       setBrandForm({ name: "", description: "" });
       queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
     },
-    onError: (err: any) =>
-      toast.error(
-        err?.response?.status === 409
-          ? "Tài khoản Gym Owner chỉ có thể có 1 thương hiệu. Hãy thêm chi nhánh vào thương hiệu hiện tại."
-          : apiErrorMessage(err, "Failed to create brand"),
-      ),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể tạo thương hiệu"),
   });
 
   // Vòng 4 / Phase C1 — a rename only ever moves pendingName; approvedName (what's shown
@@ -234,12 +259,14 @@ export function MyGymsPage() {
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể đổi tên"),
   });
 
-  const openAddBranch = (brandId: string) => {
-    setGymForm({ name: "", address: "", city: "", description: "", brandId });
+  const openAddBranch = () => {
+    setGymForm({ name: "", address: "", city: "", description: "" });
+    setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
     setShowCreateGym(true);
   };
 
   const standalone = standaloneGyms(gyms);
+  const drafts = draftGyms(gyms);
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
@@ -248,30 +275,126 @@ export function MyGymsPage() {
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
             <Dumbbell className="w-5 h-5 text-green-400" /> My Gyms
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Quản lý thương hiệu, chi nhánh và phòng gym độc lập của bạn</p>
+          <p className="text-zinc-500 text-sm mt-0.5">Quản lý thương hiệu và các chi nhánh của bạn</p>
         </div>
-        <div className="flex gap-2">
-          {!hasBrand && (
-          <button
-            type="button"
-            onClick={() => setShowCreateBrand(true)}
-            className="flex items-center gap-2 border border-zinc-700/60 bg-zinc-900 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,border-color] active:scale-[0.98] hover:border-zinc-600"
-          >
-            <Building2 className="w-4 h-4" /> Tạo thương hiệu
-          </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setGymForm({ name: "", address: "", city: "", description: "", brandId: defaultBrandId });
-              setShowCreateGym(true);
-            }}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,background-color] active:scale-[0.98] shadow-lg shadow-green-500/25"
-          >
-            <Plus className="w-4 h-4" /> New Gym
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={needsBrandSetup ? () => setBrandPromptDismissed(false) : openAddBranch}
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,background-color] active:scale-[0.98] shadow-lg shadow-green-500/25"
+            >
+              <Plus className="w-4 h-4" /> New Gym
+            </button>
+            {/* GYM_BRANCH_FORM_SPEC.md, Phase 1 — new wizard shell, reachable alongside the
+                existing dialog above rather than replacing it (steps 1-6 are still
+                placeholders — see AddBranchWizardPage.tsx's own doc comment for the cutover
+                plan). Not shown to a MANAGER, same §95.2 gate as "New Gym". */}
+            {!needsBrandSetup && (
+              <button
+                type="button"
+                onClick={() => navigate("/gym-owner/gyms/wizard")}
+                className="flex items-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              >
+                🧪 Thử wizard mới
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* GYM_BRANCH_FORM_SPEC.md §9 — resumable drafts, never mixed into the real branch
+          cards below (draftGyms/branchesForBrand/standaloneGyms already exclude them). */}
+      {isOwner && drafts.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-zinc-300">Đang thiết lập</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {drafts.map((d) => {
+              const pct = Math.round((((d.wizardStep ?? 1) - 1) / WIZARD_TOTAL_STEPS) * 100);
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => navigate(`/gym-owner/gyms/wizard/${d.id}`)}
+                  className="text-left bg-zinc-900 rounded-xl border border-dashed border-zinc-700 p-4 hover:border-green-500/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nháp</span>
+                    <span className="text-xs text-zinc-500">{pct}% hoàn thành</span>
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-200 mt-1">{d.name || "Chi nhánh mới"}</p>
+                  <div className="h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                    <div className="h-full bg-green-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-xs font-semibold text-green-400 mt-2">Tiếp tục thiết lập →</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* First-run: nothing else on this page matters until the owner has named their brand —
+          every gym they create from here on joins it automatically. */}
+      {needsBrandSetup && !brandPromptDismissed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
+              <h3 className="text-zinc-100 font-bold flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-green-400" /> Đặt tên thương hiệu của bạn
+              </h3>
+              <button
+                type="button"
+                aria-label="Đóng"
+                onClick={() => setBrandPromptDismissed(true)}
+                className="text-zinc-500 hover:text-zinc-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-zinc-500">
+                Đây là tên khách sẽ thấy khi tìm kiếm — mọi phòng gym bạn tạo sau này đều là một
+                chi nhánh của thương hiệu này. Có thể đổi tên sau nếu cần.
+              </p>
+              <input
+                aria-label="Brand name"
+                autoFocus
+                value={brandForm.name}
+                onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
+                placeholder="Tên thương hiệu"
+                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+              />
+              <textarea
+                aria-label="Brand description"
+                value={brandForm.description}
+                onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })}
+                rows={3}
+                placeholder="Mô tả (tuỳ chọn)"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
+              />
+            </div>
+            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setBrandPromptDismissed(true)}
+                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                onClick={() => createBrandMutation.mutate()}
+                disabled={!brandForm.name.trim() || createBrandMutation.isPending}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
+              >
+                {createBrandMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">
@@ -298,11 +421,16 @@ export function MyGymsPage() {
               onAddBranch={openAddBranch}
               onRename={(id, name) => renameBrandMutation.mutate({ id, name })}
               isRenaming={renameBrandMutation.isPending}
+              isOwner={isOwner}
             />
           ))}
         </div>
       )}
 
+      {/* Legacy display only — a gym could stand outside any brand before this page stopped
+          offering that choice. Read-only here on purpose: the "+ New Gym" button above (and
+          "+ Thêm chi nhánh" inside a brand group) are the only ways to create a gym now, and
+          both always join the owner's one brand — nothing should add another standalone one. */}
       {!isLoading && standalone.length > 0 && (
         <div>
           {brands.length > 0 && (
@@ -312,17 +440,6 @@ export function MyGymsPage() {
             {standalone.map((g) => (
               <GymCard key={g.id} gym={g} onClick={() => navigate(`/gym-owner/gyms/${g.id}`)} />
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setGymForm({ name: "", address: "", city: "", description: "", brandId: defaultBrandId });
-                setShowCreateGym(true);
-              }}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-700/60 p-4 text-zinc-500 hover:border-green-500/40 hover:text-green-400 transition-[transform,border-color,color] active:scale-[0.98] min-h-[104px]"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs font-semibold">Thêm phòng gym</span>
-            </button>
           </div>
         </div>
       )}
@@ -332,27 +449,12 @@ export function MyGymsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">{gymForm.brandId ? "Thêm chi nhánh" : "Create Gym"}</h3>
+              <h3 className="text-zinc-100 font-bold">{brands.length > 0 ? "Thêm chi nhánh" : "Create Gym"}</h3>
               <button type="button" aria-label="Đóng" onClick={() => setShowCreateGym(false)} className="text-zinc-500 hover:text-zinc-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {brands.length > 0 && (
-                <div>
-                  <label className="text-xs text-zinc-500 mb-1.5 block">Thương hiệu</label>
-                  <select
-                    aria-label="Thương hiệu"
-                    value={gymForm.brandId || defaultBrandId}
-                    onChange={(e) => setGymForm({ ...gymForm, brandId: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  >
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
               <input
                 aria-label="Gym name"
                 value={gymForm.name}
@@ -382,6 +484,9 @@ export function MyGymsPage() {
                 placeholder="Description (optional)"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
               />
+              <div className="pt-2 border-t border-zinc-800/60">
+                <GymLocationFields value={gymLocation} onChange={setGymLocation} />
+              </div>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button type="button" onClick={() => setShowCreateGym(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
@@ -394,54 +499,6 @@ export function MyGymsPage() {
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
               >
                 {createGymMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create brand dialog */}
-      {showCreateBrand && !hasBrand && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">Tạo thương hiệu</h3>
-              <button type="button" aria-label="Đóng" onClick={() => setShowCreateBrand(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <p className="text-xs text-zinc-500">
-                Một thương hiệu gom nhiều chi nhánh cùng tên lại với nhau — khách tìm kiếm sẽ thấy một thẻ duy nhất, bấm vào để chọn chi nhánh gần mình.
-              </p>
-              <input
-                aria-label="Brand name"
-                value={brandForm.name}
-                onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
-                placeholder="Tên thương hiệu"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <textarea
-                aria-label="Brand description"
-                value={brandForm.description}
-                onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })}
-                rows={3}
-                placeholder="Mô tả (tuỳ chọn)"
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
-              />
-            </div>
-            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setShowCreateBrand(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => createBrandMutation.mutate()}
-                disabled={!brandForm.name.trim() || createBrandMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
-              >
-                {createBrandMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Create
               </button>
             </div>

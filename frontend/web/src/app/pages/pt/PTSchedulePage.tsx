@@ -704,6 +704,11 @@ export function PTSchedulePage() {
                             <div className="text-amber-400 font-medium">
                               Khách yêu cầu dời lịch sang {formatSessionTime(s.rescheduleRequests[0].proposedStartAt)}
                             </div>
+                            {s.rescheduleRequests[0].reason && (
+                              <div className="text-zinc-400 italic">
+                                Lý do: "{s.rescheduleRequests[0].reason}"
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button
                                 onClick={() => respondRescheduleMut.mutate({ requestId: s.rescheduleRequests![0].id, action: "ACCEPT" })}

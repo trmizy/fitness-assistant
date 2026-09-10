@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { affiliationService } from '../services/affiliation.service';
+import { principalId } from '../middleware/partner-context.middleware';
 
 export const affiliationController = {
   async listPublic(req: Request, res: Response) {
@@ -9,7 +10,7 @@ export const affiliationController = {
 
   async invite(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const { ptId, ...rest } = req.body;
       const affiliation = await affiliationService.invite(req.params.gymId, ownerId, ptId, rest);
       res.status(201).json({ success: true, data: affiliation });

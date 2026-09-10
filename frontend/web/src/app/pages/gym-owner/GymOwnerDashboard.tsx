@@ -19,12 +19,14 @@ import { useApp } from "../../context/AppContext";
 import { gymService, collaborationService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import { KpiCard } from "../../components/ui/KpiCard";
+import { EntityCard } from "../../components/ui/EntityCard";
 import {
   SkeletonRow,
   SkeletonChart,
   EmptyState,
   ErrorState,
 } from "../../components/dashboard/DashboardStates";
+import { WarningCircleIcon, NotePencilIcon } from "@phosphor-icons/react";
 import type {
   Gym,
   GymMembershipContract,
@@ -292,6 +294,12 @@ export function GymOwnerDashboard() {
     },
   ];
 
+  // GYM_MANAGEMENT master spec §61/§66 — "Owner opens dashboard, sees the action center
+  // first." Derived entirely from `gyms`, already fetched above — no extra request.
+  const branchesPendingFirstReview = gyms.filter((g) => g.status === "PENDING_REVIEW");
+  const branchesNeedingChanges = gyms.filter((g) => !!g.changesRequestedAt);
+  const hasAttentionItems = branchesPendingFirstReview.length > 0 || branchesNeedingChanges.length > 0;
+
   const membershipDistribution = buildMembershipDistribution(memberships);
   const checkinTrend = buildCheckinTrend(checkins);
   const recentMemberships = [...memberships]
@@ -355,6 +363,39 @@ export function GymOwnerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Cần chú ý — trước hàng KPI, không phải sau (§61/§66) */}
+      {hasAttentionItems && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-zinc-300">Cần chú ý</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {branchesPendingFirstReview.map((g) => (
+              <EntityCard
+                key={`pending-${g.id}`}
+                title={g.name}
+                subtitle="Đang chờ Gymini xét duyệt lần đầu"
+                badge={<WarningCircleIcon className="size-4 text-amber-400" />}
+                onClick={() => navigate(`/gym-owner/gyms/${g.id}`)}
+              />
+            ))}
+            {branchesNeedingChanges.map((g) => (
+              <EntityCard
+                key={`changes-${g.id}`}
+                title={g.name}
+                subtitle={
+                  g.pendingNameNote && g.pendingAddressNote
+                    ? "Admin yêu cầu sửa tên và địa chỉ"
+                    : g.pendingNameNote
+                      ? `Admin yêu cầu sửa tên: "${g.pendingNameNote}"`
+                      : `Admin yêu cầu sửa địa chỉ: "${g.pendingAddressNote}"`
+                }
+                badge={<NotePencilIcon className="size-4 text-amber-400" />}
+                onClick={() => navigate(`/gym-owner/gyms/${g.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

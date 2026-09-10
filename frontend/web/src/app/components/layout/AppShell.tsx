@@ -8,6 +8,10 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { PageSkeleton } from "./PageSkeleton";
 import { CallOverlay } from "../call/CallOverlay";
+import { ForceChangePasswordScreen } from "../auth/ForceChangePasswordScreen";
+import { PartnerOnboardingWizard } from "../auth/PartnerOnboardingWizard";
+import { useQuery } from "@tanstack/react-query";
+import { gymService } from "../../services/api";
 
 // Vòng 4 / Phase D1 — was a Vite ES import of a 6MB src/assets/bg-gym.jpg (duplicated
 // byte-for-byte in public/bg-gym.jpg, which public/offline.html and public/sw.js's precache
@@ -17,9 +21,19 @@ import { CallOverlay } from "../call/CallOverlay";
 const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
-  const { isAuthenticated, isPT, setActiveView } = useApp();
+  const { isAuthenticated, isPT, setActiveView, user, role } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Phase 3 (quản lý đối tác phòng tập) — "Không vào được màn hình nào khi chưa xong 5
+  // bước". `enabled` gạn theo role trước khi query chạy: một client/PT không có khái niệm
+  // này, gọi endpoint chỉ tổ 403 vô ích mỗi lần điều hướng.
+  const onboardingQuery = useQuery({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+    enabled: isAuthenticated && role === "gym_owner" && !user?.mustChangePassword,
+    staleTime: 60_000,
+  });
 
   // Redirect to login if not authenticated. Carries the page the user was actually on so
   // LoginPage can send them back here instead of dumping everyone on their role's home
@@ -50,6 +64,22 @@ export function AppShell() {
   useNativeStatusBar();
 
   if (!isAuthenticated) return null;
+
+  // Blocks the entire app behind a forced password change for an admin-created account
+  // (currently gym owners) still on its random temporary password — see
+  // ForceChangePasswordScreen's own doc comment. Checked here, above everything else in the
+  // authenticated tree, so there is no route that can be reached around it.
+  if (user?.mustChangePassword) {
+    return <ForceChangePasswordScreen />;
+  }
+
+  // Đặt SAU mustChangePassword (đặt mật khẩu trước, thiết lập đối tác sau) — chỉ chặn khi
+  // đã biết chắc CHƯA hoàn tất (query đã có dữ liệu và completed === false). Đang tải hoặc
+  // lỗi mạng thì cho qua, không khoá cả app vì một request chưa kịp trả lời.
+  if (role === "gym_owner" && onboardingQuery.data && onboardingQuery.data.completed === false) {
+    return <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />;
+  }
+
   return (
     <>
       <CallOverlay />

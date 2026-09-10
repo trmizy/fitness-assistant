@@ -1,4 +1,6 @@
 import { NavLink, useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { UserIcon as User, ShieldIcon as Shield, XIcon as X, SignOutIcon as LogOut, LightningIcon as Zap } from "@phosphor-icons/react";
 import { AutoText } from "../i18n/AutoText";
@@ -66,9 +68,19 @@ const clientNavFull = [
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
 
-/** Gym owner nav — wallet balance is shown per-gym inside GymManagePage.
- * Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now. */
-const gymOwnerNav = [
+/**
+ * Gym owner nav — wallet balance is shown per-gym inside GymManagePage. Shared verbatim by
+ * OWNER and MANAGER logins (GYM_PARTNER_IDENTITY_MODEL.md — MANAGER is a permission inside
+ * one partner, not a system role; both log in as GYM_OWNER, see the same routes, and the
+ * difference is enforced here client-side plus by `requirePartnerOwner`/`requireGymScope`
+ * server-side). GYM_MANAGEMENT master spec §61 acceptance check: "manager does NOT see
+ * Wallet, Managers, or Brand anywhere in navigation" — "Người quản lý" (invite/revoke
+ * managers) and "Quản lý cộng tác" (fully OWNER-gated, no partial MANAGER view unlike plans)
+ * are filtered out below for a MANAGER account. There is no separate "Wallet" or "Brand" nav
+ * item to filter here — both live inside other owner pages, which hide their own
+ * OWNER-only sections themselves.
+ */
+const gymOwnerNavFull = [
   {
     label: "Dashboard",
     icon: GyminiDashboardIcon,
@@ -76,6 +88,9 @@ const gymOwnerNav = [
     sourceLang: "en" as const,
   },
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
+  { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
+  { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations", ownerOnly: true },
+  { label: "Người quản lý", icon: GyminiUsersIcon, to: "/gym-owner/managers", ownerOnly: true },
 ];
 
 // PT accounts can still use the unified client service hub for their own
@@ -117,11 +132,24 @@ const adminNav = [
   { label: "Chợ kế hoạch", icon: GyminiMarketplaceIcon, to: "/admin/marketplace" },
   { label: "Duyệt bài tập trùng lặp", icon: GyminiCompareIcon, to: "/admin/exercise-review" },
   { label: "Ma trận chất lượng catalog", icon: GyminiCatalogIcon, to: "/admin/catalog-quality" },
-  { label: "Hoàn tiền dịch vụ PT", icon: GyminiMoneyIcon, to: "/admin/pt-service-refunds" },
+  { label: "Tài chính", icon: GyminiMoneyIcon, to: "/admin/finance" },
   { label: "Giám sát hệ thống", icon: GyminiSystemIcon, to: "/admin/system" },
   { label: "Khiếu nại buổi tập", icon: GyminiDisputeIcon, to: "/admin/disputes" },
-  { label: "Yêu cầu rút tiền", icon: GyminiMoneyIcon, to: "/admin/withdrawals" },
-  { label: "Phòng gym & thương hiệu", icon: GyminiGymIcon, to: "/admin/gyms" },
+  // GYM_MANAGEMENT master spec §62 IA — "Overview / Partners / Branches / …", explicitly no
+  // top-level "Brands" (brand info lives inside a partner's own BRAND tab instead).
+  // Membership Oversight / Complaints / Notifications / a global cross-partner Audit Logs
+  // view are NOT added here yet — their backing pages don't exist as standalone screens (the
+  // first two land with Phase 5's complaints/violations work; audit history today is only
+  // reachable per-partner, inside AdminPartnersPage's own tab). Adding a nav item with
+  // nowhere real to go would be exactly the "hide missing functionality behind mock data"
+  // the spec explicitly forbids.
+  { label: "Tổng quan Gym", icon: GyminiDashboardIcon, to: "/admin/gym-management" },
+  { label: "Chi nhánh", icon: GyminiGymIcon, to: "/admin/gyms" },
+  { label: "Đối tác", icon: GyminiContractIcon, to: "/admin/partners" },
+  // Phase 5 — "Khiếu nại/Vi phạm", the nav item Phase 3 deliberately left out until this
+  // screen existed (GYM_MANAGEMENT_API_GAPS.md). Reuses GyminiDisputeIcon (already used for
+  // session disputes below) — same underlying concept, different domain.
+  { label: "Khiếu nại", icon: GyminiDisputeIcon, to: "/admin/complaints" },
   {
     label: "Workflows",
     icon: GyminiWorkflowIcon,
@@ -143,6 +171,8 @@ interface NavItem {
   icon: React.ElementType;
   to: string;
   sourceLang?: AppLanguage;
+  /** GYM_MANAGEMENT master spec §61 — hidden from a MANAGER account's nav entirely. */
+  ownerOnly?: boolean;
 }
 
 function NavGroup({
@@ -204,6 +234,18 @@ export function Sidebar() {
     logout,
   } = useApp();
   const navigate = useNavigate();
+
+  // GYM_MANAGEMENT master spec §61 — same query key AppShell's onboarding gate already
+  // fetches (["partner-onboarding-status"]), so this is a cache read, not an extra request.
+  // Only gym-owner-role logins ever reach the gate that populates it; other roles just get
+  // an unused, never-fetched query (enabled: false) rather than a real network call.
+  const partnerRoleQuery = useQuery({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+    enabled: role === "gym_owner",
+  });
+  const isManagerAccount = partnerRoleQuery.data?.role === "MANAGER";
+  const gymOwnerNav = isManagerAccount ? gymOwnerNavFull.filter((item) => !item.ownerOnly) : gymOwnerNavFull;
 
   const handleLogout = () => {
     logout();

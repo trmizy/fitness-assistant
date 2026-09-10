@@ -31,9 +31,17 @@ async function makeGym() {
   });
 }
 
-async function makePlan(gymId: string) {
+// Plans are brand-scoped now (one owner, one brand) — this suite doesn't exercise anything
+// brand-specific, it just needs a valid brandId to satisfy the schema.
+async function makeBrand() {
+  return prisma.gymBrand.create({
+    data: { id: randomUUID(), ownerId: randomUUID(), name: 'Test Brand' },
+  });
+}
+
+async function makePlan(brandId: string) {
   return prisma.gymMembershipPlan.create({
-    data: { id: randomUUID(), gymId, name: 'Test Plan', price: 500_000, durationDays: 30 },
+    data: { id: randomUUID(), brandId, name: 'Test Plan', price: 500_000, durationDays: 30 },
   });
 }
 
@@ -54,7 +62,8 @@ async function makeMembership(gymId: string, planId: string, clientId: string, s
 
 integrationTest('an abandoned PENDING_PAYMENT membership does not count as "ever had a membership here"', async () => {
   const gym = await makeGym();
-  const plan = await makePlan(gym.id);
+  const brand = await makeBrand();
+  const plan = await makePlan(brand.id);
   const clientId = randomUUID();
   const membership = await makeMembership(gym.id, plan.id, clientId, 'PENDING_PAYMENT');
 
@@ -65,12 +74,14 @@ integrationTest('an abandoned PENDING_PAYMENT membership does not count as "ever
     await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
     await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
     await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
   }
 });
 
 test('P0 E3 — a never-paid PENDING_PAYMENT order that timed out into CANCELLED (sweep, or the client\'s own explicit cancelPending) still does not count', async () => {
   const gym = await makeGym();
-  const plan = await makePlan(gym.id);
+  const brand = await makeBrand();
+  const plan = await makePlan(brand.id);
   const clientId = randomUUID();
   // Exactly cancelIfPending's / the expiry sweep's own output shape: CANCELLED, but no
   // paymentTxnId was ever set because no payment ever confirmed.
@@ -83,13 +94,15 @@ test('P0 E3 — a never-paid PENDING_PAYMENT order that timed out into CANCELLED
     await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
     await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
     await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
   }
 });
 
 for (const status of ['ACTIVE', 'EXPIRED', 'CANCELLED']) {
   test(`a ${status} membership that WAS actually paid for (paymentTxnId set) DOES count`, async () => {
     const gym = await makeGym();
-    const plan = await makePlan(gym.id);
+    const brand = await makeBrand();
+    const plan = await makePlan(brand.id);
     const clientId = randomUUID();
     const membership = await makeMembership(gym.id, plan.id, clientId, status, `txn-${randomUUID()}`);
 
@@ -100,6 +113,7 @@ for (const status of ['ACTIVE', 'EXPIRED', 'CANCELLED']) {
       await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
       await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
       await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+      await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
     }
   });
 }

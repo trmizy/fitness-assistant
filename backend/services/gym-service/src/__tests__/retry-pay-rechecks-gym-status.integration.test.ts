@@ -20,9 +20,17 @@ async function makeGym(status: string) {
   });
 }
 
-async function makePlan(gymId: string) {
+// Plans are brand-scoped now (one owner, one brand) — this suite doesn't exercise anything
+// brand-specific, it just needs a valid brandId to satisfy the schema.
+async function makeBrand() {
+  return prisma.gymBrand.create({
+    data: { id: randomUUID(), ownerId: randomUUID(), name: 'Test Brand' },
+  });
+}
+
+async function makePlan(brandId: string) {
   return prisma.gymMembershipPlan.create({
-    data: { id: randomUUID(), gymId, name: 'Test Plan', price: 500_000, durationDays: 30 },
+    data: { id: randomUUID(), brandId, name: 'Test Plan', price: 500_000, durationDays: 30 },
   });
 }
 
@@ -42,7 +50,8 @@ async function makePendingMembership(gymId: string, planId: string, clientId: st
 
 test('retryPay từ chối khi phòng gym đã bị khoá (SUSPENDED) sau khi đơn PENDING_PAYMENT được tạo', async () => {
   const gym = await makeGym('APPROVED');
-  const plan = await makePlan(gym.id);
+  const brand = await makeBrand();
+  const plan = await makePlan(brand.id);
   const clientId = randomUUID();
   const membership = await makePendingMembership(gym.id, plan.id, clientId);
 
@@ -65,12 +74,14 @@ test('retryPay từ chối khi phòng gym đã bị khoá (SUSPENDED) sau khi đ
     await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
     await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
     await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
   }
 });
 
 test('retryPay vẫn hoạt động bình thường khi phòng gym còn APPROVED', async () => {
   const gym = await makeGym('APPROVED');
-  const plan = await makePlan(gym.id);
+  const brand = await makeBrand();
+  const plan = await makePlan(brand.id);
   const clientId = randomUUID();
   const membership = await makePendingMembership(gym.id, plan.id, clientId);
 
@@ -84,5 +95,6 @@ test('retryPay vẫn hoạt động bình thường khi phòng gym còn APPROVED
     await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
     await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
     await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
   }
 });

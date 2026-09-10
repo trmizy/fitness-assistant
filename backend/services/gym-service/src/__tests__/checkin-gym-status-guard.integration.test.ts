@@ -19,26 +19,30 @@ import { signGymCheckinToken } from '../utils/checkinToken';
  * the rest of this codebase's unit tests do. Creates real rows, cleans them up after.
  */
 
-async function makeGym(
+// Plans are brand-scoped now (one owner, one brand) — check-in eligibility joins the scanned
+// gym's brandId to the membership's plan.brandId, so every fixture gym here needs one.
+async function makeBrandGymAndPlan(
   status: 'APPROVED' | 'SUSPENDED',
   operationalStatus: 'OPEN' | 'TEMPORARILY_CLOSED' = 'OPEN',
 ) {
-  return prisma.gym.create({
+  const brand = await prisma.gymBrand.create({
+    data: { id: randomUUID(), ownerId: randomUUID(), name: 'Test Brand' },
+  });
+  const gym = await prisma.gym.create({
     data: {
       id: randomUUID(),
-      ownerId: randomUUID(),
+      ownerId: brand.ownerId,
+      brandId: brand.id,
       name: `Test Gym ${status}`,
       address: '123 Test St',
       status,
       operationalStatus,
     },
   });
-}
-
-async function makePlan(gymId: string) {
-  return prisma.gymMembershipPlan.create({
-    data: { id: randomUUID(), gymId, name: 'Test Plan', price: 500_000, durationDays: 30 },
+  const plan = await prisma.gymMembershipPlan.create({
+    data: { id: randomUUID(), brandId: brand.id, name: 'Test Plan', price: 500_000, durationDays: 30 },
   });
+  return { brand, gym, plan };
 }
 
 async function makeActiveMembership(gymId: string, planId: string, clientId: string) {
@@ -57,16 +61,16 @@ async function makeActiveMembership(gymId: string, planId: string, clientId: str
   });
 }
 
-async function cleanup(gymId: string, planId: string, membershipId: string) {
+async function cleanup(brandId: string, gymId: string, planId: string, membershipId: string) {
   await prisma.gymCheckIn.deleteMany({ where: { membershipId } });
   await prisma.gymMembershipContract.delete({ where: { id: membershipId } }).catch(() => {});
   await prisma.gymMembershipPlan.delete({ where: { id: planId } }).catch(() => {});
   await prisma.gym.delete({ where: { id: gymId } }).catch(() => {});
+  await prisma.gymBrand.delete({ where: { id: brandId } }).catch(() => {});
 }
 
 integrationTest('a client with an ACTIVE membership cannot check in at a SUSPENDED gym', async () => {
-  const gym = await makeGym('SUSPENDED');
-  const plan = await makePlan(gym.id);
+  const { brand, gym, plan } = await makeBrandGymAndPlan('SUSPENDED');
   const clientId = randomUUID();
   const membership = await makeActiveMembership(gym.id, plan.id, clientId);
   const { token } = signGymCheckinToken(gym.id);
@@ -78,15 +82,14 @@ integrationTest('a client with an ACTIVE membership cannot check in at a SUSPEND
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 0);
   } finally {
-    await cleanup(gym.id, plan.id, membership.id);
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
   }
 });
 
 // Vòng 4 / Phase C3 — same chokepoint, second axis: an APPROVED gym the owner has
 // temporarily closed must block check-in exactly like a SUSPENDED one does above.
 integrationTest('a client with an ACTIVE membership cannot check in at a TEMPORARILY_CLOSED gym', async () => {
-  const gym = await makeGym('APPROVED', 'TEMPORARILY_CLOSED');
-  const plan = await makePlan(gym.id);
+  const { brand, gym, plan } = await makeBrandGymAndPlan('APPROVED', 'TEMPORARILY_CLOSED');
   const clientId = randomUUID();
   const membership = await makeActiveMembership(gym.id, plan.id, clientId);
   const { token } = signGymCheckinToken(gym.id);
@@ -96,13 +99,12 @@ integrationTest('a client with an ACTIVE membership cannot check in at a TEMPORA
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 0);
   } finally {
-    await cleanup(gym.id, plan.id, membership.id);
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
   }
 });
 
 integrationTest('a client with an ACTIVE membership CAN check in at an APPROVED gym', async () => {
-  const gym = await makeGym('APPROVED');
-  const plan = await makePlan(gym.id);
+  const { brand, gym, plan } = await makeBrandGymAndPlan('APPROVED');
   const clientId = randomUUID();
   const membership = await makeActiveMembership(gym.id, plan.id, clientId);
   const { token } = signGymCheckinToken(gym.id);
@@ -114,6 +116,6 @@ integrationTest('a client with an ACTIVE membership CAN check in at an APPROVED 
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 1);
   } finally {
-    await cleanup(gym.id, plan.id, membership.id);
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
   }
 });

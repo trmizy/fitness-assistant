@@ -334,58 +334,15 @@ test('C3 — listPermanentlyClosedNeedingReview trả kèm số hội viên ACTI
   assert.equal(result[0].activeMembershipCount, 2, 'chỉ đếm ACTIVE, không đếm CANCELLED');
 });
 
-// ── C4: moving a gym between brands ──────────────────────────────────────
-
-test('C4 — updateOwnedGym với brandId hợp lệ (thuộc sở hữu) thì gắn vào brand đó', async () => {
-  const gym = { id: 'gym-1', ownerId: 'owner-1', brandId: null, name: 'N', address: 'A' };
-  const brand = { id: 'brand-2', ownerId: 'owner-1' };
-  let updatedWith: any = null;
-  const restores = [
-    patch(gymRepository, 'findById', async () => ({ ...gym })),
-    patch(gymRepository, 'update', async (_id: string, data: any) => {
-      updatedWith = data;
-      return { ...gym, ...data };
-    }),
-    patch(brandRepository, 'findById', async () => ({ ...brand })),
-  ];
-  try {
-    await gymService.updateOwnedGym('gym-1', 'owner-1', { brandId: 'brand-2' });
-  } finally {
-    restores.forEach((r) => r());
-  }
-  assert.deepEqual(updatedWith.brand, { connect: { id: 'brand-2' } });
-});
-
-test('C4 — updateOwnedGym với brandId: null thì tháo gym khỏi brand hiện tại', async () => {
-  const gym = { id: 'gym-1', ownerId: 'owner-1', brandId: 'brand-1', name: 'N', address: 'A' };
-  let updatedWith: any = null;
-  const restores = [
-    patch(gymRepository, 'findById', async () => ({ ...gym })),
-    patch(gymRepository, 'update', async (_id: string, data: any) => {
-      updatedWith = data;
-      return { ...gym, ...data };
-    }),
-  ];
-  try {
-    await gymService.updateOwnedGym('gym-1', 'owner-1', { brandId: null });
-  } finally {
-    restores.forEach((r) => r());
-  }
-  assert.deepEqual(updatedWith.brand, { disconnect: true });
-});
-
-test('C4 — không thể gắn gym vào brand của người khác (403)', async () => {
-  const gym = { id: 'gym-1', ownerId: 'owner-1', brandId: null, name: 'N', address: 'A' };
-  const restores = [
-    patch(gymRepository, 'findById', async () => ({ ...gym })),
-    patch(brandRepository, 'findById', async () => ({ id: 'brand-99', ownerId: 'someone-else' })),
-  ];
-  try {
-    await assert.rejects(
-      () => gymService.updateOwnedGym('gym-1', 'owner-1', { brandId: 'brand-99' }),
-      (e: any) => e.status === 403,
-    );
-  } finally {
-    restores.forEach((r) => r());
-  }
-});
+// ── C4: moving a gym between brands — REMOVED ────────────────────────────
+//
+// The three tests that used to live here ("updateOwnedGym với brandId hợp lệ...",
+// "...brandId: null thì tháo gym...", "...không thể gắn gym vào brand của người khác")
+// covered a capability that GYM_BRANCH_FORM_SPEC.md §51/§79/§89 explicitly forbids: an owner
+// moving a branch to a different brand they own, or detaching it to a standalone (no-brand)
+// state. That capability predated the one-partner-one-brand invariant and directly
+// contradicted it once the invariant existed. Removed from gymService.updateOwnedGym and
+// gymUpdateSchema, confirmed with the user before removing — see this session's
+// GYM_BRANCH_FORM_SPEC.md "Known Conflict" section for the full reasoning. Existing rows
+// already standalone/reassigned from before this removal are left untouched; only the
+// ability to create new ones going forward is gone.

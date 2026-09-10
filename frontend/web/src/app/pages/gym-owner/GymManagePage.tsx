@@ -1,38 +1,48 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, PlusIcon as Plus, XIcon as X, WalletIcon, UsersIcon as Users, ListChecksIcon as ListChecks, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
+import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, WalletIcon, UsersIcon as Users, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle, CaretDownIcon as ChevronDown } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
-import type { Gym, GymBrand, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
+import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse, GymOperatingHoursDay, GymFacility } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
+import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
+import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeningHours";
+import { StepFacilities } from "../../components/gym/AddBranchWizard/StepFacilities";
+import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
+import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
 
-/** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
- * so the badge here always matches what the public listing would actually show. */
-function saleWindowLabel(plan: GymMembershipPlan): { text: string; color: string } | null {
-  if (!plan.saleStartAt && !plan.saleEndAt) return null;
-  const now = new Date();
-  if (plan.saleStartAt && now < new Date(plan.saleStartAt)) {
-    return { text: `Mở bán từ ${new Date(plan.saleStartAt).toLocaleDateString("vi-VN")}`, color: "text-blue-400" };
-  }
-  if (plan.saleEndAt && now > new Date(plan.saleEndAt)) {
-    return { text: "Đã hết hạn bán", color: "text-zinc-500" };
-  }
-  const until = plan.saleEndAt ? ` đến ${new Date(plan.saleEndAt).toLocaleDateString("vi-VN")}` : "";
-  return { text: `Đang mở bán${until}`, color: "text-green-400" };
+const ALL_WEEK_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+function defaultHours(gymId: string): GymOperatingHoursDay[] {
+  return ALL_WEEK_DAYS.map((day) => ({ id: null, gymId, day, type: "CLOSED", openMinute: null, closeMinute: null }));
+}
+
+/** GYM_BRANCH_FORM_SPEC.md, Phase 5 — a plain expand/collapse section, same visual language
+ * as the existing "Tên & địa chỉ"/"Vị trí"/"Trạng thái hoạt động" settings blocks but for the
+ * 4 domains that used to only be editable inside the DRAFT-only wizard (§74: all 4 are free
+ * edit regardless of approval status, so nothing here needs a pending/approval overlay). */
+function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="pt-3 border-t border-zinc-800/60">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between text-left">
+        <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{title}</p>
+        <ChevronDown className={`w-4 h-4 text-zinc-600 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="mt-3">{children}</div>}
+    </div>
+  );
 }
 
 export function GymManagePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showCreatePlan, setShowCreatePlan] = useState(false);
-  useBackDismissible(!!showCreatePlan, () => setShowCreatePlan(false));
-  const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -42,8 +52,14 @@ export function GymManagePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editLocation, setEditLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
+  const [editLocationNote, setEditLocationNote] = useState("");
+  const [editFacilities, setEditFacilities] = useState<GymFacility[]>([]);
   const [closeReason, setCloseReason] = useState("");
   const [closingMode, setClosingMode] = useState<"TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED" | null>(null);
+  // GYM_MANAGEMENT master spec §61 — owner-entered expected reopen date, only meaningful for
+  // TEMPORARILY_CLOSED (Phase 1 backend already supports this; no UI consumed it until now).
+  const [closeReopenDate, setCloseReopenDate] = useState("");
 
   const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
     queryKey: ["owned-gym", id],
@@ -55,8 +71,40 @@ export function GymManagePage() {
     if (gym) {
       setEditName(gym.name);
       setEditAddress(gym.address);
+      setEditLocation({
+        provinceCode: gym.provinceCode ?? null,
+        wardCode: gym.wardCode ?? null,
+        latitude: gym.latitude ?? null,
+        longitude: gym.longitude ?? null,
+      });
+      setEditLocationNote(gym.locationNote ?? "");
+      setEditFacilities(gym.facilities ?? []);
     }
-  }, [gym?.id, gym?.name, gym?.address]);
+  }, [gym?.id, gym?.name, gym?.address, gym?.provinceCode, gym?.wardCode, gym?.latitude, gym?.longitude, gym?.locationNote, gym?.facilities]);
+
+  // GYM_BRANCH_FORM_SPEC.md, Phase 5 — same hours endpoints the wizard's Step 3 already
+  // uses (§74: free edit regardless of DRAFT/APPROVED status).
+  const { data: hours } = useQuery<GymOperatingHoursDay[]>({
+    queryKey: ["owned-gym-hours", id],
+    queryFn: () => gymService.getGymHours(id!),
+    enabled: !!id,
+  });
+  const setHoursMutation = useMutation({
+    mutationFn: (days: GymOperatingHoursDay[]) => gymService.setGymHours(id!, days),
+    onSuccess: () => {
+      toast.success("Đã lưu giờ hoạt động");
+      queryClient.invalidateQueries({ queryKey: ["owned-gym-hours", id] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể lưu giờ hoạt động"),
+  });
+
+  // GYM_BRANCH_FORM_SPEC.md, Phase 5 — permanent-closure impact summary (§9 of
+  // GYM_BRANCH_FORM_API_GAPS.md), fetched only once the owner actually opens that flow.
+  const { data: closureImpact, isLoading: closureImpactLoading } = useQuery({
+    queryKey: ["owned-gym-closure-impact", id],
+    queryFn: () => gymService.getClosureImpact(id!),
+    enabled: !!id && closingMode === "PERMANENTLY_CLOSED",
+  });
 
   const { data: ownedBrands = [] } = useQuery<GymBrand[]>({
     queryKey: ["owned-brands"],
@@ -73,12 +121,13 @@ export function GymManagePage() {
   });
 
   const setOperationalStatusMutation = useMutation({
-    mutationFn: (payload: { operationalStatus: "OPEN" | "TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED"; reason?: string }) =>
-      gymService.setGymOperationalStatus(id!, payload.operationalStatus, payload.reason),
+    mutationFn: (payload: { operationalStatus: "OPEN" | "TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED"; reason?: string; expectedReopenAt?: string }) =>
+      gymService.setGymOperationalStatus(id!, payload.operationalStatus, payload.reason, payload.expectedReopenAt),
     onSuccess: () => {
       toast.success("Đã cập nhật trạng thái hoạt động");
       setClosingMode(null);
       setCloseReason("");
+      setCloseReopenDate("");
       queryClient.invalidateQueries({ queryKey: ["owned-gym", id] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể cập nhật"),
@@ -87,12 +136,6 @@ export function GymManagePage() {
   const { data: wallet } = useQuery<Wallet>({
     queryKey: ["owned-gym-wallet", id],
     queryFn: () => gymService.getOwnedWallet(id!),
-    enabled: !!id,
-  });
-
-  const { data: plans = [], isLoading: plansLoading } = useQuery<GymMembershipPlan[]>({
-    queryKey: ["owned-gym-plans", id],
-    queryFn: () => gymService.listOwnedPlans(id!),
     enabled: !!id,
   });
 
@@ -140,25 +183,6 @@ export function GymManagePage() {
     REJECTED: "Bị từ chối",
   };
 
-  const createPlanMutation = useMutation({
-    mutationFn: () =>
-      gymService.createPlan(id!, {
-        name: plan.name,
-        price: Number(plan.price),
-        durationDays: Number(plan.durationDays),
-        visitLimit: plan.visitLimit ? Number(plan.visitLimit) : undefined,
-        saleStartAt: plan.saleStartAt || undefined,
-        saleEndAt: plan.saleEndAt || undefined,
-      }),
-    onSuccess: () => {
-      toast.success("Plan created");
-      setShowCreatePlan(false);
-      setPlan({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
-      queryClient.invalidateQueries({ queryKey: ["owned-gym-plans", id] });
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create plan"),
-  });
-
   if (gymLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -201,7 +225,15 @@ export function GymManagePage() {
                 <AlertTriangle className="w-3 h-3" />
                 {gym.operationalStatus === "TEMPORARILY_CLOSED" ? "Đang tạm đóng cửa" : "Đã đóng cửa vĩnh viễn"}
                 {gym.closureReason ? ` — ${gym.closureReason}` : ""}
+                {gym.operationalStatus === "TEMPORARILY_CLOSED" && gym.expectedReopenAt
+                  ? ` · Dự kiến mở lại: ${new Date(gym.expectedReopenAt).toLocaleDateString("vi-VN")}`
+                  : ""}
               </p>
+            )}
+            {(gym.pendingNameNote || gym.pendingAddressNote) && (
+              <div className="mt-2">
+                <RequestChangesPanel mode="view" nameNote={gym.pendingNameNote} addressNote={gym.pendingAddressNote} />
+              </div>
             )}
           </div>
         </div>
@@ -247,20 +279,69 @@ export function GymManagePage() {
             </button>
           </div>
 
+          {/* GYM_BRANCH_FORM_SPEC.md §51/§79/§89 — read-only context, never a selector. A
+              branch permanently belongs to the owner's one brand; there is no "Đổi thương
+              hiệu" action anywhere (this used to be a live <select> that could detach a
+              branch or reassign it to another owned brand — removed as a direct
+              invariant violation, confirmed with the user before removing it). */}
           <div className="space-y-2 pt-3 border-t border-zinc-800/60">
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Thương hiệu</p>
-            <select
-              data-testid="gym-brand-select"
-              value={gym.brandId ?? ""}
-              onChange={(e) => updateGymMutation.mutate({ brandId: e.target.value || null })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
-            >
-              <option value="">Không thuộc thương hiệu nào</option>
-              {ownedBrands.map((b) => (
-                <option key={b.id} value={b.id}>{b.approvedName ?? b.name}</option>
-              ))}
-            </select>
+            <p className="text-sm text-zinc-300">
+              {ownedBrands[0] ? (ownedBrands[0].approvedName ?? ownedBrands[0].name) : "Chưa thiết lập thương hiệu"}
+            </p>
           </div>
+
+          <div className="space-y-2 pt-3 border-t border-zinc-800/60">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Vị trí</p>
+            <p className="text-[11px] text-zinc-600">
+              Dùng để khách tìm được chi nhánh này theo tỉnh/thành và thấy đúng chi nhánh gần
+              mình nhất. Có hiệu lực ngay, không cần admin duyệt.
+            </p>
+            <GymLocationFields value={editLocation} onChange={setEditLocation} />
+            <div>
+              <label className="text-xs text-zinc-500 mb-1.5 block">Hướng dẫn tới nơi (tuỳ chọn)</label>
+              <input
+                value={editLocationNote}
+                onChange={(e) => setEditLocationNote(e.target.value)}
+                placeholder="Ví dụ: Toà nhà màu xanh, cổng sau, tầng 3"
+                maxLength={300}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => updateGymMutation.mutate({ ...editLocation, locationNote: editLocationNote })}
+              disabled={updateGymMutation.isPending}
+              className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
+            >
+              Lưu vị trí
+            </button>
+          </div>
+
+          <CollapsibleSection title="Giờ hoạt động">
+            <StepOpeningHours
+              value={hours ?? defaultHours(id!)}
+              onChange={(next) => setHoursMutation.mutate(next)}
+            />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Tiện ích & Dịch vụ">
+            <StepFacilities
+              value={editFacilities}
+              onChange={(next) => {
+                setEditFacilities(next);
+                updateGymMutation.mutate({ facilities: next });
+              }}
+            />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Hình ảnh">
+            <StepPhotos gymId={id!} />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Xác minh">
+            <StepVerification gymId={id!} />
+          </CollapsibleSection>
 
           <div className="space-y-2 pt-3 border-t border-zinc-800/60">
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Trạng thái hoạt động</p>
@@ -268,6 +349,32 @@ export function GymManagePage() {
               <p className="text-xs text-zinc-500">Phòng gym đã đóng cửa vĩnh viễn — không thể đổi trạng thái nữa.</p>
             ) : closingMode ? (
               <div className="space-y-2">
+                {closingMode === "PERMANENTLY_CLOSED" && (
+                  <div data-testid="gym-closure-impact-summary" className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 space-y-1.5">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Ảnh hưởng khi đóng cửa vĩnh viễn
+                    </p>
+                    {closureImpactLoading ? (
+                      <Loader2 className="w-4 h-4 text-zinc-600 animate-spin" />
+                    ) : closureImpact ? (
+                      <ul className="text-xs text-zinc-400 space-y-0.5">
+                        <li>
+                          <span className="text-zinc-200 font-semibold">{closureImpact.activeMembers}</span> hội viên đang có gói hiệu lực
+                          {closureImpact.unusedValueTotal > 0 && (
+                            <> — tổng giá trị chưa dùng ước tính <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.unusedValueTotal)}</span></>
+                          )}
+                        </li>
+                        <li><span className="text-zinc-200 font-semibold">{closureImpact.activeCollaborations}</span> cộng tác PT đang hoạt động tại chi nhánh này</li>
+                        <li>Số dư ví hiện tại: <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.walletBalance)}</span></li>
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-zinc-600">Không thể tải số liệu ảnh hưởng — vẫn có thể tiếp tục.</p>
+                    )}
+                    <p className="text-[11px] text-zinc-600">
+                      Hành động này không thể hoàn tác. Hội viên đang hoạt động sẽ được Gymini xem xét hoàn tiền riêng, không tự động ngay lúc này.
+                    </p>
+                  </div>
+                )}
                 <textarea
                   data-testid="gym-close-reason-input"
                   value={closeReason}
@@ -275,14 +382,33 @@ export function GymManagePage() {
                   placeholder="Lý do đóng cửa..."
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 min-h-[60px]"
                 />
+                {closingMode === "TEMPORARILY_CLOSED" && (
+                  <label className="block space-y-1">
+                    <span className="text-xs text-zinc-500">Ngày dự kiến mở lại (không bắt buộc)</span>
+                    <input
+                      type="date"
+                      data-testid="gym-close-reopen-date-input"
+                      value={closeReopenDate}
+                      onChange={(e) => setCloseReopenDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+                    />
+                  </label>
+                )}
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setClosingMode(null); setCloseReason(""); }} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
+                  <button type="button" onClick={() => { setClosingMode(null); setCloseReason(""); setCloseReopenDate(""); }} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
                     Huỷ
                   </button>
                   <button
                     type="button"
                     data-testid="gym-confirm-close-button"
-                    onClick={() => setOperationalStatusMutation.mutate({ operationalStatus: closingMode, reason: closeReason })}
+                    onClick={() =>
+                      setOperationalStatusMutation.mutate({
+                        operationalStatus: closingMode,
+                        reason: closeReason,
+                        ...(closingMode === "TEMPORARILY_CLOSED" && closeReopenDate ? { expectedReopenAt: closeReopenDate } : {}),
+                      })
+                    }
                     disabled={!closeReason.trim() || setOperationalStatusMutation.isPending}
                     className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
                   >
@@ -403,54 +529,28 @@ export function GymManagePage() {
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />
 
-      {/* PT collaboration — component existed, fully built, but was never mounted on any
-          page: an owner had no way to reach it at all. */}
+      {/* PT collaboration for THIS branch specifically — proposing/inviting only makes sense
+          in a specific gym's context, which is why this stays here even though there is now
+          also a brand-wide aggregate view (see GymCollaborationsPage.tsx, reachable from the
+          "Quản lý cộng tác" nav entry) for just glancing at every branch's offers at once
+          without hunting through each gym's own page. */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
         <CollaborationPanel as="GYM" gymId={id!} />
       </div>
 
-      {/* Check-in */}
-      <GymCheckinPanel gymId={id!} />
-
-      {/* Plans */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-1.5"><ListChecks className="w-4 h-4" /> Membership Plans</h2>
-          <button
-            type="button"
-            onClick={() => setShowCreatePlan(true)}
-            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> New Plan
-          </button>
-        </div>
-        {plansLoading ? (
-          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-        ) : plans.length === 0 ? (
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-sm text-zinc-500">No plans yet</div>
-        ) : (
-          <div className="space-y-2">
-            {plans.map((p) => {
-              const saleWindow = saleWindowLabel(p);
-              return (
-                <div key={p.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-zinc-200">{p.name}</div>
-                    <div className="text-xs text-zinc-600">{p.durationDays} days{p.visitLimit ? ` · ${p.visitLimit} visits` : " · unlimited"}</div>
-                    {saleWindow && <div className={`text-[11px] mt-0.5 ${saleWindow.color}`}>{saleWindow.text}</div>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${p.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-zinc-700/50 border-zinc-700 text-zinc-400"}`}>
-                      {p.status}
-                    </span>
-                    <span className="text-sm font-bold text-green-400">{formatVND(Number(p.price))}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Plans moved to their own top-level page — a plan is sold by the BRAND now (see
+          GymPlansPage.tsx), not this one branch, so there is nothing gym-specific left to
+          manage here. */}
+      <button
+        type="button"
+        onClick={() => navigate("/gym-owner/plans")}
+        className="w-full flex items-center justify-between bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors text-left"
+      >
+        <span className="text-sm font-semibold text-zinc-300">
+          Gói hội viên được quản lý chung cho cả thương hiệu
+        </span>
+        <span className="text-xs font-semibold text-green-400 shrink-0">Quản lý gói →</span>
+      </button>
 
       {/* Memberships */}
       <div>
@@ -485,88 +585,6 @@ export function GymManagePage() {
         )}
       </div>
 
-      {/* Create plan dialog */}
-      {showCreatePlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">New Membership Plan</h3>
-              <button type="button" onClick={() => setShowCreatePlan(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <input
-                aria-label="Plan name"
-                value={plan.name}
-                onChange={(e) => setPlan({ ...plan, name: e.target.value })}
-                placeholder="Plan name (e.g. Monthly)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Price"
-                type="number"
-                value={plan.price}
-                onChange={(e) => setPlan({ ...plan, price: e.target.value })}
-                placeholder="Price (VND)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Duration in days"
-                type="number"
-                value={plan.durationDays}
-                onChange={(e) => setPlan({ ...plan, durationDays: e.target.value })}
-                placeholder="Duration (days)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Visit limit (optional)"
-                type="number"
-                value={plan.visitLimit}
-                onChange={(e) => setPlan({ ...plan, visitLimit: e.target.value })}
-                placeholder="Visit limit (blank = unlimited)"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">
-                  Thời gian mở bán (tuỳ chọn — dùng cho gói khuyến mãi)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    aria-label="Sale start date"
-                    type="date"
-                    value={plan.saleStartAt}
-                    onChange={(e) => setPlan({ ...plan, saleStartAt: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  />
-                  <input
-                    aria-label="Sale end date"
-                    type="date"
-                    value={plan.saleEndAt}
-                    onChange={(e) => setPlan({ ...plan, saleEndAt: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  />
-                </div>
-                <p className="text-[11px] text-zinc-600 mt-1">Để trống cả hai = luôn mở bán.</p>
-              </div>
-            </div>
-            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setShowCreatePlan(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => createPlanMutation.mutate()}
-                disabled={!plan.name.trim() || !plan.price || createPlanMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
-              >
-                {createPlanMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

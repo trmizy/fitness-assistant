@@ -7,6 +7,7 @@ import { profileRepository } from "../repositories/profile.repository";
 import { inbodyService } from "../services/inbody.service";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
 import { notificationService } from "../services/notification.service";
+import { contractRepository } from "../repositories/contract.repository";
 
 const router = Router();
 
@@ -190,6 +191,25 @@ router.post("/notifications", async (req, res) => {
     res.json({ notification });
   } catch (error: any) {
     logger.error(error, "Internal notification create failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Phase 5 (quản lý đối tác phòng tập) — gym-service gọi trước khi cho admin xác nhận
+// "Chấm dứt hợp tác", để hiện đúng số hợp đồng PT đang chạy tại các chi nhánh sắp bị ảnh
+// hưởng (đặc tả: "không được để admin bấm chấm dứt mà không biết mình đang ảnh hưởng tới
+// bao nhiêu người").
+router.post("/contracts/count-active-by-gyms", async (req, res) => {
+  const gymIds = req.body?.gymIds;
+  if (!Array.isArray(gymIds)) {
+    res.status(400).json({ error: "gymIds phải là một mảng" });
+    return;
+  }
+  try {
+    const count = await contractRepository.countActiveByGyms(gymIds);
+    res.json({ count });
+  } catch (error: any) {
+    logger.error(error, "count-active-by-gyms failed");
     res.status(500).json({ error: error.message });
   }
 });

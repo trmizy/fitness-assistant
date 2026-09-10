@@ -15,9 +15,14 @@ export const brandService = {
    */
   async createBrand(ownerId: string, data: { name: string; description?: string }) {
     if (!data.name?.trim()) throw err('Brand name is required', 400);
+    // One owner, one brand — gymService.createGym is the only normal path to a brand now (it
+    // auto-creates this owner's first and only one), and calls this itself exactly once,
+    // before any brand of theirs exists. This guard is for anything else that might still call
+    // straight in — an owner who already has a brand adds branches to it, they don't get a
+    // second one.
     const existing = await brandRepository.findByOwner(ownerId);
     if (existing.length > 0) {
-      throw err('Each gym owner can only own one gym brand', 409);
+      throw err('Bạn đã có thương hiệu — hãy thêm chi nhánh mới thay vì tạo thương hiệu khác', 409);
     }
     const name = data.name.trim();
     return brandRepository.create({

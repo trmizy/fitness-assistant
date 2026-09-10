@@ -175,6 +175,17 @@ export const contractRepository = {
   /** Admin: count contracts per user for a list of user IDs.
    *  Returns { [userId]: count } combining both PT and client roles.
    */
+  /**
+   * Phase 5 (quản lý đối tác phòng tập) — đếm hợp đồng PT đang chạy tại các chi nhánh của
+   * một đối tác, cho màn xác nhận "Chấm dứt hợp tác" bên gym-service. Chỉ ACTIVE mới tính
+   * là "đang chạy" — PENDING_* chưa có tiền vào, COMPLETED/EXPIRED/CANCELLED/REJECTED đã
+   * xong việc, chấm dứt đối tác không ảnh hưởng gì tới chúng.
+   */
+  async countActiveByGyms(gymIds: string[]): Promise<number> {
+    if (gymIds.length === 0) return 0;
+    return prisma.contract.count({ where: { gymId: { in: gymIds }, status: 'ACTIVE' } });
+  },
+
   async countByUsers(userIds: string[]): Promise<Record<string, number>> {
     if (userIds.length === 0) return {};
     const [asPT, asClient] = await Promise.all([

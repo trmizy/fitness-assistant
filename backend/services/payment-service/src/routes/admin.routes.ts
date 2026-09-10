@@ -8,6 +8,7 @@ import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { Prisma } from '../generated/prisma';
 import { buildReconciliationReport } from '../services/reconcile.service';
+import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-report.service';
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 
@@ -43,6 +44,28 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/reconciliation', async (_req: Request, res: Response) => {
   const report = await buildReconciliationReport();
   return res.status(report.balanced ? 200 : 409).json({ success: report.balanced, data: report });
+});
+
+/**
+ * GET /admin/payments/finance-overview?groupBy=day|week|month|quarter&from=ISO&to=ISO
+ *
+ * Admin "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo khoảng thời gian, gộp theo
+ * ngày/tuần/tháng/quý. `from`/`to` default to the last 30 days when omitted so the tab has a
+ * sensible chart on first load.
+ */
+router.get('/finance-overview', async (req: Request, res: Response) => {
+  const groupBy = isFinanceGroupBy(req.query.groupBy) ? req.query.groupBy : 'day';
+  const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+  const from = req.query.from
+    ? new Date(String(req.query.from))
+    : new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: 'from phải trước to và cả hai phải là ngày hợp lệ' } });
+  }
+
+  const report = await buildFinanceOverview({ from, to, groupBy });
+  return res.json({ success: true, data: report });
 });
 
 router.get('/commissions', async (_req: Request, res: Response) => {

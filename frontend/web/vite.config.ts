@@ -109,6 +109,14 @@ export default defineConfig({
         changeOrigin: true,
         configure: forwardRealHost,
       },
+      // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". A plain <img src="/uploads/
+      // gym-photos/...">, same-origin like every other request — the gateway's own route is
+      // NOT under /api (see proxy.routes.ts), so no rewrite here either.
+      "/uploads": {
+        target: GATEWAY_PROXY_TARGET,
+        changeOrigin: true,
+        configure: forwardRealHost,
+      },
       // Gateway's own Socket.IO (dashboard/notifications/chat-intent AI) —
       // same path both sides, no rewrite needed.
       "/socket.io": {
