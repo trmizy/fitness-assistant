@@ -26,6 +26,13 @@ import { tokenStore } from "./tokenStore";
 // same-origin "/api" default. Saving a new address reloads the app so this re-runs.
 export const API_URL = apiBaseUrl();
 
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — a plain relative path
+// (not through the `api` axios instance, no /api prefix, no auth) works same-origin in both
+// dev (vite.config.ts's "/uploads" proxy) and prod (nginx.prod.conf's "location /uploads/").
+export function gymPhotoUrl(fileName: string): string {
+  return `/uploads/gym-photos/${fileName}`;
+}
+
 // Exported so a page can make an ad-hoc call without a dedicated service method — but always
 // through THIS instance. Its request interceptor is what reads the token correctly (via
 // @capacitor/preferences); reaching for a bare `axios` import and `localStorage.getItem`
@@ -3252,12 +3259,37 @@ export const adminService = {
     const { data } = await api.post('/admin/gym-owners', payload);
     return data?.data ?? data;
   },
+  // "Quản lý gym & owner" — admin can only CREATE an owner account before this; these three
+  // fill the gap the user pointed out (suspend/reactivate + name fix, no email edit — see
+  // authService.updateUserNameAsAdmin's doc comment for why email is excluded).
+  listGymOwners: async () => {
+    const { data } = await api.get('/admin/gym-owners');
+    return data?.data ?? data;
+  },
+  setGymOwnerActive: async (userId: string, isActive: boolean) => {
+    const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
+    return data?.data ?? data;
+  },
+  updateGymOwnerName: async (userId: string, payload: { firstName?: string; lastName?: string }) => {
+    const { data } = await api.patch(`/admin/users/${userId}/name`, payload);
+    return data?.data ?? data;
+  },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
     const { data } = await api.get('/admin/gyms', { params: status ? { status } : undefined });
     return data?.data ?? data;
   },
   setGymStatus: async (gymId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
     const { data } = await api.patch(`/admin/gyms/${gymId}/status`, { status });
+    return data?.data ?? data;
+  },
+  // "Quản lý gym & owner" — admin editing a branch's details directly (name/address take
+  // effect immediately, no owner-approval round-trip). Creating a NEW branch is still owner-
+  // only (unchanged) — this only covers editing an existing one.
+  updateGymDetails: async (
+    gymId: string,
+    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string }>,
+  ) => {
+    const { data } = await api.patch(`/admin/gyms/${gymId}`, payload);
     return data?.data ?? data;
   },
   // C2 — approves a rename/address-change on a gym that was already approved before (the
@@ -3452,6 +3484,224 @@ export const adminService = {
 
   clearAIKnowledgeSchedule: async () => {
     const { data } = await api.delete("/admin/ai/knowledge/schedule");
+    return data;
+  },
+
+  // ── Quản lý đối tác phòng tập (Phase 2-5) ─────────────────────────────────────
+  getGymManagementOverview: async () => {
+    const { data } = await api.get("/admin/partners/overview-stats");
+    return data?.data ?? data;
+  },
+  getPartnerQueue: async () => {
+    const { data } = await api.get("/admin/partners/queue");
+    return data?.data ?? data;
+  },
+  listPartners: async (status?: string) => {
+    const { data } = await api.get("/admin/partners", { params: status ? { status } : undefined });
+    return data?.data ?? data;
+  },
+  getPartner: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}`);
+    return data?.data ?? data;
+  },
+  createPartner: async (payload: {
+    legalName: string; partnerKind?: "BUSINESS" | "INDIVIDUAL"; taxCode?: string; businessLicenseNo?: string;
+    contactEmail: string; contactPhone?: string; commissionRateOverride?: number | null;
+  }) => {
+    const { data } = await api.post("/admin/partners", payload);
+    return data?.data ?? data;
+  },
+  updatePartner: async (id: string, payload: Record<string, unknown>) => {
+    const { data } = await api.patch(`/admin/partners/${id}`, payload);
+    return data?.data ?? data;
+  },
+  getPartnerAuditLog: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/audit-log`);
+    return data?.data ?? data;
+  },
+  provisionPartnerOwner: async (id: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/provision`, {});
+    return data?.data ?? data;
+  },
+  resendPartnerInvitation: async (partnerId: string, invitationId: string) => {
+    const { data } = await api.post(`/admin/partners/${partnerId}/invitations/${invitationId}/resend`, {});
+    return data?.data ?? data;
+  },
+  revokePartnerInvitation: async (partnerId: string, invitationId: string) => {
+    const { data } = await api.post(`/admin/partners/${partnerId}/invitations/${invitationId}/revoke`, {});
+    return data?.data ?? data;
+  },
+  resetPartnerAccountPassword: async (accountId: string) => {
+    const { data } = await api.post(`/admin/partner-accounts/${accountId}/reset-password`, {});
+    return data?.data ?? data;
+  },
+  forceLogoutPartnerAccount: async (accountId: string) => {
+    const { data } = await api.post(`/admin/partner-accounts/${accountId}/force-logout`, {});
+    return data?.data ?? data;
+  },
+  revokePartnerAccountAsAdmin: async (accountId: string, reason?: string) => {
+    const { data } = await api.delete(`/admin/partner-accounts/${accountId}`, { data: { reason } });
+    return data?.data ?? data;
+  },
+  transferPartnerOwnership: async (partnerId: string, toAccountId: string, reason?: string) => {
+    const { data } = await api.post(`/admin/partners/${partnerId}/transfer-ownership`, { toAccountId, reason });
+    return data?.data ?? data;
+  },
+  viewAsPartner: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/view-as`);
+    return data?.data ?? data;
+  },
+
+  // Phase 4 — hồ sơ thẩm định.
+  listPartnerDocuments: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/documents`);
+    return data?.data ?? data;
+  },
+  upsertPartnerDocument: async (id: string, docType: string, fileUrl: string) => {
+    const { data } = await api.put(`/admin/partners/${id}/documents/${docType}`, { fileUrl });
+    return data?.data ?? data;
+  },
+  verifyPartnerDocument: async (id: string, docType: string, decision: "VERIFIED" | "REJECTED", expiresAt?: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/documents/${docType}/verify`, { decision, expiresAt });
+    return data?.data ?? data;
+  },
+  listPartnerContactLog: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/contact-log`);
+    return data?.data ?? data;
+  },
+  addPartnerContactLog: async (id: string, payload: { channel: string; note: string; occurredAt?: string }) => {
+    const { data } = await api.post(`/admin/partners/${id}/contact-log`, payload);
+    return data?.data ?? data;
+  },
+  rejectPartner: async (id: string, reason: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/reject`, { reason });
+    return data?.data ?? data;
+  },
+  reopenPartner: async (id: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/reopen`, {});
+    return data?.data ?? data;
+  },
+
+  // Phase 5 — tạm khoá / chấm dứt / chiết khấu.
+  suspendPartner: async (id: string, reason: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/suspend`, { reason });
+    return data?.data ?? data;
+  },
+  unsuspendPartner: async (id: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/unsuspend`, {});
+    return data?.data ?? data;
+  },
+  getTerminationImpact: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/termination-impact`);
+    return data?.data ?? data;
+  },
+  terminatePartner: async (id: string, payload: { reason: string; memberPolicy: "SERVE_UNTIL_EXPIRY" | "PRORATED_REFUND" }) => {
+    const { data } = await api.post(`/admin/partners/${id}/terminate`, payload);
+    return data?.data ?? data;
+  },
+  getCommissionRate: async () => {
+    const { data } = await api.get("/admin/commission-rate");
+    return data?.data ?? data;
+  },
+  getCommissionRateHistory: async () => {
+    const { data } = await api.get("/admin/commission-rate/history");
+    return data?.data ?? data;
+  },
+  setCommissionRate: async (rate: number, effectiveFrom: string) => {
+    const { data } = await api.post("/admin/commission-rate", { rate, effectiveFrom });
+    return data?.data ?? data;
+  },
+
+  // GYM_MANAGEMENT master spec Phase 1 — verification axis, admin assignment, internal notes.
+  setPartnerVerificationStatus: async (id: string, verificationStatus: string, notes?: string) => {
+    const { data } = await api.patch(`/admin/partners/${id}/verification-status`, { verificationStatus, notes });
+    return data?.data ?? data;
+  },
+  assignPartnerAdmin: async (id: string, assignedAdminId: string | null) => {
+    const { data } = await api.patch(`/admin/partners/${id}/assigned-admin`, { assignedAdminId });
+    return data?.data ?? data;
+  },
+  listPartnerInternalNotes: async (id: string) => {
+    const { data } = await api.get(`/admin/partners/${id}/internal-notes`);
+    return data?.data ?? data;
+  },
+  addPartnerInternalNote: async (id: string, text: string) => {
+    const { data } = await api.post(`/admin/partners/${id}/internal-notes`, { text });
+    return data?.data ?? data;
+  },
+  // Phase 1 — per-field "Request Changes" on a branch (does not change GymStatus).
+  requestGymChanges: async (gymId: string, payload: { nameNote?: string; addressNote?: string }) => {
+    const { data } = await api.post(`/admin/gyms/${gymId}/request-changes`, payload);
+    return data?.data ?? data;
+  },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the SEPARATE by-category "Request Changes" for a
+  // branch's first-time PENDING_REVIEW wizard submission (sends it back to DRAFT). Distinct
+  // from requestGymChanges above, which is name/address only and never changes status.
+  requestBranchChanges: async (gymId: string, issues: { category: import('../types').BranchReviewCategory; message: string }[]) => {
+    const { data } = await api.post(`/admin/gyms/${gymId}/branch-review-issues`, { issues });
+    return data?.data ?? data;
+  },
+  listBranchReviewIssues: async (gymId: string): Promise<import('../types').GymBranchReviewIssue[]> => {
+    const { data } = await api.get(`/admin/gyms/${gymId}/branch-review-issues`);
+    return data?.data ?? data;
+  },
+
+  // GYM_BRANCH_FORM_SPEC.md, Phase 6 — admin review workspace: the wizard collects opening
+  // hours/facilities/photos/verification documents a bare gym row doesn't carry (facilities
+  // does — it's a plain column already on GET /admin/gyms's rows).
+  getGymHoursForAdmin: async (gymId: string): Promise<import('../types').GymOperatingHoursDay[]> => {
+    const { data } = await api.get(`/admin/gyms/${gymId}/hours`);
+    return data?.data ?? data;
+  },
+  listGymPhotosForAdmin: async (gymId: string): Promise<import('../types').GymPhoto[]> => {
+    const { data } = await api.get(`/admin/gyms/${gymId}/photos`);
+    return data?.data ?? data;
+  },
+  listBranchDocumentsForAdmin: async (
+    gymId: string,
+  ): Promise<{ documents: import('../types').GymBranchDocument[]; partnerContext: import('../types').PartnerDocumentContext[] }> => {
+    const { data } = await api.get(`/admin/gyms/${gymId}/branch-documents`);
+    return data?.data ?? data;
+  },
+  fetchBranchDocumentBlob: async (token: string): Promise<Blob> => {
+    const { data } = await api.get(`/admin/branch-documents/${token}`, { responseType: "blob" });
+    return data;
+  },
+
+  // GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm (một hàng đợi chung, mọi nguồn).
+  listComplaints: async (status?: string) => {
+    const { data } = await api.get("/admin/complaints", { params: status ? { status } : undefined });
+    return data?.data ?? data;
+  },
+  getComplaint: async (id: string) => {
+    const { data } = await api.get(`/admin/complaints/${id}`);
+    return data?.data ?? data;
+  },
+  listPartnerComplaints: async (partnerId: string) => {
+    const { data } = await api.get(`/admin/partners/${partnerId}/complaints`);
+    return data?.data ?? data;
+  },
+  createComplaintAsAdmin: async (payload: {
+    gymId: string;
+    source: string;
+    issueType: string;
+    description: string;
+    photoTokens?: string[];
+    reporterUserId?: string | null;
+  }) => {
+    const { data } = await api.post("/admin/complaints", payload);
+    return data?.data ?? data;
+  },
+  updateComplaintStatus: async (id: string, payload: { status: string; adminResponse?: string }) => {
+    const { data } = await api.patch(`/admin/complaints/${id}/status`, payload);
+    return data?.data ?? data;
+  },
+  assignComplaintAdmin: async (id: string, assignedAdminId: string | null) => {
+    const { data } = await api.patch(`/admin/complaints/${id}/assigned-admin`, { assignedAdminId });
+    return data?.data ?? data;
+  },
+  fetchComplaintPhotoBlob: async (token: string): Promise<Blob> => {
+    const { data } = await api.get(`/admin/complaint-photos/${token}`, { responseType: "blob" });
     return data;
   },
 };
@@ -4462,7 +4712,103 @@ export const gymService = {
     const { data } = await api.get('/owner/gyms');
     return data?.data ?? data;
   },
-  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) => {
+  // GYM_BRANCH_FORM_SPEC.md, Phase 1 — "Add Branch" wizard shell: draft/auto-save/resume.
+  createGymDraft: async () => {
+    const { data } = await api.post('/owner/gyms/draft', {});
+    return data?.data ?? data;
+  },
+  updateGymDraft: async (
+    gymId: string,
+    payload: Partial<{
+      name: string; description: string; address: string; city: string; phone: string; email: string;
+      provinceCode: number | null; wardCode: number | null; latitude: number | null; longitude: number | null;
+      locationNote: string; facilities: import('../types').GymFacility[]; wizardStep: number;
+    }>,
+  ) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/draft`, payload);
+    return data?.data ?? data;
+  },
+  // Rejects with the usual axios error shape on 4xx — a failed submit's per-field issue list
+  // lives at e.response.data.error.issues (see gym-draft.controller.ts's fail()), same
+  // convention every other mutation in this file already relies on.
+  submitGymDraft: async (gymId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/submit`, {});
+    return data?.data ?? data;
+  },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 2 — Step 3 "Opening Hours". §74: free edit whether DRAFT
+  // or already APPROVED — one pair of endpoints serves both the wizard and the post-approval
+  // branch workspace.
+  getGymHours: async (gymId: string): Promise<import('../types').GymOperatingHoursDay[]> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/hours`);
+    return data?.data ?? data;
+  },
+  setGymHours: async (
+    gymId: string,
+    days: Pick<import('../types').GymOperatingHoursDay, 'day' | 'type' | 'openMinute' | 'closeMinute'>[],
+  ): Promise<import('../types').GymOperatingHoursDay[]> => {
+    const { data } = await api.put(`/owner/gyms/${gymId}/hours`, { days });
+    return data?.data ?? data;
+  },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — fileName joins with
+  // GYM_PHOTO_BASE_URL (below) to form a plain <img src>, no auth-gated blob fetch needed.
+  listGymPhotos: async (gymId: string): Promise<import('../types').GymPhoto[]> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/photos`);
+    return data?.data ?? data;
+  },
+  uploadGymPhoto: async (gymId: string, file: File): Promise<import('../types').GymPhoto> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const { data } = await api.post(`/owner/gyms/${gymId}/photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data?.data ?? data;
+  },
+  deleteGymPhoto: async (gymId: string, photoId: string) => {
+    const { data } = await api.delete(`/owner/gyms/${gymId}/photos/${photoId}`);
+    return data?.data ?? data;
+  },
+  setGymPhotoCover: async (gymId: string, photoId: string): Promise<import('../types').GymPhoto[]> => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/photos/${photoId}/cover`);
+    return data?.data ?? data;
+  },
+  reorderGymPhotos: async (gymId: string, photoIds: string[]): Promise<import('../types').GymPhoto[]> => {
+    const { data } = await api.put(`/owner/gyms/${gymId}/photos/reorder`, { photoIds });
+    return data?.data ?? data;
+  },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification". Private — fileToken needs
+  // AuthenticatedImage (blob fetch with auth), same convention as complaint photos.
+  listBranchDocuments: async (
+    gymId: string,
+  ): Promise<{ documents: import('../types').GymBranchDocument[]; partnerContext: import('../types').PartnerDocumentContext[]; gymId: string }> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/branch-documents`);
+    return data?.data ?? data;
+  },
+  uploadBranchDocument: async (
+    gymId: string,
+    docType: import('../types').BranchDocumentType,
+    file: File,
+  ): Promise<import('../types').GymBranchDocument> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post(`/owner/gyms/${gymId}/branch-documents/${docType}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data?.data ?? data;
+  },
+  fetchBranchDocumentBlob: async (token: string): Promise<Blob> => {
+    const { data } = await api.get(`/owner/branch-documents/${token}`, { responseType: 'blob' });
+    return data;
+  },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner: what admin flagged
+  // last time this branch was sent back from PENDING_REVIEW to DRAFT.
+  listOpenReviewIssues: async (gymId: string): Promise<import('../types').GymBranchReviewIssue[]> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/review-issues`);
+    return data?.data ?? data;
+  },
+  createGym: async (payload: {
+    name: string; description?: string; address: string; city?: string; phone?: string; email?: string;
+    provinceCode?: number | null; wardCode?: number | null; latitude?: number | null; longitude?: number | null;
+  }) => {
     const { data } = await api.post('/owner/gyms', payload);
     return data?.data ?? data;
   },
@@ -4470,19 +4816,42 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}`);
     return data?.data ?? data;
   },
-  // Vòng 4 / Phase C2/C4 — name/address only ever move pendingName/pendingAddress (public
-  // display waits for admin approval); brandId moves/detaches the gym (pass null to detach).
+  // Vòng 4 / Phase C2 — name/address only ever move pendingName/pendingAddress (public
+  // display waits for admin approval). GYM_BRANCH_FORM_SPEC.md §51/§79/§89 — no brandId here
+  // any more; a branch permanently belongs to the owner's one brand (see gym.schemas.ts's
+  // own doc comment for why the field was removed, not just left unused).
   updateGym: async (
     gymId: string,
-    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string; brandId: string | null }>,
+    payload: Partial<{
+      name: string; description: string; address: string; city: string; phone: string; email: string;
+      provinceCode: number | null; wardCode: number | null; latitude: number | null; longitude: number | null;
+      locationNote: string; facilities: import('../types').GymFacility[];
+    }>,
   ) => {
     const { data } = await api.patch(`/owner/gyms/${gymId}`, payload);
     return data?.data ?? data;
   },
+  // GYM_BRANCH_FORM_SPEC.md, Phase 5 — shown before confirming permanent closure.
+  getClosureImpact: async (
+    gymId: string,
+  ): Promise<{ activeMembers: number; unusedValueTotal: number; activeCollaborations: number; walletBalance: number }> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/closure-impact`);
+    return data?.data ?? data;
+  },
   // Vòng 4 / Phase C3 — owner's own open/close switch. `reason` required for
   // TEMPORARILY_CLOSED/PERMANENTLY_CLOSED, ignored for OPEN (reopen).
-  setGymOperationalStatus: async (gymId: string, operationalStatus: 'OPEN' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED', reason?: string) => {
-    const { data } = await api.patch(`/owner/gyms/${gymId}/operational-status`, { operationalStatus, ...(reason ? { reason } : {}) });
+  setGymOperationalStatus: async (
+    gymId: string,
+    operationalStatus: 'OPEN' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED',
+    reason?: string,
+    // GYM_MANAGEMENT master spec §61 (Phase 1 backend) — only meaningful for TEMPORARILY_CLOSED.
+    expectedReopenAt?: string,
+  ) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/operational-status`, {
+      operationalStatus,
+      ...(reason ? { reason } : {}),
+      ...(expectedReopenAt ? { expectedReopenAt } : {}),
+    });
     return data?.data ?? data;
   },
   getOwnedWallet: async (gymId: string) => {
@@ -4574,6 +4943,93 @@ export const gymService = {
   },
   deleteGymReview: async (gymId: string) => {
     const { data } = await api.delete(`/gyms/${gymId}/reviews`);
+    return data?.data ?? data;
+  },
+
+  // ── GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (riêng tư, khác review công
+  // khai ở trên — hai nút riêng, nhãn khác nhau, theo đúng yêu cầu đã chốt). ──
+  uploadComplaintPhoto: async (file: File): Promise<{ token: string }> => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    const { data } = await api.post("/complaint-photos", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data?.data ?? data;
+  },
+  submitGymComplaint: async (
+    gymId: string,
+    payload: { issueType: string; description: string; photoTokens?: string[] },
+  ) => {
+    const { data } = await api.post(`/gyms/${gymId}/complaints`, payload);
+    return data?.data ?? data;
+  },
+  listMyComplaints: async () => {
+    const { data } = await api.get("/me/complaints");
+    return data?.data ?? data;
+  },
+  /** Ảnh minh chứng riêng tư — không có URL công khai nào để dùng thẳng trong `<img src>`,
+   * phải tải qua axios (kèm header xác thực) rồi tạo object URL. Dùng chung cho cả người
+   * báo cáo xem lại ảnh của chính mình (route `/complaint-photos/:token`, không phải
+   * `/admin/...` — xem adminService.fetchComplaintPhotoBlob cho phía admin). */
+  fetchComplaintPhotoBlob: async (token: string): Promise<Blob> => {
+    const { data } = await api.get(`/complaint-photos/${token}`, { responseType: "blob" });
+    return data;
+  },
+
+  // ── Quản lý đối tác — Phase 3: trình thiết lập lần đầu + tự quản lý người quản lý ──
+  getOnboardingStatus: async () => {
+    const { data } = await api.get('/owner/onboarding/status');
+    return data?.data ?? data;
+  },
+  submitOnboardingContact: async (phone: string) => {
+    const { data } = await api.patch('/owner/onboarding/contact', { phone });
+    return data?.data ?? data;
+  },
+  submitOnboardingBrand: async (payload: { name: string; description?: string }) => {
+    const { data } = await api.post('/owner/onboarding/brand', payload);
+    return data?.data ?? data;
+  },
+  submitOnboardingPayout: async (payload: { bankName: string; accountNumber: string; accountHolder: string }) => {
+    const { data } = await api.patch('/owner/onboarding/payout', payload);
+    return data?.data ?? data;
+  },
+  submitOnboardingTerms: async (version?: string) => {
+    const { data } = await api.post('/owner/onboarding/terms', { version });
+    return data?.data ?? data;
+  },
+
+  listPartnerAccounts: async () => {
+    const { data } = await api.get('/owner/partner-accounts');
+    return data?.data ?? data;
+  },
+  revokePartnerAccount: async (accountId: string, reason?: string) => {
+    const { data } = await api.delete(`/owner/partner-accounts/${accountId}`, { data: { reason } });
+    return data?.data ?? data;
+  },
+  listPartnerInvitations: async () => {
+    const { data } = await api.get('/owner/partner-invitations');
+    return data?.data ?? data;
+  },
+  inviteManager: async (payload: { email: string; scopedGymIds: string[] }) => {
+    const { data } = await api.post('/owner/partner-invitations', payload);
+    return data?.data ?? data;
+  },
+  resendManagerInvitation: async (id: string) => {
+    const { data } = await api.post(`/owner/partner-invitations/${id}/resend`);
+    return data?.data ?? data;
+  },
+  revokeManagerInvitation: async (id: string) => {
+    const { data } = await api.delete(`/owner/partner-invitations/${id}`);
+    return data?.data ?? data;
+  },
+
+  // ── Thư mời đối tác — công khai, không cần đăng nhập ──────────────────────────
+  previewPartnerInvitation: async (token: string) => {
+    const { data } = await api.get(`/partner-invitations/${token}`);
+    return data?.data ?? data;
+  },
+  acceptPartnerInvitation: async (token: string, payload: { password: string; firstName: string; lastName?: string }) => {
+    const { data } = await api.post(`/partner-invitations/${token}/accept`, payload);
     return data?.data ?? data;
   },
 };

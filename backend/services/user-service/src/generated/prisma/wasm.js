@@ -152,6 +152,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   startingWeightSource: 'startingWeightSource',
   dietaryPreference: 'dietaryPreference',
   photoUrl: 'photoUrl',
+  unitSystem: 'unitSystem',
+  energyUnit: 'energyUnit',
   sessionDurationMinutes: 'sessionDurationMinutes',
   isAcceptingClients: 'isAcceptingClients',
   notAcceptingReason: 'notAcceptingReason',
@@ -677,14 +679,18 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   WORKOUT_RESCHEDULED: 'WORKOUT_RESCHEDULED',
   WORKOUT_UNFINISHED: 'WORKOUT_UNFINISHED',
   TRAINING_PLAN_UPDATED: 'TRAINING_PLAN_UPDATED',
-  PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED'
+  PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED',
+  GYM_COMPLAINT_RESOLVED: 'GYM_COMPLAINT_RESOLVED',
+  GYM_BRANCH_CHANGES_REQUESTED: 'GYM_BRANCH_CHANGES_REQUESTED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   CONTRACT: 'CONTRACT',
   SESSION: 'SESSION',
   WORKOUT_SCHEDULE: 'WORKOUT_SCHEDULE',
-  TRAINING_PROGRAM: 'TRAINING_PROGRAM'
+  TRAINING_PROGRAM: 'TRAINING_PROGRAM',
+  GYM_COMPLAINT: 'GYM_COMPLAINT',
+  GYM_BRANCH: 'GYM_BRANCH'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {

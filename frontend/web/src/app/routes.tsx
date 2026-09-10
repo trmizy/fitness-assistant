@@ -17,10 +17,17 @@ import { PageSkeleton } from "./components/layout/PageSkeleton";
 
 // Dev-only pages
 const IconGalleryPage = lazy(() => import("./pages/dev/IconGalleryPage").then((m) => ({ default: m.IconGalleryPage })));
+// GYM_MANAGEMENT master spec Phase 2 — component-library showcase, same "unlinked + inert
+// unless DEV" convention as IconGalleryPage above.
+const GymManagementKitchenSink = lazy(() =>
+  import("./pages/dev/GymManagementKitchenSink").then((m) => ({ default: m.GymManagementKitchenSink })),
+);
 
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
+const PartnerInviteAcceptPage = lazy(() => import("./pages/auth/PartnerInviteAcceptPage").then((m) => ({ default: m.PartnerInviteAcceptPage })));
+const PartnerPasswordResetPage = lazy(() => import("./pages/auth/PartnerPasswordResetPage").then((m) => ({ default: m.PartnerPasswordResetPage })));
 
 // Client pages
 const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard").then((m) => ({ default: m.ClientDashboard })));
@@ -32,7 +39,6 @@ const TrainingEquipmentSettingsPage = lazy(() => import("./pages/client/Training
 const PTApplicationPage = lazy(() => import("./pages/client/PTApplicationPage").then((m) => ({ default: m.PTApplicationPage })));
 const WalletPage = lazy(() => import("./pages/client/WalletPage").then((m) => ({ default: m.WalletPage })));
 const PaymentResultPage = lazy(() => import("./pages/client/PaymentResultPage").then((m) => ({ default: m.PaymentResultPage })));
-const GymDetailPage = lazy(() => import("./pages/client/GymDetailPage").then((m) => ({ default: m.GymDetailPage })));
 const ChatPage = lazy(() => import("./pages/client/ChatPage").then((m) => ({ default: m.ChatPage }))); // reused directly by /pt/chat (trainer workspace)
 // Merged tabbed pages — each combines two previously-separate nav entries
 // under one sidebar item (see TabbedPage) to shorten the nav for mobile.
@@ -75,8 +81,12 @@ const PTServiceOrderPage = lazy(() => import("./pages/pt/PTServiceOrderPage").th
 const GymOwnerDashboard = lazy(() => import("./pages/gym-owner/GymOwnerDashboard").then((m) => ({ default: m.GymOwnerDashboard })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
 const GymManagePage = lazy(() => import("./pages/gym-owner/GymManagePage").then((m) => ({ default: m.GymManagePage })));
+// GYM_BRANCH_FORM_SPEC.md, Phase 1 — new "Add Branch" wizard shell, not yet the primary
+// creation path (see AddBranchWizardPage.tsx's own doc comment for why).
+const AddBranchWizardPage = lazy(() => import("./pages/gym-owner/AddBranchWizardPage").then((m) => ({ default: m.AddBranchWizardPage })));
 const GymPlansPage = lazy(() => import("./pages/gym-owner/GymPlansPage").then((m) => ({ default: m.GymPlansPage })));
 const GymCollaborationsPage = lazy(() => import("./pages/gym-owner/GymCollaborationsPage").then((m) => ({ default: m.GymCollaborationsPage })));
+const ManageManagersPage = lazy(() => import("./pages/gym-owner/ManageManagersPage").then((m) => ({ default: m.ManageManagersPage })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
@@ -90,6 +100,11 @@ const AdminWorkflowStudio = lazy(() => import("./pages/admin/AdminWorkflowStudio
 const AdminAIObservability = lazy(() => import("./pages/admin/AdminAIObservability").then((m) => ({ default: m.AdminAIObservability })));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes").then((m) => ({ default: m.AdminDisputes })));
 const AdminGymModeration = lazy(() => import("./pages/admin/AdminGymModeration").then((m) => ({ default: m.AdminGymModeration })));
+const AdminPartnersPage = lazy(() => import("./pages/admin/AdminPartnersPage").then((m) => ({ default: m.AdminPartnersPage })));
+const AdminGymManagementOverview = lazy(() =>
+  import("./pages/admin/AdminGymManagementOverview").then((m) => ({ default: m.AdminGymManagementOverview })),
+);
+const AdminComplaintsPage = lazy(() => import("./pages/admin/AdminComplaintsPage").then((m) => ({ default: m.AdminComplaintsPage })));
 const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
 
 import { Toaster } from "sonner";
@@ -154,11 +169,14 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
+      { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },
+      { path: "dat-lai-mat-khau/:token", Component: PartnerPasswordResetPage },
       // Dev-only Gymini icon system review page (spec: docs/features/GYMINI_ICON_SYSTEM_
       // IMPLEMENTATION_REPORT.md §20). Deliberately not linked from Sidebar/BottomNav/Topbar —
       // reachable only by typing the URL — and the page component itself renders nothing
       // unless import.meta.env.DEV, so it's inert even if this route ships in a prod bundle.
       { path: "dev/icons", Component: IconGalleryPage },
+      { path: "dev/gym-management-kitchen-sink", Component: GymManagementKitchenSink },
 
       // ── Client workspace ────────────────────────────────────────────────
       {
@@ -216,7 +234,10 @@ export const router = createBrowserRouter([
           { path: "wallet", Component: WalletPage },
           { path: "payments/result", Component: PaymentResultPage },
           { path: "gyms", Component: ServicesPage },
-          { path: "gyms/:id", Component: GymDetailPage },
+          // Chi tiết phòng gym giờ mở bằng modal ngay trên trang tìm kiếm (GymDetailModal,
+          // cùng khuôn mẫu 3 tab với tìm PT) thay vì điều hướng sang trang riêng — giữ
+          // redirect này cho bookmark/liên kết cũ thay vì để 404.
+          { path: "gyms/:id", element: <Navigate to="/client/gyms" replace /> },
           { path: "gym-memberships", Component: ServicesPage },
         ],
       },
@@ -256,9 +277,11 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/gym-owner/dashboard" replace /> },
           { path: "dashboard", Component: GymOwnerDashboard },
           { path: "gyms", Component: MyGymsPage },
+          { path: "gyms/wizard/:id?", Component: AddBranchWizardPage },
           { path: "gyms/:id", Component: GymManagePage },
           { path: "plans", Component: GymPlansPage },
           { path: "collaborations", Component: GymCollaborationsPage },
+          { path: "managers", Component: ManageManagersPage },
         ],
       },
 
@@ -285,7 +308,10 @@ export const router = createBrowserRouter([
           { path: "withdrawals", element: <Navigate to="/admin/finance" replace /> },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
+          { path: "gym-management", Component: AdminGymManagementOverview },
           { path: "gyms", Component: AdminGymModeration },
+          { path: "partners", Component: AdminPartnersPage },
+          { path: "complaints", Component: AdminComplaintsPage },
           { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },
         ],

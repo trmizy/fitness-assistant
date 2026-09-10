@@ -3,6 +3,8 @@ import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middl
 import { membershipController } from '../controllers/membership.controller';
 import { checkinController } from '../controllers/checkin.controller';
 import { reviewController } from '../controllers/review.controller';
+import { complaintController } from '../controllers/complaint.controller';
+import { complaintPhotoController } from '../controllers/complaint-photo.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -44,5 +46,13 @@ router.get('/me/gym-checkins', ...gate, asyncHandler(checkinController.listForCl
 // Phase 4 — gym review (only members who paid can write; one review per client per gym).
 router.post('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.submit));
 router.delete('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.remove));
+
+// GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề". Separate from reviews on purpose:
+// private (Gymini-only), not star-rated, gated on a currently-active-or-recently-expired
+// membership (see complaintService.submitAsMember's doc comment for the exact window).
+router.post('/gyms/:gymId/complaints', ...gate, asyncHandler(complaintController.submitAsMember));
+router.get('/me/complaints', ...gate, asyncHandler(complaintController.listMine));
+router.post('/complaint-photos', ...gate, complaintPhotoController.uploadMiddleware, asyncHandler(complaintPhotoController.upload));
+router.get('/complaint-photos/:token', ...gate, asyncHandler(complaintPhotoController.serve));
 
 export default router;

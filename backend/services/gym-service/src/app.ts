@@ -1,5 +1,8 @@
+import path from 'path';
+import fs from 'fs';
 import express, { NextFunction, Request, Response } from 'express';
 import { logger, metricsMiddleware, register } from '@gym-coach/shared';
+import { isLambdaRuntime } from './utils/runtime.util';
 import publicRoutes from './routes/public.routes';
 import ownerRoutes from './routes/owner.routes';
 import clientRoutes from './routes/client.routes';
@@ -11,6 +14,20 @@ const app = express();
 
 app.use(express.json());
 app.use(metricsMiddleware());
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Only gym-photos gets a static mount:
+// same public/private split as user-service's own uploads (see that service's app.ts doc
+// comment) — complaint-photos and branch-documents are legal/evidence material and stay
+// behind their own authenticated `serve` routes with no static mount at all.
+if (!isLambdaRuntime()) {
+  const dir = path.join(process.cwd(), 'uploads/gym-photos');
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    logger.warn({ dir, err: (err as Error).message }, 'Could not create upload directory');
+  }
+}
+app.use('/uploads/gym-photos', express.static(path.join(process.cwd(), 'uploads/gym-photos')));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gym-service' });

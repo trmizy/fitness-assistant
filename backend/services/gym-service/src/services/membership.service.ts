@@ -10,16 +10,12 @@ import { gymService } from './gym.service';
 import { collaborationService } from './collaboration.service';
 import { paymentClient } from '../clients/payment.client';
 import { isPlanOnSale } from './plan.service';
+import { partnerGuard } from './partner-guard.service';
+import { commissionRateService } from './commission-rate.service';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
-
-/** The platform's cut of a membership. Floored at 10%, same as PT contracts. */
-const PLATFORM_RATE = (() => {
-  const raw = Number(process.env.PLATFORM_COMMISSION_RATE ?? '0.10');
-  return (Number.isFinite(raw) && raw >= 0.1 && raw <= 1 ? raw : 0.1).toFixed(4);
-})();
 
 /** PT's cut of a membership sale they referred — carved out of the GYM's own share, never
  * the platform's (money-flow plan §2.5/A3). */
@@ -55,12 +51,19 @@ async function attemptPayment(
   const attemptId = randomUUID();
   const idempotencyKey = `gym-membership:${contract.id}:attempt:${attemptId}`;
 
+  // Phase 5 mục 5.3 — chụp ảnh mức hoa hồng NGAY tại đây, đúng lúc khách bấm thanh toán.
+  // payment-service đóng băng con số này vào metadata của giao dịch (xem checkout route's
+  // doc comment) — sau đây không ai đọc lại cấu hình để tính lại nữa, kể cả khi mức chung
+  // đổi trước lúc webhook xác nhận về.
+  const gymForRate = await gymRepository.findById(contract.gymId);
+  const platformRate = await commissionRateService.resolveEffectiveRateForOwner(gymForRate!.ownerId);
+
   const result = await paymentClient.checkout({
     membershipId: contract.id,
     gymId: contract.gymId,
     clientId,
     amount: Number(contract.priceAtPurchase),
-    platformRate: PLATFORM_RATE,
+    platformRate,
     idempotencyKey,
     provider,
     orderInfo: `Goi hoi vien ${contract.id}`.slice(0, 100),
@@ -97,6 +100,9 @@ export const membershipService = {
     if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
     }
+    // Phase 5 mục 5.1 — đối tác bị tạm khoá thì ngừng bán gói mới, dù bản thân gym vẫn
+    // APPROVED/OPEN (tạm khoá không đổi trạng thái từng chi nhánh).
+    await partnerGuard.assertAcceptsNewMoney(gym.ownerId);
 
     // Plans are brand-scoped (one owner, one brand — see GymMembershipPlan's schema doc
     // comment): the client is checking out through THIS gym, but the plan itself only has to
@@ -204,6 +210,8 @@ export const membershipService = {
     if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
     }
+    // Gia hạn/thanh toán lại = bán mới — cùng cổng chặn với purchase() ở trên.
+    await partnerGuard.assertAcceptsNewMoney(gym.ownerId);
     return attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
   },
 

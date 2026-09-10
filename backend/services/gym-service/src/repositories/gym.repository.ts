@@ -70,7 +70,7 @@ export const gymRepository = {
   async setOperationalStatus(
     id: string,
     operationalStatus: GymOperationalStatus,
-    extra: { closureReason?: string | null; closedAt?: Date | null; reopenedAt?: Date | null },
+    extra: { closureReason?: string | null; closedAt?: Date | null; reopenedAt?: Date | null; expectedReopenAt?: Date | null },
   ) {
     return prisma.gym.update({ where: { id }, data: { operationalStatus, ...extra } });
   },

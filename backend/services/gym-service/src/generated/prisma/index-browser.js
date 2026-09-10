@@ -122,6 +122,189 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.GymPhotoScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  fileName: 'fileName',
+  sortOrder: 'sortOrder',
+  isCover: 'isCover',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymBranchDocumentScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  docType: 'docType',
+  required: 'required',
+  fileToken: 'fileToken',
+  status: 'status',
+  verifiedBy: 'verifiedBy',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymBranchReviewIssueScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  category: 'category',
+  message: 'message',
+  createdBy: 'createdBy',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymOperatingHoursScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  day: 'day',
+  type: 'type',
+  openMinute: 'openMinute',
+  closeMinute: 'closeMinute',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymComplaintScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  partnerId: 'partnerId',
+  source: 'source',
+  issueType: 'issueType',
+  reporterUserId: 'reporterUserId',
+  description: 'description',
+  photoTokens: 'photoTokens',
+  status: 'status',
+  assignedAdminId: 'assignedAdminId',
+  adminResponse: 'adminResponse',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PartnerAuditLogScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  actorUserId: 'actorUserId',
+  action: 'action',
+  targetAccountId: 'targetAccountId',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PartnerInternalNoteScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  authorAdminId: 'authorAdminId',
+  text: 'text',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PlatformCommissionRateScalarFieldEnum = {
+  id: 'id',
+  rate: 'rate',
+  effectiveFrom: 'effectiveFrom',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymPartnerScalarFieldEnum = {
+  id: 'id',
+  legalName: 'legalName',
+  partnerKind: 'partnerKind',
+  taxCode: 'taxCode',
+  businessLicenseNo: 'businessLicenseNo',
+  contactEmail: 'contactEmail',
+  contactPhone: 'contactPhone',
+  status: 'status',
+  verificationStatus: 'verificationStatus',
+  verificationNotes: 'verificationNotes',
+  verifiedAt: 'verifiedAt',
+  verifiedBy: 'verifiedBy',
+  assignedAdminId: 'assignedAdminId',
+  brandId: 'brandId',
+  commissionRateOverride: 'commissionRateOverride',
+  suspendedAt: 'suspendedAt',
+  suspendedReason: 'suspendedReason',
+  suspendedBy: 'suspendedBy',
+  terminatedAt: 'terminatedAt',
+  terminationReason: 'terminationReason',
+  terminationMemberPolicy: 'terminationMemberPolicy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason',
+  expectedBranchCount: 'expectedBranchCount',
+  negotiationNotes: 'negotiationNotes',
+  payoutBankName: 'payoutBankName',
+  payoutBankAccountNumber: 'payoutBankAccountNumber',
+  payoutBankAccountHolder: 'payoutBankAccountHolder',
+  termsAcceptedVersion: 'termsAcceptedVersion',
+  termsAcceptedAt: 'termsAcceptedAt',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPartnerAccountScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  userId: 'userId',
+  role: 'role',
+  scopedGymIds: 'scopedGymIds',
+  status: 'status',
+  invitedBy: 'invitedBy',
+  invitedAt: 'invitedAt',
+  activatedAt: 'activatedAt',
+  revokedAt: 'revokedAt',
+  revokedReason: 'revokedReason',
+  contactPhone: 'contactPhone',
+  onboardingCompletedAt: 'onboardingCompletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PartnerInvitationScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  email: 'email',
+  role: 'role',
+  scopedGymIds: 'scopedGymIds',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  status: 'status',
+  sentCount: 'sentCount',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  acceptedAt: 'acceptedAt'
+};
+
+exports.Prisma.GymPartnerDocumentScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  docType: 'docType',
+  required: 'required',
+  fileUrl: 'fileUrl',
+  status: 'status',
+  verifiedBy: 'verifiedBy',
+  verifiedAt: 'verifiedAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPartnerContactLogScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  channel: 'channel',
+  note: 'note',
+  occurredAt: 'occurredAt',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.GymBrandScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
@@ -140,16 +323,28 @@ exports.Prisma.GymScalarFieldEnum = {
   name: 'name',
   approvedName: 'approvedName',
   pendingName: 'pendingName',
+  pendingNameNote: 'pendingNameNote',
+  pendingAddressNote: 'pendingAddressNote',
+  changesRequestedAt: 'changesRequestedAt',
+  changesRequestedBy: 'changesRequestedBy',
   description: 'description',
   address: 'address',
   approvedAddress: 'approvedAddress',
   pendingAddress: 'pendingAddress',
   city: 'city',
+  provinceCode: 'provinceCode',
+  wardCode: 'wardCode',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  locationNote: 'locationNote',
+  facilities: 'facilities',
   phone: 'phone',
   email: 'email',
   status: 'status',
+  wizardStep: 'wizardStep',
   operationalStatus: 'operationalStatus',
   closureReason: 'closureReason',
+  expectedReopenAt: 'expectedReopenAt',
   closedAt: 'closedAt',
   reopenedAt: 'reopenedAt',
   createdAt: 'createdAt',
@@ -263,6 +458,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -272,7 +472,152 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+exports.BranchDocumentType = exports.$Enums.BranchDocumentType = {
+  LEASE_OR_PROPERTY_DOC: 'LEASE_OR_PROPERTY_DOC',
+  FIRE_SAFETY_CERTIFICATE: 'FIRE_SAFETY_CERTIFICATE',
+  FACILITY_PHOTOS: 'FACILITY_PHOTOS'
+};
+
+exports.PartnerDocumentStatus = exports.$Enums.PartnerDocumentStatus = {
+  PENDING: 'PENDING',
+  RECEIVED: 'RECEIVED',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED'
+};
+
+exports.BranchReviewCategory = exports.$Enums.BranchReviewCategory = {
+  BASIC_INFO: 'BASIC_INFO',
+  LOCATION: 'LOCATION',
+  OPENING_HOURS: 'OPENING_HOURS',
+  FACILITIES: 'FACILITIES',
+  PHOTOS: 'PHOTOS',
+  VERIFICATION: 'VERIFICATION',
+  OTHER: 'OTHER'
+};
+
+exports.WeekDay = exports.$Enums.WeekDay = {
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY',
+  SUNDAY: 'SUNDAY'
+};
+
+exports.DayScheduleType = exports.$Enums.DayScheduleType = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+  ALL_DAY: 'ALL_DAY'
+};
+
+exports.ComplaintSource = exports.$Enums.ComplaintSource = {
+  SELF_DETECTED: 'SELF_DETECTED',
+  MEMBER_REPORT: 'MEMBER_REPORT',
+  PT_REPORT: 'PT_REPORT',
+  PARTNER_DISCLOSED: 'PARTNER_DISCLOSED'
+};
+
+exports.ComplaintIssueType = exports.$Enums.ComplaintIssueType = {
+  CLEANLINESS: 'CLEANLINESS',
+  STAFF_BEHAVIOR: 'STAFF_BEHAVIOR',
+  EQUIPMENT_CONDITION: 'EQUIPMENT_CONDITION',
+  FALSE_ADVERTISING: 'FALSE_ADVERTISING',
+  BILLING: 'BILLING',
+  SAFETY: 'SAFETY',
+  OTHER: 'OTHER'
+};
+
+exports.ComplaintStatus = exports.$Enums.ComplaintStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED'
+};
+
+exports.PartnerAuditAction = exports.$Enums.PartnerAuditAction = {
+  PARTNER_CREATED: 'PARTNER_CREATED',
+  PARTNER_UPDATED: 'PARTNER_UPDATED',
+  ACCOUNT_PROVISIONED: 'ACCOUNT_PROVISIONED',
+  INVITATION_RESENT: 'INVITATION_RESENT',
+  INVITATION_REVOKED: 'INVITATION_REVOKED',
+  PASSWORD_RESET_SENT: 'PASSWORD_RESET_SENT',
+  SESSIONS_REVOKED: 'SESSIONS_REVOKED',
+  ACCOUNT_REVOKED: 'ACCOUNT_REVOKED',
+  OWNERSHIP_TRANSFERRED: 'OWNERSHIP_TRANSFERRED',
+  PARTNER_SUSPENDED: 'PARTNER_SUSPENDED',
+  PARTNER_UNSUSPENDED: 'PARTNER_UNSUSPENDED',
+  PARTNER_TERMINATED: 'PARTNER_TERMINATED',
+  VIEWED_AS_PARTNER: 'VIEWED_AS_PARTNER'
+};
+
+exports.GymPartnerKind = exports.$Enums.GymPartnerKind = {
+  BUSINESS: 'BUSINESS',
+  INDIVIDUAL: 'INDIVIDUAL'
+};
+
+exports.GymPartnerStatus = exports.$Enums.GymPartnerStatus = {
+  PROSPECT: 'PROSPECT',
+  INVITED: 'INVITED',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  TERMINATED: 'TERMINATED'
+};
+
+exports.PartnerVerificationStatus = exports.$Enums.PartnerVerificationStatus = {
+  NOT_VERIFIED: 'NOT_VERIFIED',
+  IN_REVIEW: 'IN_REVIEW',
+  NEEDS_INFO: 'NEEDS_INFO',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED'
+};
+
+exports.TerminationMemberPolicy = exports.$Enums.TerminationMemberPolicy = {
+  SERVE_UNTIL_EXPIRY: 'SERVE_UNTIL_EXPIRY',
+  PRORATED_REFUND: 'PRORATED_REFUND'
+};
+
+exports.PartnerAccountRole = exports.$Enums.PartnerAccountRole = {
+  OWNER: 'OWNER',
+  MANAGER: 'MANAGER'
+};
+
+exports.PartnerAccountStatus = exports.$Enums.PartnerAccountStatus = {
+  INVITED: 'INVITED',
+  ACTIVE: 'ACTIVE',
+  REVOKED: 'REVOKED'
+};
+
+exports.PartnerInvitationStatus = exports.$Enums.PartnerInvitationStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED'
+};
+
+exports.PartnerDocumentType = exports.$Enums.PartnerDocumentType = {
+  BUSINESS_LICENSE: 'BUSINESS_LICENSE',
+  REPRESENTATIVE_ID: 'REPRESENTATIVE_ID',
+  PREMISES_PROOF: 'PREMISES_PROOF',
+  TAX_CODE_CERTIFICATE: 'TAX_CODE_CERTIFICATE',
+  SITE_PHOTOS: 'SITE_PHOTOS',
+  FIRE_SAFETY_CERTIFICATE: 'FIRE_SAFETY_CERTIFICATE'
+};
+
+exports.PartnerContactChannel = exports.$Enums.PartnerContactChannel = {
+  EMAIL: 'EMAIL',
+  CALL: 'CALL',
+  MEETING: 'MEETING',
+  OTHER: 'OTHER'
+};
+
 exports.GymStatus = exports.$Enums.GymStatus = {
+  DRAFT: 'DRAFT',
   PENDING_REVIEW: 'PENDING_REVIEW',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
@@ -283,6 +628,27 @@ exports.GymOperationalStatus = exports.$Enums.GymOperationalStatus = {
   OPEN: 'OPEN',
   TEMPORARILY_CLOSED: 'TEMPORARILY_CLOSED',
   PERMANENTLY_CLOSED: 'PERMANENTLY_CLOSED'
+};
+
+exports.GymFacility = exports.$Enums.GymFacility = {
+  FREE_WEIGHTS: 'FREE_WEIGHTS',
+  CARDIO_MACHINES: 'CARDIO_MACHINES',
+  FUNCTIONAL_TRAINING_AREA: 'FUNCTIONAL_TRAINING_AREA',
+  GROUP_CLASSES: 'GROUP_CLASSES',
+  YOGA_STUDIO: 'YOGA_STUDIO',
+  SWIMMING_POOL: 'SWIMMING_POOL',
+  PERSONAL_TRAINER: 'PERSONAL_TRAINER',
+  INBODY_SCAN: 'INBODY_SCAN',
+  LOCKER_ROOM: 'LOCKER_ROOM',
+  SHOWER: 'SHOWER',
+  SAUNA: 'SAUNA',
+  TOWEL_SERVICE: 'TOWEL_SERVICE',
+  PARKING: 'PARKING',
+  WIFI: 'WIFI',
+  AIR_CONDITIONING: 'AIR_CONDITIONING',
+  DRINKING_WATER: 'DRINKING_WATER',
+  KIDS_AREA: 'KIDS_AREA',
+  VENDING_MACHINE: 'VENDING_MACHINE'
 };
 
 exports.GymMembershipPlanStatus = exports.$Enums.GymMembershipPlanStatus = {
@@ -331,6 +697,19 @@ exports.CollaborationParty = exports.$Enums.CollaborationParty = {
 };
 
 exports.Prisma.ModelName = {
+  GymPhoto: 'GymPhoto',
+  GymBranchDocument: 'GymBranchDocument',
+  GymBranchReviewIssue: 'GymBranchReviewIssue',
+  GymOperatingHours: 'GymOperatingHours',
+  GymComplaint: 'GymComplaint',
+  PartnerAuditLog: 'PartnerAuditLog',
+  PartnerInternalNote: 'PartnerInternalNote',
+  PlatformCommissionRate: 'PlatformCommissionRate',
+  GymPartner: 'GymPartner',
+  GymPartnerAccount: 'GymPartnerAccount',
+  PartnerInvitation: 'PartnerInvitation',
+  GymPartnerDocument: 'GymPartnerDocument',
+  GymPartnerContactLog: 'GymPartnerContactLog',
   GymBrand: 'GymBrand',
   Gym: 'Gym',
   GymMembershipPlan: 'GymMembershipPlan',

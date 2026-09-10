@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { planService } from '../services/plan.service';
 import { gymService } from '../services/gym.service';
+import { principalId } from '../middleware/partner-context.middleware';
 
 export const planController = {
   /** Public — reached from a specific branch's page, but a plan belongs to its BRAND, so this
@@ -14,7 +15,7 @@ export const planController = {
 
   async create(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const plan = await planService.createPlan(req.params.brandId, ownerId, req.body);
       res.status(201).json({ success: true, data: plan });
     } catch (e: any) {
@@ -24,7 +25,7 @@ export const planController = {
 
   async listOwned(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const plans = await planService.listOwnedPlans(req.params.brandId, ownerId);
       res.json({ success: true, data: plans });
     } catch (e: any) {
@@ -34,7 +35,7 @@ export const planController = {
 
   async update(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const plan = await planService.updatePlan(req.params.brandId, req.params.planId, ownerId, req.body);
       res.json({ success: true, data: plan });
     } catch (e: any) {

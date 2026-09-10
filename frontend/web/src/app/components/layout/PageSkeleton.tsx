@@ -5,6 +5,11 @@ import { Skeleton } from "../ui/skeleton";
  * downloading. Deliberately generic (no page-specific layout) since it has to work as the
  * fallback for every route; a bare `lazy()` with no fallback at all would just replace "big
  * bundle lag" with a blank flash per page, which reads worse than the lag it was meant to fix.
+ *
+ * Not the same component as `components/ui/PageSkeleton` (GYM_MANAGEMENT master spec §55) —
+ * that one is for an in-page data-loading state with layout variants; this one is the
+ * route-chunk fallback and stays deliberately prop-less. Same name, different job, disambiguated
+ * by import path — do not merge them.
  */
 export function PageSkeleton() {
   return (

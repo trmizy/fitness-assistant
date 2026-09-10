@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { checkinService } from '../services/checkin.service';
+import { principalId } from '../middleware/partner-context.middleware';
 
 // Typed check-in outcomes → HTTP status; the UI shows a friendly message per code.
 const CODE_STATUS: Record<string, number> = {
@@ -16,7 +17,7 @@ export const checkinController = {
   /** Owner: the QR to display at the front desk. */
   async getGymQr(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const data = await checkinService.getGymQr(req.params.gymId, ownerId);
       return res.json({ success: true, data });
     } catch (e: any) {
@@ -42,7 +43,7 @@ export const checkinController = {
 
   async listForGym(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const list = await checkinService.listForGym(req.params.gymId, ownerId);
       res.json({ success: true, data: list });
     } catch (e: any) {

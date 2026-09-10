@@ -10,6 +10,14 @@ datasource db {
 }
 
 enum GymStatus {
+  // GYM_BRANCH_FORM_SPEC.md — the "Add Branch" wizard's shell (Phase 1) needs a state before
+  // PENDING_REVIEW: the owner can leave the 7-step wizard at any point and come back later
+  // without having triggered full validation yet. A DRAFT is never visible to admin, never
+  // counted in any admin queue, and never reachable by a client — every existing query that
+  // filters by status (public listing, admin moderation queue, `partnerDiligenceService`'s
+  // counts) already filters to a specific status or an explicit allow-list, so this new value
+  // is inert everywhere until the owner explicitly submits (DRAFT -> PENDING_REVIEW).
+  DRAFT
   PENDING_REVIEW
   APPROVED
   REJECTED
@@ -67,6 +75,612 @@ enum GymTrainerVisibility {
   INTERNAL_ONLY
 }
 
+// ── Giờ hoạt động (GYM_BRANCH_FORM_SPEC.md, Phase 2) ─────────────────────────────────────
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+/// §18/§20 — chỉ 3 trạng thái, không có "khoảng giờ tách đôi" (06:00-12:00, 14:00-22:00) vì
+/// backend không hỗ trợ điều đó — cố ý không giả vờ có (§20: "If backend does not support
+/// it, do NOT fake it").
+enum DayScheduleType {
+  OPEN
+  CLOSED
+  ALL_DAY
+}
+
+// ── Tiện ích & dịch vụ (GYM_BRANCH_FORM_SPEC.md, Phase 3 — Bước 4) ───────────────────────
+//
+// Một danh mục cố định, chủ gym chọn nhiều — mảng Postgres ngay trên Gym, cùng khuôn mẫu với
+// GymPartnerAccount.scopedGymIds, không cần bảng nối riêng ở quy mô này (mỗi gym nhiều nhất
+// vài chục mục, không phải hàng nghìn).
+enum GymFacility {
+  FREE_WEIGHTS
+  CARDIO_MACHINES
+  FUNCTIONAL_TRAINING_AREA
+  GROUP_CLASSES
+  YOGA_STUDIO
+  SWIMMING_POOL
+  PERSONAL_TRAINER
+  INBODY_SCAN
+  LOCKER_ROOM
+  SHOWER
+  SAUNA
+  TOWEL_SERVICE
+  PARKING
+  WIFI
+  AIR_CONDITIONING
+  DRINKING_WATER
+  KIDS_AREA
+  VENDING_MACHINE
+}
+
+// ── Hình ảnh chi nhánh (GYM_BRANCH_FORM_SPEC.md, Phase 3 — Bước 5) ───────────────────────
+//
+// CÔNG KHAI — khác hẳn ảnh minh chứng khiếu nại (GymComplaint.photoTokens, riêng tư) và
+// giấy tờ xác minh chi nhánh (GymBranchDocument bên dưới, riêng tư): đây là thư viện ảnh
+// marketing, khách xem được khi tìm phòng gym, cùng mức công khai với ảnh đại diện hồ sơ
+// (user-service's profile-photos) — phục vụ bằng express.static, không qua route xác thực.
+model GymPhoto {
+  id        String   @id @default(uuid())
+  gymId     String   @map("gym_id")
+  /// Tên tệp trên đĩa (không phải URL đầy đủ) — ghép với `/uploads/gym-photos/` ở phía
+  /// client, cùng quy ước tối giản với GymComplaint.photoTokens (lưu token, không lưu URL).
+  fileName  String   @map("file_name")
+  sortOrder Int      @default(0) @map("sort_order")
+  /// Đúng một ảnh có isCover=true tại một thời điểm cho mỗi gym — ràng buộc này do
+  /// gymPhotoService tự đảm bảo (bỏ cờ ảnh cũ trước khi đặt cờ ảnh mới), không phải ở CSDL.
+  isCover   Boolean  @default(false) @map("is_cover")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, sortOrder])
+  @@map("gym_photos")
+}
+
+// ── Giấy tờ xác minh CHI NHÁNH (GYM_BRANCH_FORM_SPEC.md, Phase 3 — Bước 6) ────────────────
+//
+// §95.4 — KHÔNG phải giấy tờ xác minh ĐỐI TÁC (GymPartnerDocument: giấy phép kinh doanh, mã
+// số thuế, CCCD người đại diện — đã thu thập đúng MỘT LẦN lúc thẩm định đối tác). Bảng này
+// chỉ chứa giấy tờ gắn với ĐỊA ĐIỂM cụ thể của chi nhánh đang tạo. Cùng khuôn mẫu một-dòng-
+// một-loại-giấy-tờ với GymPartnerDocument (@@unique trên [gymId, docType]), tái dùng luôn
+// PartnerDocumentStatus thay vì định nghĩa một enum trạng thái trùng lặp. Khác
+// GymPartnerDocument ở chỗ CHỦ GYM tự tải lên qua wizard (không phải admin nhập tay fileUrl)
+// — nên cần một token riêng tư + route phục vụ có xác thực, cùng khuôn mẫu với
+// complaint-photo.controller.ts (KHÔNG mount express.static công khai).
+enum BranchDocumentType {
+  LEASE_OR_PROPERTY_DOC
+  FIRE_SAFETY_CERTIFICATE
+  FACILITY_PHOTOS
+}
+
+model GymBranchDocument {
+  id       String                @id @default(uuid())
+  gymId    String                @map("gym_id")
+  docType  BranchDocumentType    @map("doc_type")
+  /// Fire safety certificate không bắt buộc ở mọi địa phương — giống required=false của
+  /// GymPartnerDocument cho các mục 🟡. Hai mục còn lại luôn bắt buộc.
+  required Boolean               @default(true)
+  /// Token do branchDocumentPhotoController cấp lúc tải lên (KHÔNG phải URL công khai) —
+  /// cùng quy ước với GymComplaint.photoTokens.
+  fileToken  String?               @map("file_token")
+  status     PartnerDocumentStatus @default(PENDING)
+  verifiedBy String?               @map("verified_by")
+  verifiedAt DateTime?             @map("verified_at")
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@unique([gymId, docType])
+  @@index([gymId])
+  @@map("gym_branch_documents")
+}
+
+// ── "Yêu cầu chỉnh sửa" theo hạng mục (GYM_BRANCH_FORM_SPEC.md, Phase 4) ─────────────────
+//
+// KHÁC hẳn Gym.pendingNameNote/pendingAddressNote (Vòng 4 / Phase C2 — 2 trường, dành riêng
+// cho một chi nhánh ĐÃ ĐƯỢC DUYỆT xin đổi tên/địa chỉ sau này). Cơ chế này dành cho lần
+// DUYỆT ĐẦU TIÊN qua wizard 7 bước: admin gắn N vấn đề theo đúng 7 hạng mục tương ứng 7 bước,
+// mỗi vấn đề có nội dung riêng — chủ gym thấy đúng danh sách này, link tới đúng bước cần sửa.
+enum BranchReviewCategory {
+  BASIC_INFO
+  LOCATION
+  OPENING_HOURS
+  FACILITIES
+  PHOTOS
+  VERIFICATION
+  OTHER
+}
+
+/// Không có "hội thoại qua lại" — cùng kỷ luật đã chốt cho GymComplaint: một `message` mỗi
+/// vấn đề, không phải luồng chat. Đóng (resolvedAt) khi chủ gym gửi lại hồ sơ thành công
+/// (gymDraftService.submitForReview tự đóng TẤT CẢ vấn đề còn mở của gym đó) — đơn giản hơn
+/// dò từng trường xem "đã sửa đúng ý chưa", và khớp đúng luồng thao tác: sửa xong 1 lượt qua
+/// wizard rồi gửi lại 1 lần, không phải đóng từng mục một dọc đường.
+model GymBranchReviewIssue {
+  id         String               @id @default(uuid())
+  gymId      String               @map("gym_id")
+  category   BranchReviewCategory
+  message    String
+  createdBy  String               @map("created_by")
+  resolvedAt DateTime?            @map("resolved_at")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, resolvedAt])
+  @@map("gym_branch_review_issues")
+}
+
+/// Đúng 7 dòng cho mỗi gym (một dòng mỗi ngày trong tuần) — @@unique([gymId, day]) đảm bảo
+/// không trùng, không thiếu khi đọc. openMinute/closeMinute lưu dạng "số phút từ nửa đêm"
+/// (0-1439) thay vì DateTime — giờ mở cửa không gắn với một ngày cụ thể nào, so sánh
+/// open < close chỉ là phép so sánh số nguyên, không cần xử lý múi giờ.
+model GymOperatingHours {
+  id          String          @id @default(uuid())
+  gymId       String          @map("gym_id")
+  day         WeekDay
+  type        DayScheduleType @default(CLOSED)
+  /// Chỉ có ý nghĩa khi type = OPEN.
+  openMinute  Int?            @map("open_minute")
+  closeMinute Int?            @map("close_minute")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@unique([gymId, day])
+  @@map("gym_operating_hours")
+}
+
+// ── Khiếu nại / vi phạm (GYM_MANAGEMENT master spec, Phase 5) ────────────────────────────
+//
+// Một bảng DUY NHẤT cho mọi nguồn — quyết định đã chốt với người dùng: không tách bảng
+// theo nguồn gốc, chỉ phân biệt bằng cột `source`, để admin có đúng MỘT hàng đợi và MỘT
+// dòng lịch sử trên hồ sơ đối tác, bất kể khiếu nại tới từ đâu.
+
+/// Nguồn phát sinh — không phải lựa chọn của người báo cáo, mà do ĐIỂM VÀO xác định:
+/// MEMBER_REPORT/PT_REPORT chỉ được set bởi chính endpoint tương ứng (client tự gửi thì
+/// chắc chắn là MEMBER_REPORT); SELF_DETECTED/PARTNER_DISCLOSED là hai lựa chọn admin tự
+/// chọn khi họ là người nhập tay (biết được qua kênh khác — điện thoại, email, chính đối
+/// tác chủ động báo).
+enum ComplaintSource {
+  SELF_DETECTED
+  MEMBER_REPORT
+  PT_REPORT
+  PARTNER_DISCLOSED
+}
+
+enum ComplaintIssueType {
+  CLEANLINESS
+  STAFF_BEHAVIOR
+  EQUIPMENT_CONDITION
+  FALSE_ADVERTISING
+  BILLING
+  SAFETY
+  OTHER
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+/// Cố ý KHÔNG làm: hội thoại qua lại (chỉ một `adminResponse` cuối cùng khi RESOLVED,
+/// không phải một luồng tin nhắn), liên kết tự động sang hoàn tiền (admin muốn hoàn tiền
+/// thì vẫn dùng đúng hành động hoàn tiền hiện có, tự tay, sau khi đọc khiếu nại này),
+/// khiếu nại ẩn danh (reporterUserId luôn được ghi nhận cho MEMBER_REPORT/PT_REPORT — badge
+/// "ẩn danh" phía UI nếu cần chỉ là hiển thị, dữ liệu vẫn có), phúc thẩm (không có trạng
+/// thái nào sau RESOLVED).
+model GymComplaint {
+  id        String   @id @default(uuid())
+  gymId     String   @map("gym_id")
+  /// Denormalized từ Gym.ownerId lúc tạo — cho phép tab "Khiếu nại" trên hồ sơ đối tác lọc
+  /// thẳng theo partnerId mà không phải join qua Gym mỗi lần đọc. Null cho các gym của chủ
+  /// sở hữu có từ trước Phase 1 (không có hồ sơ đối tác).
+  partnerId String?  @map("partner_id")
+  source    ComplaintSource
+  issueType ComplaintIssueType @map("issue_type")
+  /// Null hợp lệ CHỈ cho SELF_DETECTED/PARTNER_DISCLOSED khi admin không (hoặc chưa) xác
+  /// định được chính xác ai là người phản ánh. MEMBER_REPORT/PT_REPORT luôn có giá trị —
+  /// xem doc comment ComplaintSource.
+  reporterUserId String? @map("reporter_user_id")
+  description    String
+  /// Token do complaintPhotoService cấp lúc tải lên (KHÔNG phải URL công khai — ảnh minh
+  /// chứng riêng tư, chỉ admin và chính người báo cáo xem được qua route có xác thực).
+  /// Giới hạn 5 ảnh được kiểm ở tầng service, không phải ở đây.
+  photoTokens String[] @map("photo_tokens")
+  status      ComplaintStatus @default(OPEN)
+  /// Thuần hiển thị/lọc "việc của admin nào", cùng quy ước với GymPartner.assignedAdminId.
+  assignedAdminId String?   @map("assigned_admin_id")
+  adminResponse   String?   @map("admin_response")
+  resolvedAt      DateTime? @map("resolved_at")
+  resolvedBy      String?   @map("resolved_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@index([gymId, status])
+  @@index([partnerId, createdAt])
+  @@index([reporterUserId])
+  @@index([status])
+  @@map("gym_complaints")
+}
+
+// ── Đối tác phòng tập (Phase 1 — nền tảng danh tính) ─────────────────────────
+//
+// Tách "pháp nhân đối tác" khỏi "tài khoản đăng nhập". Trước đây một chủ gym LÀ một
+// userId: mật khẩu trở thành thứ bàn giao tay này sang tay khác, quản lý nghỉ việc là
+// phải đổi mật khẩu cả nhà, và nhật ký chỉ ghi được một danh tính duy nhất chứ không
+// biết ai thao tác.
+//
+// ⚠️ ĐÂY KHÔNG PHẢI GYM_STAFF QUAY LẠI. Vai trò xác thực vẫn đúng một giá trị
+// GYM_OWNER cho mọi tài khoản đối tác — không thêm enum vai trò nào ở auth-service,
+// không bộ định tuyến riêng, không màn hình riêng. `PartnerAccountRole` dưới đây là
+// quyền BÊN TRONG một đối tác (do gym-service tự phân giải), không phải vai trò hệ thống.
+
+enum GymPartnerStatus {
+  /// Hồ sơ admin mở khi nhận email đầu tiên — chưa có tài khoản đăng nhập nào.
+  PROSPECT
+  /// Đã cấp tài khoản, thư mời đã gửi, chủ sở hữu chưa hoàn tất thiết lập lần đầu.
+  INVITED
+  ACTIVE
+  /// Ngừng bán gói mới + đóng băng rút tiền; hội viên cũ dùng hết hạn (Phase 5).
+  SUSPENDED
+  TERMINATED
+}
+
+/// GYM_MANAGEMENT master spec §60 — trục "đã thẩm định giấy tờ tới đâu", TÁCH RIÊNG khỏi
+/// GymPartnerStatus ở trên (đó là "đang ở giai đoạn vòng đời nào"). Một hồ sơ PROSPECT có thể
+/// đứng ở bất kỳ giá trị nào dưới đây trong lúc admin còn đang thu thập/xác minh giấy tờ, TRƯỚC
+/// khi tài khoản OWNER được cấp — cấp tài khoản chỉ nên xảy ra sau khi đạt VERIFIED. Trước phase
+/// này, "từ chối" chỉ được đánh dấu bằng rejectedAt/rejectionReason ngay trên PROSPECT, không
+/// phân biệt được "chưa xem" với "đã xem và từ chối" — cột này khắc phục đúng chỗ đó.
+enum PartnerVerificationStatus {
+  NOT_VERIFIED
+  IN_REVIEW
+  /// Admin đã yêu cầu bổ sung — verificationNotes chứa nội dung cần bổ sung.
+  NEEDS_INFO
+  VERIFIED
+  REJECTED
+}
+
+enum GymPartnerKind {
+  BUSINESS
+  INDIVIDUAL
+}
+
+/// Hai cấp, không hơn. Ranh giới một câu: **tiền và người thì chỉ chủ sở hữu**.
+enum PartnerAccountRole {
+  OWNER
+  MANAGER
+}
+
+enum PartnerAccountStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+}
+
+enum PartnerInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+// ── Phase 4 — hồ sơ thẩm định ────────────────────────────────────────────────
+
+enum PartnerDocumentType {
+  BUSINESS_LICENSE
+  REPRESENTATIVE_ID
+  PREMISES_PROOF
+  TAX_CODE_CERTIFICATE
+  SITE_PHOTOS
+  FIRE_SAFETY_CERTIFICATE
+}
+
+enum PartnerDocumentStatus {
+  PENDING
+  RECEIVED
+  VERIFIED
+  REJECTED
+}
+
+enum PartnerContactChannel {
+  EMAIL
+  CALL
+  MEETING
+  OTHER
+}
+
+// ── Phase 5 ───────────────────────────────────────────────────────────────────
+
+enum TerminationMemberPolicy {
+  /// Phục vụ hội viên còn hạn tới hết hạn, ngừng bán gói mới ngay.
+  SERVE_UNTIL_EXPIRY
+  /// Hoàn tiền theo tỷ lệ phần chưa dùng cho từng hội viên.
+  PRORATED_REFUND
+}
+
+/// Phase 2 mục 2.4 — nhật ký kiểm toán cho mọi hành động quản trị tác động lên tài khoản
+/// người khác: ai · làm gì · lên đối tác/tài khoản nào · lúc nào · lý do · IP.
+///
+/// Tách khỏi AuditLog của auth-service (bảng đó khoá theo chính người dùng gây ra sự kiện
+/// — LOGIN/LOGOUT của bản thân họ). Ở đây chủ thể và đối tượng là hai người khác nhau:
+/// một quản trị viên tác động lên hồ sơ của một đối tác. Nhét vào bảng cũ thì cột userId
+/// mang hai nghĩa tuỳ dòng — đúng kiểu mập mờ khiến nhật ký kiểm toán mất giá trị.
+enum PartnerAuditAction {
+  PARTNER_CREATED
+  PARTNER_UPDATED
+  ACCOUNT_PROVISIONED
+  INVITATION_RESENT
+  INVITATION_REVOKED
+  PASSWORD_RESET_SENT
+  SESSIONS_REVOKED
+  ACCOUNT_REVOKED
+  OWNERSHIP_TRANSFERRED
+  PARTNER_SUSPENDED
+  PARTNER_UNSUSPENDED
+  PARTNER_TERMINATED
+  /// Bắt buộc ghi. Không ghi nhật ký thì đây là một cửa hậu.
+  VIEWED_AS_PARTNER
+}
+
+model PartnerAuditLog {
+  id        String             @id @default(uuid())
+  partnerId String             @map("partner_id")
+  /// Quản trị viên thực hiện — KHÔNG phải người bị tác động.
+  actorUserId String           @map("actor_user_id")
+  action    PartnerAuditAction
+  /// Tài khoản cụ thể bị tác động, nếu hành động nhắm vào một tài khoản.
+  targetAccountId String?      @map("target_account_id")
+  reason    String?
+  ipAddress String?            @map("ip_address")
+  userAgent String?            @map("user_agent")
+  metadata  Json?
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, createdAt])
+  @@index([actorUserId])
+  @@map("partner_audit_logs")
+}
+
+/// GYM_MANAGEMENT master spec §65 — "INTERNAL NOTES (Owner-invisible)". Khác PartnerAuditLog:
+/// đây là ghi chú TỰ DO giữa các admin ("đã gọi điện, hẹn tuần sau"), không phải nhật ký hành
+/// động hệ thống — không có action/before-after nào để ghi. Không route/endpoint nào của
+/// gym-owner (owner.routes.ts) được phép đọc bảng này; chỉ admin.routes.ts.
+model PartnerInternalNote {
+  id            String   @id @default(uuid())
+  partnerId     String   @map("partner_id")
+  authorAdminId String   @map("author_admin_id")
+  text          String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, createdAt])
+  @@map("partner_internal_notes")
+}
+
+/// Phase 5 — mức chiết khấu nền tảng CHUNG cho hoa hồng gói hội viên, có ngày hiệu lực.
+/// Đổi mức = THÊM DÒNG MỚI với effectiveFrom tương lai, KHÔNG BAO GIỜ sửa dòng cũ — dòng
+/// cũ là bằng chứng "hợp đồng nào từng áp dụng mức nào" một khi mức đã đổi.
+///
+/// ⚠️ Mức này (và commissionRateOverride của từng đối tác) vẫn bị kẹp ở sàn tối thiểu
+/// hiện có của hệ thống (0.10 — xem membership.service.ts's PLATFORM_RATE, "floored at
+/// 10%, same as PT contracts") tại thời điểm áp dụng. Đây là quyết định giữ nguyên có chủ
+/// đích (đã hỏi và chốt), KHÔNG phải lỗi: một dòng ghi 0.05 vẫn hợp lệ để lưu trữ ý định
+/// đàm phán, nhưng số tiền thực tế trích ra không bao giờ thấp hơn sàn.
+model PlatformCommissionRate {
+  id            String   @id @default(uuid())
+  rate          Decimal  @db.Decimal(5, 4)
+  effectiveFrom DateTime @map("effective_from")
+  createdBy     String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([effectiveFrom])
+  @@map("platform_commission_rates")
+}
+
+/// Pháp nhân đối tác: sở hữu ĐÚNG MỘT thương hiệu, một hồ sơ, một ví. Hộ kinh doanh
+/// nhỏ có đúng một tài khoản; chuỗi lớn thêm tài khoản MANAGER — cùng một mô hình,
+/// khác nhau ở số tài khoản đăng nhập.
+model GymPartner {
+  id                     String           @id @default(uuid())
+  /// Tên pháp lý trên giấy phép — khác tên thương hiệu công khai (GymBrand.name).
+  legalName              String           @map("legal_name")
+  partnerKind            GymPartnerKind   @default(BUSINESS) @map("partner_kind")
+  taxCode                String?          @map("tax_code")
+  businessLicenseNo      String?          @map("business_license_no")
+  /// Email đã trao đổi ban đầu — hồ sơ liên hệ của pháp nhân, KHÔNG phải thông tin
+  /// đăng nhập (thông tin đó nằm ở auth-service, trỏ qua GymPartnerAccount.userId).
+  /// Nullable vì các đối tác có sẵn trước phase này được backfill từ dữ liệu gym-service,
+  /// nơi không hề lưu email; API tạo mới thì bắt buộc phải có.
+  contactEmail           String?          @map("contact_email")
+  contactPhone           String?          @map("contact_phone")
+  status                 GymPartnerStatus @default(PROSPECT)
+  /// GYM_MANAGEMENT master spec §60 — trục thẩm định giấy tờ, tách khỏi `status` ở trên (xem
+  /// doc comment của PartnerVerificationStatus). Cấp tài khoản OWNER (provisionOwnerAccount)
+  /// đòi hỏi giá trị này phải là VERIFIED — thẩm định xong giấy tờ TRƯỚC khi cấp tài khoản,
+  /// đúng thứ tự accept-flow của spec. Backfill: các đối tác đã qua provisioning từ trước khi
+  /// cột này tồn tại (status khác PROSPECT) được coi là VERIFIED — họ đã được duyệt bằng quy
+  /// trình cũ, gắn NOT_VERIFIED hồi tố sẽ khoá nhầm một chủ gym đang hoạt động thật.
+  verificationStatus     PartnerVerificationStatus @default(NOT_VERIFIED) @map("verification_status")
+  /// Nội dung admin ghi khi chuyển NEEDS_INFO ("cần bổ sung gì") hoặc REJECTED ("vì sao từ
+  /// chối thẩm định") — hiển thị cho đối tác biết chính xác cần làm gì tiếp theo.
+  verificationNotes      String?          @map("verification_notes")
+  verifiedAt             DateTime?        @map("verified_at")
+  verifiedBy             String?          @map("verified_by")
+  /// Admin phụ trách hồ sơ này — thuần hiển thị/lọc ("việc của ai"), không phải quyền hạn:
+  /// mọi admin vẫn thao tác được trên mọi hồ sơ, id trần không FK (cùng quy ước với ownerId).
+  assignedAdminId        String?          @map("assigned_admin_id")
+  /// Bất biến "mỗi đối tác tối đa một thương hiệu" — cột đơn + unique index. Null cho
+  /// tới khi chủ sở hữu tự đặt tên thương hiệu ở bước 3 của trình thiết lập lần đầu.
+  brandId                String?          @unique @map("brand_id")
+  /// Tỷ lệ riêng đã đàm phán; NULL = dùng mức chung (PlatformCommissionRate, Phase 5).
+  /// Thêm cột từ bây giờ rẻ hơn sửa công thức tiền sau, kể cả khi chưa ai dùng.
+  commissionRateOverride Decimal?         @db.Decimal(5, 4) @map("commission_rate_override")
+  suspendedAt            DateTime?        @map("suspended_at")
+  suspendedReason        String?          @map("suspended_reason")
+  suspendedBy            String?          @map("suspended_by")
+  terminatedAt           DateTime?        @map("terminated_at")
+  terminationReason      String?          @map("termination_reason")
+  /// Phase 5 — lựa chọn xử lý hội viên còn hạn lúc chấm dứt hợp tác. Null cho tới khi
+  /// chấm dứt; bắt buộc chọn một trong hai ngay tại màn xác nhận.
+  terminationMemberPolicy TerminationMemberPolicy? @map("termination_member_policy")
+  /// Phase 4 — hồ sơ bị từ chối vẫn ở nguyên GymPartnerStatus.PROSPECT (không thêm status
+  /// mới) nhưng có dấu vết để phân biệt "PROSPECT vì mới mở" với "PROSPECT vì đã từ chối,
+  /// đang chờ mở lại". "Mở lại" chỉ đơn giản là xoá hai cột này.
+  rejectedAt             DateTime?        @map("rejected_at")
+  rejectionReason        String?          @map("rejection_reason")
+  /// Phase 4 — "Điều khoản đã chốt" trước khi cấp tài khoản: số chi nhánh dự kiến + ghi
+  /// chú. Tỷ lệ chiết khấu đã đàm phán dùng chung cột commissionRateOverride ở trên.
+  expectedBranchCount    Int?             @map("expected_branch_count")
+  negotiationNotes       String?          @map("negotiation_notes")
+  // ── Phase 3: bước 3-4-5 của trình thiết lập lần đầu (chỉ OWNER phải hoàn tất) ──────
+  payoutBankName          String?         @map("payout_bank_name")
+  payoutBankAccountNumber String?         @map("payout_bank_account_number")
+  payoutBankAccountHolder String?         @map("payout_bank_account_holder")
+  termsAcceptedVersion    String?         @map("terms_accepted_version")
+  termsAcceptedAt         DateTime?       @map("terms_accepted_at")
+  createdBy              String?          @map("created_by")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+
+  accounts     GymPartnerAccount[]
+  invitations  PartnerInvitation[]
+  auditLogs    PartnerAuditLog[]
+  documents    GymPartnerDocument[]
+  contactLogs  GymPartnerContactLog[]
+  internalNotes PartnerInternalNote[]
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([assignedAdminId])
+  @@map("gym_partners")
+}
+
+/// Một người, một tài khoản. `userId` trỏ tới auth-service (không FK xuyên service —
+/// cùng quy ước với Gym.ownerId).
+model GymPartnerAccount {
+  id        String               @id @default(uuid())
+  partnerId String               @map("partner_id")
+  /// Bất biến "một userId chỉ thuộc tối đa một đối tác" — unique ở cấp DB, không chỉ
+  /// kiểm ở tầng service.
+  userId    String               @unique @map("user_id")
+  role      PartnerAccountRole
+  /// MANAGER bị giới hạn ở đúng các chi nhánh này (bất biến: phải có ít nhất một —
+  /// xem CHECK constraint trong migration). OWNER để trống = toàn bộ chi nhánh.
+  scopedGymIds String[]          @map("scoped_gym_ids")
+  status    PartnerAccountStatus @default(INVITED)
+  invitedBy String?              @map("invited_by")
+  invitedAt DateTime             @default(now()) @map("invited_at")
+  activatedAt   DateTime?        @map("activated_at")
+  revokedAt     DateTime?        @map("revoked_at")
+  revokedReason String?          @map("revoked_reason")
+  /// Phase 3 bước 2 — điện thoại liên hệ CỦA CHÍNH NGƯỜI đăng nhập này, khác
+  /// GymPartner.contactPhone (đầu mối liên hệ chung của pháp nhân).
+  contactPhone String?           @map("contact_phone")
+  /// Set khi hoàn tất đúng số bước bắt buộc theo vai trò (OWNER: cả 5 bước; MANAGER: chỉ
+  /// bước 1-2). Middleware requireOnboardingComplete chặn mọi route /owner/* khác cho tới
+  /// khi cột này khác null.
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, status])
+  @@map("gym_partner_accounts")
+}
+
+/// Thư mời có hạn. ⚠️ Không bao giờ gửi mật khẩu qua email — mật khẩu gửi đi là một
+/// credential sống trôi nổi vô thời hạn, và nếu người nhận không bao giờ đăng nhập thì
+/// không ai biết. Gửi link mời hết hạn được, người nhận tự đặt mật khẩu.
+model PartnerInvitation {
+  id         String                  @id @default(uuid())
+  partnerId  String                  @map("partner_id")
+  email      String
+  role       PartnerAccountRole
+  /// Chi nhánh được gán sẵn cho MANAGER ngay lúc mời — chuyển thẳng sang
+  /// GymPartnerAccount.scopedGymIds khi chấp nhận, để người mời không phải gán lại.
+  scopedGymIds String[]              @map("scoped_gym_ids")
+  /// ⚠️ LƯU BĂM (sha256 hex), KHÔNG LƯU TOKEN GỐC. Token gốc chỉ tồn tại một lần trong
+  /// phản hồi của createInvitation để gửi email; rò rỉ CSDL không cho phép ai nhận thư
+  /// mời của người khác.
+  tokenHash  String                  @unique @map("token_hash")
+  expiresAt  DateTime                @map("expires_at")
+  status     PartnerInvitationStatus @default(PENDING)
+  sentCount  Int                     @default(1) @map("sent_count")
+  createdBy  String?                 @map("created_by")
+  createdAt  DateTime                @default(now()) @map("created_at")
+  acceptedAt DateTime?               @map("accepted_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, status])
+  @@index([email])
+  @@map("partner_invitations")
+}
+
+/// Phase 4 — giấy tờ thẩm định. Mỗi mục: tệp + trạng thái + ai kiểm + lúc nào, đúng đặc
+/// tả mục 4.1. `required=false` cho các mục 🟡 (mã số thuế, ảnh thực địa, PCCC).
+model GymPartnerDocument {
+  id         String                @id @default(uuid())
+  partnerId  String                @map("partner_id")
+  docType    PartnerDocumentType   @map("doc_type")
+  required   Boolean               @default(true)
+  fileUrl    String?               @map("file_url")
+  status     PartnerDocumentStatus @default(PENDING)
+  verifiedBy String?               @map("verified_by")
+  verifiedAt DateTime?             @map("verified_at")
+  /// Cho giấy phép kinh doanh/PCCC — nguồn cho mục "giấy phép sắp hết hạn" ở hàng đợi
+  /// việc cần làm (Phase 4 mục 4.2).
+  expiresAt  DateTime?             @map("expires_at")
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, docType])
+  @@index([partnerId])
+  @@index([expiresAt])
+  @@map("gym_partner_documents")
+}
+
+/// Phase 4 — nhật ký trao đổi: mỗi email, cuộc gọi, cam kết đều ghi lại kèm ngày và người
+/// thực hiện. Tách khỏi PartnerAuditLog (bảng đó là hành động HỆ THỐNG tự động sinh ra khi
+/// admin bấm nút; bảng này là ghi chú THỦ CÔNG admin tự nhập về một lần trao đổi ngoài
+/// đời) — gộp chung sẽ lẫn lộn giữa "hệ thống ghi" và "người tự thuật lại".
+model GymPartnerContactLog {
+  id         String                 @id @default(uuid())
+  partnerId  String                 @map("partner_id")
+  channel    PartnerContactChannel
+  note       String
+  occurredAt DateTime               @default(now()) @map("occurred_at")
+  createdBy  String                 @map("created_by")
+  createdAt  DateTime               @default(now()) @map("created_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, occurredAt])
+  @@map("gym_partner_contact_logs")
+}
+
 /// A chain: one owner, one name, many physical locations (Gym rows below). Optional —
 /// a gym created without ever choosing a brand stays exactly as it always has, a single
 /// standalone location with `brandId = null`. Client search groups branches under their
@@ -119,14 +733,52 @@ model Gym {
   name          String
   approvedName    String?   @map("approved_name")
   pendingName     String?   @map("pending_name")
+  /// GYM_MANAGEMENT master spec §60/§62 — ghi chú theo TỪNG TRƯỜNG khi admin "Yêu cầu chỉnh
+  /// sửa" thay vì duyệt/từ chối thẳng. Chỉ áp dụng cho hai trường trọng yếu (name/address) —
+  /// đúng những trường có cơ chế pending* ở trên. Khác `rejectReason`-kiểu-cũ (không tồn tại
+  /// ở model này) ở chỗ đây KHÔNG từ chối gì cả: gym vẫn giữ nguyên `status` hiện tại (không
+  /// lùi về PENDING_REVIEW — xem gymService.requestChanges), chỉ đơn thuần "còn treo, chờ chủ
+  /// gym sửa lại đúng các mục này". Xoá khi mục tương ứng được duyệt hoặc thay bằng giá trị
+  /// pending mới.
+  pendingNameNote    String?   @map("pending_name_note")
+  pendingAddressNote String?   @map("pending_address_note")
+  /// Set khi admin vừa yêu cầu chỉnh sửa — dùng để xếp hàng đợi "chủ gym cần xem" và để phân
+  /// biệt "mới sửa, chưa ai xem lại" với "đã sửa, admin đã duyệt". Null nghĩa là không có yêu
+  /// cầu chỉnh sửa nào đang treo.
+  changesRequestedAt DateTime? @map("changes_requested_at")
+  changesRequestedBy String?   @map("changes_requested_by")
   description   String?
   address         String
   approvedAddress String?   @map("approved_address")
   pendingAddress  String?   @map("pending_address")
   city          String?
+  /// Denormalized reference vào bảng VietnamProvince/VietnamWard của user-service — không
+  /// FK xuyên service (cùng quy ước với `ownerId`). Dùng để lọc "theo tỉnh/thành phố" ở
+  /// trang tìm phòng gym, thay cho việc so khớp chuỗi tự do trên `city` (đã xác nhận thực
+  /// tế: chủ gym gõ "HCMC" lẫn "Test City" — không thể so khớp một cách đáng tin cậy).
+  provinceCode  Int?      @map("province_code")
+  wardCode      Int?      @map("ward_code")
+  /// Toạ độ chi nhánh, để tính khoảng cách tới khách đang tìm kiếm và sắp xếp gần nhất lên
+  /// đầu. Chủ gym tự bấm "Dùng vị trí hiện tại" lúc tạo/sửa chi nhánh — không tích hợp
+  /// geocoding API trả phí nào (quyết định đã hỏi và chốt).
+  latitude      Float?
+  longitude     Float?
+  /// GYM_BRANCH_FORM_SPEC.md §14 — optional free-text directions on top of the formal
+  /// address ("Tầng 3 tòa nhà ABC, lối vào phía bên trái"). Never treated as part of the
+  /// material name/address pair — editing it never triggers admin re-review.
+  locationNote  String?   @map("location_note")
+  /// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Bước 4. Free edit, không có cơ chế duyệt lại như
+  /// name/address (không phải trường "trọng yếu" theo §60/§62's own scope).
+  facilities    GymFacility[] @default([])
   phone         String?
   email         String?
   status        GymStatus @default(PENDING_REVIEW)
+  /// GYM_BRANCH_FORM_SPEC.md Phase 1 — the "Add Branch" wizard's server-trusted resume
+  /// point, only meaningful while status is DRAFT ("remember current wizard step" — do not
+  /// restart from Step 1). Deliberately NOT used to gate anything (a client jumping straight
+  /// to step 7 with an incomplete draft just fails the submit-time validation) — it only
+  /// decides where the wizard opens back up.
+  wizardStep    Int?      @map("wizard_step")
   /// Vòng 4 / Phase C3 — independent from `status` (moderation: is this gym allowed to exist
   /// on the platform at all) on purpose. This is the OWNER's own "are we open for business
   /// right now" switch — a SUSPENDED gym is never OPEN-gated regardless of this value (both
@@ -134,6 +786,10 @@ model Gym {
   /// own owner without an admin ever touching `status`.
   operationalStatus GymOperationalStatus @default(OPEN) @map("operational_status")
   closureReason     String?              @map("closure_reason")
+  /// GYM_MANAGEMENT master spec §61 — ngày dự kiến mở lại, do chủ gym tự nhập lúc đóng cửa
+  /// tạm thời. Thuần hiển thị (hàng đợi admin + banner cho khách tìm kiếm) — KHÔNG có job nào
+  /// tự động mở lại gym vào ngày này; chủ gym vẫn phải tự bấm "Mở lại".
+  expectedReopenAt  DateTime?            @map("expected_reopen_at")
   closedAt          DateTime?            @map("closed_at")
   reopenedAt        DateTime?            @map("reopened_at")
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -144,11 +800,20 @@ model Gym {
   affiliations   GymTrainerAffiliation[]
   reviews        GymReview[]
   collaborations GymPtCollaboration[]
+  complaints     GymComplaint[]
+  operatingHours GymOperatingHours[]
+  photos         GymPhoto[]
+  branchDocuments GymBranchDocument[]
+  reviewIssues    GymBranchReviewIssue[]
 
   @@index([status])
   @@index([operationalStatus])
   @@index([ownerId])
   @@index([brandId])
+  /// Khớp với index đã tạo tay ở migration 20260908040000 — thiếu dòng này khiến
+  /// `prisma migrate diff` coi index đã có trong CSDL là "thừa, cần xoá" (phát hiện khi
+  /// soạn migration Phase 1 của master spec quản lý gym).
+  @@index([provinceCode])
   @@map("gyms")
 }
 

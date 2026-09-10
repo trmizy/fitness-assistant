@@ -56,6 +56,32 @@ export const membershipRepository = {
     return prisma.gymMembershipContract.findMany({ where: { gymId }, orderBy: { createdAt: 'desc' } });
   },
 
+  /** Phase 5 — mọi hội viên đang ACTIVE trên NHIỀU chi nhánh cùng lúc, cho màn xác nhận
+   * "Chấm dứt hợp tác" đếm số người + tổng giá trị chưa dùng across cả đối tác. */
+  async findActiveByGyms(gymIds: string[]) {
+    if (gymIds.length === 0) return [];
+    return prisma.gymMembershipContract.findMany({ where: { gymId: { in: gymIds }, status: 'ACTIVE' } });
+  },
+
+  /**
+   * GYM_MANAGEMENT master spec, Phase 5 (Complaints) — eligibility guard for "Báo cáo vấn
+   * đề": only a client with a membership at this gym that's currently ACTIVE, or EXPIRED
+   * within the last `withinDays` days, may report an issue about it. Deliberately stricter
+   * than the review system's "ever paid, any time" rule (reviewService.submit) — a report
+   * is meant to be timely, not a channel for airing an arbitrarily old grievance.
+   */
+  async hasRecentOrActiveMembership(clientId: string, gymId: string, withinDays: number): Promise<boolean> {
+    const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+    const count = await prisma.gymMembershipContract.count({
+      where: {
+        clientId,
+        gymId,
+        OR: [{ status: 'ACTIVE' }, { status: 'EXPIRED', endDate: { gte: cutoff } }],
+      },
+    });
+    return count > 0;
+  },
+
   /** Open = PENDING_PAYMENT or ACTIVE (matches the partial unique index). */
   async findOpenByClientAndGym(clientId: string, gymId: string) {
     return prisma.gymMembershipContract.findFirst({

@@ -403,6 +403,9 @@ export interface WalletLedgerEntry {
 
 // ── Gym marketplace types (Phase 4) ─────────────────────────────────
 export type GymStatus =
+  // GYM_BRANCH_FORM_SPEC.md, Phase 1 — the "Add Branch" wizard's pre-validation state. Never
+  // shown in any admin queue or public listing — see schema.prisma's own doc comment.
+  | "DRAFT"
   | "PENDING_REVIEW"
   | "APPROVED"
   | "REJECTED"
@@ -415,6 +418,117 @@ export type GymMembershipContractStatus =
   | "CANCELLED";
 
 export type GymOperationalStatus = "OPEN" | "TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED";
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 2 — Step 3 "Opening Hours". §20: single interval per day
+// only (no split hours) — matches the backend, which never had multi-interval support.
+export type WeekDay = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+export type DayScheduleType = "OPEN" | "CLOSED" | "ALL_DAY";
+export interface GymOperatingHoursDay {
+  id: string | null;
+  gymId: string;
+  day: WeekDay;
+  type: DayScheduleType;
+  openMinute: number | null;
+  closeMinute: number | null;
+}
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 4 "Facilities & Services". Must match the
+// `GymFacility` Prisma enum exactly.
+export type GymFacility =
+  | "FREE_WEIGHTS" | "CARDIO_MACHINES" | "FUNCTIONAL_TRAINING_AREA" | "GROUP_CLASSES"
+  | "YOGA_STUDIO" | "SWIMMING_POOL" | "PERSONAL_TRAINER" | "INBODY_SCAN" | "LOCKER_ROOM"
+  | "SHOWER" | "SAUNA" | "TOWEL_SERVICE" | "PARKING" | "WIFI" | "AIR_CONDITIONING"
+  | "DRINKING_WATER" | "KIDS_AREA" | "VENDING_MACHINE";
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — `fileName` joins with
+// `/uploads/gym-photos/` to form the full public URL, same token-not-URL convention as
+// GymComplaint.photoTokens.
+export interface GymPhoto {
+  id: string;
+  gymId: string;
+  fileName: string;
+  sortOrder: number;
+  isCover: boolean;
+  createdAt: string;
+}
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification" (branch-level only, §95.4 — NOT
+// the partner-level business registration/tax/rep-identity, collected once at partner
+// vetting). Reuses PartnerDocumentStatus's exact value set (see gym-service's schema.prisma
+// doc comment for why no duplicate enum was created).
+export type BranchDocumentType = "LEASE_OR_PROPERTY_DOC" | "FIRE_SAFETY_CERTIFICATE" | "FACILITY_PHOTOS";
+export type PartnerDocumentStatus = "PENDING" | "RECEIVED" | "VERIFIED" | "REJECTED";
+export interface GymBranchDocument {
+  id: string | null;
+  gymId: string;
+  docType: BranchDocumentType;
+  required: boolean;
+  /** Token riêng tư từ branch-documents upload, không phải URL công khai — dùng với
+   * AuthenticatedImage, cùng quy ước với GymComplaint.photoTokens. */
+  fileToken: string | null;
+  status: PartnerDocumentStatus;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+}
+/** Ngữ cảnh chỉ đọc — giấy tờ cấp ĐỐI TÁC (đã thu thập một lần lúc thẩm định), không phải
+ * giấy tờ cấp chi nhánh ở trên. §95.4. */
+export interface PartnerDocumentContext {
+  id: string | null;
+  partnerId: string;
+  docType: string;
+  required: boolean;
+  fileUrl: string | null;
+  status: PartnerDocumentStatus;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+  expiresAt: string | null;
+}
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 4 — "Request Changes" by category on a branch's first-time
+// wizard submission. Distinct from Gym.pendingNameNote/pendingAddressNote (name/address only,
+// post-approval renames) — see gym-service's GymBranchReviewIssue schema doc comment.
+export type BranchReviewCategory = "BASIC_INFO" | "LOCATION" | "OPENING_HOURS" | "FACILITIES" | "PHOTOS" | "VERIFICATION" | "OTHER";
+export interface GymBranchReviewIssue {
+  id: string;
+  gymId: string;
+  category: BranchReviewCategory;
+  message: string;
+  createdBy: string;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+// ── GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm ─────────────────────────────
+export type ComplaintSource = "SELF_DETECTED" | "MEMBER_REPORT" | "PT_REPORT" | "PARTNER_DISCLOSED";
+export type ComplaintIssueType =
+  | "CLEANLINESS"
+  | "STAFF_BEHAVIOR"
+  | "EQUIPMENT_CONDITION"
+  | "FALSE_ADVERTISING"
+  | "BILLING"
+  | "SAFETY"
+  | "OTHER";
+export type ComplaintStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+
+/** Riêng tư — chỉ admin và chính người báo cáo xem được (khác GymReview: công khai, có sao). */
+export interface GymComplaint {
+  id: string;
+  gymId: string;
+  partnerId: string | null;
+  source: ComplaintSource;
+  issueType: ComplaintIssueType;
+  reporterUserId: string | null;
+  description: string;
+  /** Token riêng tư từ complaint-photos, không phải URL công khai — dùng với AuthenticatedImage. */
+  photoTokens: string[];
+  status: ComplaintStatus;
+  assignedAdminId: string | null;
+  adminResponse: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 /** A chain: one owner, one name, many physical locations (branches, below). */
 export interface GymBrand {
@@ -449,18 +563,47 @@ export interface Gym {
   approvedAddress?: string | null;
   pendingAddress?: string | null;
   city?: string;
+  /** Lọc "theo tỉnh/thành phố" ở trang tìm phòng gym — denormalized từ VietnamProvince/
+   * VietnamWard bên user-service, không FK xuyên service (cùng quy ước `ownerId`). */
+  provinceCode?: number | null;
+  wardCode?: number | null;
+  /** Toạ độ chi nhánh — chủ gym tự lấy bằng "Dùng vị trí hiện tại" lúc tạo/sửa. Dùng để
+   * sắp xếp chi nhánh gần khách nhất lên đầu ở trang tìm kiếm. */
+  latitude?: number | null;
+  longitude?: number | null;
+  /** GYM_BRANCH_FORM_SPEC.md §14/§74 — free-text directions on top of the formal address
+   * (e.g. "cổng sau, tầng 3"). Free edit even after approval, no material-change gating. */
+  locationNote?: string | null;
+  /** GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 4. Free edit, no material-change gating. */
+  facilities?: GymFacility[];
   phone?: string;
   email?: string;
   status: GymStatus;
+  /** GYM_BRANCH_FORM_SPEC.md Phase 1 — the wizard's resume position, only meaningful while
+   * `status === "DRAFT"`. */
+  wizardStep?: number | null;
+  /** GYM_MANAGEMENT master spec §60/§62 (Phase 1) — per-field "Request Changes" notes, set
+   * by an admin instead of a blunt approve/reject. Cleared automatically when the owner edits
+   * the corresponding field again or when the admin approves. */
+  pendingNameNote?: string | null;
+  pendingAddressNote?: string | null;
+  changesRequestedAt?: string | null;
+  changesRequestedBy?: string | null;
   /** Vòng 4 / Phase C3 — the owner's own open/closed switch, independent from `status`. */
   operationalStatus?: GymOperationalStatus;
   closureReason?: string | null;
+  /** GYM_MANAGEMENT master spec §61 (Phase 1) — owner-entered expected reopen date, only
+   * meaningful while operationalStatus is TEMPORARILY_CLOSED. */
+  expectedReopenAt?: string | null;
   closedAt?: string | null;
   reopenedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   averageRating?: number; // public DTO only
   reviewCount?: number; // public DTO only
+  /** Giá gói rẻ nhất đang mở bán của thương hiệu (public DTO only) — null nếu chưa có gói
+   * nào, không phải 0. Dùng để lọc "theo mức giá" ở trang tìm kiếm. */
+  fromPrice?: string | null;
   activeMemberCount?: number; // owner listing only (GET /owner/gyms)
   /** Included on public/owner listings so the client can group branches without a second call. */
   brand?: { id: string; name: string; approvedName?: string | null; pendingName?: string | null } | null;

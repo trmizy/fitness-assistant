@@ -9,7 +9,18 @@ import type { GymMembershipContract, GymMembershipContractStatus } from "../../t
 import { formatVND } from "../../utils/currency";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
+import { ReportIssueDialog } from "../../components/gym/ReportIssueDialog";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { WarningCircleIcon } from "@phosphor-icons/react";
+
+/** GYM_MANAGEMENT master spec, Phase 5 — same 30-day window as the server-side guard
+ * (complaintService.submitAsMember); purely a client-side hint so the button isn't shown
+ * where it would just 403 — the server remains the real source of truth. */
+function isWithinReportWindow(endDate?: string | null): boolean {
+  if (!endDate) return false;
+  const days = (Date.now() - new Date(endDate).getTime()) / 86_400_000;
+  return days <= 30;
+}
 
 /** Days left on an ACTIVE membership, for the cancel-warning copy (no refund is computed —
  * money-flow plan §2.4: self-cancel forfeits the unused portion, it is not estimated). */
@@ -40,6 +51,7 @@ export function GymMembershipsPage() {
   useBackDismissible(!!cancelTarget, () => setCancelTarget(null));
   // The membership awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<GymMembershipContract | null>(null);
+  const [reportTarget, setReportTarget] = useState<GymMembershipContract | null>(null);
 
   const { data: memberships = [], isLoading } = useQuery<GymMembershipContract[]>({
     queryKey: ["client-gym-memberships"],
@@ -153,6 +165,26 @@ export function GymMembershipsPage() {
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Hủy membership
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setReportTarget(m)}
+                      className="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 hover:text-amber-400 hover:border-amber-500/30 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <WarningCircleIcon className="w-3.5 h-3.5" /> Báo cáo vấn đề
+                    </button>
+                  </div>
+                )}
+                {/* GYM_MANAGEMENT master spec, Phase 5 — same 30-day window the server
+                    enforces (complaintService.submitAsMember). */}
+                {m.status === "EXPIRED" && isWithinReportWindow(m.endDate) && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setReportTarget(m)}
+                      className="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 hover:text-amber-400 hover:border-amber-500/30 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <WarningCircleIcon className="w-3.5 h-3.5" /> Báo cáo vấn đề
+                    </button>
                   </div>
                 )}
                 {m.status === "PENDING_PAYMENT" && (
@@ -183,6 +215,8 @@ export function GymMembershipsPage() {
       )}
 
       {scanning && <CheckinScanModal onClose={() => setScanning(false)} />}
+
+      {reportTarget && <ReportIssueDialog gymId={reportTarget.gymId} onClose={() => setReportTarget(null)} />}
 
       {payTarget && (
         <PaymentMethodDialog

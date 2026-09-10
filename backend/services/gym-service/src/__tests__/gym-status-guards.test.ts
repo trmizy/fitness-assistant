@@ -4,6 +4,7 @@ import { membershipService } from '../services/membership.service';
 import { membershipRepository } from '../repositories/membership.repository';
 import { planRepository } from '../repositories/plan.repository';
 import { gymRepository } from '../repositories/gym.repository';
+import { partnerRepository } from '../repositories/partner.repository';
 
 /**
  * Money-flow redesign plan item 2.5 — "ba chốt chặn trạng thái phòng tập". This file covers
@@ -132,13 +133,17 @@ test('purchase still succeeds normally at an APPROVED gym', async () => {
   let createCalled = false;
   const restores = [
     patch(planRepository, 'findById', async () => plan as any),
-    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', brandId: 'brand-1', status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
+    patch(gymRepository, 'findById', async () => ({ id: 'gym-1', ownerId: 'owner-1', brandId: 'brand-1', status: 'APPROVED', operationalStatus: 'OPEN' }) as any),
     patch(membershipRepository, 'findOpenByClientAndGym', async () => null),
     patch(membershipRepository, 'findOtherActiveMemberships', async () => []),
     patch(membershipRepository, 'create', async () => {
       createCalled = true;
       return { id: 'membership-1' } as any;
     }),
+    // Quản lý đối tác phòng tập (Phase 5) — purchase() giờ gọi partnerGuard.assertAcceptsNewMoney,
+    // đọc thẳng partnerRepository (Prisma thật). 'owner-1' không có hồ sơ đối tác nào — mock trả
+    // null, đúng hành vi thật của một chủ gym "legacy" (có từ trước Phase 1).
+    patch(partnerRepository, 'findAccountByUserId', async () => null),
   ];
 
   try {

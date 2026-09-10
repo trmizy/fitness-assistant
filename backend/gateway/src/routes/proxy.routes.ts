@@ -917,6 +917,63 @@ router.post(
   },
 );
 
+// "Quản lý gym & owner" — admin correcting another user's display name. Not role-restricted
+// server-side (nothing role-specific about a display name), but only exposed on the frontend
+// for GYM_OWNER accounts today. Email is deliberately not accepted here — see
+// authService.updateUserNameAsAdmin's doc comment.
+router.patch(
+  "/admin/users/:userId/name",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  json(),
+  async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const { userId } = req.params;
+      const response = await axios.patch(
+        `${AUTH_SERVICE_URL}/auth/users/${userId}/name`,
+        req.body,
+        { headers: authHeader ? { Authorization: authHeader } : undefined, timeout: 5000 },
+      );
+      res.json({ success: true, data: response.data });
+    } catch (error: any) {
+      logger.error({ error: error?.message }, "Admin update user name failed");
+      const status = error?.response?.status || 500;
+      res.status(status).json({
+        success: false,
+        error: { code: "UPDATE_USER_NAME_FAILED", message: error?.response?.data?.error || "Failed to update user name" },
+      });
+    }
+  },
+);
+
+// "Quản lý gym & owner" — list every GYM_OWNER account (the generic /admin/users above is a
+// separate aggregation built for UserManagement.tsx's Client/PT/Admin view and does not
+// surface GYM_OWNER correctly). Raw pass-through of auth-service's own listUsers?role= filter
+// — no cross-service aggregation needed here.
+router.get(
+  "/admin/gym-owners",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const response = await axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
+        params: { role: "GYM_OWNER" },
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        timeout: 5000,
+      });
+      res.json({ success: true, data: response.data?.users ?? [] });
+    } catch (error: any) {
+      logger.error({ error: error?.message }, "List gym owners failed");
+      res.status(error?.response?.status || 500).json({
+        success: false,
+        error: { code: "LIST_GYM_OWNERS_FAILED", message: "Failed to list gym owner accounts" },
+      });
+    }
+  },
+);
+
 router.get(
   "/admin/workflows/meta",
   authMiddleware,
@@ -2304,6 +2361,21 @@ router.use(
   }),
 );
 
+// Public — gym branch photo gallery (Gym Service). Must be registered BEFORE the blanket
+// `/uploads` → USER_SERVICE_URL route below, since Express matches path prefixes in
+// registration order and this is a more specific sub-path of it.
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos": these are genuinely public (marketing
+// gallery), same exposure level as a profile photo — unlike complaint-photos/verification
+// documents, which stay behind an authenticated serve route with no static mount at all.
+router.use(
+  "/uploads/gym-photos",
+  createProxyMiddleware({
+    target: GYM_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("Gym service (Uploads)"),
+  }),
+);
+
 // Public — Uploads (User Service)
 router.use(
   "/uploads",
@@ -2480,6 +2552,28 @@ router.use(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
+// GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (private, never public — distinct
+// from the review route above). Multipart upload proxies through unmodified — gym-service's
+// own multer parses it, the gateway has no reason to touch the body.
+router.post(
+  '/gyms/:gymId/complaints',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/me/complaints',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/complaint-photos',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
 // PT — gym affiliation invitations
 router.use(
   '/pt/gym-invitations',
@@ -2526,6 +2620,17 @@ router.get(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
+// Quản lý đối tác phòng tập (Phase 3) — người nhận thư mời chưa có tài khoản, nên không
+// thể gắn authMiddleware. Cùng shape với /gyms public phía trên.
+router.get(
+  '/partner-invitations/:token',
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.post(
+  '/partner-invitations/:token/accept',
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
 // Owner — gym/plan/membership/wallet management (gym-service verifies per-row ownership)
 router.use(
   '/owner/gyms',
@@ -2542,11 +2647,39 @@ router.use(
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification". `/owner/branch-documents/:token`
+// (private serve route) is a sibling path outside `/owner/gyms` — same gotcha as
+// `/owner/brands` above.
+router.use(
+  '/owner/branch-documents',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 // `/owner/gyms/:gymId/collaborations` (invite a PT) is already covered by the blanket
 // `/owner/gyms` proxy above. `/owner/collaborations/:id` (respond/terminate) is a sibling
 // path outside that prefix and needs its own declaration (money-flow plan §1.3/F3).
 router.use(
   '/owner/collaborations',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Phase 3 — trình thiết lập lần đầu (5 bước) + owner tự mời/thu hồi quản lý chi nhánh.
+router.use(
+  '/owner/onboarding',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/owner/partner-accounts',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/owner/partner-invitations',
   authMiddleware,
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
@@ -2573,6 +2706,49 @@ router.use(
 // /admin/gyms above, needs its own declaration.
 router.use(
   '/admin/gym-memberships',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// Quản lý đối tác phòng tập (Phase 2-5) — hồ sơ đối tác, tài khoản, thư mời, thẩm định,
+// tạm khoá/chấm dứt, chiết khấu. Sibling prefixes ngoài /admin/gyms, cần khai báo riêng.
+router.use(
+  '/admin/partners',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+router.use(
+  '/admin/partner-accounts',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+router.use(
+  '/admin/commission-rate',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm, admin side.
+router.use(
+  '/admin/complaints',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+router.use(
+  '/admin/complaint-photos',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification", admin defense-in-depth serve.
+router.use(
+  '/admin/branch-documents',
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),

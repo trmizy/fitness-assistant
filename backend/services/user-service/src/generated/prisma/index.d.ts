@@ -291,7 +291,9 @@ export const NotificationEventType: {
   WORKOUT_RESCHEDULED: 'WORKOUT_RESCHEDULED',
   WORKOUT_UNFINISHED: 'WORKOUT_UNFINISHED',
   TRAINING_PLAN_UPDATED: 'TRAINING_PLAN_UPDATED',
-  PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED'
+  PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED',
+  GYM_COMPLAINT_RESOLVED: 'GYM_COMPLAINT_RESOLVED',
+  GYM_BRANCH_CHANGES_REQUESTED: 'GYM_BRANCH_CHANGES_REQUESTED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -301,7 +303,9 @@ export const NotificationEntityType: {
   CONTRACT: 'CONTRACT',
   SESSION: 'SESSION',
   WORKOUT_SCHEDULE: 'WORKOUT_SCHEDULE',
-  TRAINING_PROGRAM: 'TRAINING_PROGRAM'
+  TRAINING_PROGRAM: 'TRAINING_PROGRAM',
+  GYM_COMPLAINT: 'GYM_COMPLAINT',
+  GYM_BRANCH: 'GYM_BRANCH'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
@@ -3113,6 +3117,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    unitSystem: string | null
+    energyUnit: string | null
     sessionDurationMinutes: number | null
     isAcceptingClients: boolean | null
     notAcceptingReason: string | null
@@ -3152,6 +3158,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    unitSystem: string | null
+    energyUnit: string | null
     sessionDurationMinutes: number | null
     isAcceptingClients: boolean | null
     notAcceptingReason: string | null
@@ -3195,6 +3203,8 @@ export namespace Prisma {
     startingWeightSource: number
     dietaryPreference: number
     photoUrl: number
+    unitSystem: number
+    energyUnit: number
     sessionDurationMinutes: number
     isAcceptingClients: number
     notAcceptingReason: number
@@ -3257,6 +3267,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    unitSystem?: true
+    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3296,6 +3308,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    unitSystem?: true
+    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3339,6 +3353,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    unitSystem?: true
+    energyUnit?: true
     sessionDurationMinutes?: true
     isAcceptingClients?: true
     notAcceptingReason?: true
@@ -3470,6 +3486,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    unitSystem: string
+    energyUnit: string
     sessionDurationMinutes: number
     isAcceptingClients: boolean
     notAcceptingReason: string | null
@@ -3533,6 +3551,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    unitSystem?: boolean
+    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3581,6 +3601,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    unitSystem?: boolean
+    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3625,6 +3647,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    unitSystem?: boolean
+    energyUnit?: boolean
     sessionDurationMinutes?: boolean
     isAcceptingClients?: boolean
     notAcceptingReason?: boolean
@@ -3684,6 +3708,8 @@ export namespace Prisma {
       startingWeightSource: string | null
       dietaryPreference: string | null
       photoUrl: string | null
+      unitSystem: string
+      energyUnit: string
       sessionDurationMinutes: number
       isAcceptingClients: boolean
       notAcceptingReason: string | null
@@ -4121,6 +4147,8 @@ export namespace Prisma {
     readonly startingWeightSource: FieldRef<"UserProfile", 'String'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
     readonly photoUrl: FieldRef<"UserProfile", 'String'>
+    readonly unitSystem: FieldRef<"UserProfile", 'String'>
+    readonly energyUnit: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
     readonly isAcceptingClients: FieldRef<"UserProfile", 'Boolean'>
     readonly notAcceptingReason: FieldRef<"UserProfile", 'String'>
@@ -25192,6 +25220,8 @@ export namespace Prisma {
     startingWeightSource: 'startingWeightSource',
     dietaryPreference: 'dietaryPreference',
     photoUrl: 'photoUrl',
+    unitSystem: 'unitSystem',
+    energyUnit: 'energyUnit',
     sessionDurationMinutes: 'sessionDurationMinutes',
     isAcceptingClients: 'isAcceptingClients',
     notAcceptingReason: 'notAcceptingReason',
@@ -26112,6 +26142,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
+    unitSystem?: StringFilter<"UserProfile"> | string
+    energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
@@ -26159,6 +26191,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
+    unitSystem?: SortOrder
+    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrderInput | SortOrder
@@ -26209,6 +26243,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
+    unitSystem?: StringFilter<"UserProfile"> | string
+    energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     isAcceptingClients?: BoolFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableFilter<"UserProfile"> | string | null
@@ -26256,6 +26292,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
+    unitSystem?: SortOrder
+    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrderInput | SortOrder
@@ -26308,6 +26346,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    unitSystem?: StringWithAggregatesFilter<"UserProfile"> | string
+    energyUnit?: StringWithAggregatesFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
     isAcceptingClients?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     notAcceptingReason?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
@@ -28466,6 +28506,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28513,6 +28555,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28560,6 +28604,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28607,6 +28653,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28654,6 +28702,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -28698,6 +28748,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28742,6 +28794,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31493,6 +31547,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    unitSystem?: SortOrder
+    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -31543,6 +31599,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    unitSystem?: SortOrder
+    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -31582,6 +31640,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    unitSystem?: SortOrder
+    energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
     isAcceptingClients?: SortOrder
     notAcceptingReason?: SortOrder
@@ -35789,6 +35849,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -35835,6 +35897,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -35957,6 +36021,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -36003,6 +36069,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38340,6 +38408,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38386,6 +38456,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38518,6 +38590,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38564,6 +38638,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38610,6 +38686,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38656,6 +38734,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    unitSystem?: string
+    energyUnit?: string
     sessionDurationMinutes?: number
     isAcceptingClients?: boolean
     notAcceptingReason?: string | null
@@ -38718,6 +38798,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38764,6 +38846,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
     notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null

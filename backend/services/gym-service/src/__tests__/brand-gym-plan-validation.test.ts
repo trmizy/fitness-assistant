@@ -141,17 +141,15 @@ test('gymCreateSchema — email rỗng vẫn hợp lệ (cho phép xoá email)',
   assert.ok(result.success);
 });
 
-// Vòng 4 / Phase C4 — brandId was intentionally added to gymUpdateSchema (moving a gym
-// between brands, or detaching it) after this test was first written; updated to match.
-test('gymUpdateSchema — brandId không phải uuid hợp lệ bị từ chối', () => {
-  const result = gymUpdateSchema.safeParse({ name: 'Gym A', brandId: 'not-a-uuid' });
-  assert.equal(result.success, false);
-});
-
-test('gymUpdateSchema — brandId: null hợp lệ (tháo gym khỏi brand)', () => {
-  const result = gymUpdateSchema.safeParse({ brandId: null });
+// GYM_BRANCH_FORM_SPEC.md §51/§79/§89 — brandId was removed from gymUpdateSchema entirely
+// (it used to let an owner move/detach a gym between brands — see
+// gym-status-guards-adjacent brand-gym-moderation-and-operational-status.test.ts's own
+// removal note for the full reasoning). Confirms the field is now silently stripped rather
+// than accepted, not just "still validated the same way as before".
+test('gymUpdateSchema — brandId không còn được chấp nhận (bị âm thầm loại bỏ, không lỗi)', () => {
+  const result = gymUpdateSchema.safeParse({ name: 'Gym A', brandId: 'brand-2' });
   assert.ok(result.success);
-  if (result.success) assert.equal((result.data as any).brandId, null);
+  if (result.success) assert.equal((result.data as any).brandId, undefined);
 });
 
 // ── validateBody middleware ─────────────────────────────────────────────

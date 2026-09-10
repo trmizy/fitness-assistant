@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { collaborationService } from '../services/collaboration.service';
+import { principalId } from '../middleware/partner-context.middleware';
+import { partnerGuard } from '../services/partner-guard.service';
 
 /**
  * Both sides of a negotiation share this one controller. Which side is acting is never taken
@@ -47,7 +49,7 @@ export const collaborationController = {
   // Gym owner invites a PT — POST /owner/gyms/:gymId/collaborations
   async proposeAsGym(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const { ptUserId, ptRate, gymRate, platformRate, note } = req.body;
       if (!ptUserId) {
         res.status(400).json({ success: false, error: { message: 'ptUserId is required' } });
@@ -56,6 +58,9 @@ export const collaborationController = {
       // Same authorization gate propose() itself would apply to a response — verified up
       // front here since propose() does not otherwise check gym ownership for the GYM actor.
       await collaborationService.assertParty({ gymId: req.params.gymId, ptUserId }, 'GYM', ownerId);
+      // Phase 5 mục 5.1 — "Cộng tác PT mới ❌ dừng" khi đối tác bị tạm khoá/chấm dứt; hợp
+      // tác đang chạy (ACCEPTED trước đó) không bị đụng tới ở đây.
+      await partnerGuard.assertAcceptsNewMoney(ownerId);
       const row = await collaborationService.propose({
         gymId: req.params.gymId,
         ptUserId,
@@ -93,7 +98,7 @@ export const collaborationController = {
 
   async respondAsGym(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const ownerId = principalId(req);
       const { action, ptRate, gymRate, platformRate, note } = req.body;
       const row = await collaborationService.respond({
         collaborationId: req.params.id,
@@ -124,7 +129,7 @@ export const collaborationController = {
   async terminateAsGym(req: Request, res: Response) {
     try {
       const effectiveAt = parseEffectiveAt(req.body?.effectiveAt);
-      const row = await collaborationService.terminate(req.params.id, 'GYM', req.user!.userId, effectiveAt);
+      const row = await collaborationService.terminate(req.params.id, 'GYM', principalId(req), effectiveAt);
       res.json({ success: true, data: row });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
@@ -136,7 +141,7 @@ export const collaborationController = {
   async listMine(req: Request, res: Response) {
     const list =
       req.user!.role === 'GYM_OWNER'
-        ? await collaborationService.listFor({ ownerId: req.user!.userId })
+        ? await collaborationService.listFor({ ownerId: principalId(req) })
         : await collaborationService.listFor({ ptUserId: req.user!.userId });
     res.json({ success: true, data: list });
   },
