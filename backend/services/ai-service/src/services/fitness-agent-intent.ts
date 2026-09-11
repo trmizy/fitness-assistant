@@ -19,7 +19,8 @@ export function normalizeAgentText(text: string): string {
  * Ranking, prescription and action execution are never inferred by a model.
  */
 export function parseFitnessAgentIntent(text: string): {
-  kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | null;
+  kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
+    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE" | null;
   preferences: Partial<AgentPreferences>;
   candidateNumber?: number;
   /** kind === "REVIEW" only — which pending recommendation and which way. */
@@ -55,6 +56,59 @@ export function parseFitnessAgentIntent(text: string): {
   if (evaluate) {
     return { kind: "EVALUATE", preferences: {} };
   }
+
+  // Agent automation — "hãy tạo/gán lộ trình + plan tập + dinh dưỡng vào hệ
+  // thống" style requests. Checked before REVIEW/PT/PROGRAM so it isn't
+  // mistaken for a training-program search ("tạo... chương trình tập" also
+  // matches PROGRAM's own looser "goi y...chuong trinh" pattern). Two ways
+  // to trigger: explicitly mentioning "vào hệ thống" with a create/assign
+  // verb, or asking to create a lộ trình together with a plan/nutrition
+  // component in the same message.
+  const mentionsSystemAssign = /\bhe thong\b/.test(s) && /\b(gan|tao|luu|kich hoat|assign|apply|dang ky)\b/.test(s);
+  const mentionsCreateBundle = /\blo trinh\b/.test(s) && /\b(tao|len|xay|kich hoat)\b/.test(s)
+    && /\bplan\b|\bke hoach\b|\bdinh duong\b|\bchuong trinh tap\b/.test(s);
+  if (mentionsSystemAssign || mentionsCreateBundle) {
+    return { kind: "CREATE_PLAN_BUNDLE", preferences: {} };
+  }
+
+  // "gán/lưu/áp dụng lịch tập [này/vừa tạo] cho tôi" — the natural way a
+  // user actually asks to persist the specific workout plan the AI just
+  // generated in this conversation (POST /plans/workout/generate), as
+  // opposed to CREATE_PLAN_BUNDLE above (which regenerates a fresh
+  // roadmap+workout+nutrition bundle from scratch). Found live: this exact
+  // phrase has neither "he thong" nor "lo trinh", so it fell through to the
+  // read-only workout_schedule_context lookup and surfaced an unrelated
+  // already-active program instead of saving what was just discussed.
+  const mentionsSaveGeneratedPlan = /\b(gan|luu|ap dung|apply|save)\b/.test(s)
+    && /\b(lich tap|ke hoach tap|chuong trinh tap|plan)\b/.test(s);
+  if (mentionsSaveGeneratedPlan) {
+    return { kind: "SAVE_GENERATED_PLAN", preferences: {} };
+  }
+
+  // Roadmap management for an EXISTING roadmap — distinct from
+  // CREATE_PLAN_BUNDLE above (which only ever creates+activates a brand
+  // NEW one). All four require "lo trinh" plus a distinguishing verb, so
+  // none of these ever fire on a plain "lộ trình của tôi có gì" question
+  // (that stays ROADMAP_STATUS) or collide with CREATE_PLAN_BUNDLE (which
+  // additionally requires a plan/nutrition mention in the same message).
+  if (/\blo trinh\b/.test(s)) {
+    if (/\b(lam lai|xay lai|rebuild|thiet ke lai|tao lai)\b/.test(s)) {
+      return { kind: "ROADMAP_REBUILD", preferences: {} };
+    }
+    // "dung" deliberately excluded — "dùng" (use) and "dừng" (stop) both
+    // normalize to the same ASCII string, so it's too ambiguous to trigger
+    // an archive on its own.
+    if (/\b(huy|luu tru|archive|xoa)\b/.test(s)) {
+      return { kind: "ROADMAP_ARCHIVE", preferences: {} };
+    }
+    if (/\badvance\b/.test(s) || (/\b(chuyen|qua|sang)\b/.test(s) && /\b(giai doan|phase)\b/.test(s))) {
+      return { kind: "ROADMAP_ADVANCE", preferences: {} };
+    }
+    if (/\b(hien tai|the nao|ra sao|tien do|giai doan|xem|kiem tra)\b/.test(s)) {
+      return { kind: "ROADMAP_STATUS", preferences: {} };
+    }
+  }
+
   const reviewVerb = /\b(chap nhan|đong y|dong y|ok|approve|accept)\b/.test(s)
     ? "ACCEPT" as const
     : /\b(tu choi|khong đong y|khong dong y|reject)\b/.test(s)

@@ -17,6 +17,7 @@ const handler = (apply: boolean) => async (req: AuthRequest, res: any) => {
     return res.json(result);
   } catch (error: any) {
     const status = error instanceof z.ZodError ? 400 : error.status ?? 500;
+    if (status >= 500) logger.error({ err: error instanceof Error ? error.message : error, apply, userId: req.user?.id }, "agent-program handler failed");
     return res.status(status).json({ error: status >= 500 ? "Service unavailable" : error.message });
   }
 };

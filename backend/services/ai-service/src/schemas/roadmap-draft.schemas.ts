@@ -96,6 +96,29 @@ export const GenerateRoadmapDraftRequestSchema = z.object({
 });
 export type GenerateRoadmapDraftRequest = z.infer<typeof GenerateRoadmapDraftRequestSchema>;
 
+/** Live bug found during manual QA (2026-09-10): the local dev LLM
+ * (Ollama) sometimes returns `assumptions`/`warnings` array items as
+ * objects (e.g. `{text: "..."}`) instead of plain strings, even though
+ * the prompt explicitly asks for `string[]` — confirmed via real
+ * fitness-service/ai-service logs (`[roadmap-draft] LLM output
+ * validation failed`, `expected: "string", received: "object"`). A
+ * strict `z.array(z.string())` rejected the whole response on every
+ * retry attempt, burning all 3 attempts and always falling back to the
+ * single-phase deterministic draft — the model's actual multi-phase plan
+ * was otherwise valid and thrown away over one malformed leaf field.
+ * Coerce instead of reject. */
+const looseStringSchema = z.union([
+  z.string(),
+  z
+    .object({})
+    .passthrough()
+    .transform((obj) => {
+      const rec = obj as Record<string, unknown>;
+      const candidate = rec.text ?? rec.assumption ?? rec.warning ?? rec.content ?? rec.value ?? rec.vi ?? rec.en;
+      return typeof candidate === "string" ? candidate : JSON.stringify(obj);
+    }),
+]);
+
 const draftPhaseSchema = z.object({
   phaseType: RoadmapDraftPhaseTypeSchema,
   name: z.string().min(1).max(200),
@@ -112,7 +135,7 @@ export const GenerateRoadmapDraftOutputSchema = z.object({
   reasoningSummary: z.string().max(2000),
   confidence: z.number().min(0).max(1),
   phases: z.array(draftPhaseSchema).min(1).max(12),
-  warnings: z.array(z.string()).default([]),
-  assumptions: z.array(z.string()).default([]),
+  warnings: z.array(looseStringSchema).default([]),
+  assumptions: z.array(looseStringSchema).default([]),
 });
 export type GenerateRoadmapDraftOutput = z.infer<typeof GenerateRoadmapDraftOutputSchema>;

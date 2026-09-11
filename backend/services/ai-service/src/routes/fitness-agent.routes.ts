@@ -4,12 +4,14 @@ import { GoalIntentSchema, logger } from "@gym-coach/shared";
 import { fitnessAgent, type AgentBlock } from "../services/fitness-agent.service";
 import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { analyzeGoalImage, GoalImageSchema } from "../services/fitness-goal-vision.service";
+import { analyzeImageChat, type ImageChatUserContext } from "../services/fitness-vision-chat.service";
+import { profileExtractor } from "../llm/profile_extractor";
 import { prisma } from "../repositories/conversation.repository";
 
 const router = Router();
 const uuid = z.string().uuid();
-async function sessionFor(req: Request, supplied?: string) {
-  if (!supplied) return prisma.chatSession.create({ data: { userId: req.context.userId, title: "Mục tiêu hình thể" } });
+async function sessionFor(req: Request, supplied?: string, title = "Mục tiêu hình thể") {
+  if (!supplied) return prisma.chatSession.create({ data: { userId: req.context.userId, title } });
   const session = await prisma.chatSession.findFirst({ where: { id: supplied, userId: req.context.userId, archivedAt: null } });
   if (!session) throw Object.assign(new Error("Conversation not found"), { status: 404 });
   return session;
@@ -50,6 +52,36 @@ router.post("/goal-image", handle(async req => {
   const attributes = await analyzeGoalImage(body.image);
   return persist(req, session.id, { type: "GOAL_ANALYSIS", attributes,
     note: "Đây là gợi ý đặc điểm hình thể, không phải phép đo cơ thể hay cam kết kết quả. Có đúng đây là đặc điểm bạn muốn hướng tới không?" }, "Phân tích ảnh tham khảo mục tiêu");
+}));
+router.post("/image-chat", handle(async req => {
+  const body = z.object({ image: GoalImageSchema, question: z.string().max(500).optional(), sessionId: uuid.optional() }).strict().parse(req.body);
+  const session = await sessionFor(req, body.sessionId, "Hỏi AI về ảnh");
+  // Real bug found live this session: this route used to call analyzeImageChat
+  // with no user context at all, so "phân tích thể trạng cho tôi" stayed
+  // generic even for an account with real InBody data on file. Reuse the
+  // same personalization fetch the main /ai/ask pipeline already relies on
+  // (confirmed live: that one grounds correctly) — best-effort, never blocks
+  // the image analysis if the profile/InBody fetch itself fails.
+  let userContext: ImageChatUserContext | undefined;
+  try {
+    const personalization = await profileExtractor.extract(req.context.userId, req.context.authorizationHeader);
+    userContext = {
+      gender: personalization.profile.gender,
+      age: personalization.profile.age,
+      heightCm: personalization.profile.heightCm,
+      currentWeightKg: personalization.profile.currentWeightKg,
+      goal: personalization.profile.goal,
+      activityLevel: personalization.profile.activityLevel,
+      experienceLevel: personalization.profile.experienceLevel,
+      bodyFatPct: personalization.latestInBody?.bodyFatPct,
+      muscleMassKg: personalization.latestInBody?.skeletalMuscleKg,
+      inBodyMeasuredAt: personalization.latestInBody?.measuredAt,
+    };
+  } catch (err) {
+    logger.warn({ err, userId: req.context.userId }, "image-chat: failed to load user personalization context, proceeding without it");
+  }
+  const result = await analyzeImageChat(body.image, body.question, userContext);
+  return persist(req, session.id, { type: "IMAGE_CHAT", result }, body.question?.trim() || "Phân tích ảnh");
 }));
 router.post("/goal/confirm", handle(async req => {
   const body = z.object({ sessionId: uuid, goal: GoalIntentSchema }).strict().parse(req.body);

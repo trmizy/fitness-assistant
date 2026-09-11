@@ -73,7 +73,13 @@ yarn-error.log*
 Thumbs.db
 .idea/
 .vscode/
-.claude/
+# .claude/ used to be blanket-ignored, which silently meant the
+# project-scoped skills/CLAUDE.md guidance system could never be
+# committed/pushed — the opposite of "travels with the repository".
+# Keep machine-local state ignored; track the durable guidance layer.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/*.lock
 .expo/
 **/.expo/
 .playwright-cli/

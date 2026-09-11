@@ -19,6 +19,7 @@ import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
+import { useApp } from "../../context/AppContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ function pct(consumed: number, target: number): number {
 export function NutritionPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { openAiCoach } = useApp();
 
   // Date navigation
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -966,7 +968,7 @@ export function NutritionPage() {
                 <button
                   type="button"
                   data-testid="goal-plan-mismatch-regenerate"
-                  onClick={() => navigate("/client/ai-coach")}
+                  onClick={openAiCoach}
                   className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-black hover:bg-amber-400 transition-colors"
                 >
                   Tạo lại thực đơn theo mục tiêu mới

@@ -50,7 +50,12 @@ const TrainingPage = lazy(() => import("./pages/client/TrainingPage").then((m) =
 // tiết chu kỳ"). The component itself is unchanged/not deleted.
 const TrainingCyclePage = lazy(() => import("./pages/client/TrainingCyclePage").then((m) => ({ default: m.TrainingCyclePage })));
 const ServicesPage = lazy(() => import("./pages/client/ServicesPage").then((m) => ({ default: m.ServicesPage })));
-const ChatCoachPage = lazy(() => import("./pages/client/ChatCoachPage").then((m) => ({ default: m.ChatCoachPage })));
+// AI Coach moved out of the Chat page's tabs — it's now a global floating
+// panel (AICoachFloatingButton/Panel, mounted in AppShell). This route
+// stays as the direct full-page fallback for deep links (background
+// AI-task notifications, Topbar.tsx's navigate(task.link) — see
+// pendingAiTasks.ts) that expect /client/ai-coach to land somewhere real.
+const AICoachPage = lazy(() => import("./pages/client/AICoachPage").then((m) => ({ default: m.AICoachPage })));
 const PersonalizedServiceOrderPage = lazy(() => import("./pages/client/PersonalizedServiceOrderPage").then((m) => ({ default: m.PersonalizedServiceOrderPage })));
 const ImportWorkoutsPage = lazy(() => import("./pages/client/ImportWorkoutsPage").then((m) => ({ default: m.ImportWorkoutsPage })));
 const ExportDataPage = lazy(() => import("./pages/client/ExportDataPage").then((m) => ({ default: m.ExportDataPage })));
@@ -228,13 +233,13 @@ export const router = createBrowserRouter([
           { path: "marketplace-orders/:id", Component: PersonalizedServiceOrderPage },
           { path: "services", Component: ServicesPage },
           { path: "contracts", Component: ServicesPage },
-          { path: "chat", Component: ChatCoachPage },
+          { path: "chat", Component: ChatPage },
           { path: "booking", Component: ServicesPage },
           { path: "workout", Component: TrainingPage },
           { path: "workout/cycle", Component: TrainingCyclePage },
           { path: "nutrition", Component: NutritionPage },
           { path: "coaches", Component: ServicesPage },
-          { path: "ai-coach", Component: ChatCoachPage },
+          { path: "ai-coach", Component: AICoachPage },
           { path: "profile", Component: ProfilePage },
           { path: "pt-application", Component: PTApplicationPage },
           { path: "wallet", Component: WalletPage },

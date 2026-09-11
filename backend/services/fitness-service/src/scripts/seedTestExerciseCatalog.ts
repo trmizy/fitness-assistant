@@ -6,6 +6,7 @@
  */
 import { execFileSync } from "node:child_process";
 import * as path from "node:path";
+import { PrismaClient } from "../generated/prisma";
 
 function redactUrl(url: string) {
   return url.replace(/:[^:@/]+@/, ":***@");
@@ -23,6 +24,43 @@ function assertTestDatabase(url: string) {
   }
 }
 
+async function cleanupKnownTestExerciseResidue(url: string) {
+  const prisma = new PrismaClient({ datasources: { db: { url } } });
+  const userPrefixes = [
+    "duration-schedule-it-",
+    "distance-schedule-it-",
+    "duration-recomplete-it-",
+    "exgroup-",
+    "idempotency-",
+    "per-set-",
+    "reschedule-",
+    "undo-",
+    "template-",
+  ];
+  const exercisePrefixes = [
+    ...userPrefixes,
+    "template-ex-",
+    "template-ex2-",
+    "template-ex3-",
+    "template-ex4-",
+  ];
+  const userWhere = { OR: userPrefixes.map((prefix) => ({ userId: { startsWith: prefix } })) };
+  const exerciseWhere = { OR: exercisePrefixes.map((prefix) => ({ id: { startsWith: prefix } })) };
+
+  try {
+    await prisma.workout.deleteMany({ where: userWhere });
+    await prisma.workoutSchedule.deleteMany({ where: userWhere });
+    await prisma.workoutProgram.deleteMany({ where: userWhere });
+    await prisma.workoutProgramTemplate.deleteMany({ where: { OR: userPrefixes.map((prefix) => ({ createdByUserId: { startsWith: prefix } })) } });
+    const deletedExercises = await prisma.exercise.deleteMany({ where: exerciseWhere });
+    if (deletedExercises.count > 0) {
+      console.log(`[catalog-test-seed] removed stale test exercise residue: ${deletedExercises.count}`);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 async function main() {
   const url = process.env.FITNESS_DATABASE_URL || process.env.DATABASE_URL || "";
   assertTestDatabase(url);
@@ -37,6 +75,7 @@ async function main() {
   );
 
   console.log(`[catalog-test-seed] target=${redactUrl(url)}`);
+  await cleanupKnownTestExerciseResidue(url);
   execFileSync(tsxBin, [path.join("prisma", "seed_all.ts")], {
     cwd: serviceRoot,
     env: { ...process.env, DATABASE_URL: url },

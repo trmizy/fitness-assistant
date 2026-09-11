@@ -4,10 +4,10 @@ import { logger } from "@gym-coach/shared";
 import type { LLMResponse } from "../models/ai.models";
 import { LlmError } from "../errors/api-error";
 
-const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
+export const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
 const DEFAULT_LLM_MODEL_BY_PROVIDER: Record<string, string> = {
-  ollama: "fitness-coach-qwen2.5-1.5b:q4_K_M",
+  ollama: "llama3.2:3b",
   anthropic: "claude-sonnet-5",
 };
 export const LLM_MODEL =
@@ -395,11 +395,21 @@ export const llmService = {
           prompt,
           opts?.responseFormat,
         );
+        // Real bug found live this session: several callers (e.g.
+        // roadmap-draft.service.ts's callLlmJson with numPredict: 900) tuned
+        // their token budget for the small local Ollama model, where that's
+        // plenty. Passed straight through as Anthropic's own max_tokens, the
+        // SAME budget silently truncated Claude mid-generation — confirmed
+        // live as "No JSON object found in LLM response" (empty/cut-off
+        // answer despite a real completionTokens count). A caller's explicit
+        // numPredict is honored only as a FLOOR here, never a ceiling that
+        // can undercut what JSON/text generation realistically needs on this
+        // provider — Ollama callers are unaffected (this branch only runs
+        // when LLM_PROVIDER === "anthropic").
+        const anthropicFloor = opts?.responseFormat === "json" ? 2048 : 1024;
         const response = await getAnthropicClient().messages.create({
           model: LLM_MODEL,
-          max_tokens:
-            opts?.numPredict ??
-            (opts?.responseFormat === "json" ? 2048 : 1024),
+          max_tokens: Math.max(opts?.numPredict ?? 0, anthropicFloor),
           // Sampling params (temperature/top_p) are not accepted on current
           // Claude models — steer output via prompting instead.
           system,

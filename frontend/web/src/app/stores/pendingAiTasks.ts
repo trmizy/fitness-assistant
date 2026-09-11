@@ -39,6 +39,12 @@ export interface AiChatMessage {
   text: string;
   time: string;
   evidenceUsed?: CoachEvidenceItem[];
+  // A local blob: URL for an image the user attached (image-chat feature).
+  // Transient only — like any blob: URL it doesn't survive a reload, so a
+  // persisted/reloaded message just won't show the thumbnail again. Never
+  // the image's actual data (that's sent to the AI service directly, never
+  // stored here) — just a same-tab preview convenience.
+  imagePreviewUrl?: string;
 }
 
 export interface AiCoachSessionState {
@@ -429,6 +435,31 @@ export function appendAgentReply(userId: string, reply: import("../services/fitn
     id, from: "ai", text: reply.block.type === "ACTION_RESULT" ? "Thao tác đã hoàn tất." : "Kiểm tra thông tin bên dưới.",
     time: nowIso(), structuredBlocks: [reply.block],
   }], updatedAt: nowIso() });
+}
+
+/** Image-chat send (AICoachPage's "+" attach flow) — unlike appendAgentReply
+ * (used by the one-shot goal-image button, which has no typed question and
+ * so never shows a user bubble), this feature pairs a photo with a real
+ * typed question, so omitting the user's own message would read as broken
+ * chat UX ("did my question even send?"). Pushes both the user bubble
+ * (question text + a same-tab image preview) and the AI's reply in one
+ * state update, so no other tab/listener ever observes just one of the two. */
+export function appendImageChatExchange(
+  userId: string,
+  reply: import("../services/fitnessAgent").AgentReply,
+  userText: string,
+  imagePreviewUrl: string,
+) {
+  const current = getCoachSession(userId, reply.sessionId);
+  const aiId = `${reply.conversationId}-a`;
+  if (current.messages.some(m => m.id === aiId)) return;
+  const userMessage: AiChatMessage = {
+    id: `${reply.conversationId}-u`, from: "user", text: userText || "Phân tích ảnh này", time: nowIso(), imagePreviewUrl,
+  };
+  const aiMessage: AiChatMessage = {
+    id: aiId, from: "ai", text: "Kiểm tra thông tin bên dưới.", time: nowIso(), structuredBlocks: [reply.block],
+  };
+  setCoachSession(userId, reply.sessionId, { ...current, messages: [...current.messages, userMessage, aiMessage], updatedAt: nowIso() });
 }
 
 export function useAiCoachSession(userId?: string, sessionKey?: string) {

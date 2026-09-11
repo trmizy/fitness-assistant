@@ -859,11 +859,43 @@ function buildFastPlanPrompt(args: {
   bodyCompText?: string;
   evidenceText?: string;
 }): string {
+  const compactExerciseLine = (exercise: AllowedExerciseItem): string => {
+    const equipment = (exercise.equipmentRequirements ?? [])
+      .map((item) => {
+        const key = item.slug || item.name || item.equipmentId;
+        return key ? `${key}:${item.requirementType}` : "";
+      })
+      .filter(Boolean)
+      .join(",");
+    const muscles = (exercise.muscles ?? [])
+      .filter((muscle) => muscle.role === "PRIMARY")
+      .map((muscle) => muscle.code || muscle.nameEn || muscle.nameVi)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(",");
+    const contraindications = (exercise.contraindications ?? [])
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(",");
+
+    return [
+      `${exercise.id}|${exercise.exerciseName}`,
+      `mv=${exercise.movementPattern ?? exercise.typeOfActivity ?? "GENERAL"}`,
+      `mech=${exercise.mechanics ?? "UNK"}`,
+      `eq=${equipment || exercise.typeOfEquipment || "ANY"}`,
+      `mus=${muscles || (exercise.muscleGroupsActivated ?? []).slice(0, 3).join(",") || "general"}`,
+      `log=${exercise.loggingMode ?? "UNK"}`,
+      contraindications ? `contra=${contraindications}` : "",
+    ]
+      .filter(Boolean)
+      .join("|");
+  };
+
   const catalog = args.exercisesByDay
     .map((day) => {
       const ids = day.exercises
         .slice(0, PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT)
-        .map((exercise) => `${exercise.id}|${exercise.exerciseName}`)
+        .map((exercise) => compactExerciseLine(exercise))
         .join("\n");
       return `[Day ${day.dayIndex + 1}] ${day.dayGoal}\n${ids}`;
     })
@@ -1085,6 +1117,13 @@ export async function processAiTaskJob(job: Job): Promise<void> {
           typeOfActivity: e.typeOfActivity,
           typeOfEquipment: e.typeOfEquipment,
           muscleGroupsActivated: e.muscleGroupsActivated,
+          movementPattern: e.movementPattern,
+          mechanics: e.mechanics,
+          difficultyLevel: e.difficultyLevel,
+          loggingMode: e.loggingMode,
+          contraindications: e.contraindications,
+          equipmentRequirements: e.equipmentRequirements,
+          muscles: e.muscles,
         }));
       }
     } catch (err) {
@@ -1202,15 +1241,18 @@ export async function processAiTaskJob(job: Job): Promise<void> {
     const evidenceProfile = buildEvidenceProfile(workerContext, goal);
     const bodyCompAnalysis = analyzeBodyComposition(evidenceProfile);
     const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
-    const evidenceDocs = await retriever
-      .retrieveEvidence(bodyCompAnalysis.evidenceQueries)
-      .catch((err) => {
-        logger.warn(
-          { err, planId },
-          "Plan evidence retrieval failed; continuing without evidence docs",
-        );
-        return [];
-      });
+    const evidenceDocs =
+      process.env.DISABLE_AI_PLAN_EVIDENCE === "true"
+        ? []
+        : await retriever
+            .retrieveEvidence(bodyCompAnalysis.evidenceQueries)
+            .catch((err) => {
+              logger.warn(
+                { err, planId },
+                "Plan evidence retrieval failed; continuing without evidence docs",
+              );
+              return [];
+            });
     const evidenceBundle: PlanEvidenceBundle = buildPlanEvidenceBundle(
       bodyCompAnalysis,
       evidenceDocs,
@@ -1320,6 +1362,18 @@ export async function processAiTaskJob(job: Job): Promise<void> {
         constraintPass: failedConstraints.length === 0,
         failedConstraintNames: [...new Set(failedConstraints)],
         candidateCount: allowedExercises.length,
+        ...(process.env.DEBUG_AI_PLAN === "true"
+          ? {
+              candidateExerciseIds: Array.from(allowedIds),
+              promptCandidateExerciseIds: Array.from(
+                new Set(
+                  perDayCatalogs.flatMap((catalog) =>
+                    catalog.exercises.map((exercise) => exercise.id),
+                  ),
+                ),
+              ),
+            }
+          : {}),
         fallbackUsed: Boolean((extraLog as any).recoveredFrom),
         generationDurationMs: Date.now() - planJobStartedAt,
       };

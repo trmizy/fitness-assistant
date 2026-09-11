@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router";
-import { RobotIcon as Bot, PaperPlaneTiltIcon as Send, LightbulbIcon as Lightbulb, WarningCircleIcon as AlertCircle, ArrowsClockwiseIcon as RefreshCw, UserIcon as User, CircleNotchIcon as Loader2, BookOpenIcon as BookOpen, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, ChatTextIcon as MessageSquare, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react";
+import { RobotIcon as Bot, PaperPlaneTiltIcon as Send, WarningCircleIcon as AlertCircle, ArrowsClockwiseIcon as RefreshCw, UserIcon as User, CircleNotchIcon as Loader2, BookOpenIcon as BookOpen, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, ChatTextIcon as MessageSquare, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, CaretLeftIcon as ChevronLeft, ImageIcon as ImagePlus } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { inbodyService, coachService, type AiChatSessionSummary } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { FitnessAgentBlock } from "../../components/agent/FitnessAgentBlocks";
 import { fitnessAgentService, type AgentReply } from "../../services/fitnessAgent";
-import { appendAgentReply } from "../../stores/pendingAiTasks";
+import { appendAgentReply, appendImageChatExchange } from "../../stores/pendingAiTasks";
 import {
   useAiCoachSession,
   newDraftSessionKey,
@@ -77,7 +77,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString("vi-VN");
 }
 
-export function AICoachPage() {
+export function AICoachPage({ onClose, compact }: { onClose?: () => void; compact?: boolean }) {
   const { user } = useApp();
   const userScopeId = user?.id ?? "guest";
   const queryClient = useQueryClient();
@@ -87,9 +87,47 @@ export function AICoachPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">(
     activeSessionId ? "chat" : "list",
   );
+  // `lg:` is a VIEWPORT-width breakpoint, not a container query — inside
+  // AICoachFloatingPanel's ~400px card, the real viewport is still desktop
+  // width, so `lg:flex`/`lg:w-72` fired anyway and squeezed a 288px session
+  // list + chat pane into ~400px total (confirmed live: chat text wrapped
+  // one word per line). `compact` drops every `lg:` override below so the
+  // component always uses its single-pane mobileView toggle instead,
+  // regardless of the real viewport — the correct behavior for a narrow
+  // floating panel. The full-page route (no `compact` prop) is unaffected.
+  const wideLayoutClass = compact ? "" : "lg:flex";
+  const wideSidebarWidthClass = compact ? "" : "lg:w-72";
+  const wideBackButtonHiddenClass = compact ? "" : "lg:hidden";
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  // Staged attachment for the "Gửi ảnh & hỏi AI" flow — picking a file only
+  // stages it (thumbnail + editable question) and does NOT call the API;
+  // the API call fires on Send, together with whatever the user typed.
+  // Real bug found during manual testing: the goal-image button fires
+  // immediately on file pick, which is correct there (no accompanying
+  // question), but was wrong for THIS feature (a real typed question the
+  // user hasn't written yet would be skipped).
+  const [stagedImageFile, setStagedImageFile] = useState<File | null>(null);
+  const [stagedImagePreviewUrl, setStagedImagePreviewUrl] = useState<string | null>(null);
+  const stagedImageInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageChatBusy, setImageChatBusy] = useState(false);
+  function stageImage(file: File) {
+    setStagedImagePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setStagedImageFile(file);
+  }
+  function clearStagedImage() {
+    setStagedImagePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setStagedImageFile(null);
+  }
   const receiveAgentReply = (reply: AgentReply) => {
     appendAgentReply(userScopeId, reply);
     if (reply.sessionId !== activeSessionId) setSearchParams({ sessionId: reply.sessionId });
@@ -203,6 +241,34 @@ export function AICoachPage() {
     },
     [aiLoading, scrollToLatestMessage, sendQuestion, handleSessionAdopted],
   );
+
+  // Separate from send() — an image-chat exchange doesn't go through the
+  // RAG-based /ai/ask pipeline sendQuestion() uses, it's the standalone
+  // /ai/agent/image-chat endpoint (see fitnessAgent.ts's imageChat). Fires
+  // on Send, not on file pick — the staged thumbnail above the input is
+  // what lets the user type their question first.
+  const sendImageChat = useCallback(async () => {
+    if (!stagedImageFile || imageChatBusy || aiLoading) return;
+    const file = stagedImageFile;
+    const previewUrl = stagedImagePreviewUrl ?? "";
+    const question = input.trim();
+    setInput("");
+    clearStagedImage();
+    setImageChatBusy(true);
+    setImageError("");
+    try {
+      const reply = await fitnessAgentService.imageChat(file, question, activeSessionId ?? undefined);
+      appendImageChatExchange(userScopeId, reply, question, previewUrl);
+      if (reply.sessionId !== activeSessionId) setSearchParams({ sessionId: reply.sessionId });
+      setMobileView("chat");
+      void queryClient.invalidateQueries({ queryKey: ["ai-sessions", userScopeId] });
+      window.requestAnimationFrame(() => scrollToLatestMessage("smooth"));
+    } catch (error: any) {
+      setImageError(error?.response?.data?.error?.message ?? error?.message ?? "Không thể phân tích ảnh. Vui lòng thử lại.");
+    } finally {
+      setImageChatBusy(false);
+    }
+  }, [stagedImageFile, stagedImagePreviewUrl, imageChatBusy, aiLoading, input, activeSessionId, userScopeId, queryClient, scrollToLatestMessage, setSearchParams]);
 
   const startNewChat = useCallback(() => {
     setDraftKey(newDraftSessionKey());
@@ -464,10 +530,10 @@ export function AICoachPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-56px)] flex bg-zinc-950">
+    <div className="h-full flex bg-zinc-950">
       {/* Session sidebar */}
       <div
-        className={`${mobileView === "chat" ? "hidden" : "flex"} lg:flex flex-col w-full lg:w-72 bg-zinc-900 border-r border-zinc-800/60 flex-shrink-0`}
+        className={`${mobileView === "chat" ? "hidden" : "flex"} ${wideLayoutClass} flex-col w-full ${wideSidebarWidthClass} bg-zinc-900 border-r border-zinc-800/60 flex-shrink-0`}
       >
         <div className="p-3 border-b border-zinc-800/60">
           <button
@@ -575,33 +641,54 @@ export function AICoachPage() {
 
       {/* Chat panel */}
       <div
-        className={`${mobileView === "list" ? "hidden" : "flex"} lg:flex flex-col flex-1 min-w-0`}
+        className={`${mobileView === "list" ? "hidden" : "flex"} ${wideLayoutClass} flex-col flex-1 min-w-0`}
       >
         {/* Header */}
         <div className="bg-zinc-900 border-b border-zinc-800/60 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <button
             onClick={() => setMobileView("list")}
-            className="lg:hidden text-zinc-500 hover:text-zinc-300 transition-colors"
+            className={`${wideBackButtonHiddenClass} text-zinc-500 hover:text-zinc-300 transition-colors`}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="w-9 h-9 bg-green-500/15 border border-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
             <Bot className="w-5 h-5 text-green-400" />
           </div>
-          <div>
-            <div className="text-sm font-semibold text-zinc-200">
-              AI Fitness Coach
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-zinc-200 truncate">
+              {compact ? "AI Coach" : "AI Fitness Coach"}
             </div>
-            <div className="flex items-center gap-1 text-xs text-green-400">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-              Analyzing your data
-            </div>
+            {!compact && (
+              <div className="flex items-center gap-1 text-xs text-green-400">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                Analyzing your data
+              </div>
+            )}
           </div>
-          <div className="ml-auto">
-            <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              <AutoText sourceLang="en">Not medical advice</AutoText>
-            </span>
+          <div className="ml-auto flex items-center gap-2">
+            {compact ? (
+              <span
+                title="Not medical advice"
+                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-400"
+              >
+                <AlertCircle className="w-3 h-3" />
+              </span>
+            ) : (
+              <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <AutoText sourceLang="en">Not medical advice</AutoText>
+              </span>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-zinc-500 hover:text-zinc-200 transition-colors flex-shrink-0"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -621,12 +708,15 @@ export function AICoachPage() {
                 </div>
               )}
               <div
-                className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm space-y-1 ${
+                className={`max-w-[85%] sm:max-w-[70%] text-sm space-y-1 ${
                   msg.from === "user"
-                    ? "bg-green-500 text-black rounded-br-sm font-medium"
-                    : "bg-zinc-900 border border-zinc-800/60 text-zinc-300 rounded-bl-sm"
+                    ? "rounded-2xl rounded-br-sm bg-green-500 px-4 py-3 font-medium text-black"
+                    : "px-1 py-1 leading-relaxed text-zinc-200"
                 }`}
               >
+                {msg.imagePreviewUrl && (
+                  <img src={msg.imagePreviewUrl} alt="" className="mb-1.5 max-h-40 rounded-lg object-cover" />
+                )}
                 {renderText(msg.text)}
                 {renderEvidenceSources(msg)}
                 {msg.structuredBlocks?.map((block, index) => <FitnessAgentBlock key={`${msg.id}-block-${index}`} block={block} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} />)}
@@ -660,42 +750,83 @@ export function AICoachPage() {
           <div ref={messagesEndRef} aria-hidden="true" />
         </div>
 
+        {/* Hidden file input — triggered from the "+" attach menu below,
+            not shown directly (a native OS file-picker button can't be
+            styled reliably and truncates ugly inside a narrow panel). */}
+        <input
+          ref={imageInputRef}
+          aria-label="Ảnh mục tiêu hình thể"
+          type="file"
+          accept="image/png,image/jpeg"
+          disabled={imageBusy || aiLoading}
+          className="sr-only"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            setImageBusy(true);
+            setImageError("");
+            try {
+              receiveAgentReply(await fitnessAgentService.image(file, activeSessionId ?? undefined));
+            } catch (error: any) {
+              setImageError(error.response?.data?.error?.message ?? error.message ?? "Không thể phân tích ảnh. Bạn có thể nhập mục tiêu bằng lời.");
+            } finally {
+              setImageBusy(false);
+            }
+          }}
+        />
+        {/* Second hidden input for the staged "Gửi ảnh & hỏi AI" flow —
+            picking a file here only stages it (see stageImage); it does
+            NOT fire any request. */}
+        <input
+          ref={stagedImageInputRef}
+          aria-label="Ảnh để hỏi AI"
+          type="file"
+          accept="image/png,image/jpeg"
+          disabled={imageChatBusy || aiLoading}
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            if (file.size > 4 * 1024 * 1024) {
+              setImageError("Chọn ảnh JPEG/PNG dưới 4 MB.");
+              return;
+            }
+            setImageError("");
+            stageImage(file);
+          }}
+        />
+
+        {(imageBusy || imageChatBusy || imageError) && (
+          <div className="px-4 pt-2 text-xs">
+            {imageBusy && (
+              <p className="flex items-center gap-1.5 text-emerald-300">
+                <Loader2 className="h-3 w-3 animate-spin" /> Đang phân tích ảnh mục tiêu…
+              </p>
+            )}
+            {imageChatBusy && (
+              <p className="flex items-center gap-1.5 text-emerald-300">
+                <Loader2 className="h-3 w-3 animate-spin" /> Đang phân tích ảnh…
+              </p>
+            )}
+            {imageError && (
+              <p role="alert" className="text-red-300">
+                {imageError}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Suggestions */}
-        <div className="px-4 py-2 border-t border-zinc-800 text-xs">
-          <label className="inline-flex min-h-11 items-center cursor-pointer text-emerald-300">
-            {imageBusy ? "Đang phân tích ảnh mục tiêu…" : "Gửi ảnh hình thể tham khảo"}
-            <input aria-label="Ảnh mục tiêu hình thể" type="file" accept="image/png,image/jpeg" disabled={imageBusy || aiLoading} className="ml-2 max-w-44" onChange={async e => {
-              const file = e.target.files?.[0]; e.target.value = "";
-              if (!file) return;
-              setImageBusy(true); setImageError("");
-              try { receiveAgentReply(await fitnessAgentService.image(file, activeSessionId ?? undefined)); }
-              catch (error: any) { setImageError(error.response?.data?.error?.message ?? error.message ?? "Không thể phân tích ảnh. Bạn có thể nhập mục tiêu bằng lời."); }
-              finally { setImageBusy(false); }
-            }} />
-          </label>
-          <p className="text-zinc-500">Ảnh được gửi tới dịch vụ AI đã cấu hình để gợi ý mục tiêu; không lưu ảnh làm phép đo cơ thể.</p>
-          {imageError && <p role="alert" className="text-red-300">{imageError}</p>}
-        </div>
         {messages.length <= 1 && (
-          <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800/60 flex-shrink-0">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <AutoText className="text-xs text-zinc-500">
-                Gợi ý câu hỏi
-              </AutoText>
-            </div>
+          <div className="px-4 pt-2 flex-shrink-0">
             <div className="flex gap-2 overflow-x-auto pb-1">
               {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs transition-all"
-                  style={{
-                    backgroundColor: "var(--panel-bg)",
-                    borderColor: "var(--border-color)",
-                    color: "var(--muted-text-color)",
-                    borderWidth: 1,
-                  }}
+                  className="whitespace-nowrap rounded-full border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
                 >
                   {s}
                 </button>
@@ -704,35 +835,93 @@ export function AICoachPage() {
           </div>
         )}
 
-        {/* Input */}
-        <div
-          className="border-t p-3 flex-shrink-0"
-          style={{
-            backgroundColor: "var(--card-bg)",
-            borderColor: "var(--border-color)",
-          }}
-        >
-          <div className="flex items-center gap-2">
+        {/* Input — one rounded pill, "+" attach menu on the left like ChatGPT's
+            composer, instead of a separate always-visible image-upload row. */}
+        <div className="relative flex-shrink-0 p-3">
+          {showAttachMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowAttachMenu(false)} />
+              <div className="absolute bottom-full left-3 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+                <button
+                  type="button"
+                  disabled={imageChatBusy || aiLoading}
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    stagedImageInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  <ImagePlus className="h-4 w-4 flex-shrink-0 text-emerald-400" />
+                  <span>
+                    <span className="block">Gửi ảnh &amp; hỏi AI</span>
+                    <span className="block text-xs text-zinc-500">Máy tập, lịch tập chụp ảnh... hỏi gì cũng được</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={imageBusy || aiLoading}
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    imageInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-2.5 border-t border-zinc-800 px-3 py-2.5 text-left text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  <ImagePlus className="h-4 w-4 flex-shrink-0 text-emerald-400" />
+                  <span>
+                    <span className="block">Ảnh hình thể tham khảo</span>
+                    <span className="block text-xs text-zinc-500">Gợi ý mục tiêu — không lưu làm phép đo cơ thể</span>
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
+          {stagedImagePreviewUrl && (
+            <div className="mb-2 flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 p-2">
+              <img src={stagedImagePreviewUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />
+              <p className="min-w-0 flex-1 truncate text-xs text-zinc-400">Đã đính kèm ảnh — gõ câu hỏi rồi gửi</p>
+              <button
+                type="button"
+                onClick={clearStagedImage}
+                aria-label="Bỏ ảnh đính kèm"
+                className="flex-shrink-0 rounded-full p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <div
+            className="flex items-end gap-1.5 rounded-3xl border px-2 py-1.5"
+            style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--border-color)" }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowAttachMenu((s) => !s)}
+              disabled={aiLoading}
+              aria-label="Thêm ảnh"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-50"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onFocus={() => scrollToLatestMessage("smooth")}
-              onKeyDown={(e) => e.key === "Enter" && !aiLoading && send(input)}
-              placeholder={inputPlaceholder}
-              className="flex-1 px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+              onKeyDown={(e) => e.key === "Enter" && !aiLoading && (stagedImageFile ? void sendImageChat() : send(input))}
+              placeholder={stagedImageFile ? "Hỏi gì về ảnh này?" : inputPlaceholder}
+              className="min-h-9 flex-1 bg-transparent py-1.5 text-sm outline-none"
               disabled={aiLoading}
             />
             <button
-              onClick={() => send(input)}
-              disabled={!input.trim() || aiLoading}
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20 disabled:opacity-50"
+              onClick={() => (stagedImageFile ? void sendImageChat() : send(input))}
+              disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-40"
               style={{
                 backgroundColor: "var(--button-bg)",
                 color: "var(--button-text)",
               }}
             >
-              {aiLoading ? (
+              {aiLoading || imageChatBusy ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />

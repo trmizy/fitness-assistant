@@ -25,6 +25,7 @@ import {
   type StrategyBucket,
 } from "../../services/api";
 import { fitnessAgentService } from "../../services/fitnessAgent";
+import { focusLabels } from "../../components/agent/FitnessAgentBlocks";
 
 /**
  * Gymini Guided Roadmap Creation — the 4-visible-step wizard replacing the
@@ -112,6 +113,16 @@ type GoalVisualAttributes = {
   usable: boolean;
 };
 
+// Same wording FitnessAgentBlocks.tsx uses for the AI Coach chat's own
+// GOAL_ANALYSIS block, so a user sees identical labels whether the photo
+// was analyzed here or in AI Coach chat.
+const MUSCULARITY_LABEL: Record<string, string> = { LOW: "Nhẹ", MODERATE: "Vừa", HIGH: "Rõ nét" };
+const LEANNESS_LABEL: Record<string, string> = {
+  MODERATE: "Cân đối",
+  LEAN_APPEARANCE: "Gọn, rõ nét",
+  VERY_LEAN_APPEARANCE: "Rất rõ nét (cần chuyên gia tư vấn)",
+};
+
 const STEP_LABELS = ["Thông tin cơ bản", "Tập luyện & Hoạt động", "Mục tiêu", "Báo cáo & Lộ trình"];
 
 const inputClass =
@@ -185,6 +196,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
   const [timeframeWeeks, setTimeframeWeeks] = useState(24);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [goalImageAttrs, setGoalImageAttrs] = useState<GoalVisualAttributes | null>(null);
+  const [goalImageNote, setGoalImageNote] = useState<string | null>(null);
   const [goalImageStatus, setGoalImageStatus] = useState<"idle" | "analyzing" | "unusable">("idle");
   const [roadmapName, setRoadmapName] = useState("Lộ trình của tôi");
 
@@ -193,6 +205,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
     try {
       const reply = await fitnessAgentService.image(file);
       const attrs = reply.block?.attributes as GoalVisualAttributes | undefined;
+      setGoalImageNote(reply.block?.note ?? null);
       if (!attrs || attrs.usable === false) {
         setGoalImageStatus("unusable");
         setGoalImageAttrs(null);
@@ -203,6 +216,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
     } catch (error: any) {
       setGoalImageStatus("unusable");
       setGoalImageAttrs(null);
+      setGoalImageNote(null);
       toast.error(error?.message ?? "Không thể phân tích ảnh — bạn vẫn có thể tiếp tục không cần ảnh.");
     }
   }
@@ -602,39 +616,11 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              <Flame className="h-3.5 w-3.5 text-orange-400" /> Tiêu hao năng lượng hiện tại
-            </p>
-            {!hasMinimumEnergyInputs && (
-              <p className="text-xs text-zinc-500">Không đủ dữ liệu — vui lòng hoàn thành Bước 1 và chọn mức độ vận động.</p>
-            )}
-            {hasMinimumEnergyInputs && diagnosisQuery.isLoading && <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />}
-            {hasMinimumEnergyInputs && diagnosisQuery.data?.energyBreakdown && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">
-                    BMR ({diagnosisQuery.data.energyBreakdown.bmrFormula === "inbody_measured" ? "đo InBody" : "công thức Mifflin-St Jeor"})
-                  </span>
-                  <span className="font-semibold text-zinc-100">{diagnosisQuery.data.energyBreakdown.bmr.toLocaleString("vi-VN")} kcal</span>
-                </div>
-                {diagnosisQuery.data.energyBreakdown.components.map((c) => (
-                  <div key={c.label} className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-400">{c.label}</span>
-                    <span className="font-semibold text-zinc-300">+{c.kcal.toLocaleString("vi-VN")} kcal</span>
-                  </div>
-                ))}
-                <div className="mt-1.5 flex items-center justify-between border-t border-zinc-800 pt-1.5 text-sm">
-                  <span className="font-semibold text-zinc-200">Tổng tiêu hao (TDEE)</span>
-                  <span className="font-bold text-green-400">{diagnosisQuery.data.energyBreakdown.tdee.toLocaleString("vi-VN")} kcal</span>
-                </div>
-                <p className="pt-1 text-xs text-zinc-600">
-                  Các dòng bước chân/tập luyện/TEF/hoạt động khác là ước lượng minh hoạ, luôn cộng đúng bằng tổng TDEE thật ở trên —
-                  không phải một công thức tính riêng.
-                </p>
-              </div>
-            )}
-          </div>
+          <EnergyBreakdownCard
+            breakdown={diagnosisQuery.data?.energyBreakdown ?? null}
+            insufficientInputs={!hasMinimumEnergyInputs}
+            loading={hasMinimumEnergyInputs && diagnosisQuery.isLoading}
+          />
         </div>
       )}
 
@@ -733,7 +719,38 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
               </p>
             )}
             {goalImageStatus === "unusable" && <p className="mt-1 text-xs text-amber-400">Ảnh không dùng được — bạn vẫn có thể tiếp tục không cần ảnh.</p>}
-            {goalImageAttrs && <p className="mt-1 text-xs text-green-400">Đã thêm phong cách tham khảo cho báo cáo lộ trình.</p>}
+            {goalImageAttrs && (
+              <div className="mt-2 space-y-2 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                <p className="text-xs font-semibold text-green-300">Đã phân tích ảnh mục tiêu</p>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                  <div>
+                    <p className="text-zinc-500">Mức cơ bắp</p>
+                    <p className="font-semibold text-zinc-200">
+                      {goalImageAttrs.muscularity ? MUSCULARITY_LABEL[goalImageAttrs.muscularity] ?? goalImageAttrs.muscularity : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">Độ săn chắc</p>
+                    <p className="font-semibold text-zinc-200">
+                      {goalImageAttrs.relativeLeanness ? LEANNESS_LABEL[goalImageAttrs.relativeLeanness] ?? goalImageAttrs.relativeLeanness : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">Độ tin cậy</p>
+                    <p className="font-semibold text-zinc-200">{Math.round(goalImageAttrs.confidence * 100)}%</p>
+                  </div>
+                </div>
+                {goalImageAttrs.focusMuscles.length > 0 && (
+                  <div className="text-xs">
+                    <p className="text-zinc-500">Nhóm cơ nổi bật</p>
+                    <p className="font-semibold text-zinc-200">
+                      {goalImageAttrs.focusMuscles.map((m) => focusLabels[m] ?? m).join(", ")}
+                    </p>
+                  </div>
+                )}
+                {goalImageNote && <p className="text-xs text-zinc-500">{goalImageNote}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -943,6 +960,58 @@ function MetricCard({ label, current, target }: { label: string; current: string
         {current ?? "Không đủ dữ liệu"}
         {target && <span className="text-zinc-500"> → {target}</span>}
       </p>
+    </div>
+  );
+}
+
+/** BMR/TDEE breakdown card — reused by GuidedRoadmapWizard's Step 2 AND
+ * RoadmapJourneyPage's ActivePhaseDetail (via the saved diagnosisSnapshot)
+ * so the two never diverge on how the same energyBreakdown data is shown.
+ * Extracted during the Roadmap ACTIVE-journey refactor specifically so this
+ * breakdown — previously only ever visible during creation — stays reachable
+ * after activation too. */
+export function EnergyBreakdownCard({
+  breakdown,
+  insufficientInputs,
+  loading,
+}: {
+  breakdown: FitnessDiagnosisResult["energyBreakdown"] | null | undefined;
+  insufficientInputs?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <Flame className="h-3.5 w-3.5 text-orange-400" /> Tiêu hao năng lượng hiện tại
+      </p>
+      {insufficientInputs && (
+        <p className="text-xs text-zinc-500">Không đủ dữ liệu — vui lòng hoàn thành Bước 1 và chọn mức độ vận động.</p>
+      )}
+      {!insufficientInputs && loading && <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />}
+      {!insufficientInputs && breakdown && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">
+              BMR ({breakdown.bmrFormula === "inbody_measured" ? "đo InBody" : "công thức Mifflin-St Jeor"})
+            </span>
+            <span className="font-semibold text-zinc-100">{breakdown.bmr.toLocaleString("vi-VN")} kcal</span>
+          </div>
+          {breakdown.components.map((c) => (
+            <div key={c.label} className="flex items-center justify-between text-sm">
+              <span className="text-zinc-400">{c.label}</span>
+              <span className="font-semibold text-zinc-300">+{c.kcal.toLocaleString("vi-VN")} kcal</span>
+            </div>
+          ))}
+          <div className="mt-1.5 flex items-center justify-between border-t border-zinc-800 pt-1.5 text-sm">
+            <span className="font-semibold text-zinc-200">Tổng tiêu hao (TDEE)</span>
+            <span className="font-bold text-green-400">{breakdown.tdee.toLocaleString("vi-VN")} kcal</span>
+          </div>
+          <p className="pt-1 text-xs text-zinc-600">
+            Các dòng bước chân/tập luyện/TEF/hoạt động khác là ước lượng minh hoạ, luôn cộng đúng bằng tổng TDEE thật ở trên —
+            không phải một công thức tính riêng.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

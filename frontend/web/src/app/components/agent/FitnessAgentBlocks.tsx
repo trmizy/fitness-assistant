@@ -5,7 +5,9 @@ import { isSafeHttpUrl } from "../../utils/safeUrl";
 
 const button = "min-h-11 rounded-lg border border-emerald-600 px-3 py-2 text-sm text-emerald-300 disabled:opacity-50";
 const money = (n: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
-const focusLabels: Record<string, string> = { SHOULDERS: "Vai", CHEST: "Ngực", BACK: "Lưng", ARMS: "Tay", LEGS: "Chân", GLUTES: "Mông", GENERAL: "Toàn thân" };
+// Exported so GuidedRoadmapWizard's own goal-image result card (Step 3) uses the exact same
+// Vietnamese muscle-group labels as this chat block — one source of truth for the wording.
+export const focusLabels: Record<string, string> = { SHOULDERS: "Vai", CHEST: "Ngực", BACK: "Lưng", ARMS: "Tay", LEGS: "Chân", GLUTES: "Mông", GENERAL: "Toàn thân" };
 export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentChatBlock; sessionId?: string; onReply: (reply: AgentReply) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
@@ -68,6 +70,31 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
       {block.summary?.sessions && <p>{block.summary.sessions} buổi · {block.summary.sessionMinutes} phút · {block.summary.mode === "ONLINE" ? "Online" : "Trực tiếp"}</p>}
       {block.summary?.preferences?.days && <p>Lịch mong muốn: {block.summary.preferences.days.map((d: number) => d === 7 ? "CN" : `T${d + 1}`).join(" · ")}</p>}
       {block.summary?.durationWeeks && <p>{block.summary.days} buổi/tuần · {block.summary.durationWeeks} tuần</p>}
+      {block.kind === "CREATE_PLAN_BUNDLE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        {block.summary?.roadmapSummary && <p className="text-zinc-200">{block.summary.roadmapSummary}</p>}
+        {block.summary?.phaseCount > 0 && <p>📅 Lộ trình: {block.summary.phaseCount} giai đoạn · {block.summary.totalWeeks} tuần</p>}
+        {block.summary?.workoutName
+          ? <p>🏋️ Chương trình tập: {block.summary.workoutName} · {block.summary.workoutDaysPerWeek} buổi/tuần</p>
+          : <p className="text-amber-300">🏋️ Chưa tìm được chương trình tập phù hợp — phần này sẽ bị bỏ qua khi xác nhận.</p>}
+        <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>
+      </div>}
+      {block.kind === "SAVE_GENERATED_PLAN" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🏋️ {block.summary?.planName} · {block.summary?.daysPerWeek} buổi/tuần · {block.summary?.durationWeeks} tuần</p>
+        <p className="text-amber-300">Sẽ thay thế lịch tập chưa hoàn thành hiện tại của bạn.</p>
+      </div>}
+      {block.kind === "ROADMAP_ADVANCE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>📍 Giai đoạn hiện tại: {block.summary?.currentPhase ?? "?"}</p>
+        <p>➡️ Giai đoạn tiếp theo: {block.summary?.nextPhase ?? "?"}</p>
+      </div>}
+      {block.kind === "ROADMAP_REBUILD" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🔁 Xây lại {block.summary?.phaseCount} giai đoạn còn lại</p>
+        {Array.isArray(block.summary?.phases) && block.summary.phases.length > 0 && <ul className="list-disc pl-4 text-zinc-400">{block.summary.phases.map((p: string, i: number) => <li key={i}>{p}</li>)}</ul>}
+        <p className="text-amber-300">Các giai đoạn chưa bắt đầu hiện tại sẽ bị thay thế.</p>
+      </div>}
+      {block.kind === "ROADMAP_ARCHIVE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🗄️ {block.summary?.isDraft ? "Bản nháp" : "Lộ trình đang hoạt động"} · mục tiêu {block.summary?.goalType ?? "?"}</p>
+        <p className="text-amber-300">Lộ trình sẽ không còn hoạt động sau khi xác nhận.</p>
+      </div>}
       <p>{block.note}</p>
       <button className={button} disabled={busy || completed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}</button>
       <button className="min-h-11 px-3" disabled={busy || completed} onClick={() => setCompleted(true)}>Để sau</button>
@@ -81,7 +108,30 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
       <fieldset><legend>Nhóm cơ ưu tiên</legend><div className="flex flex-wrap gap-2">{Object.entries(focusLabels).map(([key, label]) => <label key={key} className="min-h-11 flex gap-2 items-center"><input type="checkbox" checked={focus.includes(key)} onChange={e => setFocus(v => e.target.checked ? [...v, key] : v.filter(k => k !== key))} />{label}</label>)}</div></fieldset>
       <button className={button} disabled={busy || completed || !sessionId} onClick={() => void run(() => fitnessAgentService.confirmGoal(sessionId!, { primaryGoal: goal, focusMuscles: focus, muscularity, relativeLeanness: leanness, source: block.attributes?.usable ? "REFERENCE_IMAGE" : "MANUAL", confirmedByUser: true }))}>Đúng, lưu mục tiêu này</button>
     </div>}
-    {block.type === "ACTION_RESULT" && <p role="status">{block.goalConfirmed ? "Đã lưu mục tiêu. Bạn có thể yêu cầu gợi ý PT hoặc chương trình tập." : "Thao tác đã hoàn tất."} {block.nextUrl && ["/client/contracts", "/client/training"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}</p>}
+    {block.type === "IMAGE_CHAT" && block.result && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
+      {block.result.type === "EQUIPMENT" && <>
+        <p className="font-semibold text-zinc-100">{block.result.equipmentName}</p>
+        {block.result.targetMuscles.length > 0 && <div className="flex flex-wrap gap-1.5">
+          {block.result.targetMuscles.map(m => <span key={m} className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">{focusLabels[m] ?? m}</span>)}
+        </div>}
+        {block.result.howToUse && <p><span className="text-zinc-500">Cách dùng: </span>{block.result.howToUse}</p>}
+        {block.result.safetyNote && <p className="text-amber-300">{block.result.safetyNote}</p>}
+      </>}
+      {block.result.type === "WORKOUT_SCHEDULE" && <>
+        {block.result.summary && <p className="text-zinc-200">{block.result.summary}</p>}
+        {block.result.days.map((d, i) => <div key={i} className="text-xs">
+          <p className="font-semibold text-zinc-300">{d.label}</p>
+          <ul className="list-disc pl-4 text-zinc-400">{d.exercises.map((ex, j) => <li key={j}>{ex}</li>)}</ul>
+        </div>)}
+        {block.result.days.length === 0 && <p className="text-xs text-amber-300">Không đọc rõ được lịch tập từ ảnh — bạn có thể mô tả bằng lời.</p>}
+      </>}
+      <p className="text-zinc-200">{block.result.answer}</p>
+    </div>}
+    {block.type === "ACTION_RESULT" && <div role="status" className="space-y-1.5">
+      <p>{block.message ?? (block.goalConfirmed ? "Đã lưu mục tiêu. Bạn có thể yêu cầu gợi ý PT hoặc chương trình tập." : "Thao tác đã hoàn tất.")}</p>
+      {Array.isArray(block.steps) && <ul className="space-y-0.5 text-xs">{block.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>}
+      {block.nextUrl && ["/client/contracts", "/client/training", "/client/dashboard"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}
+    </div>}
     {error && <p role="alert" className="text-red-300">{error}</p>}
   </section>;
 }

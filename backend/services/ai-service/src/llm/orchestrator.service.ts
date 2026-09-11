@@ -1,4 +1,4 @@
-import { llmService } from "../services/llm.service";
+import { llmService, LLM_PROVIDER } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
 import { fitnessAgent } from "../services/fitness-agent.service";
 import { conversationRepository } from "../repositories/conversation.repository";
@@ -909,11 +909,25 @@ export const llmOrchestrator = {
         const llmCallOpts = {
           timeoutMs: LLM_TIMEOUT_MS,
           temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
-          numPredict: bodyCompositionQuestion
-            ? 650
-            : routedIntent.intent === "general_fitness_knowledge"
-              ? 420
-              : undefined,
+          // These caps were tuned for the small local fine-tuned Ollama model
+          // (fitness-coach-qwen2.5-1.5b), where ~420 tokens is a full answer.
+          // On a Claude model the same cap truncates hard — and with a
+          // Vietnamese answer (far more tokens per word) it produced a
+          // completely EMPTY text block: 420 output tokens were consumed
+          // before any answer text was emitted (confirmed live: completionTokens
+          // hit exactly 420 with answer: ""). Scale the cap by provider instead
+          // of blanket-raising it, so switching back to the local model keeps
+          // its tuned budget.
+          numPredict:
+            LLM_PROVIDER === "anthropic"
+              ? bodyCompositionQuestion
+                ? 2000
+                : 1500
+              : bodyCompositionQuestion
+                ? 650
+                : routedIntent.intent === "general_fitness_knowledge"
+                  ? 420
+                  : undefined,
         };
         const llmResponse = await timeAsync(timing, "llmGenerateMs", () =>
           ENABLE_TOOL_CALLING
@@ -927,6 +941,25 @@ export const llmOrchestrator = {
         promptTokens = llmResponse.promptTokens;
         completionTokens = llmResponse.completionTokens;
         totalTokens = llmResponse.totalTokens;
+        // A model can return a technically-successful response whose text
+        // block is empty (e.g. the whole output-token budget was consumed
+        // before any answer text was emitted). Without this guard that empty
+        // string flows all the way to the user as a blank chat bubble with
+        // usedFallback:false — confirmed live on a Vietnamese question. An
+        // empty answer is a failed answer: fall back to the deterministic one.
+        if (!llmAnswer.trim() && deterministicAnswer.trim()) {
+          logger.warn(
+            {
+              request_id: trace.traceId,
+              route: routedIntent.intent,
+              completionTokens,
+            },
+            "AI chat LLM returned an empty answer; using deterministic fallback",
+          );
+          llmAnswer = deterministicAnswer;
+          usedDeterministicFallbackBecauseOfValidation = true;
+          fallbackReason = "llm_empty_answer";
+        }
         if (
           safetyCheck.type === "safe" &&
           isFitnessScopeRefusal(llmAnswer) &&

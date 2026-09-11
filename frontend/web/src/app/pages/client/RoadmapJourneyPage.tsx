@@ -17,6 +17,7 @@ import {
 import {
   fitnessRoadmapService,
   type CurrentForecastResult,
+  type FitnessDiagnosisResult,
   type FitnessRoadmapProjection,
   type ReconciliationStatus,
   type RoadmapPhaseForecastResult,
@@ -25,7 +26,7 @@ import {
   type RoadmapTrainingReadiness,
   type RoadmapNutritionReadiness,
 } from "../../services/api";
-import { GuidedRoadmapWizard, PhaseForecastCard, STRATEGY_BUCKET_LABEL } from "./GuidedRoadmapWizard";
+import { EnergyBreakdownCard, GuidedRoadmapWizard, PhaseForecastCard, STRATEGY_BUCKET_LABEL } from "./GuidedRoadmapWizard";
 
 // FitnessRoadmap + RoadmapPhase "Fitness Journey" experience — Phase C of
 // the roadmap next-phase work. Orchestration/read-only view over the real
@@ -383,20 +384,77 @@ const ASSESSMENT_DECISION_LABEL: Record<string, string> = {
   ADJUST: "Điều chỉnh nhỏ",
   DELOAD: "Giảm tải (deload)",
   REBUILD: "Xây lại chương trình",
+  INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
 };
+
+// Roadmap ACTIVE-journey readiness refactor — the old "Kiểm tra tiến độ"
+// button and the ActivePhaseDetail empty-state both used to key off a
+// single boolean ("does an ACTIVE cycle exist"), which is true in several
+// real backend states that are NOT safe/useful to act on (a cycle closed
+// with INSUFFICIENT_DATA, a rebuild already pending, or the narrow window
+// between completeCycle's two writes while runVersionedAssessment is still
+// running). One derivation, fed by data the page already fetches — no new
+// endpoint, no schema change.
+type PhaseReadiness =
+  | { kind: "ACTIVE_CYCLE" }
+  | { kind: "PENDING_REBUILD" }
+  | { kind: "ANALYZING" }
+  | { kind: "INSUFFICIENT_DATA"; lastDecision: string }
+  | { kind: "READY_TO_ADVANCE"; lastDecision: string }
+  | { kind: "CYCLE_CANCELLED" }
+  | { kind: "NO_CYCLE_YET" };
+
+function getPhaseReadiness(
+  phase: RoadmapPhaseWithCycles,
+  pendingRebuild: FitnessRoadmapProjection["pendingRebuild"],
+): PhaseReadiness {
+  if (phase.trainingCycles.some((c) => c.status === "ACTIVE")) return { kind: "ACTIVE_CYCLE" };
+  if (pendingRebuild && pendingRebuild.phaseId === phase.id) return { kind: "PENDING_REBUILD" };
+  const latest = [...phase.trainingCycles].sort((a, b) => b.cycleIndex - a.cycleIndex)[0];
+  if (!latest) return { kind: "NO_CYCLE_YET" };
+  if (latest.status === "COMPLETED") return { kind: "ANALYZING" };
+  if (latest.status === "ANALYZED") {
+    if (latest.decision === "INSUFFICIENT_DATA") return { kind: "INSUFFICIENT_DATA", lastDecision: latest.decision };
+    return { kind: "READY_TO_ADVANCE", lastDecision: latest.decision ?? "" };
+  }
+  // A cancelled cycle (explicit user abandonment via cancelCycle, or a
+  // stale/dev-test artifact) leaves the phase with no ACTIVE/COMPLETED/
+  // ANALYZED cycle at all — the old code treated this identically to
+  // "no cycle ever existed" and showed a bare, dead-end message with no
+  // way forward. The backend already supports restarting the phase
+  // safely (activatePhase / activatePhaseInTransaction is idempotent —
+  // reuses an existing ACTIVE cycle for this phase, or creates a fresh
+  // one — see fitness-roadmap.service.ts:162-266); this was simply never
+  // wired to a button.
+  if (latest.status === "CANCELLED") return { kind: "CYCLE_CANCELLED" };
+  return { kind: "NO_CYCLE_YET" };
+}
 
 function ActivePhaseDetail({
   phase,
   projectionSnapshot,
+  diagnosisSnapshot,
   trainingReadiness,
   nutritionReadiness,
+  readiness,
+  onAdvance,
+  advancePending,
+  onRestartPhase,
+  restartPending,
 }: {
   phase: RoadmapPhaseWithCycles;
   projectionSnapshot?: RoadmapPhaseForecastResult | null;
+  diagnosisSnapshot?: FitnessDiagnosisResult | null;
   trainingReadiness?: RoadmapTrainingReadiness | null;
   nutritionReadiness?: RoadmapNutritionReadiness | null;
+  readiness: PhaseReadiness;
+  onAdvance: () => void;
+  advancePending: boolean;
+  onRestartPhase: () => void;
+  restartPending: boolean;
 }) {
   const navigate = useNavigate();
+  const [showOriginalReport, setShowOriginalReport] = useState(false);
   const activeCycle = phase.trainingCycles.find((c) => c.status === "ACTIVE");
   const latestGoal = activeCycle?.nutritionGoals.find((g) => g.status === "ACTIVE") ?? activeCycle?.nutritionGoals[0];
   const scheduleTotal = activeCycle?.schedules.length ?? 0;
@@ -477,7 +535,7 @@ function ActivePhaseDetail({
           </div>
           <button
             type="button"
-            onClick={() => navigate("/workout/cycle")}
+            onClick={() => navigate("/client/workout/cycle")}
             className="flex items-center gap-1.5 text-xs font-semibold text-green-300 hover:text-green-200"
           >
             Xem chi tiết chu kỳ <ArrowRight className="h-3.5 w-3.5" />
@@ -538,8 +596,78 @@ function ActivePhaseDetail({
             </div>
           )}
         </>
+      ) : readiness.kind === "ANALYZING" ? (
+        <p className="flex items-center gap-2 text-xs text-zinc-400">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang đánh giá chu kỳ vừa hoàn thành...
+        </p>
+      ) : readiness.kind === "INSUFFICIENT_DATA" ? (
+        <div className="rounded-lg border border-zinc-700/60 bg-zinc-900/50 p-3">
+          <p className="text-xs font-semibold text-zinc-300">Chu kỳ vừa qua chưa đủ dữ liệu để đánh giá</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Có thể do chu kỳ kết thúc quá sớm hoặc quá ít buổi tập được hoàn thành. Hãy tiếp tục lịch tập — Gymini sẽ
+            đánh giá lại khi có đủ dữ liệu.
+          </p>
+        </div>
+      ) : readiness.kind === "CYCLE_CANCELLED" ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900/50 p-3">
+          <div>
+            <p className="text-xs font-semibold text-zinc-300">Chu kỳ trước của giai đoạn này đã bị huỷ</p>
+            <p className="mt-1 text-xs text-zinc-500">Bắt đầu một chu kỳ mới để tiếp tục giai đoạn này.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onRestartPhase}
+            disabled={restartPending}
+            className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-black transition-all hover:bg-green-400 disabled:opacity-60"
+          >
+            {restartPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            Bắt đầu chu kỳ mới
+          </button>
+        </div>
+      ) : readiness.kind === "PENDING_REBUILD" ? (
+        <p className="text-xs text-zinc-500">Gymini đã có đề xuất điều chỉnh lộ trình phía trên — xem và áp dụng để tiếp tục.</p>
+      ) : readiness.kind === "READY_TO_ADVANCE" ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3">
+          <p className="text-xs font-semibold text-green-300">
+            Chu kỳ trước đã được đánh giá ({ASSESSMENT_DECISION_LABEL[readiness.lastDecision] ?? readiness.lastDecision}) — sẵn sàng chuyển tiếp.
+          </p>
+          <button
+            type="button"
+            onClick={onAdvance}
+            disabled={advancePending}
+            className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-black transition-all hover:bg-green-400 disabled:opacity-60"
+          >
+            {advancePending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            Kiểm tra tiến độ
+          </button>
+        </div>
       ) : (
         <p className="text-xs text-zinc-500">Giai đoạn này chưa có chu kỳ tập nào đang diễn ra.</p>
+      )}
+
+      {(originalForecast || diagnosisSnapshot) && (
+        <div className="border-t border-zinc-800 pt-3">
+          <button
+            type="button"
+            onClick={() => setShowOriginalReport((s) => !s)}
+            className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+          >
+            <CaretDown className={`h-3.5 w-3.5 transition-transform ${showOriginalReport ? "rotate-180" : ""}`} />
+            Xem chẩn đoán & báo cáo lộ trình ban đầu
+          </button>
+          {showOriginalReport && (
+            <div className="mt-2 space-y-3">
+              {diagnosisSnapshot?.energyBreakdown && <EnergyBreakdownCard breakdown={diagnosisSnapshot.energyBreakdown} />}
+              {diagnosisSnapshot?.reasoning && (
+                <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                  <p className="mb-1 text-xs font-semibold text-green-300">Nhận định lộ trình</p>
+                  <p className="text-xs text-zinc-300">{diagnosisSnapshot.reasoning}</p>
+                </div>
+              )}
+              {originalForecast && <PhaseForecastCard forecast={originalForecast} />}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1040,6 +1168,18 @@ export function RoadmapJourneyPage() {
     },
   });
 
+  const restartPhaseMutation = useMutation({
+    mutationFn: ({ roadmapId, phaseId }: { roadmapId: string; phaseId: string }) =>
+      fitnessRoadmapService.activatePhase(roadmapId, phaseId),
+    onSuccess: () => {
+      toast.success("Đã bắt đầu chu kỳ mới");
+      refresh();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể bắt đầu chu kỳ mới");
+    },
+  });
+
   if (activeQuery.isLoading || (noActiveRoadmap && draftQuery.isPending)) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -1105,6 +1245,7 @@ export function RoadmapJourneyPage() {
 
   const data = activeQuery.data!;
   const { roadmap, phases, activePhase, pendingRebuild } = data;
+  const readiness = activePhase ? getPhaseReadiness(activePhase, pendingRebuild) : null;
 
   return (
     <div className="space-y-4 p-4 md:p-6">
@@ -1124,7 +1265,7 @@ export function RoadmapJourneyPage() {
             )}
           </p>
         </div>
-        {roadmap.status === "ACTIVE" && !phases.some((p) => p.status === "ACTIVE" && p.trainingCycles.some((c) => c.status === "ACTIVE")) && (
+        {roadmap.status === "ACTIVE" && readiness?.kind === "READY_TO_ADVANCE" && (
           <button
             type="button"
             onClick={() => advanceMutation.mutate(roadmap.id)}
@@ -1147,12 +1288,18 @@ export function RoadmapJourneyPage() {
         />
       )}
 
-      {activePhase && roadmap.status === "ACTIVE" && (
+      {activePhase && roadmap.status === "ACTIVE" && readiness && (
         <ActivePhaseDetail
           phase={activePhase}
           projectionSnapshot={(roadmap.configuration as any)?.roadmapProjectionSnapshot ?? null}
+          diagnosisSnapshot={(roadmap.configuration as any)?.diagnosisSnapshot ?? null}
           trainingReadiness={data.trainingReadiness}
           nutritionReadiness={data.nutritionReadiness}
+          readiness={readiness}
+          onAdvance={() => advanceMutation.mutate(roadmap.id)}
+          advancePending={advanceMutation.isPending}
+          onRestartPhase={() => restartPhaseMutation.mutate({ roadmapId: roadmap.id, phaseId: activePhase.id })}
+          restartPending={restartPhaseMutation.isPending}
         />
       )}
 

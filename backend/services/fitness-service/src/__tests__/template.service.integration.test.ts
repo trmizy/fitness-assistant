@@ -118,6 +118,16 @@ async function cleanup(db: PrismaClientLike, ...userIds: string[]) {
     await db.workoutProgram.deleteMany({ where: { userId } });
     await db.workoutProgramTemplate.deleteMany({ where: { createdByUserId: userId } });
   }
+  await db.exercise.deleteMany({
+    where: {
+      OR: [
+        { id: { startsWith: "template-ex-" } },
+        { id: { startsWith: "template-ex2-" } },
+        { id: { startsWith: "template-ex3-" } },
+        { id: { startsWith: "template-ex4-" } },
+      ],
+    },
+  });
 }
 
 test(

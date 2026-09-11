@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web ai-service fitness-service 2>&1 | Tee-Object \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\build-output.txt\"; Write-Output \"BUILD DONE with exit: $LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web fitness-service ai-service 2>&1 | Tee-Object \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\build-cal.txt\"; Write-Output \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web ai-service fitness-service 2>&1 | Tee-Object \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\build-eq.txt\"; Write-Output \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web user-service 2>&1 | Select-Object -Last 5; Write-Output \"Exit: $LASTEXITCODE\")",
+      "PowerShell($p = \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--project-personal-fitness-assistant\\\\68116444-989f-4a2b-b0c1-d989e22da010\\\\tasks\\\\b1la3g5aa.output\"; [System.IO.File]::ReadAllText\\($p\\) | Select-Object -Last 1)",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build fitness-service 2>&1 | Select-Object -Last 5; Write-Output \"Exit: $LASTEXITCODE\")",
+      "PowerShell($p = \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--project-personal-fitness-assistant\\\\68116444-989f-4a2b-b0c1-d989e22da010\\\\tasks\\\\b8as34pm9.output\"; Start-Sleep -Seconds 25; [System.IO.File]::ReadAllText\\($p\\) | Select-String \"Built|Error|error|Exit\" | Select-Object -Last 10)",
+      "PowerShell(docker exec gymcoach-fitness-dev sh -c \"cd /app/backend/services/fitness-service && npx prisma migrate dev --name add_nutrition_meal_completions --skip-seed 2>&1\")",
+      "PowerShell(docker exec gymcoach-fitness-dev sh -c \"cd /app/backend/services/fitness-service && npx prisma db push --accept-data-loss=false 2>&1\")",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web fitness-service 2>&1 | Select-Object -Last 6; Write-Output \"Exit: $LASTEXITCODE\")",
+      "PowerShell($p = \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--project-personal-fitness-assistant\\\\68116444-989f-4a2b-b0c1-d989e22da010\\\\tasks\\\\bhshtj366.output\"; Start-Sleep -Seconds 40; [System.IO.File]::ReadAllText\\($p\\) | Select-String \"Built|Error|error|Exit|DONE 0\" | Select-Object -Last 12)",
+      "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web fitness-service 2>&1 | Select-Object -Last 5; Write-Output \"EXIT:$LASTEXITCODE\")",
+      "PowerShell($p = \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--project-personal-fitness-assistant\\\\68116444-989f-4a2b-b0c1-d989e22da010\\\\tasks\\\\bpaz20onw.output\"; Start-Sleep 40; [System.IO.File]::ReadAllText\\($p\\) | Select-String \"Built|error|Error|EXIT\" | Select-Object -Last 8)"
+    ]
+  }
+}
