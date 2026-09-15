@@ -15,12 +15,22 @@ function fail(res: Response, e: any, fallback = 'Đã có lỗi xảy ra') {
 }
 
 /**
- * Link trong email. Ưu tiên x-public-base-url do gateway gắn theo từng yêu cầu (LAN, máy
- * ảo, tunnel — cùng cơ chế đã dùng cho VNPay return URL) rồi mới đến FRONTEND_URL tĩnh:
- * một link mời trỏ về "localhost" thì vô dụng với người nhận ở máy khác.
+ * Link trong email. Ưu tiên x-trusted-web-origin: gateway chỉ gắn header này khi Origin của trình
+ * duyệt qua được chính sách tin cậy CORS (và xoá mọi bản do client tự gửi), nên link vẫn theo kịp
+ * IP LAN / tunnel hiện tại mà người gọi không tự chọn được host. Không có thì dùng FRONTEND_URL tĩnh.
+ *
+ * KHÔNG dùng x-public-base-url (như trước đây): host của nó lấy từ X-Forwarded-Host, ai gọi cũng
+ * giả được — link mời/đặt lại mật khẩu mang token có thể bị lái sang tên miền lạ. Rủi ro ở đây thấp
+ * hơn luồng tự phục vụ vì chỉ admin/chủ sở hữu kích hoạt được, nhưng token vẫn là credential sống.
  */
 function appBaseUrl(req: Request): string {
-  const header = req.headers['x-public-base-url'];
+  // Chỉ tin header khi request thật sự đi qua gateway: cổng của service này cũng được publish, gọi
+  // thẳng vào đó thì ai cũng tự đặt được header.
+  const secret = req.headers['x-gateway-secret'];
+  const fromGateway =
+    (Array.isArray(secret) ? secret[0] : secret) ===
+    (process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production');
+  const header = fromGateway ? req.headers['x-trusted-web-origin'] : undefined;
   const raw = Array.isArray(header) ? header[0] : header;
   return (raw || APP_BASE_URL).replace(/\/$/, '');
 }

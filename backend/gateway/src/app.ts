@@ -5,7 +5,7 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
-import { isAllowedOrigin } from "./utils/corsOrigins";
+import { isAllowedOrigin, trustedWebOrigin } from "./utils/corsOrigins";
 import { validateInternalSecret } from "./utils/internal-secret";
 
 const app = express();
@@ -91,6 +91,14 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(",")[0]?.trim() || req.get("host");
   delete req.headers["x-public-base-url"]; // never trust a client-supplied value, same rule as x-user-*
   if (host) req.headers["x-public-base-url"] = `${proto}://${host}`;
+
+  // Emailed links (password reset, partner invites) must NOT be built from x-public-base-url above:
+  // its host comes from X-Forwarded-Host, which any caller can forge. They use this instead — the
+  // browser's Origin, set only when it passes the CORS trust policy (utils/corsOrigins.ts), with
+  // any client-sent copy stripped first. Absent for native app requests (no Origin).
+  delete req.headers["x-trusted-web-origin"];
+  const trustedOrigin = trustedWebOrigin(req.get("origin") || undefined);
+  if (trustedOrigin) req.headers["x-trusted-web-origin"] = trustedOrigin;
   next();
 });
 
