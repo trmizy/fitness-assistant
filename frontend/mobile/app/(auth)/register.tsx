@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -158,6 +158,10 @@ function AccountStep({ onSent }: { onSent: (email: string) => void }) {
 }
 
 const OTP_LENGTH = 6;
+/** auth-service's OTP_RESEND_SECONDS default. The server's own response overrides it after a
+ *  resend; the first countdown starts from this because the code was sent the moment this step
+ *  opened. */
+const RESEND_AFTER_SECONDS = 60;
 
 function OtpStep({ email }: { email: string }) {
   const { setUser } = useApp();
@@ -166,10 +170,18 @@ function OtpStep({ email }: { email: string }) {
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendIn, setResendIn] = useState(RESEND_AFTER_SECONDS);
   const inputs = useRef<(TextInput | null)[]>([]);
 
   const code = digits.join("");
   const filled = code.length === OTP_LENGTH;
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
   const setDigit = (index: number, value: string) => {
     // A soft keyboard can deliver a whole pasted code to one box; spread it across the rest
@@ -226,10 +238,29 @@ function OtpStep({ email }: { email: string }) {
     }
   };
 
+  /**
+   * GAP-5: a real resend. The pending sign-up keeps the password and name from step one, so only
+   * the code changes — which is why the boxes are cleared: whatever was typed belongs to the code
+   * that just stopped working.
+   */
   const handleResend = async () => {
-    // There is no dedicated resend endpoint; registering again with the same details is what
-    // re-issues the code (verified against auth.routes.ts). Rather than pretend, tell the user.
-    toast.show("Chưa có chức năng gửi lại — hãy quay lại và đăng ký lại.", "danger");
+    if (resending || resendIn > 0) return;
+    setResending(true);
+    try {
+      const result = await authService.resendRegistrationOtp(email);
+      setDigits(Array(OTP_LENGTH).fill(""));
+      inputs.current[0]?.focus();
+      setResendIn(result?.resendAfterSeconds ?? RESEND_AFTER_SECONDS);
+      toast.show("Đã gửi mã mới — mã cũ không còn dùng được");
+    } catch (error: any) {
+      if (!error?.response) {
+        toast.show("Không kết nối được máy chủ.", "danger");
+      } else {
+        toast.show(error.response.data?.error || "Không gửi lại được mã", "danger");
+      }
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -276,9 +307,16 @@ function OtpStep({ email }: { email: string }) {
 
         <Text
           className="mt-6 text-center text-sm font-body text-muted-foreground"
-          onPress={handleResend}
+          onPress={resendIn > 0 || resending ? undefined : handleResend}
         >
-          Chưa nhận được mã? <Text className="font-body-semibold text-primary">Gửi lại</Text>
+          Chưa nhận được mã?{" "}
+          {resendIn > 0 ? (
+            <Text className="font-body-medium text-muted-foreground">Gửi lại sau {resendIn}s</Text>
+          ) : (
+            <Text className="font-body-semibold text-primary">
+              {resending ? "Đang gửi..." : "Gửi lại"}
+            </Text>
+          )}
         </Text>
 
         <Button

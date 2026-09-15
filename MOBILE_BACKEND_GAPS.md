@@ -95,10 +95,51 @@
   `/internal/partner-auth/:op` (nội bộ giữa các service, không public). Không cái nào dùng được.
 - Đề xuất (không tự làm nếu chưa được đồng ý): thêm `POST /auth/password-reset/request` nhận email,
   phát hành token có hạn và gửi mail bằng đúng hạ tầng gửi mail sẵn có của OTP đăng ký.
-- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định. **Hiện trạng bản mobile**: màn `app/(auth)/forgot-password.tsx`
-  nói thẳng là chưa có chức năng tự đặt lại và mở email tới bộ phận hỗ trợ, KHÔNG dựng form giả thu
-  thập email rồi chẳng gọi được đâu. Bản web cũng đang để link "Quên mật khẩu?" trỏ ngược về
-  `/login` vì đúng lý do này.
+- Trạng thái: ~~ĐÃ BÁO CÁO — chờ quyết định~~ → **ĐÃ LÀM (2026-09-15)** theo quyết định của Ngài: làm
+  GAP-4 và **cho phép sửa backend** — ngoại lệ có chủ đích với quy tắc "backend không bao giờ bị sửa".
+  - **Backend (auth-service):** `POST /auth/password-reset/request { email }` →
+    `authService.requestPasswordReset`. Dùng lại `issuePasswordResetToken` (token băm sha256, dùng một
+    lần, huỷ link cũ) với hạn **1 giờ** (link admin phát hành vẫn 24 giờ), gửi mail bằng
+    `sendPlainEmail`. Link dẫn tới trang web SẴN CÓ `/dat-lai-mat-khau/:token` → `POST /auth/password-reset`
+    — bước đổi mật khẩu thật dùng chung đúng một đường code với link đối tác.
+  - **Chống dò email:** mọi trường hợp (không có tài khoản / bị khoá / đang trong thời gian chờ 60 s /
+    gửi mail lỗi) trả **cùng một** câu 200. Ngoại lệ duy nhất: `devResetLink` khi không cấu hình SMTP
+    và không phải production — cùng đánh đổi `devOtp` của đăng ký.
+  - **Chống "password-reset poisoning":** host của link chỉ lấy từ `FRONTEND_URL`, **không** lấy
+    `x-public-base-url` của gateway (header đó dựng từ `X-Forwarded-Host` do client gửi — endpoint
+    không cần đăng nhập, nên kẻ xấu có thể yêu cầu reset cho email nạn nhân với host giả để token
+    rơi về tên miền của họ). **Cập nhật cùng ngày:** host của link giờ lấy từ header
+    `x-trusted-web-origin` — gateway chỉ đặt header này từ Origin của trình duyệt khi Origin qua được
+    chính sách tin cậy CORS (`trustedWebOrigin`, xoá mọi bản client tự gửi), và service chỉ tin nó khi
+    `x-gateway-secret` khớp (cổng 3001/3006 được publish, gọi thẳng vào không giả được). Không có Origin
+    (app mobile) → `FRONTEND_URL`. Link đối tác của gym-service (`partner.controller.ts`,
+    `owner-partner.controller.ts`) đã chuyển sang cùng cơ chế, bỏ `x-public-base-url`. 4 test gateway mới.
+  - **Giới hạn tần suất:** middleware mới `emailActionRateLimit` (5 yêu cầu/15 phút/email, đếm cả
+    thành công vì mỗi yêu cầu có thể gửi một email) + thời gian chờ 60 s theo tài khoản trong service.
+  - **Mobile:** `app/(auth)/forgot-password.tsx` thành form email → trạng thái "Kiểm tra hộp thư" (câu
+    chữ có điều kiện "nếu email này có tài khoản"), gửi lại sau 60 s, vẫn giữ link liên hệ hỗ trợ.
+    Mở token ngay trong app cần deep link → Phase 14.
+  - **Kiểm chứng:** 8 unit test mới (tổng auth-service 45/45); kiểm thật qua gateway: email lạ,
+    john.doe, gọi lại ngay, và gửi kèm `X-Forwarded-Host` giả đều nhận cùng câu 200; DB có đúng 1 token
+    (`requested_by` NULL, hạn 60 phút); email sai định dạng → 400.
+  - **Cấu hình (đã sửa theo cho phép của Ngài):** `FRONTEND_URL` trong `.env` từ IP LAN cũ
+    `192.168.2.103` → `192.168.2.100`; tạo lại 4 container đọc biến này (gateway, auth, gym, payment —
+    `env_file` không nạp lại khi chỉ restart). Với request từ web, link không còn phụ thuộc giá trị tĩnh
+    này nữa (theo Origin tin cậy); chỉ request từ app mobile còn dùng nó.
+  - **Web (đã sửa theo cho phép của Ngài):** link "Quên mật khẩu?" → trang mới `/quen-mat-khau`
+    (`ForgotPasswordPage.tsx`); nút "Gửi lại" OTP trong `RegisterPage.tsx` gọi `POST /auth/register/resend`
+    kèm đếm ngược (trước đây đăng ký lại từ đầu). `vite build` qua.
+  - **Kiểm bằng hộp thư thật (15/9, `huytronh5+gap5@gmail.com`):** yêu cầu đặt lại gửi kèm
+    `Origin: http://192.168.2.100:5173` → 200, DB có đúng 1 token (`requested_by` NULL, hạn 60 phút), log
+    auth-service ghi "Email sent" + "Self-service password reset link issued". **Ngài mở link trong
+    email và tự đặt mật khẩu mới:** request đổi mật khẩu tới từ trang
+    `http://192.168.2.100:5173/dat-lai-mat-khau/…` (Referer, trình duyệt Edge), gateway gắn
+    `x-trusted-web-origin` đúng giá trị đó → token đánh dấu đã dùng, `users.updatedAt` cùng thời điểm,
+    refresh token của tài khoản còn **0** (mọi phiên bị huỷ), audit log `PASSWORD_RESET`, đăng nhập bằng
+    mật khẩu cũ → **401**. ✅ Luồng GAP-4 đầu-cuối với hộp thư thật.
+  - Ghi nhận nhỏ: logger request của auth-service in cả header `referer`, nên URL chứa token nằm trong
+    log. Token ở đây đã bị tiêu thụ ngay trong chính request đó (dùng một lần), nên rủi ro thấp; nếu muốn
+    chặt hơn thì lọc `referer` khỏi log request.
 
 ### GAP-5 — Không có endpoint gửi lại mã OTP đăng ký
 
@@ -112,8 +153,25 @@
   lạc/hết hạn.
 - Đã thử tìm endpoint thay thế chưa: có — không có route resend nào trong `auth.routes.ts`.
 - Đề xuất: thêm `POST /auth/register/resend` nhận email, có giới hạn tần suất.
-- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định. **Hiện trạng bản mobile**: nút "Gửi lại" nói rõ chưa có
-  chức năng và hướng dẫn quay lại đăng ký lại, thay vì im lặng không làm gì.
+- Trạng thái: ~~ĐÃ BÁO CÁO — chờ quyết định~~ → **ĐÃ LÀM (2026-09-15)** theo quyết định của Ngài (cùng
+  ngoại lệ cho phép sửa backend như GAP-4).
+  - **Backend:** `POST /auth/register/resend { email }` → `authService.resendRegistrationOtp`. Chỉ chạy
+    trên bản ghi `EmailVerification` đang chờ: giữ nguyên mật khẩu băm + tên của lần đăng ký gốc, chỉ
+    thay mã (nên resend không bao giờ đổi được tài khoản sắp tạo), cấp hạn mới, **đặt lại số lần nhập
+    sai về 0**. Cùng thời gian chờ `OTP_RESEND_SECONDS` với `register()`. Không có đăng ký chờ → 404;
+    email đã có tài khoản → 409; trong thời gian chờ → 429. Cùng middleware `emailActionRateLimit`.
+  - **Mobile:** nút "Gửi lại" trong `register.tsx` gọi thật, đếm ngược 60 s từ lúc mã được gửi, xoá các ô
+    đã nhập (chúng thuộc mã vừa hết hiệu lực) và báo "mã cũ không còn dùng được".
+  - **Kiểm chứng:** 4 unit test mới; kiểm thật qua gateway: không có đăng ký chờ → 404, john.doe → 409,
+    gửi lại ngay sau đăng ký → 429 "đợi 56s", sau 62 s → 200 và DB cho thấy `otpHash` đổi, `sentAt` mới,
+    `attempts` 3 → 0, `passwordHash` giữ nguyên. Bản ghi thử đã xoá.
+  - **Đã kiểm bằng hộp thư thật (15/9):** đăng ký `huytronh5+gap5@gmail.com` trên emulator → bấm "Gửi
+    lại" nhiều lần (mỗi lần DB đổi `otpHash`/`sentAt`, log ghi "OTP email sent") → Ngài nhận mã của lần
+    gửi mới nhất (300542) → `POST /auth/register/verify` → 201, tài khoản CUSTOMER được tạo, bản ghi chờ
+    bị xoá → đăng nhập tài khoản mới trên app vào thẳng trình thiết lập hồ sơ (SH-03). Lần nhập mã trên
+    giao diện đã điền đủ 6 ô nhưng phím Back của công cụ điều khiển đưa app về đăng nhập trước khi bấm
+    Xác nhận, nên bước verify cuối gọi thẳng API bằng đúng mã thật đó. (Log không thấy trước đó chỉ vì
+    container chưa được tạo lại — sau khi tạo lại, auth-service ghi log bình thường.)
 
 ---
 

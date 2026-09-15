@@ -343,6 +343,26 @@ export const authService = {
     const { data } = await api.patch("/auth/me/password", payload);
     return data;
   },
+
+  /** GAP-5 — a new code for a sign-up still waiting on email verification. */
+  resendRegistrationOtp: async (email: string) => {
+    const { data } = await api.post("/auth/register/resend", { email });
+    return data as {
+      message: string;
+      email: string;
+      expiresInMinutes: number;
+      resendAfterSeconds: number;
+    };
+  },
+
+  /**
+   * GAP-4 — self-service password reset. Resolves with the same message whether or not the email
+   * has an account (the server never reveals which); the emailed link opens the web reset page.
+   */
+  requestPasswordReset: async (email: string) => {
+    const { data } = await api.post("/auth/password-reset/request", { email });
+    return data as { message: string };
+  },
 };
 
 export const translationService = {

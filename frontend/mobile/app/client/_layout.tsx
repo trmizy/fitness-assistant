@@ -38,6 +38,7 @@ export default function ClientLayout() {
           // screens the five tabs push to — every file under app/client/ becomes a Tabs.Screen,
           // so anything not listed here would silently grow a sixth tab.
           hiddenRoutes={["onboarding", "notifications", "inbody", "stats", "library"]}
+          fullScreenRoutes={["onboarding"]}
         />
       </RequireOnboarding>
     </RequireRole>

@@ -851,6 +851,43 @@ này không chứng minh được gì — phải đọc DB hoặc dùng phép th
    (`services/socket.ts`, không nơi nào gọi); `SocketProvider` của web chưa hề được port. Đã port
    (xem §8) — đây là port cho đủ tương đương web, không phải hành vi mới.
 
+### 20.8 — SH-03 trình thiết lập hồ sơ (chuyển vào Phase 5 theo quyết định của Ngài, 2026-09-15)
+
+**Hai nguồn, chia đúng thứ tự thẩm quyền:** giao diện theo `New Frontend/SetupWizard.tsx` (thanh tiến
+độ phân đoạn + "Bỏ qua", ô icon + tiêu đề lớn, thẻ lựa chọn có vòng tick, trượt 220 ms giữa các bước);
+hành vi + dữ liệu theo web `OnboardingWizardPage.tsx`. Bản thiết kế chỉ có 4 câu hỏi nhanh với lựa
+chọn KHÔNG phải giá trị backend lưu ("Tăng sức mạnh", "2 buổi/tuần") — mobile giữ đủ 6 bước và mọi
+trường của web (enum trình độ/mục tiêu thật, danh sách ngày trong tuần, thiết bị theo catalog, sàng lọc
+an toàn, chỉ số cơ thể), mặc theo bố cục bản thiết kế. Câu "Bạn tập ở đâu?" của bản thiết kế sống lại
+thành hàng gợi ý nơi tập ở bước thiết bị.
+
+**Giữ nguyên từ web, có chủ đích:** một đường ghi cho mỗi thứ (`PUT /profile/me`, thiết bị chỉ qua
+`PUT /equipment/me`); "Bỏ qua" vẫn lưu và đặt `hasCompletedOnboarding`; hồ sơ mới được ghi vào cache
+ĐỒNG BỘ trước khi điều hướng (nếu không RequireOnboarding đá ngược lại); `activityLevel` bắt buộc, không
+tự điền mặc định; sàng lọc an toàn chỉ ghi khi đã tới bước đó. Nháp theo từng user: AsyncStorage
+(web: localStorage). Mới trên mobile: bàn phím số tiếng Việt gõ dấu phẩy → chuẩn hoá `"68,5"` → `68.5`.
+Port kèm: `src/components/EquipmentPicker.tsx` (không có vùng cuộn lồng — cả danh sách nằm trong trang),
+`src/utils/units.ts`. "Đăng xuất" giữ ở bước 1 dù bản thiết kế không có: tới khi màn Hồ sơ được dựng
+(Phase 9) đây là chỗ duy nhất trong app một client đang đăng nhập có thể đăng xuất.
+
+**Sửa kèm — thanh tab:** `hiddenRoutes` chỉ đặt `href: null` (bỏ NÚT tab) nên thanh tab vẫn hiện dưới
+wizard, dẫn người chưa thiết lập sang phần khác của app. Thêm `fullScreenRoutes` vào `WorkspaceTabs`
+(`tabBarStyle: { display: "none" }`), dùng cho `onboarding`.
+
+**Kiểm chứng trên emulator (john.doe, mở thẳng `/client/onboarding`):** đi hết 6 bước — nút Tiếp tục
+khoá đúng ở bước 1 và 5; gợi ý "Gym tại nhà" chọn đúng 8 thiết bị; tick 1 câu sàng lọc hiện cảnh báo;
+đổi kg↔lb hiển thị đúng (71.3 kg → 157.2 lb, 68.5 kg → 151 lb); màn Xem lại đủ 10 dòng. Tắt hẳn app rồi
+mở lại → nháp khôi phục đúng bước 6 kèm thông báo. Bấm Hoàn tất → DB `user_profiles`: BEGINNER,
+MUSCLE_GAIN, `[1,3,5]`, split null, MODERATELY_ACTIVE, 28, MALE, 172, 71.3, **68.5**,
+FOLLOW_UP_SUGGESTED `["bone_joint"]`; `user_equipment` đúng 8 dòng; `availableEquipment` cũ được
+server tự đồng bộ. Hồ sơ + thiết bị của john.doe đã khôi phục về đúng ảnh chụp trước bài thử
+(so khớp: IDENTICAL).
+
+**Hai lỗi do chính Tại hạ gây ra, bắt được trên thiết bị (đã sửa):** (1) bước sau thừa hưởng vị trí cuộn
+của bước trước → ô icon bị che dưới thanh tiến độ; sửa bằng cuộn về đầu mỗi khi đổi bước. (2) Lúc thêm
+bản sửa (1) quên import `useRef` → hot reload ném Render Error đúng lúc bấm Hoàn tất, lượt lưu đầu
+không tới backend; phát hiện nhờ đối chiếu DB (hồ sơ không đổi) chứ không phải nhờ giao diện.
+
 
 ---
 

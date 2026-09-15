@@ -29,6 +29,7 @@ export function WorkspaceTabs({
   workspace,
   tabs,
   hiddenRoutes = [],
+  fullScreenRoutes = [],
 }: {
   workspace: Workspace;
   tabs: WorkspaceTab[];
@@ -38,6 +39,13 @@ export function WorkspaceTabs({
    * tab. `href: null` keeps it reachable by navigation while leaving it off the bar.
    */
   hiddenRoutes?: string[];
+  /**
+   * Hidden routes that must also hide the tab BAR itself. `href: null` only removes the button;
+   * the bar still renders under the screen. A gate like `client/onboarding` must not show tabs
+   * into parts of the app the user is not set up for yet (RequireOnboarding would just bounce them
+   * back), so those routes are listed here as well.
+   */
+  fullScreenRoutes?: string[];
 }) {
   const accent = workspaceAccents[workspace];
 
@@ -80,7 +88,15 @@ export function WorkspaceTabs({
           ))}
 
           {hiddenRoutes.map((name) => (
-            <Tabs.Screen key={name} name={name} options={{ href: null }} />
+            <Tabs.Screen
+              key={name}
+              name={name}
+              options={
+                fullScreenRoutes.includes(name)
+                  ? { href: null, tabBarStyle: { display: "none" } }
+                  : { href: null }
+              }
+            />
           ))}
         </Tabs>
       </View>
