@@ -17,6 +17,7 @@ import {
   ArrowCounterClockwiseIcon as RotateCcw,
   EyeIcon as Eye,
   KeyIcon as KeyRound,
+  PencilSimpleIcon as PencilSimple,
   SignOutIcon as LogOut,
   UserMinusIcon as UserMinus,
   ArrowsLeftRightIcon as ArrowLeftRight,
@@ -234,15 +235,19 @@ function PartnerList({ onSelect }: { onSelect: (id: string) => void }) {
 }
 
 function CreatePartnerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  // `partnerKind` is no longer asked for: the two kinds collected exactly the same fields and
+  // nothing downstream ever branched on the value (no different required-document set, no
+  // different commission treatment — grep partnerKind in gym-service: it is stored and echoed
+  // back, nothing more). The column keeps its BUSINESS default rather than being dropped, so
+  // existing INDIVIDUAL rows still read back correctly.
   const [form, setForm] = useState({
-    legalName: "", partnerKind: "BUSINESS" as "BUSINESS" | "INDIVIDUAL", taxCode: "", businessLicenseNo: "",
+    legalName: "", taxCode: "", businessLicenseNo: "",
     contactEmail: "", contactPhone: "", commissionRateOverride: "",
   });
   const createMutation = useMutation({
     mutationFn: () =>
       adminService.createPartner({
         legalName: form.legalName.trim(),
-        partnerKind: form.partnerKind,
         taxCode: form.taxCode.trim() || undefined,
         businessLicenseNo: form.businessLicenseNo.trim() || undefined,
         contactEmail: form.contactEmail.trim(),
@@ -265,21 +270,6 @@ function CreatePartnerModal({ onClose, onCreated }: { onClose: () => void; onCre
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
         </div>
         <p className="text-xs text-zinc-500">Tạo ngay khi nhận được email/liên hệ đầu tiên — chưa cấp tài khoản đăng nhập ở bước này.</p>
-
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => setForm({ ...form, partnerKind: "BUSINESS" })}
-            className={`py-2 rounded-lg text-xs font-semibold border ${form.partnerKind === "BUSINESS" ? "bg-green-500 text-black border-green-500" : "border-zinc-700 text-zinc-400"}`}
-          >
-            Doanh nghiệp
-          </button>
-          <button
-            onClick={() => setForm({ ...form, partnerKind: "INDIVIDUAL" })}
-            className={`py-2 rounded-lg text-xs font-semibold border ${form.partnerKind === "INDIVIDUAL" ? "bg-green-500 text-black border-green-500" : "border-zinc-700 text-zinc-400"}`}
-          >
-            Cá nhân
-          </button>
-        </div>
 
         <div className="space-y-2.5">
           <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="Tên pháp lý *" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
@@ -374,9 +364,11 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
             <h1 className="text-lg font-bold text-zinc-100">{partner.legalName}</h1>
             <StatusChip status={partner.status} />
           </div>
+          {/* Nhãn "Doanh nghiệp / Cá nhân" đã bỏ cùng lúc với bộ chọn ở form tạo hồ sơ: hai
+              loại thu thập đúng cùng bộ trường và không có nghiệp vụ nào phân biệt chúng, nên
+              nhãn này chỉ nói lại một giá trị mặc định, không phải một thông tin. */}
           <p className="text-xs text-zinc-500 mt-0.5">
-            {partner.partnerKind === "BUSINESS" ? "Doanh nghiệp" : "Cá nhân"}
-            {partner.taxCode ? ` · MST ${partner.taxCode}` : ""} · Tạo lúc {formatDateTime(partner.createdAt)}
+            {partner.taxCode ? `MST ${partner.taxCode} · ` : ""}Tạo lúc {formatDateTime(partner.createdAt)}
           </p>
           {partner.suspendedReason && (
             <p className="text-xs text-amber-400 mt-1">Lý do tạm khoá: "{partner.suspendedReason}"</p>
@@ -588,6 +580,23 @@ function ProvisionResultModal({ inviteLink, emailSent, onClose }: { inviteLink: 
 function AccountsTab({ partner, identities, invitations, onChange }: { partner: any; identities: any[]; invitations: any[]; onChange: () => void }) {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
 
+  // Moved here when the "Owners" tab was removed from AdminGymModeration: fixing a misspelled
+  // display name was the ONE thing that tab did which had no equivalent anywhere else, so it
+  // rides along with the other per-account actions rather than disappearing. Email is
+  // deliberately not editable — see authService.updateUserNameAsAdmin's doc comment.
+  const [editingNameFor, setEditingNameFor] = useState<string | null>(null);
+  const [nameForm, setNameForm] = useState({ firstName: "", lastName: "" });
+  const renameMutation = useMutation({
+    mutationFn: ({ userId, firstName, lastName }: { userId: string; firstName: string; lastName?: string }) =>
+      adminService.updateGymOwnerName(userId, { firstName, lastName }),
+    onSuccess: () => {
+      toast.success("Đã cập nhật tên");
+      setEditingNameFor(null);
+      onChange();
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể cập nhật tên"),
+  });
+
   const resetPwMutation = useMutation({
     mutationFn: (accountId: string) => adminService.resetPartnerAccountPassword(accountId),
     onSuccess: (data: any) => {
@@ -648,7 +657,40 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
                   {a.status === "ACTIVE" ? "Hoạt động" : a.status}
                 </span>
               </div>
+              {editingNameFor === a.id && (
+                <div className="mt-2.5 flex gap-1.5 flex-wrap items-center">
+                  <input
+                    value={nameForm.firstName}
+                    onChange={(e) => setNameForm({ ...nameForm, firstName: e.target.value })}
+                    placeholder="Họ"
+                    className="flex-1 min-w-[110px] px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 placeholder-zinc-600"
+                  />
+                  <input
+                    value={nameForm.lastName}
+                    onChange={(e) => setNameForm({ ...nameForm, lastName: e.target.value })}
+                    placeholder="Tên"
+                    className="flex-1 min-w-[110px] px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 placeholder-zinc-600"
+                  />
+                  <button
+                    onClick={() => renameMutation.mutate({ userId: a.userId, firstName: nameForm.firstName.trim(), lastName: nameForm.lastName.trim() || undefined })}
+                    disabled={!nameForm.firstName.trim() || renameMutation.isPending}
+                    className="text-[11px] bg-green-500 disabled:opacity-50 text-black px-2.5 py-1.5 rounded-lg font-bold"
+                  >
+                    Lưu
+                  </button>
+                  <button onClick={() => setEditingNameFor(null)} className="text-[11px] text-zinc-500 px-2 py-1.5">Huỷ</button>
+                </div>
+              )}
               <div className="flex gap-1.5 mt-3 flex-wrap">
+                <button
+                  onClick={() => {
+                    setEditingNameFor(a.id);
+                    setNameForm({ firstName: identity?.firstName ?? "", lastName: identity?.lastName ?? "" });
+                  }}
+                  className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg"
+                >
+                  <PencilSimple className="w-3 h-3" /> Sửa tên
+                </button>
                 <button onClick={() => resetPwMutation.mutate(a.id)} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
                   <KeyRound className="w-3 h-3" /> Đặt lại mật khẩu
                 </button>

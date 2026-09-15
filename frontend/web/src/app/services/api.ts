@@ -3255,6 +3255,13 @@ export const adminService = {
   // No self-registration path for GYM_OWNER — an admin creates the account directly after
   // arranging the partnership out of band (phone/email); returns the random temporary
   // password ONCE, never retrievable again after this call.
+  /**
+   * @deprecated Không còn nơi gọi. Tạo chủ gym giờ đi qua luồng đối tác
+   * (`createPartner` → thẩm định → `provisionOwnerAccount` → link mời), vì endpoint này chỉ
+   * dựng một User role GYM_OWNER mà KHÔNG sinh `GymPartner` — kết quả là một "legacy owner"
+   * không có hồ sơ pháp nhân, không thẩm định, không trình thiết lập, không mời được quản lý.
+   * Endpoint backend vẫn còn sống; xoá nó là một quyết định riêng.
+   */
   createGymOwner: async (payload: { email: string; firstName: string; lastName?: string }) => {
     const { data } = await api.post('/admin/gym-owners', payload);
     return data?.data ?? data;
@@ -3262,10 +3269,20 @@ export const adminService = {
   // "Quản lý gym & owner" — admin can only CREATE an owner account before this; these three
   // fill the gap the user pointed out (suspend/reactivate + name fix, no email edit — see
   // authService.updateUserNameAsAdmin's doc comment for why email is excluded).
+  /**
+   * @deprecated Không còn nơi gọi. Tab "Owners" đã bỏ khỏi "Quản lý Gym"; danh sách tài khoản
+   * giờ nằm trong từng hồ sơ đối tác (`getPartnerDetail().accounts` + `identities`).
+   */
   listGymOwners: async () => {
     const { data } = await api.get('/admin/gym-owners');
     return data?.data ?? data;
   },
+  /**
+   * @deprecated Không còn nơi gọi. Ngắt quyền một chủ gym giờ dùng đúng công cụ của mô hình
+   * đối tác: `revokePartnerAccountAsAdmin` (thu hồi tài khoản, kèm huỷ phiên) hoặc tạm
+   * khoá/chấm dứt ở cấp đối tác — thay vì bật/tắt cờ isActive ở tầng auth, vốn là một trục
+   * khác và từng gây ra hai nút "đình chỉ" mang hai nghĩa khác nhau.
+   */
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
     const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
