@@ -1,6 +1,8 @@
 import { createContext, useContext } from "react";
 import { vars } from "nativewind";
 
+// palette.js is CommonJS on purpose: tailwind.config.js reads the same file, and it cannot import TS.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const palette = require("./palette") as {
   workspaceAccents: Record<
     Workspace,

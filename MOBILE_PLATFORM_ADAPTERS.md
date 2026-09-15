@@ -828,6 +828,16 @@ Mỗi dòng dưới đây được xác nhận **ở phía server**, không ch�
 | Kéo-làm-mới gọi lại API thật | Đếm log request của user-service trước/sau 1 lần kéo trên Trang chủ | ✅ đúng +1 `GET /profile/me`, +1 `GET /inbody` |
 | Đo hiệu năng trên thiết bị thật | — | ⏳ chưa có máy thật (số emulator ở `PERFORMANCE_BASELINE.md`) |
 
+**HOÃN CÓ CHỦ ĐÍCH — Ngài quyết 2026-09-15 ("1 và 4 note lại làm sau"), Phase 5 chưa đóng cho tới khi xong:**
+
+1. **Đo hiệu năng trên điện thoại Android tầm trung thật** (tiêu chí "Xong khi" bắt buộc). Cần Ngài có máy.
+   Khi đo, điều tra luôn hai chỉ số đã vượt ngưỡng trên emulator: mở app tới Trang chủ ~5,0–7,7 s (ngưỡng
+   2,5 s) và Trang chủ đủ dữ liệu ~10 s (ngưỡng 1,5 s); đo nốt độ trễ điều hướng, frame drop luồng JS,
+   bài RAM 10 phút. Phương pháp + ngưỡng: `PERFORMANCE_BASELINE.md`.
+2. **Bấm thử trên trình duyệt hai thay đổi web** của GAP-4/GAP-5: trang `/quen-mat-khau`
+   (`ForgotPasswordPage.tsx`) và nút "Gửi lại" OTP có đếm ngược trong `RegisterPage.tsx`. Hiện mới qua
+   `vite build`; trang `/dat-lai-mat-khau/:token` thì Ngài đã dùng thật.
+
 **Lưu ý kiểm chứng:** gateway KHÔNG log request được proxy, và sau khi restart cũng không in "Socket
 connected" dù socket đang nối thật; fitness-service không log request nào. Log im lặng ở hai service
 này không chứng minh được gì — phải đọc DB hoặc dùng phép thử bật/tắt kết nối ở trên.
@@ -887,6 +897,42 @@ server tự đồng bộ. Hồ sơ + thiết bị của john.doe đã khôi ph�
 của bước trước → ô icon bị che dưới thanh tiến độ; sửa bằng cuộn về đầu mỗi khi đổi bước. (2) Lúc thêm
 bản sửa (1) quên import `useRef` → hot reload ném Render Error đúng lúc bấm Hoàn tất, lượt lưu đầu
 không tới backend; phát hiện nhờ đối chiếu DB (hồ sơ không đổi) chứ không phải nhờ giao diện.
+
+### 20.9 — Kiểm thử tự động + lint của Phase 5 (2026-09-15)
+
+**Tách logic ra module thuần để test được** (hành vi giữ nguyên, màn hình chỉ import lại):
+`src/features/workout/normalizeWorkout.ts` (log.tsx), `src/features/workout/trainingWeek.ts`
+(tab Lịch tuần), `src/features/dashboard/dashboardWeek.ts` (cột tuần, chuỗi ngày, next/Sắp tới, nhãn
+thay đổi), `src/features/onboarding/onboardingPayload.ts` (payload + chặn bước của SH-03),
+`src/components/navigation/hiddenRouteOptions.ts` (ẩn thanh tab).
+
+**Unit test (`tsx --test`, script `test:unit` giờ quét `src/**/__tests__/*.test.ts`) — 96 test.** Mỗi
+lỗi thật gặp ở Phase 5 có một test chặn tái phát: đọc `workoutSets` chứ không phải `sets` (0/0),
+buổi IN_PROGRESS không bị tính là xong, buổi đang tập vẫn là "next", "Sắp tới" không lặp buổi ở thẻ
+lớn, `bodyPartLabel` nhận chữ thường, dấu phẩy thập phân, lời chào sau nửa đêm. Kèm ngày tháng
+(timezone của nhãn date-only), đổi đơn vị, payload onboarding (không mặc định `activityLevel`, sàng lọc
+an toàn chỉ khi tới bước, `preferredSplit` null tường minh).
+
+**Component test (jest) — 31 test / 7 suite**, mới: `usePullToRefresh` (refetch đủ key, spinner giữ tới
+khi xong, lỗi vẫn tắt spinner), `SocketContext` (kết nối khi có phiên, ngắt khi đăng xuất, trạng thái
+theo sự kiện, nối lại khi app về foreground mà socket đã rớt), `EquipmentPicker` (không lộ mục nội bộ,
+tìm bằng tiếng Việt, chọn cả nhóm, preset "Gym tại nhà" đúng 8 slug).
+
+**Lint:** `pnpm lint` = `expo lint` với `eslint.config.js` (flat config của `eslint-config-expo` 57,
+ESLint 9). Kết quả: **0 lỗi, 17 cảnh báo**. 17 cảnh báo đều là luật của React Compiler
+(`set-state-in-effect`, `preserve-manual-memoization`, `immutability`) được hạ xuống warn có chủ đích:
+app **không bật** React Compiler, và `immutability` báo sai cho cách ghi `sharedValue.value = …` của
+Reanimated — đây là backlog nếu sau này bật compiler, không phải lỗi đang chạy. Các lỗi thật lint tìm
+ra đã sửa: `Date.now()` trong lúc render (tab Chu kỳ), dependency không ổn định của
+`usePullToRefresh`, thiếu dependency trong effect của log.tsx, import thừa/trùng, globals Node/Jest
+cho file config. `api.ts` tắt riêng `array-type` (port nguyên văn từ web, giữ diff được).
+
+**Lưu ý hạ tầng:** cài ESLint bằng `pnpm add` lại tháo junction `D:/.rn*` (đúng như memory đã cảnh
+báo) — đã dừng Metro trước, chạy lại `node scripts/shorten-package-paths.js`, kiểm junction trỏ đúng
+`D:\.rn`, `D:\.rnw`, `D:\.rnr`, `D:\.rngh` rồi mới mở lại Metro.
+
+**Chưa có:** E2E tự động cho luồng Phase 5 trên app RN (Maestro/Detox chưa được dựng); các luồng đầu-cuối
+của Phase 5 hiện được kiểm thủ công trên emulator + đối chiếu backend (§20.7, §20.8).
 
 
 ---

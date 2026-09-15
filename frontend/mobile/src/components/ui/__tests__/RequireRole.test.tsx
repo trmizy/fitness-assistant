@@ -25,6 +25,8 @@ jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
   // Renders as a marker so a redirect is observable without a navigator in the tree.
   Redirect: ({ href }: { href: any }) => {
+    // jest.mock factories are hoisted above imports and cannot close over them, so require() it.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Text: RNText } = require("react-native");
     const target = typeof href === "string" ? href : href?.pathname;
     return <RNText>{`REDIRECT:${target}`}</RNText>;

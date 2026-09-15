@@ -49,9 +49,7 @@ export default function MuscleLibraryScreen() {
       const region = m.anatomyRegion ?? "Khác";
       byRegion.set(region, [...(byRegion.get(region) ?? []), m]);
     }
-    const out: Array<
-      { kind: "header"; key: string; title: string } | { kind: "item"; key: string; muscle: (typeof filtered)[number] }
-    > = [];
+    const out: ({ kind: "header"; key: string; title: string } | { kind: "item"; key: string; muscle: (typeof filtered)[number] })[] = [];
     for (const [region, muscles] of byRegion) {
       out.push({ kind: "header", key: `h-${region}`, title: region });
       for (const m of muscles) out.push({ kind: "item", key: m.code, muscle: m });

@@ -1,9 +1,3 @@
-export interface PlanExplanationResponse {
-  planId: string;
-  explanation: string;
-  source: "llm" | "fallback";
-  warnings: string[];
-}
 import axios from "axios";
 // React Native's global fetch is an XMLHttpRequest polyfill: `response.body` is always null, so
 // an SSE stream read via `.getReader()` would silently never produce a token. expo/fetch is the
@@ -18,6 +12,13 @@ import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { downloadAuthenticatedFile, shareLocalFile, writeLocalFile } from "./files";
+
+export interface PlanExplanationResponse {
+  planId: string;
+  explanation: string;
+  source: "llm" | "fallback";
+  warnings: string[];
+}
 
 // An absolute URL straight to the gateway — a native app has no origin for web's relative "/api"
 // default to be same as (see config/serverUrl.ts for the full priority chain and why the /api
@@ -40,6 +41,7 @@ export function gymPhotoUrl(fileName: string): string {
 // through THIS instance. Its request interceptor is what attaches the token; reaching for a bare
 // `axios` import instead skips it and silently sends every request unauthenticated, which is
 // exactly what put two admin screens into a permanent "failed to load" state on web.
+// eslint-disable-next-line import/no-named-as-default-member -- axios.create() is axios's documented API
 export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -124,6 +126,7 @@ export type TranslateRequest = {
   sourceLang?: TranslationLanguage;
 };
 
+// eslint-disable-next-line import/no-named-as-default-member -- axios.create() is axios's documented API
 const refreshClient = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },

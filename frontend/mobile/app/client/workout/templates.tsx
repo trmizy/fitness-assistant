@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, LayoutTemplate, Plus, Users } from "lucide-react-native";
@@ -242,7 +242,7 @@ function ImportSheet({
     <BottomSheet open={!!template} onClose={onClose} title="Áp dụng vào lịch">
       <View className="gap-4 pb-2">
         <Text className="font-body text-sm text-muted-foreground">
-          Chọn các ngày trong tuần sẽ tập theo mẫu "{template?.name ?? ""}".
+          Chọn các ngày trong tuần sẽ tập theo mẫu “{template?.name ?? ""}”.
         </Text>
 
         <View className="flex-row flex-wrap gap-2">

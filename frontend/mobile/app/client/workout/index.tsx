@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -34,12 +34,11 @@ import {
 import { trainingCycleService, workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../../src/utils/date";
+import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
 const TABS = ["Lịch tuần", "Nhật ký", "Chu kỳ"] as const;
 type Tab = (typeof TABS)[number];
-
-const WEEK_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
 
 /**
  * CL-02 — "Tập luyện".
@@ -90,32 +89,11 @@ export default function WorkoutScreen() {
     ["training-cycle", "active"],
   ]);
 
-  const week = useMemo(() => {
-    const list: any[] = Array.isArray(schedulesQuery.data) ? schedulesQuery.data : [];
-    const todayKey = toDateInputValue(new Date());
-    return WEEK_LABELS.map((label, i) => {
-      const date = addDays(weekStart, i);
-      const key = toDateInputValue(date);
-      const schedule = list.find((s) => toDateInputValue(parseApiDateOnly(s.date)) === key);
-      return {
-        label,
-        key,
-        today: key === todayKey,
-        // Y-M-D strings compare chronologically, so no Date round-trip (and no timezone) needed.
-        past: key < todayKey,
-        schedule,
-        // No schedule row for a day means the program prescribes rest, exactly how web reads it.
-        rest: !schedule,
-        // Finished is the schedule's own status, not "has a workout row": starting a session creates
-        // the workout immediately (status IN_PROGRESS), so the old workoutId test ticked a session
-        // the moment it began and locked the user out of resuming it. Same rule as web's
-        // WorkoutLogPage (`status === "COMPLETED"`).
-        done: schedule?.status === "COMPLETED",
-        inProgress:
-          schedule?.status !== "COMPLETED" && !!(schedule?.workoutId || schedule?.workout?.id),
-      };
-    });
-  }, [schedulesQuery.data, weekStart]);
+  // Day-state rules (rest / past / in progress / done) live in buildTrainingWeek, where they are tested.
+  const week = useMemo(
+    () => buildTrainingWeek(schedulesQuery.data, weekStart),
+    [schedulesQuery.data, weekStart],
+  );
 
   const planned = week.filter((d) => !d.rest).length;
   const done = week.filter((d) => d.done).length;
@@ -315,6 +293,9 @@ function RecentWorkouts({ data }: { data: any }) {
 
 function CycleTab({ query }: { query: { isLoading: boolean; data: any; isError: boolean } }) {
   const accent = useWorkspaceAccent();
+  // Read the clock once per mount, not on every render: the cycle's week index is day-grained, and a
+  // render-time Date.now() makes the output depend on when React happens to re-render.
+  const [now] = useState(() => Date.now());
 
   if (query.isLoading) {
     return <Skeleton className="h-40 rounded-2xl" />;
@@ -336,7 +317,7 @@ function CycleTab({ query }: { query: { isLoading: boolean; data: any; isError: 
   const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000));
   const elapsed = Math.min(
     totalDays,
-    Math.max(0, Math.round((Date.now() - start.getTime()) / 86_400_000)),
+    Math.max(0, Math.round((now - start.getTime()) / 86_400_000)),
   );
   const weekIndex = Math.floor(elapsed / 7) + 1;
   const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));

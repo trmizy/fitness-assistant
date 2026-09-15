@@ -67,12 +67,12 @@ const CATEGORY_ORDER = [
 ];
 
 // Presets are UX prefill only, never persisted as-is — the final checkbox state is what gets saved.
-export const TRAINING_LOCATION_PRESETS: Array<{
+export const TRAINING_LOCATION_PRESETS: {
   key: string;
   label: string;
   description: string;
   slugs: string[];
-}> = [
+}[] = [
   {
     key: "COMMERCIAL_GYM",
     label: "Phòng gym lớn",

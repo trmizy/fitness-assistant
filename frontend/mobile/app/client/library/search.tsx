@@ -14,7 +14,7 @@ const MAX_GROUP_RESULTS = 8;
 /** Same floor as web: a one-character query matches most of the catalog and helps nobody. */
 const MIN_QUERY_LENGTH = 2;
 
-function textMatches(query: string, values: Array<string | null | undefined>) {
+function textMatches(query: string, values: (string | null | undefined)[]) {
   const q = query.trim().toLowerCase();
   return values.some((value) => (value ?? "").toLowerCase().includes(q));
 }

@@ -9,6 +9,7 @@ import {
   workspaceVars,
   type Workspace,
 } from "../../theme/workspace";
+import { hiddenRouteOptions } from "./hiddenRouteOptions";
 
 export type WorkspaceTab = {
   /** Route file name inside the workspace folder, e.g. "dashboard". */
@@ -88,15 +89,7 @@ export function WorkspaceTabs({
           ))}
 
           {hiddenRoutes.map((name) => (
-            <Tabs.Screen
-              key={name}
-              name={name}
-              options={
-                fullScreenRoutes.includes(name)
-                  ? { href: null, tabBarStyle: { display: "none" } }
-                  : { href: null }
-              }
-            />
+            <Tabs.Screen key={name} name={name} options={hiddenRouteOptions(name, fullScreenRoutes)} />
           ))}
         </Tabs>
       </View>

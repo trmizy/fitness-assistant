@@ -43,6 +43,11 @@ import { ROLE_HOME } from "../../src/config/landing";
 import { haptics } from "../../src/lib/haptics";
 import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../src/utils/units";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import {
+  buildOnboardingPayload,
+  canAdvanceOnboardingStep,
+  normalizeDecimal,
+} from "../../src/features/onboarding/onboardingPayload";
 
 /**
  * SH-03 — first-run onboarding wizard (Phase 5, per Ngài's decision 2026-09-15).
@@ -164,11 +169,6 @@ const SAFETY_QUESTIONS = [
 ];
 
 const REVIEW_STEP = STEPS.length - 1;
-
-/** Vietnamese numeric keyboards type a decimal comma. */
-function normalizeDecimal(value: string): string {
-  return value.replace(",", ".");
-}
 
 export default function ClientOnboardingScreen() {
   const { user, logout } = useApp();
@@ -341,42 +341,27 @@ export default function ClientOnboardingScreen() {
     if (slugs.length > 0) setEquipment(new Set(slugs));
   }, [catalogQuery.data, myEquipmentQuery.data]);
 
+  // The payload rules (explicit null split, no default activityLevel, safety screening only when
+  // reached, always hasCompletedOnboarding) live in buildOnboardingPayload, where they are tested.
   function buildPayload() {
-    return {
-      experienceLevel: experienceLevel || undefined,
-      goal: goal || undefined,
-      preferredTrainingDays: trainingDays,
-      sessionDurationMinutes: sessionDurationMinutes
-        ? parseInt(sessionDurationMinutes, 10)
-        : undefined,
-      // Explicit null (not undefined) so switching back to "auto" clears an earlier manual choice.
-      preferredSplit:
-        splitMode === "manual" && preferredSplit && preferredSplit !== "Chưa xác định"
-          ? preferredSplit
-          : null,
-      // availableEquipment deliberately omitted — setMyEquipment is the one write path for it.
-      injuries: injuriesText
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+    return buildOnboardingPayload({
+      experienceLevel,
+      goal,
+      trainingDays,
+      sessionDurationMinutes,
+      splitMode,
+      preferredSplit,
+      injuriesText,
       competesInSport,
-      // Real value only, never a fabricated default.
-      activityLevel: activityLevel || undefined,
-      ...(safetyStepReached
-        ? {
-            safetyScreeningStatus:
-              safetyFlags.size > 0 ? ("FOLLOW_UP_SUGGESTED" as const) : ("CLEARED" as const),
-            safetyScreeningFlags: Array.from(safetyFlags),
-          }
-        : {}),
-      age: age ? parseInt(age, 10) : undefined,
-      gender: gender || undefined,
-      heightCm: heightCm ? parseFloat(heightCm) : undefined,
-      currentWeight: currentWeight ? parseFloat(currentWeight) : undefined,
-      targetWeight: targetWeight ? parseFloat(targetWeight) : undefined,
-      // True on every submission, skip included — see the header comment.
-      hasCompletedOnboarding: true,
-    };
+      safetyFlags,
+      safetyStepReached,
+      activityLevel,
+      age,
+      gender,
+      heightCm,
+      currentWeight,
+      targetWeight,
+    });
   }
 
   const submitMutation = useMutation({
@@ -406,7 +391,7 @@ export default function ClientOnboardingScreen() {
   });
 
   const isLastStep = step === REVIEW_STEP;
-  const canGoNext = step === 0 ? !!experienceLevel && !!goal : step === 4 ? !!activityLevel : true;
+  const canGoNext = canAdvanceOnboardingStep(step, { experienceLevel, goal, activityLevel });
   const nextHint =
     step === 0 && !canGoNext
       ? "Chọn trình độ và mục tiêu để tiếp tục"

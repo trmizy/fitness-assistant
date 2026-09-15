@@ -4,8 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Dumbbell } from "lucide-react-native";
 
-import { Badge, Card, EmptyState } from "../../../../src/components/ui";
-import { Tappable } from "../../../../src/components/ui";
+import { Badge, Card, EmptyState, Tappable } from "../../../../src/components/ui";
 import { workoutService } from "../../../../src/services/api";
 import {
   bodyPartLabel,

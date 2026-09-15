@@ -22,13 +22,13 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
  * that navigates nowhere. The two cards stay — they are part of the hub's design — and point at
  * the Phase 6 placeholders.
  */
-const DESTINATIONS: Array<{
+const DESTINATIONS: {
   href: "/client/library/exercises" | "/client/library/foods" | "/client/library/learn" | "/client/library/muscles";
   icon: LucideIcon;
   tint: string;
   title: string;
   description: string;
-}> = [
+}[] = [
   {
     href: "/client/library/exercises",
     icon: Dumbbell,
@@ -166,7 +166,7 @@ function PreviewStrip({
   empty,
 }: {
   title: string;
-  items: Array<{ key: string; label: string; onPress: () => void }>;
+  items: { key: string; label: string; onPress: () => void }[];
   loading: boolean;
   empty: string;
 }) {
