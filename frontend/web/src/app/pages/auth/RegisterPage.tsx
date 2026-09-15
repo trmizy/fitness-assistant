@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
 import { BarbellIcon as Dumbbell, ArrowRightIcon as ArrowRight, CheckIcon as Check, EnvelopeSimpleIcon as Mail, LockIcon as Lock, UserCircleIcon as UserCircle } from "@phosphor-icons/react";
@@ -21,16 +21,27 @@ import { toast } from "sonner";
  */
 const steps = ["Tài khoản", "Xác nhận"];
 
+/** auth-service's OTP_RESEND_SECONDS default; a resend response carries the real value. */
+const RESEND_AFTER_SECONDS = 60;
+
 export function RegisterPage() {
   const { setUser } = useApp();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
@@ -47,6 +58,7 @@ export function RegisterPage() {
       await authService.register(email, password, firstName, lastName);
       toast.success("Mã xác nhận đã được gửi đến email của bạn");
       setStep(1);
+      setResendIn(RESEND_AFTER_SECONDS);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || "";
       if (errorMsg === "Email already registered") {
@@ -62,6 +74,29 @@ export function RegisterPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * GAP-5: a real resend. This used to call handleRegister again — re-submitting the whole
+   * account form, which was throttled by the same 60s cooldown with no countdown, so a click too
+   * early just failed with an English "OTP recently sent" error. The pending sign-up keeps the
+   * password and name from step one; only the code changes, so the typed code is cleared.
+   */
+  const handleResend = async () => {
+    if (resending || resendIn > 0) return;
+    setResending(true);
+    try {
+      const result = await authService.resendRegistrationOtp(email);
+      setOtp("");
+      setResendIn(result?.resendAfterSeconds ?? RESEND_AFTER_SECONDS);
+      toast.success("Đã gửi mã mới — mã cũ không còn dùng được");
+    } catch (error: any) {
+      toast.error(
+        error?.response ? error.response.data?.error || "Không gửi lại được mã" : "Không kết nối được máy chủ",
+      );
+    } finally {
+      setResending(false);
     }
   };
 
@@ -205,11 +240,15 @@ export function RegisterPage() {
               />
 
               <button
-                onClick={handleRegister}
-                className="text-xs text-zinc-500 hover:text-green-500 transition-colors"
-                disabled={loading}
+                onClick={handleResend}
+                className="text-xs text-zinc-500 hover:text-green-500 disabled:hover:text-zinc-500 disabled:opacity-60 transition-colors"
+                disabled={loading || resending || resendIn > 0}
               >
-                Không nhận được mã? Gửi lại
+                {resendIn > 0
+                  ? `Không nhận được mã? Gửi lại sau ${resendIn}s`
+                  : resending
+                    ? "Đang gửi mã mới..."
+                    : "Không nhận được mã? Gửi lại"}
               </button>
             </div>
           )}

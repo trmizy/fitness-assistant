@@ -28,6 +28,7 @@ const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ def
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 const PartnerInviteAcceptPage = lazy(() => import("./pages/auth/PartnerInviteAcceptPage").then((m) => ({ default: m.PartnerInviteAcceptPage })));
 const PartnerPasswordResetPage = lazy(() => import("./pages/auth/PartnerPasswordResetPage").then((m) => ({ default: m.PartnerPasswordResetPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 
 // Client pages
 const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard").then((m) => ({ default: m.ClientDashboard })));
@@ -171,6 +172,7 @@ export const router = createBrowserRouter([
       { path: "register", Component: RegisterPage },
       { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },
       { path: "dat-lai-mat-khau/:token", Component: PartnerPasswordResetPage },
+      { path: "quen-mat-khau", Component: ForgotPasswordPage },
       // Dev-only Gymini icon system review page (spec: docs/features/GYMINI_ICON_SYSTEM_
       // IMPLEMENTATION_REPORT.md §20). Deliberately not linked from Sidebar/BottomNav/Topbar —
       // reachable only by typing the URL — and the page component itself renders nothing

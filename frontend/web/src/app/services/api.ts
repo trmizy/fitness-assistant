@@ -277,6 +277,25 @@ export const authService = {
     return { success: false };
   },
 
+  /** New code for a sign-up still waiting on email verification (MOBILE_BACKEND_GAPS GAP-5). The
+   *  pending sign-up keeps the password and name already submitted; only the code changes. */
+  resendRegistrationOtp: async (email: string) => {
+    const { data } = await api.post("/auth/register/resend", { email });
+    return data as {
+      message: string;
+      email: string;
+      expiresInMinutes: number;
+      resendAfterSeconds: number;
+    };
+  },
+
+  /** Self-service password reset (GAP-4). Resolves with the same message whether or not the email
+   *  has an account — the server never reveals which. The emailed link opens /dat-lai-mat-khau/:token. */
+  requestPasswordReset: async (email: string) => {
+    const { data } = await api.post("/auth/password-reset/request", { email });
+    return data as { message: string };
+  },
+
   logout: async () => {
     // Revoke the refresh token server-side FIRST. Clearing local storage alone left the
     // refresh token valid in the database, so a copy of it kept working after "logging out".

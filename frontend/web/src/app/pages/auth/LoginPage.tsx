@@ -203,7 +203,7 @@ export function LoginPage() {
                   Mật khẩu
                 </label>
                 <Link
-                  to="/login"
+                  to="/quen-mat-khau"
                   className="text-xs text-green-400 hover:text-green-300 transition-colors"
                 >
                   Quên mật khẩu?
