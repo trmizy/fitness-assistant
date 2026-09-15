@@ -934,6 +934,34 @@ báo) — đã dừng Metro trước, chạy lại `node scripts/shorten-package
 **Chưa có:** E2E tự động cho luồng Phase 5 trên app RN (Maestro/Detox chưa được dựng); các luồng đầu-cuối
 của Phase 5 hiện được kiểm thủ công trên emulator + đối chiếu backend (§20.7, §20.8).
 
+### 20.10 — Màn Đang tập (CL-17) hiện sai buổi đã hoàn thành (2026-09-16)
+
+**Triệu chứng:** buổi hôm nay đã `COMPLETED`, bấm "+" mở lại màn Đang tập thì vẫn thấy "Đang tập", đồng
+hồ chạy tiếp từ giờ bắt đầu buổi sáng (721:33), nút "Kết thúc buổi tập".
+
+**Hai nguyên nhân, cả hai đều ở frontend:**
+1. Đồng hồ chỉ được seed một lần mỗi workout và luôn `running = true`, không xét `status`.
+2. Dữ liệu cũ: `log` là màn trong Stack của tab Tập luyện nên **vẫn mounted** khi đổi tab, và
+   `staleTime` 30s toàn app khiến màn mới push vẫn render bản cache. Tái hiện trên emulator: DB đã
+   `COMPLETED 4/4` mà màn vẫn "Đang tập", 0/4 set, đồng hồ chạy. Chỉ sửa (1) là chưa đủ.
+
+**Sửa:**
+- `sessionClockState(schedule, workout, now)` (thuần, có test): `COMPLETED` thì đồng hồ đứng ở thời
+  lượng thật (`completedAt − startedAt`, dự phòng `durationSeconds`, rồi 0), còn lại đếm từ
+  `startedAt`/`createdAt`, không âm. Seed lại theo khoá `workoutId:status`.
+- Buổi COMPLETED hiện dạng tổng kết: tiêu đề "Buổi tập hôm nay", badge "Đã hoàn thành", nhãn "Tổng
+  thời gian", ẩn nút tạm dừng, chân màn là "Về Tập luyện". Set vẫn sửa được (backend cho sửa trong ngày).
+- `useFocusEffect` refetch lịch hôm nay + workout mỗi lần màn được focus; hai query của màn này
+  `staleTime: 0` (dữ liệu phiên tập sống, không phải catalog). Các dòng set được hydrate lại từ lần
+  fetch của lần focus đó; `keepUnsyncedRows` giữ nguyên dòng "chờ đồng bộ" để không mất giá trị chưa
+  tới server. Refetch nền không phải do focus vẫn không ghi đè giá trị đang gõ.
+
+**Kiểm:** unit 106/106 (thêm 7 test `sessionClockState`, 3 test `keepUnsyncedRows`), typecheck sạch,
+lint 0 lỗi. Emulator + backend thật với một buổi thử của john.doe: đang tập (00:33 → 00:37 chạy) →
+bỏ tick 1 set qua API, mở lại màn → "Đang tập" 3/4, đồng hồ chạy → rời màn, tick nốt qua API (DB
+`COMPLETED 4/4`, 526s) → mở lại màn → "Buổi tập hôm nay", "Đã hoàn thành", 4/4, **08:46 đứng yên ở
+hai ảnh cách 7 giây**, không nút tạm dừng, "Về Tập luyện". Dữ liệu thử đã xoá.
+
 
 ---
 

@@ -1,10 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
-import { Check, CloudOff, Dumbbell, Flame, Minus, Play, Plus, Square, Timer } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Check,
+  CloudOff,
+  Dumbbell,
+  Flame,
+  Minus,
+  Play,
+  Plus,
+  Square,
+  Timer,
+} from "lucide-react-native";
 
 import {
   Badge,
@@ -23,7 +34,9 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
 import {
   formatClock as clock,
+  keepUnsyncedRows,
   normalizeWorkout,
+  sessionClockState,
   type ExerciseBlock,
   type SetRow,
 } from "../../../src/features/workout/normalizeWorkout";
@@ -36,6 +49,10 @@ import {
  * persisted `WorkoutSet` skeleton, and each row is written back with
  * `PATCH /workouts/sets/:setId` — the same call, the same fields. Nothing here invents a set
  * that the server did not create.
+ *
+ * A session that is already COMPLETED (reachable again through the week tab's "+" button) opens as
+ * a summary: frozen real duration, "Đã hoàn thành", no pause control, and a way back instead of
+ * "Kết thúc buổi tập". Its sets stay editable — the backend allows corrections on the same day.
  *
  * Deliberately NOT ported from web: the durable offline event queue (`enqueueWorkoutEvent`,
  * IndexedDB-backed, Roadmap P1.4). A half-built queue is worse than none — it loses sets while
@@ -50,13 +67,14 @@ export default function WorkoutLogScreen() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Off until a started workout loads — see the hydration effect, which also seeds `elapsed`.
+  // Off until a started workout loads — see the clock effect, which also seeds `elapsed`.
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [rest, setRest] = useState<number | null>(null);
   const [blocks, setBlocks] = useState<ExerciseBlock[] | null>(null);
   const [starting, setStarting] = useState(false);
   const hydratedFor = useRef<string | null>(null);
+  const clockSeededFor = useRef<string | null>(null);
 
   // Today's schedule is what a session is started from — same source the dashboard and the week
   // tab read, so all three agree on what "hôm nay" means.
@@ -64,6 +82,8 @@ export default function WorkoutLogScreen() {
   const scheduleQuery = useQuery({
     queryKey: ["workout-schedules", "today"],
     queryFn: () => workoutService.getSchedules(20, { startDate: todayKey, endDate: todayKey }),
+    // Live session state, not a catalog: the app-wide 30s staleTime would render a cached status.
+    staleTime: 0,
   });
 
   const schedule: any = useMemo(() => {
@@ -72,34 +92,64 @@ export default function WorkoutLogScreen() {
   }, [scheduleQuery.data]);
 
   const workoutId: string | null = schedule?.workoutId ?? schedule?.workout?.id ?? null;
+  const completed = schedule?.status === "COMPLETED";
 
   const workoutQuery = useQuery({
     queryKey: ["workout", workoutId],
     queryFn: () => workoutService.getWorkout(String(workoutId)),
     enabled: !!workoutId,
+    // Also 0: the workout id often arrives after the first focus, and becoming enabled only fetches
+    // when the cached copy is stale.
+    staleTime: 0,
   });
 
-  // Hydrate local rows once per workout. Re-hydrating on every refetch would wipe values the
-  // user is mid-way through typing.
+  // Re-read the session every time the screen gains focus. Two things kept it stale otherwise: the
+  // screen stays mounted inside the workout tab's Stack when the user switches tabs, and the global
+  // 30s staleTime lets a freshly pushed screen render the cached copy without fetching. Both showed a
+  // session finished elsewhere as "Đang tập" with 0/4 sets and a running clock.
+  const focusedAt = useRef(0);
+  const resyncedFor = useRef(0);
+  useFocusEffect(
+    useCallback(() => {
+      focusedAt.current = Date.now();
+      // cancelRefetch:false joins a fetch the mount already started instead of restarting it.
+      void queryClient.refetchQueries(
+        { queryKey: ["workout-schedules", "today"], type: "active" },
+        { cancelRefetch: false },
+      );
+      void queryClient.refetchQueries({ queryKey: ["workout"], type: "active" }, { cancelRefetch: false });
+    }, [queryClient]),
+  );
+
+  // Hydrate local rows once per workout, then once more per focus from the fetch that focus started.
+  // Re-hydrating on every background refetch would wipe values the user is mid-way through typing; a
+  // focus refetch cannot, since nobody was typing while the screen was away. Rows still waiting to
+  // sync keep their local value either way.
+  const dataUpdatedAt = workoutQuery.dataUpdatedAt;
   useEffect(() => {
-    if (!workoutId || hydratedFor.current === workoutId) return;
+    if (!workoutId) return;
+    const firstForWorkout = hydratedFor.current !== workoutId;
+    const focusResync = dataUpdatedAt >= focusedAt.current && resyncedFor.current !== focusedAt.current;
+    if (!firstForWorkout && !focusResync) return;
     const normalized = normalizeWorkout(workoutQuery.data);
-    if (normalized) {
-      setBlocks(normalized);
-      hydratedFor.current = workoutId;
-      // The clock measures the session, not how long this screen has been open: it starts from
-      // when the workout was created by "Bắt đầu", so reopening a session mid-way keeps counting
-      // from the real start instead of showing time spent looking at the start card.
-      const raw: any = workoutQuery.data;
-      const startedAt = Date.parse(
-        schedule?.startedAt ?? (raw?.workout ?? raw?.data ?? raw)?.createdAt ?? "",
-      );
-      setElapsed(
-        Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0,
-      );
-      setRunning(true);
-    }
-  }, [workoutId, workoutQuery.data, schedule?.startedAt]);
+    if (!normalized) return;
+    setBlocks((prev) => (firstForWorkout ? normalized : keepUnsyncedRows(normalized, prev)));
+    hydratedFor.current = workoutId;
+    if (dataUpdatedAt >= focusedAt.current) resyncedFor.current = focusedAt.current;
+  }, [workoutId, workoutQuery.data, dataUpdatedAt]);
+
+  // Seed the clock per session AND status, separately from the rows: the first render can come from
+  // a cached IN_PROGRESS schedule followed moments later by the fresh COMPLETED one, and seeding only
+  // once per workout would leave a finished session ticking. A refetch with the same status is a
+  // no-op, so pausing is never undone by background refreshes.
+  const clockKey = workoutId && workoutQuery.data ? `${workoutId}:${schedule?.status ?? ""}` : null;
+  useEffect(() => {
+    if (!clockKey || clockSeededFor.current === clockKey) return;
+    clockSeededFor.current = clockKey;
+    const seeded = sessionClockState(schedule, workoutQuery.data, Date.now());
+    setElapsed(seeded.elapsedSeconds);
+    setRunning(seeded.running);
+  }, [clockKey, schedule, workoutQuery.data]);
 
   // Elapsed clock.
   useEffect(() => {
@@ -239,6 +289,9 @@ export default function WorkoutLogScreen() {
   const finish = useCallback(async () => {
     haptics.success();
     await Promise.all([
+      // Today's schedule too: reopening this screen must read the status the last set just set,
+      // not a cached IN_PROGRESS copy.
+      queryClient.refetchQueries({ queryKey: ["workout-schedules", "today"] }),
       queryClient.refetchQueries({ queryKey: ["workout-history", "recent"] }),
       queryClient.refetchQueries({ queryKey: ["workout-schedules", "week"] }),
       queryClient.refetchQueries({ queryKey: ["activity-heatmap", "dashboard-week"] }),
@@ -255,7 +308,10 @@ export default function WorkoutLogScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Đang tập" onBack={() => router.back()} />
+      <ScreenHeader
+        title={workoutId && completed ? "Buổi tập hôm nay" : "Đang tập"}
+        onBack={() => router.back()}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -304,8 +360,8 @@ export default function WorkoutLogScreen() {
             <Card className="mb-4 p-4">
               <View className="mb-3 flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Badge tone={running ? "success" : "neutral"}>
-                    {running ? "Đang tập" : "Tạm dừng"}
+                  <Badge tone={completed || running ? "success" : "neutral"}>
+                    {completed ? "Đã hoàn thành" : running ? "Đang tập" : "Tạm dừng"}
                   </Badge>
                   <Text className="font-display mt-1.5 text-lg leading-tight text-foreground">
                     {schedule?.programDay?.name ?? schedule?.name ?? "Buổi tập"}
@@ -315,7 +371,9 @@ export default function WorkoutLogScreen() {
                   <Text className="font-display text-3xl text-primary" style={{ fontVariant: ["tabular-nums"] }}>
                     {clock(elapsed)}
                   </Text>
-                  <Text className="font-body text-[11px] text-muted-foreground">Thời gian tập</Text>
+                  <Text className="font-body text-[11px] text-muted-foreground">
+                    {completed ? "Tổng thời gian" : "Thời gian tập"}
+                  </Text>
                 </View>
               </View>
 
@@ -332,16 +390,19 @@ export default function WorkoutLogScreen() {
                   </Text>
                   <Text className="font-body text-[11px] text-muted-foreground">Set hoàn thành</Text>
                 </View>
-                <Tappable
-                  className="h-11 w-11 items-center justify-center rounded-xl bg-panel"
-                  onPress={() => setRunning((r) => !r)}
-                >
-                  {running ? (
-                    <Square size={18} color="#e6eae8" />
-                  ) : (
-                    <Play size={18} color="#e6eae8" />
-                  )}
-                </Tappable>
+                {/* Pausing a finished session's frozen clock would be meaningless. */}
+                {completed ? null : (
+                  <Tappable
+                    className="h-11 w-11 items-center justify-center rounded-xl bg-panel"
+                    onPress={() => setRunning((r) => !r)}
+                  >
+                    {running ? (
+                      <Square size={18} color="#e6eae8" />
+                    ) : (
+                      <Play size={18} color="#e6eae8" />
+                    )}
+                  </Tappable>
+                )}
               </View>
             </Card>
 
@@ -476,14 +537,20 @@ export default function WorkoutLogScreen() {
             </Animated.View>
           ) : null}
 
-          {/* Finish bar */}
+          {/* Finish bar — a finished session has nothing left to finish. */}
           <View
             className="absolute inset-x-0 bottom-0 border-t border-border bg-background px-5 pt-3"
             style={{ paddingBottom: insets.bottom + 12 }}
           >
-            <Button full size="lg" icon={Flame} onPress={finish}>
-              Kết thúc buổi tập
-            </Button>
+            {completed ? (
+              <Button full size="lg" variant="secondary" icon={ArrowLeft} onPress={() => router.back()}>
+                Về Tập luyện
+              </Button>
+            ) : (
+              <Button full size="lg" icon={Flame} onPress={finish}>
+                Kết thúc buổi tập
+              </Button>
+            )}
           </View>
         </>
       )}
