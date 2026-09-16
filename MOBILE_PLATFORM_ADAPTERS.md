@@ -786,7 +786,7 @@ resolve khi phần việc mạng thật sự xong, đúng cái người dùng đ
 | Thẻ "AI Coach có gợi ý mới" (Home) | Không có endpoint gợi ý nào tồn tại; render nó bây giờ là bịa ra một lời khẳng định backend chưa từng đưa ra | 9 |
 | Thẻ "buổi tập chờ xác nhận" (Home) | Xác nhận buổi tập thuộc luồng hợp đồng/buổi tập | 7 |
 | Hai ô calo/nước (Home) | Thuộc domain dinh dưỡng. **Bố cục hai ô giữ nguyên**, tạm điền chỉ số cơ thể (cân nặng, cơ bắp) đúng như web đang hiện trên chính màn này | 6 |
-| Video preview của bài tập | `ExerciseMediaPreview` của web dựa vào thẻ `<video>`; bản RN cần `expo-video` (native) → gộp vào đợt build lại ở Phase 14 | 14 |
+| ~~Video preview của bài tập~~ | **ĐÃ LÀM 16/9 (§20.11)** — ghi chú cũ sai: catalog không có video, `video_url` là 2 khung JPG, chỉ cần `expo-image`, không cần `expo-video` | 5 |
 | Thư viện thực phẩm / Kiến thức dinh dưỡng | Domain dinh dưỡng | 6 |
 | Tìm kiếm tổng hợp: nhóm thực phẩm + bài viết | Cùng lý do — trả kết quả dẫn tới một placeholder còn tệ hơn là chưa có | 6 |
 
@@ -834,9 +834,7 @@ Mỗi dòng dưới đây được xác nhận **ở phía server**, không ch�
    Khi đo, điều tra luôn hai chỉ số đã vượt ngưỡng trên emulator: mở app tới Trang chủ ~5,0–7,7 s (ngưỡng
    2,5 s) và Trang chủ đủ dữ liệu ~10 s (ngưỡng 1,5 s); đo nốt độ trễ điều hướng, frame drop luồng JS,
    bài RAM 10 phút. Phương pháp + ngưỡng: `PERFORMANCE_BASELINE.md`.
-2. **Bấm thử trên trình duyệt hai thay đổi web** của GAP-4/GAP-5: trang `/quen-mat-khau`
-   (`ForgotPasswordPage.tsx`) và nút "Gửi lại" OTP có đếm ngược trong `RegisterPage.tsx`. Hiện mới qua
-   `vite build`; trang `/dat-lai-mat-khau/:token` thì Ngài đã dùng thật.
+2. ~~**Bấm thử trên trình duyệt hai thay đổi web** của GAP-4/GAP-5~~ → **ĐÃ LÀM (2026-09-16)**, xem §20.13.
 
 **Lưu ý kiểm chứng:** gateway KHÔNG log request được proxy, và sau khi restart cũng không in "Socket
 connected" dù socket đang nối thật; fitness-service không log request nào. Log im lặng ở hai service
@@ -998,6 +996,64 @@ phòng ở màn buổi tập. Unit 113/113, typecheck sạch, lint 0 lỗi.
 
 **Chưa đo:** ảnh hưởng của ảnh tới frame drop khi cuộn danh sách dài — cần đo trên máy thật cùng đợt
 với mục hiệu năng còn treo (§20.7).
+
+### 20.12 — SH-02 màn intro lần đầu (2026-09-16, món sót của Phase 4)
+
+**Vì sao đến giờ mới làm:** manifest ghi SH-02 "chưa làm" từ Phase 4 và **không** tài liệu nào ghi là
+hoãn có chủ đích — tức sót thật, phát hiện khi rà lại toàn bộ Phase 1→5.
+
+**Nguồn:** chỉ có bản thiết kế (`New Frontend/src/screens/Onboarding.tsx`); web không có màn tương
+đương (vào thẳng `/login`), nên không có hành vi nào để port. Màn này không gọi API.
+
+**Ba quyết định đáng ghi:**
+1. **Đặt ở gốc `app/welcome.tsx`, không trong `(auth)`.** Group `(auth)` đệm safe-area phía trên cho
+   các màn form; để trong đó thì ảnh nền không chạy lên dưới status bar được như thiết kế.
+2. **Hiện 1 lần mỗi lần cài**, cờ `intro.seen` trong AsyncStorage (`Preferences`). Cả "Bỏ qua" lẫn
+   "Bắt đầu ngay" đều ghi cờ — cả hai đều nghĩa là "đã xem". Đọc cờ **chỉ khi chưa đăng nhập**:
+   người đang có phiên không bao giờ thấy màn này, và cold start tới Trang chủ vốn đã là đường chậm
+   nhất (`PERFORMANCE_BASELINE.md`), không nên cõng thêm một lượt đọc bộ nhớ.
+3. **Tên thương hiệu — ĐÃ CHỐT: "Gymini"** (Ngài quyết 2026-09-16, "tên chính thức của hệ thống").
+   Trước đó ba nơi ghi ba kiểu: thiết kế "Gymini", web "Fitness AI" (`RegisterPage.tsx`), `app.json`
+   "FitnessAssistant". Web thật ra đã dùng Gymini ở khắp nơi (bộ icon `Gymini*Icon`, token trong
+   `theme.css`) — chỗ ghi "Fitness AI" mới là ngoại lệ.
+   **Đã đổi trong mobile:** chữ trên màn intro, `expo.name` và 4 chuỗi xin quyền trong `app.json`.
+   **Cố ý KHÔNG đổi:** `scheme` (`fitnessassistant`), `slug`, `bundleIdentifier`/`package`
+   (`vn.fitnessassistant.app`) — Phase 15 bắt buộc giữ nguyên deep-link scheme và applicationId khi
+   cutover; đổi chúng là mất deep link và mất đường cập nhật của bản đã cài.
+   **Lưu ý:** `expo.name` và chuỗi xin quyền chỉ đổi trên máy sau một lần **build native lại** (nhãn
+   launcher nằm trong `strings.xml` do prebuild sinh ra) — gộp vào đợt build của Phase 14.
+   **Chưa đổi, cần Ngài cho phép riêng:** web `RegisterPage.tsx` ghi "Fitness AI"; backend ghi
+   "AI Gym Coach" ở tiêu đề email xác minh, email đặt lại mật khẩu và trang trả về VNPay.
+
+**Lỗi tự gây, bắt được trên máy ảo:** `finish()` điều hướng cứng tới `/login`, nên người **đang đăng
+nhập** mở màn này (deep link, hoặc cài lại mà keychain còn) bấm xong lại rơi vào form đăng nhập. Sửa:
+`router.replace("/")` để route gốc tự chọn đích theo vai trò.
+
+**Kiểm trên emulator:** 3 slide đúng thiết kế (ảnh nền + lớp phủ chuyển sắc, ô icon, tiêu đề 2 dòng,
+chấm nở rộng ở slide hiện tại); slide cuối bỏ "Bỏ qua" và đổi nút thành "Bắt đầu ngay"; "Bỏ qua" khi
+đang đăng nhập → vào thẳng Trang chủ. Typecheck sạch, lint 0 lỗi.
+
+### 20.13 — Bấm thử trên trình duyệt GAP-4/GAP-5 (2026-09-16)
+
+Món hoãn số 2 của Phase 5. Chạy bằng Playwright (bộ sẵn có ở `D:\fitnessassistant-playwright-e2e`)
+trên `vite dev`, khung nhìn 420×900 cho giống điện thoại. **7/7 pass:**
+
+| Kiểm | Kết quả |
+|---|---|
+| `/quen-mat-khau` mở được | ✅ |
+| Trả lời đồng nhất, không tiết lộ email có tài khoản hay không | ✅ "Nếu `khong-co-tai-khoan-gap4@example.com` có tài khoản…" — dùng email KHÔNG có tài khoản nên không có hộp thư thật nào nhận thư thử |
+| Nút gửi lại có đếm ngược và bị khoá | ✅ "Gửi lại sau 60s", `disabled` |
+| "Dùng email khác" quay lại form | ✅ |
+| Đăng ký → bước nhập OTP | ✅ |
+| Nút "Gửi lại" OTP khoá kèm đếm ngược | ✅ "Không nhận được mã? Gửi lại sau 60s" |
+| Đếm ngược chạy thật | ✅ 60s → 56s sau 4 giây |
+
+**Dọn dẹp:** bài test đăng ký tạo 1 dòng `email_verifications` (chưa có `users` vì chưa xác minh) —
+đã xoá. Kịch bản giữ ở scratchpad, không commit vào repo.
+
+**Lưu ý hạ tầng:** `pnpm` không có trong PATH của shell nền → chạy Vite bằng
+`node node_modules/vite/bin/vite.js`. Và trong ESM của Node trên Windows, `"/d/..."` bị hiểu thành
+`C:\d\...`; phải dùng `file:///D:/...`.
 
 ---
 
