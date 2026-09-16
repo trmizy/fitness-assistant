@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
+import Svg, { Circle, Rect } from "react-native-svg";
 import Animated, { FadeIn } from "react-native-reanimated";
 import {
   Camera,
@@ -336,10 +337,22 @@ function Overview({
 }
 
 /**
- * One half of a printout's "Segmental Lean/Fat Analysis": five body parts, each against the same
- * reference web uses, with its own share of the bar. Web draws a body silhouette; on a phone the
- * silhouette costs more width than it earns, so the same five rows are read top to bottom.
+ * One half of a printout's "Segmental Lean/Fat Analysis", drawn the way the printout itself draws
+ * it: a body, not a table. Web keeps the silhouette grey and puts the numbers beside it; here each
+ * part is *filled* by how it compares to its reference, so the shape itself carries the reading —
+ * a pale left arm next to a solid right one is visible before a single number is read.
+ *
+ * Geometry is web's (viewBox 100×220: head, trunk, two arms, two legs), so both clients draw the
+ * same body. Labels stay as real text beside the drawing rather than SVG text, which keeps them in
+ * the app's own font and lets them wrap on a narrow screen.
  */
+const SEGMENT_OPACITY: Record<string, number> = {
+  "Thấp": 0.32,
+  "Bình thường": 0.66,
+  "Cao": 1,
+  "—": 0.12,
+};
+
 function SegmentalCard({
   title,
   entry,
@@ -352,50 +365,102 @@ function SegmentalCard({
   const accent = useWorkspaceAccent();
   const tint = kind === "muscle" ? accent.primary : "#f59e0b";
 
+  const read = (sideKey: string) => {
+    const field = `${sideKey}${kind === "muscle" ? "Muscle" : "Fat"}` as SegmentField;
+    const side = SEGMENT_SIDES.find((s) => s.key === sideKey)!;
+    const value = entry.segmental[field];
+    const verdict = segmentVerdict(value, SEGMENT_NORMS[kind][side.norm]);
+    return { label: side.label, value, verdict, fill: SEGMENT_OPACITY[verdict.label] ?? 0.12 };
+  };
+
+  const leftArm = read("leftArm");
+  const rightArm = read("rightArm");
+  const leftLeg = read("leftLeg");
+  const rightLeg = read("rightLeg");
+  const trunk = read("trunk");
+
   return (
     <Card className="p-4">
       <Text className="font-display mb-3 text-base text-foreground">{title}</Text>
-      <View className="gap-3">
-        {SEGMENT_SIDES.map((side) => {
-          const field = `${side.key}${kind === "muscle" ? "Muscle" : "Fat"}` as SegmentField;
-          const value = entry.segmental[field];
-          const norm = SEGMENT_NORMS[kind][side.norm];
-          const verdict = segmentVerdict(value, norm);
-          // 100% of the bar is the reference; a segment above it fills the bar and says "Cao".
-          const fill = verdict.pct == null ? 0 : Math.min(1, verdict.pct / 100);
-          return (
-            <View key={field}>
-              <View className="mb-1 flex-row items-center justify-between">
-                <Text className="font-body-medium text-xs text-muted-foreground">{side.label}</Text>
-                <View className="flex-row items-center gap-2">
-                  <Text className="font-body-semibold text-xs text-foreground">
-                    {value != null ? `${value} kg` : "—"}
-                  </Text>
-                  {verdict.pct != null ? (
-                    <Text
-                      className="font-body text-[11px]"
-                      style={{ color: verdict.label === "Bình thường" ? "#8b9299" : tint }}
-                    >
-                      {verdict.pct}% · {verdict.label}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-              <View className="h-2 overflow-hidden rounded-full bg-panel">
-                <View
-                  className="h-full rounded-full"
-                  style={{ width: `${fill * 100}%`, backgroundColor: tint }}
-                />
-              </View>
-            </View>
-          );
-        })}
+
+      {/* gap-3 on purpose: at gap-1 the numbers touched the limbs and the card read as one blob. */}
+      <View className="flex-row items-center justify-center gap-3">
+        <View className="flex-1 items-end gap-12 pt-2">
+          <SegmentLabel data={leftArm} tint={tint} align="right" />
+          <SegmentLabel data={leftLeg} tint={tint} align="right" />
+        </View>
+
+        <Svg width={96} height={210} viewBox="0 0 100 220">
+          <Circle cx={50} cy={18} r={14} fill="#1b1f1d" stroke="#2a2f2c" strokeWidth={1.5} />
+          {/* Left of the drawing is the left of the page, exactly as an InBody sheet is read. */}
+          <Rect x={10} y={38} width={16} height={68} rx={8} fill={tint} fillOpacity={leftArm.fill} stroke="#2a2f2c" strokeWidth={1.5} />
+          <Rect x={74} y={38} width={16} height={68} rx={8} fill={tint} fillOpacity={rightArm.fill} stroke="#2a2f2c" strokeWidth={1.5} />
+          <Rect x={30} y={34} width={40} height={70} rx={14} fill={tint} fillOpacity={trunk.fill} stroke="#2a2f2c" strokeWidth={1.5} />
+          <Rect x={32} y={106} width={16} height={98} rx={8} fill={tint} fillOpacity={leftLeg.fill} stroke="#2a2f2c" strokeWidth={1.5} />
+          <Rect x={52} y={106} width={16} height={98} rx={8} fill={tint} fillOpacity={rightLeg.fill} stroke="#2a2f2c" strokeWidth={1.5} />
+        </Svg>
+
+        <View className="flex-1 items-start gap-12 pt-2">
+          <SegmentLabel data={rightArm} tint={tint} align="left" />
+          <SegmentLabel data={rightLeg} tint={tint} align="left" />
+        </View>
       </View>
-      <Text className="mt-3 font-body text-[11px] leading-4 text-muted-foreground">
-        So với mức tham chiếu của phiếu InBody: tay {SEGMENT_NORMS[kind].arm} kg · thân{" "}
-        {SEGMENT_NORMS[kind].trunk} kg · chân {SEGMENT_NORMS[kind].leg} kg.
+
+      <View className="mt-1 items-center">
+        <SegmentLabel data={trunk} tint={tint} align="center" />
+      </View>
+
+      <View className="mt-3 flex-row flex-wrap items-center justify-center gap-3">
+        {(["Thấp", "Bình thường", "Cao"] as const).map((level) => (
+          <View key={level} className="flex-row items-center gap-1.5">
+            {/* Explicit size, not classes: the swatches came out invisible on the emulator. */}
+            <View
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 3,
+                backgroundColor: tint,
+                opacity: SEGMENT_OPACITY[level],
+              }}
+            />
+            <Text className="font-body text-[11px] text-muted-foreground">{level}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Text className="mt-2 text-center font-body text-[11px] leading-4 text-muted-foreground">
+        Mức tham chiếu: tay {SEGMENT_NORMS[kind].arm} kg · thân {SEGMENT_NORMS[kind].trunk} kg · chân{" "}
+        {SEGMENT_NORMS[kind].leg} kg.
       </Text>
     </Card>
+  );
+}
+
+function SegmentLabel({
+  data,
+  tint,
+  align,
+}: {
+  data: { label: string; value: number | null; verdict: { pct: number | null; label: string } };
+  tint: string;
+  align: "left" | "right" | "center";
+}) {
+  const alignClass = align === "right" ? "items-end" : align === "left" ? "items-start" : "items-center";
+  return (
+    <View className={alignClass}>
+      <Text className="font-body text-[11px] text-muted-foreground">{data.label}</Text>
+      <Text className="font-body-semibold text-sm text-foreground">
+        {data.value != null ? `${data.value} kg` : "—"}
+      </Text>
+      {data.verdict.pct != null ? (
+        <Text
+          className="font-body text-[11px]"
+          style={{ color: data.verdict.label === "Bình thường" ? "#8b9299" : tint }}
+        >
+          {data.verdict.pct}% · {data.verdict.label}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 

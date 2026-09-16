@@ -1205,8 +1205,18 @@ lấy ra", không phải "sản phẩm không có khái niệm nước".
 đủ 10 trường, OCR cũng đọc được, và DB đang có **4.354 phiếu có dữ liệu theo vùng**. Mobile nay hiện
 hai thẻ "Cơ theo vùng" / "Mỡ theo vùng" — chỉ khi phiếu thật sự có số liệu — dùng **đúng mức tham
 chiếu và ngưỡng của web** (tay 3,2 / thân 24 / chân 9,5 kg cho cơ; 1,0 / 8,0 / 2,3 kg cho mỡ; dưới 90%
-là Thấp, trên 110% là Cao). Web vẽ hình người; trên điện thoại hình đó tốn bề ngang hơn giá trị nó
-mang lại nên cùng năm vùng đó đọc theo hàng dọc. Form cũng có đủ 10 ô, để tuỳ chọn và mở rộng khi cần.
+là Thấp, trên 110% là Cao). Form cũng có đủ 10 ô, để tuỳ chọn và mở rộng khi cần.
+
+**Vẽ bằng hình người (`react-native-svg`), theo yêu cầu của Ngài 16/9.** Bản đầu Tại hạ làm dạng 5
+hàng thanh ngang và lập luận rằng hình người tốn bề ngang — sai: hình người đọc nhanh hơn hẳn. Hình
+học lấy đúng của web (`viewBox 100×220`: đầu, thân, hai tay, hai chân) để hai client vẽ cùng một cơ
+thể, **nhưng khác một điểm có chủ đích**: web để hình xám và ghi số bên cạnh, mobile **tô chính từng
+vùng** theo mức so với tham chiếu (Thấp 32% đục · Bình thường 66% · Cao 100% · không có số liệu 12%),
+nên hình dáng tự nói trước khi đọc số — tay trái 84% hiện tối rõ bên cạnh tay phải 106%. Nhãn vẫn là
+`Text` của RN đặt hai bên (không phải `<Text>` trong SVG) để giữ đúng font của app và xuống dòng được.
+
+**Hai lỗi nhỏ sửa ngay sau lần chụp đầu:** nhãn dính sát tay/chân (khoảng cách cột quá hẹp), và ô màu
+chú thích tàng hình vì đặt kích thước bằng class — phải đặt `width/height` bằng style thật.
 
 ### 22.3 — Bốn lỗi tự gây, bắt được trên máy ảo
 

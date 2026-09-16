@@ -150,9 +150,9 @@
 | WB-03 | **không có** (Figma không vẽ) | Luồng cấp tài khoản trong `pages/admin/AdminPartnersPage.tsx` (thêm ở `cc651e8`, kèm `adminService.createGymOwner`) | nested trong `(admin)/partners.tsx` | gym: `/admin/partners*`; trả về `{ inviteLink, emailSent }` | admin only | 05 | PROSPECT → INVITED → ACTIVE → SUSPENDED/TERMINATED; gửi lại / thu hồi lời mời; đếm "đã mời >7 ngày chưa đăng nhập" | provision + kết quả (hiện link để copy khi email không gửi được) | không | clipboard (copy link mời) | 13 | chưa làm/chưa kiểm |
 | WB-04 | **không có** (Figma không vẽ) | `pages/gym-owner/GymPlansPage.tsx`, route `/gym-owner/plans` (gói hội viên theo THƯƠNG HIỆU — `dde6a59`) | `(gym-owner)/plans.tsx` | gym: gói hội viên theo brand | gym_owner | 02,05 | CRUD gói; gói thuộc thương hiệu, không thuộc riêng chi nhánh | tạo/sửa gói | không | không | 12 | chưa làm/chưa kiểm — **bắt buộc**: không có gói thì luồng mua hội viên của client (CL-09) không có gì để mua |
 
-**Sáu route admin dưới đây có thật trên web nhưng CHƯA có quyết định có đưa lên mobile hay không —
-Tại hạ không tự quyết** (đúng luật "mâu thuẫn/thiếu thì báo cáo, không tự chọn"). Chúng là công cụ
-vận hành kiểu bàn làm việc, khác hẳn các màn duyệt/xử lý đã map:
+**Sáu route admin dưới đây có thật trên web nhưng CHƯA có quyết định có đưa lên mobile hay không.**
+**Ngài quyết 2026-09-16: để tới khi bắt đầu Phase 13 mới chốt** — không quyết sớm, cũng không âm thầm
+bỏ. Chúng là công cụ vận hành kiểu bàn làm việc, khác hẳn các màn duyệt/xử lý đã map:
 
 | ID | Route web | Trang | Tính chất | Đề xuất |
 |---|---|---|---|---|
