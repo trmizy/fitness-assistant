@@ -1218,6 +1218,12 @@ nên hình dáng tự nói trước khi đọc số — tay trái 84% hiện t�
 **Hai lỗi nhỏ sửa ngay sau lần chụp đầu:** nhãn dính sát tay/chân (khoảng cách cột quá hẹp), và ô màu
 chú thích tàng hình vì đặt kích thước bằng class — phải đặt `width/height` bằng style thật.
 
+**Phiếu không có số liệu theo vùng thì ẨN HẲN thẻ — Ngài quyết 2026-09-16.** Hai phiếu thật của
+john.doe đều để trống cả 10 cột (phiếu nhập tay hầu như luôn vậy; chỉ phiếu chụp từ máy InBody mới có),
+nên màn Tổng quan của tài khoản đó không thấy hình người — **đúng như thiết kế, không phải lỗi**. Tại
+hạ có đề xuất thay bằng một thẻ rỗng kèm lời mời nhập, Ngài chọn giữ nguyên cách ẩn. Đừng "sửa" ngược
+thành hiện thẻ với mọi vùng 0 kg: người xem sẽ tưởng cơ thể mình bằng 0 hoặc tưởng app hỏng.
+
 ### 22.3 — Bốn lỗi tự gây, bắt được trên máy ảo
 
 1. **Bàn phím che kín BottomSheet** khi tìm món: sheet là `Modal` nên không co theo `adjustResize`.
