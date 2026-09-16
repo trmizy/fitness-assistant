@@ -19,3 +19,4 @@ export { SwipeRow } from "./SwipeRow";
 export { ToastProvider, useToast, type ToastTone } from "./Toast";
 export { Skeleton, SkeletonLines } from "./Skeleton";
 export { EmptyState } from "./EmptyState";
+export { ExerciseMedia } from "./ExerciseMedia";

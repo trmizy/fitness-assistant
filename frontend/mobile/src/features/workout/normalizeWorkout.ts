@@ -20,6 +20,8 @@ export type ExerciseBlock = {
   exerciseId: string;
   name: string;
   restSeconds: number;
+  /** The catalog's demo frame for this movement (`exercises.video_url`), null when it has none. */
+  mediaUrl: string | null;
   sets: SetRow[];
 };
 
@@ -116,6 +118,7 @@ export function normalizeWorkout(raw: any): ExerciseBlock[] | null {
         ex?.name ??
         "Bài tập",
       restSeconds: Number(ex?.restSeconds ?? ex?.restBetweenSetsSeconds ?? DEFAULT_REST_SECONDS),
+      mediaUrl: ex?.exercise?.videoUrl ?? ex?.videoUrl ?? null,
       sets: sets.map((s: any, i: number) => ({
         id: String(s?.id ?? `${index}-${i}`),
         setNumber: Number(s?.setNumber ?? i + 1),

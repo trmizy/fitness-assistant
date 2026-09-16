@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Dumbbell } from "lucide-react-native";
 
-import { Badge, Card, EmptyState, Tappable } from "../../../../src/components/ui";
+import { Badge, Card, EmptyState, ExerciseMedia, Tappable } from "../../../../src/components/ui";
 import { workoutService } from "../../../../src/services/api";
 import {
   bodyPartLabel,
@@ -17,11 +17,10 @@ import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 /**
  * SH-12 (detail) — one exercise.
  *
- * Behavioural authority: web's `ExerciseDetailPage.tsx`. The video preview it renders is
- * deferred: `ExerciseMediaPreview` leans on an HTML `<video>` element, and the RN replacement
- * (`expo-video`) is a native module that needs a dev-client rebuild — batched with Phase 14's
- * device-capability work rather than triggering a rebuild mid-phase. Everything that is text —
- * instructions, movement pattern, aliases, sources — is here, so nothing textual is lost.
+ * Behavioural authority: web's `ExerciseDetailPage.tsx`, including its media preview: `videoUrl`
+ * holds a still JPG from the free-exercise-db dataset, which ships a start and an end frame per
+ * exercise, so the movement is shown by cross-fading the two (`ExerciseMedia`). No video player is
+ * involved — an earlier note here assumed `expo-video` was needed and left the image out entirely.
  */
 export default function ExerciseDetailScreen() {
   const accent = useWorkspaceAccent();
@@ -65,6 +64,14 @@ export default function ExerciseDetailScreen() {
         />
       ) : (
         <View className="gap-3 px-5 pt-5">
+          <ExerciseMedia
+            videoUrl={exercise.videoUrl}
+            className="aspect-video w-full rounded-2xl"
+            animate
+            badge
+            iconSize={32}
+          />
+
           <View className="flex-row flex-wrap gap-1.5">
             <Badge tone="neutral">{bodyPartLabel(exercise.bodyPart)}</Badge>
             <Badge tone="neutral">{equipmentLabel(exercise.typeOfEquipment)}</Badge>

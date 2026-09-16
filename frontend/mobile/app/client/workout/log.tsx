@@ -23,6 +23,7 @@ import {
   Card,
   CountUp,
   EmptyState,
+  ExerciseMedia,
   ScreenHeader,
   Tappable,
   useToast,
@@ -417,9 +418,11 @@ export default function WorkoutLogScreen() {
                 {(blocks ?? []).map((block) => (
                   <Card key={block.key} className="p-4">
                     <View className="mb-3 flex-row items-center gap-3">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-panel">
-                        <Dumbbell size={18} color={accent.primary} />
-                      </View>
+                      <ExerciseMedia
+                        videoUrl={block.mediaUrl}
+                        className="h-12 w-12 shrink-0 rounded-xl"
+                        iconSize={18}
+                      />
                       <View className="flex-1">
                         <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
                           {block.name}

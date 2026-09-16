@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Dumbbell, Repeat } from "lucide-react-native";
 
-import { Badge, Card, EmptyState, ScreenHeader } from "../../../src/components/ui";
+import { Badge, Card, EmptyState, ExerciseMedia, ScreenHeader } from "../../../src/components/ui";
 import { workoutService } from "../../../src/services/api";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -88,9 +88,11 @@ export default function WorkoutDetailScreen() {
                 return (
                   <Card key={String(ex?.id ?? i)} className="p-4">
                     <View className="mb-2.5 flex-row items-center gap-3">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-panel">
-                        <Dumbbell size={18} color={accent.primary} />
-                      </View>
+                      <ExerciseMedia
+                        videoUrl={ex?.exercise?.videoUrl ?? ex?.videoUrl}
+                        className="h-12 w-12 shrink-0 rounded-xl"
+                        iconSize={18}
+                      />
                       <Text
                         className="flex-1 font-body-semibold text-sm text-foreground"
                         numberOfLines={1}

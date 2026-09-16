@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Apple, BookOpen, ChevronRight, Compass, Dumbbell, PersonStanding, Search, type LucideIcon } from "lucide-react-native";
 
-import { Card, Skeleton, Stagger, StaggerItem, Tappable } from "../../../src/components/ui";
+import { Card, ExerciseMedia, Skeleton, Stagger, StaggerItem, Tappable } from "../../../src/components/ui";
 import { workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -137,6 +137,7 @@ export default function LibraryHubScreen() {
             items={exercises.map((ex) => ({
               key: String(ex.id),
               label: ex.exerciseName,
+              media: ex.videoUrl ?? null,
               onPress: () => router.push({ pathname: "/client/library/exercises/[id]", params: { id: String(ex.id) } }),
             }))}
           />
@@ -166,7 +167,8 @@ function PreviewStrip({
   empty,
 }: {
   title: string;
-  items: { key: string; label: string; onPress: () => void }[];
+  /** `media` present (even as null) marks a row that shows a thumbnail — muscles have none. */
+  items: { key: string; label: string; onPress: () => void; media?: string | null }[];
   loading: boolean;
   empty: string;
 }) {
@@ -182,14 +184,30 @@ function PreviewStrip({
       ) : items.length === 0 ? (
         <Text className="px-1 font-body text-xs text-muted-foreground">{empty}</Text>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-5">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          // items-start: without it the cards stretch to the scroll view's full height, which the
+          // text-only chips never revealed because they had no image to stretch around.
+          contentContainerClassName="items-start gap-2 pr-5"
+        >
           {items.map((item) => (
             <Tappable
               key={item.key}
-              className="rounded-xl border border-border bg-card px-3.5 py-2.5"
+              className={
+                item.media !== undefined
+                  ? "w-28 overflow-hidden rounded-xl border border-border bg-card"
+                  : "rounded-xl border border-border bg-card px-3.5 py-2.5"
+              }
               onPress={item.onPress}
             >
-              <Text className="font-body text-xs text-foreground" numberOfLines={1}>
+              {item.media !== undefined ? (
+                <ExerciseMedia videoUrl={item.media} className="h-20 w-full" iconSize={18} />
+              ) : null}
+              <Text
+                className={`font-body text-xs text-foreground ${item.media !== undefined ? "px-2.5 py-2" : ""}`}
+                numberOfLines={item.media !== undefined ? 2 : 1}
+              >
                 {item.label}
               </Text>
             </Tappable>

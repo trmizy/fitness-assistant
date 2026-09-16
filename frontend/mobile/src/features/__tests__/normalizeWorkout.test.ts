@@ -32,7 +32,11 @@ const realWorkoutResponse = {
       sets: 4,
       reps: 12,
       exerciseNameSnapshot: "Push-Ups",
-      exercise: { id: "94f3832d-582d-4a03-a940-6fae6d7fb81f", exerciseName: "Push-Ups" },
+      exercise: {
+        id: "94f3832d-582d-4a03-a940-6fae6d7fb81f",
+        exerciseName: "Push-Ups",
+        videoUrl: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg",
+      },
       workoutSets: [
         { id: "s1", setNumber: 1, reps: 12, weight: null, completed: true },
         { id: "s2", setNumber: 2, reps: 12, weight: null, completed: false },
@@ -66,6 +70,11 @@ describe("normalizeWorkout", () => {
     assert.equal(block.exerciseId, "94f3832d-582d-4a03-a940-6fae6d7fb81f");
     assert.equal(block.name, "Push-Ups");
     assert.equal(block.restSeconds, DEFAULT_REST_SECONDS);
+    assert.equal(
+      block.mediaUrl,
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg",
+      "the catalog's demo frame travels with the block so the logging screen can show it",
+    );
   });
 
   it("falls back to the name snapshot when the catalog exercise is not included", () => {
@@ -76,6 +85,7 @@ describe("normalizeWorkout", () => {
 
     const [unnamed] = normalizeWorkout({ exercises: [{ id: "e2" }] })!;
     assert.equal(unnamed.name, "Bài tập");
+    assert.equal(unnamed.mediaUrl, null, "an exercise with no catalog media falls back to the icon");
     assert.deepEqual(unnamed.sets, []);
   });
 

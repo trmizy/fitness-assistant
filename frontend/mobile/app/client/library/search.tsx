@@ -3,9 +3,9 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Dumbbell, PersonStanding, Search } from "lucide-react-native";
+import { ChevronLeft, PersonStanding, Search } from "lucide-react-native";
 
-import { Card, EmptyState, Input, Tappable } from "../../../src/components/ui";
+import { Card, EmptyState, ExerciseMedia, Input, Tappable } from "../../../src/components/ui";
 import { workoutService } from "../../../src/services/api";
 import { bodyPartLabel, equipmentLabel } from "../../../src/config/exerciseLabels";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -123,9 +123,11 @@ export default function GlobalSearchScreen() {
                       })
                     }
                   >
-                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                      <Dumbbell size={19} color={accent.primary} />
-                    </View>
+                    <ExerciseMedia
+                      videoUrl={ex.videoUrl}
+                      className="h-12 w-12 shrink-0 rounded-xl"
+                      iconSize={19}
+                    />
                     <View className="flex-1">
                       <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
                         {ex.exerciseName}

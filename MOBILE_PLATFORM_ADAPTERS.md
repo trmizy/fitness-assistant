@@ -963,6 +963,42 @@ bỏ tick 1 set qua API, mở lại màn → "Đang tập" 3/4, đồng hồ ch�
 hai ảnh cách 7 giây**, không nút tạm dừng, "Về Tập luyện". Dữ liệu thử đã xoá.
 
 
+### 20.11 — Ảnh minh hoạ động tác (2026-09-16)
+
+**Ngài hỏi vì sao mobile không có ảnh động tác.** Kiểm lại DB: catalog **không có GIF**. Cột
+`exercises.video_url` (873/1090 dòng có giá trị) trỏ tới ảnh **JPG tĩnh** của bộ free-exercise-db, và
+mỗi bài có đúng **2 khung**: `.../<Tên bài>/0.jpg` (đầu động tác) và `1.jpg` (cuối); khung `2.jpg` trả
+404. Web đã tạo cảm giác ảnh động bằng cách đổi qua lại hai khung mỗi 900ms
+(`ExerciseMediaPreview.tsx`). Mobile chưa đọc trường này ở bất kỳ màn nào — thiếu sót khi port, không
+phải giới hạn backend; ghi chú cũ ở màn chi tiết còn tưởng nhầm là cần `expo-video`.
+
+**Cách làm:** `src/features/library/exerciseMedia.ts` (thuần, có test) suy ra hai khung theo đúng luật
+của web — chỉ viết lại path khi URL thuộc free-exercise-db **và** kết thúc `.jpg`; URL khác giữ nguyên
+để không phá link do admin/PT nhập. `src/components/ui/ExerciseMedia.tsx` vẽ ảnh bằng **`expo-image`**
+(cache đĩa + bộ nhớ, đúng chiến lược ảnh ở PERFORMANCE_BASELINE), cross-fade 300ms theo nhịp 900ms khi
+`animate`, nhãn "Demo", và **giữ nguyên icon quả tạ** cho 217 bài không có media.
+
+**Đặt ở đâu và vì sao:** danh sách bài tập (64px), tìm kiếm (48px), dải "Bài tập có media" ở hub
+(80px), màn Đang tập và màn buổi tập đã xong (48px) — tất cả **chỉ khung đầu**; riêng màn chi tiết bài
+tập dùng khung 16:9 **có chuyển động**. Danh sách không cho chạy chuyển động: 30 dòng tự đổi khung theo
+30 bộ đếm riêng là chuyển động thừa và là việc vô ích cho luồng cuộn. `normalizeWorkout` mang thêm
+`mediaUrl` để màn Đang tập không phải tự đi tra catalog.
+
+**Hai lỗi gặp khi làm, đều do Tại hạ:**
+1. Đặt `{/* … */}` làm biểu thức ngay sau nhánh ternary → Metro báo `TransformError SyntaxError`, máy
+   ảo **chạy tiếp bundle cũ** nên sửa mới trông như không có tác dụng. Bài học: khi sửa mà màn hình
+   không đổi, mở LogBox đọc lỗi trước, đừng suy đoán layout.
+2. Thẻ trong `ScrollView` ngang bị kéo cao hết màn vì `alignItems` mặc định là `stretch` — các chip chỉ
+   có chữ trước đây không lộ ra; thêm `items-start` cho `contentContainerClassName`.
+
+**Kiểm trên emulator + backend thật:** `/exercises` trả đúng `videoUrl` (danh sách, chi tiết,
+`hasVideo=true`); hub, danh sách (kể cả sau khi cuộn 3 lần), tìm kiếm, chi tiết đều hiện ảnh; chi tiết
+đổi khung thật (nằm xuống → gập bụng lên) với nhãn "Demo"; bài Push-Ups (`video_url` NULL) hiện icon dự
+phòng ở màn buổi tập. Unit 113/113, typecheck sạch, lint 0 lỗi.
+
+**Chưa đo:** ảnh hưởng của ảnh tới frame drop khi cuộn danh sách dài — cần đo trên máy thật cùng đợt
+với mục hiệu năng còn treo (§20.7).
+
 ---
 
 ## 21. Hạ tầng build native — sự cố và cách sửa (2026-09-15, lúc đo hiệu năng Phase 5)

@@ -6,7 +6,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { FlashList } from "@shopify/flash-list";
 import { ChevronLeft, ChevronRight, Dumbbell, Search } from "lucide-react-native";
 
-import { Badge, Card, EmptyState, Input, Tappable, inputPlaceholderColor } from "../../../../src/components/ui";
+import { Badge, Card, EmptyState, ExerciseMedia, Input, Tappable, inputPlaceholderColor } from "../../../../src/components/ui";
 import { workoutService } from "../../../../src/services/api";
 import {
   EXERCISE_PAGE_SIZE,
@@ -142,9 +142,9 @@ export default function ExerciseLibraryScreen() {
                 })
               }
             >
-              <View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-                <Dumbbell size={20} color={accent.primary} />
-              </View>
+              {/* Still frame only: 30 rows cross-fading on their own timers is motion nobody asked
+                  for, and the animated frame belongs on the detail screen. */}
+              <ExerciseMedia videoUrl={item.videoUrl} className="h-16 w-16 shrink-0 rounded-xl" />
               <View className="flex-1">
                 <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
                   {item.exerciseName}
