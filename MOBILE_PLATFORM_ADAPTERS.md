@@ -1193,7 +1193,20 @@ nullable và thiếu nó thì máy chủ trả **500 trần** (xem GAP-9). Mỡ 
 
 **Cố ý không dựng:** "Điểm cơ thể" (thang 0-100) và thẻ "Phân tích AI" trong bản thiết kế **không có
 cột, không có endpoint, web cũng không có** → biểu đồ lịch sử vẽ cân nặng thật thay cho điểm số bịa.
-"Nước cơ thể" cũng không có trong mô hình nên không hiện.
+(Web có nhắc "AI" nhưng là AI **trích xuất số từ ảnh**, không phải một đoạn nhận xét.)
+
+**"Nước cơ thể" — nói cho chính xác:** phiếu InBody (`InBodyEntry` của user-service) không có trường
+nước. Có một cột `body_water` ở bảng **khác** (`body_metrics` của fitness-service) nhưng **không route
+API nào đọc nó** — chỉ dịch vụ xuất dữ liệu chạm tới. Vậy nên không hiện, và lý do là "không có đường
+lấy ra", không phải "sản phẩm không có khái niệm nước".
+
+**Phân tích theo vùng — Tại hạ từng ghi nhầm là "cố ý bỏ", thật ra là SÓT (đã sửa 16/9):** web có mục
+"Phân tích cơ thể theo vùng" (sơ đồ cơ/mỡ cho tay T-P, thân, chân T-P), form nhập tay của web cho nhập
+đủ 10 trường, OCR cũng đọc được, và DB đang có **4.354 phiếu có dữ liệu theo vùng**. Mobile nay hiện
+hai thẻ "Cơ theo vùng" / "Mỡ theo vùng" — chỉ khi phiếu thật sự có số liệu — dùng **đúng mức tham
+chiếu và ngưỡng của web** (tay 3,2 / thân 24 / chân 9,5 kg cho cơ; 1,0 / 8,0 / 2,3 kg cho mỡ; dưới 90%
+là Thấp, trên 110% là Cao). Web vẽ hình người; trên điện thoại hình đó tốn bề ngang hơn giá trị nó
+mang lại nên cùng năm vùng đó đọc theo hàng dọc. Form cũng có đủ 10 ô, để tuỳ chọn và mở rộng khi cần.
 
 ### 22.3 — Bốn lỗi tự gây, bắt được trên máy ảo
 

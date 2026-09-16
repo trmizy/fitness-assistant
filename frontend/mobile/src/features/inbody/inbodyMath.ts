@@ -33,7 +33,51 @@ export type InBodyEntry = {
   visceralFat: number | null;
   status: string;
   notes: string | null;
+  /** Segmental lean/fat analysis, printed on a real InBody sheet. Null when it was never entered. */
+  segmental: Record<SegmentField, number | null>;
 };
+
+export type SegmentSide = "rightArm" | "leftArm" | "trunk" | "rightLeg" | "leftLeg";
+export type SegmentField =
+  | "rightArmMuscle" | "leftArmMuscle" | "trunkMuscle" | "rightLegMuscle" | "leftLegMuscle"
+  | "rightArmFat" | "leftArmFat" | "trunkFat" | "rightLegFat" | "leftLegFat";
+
+export const SEGMENT_SIDES: { key: SegmentSide; label: string; norm: "arm" | "trunk" | "leg" }[] = [
+  { key: "rightArm", label: "Tay P", norm: "arm" },
+  { key: "leftArm", label: "Tay T", norm: "arm" },
+  { key: "trunk", label: "Thân", norm: "trunk" },
+  { key: "rightLeg", label: "Chân P", norm: "leg" },
+  { key: "leftLeg", label: "Chân T", norm: "leg" },
+];
+
+/** Web's reference values, kept identical so both clients call the same body "normal". */
+export const SEGMENT_NORMS = {
+  muscle: { arm: 3.2, trunk: 24.0, leg: 9.5 },
+  fat: { arm: 1.0, trunk: 8.0, leg: 2.3 },
+} as const;
+
+export const SEGMENT_FIELDS: SegmentField[] = [
+  "rightArmMuscle", "leftArmMuscle", "trunkMuscle", "rightLegMuscle", "leftLegMuscle",
+  "rightArmFat", "leftArmFat", "trunkFat", "rightLegFat", "leftLegFat",
+];
+
+export type SegmentVerdict = { pct: number | null; label: "Thấp" | "Bình thường" | "Cao" | "—" };
+
+/**
+ * Where one segment sits against its reference, with web's own thresholds (<90% low, >110% high).
+ * The words are Vietnamese here where web prints Under/Normal/Over — same rule, readable audience.
+ */
+export function segmentVerdict(value: number | null, norm: number): SegmentVerdict {
+  if (value == null || !norm) return { pct: null, label: "—" };
+  const pct = Math.round((value / norm) * 100);
+  return { pct, label: pct < 90 ? "Thấp" : pct > 110 ? "Cao" : "Bình thường" };
+}
+
+/** True when the sheet actually carried segmental numbers — most manual entries do not. */
+export function hasSegmental(entry: InBodyEntry | null, kind: "muscle" | "fat"): boolean {
+  if (!entry) return false;
+  return SEGMENT_SIDES.some((side) => entry.segmental[`${side.key}${kind === "muscle" ? "Muscle" : "Fat"}` as SegmentField] != null);
+}
 
 const num = (value: unknown): number => {
   const n = Number(value);
@@ -61,6 +105,10 @@ export function normalizeEntry(raw: any): InBodyEntry {
     visceralFat: optional(raw?.visceralFat),
     status: String(raw?.status ?? "manual"),
     notes: raw?.notes ?? null,
+    segmental: SEGMENT_FIELDS.reduce(
+      (acc, field) => ({ ...acc, [field]: optional(raw?.[field]) }),
+      {} as Record<SegmentField, number | null>,
+    ),
   };
 }
 
@@ -126,7 +174,12 @@ export type EntryForm = {
   bmr: string;
   visceralFat: string;
   notes: string;
-};
+} & Record<SegmentField, string>;
+
+const EMPTY_SEGMENTS = SEGMENT_FIELDS.reduce(
+  (acc, field) => ({ ...acc, [field]: "" }),
+  {} as Record<SegmentField, string>,
+);
 
 export const EMPTY_FORM: EntryForm = {
   date: "",
@@ -137,6 +190,7 @@ export const EMPTY_FORM: EntryForm = {
   bmr: "",
   visceralFat: "",
   notes: "",
+  ...EMPTY_SEGMENTS,
 };
 
 const toNumber = (value: string): number => Number(String(value).replace(",", ".")) || 0;
@@ -173,6 +227,10 @@ export function buildEntryPayload(form: EntryForm): Record<string, unknown> {
   if (toNumber(form.bmr) > 0) payload.bmr = Math.round(toNumber(form.bmr));
   if (toNumber(form.visceralFat) > 0) payload.visceralFat = toNumber(form.visceralFat);
   if (form.notes.trim()) payload.notes = form.notes.trim();
+  // Segmental values are optional: a printout carries them, a bathroom scale does not.
+  for (const field of SEGMENT_FIELDS) {
+    if (toNumber(form[field]) > 0) payload[field] = toNumber(form[field]);
+  }
   return payload;
 }
 
@@ -198,5 +256,10 @@ export function formFromExtracted(extracted: any, fallbackDate: string): EntryFo
     bmr: value(optional(extracted?.bmr) ?? ""),
     visceralFat: value(optional(extracted?.visceralFat) ?? ""),
     notes: "",
+    // OCR reads the segmental table off a real sheet too, so carry whatever it found.
+    ...SEGMENT_FIELDS.reduce(
+      (acc, field) => ({ ...acc, [field]: value(optional(extracted?.[field]) ?? "") }),
+      {} as Record<SegmentField, string>,
+    ),
   };
 }

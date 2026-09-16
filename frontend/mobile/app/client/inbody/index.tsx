@@ -31,9 +31,14 @@ import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import {
   METRICS,
+  SEGMENT_NORMS,
+  SEGMENT_SIDES,
+  hasSegmental,
   metricDelta,
   normalizeHistory,
+  segmentVerdict,
   type InBodyEntry,
+  type SegmentField,
 } from "../../../src/features/inbody/inbodyMath";
 
 /**
@@ -298,6 +303,16 @@ function Overview({
         </View>
       ) : null}
 
+      {/* Segmental lean/fat — web shows this and mobile did not, which was a parity hole, not a
+          decision. Only drawn when the sheet actually carried the numbers: a manual entry or a
+          bathroom scale has none, and empty limbs would read as zeros. */}
+      {hasSegmental(latest, "muscle") ? (
+        <SegmentalCard title="Cơ theo vùng (kg)" entry={latest!} kind="muscle" />
+      ) : null}
+      {hasSegmental(latest, "fat") ? (
+        <SegmentalCard title="Mỡ theo vùng (kg)" entry={latest!} kind="fat" />
+      ) : null}
+
       {history.length > 1 ? (
         <Card className="p-4">
           <Text className="font-display mb-3 text-base text-foreground">Cân nặng qua các lần đo</Text>
@@ -317,6 +332,70 @@ function Overview({
         </Button>
       </View>
     </View>
+  );
+}
+
+/**
+ * One half of a printout's "Segmental Lean/Fat Analysis": five body parts, each against the same
+ * reference web uses, with its own share of the bar. Web draws a body silhouette; on a phone the
+ * silhouette costs more width than it earns, so the same five rows are read top to bottom.
+ */
+function SegmentalCard({
+  title,
+  entry,
+  kind,
+}: {
+  title: string;
+  entry: InBodyEntry;
+  kind: "muscle" | "fat";
+}) {
+  const accent = useWorkspaceAccent();
+  const tint = kind === "muscle" ? accent.primary : "#f59e0b";
+
+  return (
+    <Card className="p-4">
+      <Text className="font-display mb-3 text-base text-foreground">{title}</Text>
+      <View className="gap-3">
+        {SEGMENT_SIDES.map((side) => {
+          const field = `${side.key}${kind === "muscle" ? "Muscle" : "Fat"}` as SegmentField;
+          const value = entry.segmental[field];
+          const norm = SEGMENT_NORMS[kind][side.norm];
+          const verdict = segmentVerdict(value, norm);
+          // 100% of the bar is the reference; a segment above it fills the bar and says "Cao".
+          const fill = verdict.pct == null ? 0 : Math.min(1, verdict.pct / 100);
+          return (
+            <View key={field}>
+              <View className="mb-1 flex-row items-center justify-between">
+                <Text className="font-body-medium text-xs text-muted-foreground">{side.label}</Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="font-body-semibold text-xs text-foreground">
+                    {value != null ? `${value} kg` : "—"}
+                  </Text>
+                  {verdict.pct != null ? (
+                    <Text
+                      className="font-body text-[11px]"
+                      style={{ color: verdict.label === "Bình thường" ? "#8b9299" : tint }}
+                    >
+                      {verdict.pct}% · {verdict.label}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              <View className="h-2 overflow-hidden rounded-full bg-panel">
+                <View
+                  className="h-full rounded-full"
+                  style={{ width: `${fill * 100}%`, backgroundColor: tint }}
+                />
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <Text className="mt-3 font-body text-[11px] leading-4 text-muted-foreground">
+        So với mức tham chiếu của phiếu InBody: tay {SEGMENT_NORMS[kind].arm} kg · thân{" "}
+        {SEGMENT_NORMS[kind].trunk} kg · chân {SEGMENT_NORMS[kind].leg} kg.
+      </Text>
+    </Card>
   );
 }
 

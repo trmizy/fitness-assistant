@@ -11,6 +11,9 @@ import assert from "node:assert/strict";
 
 import {
   EMPTY_FORM,
+  SEGMENT_NORMS,
+  hasSegmental,
+  segmentVerdict,
   buildEntryPayload,
   deriveBodyFatKg,
   formErrors,
@@ -19,6 +22,18 @@ import {
   normalizeEntry,
   normalizeHistory,
 } from "../inbody/inbodyMath";
+
+/** A sheet with only the basics — the shape a manual entry produces. */
+const realSheetBase = {
+  id: "base",
+  date: "2026-08-31T00:00:00.000Z",
+  dateOnly: "2026-08-31T00:00:00.000Z",
+  weight: 71.3,
+  muscleMass: 35.2,
+  bodyFat: 11.7,
+  bodyFatPct: 16.4,
+  status: "manual",
+};
 
 /** Two real rows, deliberately given to the parser newest-last to prove it sorts. */
 const rows = [
@@ -181,5 +196,56 @@ describe("formFromExtracted", () => {
   it("uses the scan's own date when it has one, else today", () => {
     assert.equal(formFromExtracted({ date: "2026-08-31T00:00:00.000Z" }, "2026-09-16").date, "2026-08-31");
     assert.equal(formFromExtracted({}, "2026-09-16").date, "2026-09-16");
+  });
+});
+
+describe("segmental analysis", () => {
+  const sheet = {
+    ...realSheetBase,
+    rightArmMuscle: 3.4,
+    leftArmMuscle: 2.7,
+    trunkMuscle: 24.5,
+    rightLegMuscle: 9.6,
+    leftLegMuscle: 9.4,
+    trunkFat: 9.2,
+  };
+
+  it("keeps every segmental field, null where the sheet had none", () => {
+    const entry = normalizeEntry(sheet);
+    assert.equal(entry.segmental.rightArmMuscle, 3.4);
+    assert.equal(entry.segmental.trunkFat, 9.2);
+    assert.equal(entry.segmental.rightArmFat, null, "not on the sheet → null, not 0");
+  });
+
+  it("knows whether a sheet carries a muscle or fat breakdown at all", () => {
+    assert.equal(hasSegmental(normalizeEntry(sheet), "muscle"), true);
+    assert.equal(hasSegmental(normalizeEntry(sheet), "fat"), true, "trunkFat alone counts");
+    assert.equal(hasSegmental(normalizeEntry(realSheetBase), "muscle"), false);
+    assert.equal(hasSegmental(null, "muscle"), false);
+  });
+
+  it("judges a segment against web's own thresholds: under 90%, over 110%", () => {
+    assert.deepEqual(segmentVerdict(3.2, SEGMENT_NORMS.muscle.arm), { pct: 100, label: "Bình thường" });
+    assert.deepEqual(segmentVerdict(2.7, SEGMENT_NORMS.muscle.arm), { pct: 84, label: "Thấp" });
+    assert.deepEqual(segmentVerdict(3.6, SEGMENT_NORMS.muscle.arm), { pct: 113, label: "Cao" });
+    // Exactly on the boundary is still normal, same as web's `< 90` / `> 110`.
+    assert.equal(segmentVerdict(2.88, SEGMENT_NORMS.muscle.arm).label, "Bình thường");
+    assert.deepEqual(segmentVerdict(null, SEGMENT_NORMS.fat.trunk), { pct: null, label: "—" });
+  });
+
+  it("sends segmental values only when they were filled in", () => {
+    const base = { ...EMPTY_FORM, date: "2026-09-16", weight: "70", muscleMass: "33", bodyFatPct: "18" };
+    assert.equal("trunkMuscle" in buildEntryPayload(base), false);
+    const withSegments = buildEntryPayload({ ...base, trunkMuscle: "24.5", rightArmFat: "1,1" });
+    assert.equal(withSegments.trunkMuscle, 24.5);
+    assert.equal(withSegments.rightArmFat, 1.1, "decimal comma from the number keyboard");
+    assert.equal("leftLegFat" in withSegments, false);
+  });
+
+  it("carries the segmental table OCR read off a real printout", () => {
+    const form = formFromExtracted({ weight: 71.3, trunkMuscle: 24.5, leftLegFat: 2.1 }, "2026-09-16");
+    assert.equal(form.trunkMuscle, "24.5");
+    assert.equal(form.leftLegFat, "2.1");
+    assert.equal(form.rightArmMuscle, "");
   });
 });

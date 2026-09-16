@@ -5,17 +5,19 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ScanLine } from "lucide-react-native";
 
-import { Badge, Button, Card, ScreenHeader, useToast } from "../../../src/components/ui";
+import { Badge, Button, Card, ScreenHeader, Tappable, useToast } from "../../../src/components/ui";
 import { inbodyService } from "../../../src/services/api";
 import { toDateInputValue } from "../../../src/utils/date";
 import { haptics } from "../../../src/lib/haptics";
 import {
   EMPTY_FORM,
+  SEGMENT_SIDES,
   buildEntryPayload,
   deriveBodyFatKg,
   formErrors,
   formFromExtracted,
   type EntryForm,
+  type SegmentField,
 } from "../../../src/features/inbody/inbodyMath";
 
 /**
@@ -48,6 +50,12 @@ export default function InBodyEntryScreen() {
   });
   const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  // Opened by default when a scan actually read some of them, so OCR's own numbers are not hidden.
+  const [showSegments, setShowSegments] = useState(() =>
+    SEGMENT_SIDES.some(
+      (side) => !!params.prefill && String(params.prefill).includes(`${side.key}Muscle`),
+    ),
+  );
 
   const errors = useMemo(() => formErrors(form), [form]);
   const valid = Object.keys(errors).length === 0;
@@ -145,6 +153,51 @@ export default function InBodyEntryScreen() {
         <Field label="BMR" unit="kcal" value={form.bmr} onChange={(v) => edit("bmr", v)} />
         <Field label="Mỡ nội tạng" value={form.visceralFat} onChange={(v) => edit("visceralFat", v)} />
         <Field label="Ghi chú" value={form.notes} onChange={(v) => edit("notes", v)} keyboard="default" />
+
+        {/* A real printout has a segmental table; a scale does not. All ten stay optional, and web's
+            manual form offers exactly the same ten. */}
+        <Tappable
+          className="mb-4 flex-row items-center justify-between rounded-xl border border-border bg-panel px-3.5 py-3"
+          haptic={false}
+          onPress={() => setShowSegments((open) => !open)}
+        >
+          <Text className="font-body-medium text-sm text-foreground">Chỉ số theo vùng (tuỳ chọn)</Text>
+          <Text className="font-body text-xs text-muted-foreground">
+            {showSegments ? "Thu gọn" : "Mở rộng"}
+          </Text>
+        </Tappable>
+
+        {showSegments ? (
+          <>
+            <Text className="mb-2 px-1 font-body text-[11px] uppercase tracking-wide text-muted-foreground">
+              Cơ theo vùng (kg)
+            </Text>
+            <View className="flex-row flex-wrap gap-3">
+              {SEGMENT_SIDES.map((side) => {
+                const field = `${side.key}Muscle` as SegmentField;
+                return (
+                  <View key={field} className="min-w-[45%] flex-1">
+                    <Field label={side.label} unit="kg" value={form[field]} onChange={(v) => edit(field, v)} />
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text className="mb-2 px-1 font-body text-[11px] uppercase tracking-wide text-muted-foreground">
+              Mỡ theo vùng (kg)
+            </Text>
+            <View className="flex-row flex-wrap gap-3">
+              {SEGMENT_SIDES.map((side) => {
+                const field = `${side.key}Fat` as SegmentField;
+                return (
+                  <View key={field} className="min-w-[45%] flex-1">
+                    <Field label={side.label} unit="kg" value={form[field]} onChange={(v) => edit(field, v)} />
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <View
