@@ -1262,3 +1262,30 @@ không gọi mạng, nên một lần tìm vẫn chỉ tốn 2 request.
 còn lại, đẩy danh sách xuống dưới màn hình. Phải bọc trong `View` (đúng như màn thư viện bài tập đã
 làm). Đây là lần thứ ba cùng một lỗi trong dự án — nếu gặp một hàng chip bị giãn, hãy nhìn ngay vào
 chỗ này.
+
+### 22.5 — Thống kê (CL-15), 2026-09-17
+
+**Một màn ba phân đoạn, không phải ba trang.** Bản thiết kế gom Hoạt động / Nhóm cơ / Tiến bộ sau một
+`Segmented`; web tách thành ba trang riêng. Trên điện thoại bản thiết kế đúng hơn, và đó cũng là nơi
+nút "Thống kê" ở Trang chủ đang trỏ tới (`/client/stats/activity`). Biểu đồ tiến bộ của từng bài tập
+vẫn là màn riêng (`stats/exercise-progress/[id]`) vì nó cần cả bộ chọn chỉ số.
+
+**Số liệu mẫu trong bản thiết kế KHÔNG được bê vào làm mặc định.** Mock ghi "chuỗi 24 ngày", "186
+buổi tập"; màn thật lấy `currentStreakDays`/`totalWorkouts` từ `/stats/workouts`, nên tài khoản mới
+đọc ra 0 và 1 — đúng sự thật, không phải một con số cho đẹp.
+
+**Chỉ số nào vẽ được là do kiểu ghi của bài tập quyết định** (bảng lấy từ web): bài trọng lượng cơ
+thể không có 1RM để ước tính, bài tính giờ không có khối lượng, và với **tốc độ thì số nhỏ hơn là
+tốt hơn** — nên `summarize()` nhận cờ `lowerIsBetter` thay vì mặc định "tăng là tốt".
+
+**Một lỗi thật do test bắt được trước khi lên máy:** `seriesFor` dùng `Number.isFinite(Number(x))` để
+lọc, mà `Number(null)` bằng **0** — buổi không ghi chỉ số bị vẽ thành 0. Đúng cái bẫy mà chính doc
+comment của hàm đó cảnh báo. Đã lọc `null/undefined` tường minh. Kiểm trên máy: Push-Ups (REPS_LOAD)
+có `maxWeightKg` toàn null → màn hiện "Chưa có số liệu cho chỉ số này" thay vì một cột 0 kg, đổi sang
+"Số lần lặp" thì ra đúng 12 reps ngày 15/09.
+
+**Thư viện biểu đồ — quyết định Phase 5 vẫn đứng nhưng chưa dùng tới.** `react-native-gifted-charts`
+đã cài và **chạy được trong Expo** (nó thử `react-native-linear-gradient`, không có thì rơi về
+`expo-linear-gradient`, thứ dự án đã có). Tuy vậy ba biểu đồ của Phase 6 (lưới hoạt động, thanh nhóm
+cơ, cột tiến bộ) đều là hình đơn giản, vẽ tay bằng `View`/`react-native-svg` gọn hơn là kéo cả một
+thư viện biểu đồ vào — giữ gifted-charts cho biểu đồ phức tạp hơn ở phase sau.
