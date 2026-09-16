@@ -1,5 +1,10 @@
-# Mobile Migration Manifest — 67 màn hình
+# Mobile Migration Manifest — 67 màn thiết kế + 3 màn chỉ có ở web
 
+> **Cập nhật 2026-09-16:** thêm mục "WEB-ONLY" ở cuối. Ba màn đó **không** nằm trong 67 màn của bản
+> thiết kế (Figma không vẽ chúng) nhưng **có thật trên web** và chặn đường vào của chủ phòng gym —
+> theo đúng luật "web là sàn tối thiểu", thiếu chúng là thiếu thật, không phải quyết định. Phát hiện
+> khi Ngài hỏi lại các thay đổi web cho gym-owner/admin đã vào plan chưa.
+>
 > Kiểm kê đầy đủ 67 màn hình `D:\New Frontend\src\screens\` đối chiếu với backend/API thật và
 > `frontend/web` hiện hành, theo Phase 0.1 của kế hoạch di trú React Native. Dữ liệu lấy trực tiếp
 > từ code thật (`routes.tsx`, `services/api.ts`, `backend/gateway/src/routes/proxy.routes.ts`,
@@ -124,7 +129,7 @@
 | ID | Nguồn thị giác | Nguồn web hiện hành | Route Expo (đề xuất) | Backend + API chính | Vai trò/quyền | Spec | Trạng thái quan trọng | Modal/Sheet | Deep link | Năng lực native | Phase | Impl/Verify |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | AD-01 | `admin/AdminDashboard.tsx` | `pages/admin/AdminDashboard.tsx` | `(admin)/dashboard.tsx` | **Gateway tổng hợp** (auth+user+payment+health-probe) | admin only | — | KPI + đối soát | form refund thủ công (Gói lỗi, xem AD-04) | không | không | 13 | chưa làm/chưa kiểm |
-| AD-02 | `admin/AdminApprovals.tsx` (5 phân đoạn) | 3 trang: `AdminGymModeration.tsx`, `AdminPartnersPage.tsx`, `PTManagement.tsx`, `MarketplaceModeration.tsx` | `(admin)/gyms.tsx`,`partners.tsx`,`pts.tsx`,`marketplace.tsx` | gym (gym/brand/partner) + user (PT app) + ai (plan mod) | admin only | 05,06 | duyệt/từ chối/yêu cầu chỉnh sửa | detail sheet mỗi loại | không | không | 13 | chưa làm/chưa kiểm |
+| AD-02 | `admin/AdminApprovals.tsx` (5 phân đoạn) | 4 trang: `AdminGymModeration.tsx`, `AdminPartnersPage.tsx`, `PTManagement.tsx`, `MarketplaceModeration.tsx` | `(admin)/gyms.tsx`,`partners.tsx`,`pts.tsx`,`marketplace.tsx` | gym (gym/brand/partner) + user (PT app) + ai (plan mod) | admin only | 05,06 | duyệt/từ chối/yêu cầu chỉnh sửa. **16/9 — cập nhật theo `cc651e8`:** `AdminPartnersPage` nay còn là nơi **cấp tài khoản chủ phòng gym** với vòng đời PROSPECT→INVITED→ACTIVE→SUSPENDED/TERMINATED (xem WB-03); `AdminGymModeration` bị cắt phần tạo gym, chỉ còn duyệt | detail sheet mỗi loại | không | không | 13 | chưa làm/chưa kiểm |
 | AD-03 | `admin/AdminPTs.tsx` (roster + suspend/reinstate) | **KHÔNG có trang tương đương** — chỉ có `PTManagement.tsx` cho *đơn ứng tuyển*, không có suspend/rating/roster | `(admin)/pts-roster.tsx` (mới, chờ backend) | **KHÔNG TỒN TẠI** — xem GAP-1 | admin only | — | — | — | không | không | 13 | **BLOCKED — xem MOBILE_BACKEND_GAPS.md GAP-1** |
 | AD-04 | `admin/AdminResolve.tsx` (4 phân đoạn) | 4 nơi: `AdminDisputes.tsx`, tab refund trong `AdminFinancePage.tsx`, form thủ công trong `AdminDashboard.tsx` ("Gói lỗi" — GAP-2), `AdminComplaintsPage.tsx` | `(admin)/disputes.tsx`,`finance.tsx` (tab refund),`complaints.tsx` | user (disputes) + ai (refund dịch vụ cá nhân hoá) + gym (refund hội viên+complaints) | admin only | 01,03,04 | resolve dispute/refund/complaint | photo grid, resolve sheet | không | không | 13 | chưa làm/chưa kiểm (riêng "Gói lỗi" xem GAP-2) |
 | AD-05 | `admin/AdminUsers.tsx` (có suspend/unlock) | `pages/admin/UserManagement.tsx` — **chỉ đọc, không có mutation suspend/enable** | `(admin)/users.tsx` | Gateway tổng hợp (đọc); **suspend/enable KHÔNG có** — xem GAP-3 | admin only | — | list+filter | — | không | không | 13 | **PARTIAL — đọc được, suspend/unlock xem GAP-3** |
@@ -132,12 +137,52 @@
 
 ---
 
+## WEB-ONLY (4 chốt + 6 chờ quyết định) — có trên web, KHÔNG có trong 67 màn thiết kế
+
+> Bản thiết kế Figma bắt đầu từ một chủ phòng gym đã đăng nhập được, nên không vẽ đoạn *làm sao họ
+> vào được hệ thống*. Web thì có đủ, và backend cũng vậy. Bỏ ba màn này thì luồng gym-owner ở Phase 12
+> không có đường bắt đầu — chủ gym không tự đăng ký được, admin phải cấp.
+
+| ID | Nguồn thị giác | Nguồn web hiện hành | Route Expo (đề xuất) | Backend + API chính | Vai trò/quyền | Spec | Trạng thái quan trọng | Modal/Sheet | Deep link | Năng lực native | Phase | Impl/Verify |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| WB-01 | **không có** (Figma không vẽ) | `components/auth/ForceChangePasswordScreen.tsx` — chặn toàn bộ shell khi `user.mustChangePassword`, đặt TRƯỚC cả wizard thiết lập đối tác | `(auth)/doi-mat-khau-bat-buoc.tsx` (chặn shell, giống `RequireOnboarding`) | auth: đổi mật khẩu; **mọi lần đổi mật khẩu thành công đều tự xoá cờ** (`auth.repository.ts`) | mọi vai trò có cờ `mustChangePassword` | — | không có đường thoát: không đóng, không điều hướng vòng | không | không | không | 12 | chưa làm/chưa kiểm |
+| WB-02 | **không có** (Figma không vẽ) | `pages/auth/PartnerInviteAcceptPage.tsx`, route công khai `/partner/invite/:token` | `(auth)/partner-invite/[token].tsx` | gym: `/partner-invitations*` | **công khai** (chưa đăng nhập, xác thực bằng token trong link) | 05 | token hợp lệ/hết hạn/đã dùng → đặt mật khẩu | không | **có** — link mời gửi qua email, phải mở được bằng App Link | không | 12 | chưa làm/chưa kiểm |
+| WB-03 | **không có** (Figma không vẽ) | Luồng cấp tài khoản trong `pages/admin/AdminPartnersPage.tsx` (thêm ở `cc651e8`, kèm `adminService.createGymOwner`) | nested trong `(admin)/partners.tsx` | gym: `/admin/partners*`; trả về `{ inviteLink, emailSent }` | admin only | 05 | PROSPECT → INVITED → ACTIVE → SUSPENDED/TERMINATED; gửi lại / thu hồi lời mời; đếm "đã mời >7 ngày chưa đăng nhập" | provision + kết quả (hiện link để copy khi email không gửi được) | không | clipboard (copy link mời) | 13 | chưa làm/chưa kiểm |
+| WB-04 | **không có** (Figma không vẽ) | `pages/gym-owner/GymPlansPage.tsx`, route `/gym-owner/plans` (gói hội viên theo THƯƠNG HIỆU — `dde6a59`) | `(gym-owner)/plans.tsx` | gym: gói hội viên theo brand | gym_owner | 02,05 | CRUD gói; gói thuộc thương hiệu, không thuộc riêng chi nhánh | tạo/sửa gói | không | không | 12 | chưa làm/chưa kiểm — **bắt buộc**: không có gói thì luồng mua hội viên của client (CL-09) không có gì để mua |
+
+**Sáu route admin dưới đây có thật trên web nhưng CHƯA có quyết định có đưa lên mobile hay không —
+Tại hạ không tự quyết** (đúng luật "mâu thuẫn/thiếu thì báo cáo, không tự chọn"). Chúng là công cụ
+vận hành kiểu bàn làm việc, khác hẳn các màn duyệt/xử lý đã map:
+
+| ID | Route web | Trang | Tính chất | Đề xuất |
+|---|---|---|---|---|
+| WB-05 | `/admin/gym-management` | `AdminGymManagementOverview.tsx` | Tổng quan quản trị hệ thống phòng gym | **Nên có** — cùng cụm gym-owner mà Ngài vừa sửa |
+| WB-06 | `/admin/exercise-review` | `AdminExerciseReview.tsx` | Duyệt bài tập người dùng tạo | Nên có (cùng họ với duyệt nội dung ở AD-02) |
+| WB-07 | `/admin/catalog-quality` | `AdminCatalogQuality.tsx` | Chất lượng dữ liệu catalog | Cân nhắc |
+| WB-08 | `/admin/system` | `SystemMonitoring.tsx` | Giám sát hệ thống | Có lẽ để desktop |
+| WB-09 | `/admin/workflows` | `AdminWorkflowStudio.tsx` | Trình dựng luồng nghiệp vụ | Có lẽ để desktop |
+| WB-10 | `/admin/ai-observability` | `AdminAIObservability.tsx` | Quan sát hoạt động AI | Có lẽ để desktop |
+
+**Ba file admin KHÔNG cần dòng riêng** (đã kiểm): `AdminFinanceOverviewTab`, `AdminReconciliationPanel`,
+`PTServiceRefunds` là **tab bên trong** `AdminFinancePage.tsx` → đã nằm trong AD-04/AD-06.
+
+**Hệ quả cho kịch bản E2E bắt buộc của Phase 12:** kế hoạch viết *"Admin tạo tài khoản Gym Owner →
+Owner đăng nhập lần đầu → bắt buộc đổi mật khẩu"*. Luồng thật bây giờ là **link mời**: admin cấp tài
+khoản → hệ thống gửi link (hoặc admin copy link khi email lỗi) → chủ gym mở link đặt mật khẩu (WB-02)
+→ nếu tài khoản bị gắn cờ `mustChangePassword` thì qua WB-01 → rồi mới tới wizard thiết lập đối tác
+(GY-08). Kiểm Phase 12 phải đi theo thứ tự này, không phải theo câu chữ cũ.
+
+---
+
 ## Điều kiện qua cổng (Phase 0.2)
 
 ```
-TOTAL_EXPECTED = 67
+TOTAL_EXPECTED = 67   (số màn của bản thiết kế — cổng Phase 0 tính trên đúng tập này)
 MAPPED         = 67   (mọi ID đều có dòng, kể cả các dòng "không có 1:1" — đó là câu trả lời đã
                         xác định, không phải ô trống)
+WEB_ONLY_EXTRA = 10   (thêm 16/9, không thuộc 67 màn thiết kế. WB-01..04 là BẮT BUỘC vì web là sàn
+                        tối thiểu và chúng chặn đường vào của chủ phòng gym / nguồn gói hội viên.
+                        WB-05..10 là sáu công cụ quản trị — CHỜ NGÀI QUYẾT có đưa lên mobile không.)
 UNMAPPED       = 0
 UNKNOWN_API    = 0    (AD-03/AD-04's "Gói lỗi"/AD-05 là gap ĐÃ XÁC ĐỊNH — ghi ở
                         MOBILE_BACKEND_GAPS.md — không phải "chưa biết gọi gì")
