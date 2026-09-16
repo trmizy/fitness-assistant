@@ -229,3 +229,22 @@
 - Mức ảnh hưởng: PARTIAL — tạo mẫu và áp mẫu vào lịch đều chạy thật; chỉ riêng chia sẻ bị hoãn.
 - Đề xuất: không cần backend mới; chỉ cần Phase 7/11 lên là nối được.
 - Trạng thái: HOÃN CÓ CHỦ ĐÍCH — không dựng ô nhập user-id tự do, vì đó là thứ không ai dùng đúng.
+
+## GAP-9 — InBody: thiếu `muscleMass` trả 500, và không có đường xoá phiếu đo
+
+- Phát hiện: Phase 6 (CL-14), 2026-09-16, thử trực tiếp trên backend đang chạy.
+- Mong đợi: tạo phiếu đo thiếu một trường bắt buộc thì nhận 400 kèm thông điệp đọc được; và người
+  dùng nhập nhầm thì xoá được phiếu.
+- Thực tế:
+  1. `POST /inbody` không có `muscleMass` → **500 `{"error":"Internal server error"}`**. Cột
+     `muscleMass` không nullable nên lỗi rơi thẳng xuống Prisma. Trường `bodyFat` đã được xử lý tử tế
+     (suy ra từ `weight × bodyFatPct`, hoặc 400 kèm hướng dẫn) — `muscleMass` thì chưa.
+  2. Không có `DELETE /inbody/:id`. Routes chỉ có `GET /`, `GET /latest`, `GET /client/:id`,
+     `POST /`, `PATCH /:id`, `POST /upload`. Phiếu đo sai chỉ sửa đè được, không xoá được; phiếu đo
+     nhầm NGÀY thì phải sửa ngày (và có thể đụng ràng buộc một-phiếu-một-ngày).
+- Mức ảnh hưởng: PARTIAL — luồng chính chạy đủ.
+- Đã xử lý ở client: form bắt buộc nhập khối cơ và chặn tại chỗ, nên người dùng không chạm được vào
+  lỗi 500. Phần xoá thì mobile **không dựng nút xoá** thay vì gọi một endpoint không tồn tại.
+- Đề xuất (không tự làm nếu chưa được đồng ý): đưa `muscleMass` vào cùng nhánh kiểm tra với `bodyFat`
+  (400 kèm thông điệp), và thêm `DELETE /inbody/:id` chỉ cho chủ sở hữu.
+- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.

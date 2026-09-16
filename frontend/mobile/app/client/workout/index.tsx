@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Apple,
   BarChart3,
   CalendarClock,
   Check,
@@ -110,6 +111,9 @@ export default function WorkoutScreen() {
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="font-display text-2xl text-foreground">Tập luyện</Text>
           <View className="flex-row items-center gap-2">
+            {/* Nutrition lives under this tab (doc 08 §4.2), so its door is here rather than a
+                sixth tab. */}
+            <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
             <ToolButton icon={Compass} onPress={() => router.push("/client/library")} />
             <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
             <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />

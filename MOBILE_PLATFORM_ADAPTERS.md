@@ -1143,3 +1143,65 @@ Script tương ứng dùng trong phiên này: `build-android.ps1 -Variant debug|
 | Lớp phủ cleartext tạm | Đã gỡ sau khi đo |
 
 Số đo hiệu năng của bản release: xem `PERFORMANCE_BASELINE.md`.
+
+---
+
+## 22. Client B (Dinh dưỡng + InBody) — quyết định đã THỰC THI ở Phase 6
+
+### 22.1 — Cụm Dinh dưỡng (CL-03 / CL-19)
+
+**Route nằm dưới tab Tập luyện** (`workout/nutrition/…`), đúng tài liệu 08 §4.2 và quyết định của
+Ngài ngày 13/9: Dinh dưỡng là điều hướng con của một tab lớn, không phải tab thứ sáu. Cửa vào là nút
+quả táo ở đầu tab Tập luyện.
+
+**Ba luật của backend mà giao diện phải tôn trọng** (đều kiểm bằng API thật, không đọc code suông):
+1. API lưu và trả **`fats`**, không phải `fat`. **Web đang đọc `log.fat` khi cộng ngày → tổng chất
+   béo trên web luôn bằng 0.** Đây là lỗi thật của web, Tại hạ ghi lại chứ chưa sửa vì web đang đóng
+   băng. Mobile đọc `fats`, giữ `fat` làm dự phòng.
+2. `POST /nutrition` kiểm macro bằng `z.number().positive()` → **gửi 0 là 400**. Payload bỏ hẳn macro
+   rỗng thay vì gửi 0; một món không có đạm là sự thật về món đó, không phải lỗi người dùng.
+3. `PUT /nutrition/goals` từ chối mục tiêu mà macro không cộng ra đúng calo (Atwater 4/4/9, ±50 kcal).
+   Màn Mục tiêu chạy đúng phép kiểm đó tại chỗ, và preset **co giãn macro theo calo mới** thay vì chỉ
+   đổi con số calo như bản thiết kế — nếu không thì mọi preset đều bị máy chủ từ chối.
+
+**Tổng của ngày:** lấy `dailyTask.actualProgress` khi có chương trình (số của máy chủ), còn lại thì
+cộng từ nhật ký — đúng thứ tự ưu tiên của web.
+
+**Cố ý không dựng:** thẻ "Nhiệm vụ AI hôm nay" chỉ hiện khi **thật sự có chương trình dinh dưỡng**
+(`hasProgram`), vì không có chương trình thì không có nhiệm vụ nào để nói; ô "Nước TB/ngày" ở Tổng
+kết tháng bị bỏ vì sản phẩm không ghi nhận lượng nước uống ở đâu cả.
+
+**Đối chiếu phép tính macro (tiêu chí "Xong khi" của Phase 6):** thêm "Almond chicken" 150g →
+app xem trước 293 kcal · 23.5P · 6.8C · 19.8F → backend lưu **đúng từng số** → màn hình cộng
+643/2.000 kcal · 36/150 · 65/200 · 27/65, khớp tổng backend (643 · 35,5 · 64,8 · 26,8).
+
+### 22.2 — InBody (CL-14)
+
+**Ảnh vào bằng hai đường, không chỉ camera.** `POST /inbody/upload` nhận multipart `image`, chấp nhận
+**image/jpeg, image/png, application/pdf**, đuôi `.jpg/.jpeg/.png/.pdf`, tối đa **5 MB**, và không
+quan tâm ảnh từ đâu — web cũng chỉ là `<input type="file" accept="image/*">`. Mobile vì thế có cả
+**Chụp phiếu đo** lẫn **Chọn ảnh từ thư viện** (`expo-image-picker`, `quality: 0.6` vừa nén xuống
+dưới 5 MB vừa ép về JPEG cho khớp danh sách cho phép).
+
+**OCR không bao giờ tự lưu.** `/inbody/upload` chỉ trích xuất; màn "Kiểm tra kết quả quét" là nơi
+người dùng đối chiếu rồi mới `POST /inbody`. Giống web, và là thứ tự duy nhất trung thực — OCR trên
+ảnh chụp phiếu giấy là phỏng đoán cho tới khi có người xác nhận.
+
+**Khối cơ là bắt buộc trong form** dù bản thiết kế chỉ đánh sao cho cân nặng: cột `muscleMass` không
+nullable và thiếu nó thì máy chủ trả **500 trần** (xem GAP-9). Mỡ thì máy chủ tự suy từ
+`cân nặng × %mỡ`, nên form chỉ hỏi phần trăm và hiện trước số kg sẽ được lưu.
+
+**Cố ý không dựng:** "Điểm cơ thể" (thang 0-100) và thẻ "Phân tích AI" trong bản thiết kế **không có
+cột, không có endpoint, web cũng không có** → biểu đồ lịch sử vẽ cân nặng thật thay cho điểm số bịa.
+"Nước cơ thể" cũng không có trong mô hình nên không hiện.
+
+### 22.3 — Bốn lỗi tự gây, bắt được trên máy ảo
+
+1. **Bàn phím che kín BottomSheet** khi tìm món: sheet là `Modal` nên không co theo `adjustResize`.
+   Tách luồng thêm món thành màn riêng; sheet chỉ còn dùng cho hộp xác nhận không có ô nhập.
+2. **Màn không tải lại khi quay lại** (giống §20.10): xoá một món qua API mà màn vẫn hiện. Thêm tải
+   lại theo `useFocusEffect` cho cả Dinh dưỡng lẫn InBody.
+3. **Cột biểu đồ tàng hình:** trong hàng `items-end`, cột lấy chiều cao theo nội dung nên chiều cao
+   phần trăm của thanh bar ra 0. Phải cho vùng vẽ một chiều cao thật (`h-24`).
+4. **Lưu xong không quay lại màn trước:** `router.back()` không làm gì khi màn đang là gốc của stack
+   (mở thẳng bằng deep link). Dùng `canGoBack()` rồi mới `back()`, không thì `replace`.
