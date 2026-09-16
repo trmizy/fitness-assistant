@@ -3,22 +3,49 @@ import axios, { AxiosError } from "axios";
 import { logger } from "@gym-coach/shared";
 import type { LLMResponse } from "../models/ai.models";
 import { LlmError } from "../errors/api-error";
+import {
+  BEDROCK_CHAT_MODEL,
+  BEDROCK_EMBEDDING_MODEL,
+  BEDROCK_REGION,
+  BedrockRefusalError,
+  BedrockTimeoutError,
+  converseText,
+  embedTextsWithCohere,
+} from "./bedrock.client";
+import {
+  EMBEDDING_PROVIDER,
+  EMBEDDING_VECTOR_SIZE,
+  assertEmbeddingDimension,
+  type EmbeddingInputType,
+} from "./embedding-config";
 
+/**
+ * ollama (default) | anthropic | bedrock | mock | anything else →
+ * OpenAI-compatible /v1/chat/completions at LLM_BASE_URL.
+ */
 export const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
 const DEFAULT_LLM_MODEL_BY_PROVIDER: Record<string, string> = {
   ollama: "llama3.2:3b",
   anthropic: "claude-sonnet-5",
 };
+/**
+ * Model id actually sent to the provider. On Bedrock this is always
+ * BEDROCK_CHAT_MODEL and LLM_MODEL is ignored, so an Ollama tag left in a
+ * shared .env/compose file (e.g. "llama3.2:3b") can never reach Bedrock as a
+ * model id.
+ */
 export const LLM_MODEL =
-  process.env.LLM_MODEL ||
-  DEFAULT_LLM_MODEL_BY_PROVIDER[LLM_PROVIDER] ||
-  "llama3.2:3b";
+  LLM_PROVIDER === "bedrock"
+    ? BEDROCK_CHAT_MODEL
+    : process.env.LLM_MODEL ||
+      DEFAULT_LLM_MODEL_BY_PROVIDER[LLM_PROVIDER] ||
+      "llama3.2:3b";
 
-// Embeddings always go through LLM_BASE_URL (Ollama-compatible /api/embeddings),
-// regardless of LLM_PROVIDER — Claude has no embeddings endpoint. Run Ollama
-// CPU-only for the (small) embedding model even when chat completions are
-// routed to Claude; this needs no GPU.
+// Embeddings are selected independently of chat by EMBEDDING_PROVIDER (see
+// embedding-config.ts): Bedrock Cohere Embed on AWS, Ollama /api/embeddings at
+// LLM_BASE_URL for local development. With LLM_PROVIDER=bedrock and
+// EMBEDDING_PROVIDER=bedrock nothing in this file contacts LLM_BASE_URL.
 let anthropicClient: Anthropic | undefined;
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -48,8 +75,12 @@ function buildAnthropicRequest(
   };
 }
 export const EMBEDDING_MODEL =
-  process.env.EMBEDDING_MODEL || "nomic-embed-text";
-const MOCK_EMBEDDING_DIM = 768;
+  EMBEDDING_PROVIDER === "bedrock"
+    ? BEDROCK_EMBEDDING_MODEL
+    : process.env.EMBEDDING_MODEL || "nomic-embed-text";
+// Mock vectors follow the configured size, so tests exercise the same
+// dimension guard production does.
+const MOCK_EMBEDDING_DIM = EMBEDDING_VECTOR_SIZE;
 const DEFAULT_EMBEDDING_TIMEOUT_MS = readPositiveIntEnv(
   "EMBEDDING_TIMEOUT_MS",
   8000,
@@ -83,7 +114,18 @@ function sanitizeLlmError(err: unknown): Record<string, unknown> {
   }
 
   if (err instanceof Error) {
-    return { name: err.name, message: err.message };
+    // AWS SDK (Bedrock) errors carry the HTTP status and request id in
+    // $metadata — needed to triage AccessDenied/Throttling, never secret.
+    const metadata = (
+      err as { $metadata?: { httpStatusCode?: number; requestId?: string } }
+    ).$metadata;
+    return {
+      name: err.name,
+      message: err.message,
+      ...(metadata
+        ? { status: metadata.httpStatusCode, requestId: metadata.requestId }
+        : {}),
+    };
   }
 
   return { message: String(err) };
@@ -254,6 +296,21 @@ export const llmService = {
         };
       }
 
+      if (LLM_PROVIDER === "bedrock") {
+        // Same reasoning as the anthropic branch: no live, billed request on
+        // a health-check interval. There is no key to look for either —
+        // credentials are the Lambda execution role — so a configured model
+        // and region is the practical signal.
+        return {
+          llmAvailable: Boolean(BEDROCK_CHAT_MODEL && BEDROCK_REGION),
+          llmProvider: LLM_PROVIDER,
+          llmUrl: `bedrock://${BEDROCK_REGION}`,
+          model: LLM_MODEL,
+          embeddingModel: EMBEDDING_MODEL,
+          checkedAt,
+        };
+      }
+
       if (LLM_PROVIDER === "ollama") {
         const response = await axios.get(`${LLM_BASE_URL}/api/tags`, {
           timeout: timeoutMs,
@@ -266,7 +323,9 @@ export const llmService = {
             modelNameMatches(name, LLM_MODEL),
           ),
         );
-        const hasEmbeddingModel = models.some((item: any) =>
+        // Only require the Ollama embedding model when Ollama is actually the
+        // embedding provider (it can be Bedrock while chat stays on Ollama).
+        const hasEmbeddingModel = EMBEDDING_PROVIDER !== "ollama" || models.some((item: any) =>
           [item?.name, item?.model].some((name) =>
             modelNameMatches(name, EMBEDDING_MODEL),
           ),
@@ -312,10 +371,48 @@ export const llmService = {
 
   async generateEmbedding(
     text: string,
-    opts?: { timeoutMs?: number },
+    opts?: {
+      timeoutMs?: number;
+      /**
+       * What the vector is for. Cohere Embed encodes stored documents and
+       * search queries differently, and retrieval quality depends on using
+       * the matching side: "search_document" for anything written to
+       * Qdrant, "search_query" for anything Qdrant is searched with. Ollama
+       * and mock ignore it. Defaults to "search_document".
+       */
+      inputType?: EmbeddingInputType;
+    },
   ): Promise<number[]> {
-    if (LLM_PROVIDER === "mock") {
+    if (EMBEDDING_PROVIDER === "mock") {
       return mockEmbedding(text);
+    }
+
+    if (EMBEDDING_PROVIDER === "bedrock") {
+      try {
+        const [vector] = await embedTextsWithCohere(
+          [text],
+          opts?.inputType ?? "search_document",
+          { timeoutMs: opts?.timeoutMs ?? DEFAULT_EMBEDDING_TIMEOUT_MS },
+        );
+        assertEmbeddingDimension(vector);
+        return vector;
+      } catch (err) {
+        logger.error(
+          {
+            err: sanitizeLlmError(err),
+            embeddingProvider: EMBEDDING_PROVIDER,
+            embeddingModel: EMBEDDING_MODEL,
+            region: BEDROCK_REGION,
+          },
+          "Embedding generation failed",
+        );
+        throw new LlmError(
+          err instanceof BedrockTimeoutError
+            ? `Embedding generation timed out (Bedrock ${EMBEDDING_MODEL})`
+            : `Embedding generation failed: ${err instanceof Error ? err.message : String(err)}`,
+          err instanceof Error ? err : undefined,
+        );
+      }
     }
 
     try {
@@ -438,6 +535,31 @@ export const llmService = {
         };
       }
 
+      if (LLM_PROVIDER === "bedrock") {
+        const { system, messages } = buildAnthropicRequest(
+          prompt,
+          opts?.responseFormat,
+        );
+        const userContent = messages[0]?.content;
+        // Same token-budget rule as the anthropic branch above: a caller's
+        // numPredict is a floor, never a ceiling that cuts Bedrock/Nova off
+        // mid-JSON. Temperature is forwarded when callers provide it.
+        const bedrockFloor = opts?.responseFormat === "json" ? 2048 : 1024;
+        const result = await converseText({
+          system,
+          userText: typeof userContent === "string" ? userContent : prompt,
+          maxTokens: Math.max(opts?.numPredict ?? 0, bedrockFloor),
+          temperature: opts?.temperature,
+          timeoutMs: opts?.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
+        });
+        return {
+          answer: result.text,
+          promptTokens: result.inputTokens,
+          completionTokens: result.outputTokens,
+          totalTokens: result.inputTokens + result.outputTokens,
+        };
+      }
+
       if (LLM_PROVIDER === "ollama") {
         // Use /api/chat (chat format) for better instruction following.
         // The prompt is split into a system message (rules) and a user message (question + context).
@@ -499,6 +621,30 @@ export const llmService = {
       };
     } catch (err) {
       const cause = err instanceof Error ? err : undefined;
+
+      if (LLM_PROVIDER === "bedrock") {
+        logger.error(
+          {
+            err: sanitizeLlmError(err),
+            llmProvider: LLM_PROVIDER,
+            model: LLM_MODEL,
+            region: BEDROCK_REGION,
+          },
+          "LLM call failed",
+        );
+        // The "timed out" wording is load-bearing: ai.worker.ts's
+        // isRecoverablePlanLlmTimeout matches /timed out|timeout/ to recover
+        // with its deterministic catalog plan.
+        throw new LlmError(
+          err instanceof BedrockTimeoutError
+            ? `LLM provider timed out (Bedrock ${LLM_MODEL} in ${BEDROCK_REGION}). The model may be overloaded or the prompt is too large.`
+            : err instanceof BedrockRefusalError
+              ? `Bedrock declined to answer this request (${err.stopReason}).`
+              : `LLM call failed: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
+          cause,
+        );
+      }
+
       const isConnection =
         err instanceof AxiosError && !err.response && !isAxiosTimeout(err);
       const isTimeout = isAxiosTimeout(err);

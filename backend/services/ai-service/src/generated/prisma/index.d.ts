@@ -138,6 +138,11 @@ export type FitnessRecommendation = $Result.DefaultSelection<Prisma.$FitnessReco
  * 
  */
 export type FitnessAgentAction = $Result.DefaultSelection<Prisma.$FitnessAgentActionPayload>
+/**
+ * Model AgentWorkflowSession
+ * 
+ */
+export type AgentWorkflowSession = $Result.DefaultSelection<Prisma.$AgentWorkflowSessionPayload>
 
 /**
  * Enums
@@ -735,6 +740,16 @@ export class PrismaClient<
     * ```
     */
   get fitnessAgentAction(): Prisma.FitnessAgentActionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.agentWorkflowSession`: Exposes CRUD operations for the **AgentWorkflowSession** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentWorkflowSessions
+    * const agentWorkflowSessions = await prisma.agentWorkflowSession.findMany()
+    * ```
+    */
+  get agentWorkflowSession(): Prisma.AgentWorkflowSessionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1200,7 +1215,8 @@ export namespace Prisma {
     KnowledgePipelineRun: 'KnowledgePipelineRun',
     KnowledgeReviewItem: 'KnowledgeReviewItem',
     FitnessRecommendation: 'FitnessRecommendation',
-    FitnessAgentAction: 'FitnessAgentAction'
+    FitnessAgentAction: 'FitnessAgentAction',
+    AgentWorkflowSession: 'AgentWorkflowSession'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1216,7 +1232,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction" | "agentWorkflowSession"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2967,6 +2983,76 @@ export namespace Prisma {
           count: {
             args: Prisma.FitnessAgentActionCountArgs<ExtArgs>
             result: $Utils.Optional<FitnessAgentActionCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentWorkflowSession: {
+        payload: Prisma.$AgentWorkflowSessionPayload<ExtArgs>
+        fields: Prisma.AgentWorkflowSessionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentWorkflowSessionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentWorkflowSessionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentWorkflowSessionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentWorkflowSessionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          findMany: {
+            args: Prisma.AgentWorkflowSessionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>[]
+          }
+          create: {
+            args: Prisma.AgentWorkflowSessionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          createMany: {
+            args: Prisma.AgentWorkflowSessionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentWorkflowSessionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentWorkflowSessionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          update: {
+            args: Prisma.AgentWorkflowSessionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentWorkflowSessionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentWorkflowSessionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AgentWorkflowSessionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentWorkflowSessionPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentWorkflowSessionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentWorkflowSession>
+          }
+          groupBy: {
+            args: Prisma.AgentWorkflowSessionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentWorkflowSessionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentWorkflowSessionCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentWorkflowSessionCountAggregateOutputType> | number
           }
         }
       }
@@ -16077,6 +16163,10 @@ export namespace Prisma {
     refundResolvedAt: Date | null
     refundResolutionNote: string | null
     refundDecision: string | null
+    milestoneIntakeReleasedAt: Date | null
+    milestoneDraftReleasedAt: Date | null
+    milestoneAcceptedReleasedAt: Date | null
+    milestoneCompletedReleasedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16119,6 +16209,10 @@ export namespace Prisma {
     refundResolvedAt: Date | null
     refundResolutionNote: string | null
     refundDecision: string | null
+    milestoneIntakeReleasedAt: Date | null
+    milestoneDraftReleasedAt: Date | null
+    milestoneAcceptedReleasedAt: Date | null
+    milestoneCompletedReleasedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16165,6 +16259,10 @@ export namespace Prisma {
     refundResolvedAt: number
     refundResolutionNote: number
     refundDecision: number
+    milestoneIntakeReleasedAt: number
+    milestoneDraftReleasedAt: number
+    milestoneAcceptedReleasedAt: number
+    milestoneCompletedReleasedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -16233,6 +16331,10 @@ export namespace Prisma {
     refundResolvedAt?: true
     refundResolutionNote?: true
     refundDecision?: true
+    milestoneIntakeReleasedAt?: true
+    milestoneDraftReleasedAt?: true
+    milestoneAcceptedReleasedAt?: true
+    milestoneCompletedReleasedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16275,6 +16377,10 @@ export namespace Prisma {
     refundResolvedAt?: true
     refundResolutionNote?: true
     refundDecision?: true
+    milestoneIntakeReleasedAt?: true
+    milestoneDraftReleasedAt?: true
+    milestoneAcceptedReleasedAt?: true
+    milestoneCompletedReleasedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16321,6 +16427,10 @@ export namespace Prisma {
     refundResolvedAt?: true
     refundResolutionNote?: true
     refundDecision?: true
+    milestoneIntakeReleasedAt?: true
+    milestoneDraftReleasedAt?: true
+    milestoneAcceptedReleasedAt?: true
+    milestoneCompletedReleasedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -16454,6 +16564,10 @@ export namespace Prisma {
     refundResolvedAt: Date | null
     refundResolutionNote: string | null
     refundDecision: string | null
+    milestoneIntakeReleasedAt: Date | null
+    milestoneDraftReleasedAt: Date | null
+    milestoneAcceptedReleasedAt: Date | null
+    milestoneCompletedReleasedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: PersonalizedServiceOrderCountAggregateOutputType | null
@@ -16519,6 +16633,10 @@ export namespace Prisma {
     refundResolvedAt?: boolean
     refundResolutionNote?: boolean
     refundDecision?: boolean
+    milestoneIntakeReleasedAt?: boolean
+    milestoneDraftReleasedAt?: boolean
+    milestoneAcceptedReleasedAt?: boolean
+    milestoneCompletedReleasedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
@@ -16571,6 +16689,10 @@ export namespace Prisma {
     refundResolvedAt?: boolean
     refundResolutionNote?: boolean
     refundDecision?: boolean
+    milestoneIntakeReleasedAt?: boolean
+    milestoneDraftReleasedAt?: boolean
+    milestoneAcceptedReleasedAt?: boolean
+    milestoneCompletedReleasedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     service?: boolean | PersonalizedServiceDefaultArgs<ExtArgs>
@@ -16618,6 +16740,10 @@ export namespace Prisma {
     refundResolvedAt?: boolean
     refundResolutionNote?: boolean
     refundDecision?: boolean
+    milestoneIntakeReleasedAt?: boolean
+    milestoneDraftReleasedAt?: boolean
+    milestoneAcceptedReleasedAt?: boolean
+    milestoneCompletedReleasedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -16696,6 +16822,10 @@ export namespace Prisma {
       refundResolvedAt: Date | null
       refundResolutionNote: string | null
       refundDecision: string | null
+      milestoneIntakeReleasedAt: Date | null
+      milestoneDraftReleasedAt: Date | null
+      milestoneAcceptedReleasedAt: Date | null
+      milestoneCompletedReleasedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["personalizedServiceOrder"]>
@@ -17137,6 +17267,10 @@ export namespace Prisma {
     readonly refundResolvedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
     readonly refundResolutionNote: FieldRef<"PersonalizedServiceOrder", 'String'>
     readonly refundDecision: FieldRef<"PersonalizedServiceOrder", 'String'>
+    readonly milestoneIntakeReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly milestoneDraftReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly milestoneAcceptedReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
+    readonly milestoneCompletedReleasedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
     readonly createdAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
     readonly updatedAt: FieldRef<"PersonalizedServiceOrder", 'DateTime'>
   }
@@ -29675,6 +29809,1002 @@ export namespace Prisma {
 
 
   /**
+   * Model AgentWorkflowSession
+   */
+
+  export type AggregateAgentWorkflowSession = {
+    _count: AgentWorkflowSessionCountAggregateOutputType | null
+    _avg: AgentWorkflowSessionAvgAggregateOutputType | null
+    _sum: AgentWorkflowSessionSumAggregateOutputType | null
+    _min: AgentWorkflowSessionMinAggregateOutputType | null
+    _max: AgentWorkflowSessionMaxAggregateOutputType | null
+  }
+
+  export type AgentWorkflowSessionAvgAggregateOutputType = {
+    revision: number | null
+  }
+
+  export type AgentWorkflowSessionSumAggregateOutputType = {
+    revision: number | null
+  }
+
+  export type AgentWorkflowSessionMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    workflowType: string | null
+    status: string | null
+    expectedSlot: string | null
+    revision: number | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentWorkflowSessionMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sessionId: string | null
+    workflowType: string | null
+    status: string | null
+    expectedSlot: string | null
+    revision: number | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentWorkflowSessionCountAggregateOutputType = {
+    id: number
+    userId: number
+    sessionId: number
+    workflowType: number
+    status: number
+    expectedSlot: number
+    slotsJson: number
+    pendingProfileUpdate: number
+    draftRef: number
+    revision: number
+    expiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AgentWorkflowSessionAvgAggregateInputType = {
+    revision?: true
+  }
+
+  export type AgentWorkflowSessionSumAggregateInputType = {
+    revision?: true
+  }
+
+  export type AgentWorkflowSessionMinAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    workflowType?: true
+    status?: true
+    expectedSlot?: true
+    revision?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentWorkflowSessionMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    workflowType?: true
+    status?: true
+    expectedSlot?: true
+    revision?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentWorkflowSessionCountAggregateInputType = {
+    id?: true
+    userId?: true
+    sessionId?: true
+    workflowType?: true
+    status?: true
+    expectedSlot?: true
+    slotsJson?: true
+    pendingProfileUpdate?: true
+    draftRef?: true
+    revision?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AgentWorkflowSessionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentWorkflowSession to aggregate.
+     */
+    where?: AgentWorkflowSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentWorkflowSessions to fetch.
+     */
+    orderBy?: AgentWorkflowSessionOrderByWithRelationInput | AgentWorkflowSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentWorkflowSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentWorkflowSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentWorkflowSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentWorkflowSessions
+    **/
+    _count?: true | AgentWorkflowSessionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AgentWorkflowSessionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AgentWorkflowSessionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentWorkflowSessionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentWorkflowSessionMaxAggregateInputType
+  }
+
+  export type GetAgentWorkflowSessionAggregateType<T extends AgentWorkflowSessionAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentWorkflowSession]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentWorkflowSession[P]>
+      : GetScalarType<T[P], AggregateAgentWorkflowSession[P]>
+  }
+
+
+
+
+  export type AgentWorkflowSessionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentWorkflowSessionWhereInput
+    orderBy?: AgentWorkflowSessionOrderByWithAggregationInput | AgentWorkflowSessionOrderByWithAggregationInput[]
+    by: AgentWorkflowSessionScalarFieldEnum[] | AgentWorkflowSessionScalarFieldEnum
+    having?: AgentWorkflowSessionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentWorkflowSessionCountAggregateInputType | true
+    _avg?: AgentWorkflowSessionAvgAggregateInputType
+    _sum?: AgentWorkflowSessionSumAggregateInputType
+    _min?: AgentWorkflowSessionMinAggregateInputType
+    _max?: AgentWorkflowSessionMaxAggregateInputType
+  }
+
+  export type AgentWorkflowSessionGroupByOutputType = {
+    id: string
+    userId: string
+    sessionId: string
+    workflowType: string
+    status: string
+    expectedSlot: string | null
+    slotsJson: JsonValue
+    pendingProfileUpdate: JsonValue | null
+    draftRef: JsonValue | null
+    revision: number
+    expiresAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: AgentWorkflowSessionCountAggregateOutputType | null
+    _avg: AgentWorkflowSessionAvgAggregateOutputType | null
+    _sum: AgentWorkflowSessionSumAggregateOutputType | null
+    _min: AgentWorkflowSessionMinAggregateOutputType | null
+    _max: AgentWorkflowSessionMaxAggregateOutputType | null
+  }
+
+  type GetAgentWorkflowSessionGroupByPayload<T extends AgentWorkflowSessionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentWorkflowSessionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentWorkflowSessionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentWorkflowSessionGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentWorkflowSessionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentWorkflowSessionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    workflowType?: boolean
+    status?: boolean
+    expectedSlot?: boolean
+    slotsJson?: boolean
+    pendingProfileUpdate?: boolean
+    draftRef?: boolean
+    revision?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["agentWorkflowSession"]>
+
+  export type AgentWorkflowSessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    workflowType?: boolean
+    status?: boolean
+    expectedSlot?: boolean
+    slotsJson?: boolean
+    pendingProfileUpdate?: boolean
+    draftRef?: boolean
+    revision?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["agentWorkflowSession"]>
+
+  export type AgentWorkflowSessionSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    workflowType?: boolean
+    status?: boolean
+    expectedSlot?: boolean
+    slotsJson?: boolean
+    pendingProfileUpdate?: boolean
+    draftRef?: boolean
+    revision?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $AgentWorkflowSessionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentWorkflowSession"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      sessionId: string
+      workflowType: string
+      status: string
+      expectedSlot: string | null
+      slotsJson: Prisma.JsonValue
+      pendingProfileUpdate: Prisma.JsonValue | null
+      draftRef: Prisma.JsonValue | null
+      revision: number
+      expiresAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["agentWorkflowSession"]>
+    composites: {}
+  }
+
+  type AgentWorkflowSessionGetPayload<S extends boolean | null | undefined | AgentWorkflowSessionDefaultArgs> = $Result.GetResult<Prisma.$AgentWorkflowSessionPayload, S>
+
+  type AgentWorkflowSessionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AgentWorkflowSessionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AgentWorkflowSessionCountAggregateInputType | true
+    }
+
+  export interface AgentWorkflowSessionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentWorkflowSession'], meta: { name: 'AgentWorkflowSession' } }
+    /**
+     * Find zero or one AgentWorkflowSession that matches the filter.
+     * @param {AgentWorkflowSessionFindUniqueArgs} args - Arguments to find a AgentWorkflowSession
+     * @example
+     * // Get one AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentWorkflowSessionFindUniqueArgs>(args: SelectSubset<T, AgentWorkflowSessionFindUniqueArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AgentWorkflowSession that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AgentWorkflowSessionFindUniqueOrThrowArgs} args - Arguments to find a AgentWorkflowSession
+     * @example
+     * // Get one AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentWorkflowSessionFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentWorkflowSessionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AgentWorkflowSession that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionFindFirstArgs} args - Arguments to find a AgentWorkflowSession
+     * @example
+     * // Get one AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentWorkflowSessionFindFirstArgs>(args?: SelectSubset<T, AgentWorkflowSessionFindFirstArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AgentWorkflowSession that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionFindFirstOrThrowArgs} args - Arguments to find a AgentWorkflowSession
+     * @example
+     * // Get one AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentWorkflowSessionFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentWorkflowSessionFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AgentWorkflowSessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentWorkflowSessions
+     * const agentWorkflowSessions = await prisma.agentWorkflowSession.findMany()
+     * 
+     * // Get first 10 AgentWorkflowSessions
+     * const agentWorkflowSessions = await prisma.agentWorkflowSession.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentWorkflowSessionWithIdOnly = await prisma.agentWorkflowSession.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentWorkflowSessionFindManyArgs>(args?: SelectSubset<T, AgentWorkflowSessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AgentWorkflowSession.
+     * @param {AgentWorkflowSessionCreateArgs} args - Arguments to create a AgentWorkflowSession.
+     * @example
+     * // Create one AgentWorkflowSession
+     * const AgentWorkflowSession = await prisma.agentWorkflowSession.create({
+     *   data: {
+     *     // ... data to create a AgentWorkflowSession
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentWorkflowSessionCreateArgs>(args: SelectSubset<T, AgentWorkflowSessionCreateArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AgentWorkflowSessions.
+     * @param {AgentWorkflowSessionCreateManyArgs} args - Arguments to create many AgentWorkflowSessions.
+     * @example
+     * // Create many AgentWorkflowSessions
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentWorkflowSessionCreateManyArgs>(args?: SelectSubset<T, AgentWorkflowSessionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentWorkflowSessions and returns the data saved in the database.
+     * @param {AgentWorkflowSessionCreateManyAndReturnArgs} args - Arguments to create many AgentWorkflowSessions.
+     * @example
+     * // Create many AgentWorkflowSessions
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentWorkflowSessions and only return the `id`
+     * const agentWorkflowSessionWithIdOnly = await prisma.agentWorkflowSession.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentWorkflowSessionCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentWorkflowSessionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AgentWorkflowSession.
+     * @param {AgentWorkflowSessionDeleteArgs} args - Arguments to delete one AgentWorkflowSession.
+     * @example
+     * // Delete one AgentWorkflowSession
+     * const AgentWorkflowSession = await prisma.agentWorkflowSession.delete({
+     *   where: {
+     *     // ... filter to delete one AgentWorkflowSession
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentWorkflowSessionDeleteArgs>(args: SelectSubset<T, AgentWorkflowSessionDeleteArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AgentWorkflowSession.
+     * @param {AgentWorkflowSessionUpdateArgs} args - Arguments to update one AgentWorkflowSession.
+     * @example
+     * // Update one AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentWorkflowSessionUpdateArgs>(args: SelectSubset<T, AgentWorkflowSessionUpdateArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AgentWorkflowSessions.
+     * @param {AgentWorkflowSessionDeleteManyArgs} args - Arguments to filter AgentWorkflowSessions to delete.
+     * @example
+     * // Delete a few AgentWorkflowSessions
+     * const { count } = await prisma.agentWorkflowSession.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentWorkflowSessionDeleteManyArgs>(args?: SelectSubset<T, AgentWorkflowSessionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentWorkflowSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentWorkflowSessions
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentWorkflowSessionUpdateManyArgs>(args: SelectSubset<T, AgentWorkflowSessionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AgentWorkflowSession.
+     * @param {AgentWorkflowSessionUpsertArgs} args - Arguments to update or create a AgentWorkflowSession.
+     * @example
+     * // Update or create a AgentWorkflowSession
+     * const agentWorkflowSession = await prisma.agentWorkflowSession.upsert({
+     *   create: {
+     *     // ... data to create a AgentWorkflowSession
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentWorkflowSession we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentWorkflowSessionUpsertArgs>(args: SelectSubset<T, AgentWorkflowSessionUpsertArgs<ExtArgs>>): Prisma__AgentWorkflowSessionClient<$Result.GetResult<Prisma.$AgentWorkflowSessionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AgentWorkflowSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionCountArgs} args - Arguments to filter AgentWorkflowSessions to count.
+     * @example
+     * // Count the number of AgentWorkflowSessions
+     * const count = await prisma.agentWorkflowSession.count({
+     *   where: {
+     *     // ... the filter for the AgentWorkflowSessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentWorkflowSessionCountArgs>(
+      args?: Subset<T, AgentWorkflowSessionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentWorkflowSessionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentWorkflowSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentWorkflowSessionAggregateArgs>(args: Subset<T, AgentWorkflowSessionAggregateArgs>): Prisma.PrismaPromise<GetAgentWorkflowSessionAggregateType<T>>
+
+    /**
+     * Group by AgentWorkflowSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentWorkflowSessionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentWorkflowSessionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentWorkflowSessionGroupByArgs['orderBy'] }
+        : { orderBy?: AgentWorkflowSessionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentWorkflowSessionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentWorkflowSessionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentWorkflowSession model
+   */
+  readonly fields: AgentWorkflowSessionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentWorkflowSession.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentWorkflowSessionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentWorkflowSession model
+   */ 
+  interface AgentWorkflowSessionFieldRefs {
+    readonly id: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly userId: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly sessionId: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly workflowType: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly status: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly expectedSlot: FieldRef<"AgentWorkflowSession", 'String'>
+    readonly slotsJson: FieldRef<"AgentWorkflowSession", 'Json'>
+    readonly pendingProfileUpdate: FieldRef<"AgentWorkflowSession", 'Json'>
+    readonly draftRef: FieldRef<"AgentWorkflowSession", 'Json'>
+    readonly revision: FieldRef<"AgentWorkflowSession", 'Int'>
+    readonly expiresAt: FieldRef<"AgentWorkflowSession", 'DateTime'>
+    readonly createdAt: FieldRef<"AgentWorkflowSession", 'DateTime'>
+    readonly updatedAt: FieldRef<"AgentWorkflowSession", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentWorkflowSession findUnique
+   */
+  export type AgentWorkflowSessionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which AgentWorkflowSession to fetch.
+     */
+    where: AgentWorkflowSessionWhereUniqueInput
+  }
+
+  /**
+   * AgentWorkflowSession findUniqueOrThrow
+   */
+  export type AgentWorkflowSessionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which AgentWorkflowSession to fetch.
+     */
+    where: AgentWorkflowSessionWhereUniqueInput
+  }
+
+  /**
+   * AgentWorkflowSession findFirst
+   */
+  export type AgentWorkflowSessionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which AgentWorkflowSession to fetch.
+     */
+    where?: AgentWorkflowSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentWorkflowSessions to fetch.
+     */
+    orderBy?: AgentWorkflowSessionOrderByWithRelationInput | AgentWorkflowSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentWorkflowSessions.
+     */
+    cursor?: AgentWorkflowSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentWorkflowSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentWorkflowSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentWorkflowSessions.
+     */
+    distinct?: AgentWorkflowSessionScalarFieldEnum | AgentWorkflowSessionScalarFieldEnum[]
+  }
+
+  /**
+   * AgentWorkflowSession findFirstOrThrow
+   */
+  export type AgentWorkflowSessionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which AgentWorkflowSession to fetch.
+     */
+    where?: AgentWorkflowSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentWorkflowSessions to fetch.
+     */
+    orderBy?: AgentWorkflowSessionOrderByWithRelationInput | AgentWorkflowSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentWorkflowSessions.
+     */
+    cursor?: AgentWorkflowSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentWorkflowSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentWorkflowSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentWorkflowSessions.
+     */
+    distinct?: AgentWorkflowSessionScalarFieldEnum | AgentWorkflowSessionScalarFieldEnum[]
+  }
+
+  /**
+   * AgentWorkflowSession findMany
+   */
+  export type AgentWorkflowSessionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which AgentWorkflowSessions to fetch.
+     */
+    where?: AgentWorkflowSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentWorkflowSessions to fetch.
+     */
+    orderBy?: AgentWorkflowSessionOrderByWithRelationInput | AgentWorkflowSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentWorkflowSessions.
+     */
+    cursor?: AgentWorkflowSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentWorkflowSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentWorkflowSessions.
+     */
+    skip?: number
+    distinct?: AgentWorkflowSessionScalarFieldEnum | AgentWorkflowSessionScalarFieldEnum[]
+  }
+
+  /**
+   * AgentWorkflowSession create
+   */
+  export type AgentWorkflowSessionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AgentWorkflowSession.
+     */
+    data: XOR<AgentWorkflowSessionCreateInput, AgentWorkflowSessionUncheckedCreateInput>
+  }
+
+  /**
+   * AgentWorkflowSession createMany
+   */
+  export type AgentWorkflowSessionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentWorkflowSessions.
+     */
+    data: AgentWorkflowSessionCreateManyInput | AgentWorkflowSessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentWorkflowSession createManyAndReturn
+   */
+  export type AgentWorkflowSessionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AgentWorkflowSessions.
+     */
+    data: AgentWorkflowSessionCreateManyInput | AgentWorkflowSessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentWorkflowSession update
+   */
+  export type AgentWorkflowSessionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AgentWorkflowSession.
+     */
+    data: XOR<AgentWorkflowSessionUpdateInput, AgentWorkflowSessionUncheckedUpdateInput>
+    /**
+     * Choose, which AgentWorkflowSession to update.
+     */
+    where: AgentWorkflowSessionWhereUniqueInput
+  }
+
+  /**
+   * AgentWorkflowSession updateMany
+   */
+  export type AgentWorkflowSessionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentWorkflowSessions.
+     */
+    data: XOR<AgentWorkflowSessionUpdateManyMutationInput, AgentWorkflowSessionUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentWorkflowSessions to update
+     */
+    where?: AgentWorkflowSessionWhereInput
+  }
+
+  /**
+   * AgentWorkflowSession upsert
+   */
+  export type AgentWorkflowSessionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AgentWorkflowSession to update in case it exists.
+     */
+    where: AgentWorkflowSessionWhereUniqueInput
+    /**
+     * In case the AgentWorkflowSession found by the `where` argument doesn't exist, create a new AgentWorkflowSession with this data.
+     */
+    create: XOR<AgentWorkflowSessionCreateInput, AgentWorkflowSessionUncheckedCreateInput>
+    /**
+     * In case the AgentWorkflowSession was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentWorkflowSessionUpdateInput, AgentWorkflowSessionUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentWorkflowSession delete
+   */
+  export type AgentWorkflowSessionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+    /**
+     * Filter which AgentWorkflowSession to delete.
+     */
+    where: AgentWorkflowSessionWhereUniqueInput
+  }
+
+  /**
+   * AgentWorkflowSession deleteMany
+   */
+  export type AgentWorkflowSessionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentWorkflowSessions to delete
+     */
+    where?: AgentWorkflowSessionWhereInput
+  }
+
+  /**
+   * AgentWorkflowSession without action
+   */
+  export type AgentWorkflowSessionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentWorkflowSession
+     */
+    select?: AgentWorkflowSessionSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -29955,6 +31085,10 @@ export namespace Prisma {
     refundResolvedAt: 'refundResolvedAt',
     refundResolutionNote: 'refundResolutionNote',
     refundDecision: 'refundDecision',
+    milestoneIntakeReleasedAt: 'milestoneIntakeReleasedAt',
+    milestoneDraftReleasedAt: 'milestoneDraftReleasedAt',
+    milestoneAcceptedReleasedAt: 'milestoneAcceptedReleasedAt',
+    milestoneCompletedReleasedAt: 'milestoneCompletedReleasedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -30157,6 +31291,25 @@ export namespace Prisma {
   };
 
   export type FitnessAgentActionScalarFieldEnum = (typeof FitnessAgentActionScalarFieldEnum)[keyof typeof FitnessAgentActionScalarFieldEnum]
+
+
+  export const AgentWorkflowSessionScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    sessionId: 'sessionId',
+    workflowType: 'workflowType',
+    status: 'status',
+    expectedSlot: 'expectedSlot',
+    slotsJson: 'slotsJson',
+    pendingProfileUpdate: 'pendingProfileUpdate',
+    draftRef: 'draftRef',
+    revision: 'revision',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AgentWorkflowSessionScalarFieldEnum = (typeof AgentWorkflowSessionScalarFieldEnum)[keyof typeof AgentWorkflowSessionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -31702,6 +32855,10 @@ export namespace Prisma {
     refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
     updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
     service?: XOR<PersonalizedServiceRelationFilter, PersonalizedServiceWhereInput>
@@ -31753,6 +32910,10 @@ export namespace Prisma {
     refundResolvedAt?: SortOrderInput | SortOrder
     refundResolutionNote?: SortOrderInput | SortOrder
     refundDecision?: SortOrderInput | SortOrder
+    milestoneIntakeReleasedAt?: SortOrderInput | SortOrder
+    milestoneDraftReleasedAt?: SortOrderInput | SortOrder
+    milestoneAcceptedReleasedAt?: SortOrderInput | SortOrder
+    milestoneCompletedReleasedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     service?: PersonalizedServiceOrderByWithRelationInput
@@ -31807,6 +32968,10 @@ export namespace Prisma {
     refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
     updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
     service?: XOR<PersonalizedServiceRelationFilter, PersonalizedServiceWhereInput>
@@ -31858,6 +33023,10 @@ export namespace Prisma {
     refundResolvedAt?: SortOrderInput | SortOrder
     refundResolutionNote?: SortOrderInput | SortOrder
     refundDecision?: SortOrderInput | SortOrder
+    milestoneIntakeReleasedAt?: SortOrderInput | SortOrder
+    milestoneDraftReleasedAt?: SortOrderInput | SortOrder
+    milestoneAcceptedReleasedAt?: SortOrderInput | SortOrder
+    milestoneCompletedReleasedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: PersonalizedServiceOrderCountOrderByAggregateInput
@@ -31912,6 +33081,10 @@ export namespace Prisma {
     refundResolvedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
     refundResolutionNote?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
     refundDecision?: StringNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | string | null
+    milestoneIntakeReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneDraftReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneAcceptedReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneCompletedReleasedAt?: DateTimeNullableWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PersonalizedServiceOrder"> | Date | string
   }
@@ -32911,6 +34084,100 @@ export namespace Prisma {
     result?: JsonNullableWithAggregatesFilter<"FitnessAgentAction">
     expiresAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
+  }
+
+  export type AgentWorkflowSessionWhereInput = {
+    AND?: AgentWorkflowSessionWhereInput | AgentWorkflowSessionWhereInput[]
+    OR?: AgentWorkflowSessionWhereInput[]
+    NOT?: AgentWorkflowSessionWhereInput | AgentWorkflowSessionWhereInput[]
+    id?: StringFilter<"AgentWorkflowSession"> | string
+    userId?: StringFilter<"AgentWorkflowSession"> | string
+    sessionId?: StringFilter<"AgentWorkflowSession"> | string
+    workflowType?: StringFilter<"AgentWorkflowSession"> | string
+    status?: StringFilter<"AgentWorkflowSession"> | string
+    expectedSlot?: StringNullableFilter<"AgentWorkflowSession"> | string | null
+    slotsJson?: JsonFilter<"AgentWorkflowSession">
+    pendingProfileUpdate?: JsonNullableFilter<"AgentWorkflowSession">
+    draftRef?: JsonNullableFilter<"AgentWorkflowSession">
+    revision?: IntFilter<"AgentWorkflowSession"> | number
+    expiresAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+    createdAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+  }
+
+  export type AgentWorkflowSessionOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    workflowType?: SortOrder
+    status?: SortOrder
+    expectedSlot?: SortOrderInput | SortOrder
+    slotsJson?: SortOrder
+    pendingProfileUpdate?: SortOrderInput | SortOrder
+    draftRef?: SortOrderInput | SortOrder
+    revision?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentWorkflowSessionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentWorkflowSessionWhereInput | AgentWorkflowSessionWhereInput[]
+    OR?: AgentWorkflowSessionWhereInput[]
+    NOT?: AgentWorkflowSessionWhereInput | AgentWorkflowSessionWhereInput[]
+    userId?: StringFilter<"AgentWorkflowSession"> | string
+    sessionId?: StringFilter<"AgentWorkflowSession"> | string
+    workflowType?: StringFilter<"AgentWorkflowSession"> | string
+    status?: StringFilter<"AgentWorkflowSession"> | string
+    expectedSlot?: StringNullableFilter<"AgentWorkflowSession"> | string | null
+    slotsJson?: JsonFilter<"AgentWorkflowSession">
+    pendingProfileUpdate?: JsonNullableFilter<"AgentWorkflowSession">
+    draftRef?: JsonNullableFilter<"AgentWorkflowSession">
+    revision?: IntFilter<"AgentWorkflowSession"> | number
+    expiresAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+    createdAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentWorkflowSession"> | Date | string
+  }, "id">
+
+  export type AgentWorkflowSessionOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    workflowType?: SortOrder
+    status?: SortOrder
+    expectedSlot?: SortOrderInput | SortOrder
+    slotsJson?: SortOrder
+    pendingProfileUpdate?: SortOrderInput | SortOrder
+    draftRef?: SortOrderInput | SortOrder
+    revision?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AgentWorkflowSessionCountOrderByAggregateInput
+    _avg?: AgentWorkflowSessionAvgOrderByAggregateInput
+    _max?: AgentWorkflowSessionMaxOrderByAggregateInput
+    _min?: AgentWorkflowSessionMinOrderByAggregateInput
+    _sum?: AgentWorkflowSessionSumOrderByAggregateInput
+  }
+
+  export type AgentWorkflowSessionScalarWhereWithAggregatesInput = {
+    AND?: AgentWorkflowSessionScalarWhereWithAggregatesInput | AgentWorkflowSessionScalarWhereWithAggregatesInput[]
+    OR?: AgentWorkflowSessionScalarWhereWithAggregatesInput[]
+    NOT?: AgentWorkflowSessionScalarWhereWithAggregatesInput | AgentWorkflowSessionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentWorkflowSession"> | string
+    userId?: StringWithAggregatesFilter<"AgentWorkflowSession"> | string
+    sessionId?: StringWithAggregatesFilter<"AgentWorkflowSession"> | string
+    workflowType?: StringWithAggregatesFilter<"AgentWorkflowSession"> | string
+    status?: StringWithAggregatesFilter<"AgentWorkflowSession"> | string
+    expectedSlot?: StringNullableWithAggregatesFilter<"AgentWorkflowSession"> | string | null
+    slotsJson?: JsonWithAggregatesFilter<"AgentWorkflowSession">
+    pendingProfileUpdate?: JsonNullableWithAggregatesFilter<"AgentWorkflowSession">
+    draftRef?: JsonNullableWithAggregatesFilter<"AgentWorkflowSession">
+    revision?: IntWithAggregatesFilter<"AgentWorkflowSession"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"AgentWorkflowSession"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"AgentWorkflowSession"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AgentWorkflowSession"> | Date | string
   }
 
   export type ConversationCreateInput = {
@@ -34299,6 +35566,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
@@ -34350,6 +35621,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
@@ -34399,6 +35674,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
@@ -34450,6 +35729,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
@@ -34500,6 +35783,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34545,6 +35832,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -34591,6 +35882,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -35725,6 +37020,118 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentWorkflowSessionCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    workflowType: string
+    status?: string
+    expectedSlot?: string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: number
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentWorkflowSessionUncheckedCreateInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    workflowType: string
+    status?: string
+    expectedSlot?: string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: number
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentWorkflowSessionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    workflowType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expectedSlot?: NullableStringFieldUpdateOperationsInput | string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentWorkflowSessionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    workflowType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expectedSlot?: NullableStringFieldUpdateOperationsInput | string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentWorkflowSessionCreateManyInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    workflowType: string
+    status?: string
+    expectedSlot?: string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: number
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentWorkflowSessionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    workflowType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expectedSlot?: NullableStringFieldUpdateOperationsInput | string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentWorkflowSessionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    workflowType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expectedSlot?: NullableStringFieldUpdateOperationsInput | string | null
+    slotsJson?: JsonNullValueInput | InputJsonValue
+    pendingProfileUpdate?: NullableJsonNullValueInput | InputJsonValue
+    draftRef?: NullableJsonNullValueInput | InputJsonValue
+    revision?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -37040,6 +38447,10 @@ export namespace Prisma {
     refundResolvedAt?: SortOrder
     refundResolutionNote?: SortOrder
     refundDecision?: SortOrder
+    milestoneIntakeReleasedAt?: SortOrder
+    milestoneDraftReleasedAt?: SortOrder
+    milestoneAcceptedReleasedAt?: SortOrder
+    milestoneCompletedReleasedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37094,6 +38505,10 @@ export namespace Prisma {
     refundResolvedAt?: SortOrder
     refundResolutionNote?: SortOrder
     refundDecision?: SortOrder
+    milestoneIntakeReleasedAt?: SortOrder
+    milestoneDraftReleasedAt?: SortOrder
+    milestoneAcceptedReleasedAt?: SortOrder
+    milestoneCompletedReleasedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37136,6 +38551,10 @@ export namespace Prisma {
     refundResolvedAt?: SortOrder
     refundResolutionNote?: SortOrder
     refundDecision?: SortOrder
+    milestoneIntakeReleasedAt?: SortOrder
+    milestoneDraftReleasedAt?: SortOrder
+    milestoneAcceptedReleasedAt?: SortOrder
+    milestoneCompletedReleasedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37932,6 +39351,56 @@ export namespace Prisma {
     status?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type AgentWorkflowSessionCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    workflowType?: SortOrder
+    status?: SortOrder
+    expectedSlot?: SortOrder
+    slotsJson?: SortOrder
+    pendingProfileUpdate?: SortOrder
+    draftRef?: SortOrder
+    revision?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentWorkflowSessionAvgOrderByAggregateInput = {
+    revision?: SortOrder
+  }
+
+  export type AgentWorkflowSessionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    workflowType?: SortOrder
+    status?: SortOrder
+    expectedSlot?: SortOrder
+    revision?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentWorkflowSessionMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    workflowType?: SortOrder
+    status?: SortOrder
+    expectedSlot?: SortOrder
+    revision?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentWorkflowSessionSumOrderByAggregateInput = {
+    revision?: SortOrder
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -40599,6 +42068,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestCreateNestedManyWithoutOrderInput
@@ -40648,6 +42121,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
@@ -40727,6 +42204,10 @@ export namespace Prisma {
     refundResolvedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     refundResolutionNote?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
     refundDecision?: StringNullableFilter<"PersonalizedServiceOrder"> | string | null
+    milestoneIntakeReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneDraftReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneAcceptedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
+    milestoneCompletedReleasedAt?: DateTimeNullableFilter<"PersonalizedServiceOrder"> | Date | string | null
     createdAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
     updatedAt?: DateTimeFilter<"PersonalizedServiceOrder"> | Date | string
   }
@@ -41119,6 +42600,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
@@ -41169,6 +42654,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
@@ -41233,6 +42722,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
@@ -41283,6 +42776,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
@@ -41331,6 +42828,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
@@ -41381,6 +42882,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
@@ -41445,6 +42950,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
@@ -41495,6 +43004,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
@@ -41543,6 +43056,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
@@ -41593,6 +43110,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedCreateNestedManyWithoutOrderInput
@@ -41657,6 +43178,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
@@ -41707,6 +43232,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
@@ -41755,6 +43284,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: PersonalizedServiceCreateNestedOneWithoutOrdersInput
@@ -41805,6 +43338,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     planVersions?: PersonalizedServicePlanVersionUncheckedCreateNestedManyWithoutOrderInput
@@ -41869,6 +43406,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: PersonalizedServiceUpdateOneRequiredWithoutOrdersNestedInput
@@ -41919,6 +43460,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     planVersions?: PersonalizedServicePlanVersionUncheckedUpdateManyWithoutOrderNestedInput
@@ -42802,6 +44347,10 @@ export namespace Prisma {
     refundResolvedAt?: Date | string | null
     refundResolutionNote?: string | null
     refundDecision?: string | null
+    milestoneIntakeReleasedAt?: Date | string | null
+    milestoneDraftReleasedAt?: Date | string | null
+    milestoneAcceptedReleasedAt?: Date | string | null
+    milestoneCompletedReleasedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -42847,6 +44396,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUpdateManyWithoutOrderNestedInput
@@ -42896,6 +44449,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     revisionRequests?: PersonalizedServiceRevisionRequestUncheckedUpdateManyWithoutOrderNestedInput
@@ -42945,6 +44502,10 @@ export namespace Prisma {
     refundResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundResolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     refundDecision?: NullableStringFieldUpdateOperationsInput | string | null
+    milestoneIntakeReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneDraftReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneAcceptedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    milestoneCompletedReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -43374,6 +44935,10 @@ export namespace Prisma {
      * @deprecated Use FitnessAgentActionDefaultArgs instead
      */
     export type FitnessAgentActionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FitnessAgentActionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AgentWorkflowSessionDefaultArgs instead
+     */
+    export type AgentWorkflowSessionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AgentWorkflowSessionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

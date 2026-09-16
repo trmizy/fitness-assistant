@@ -1,0 +1,220 @@
+{
+  "scoringVersion": "program-compatibility-v1",
+  "totalCases": 100,
+  "distribution": {
+    "min": 88,
+    "p25": 92,
+    "median": 95,
+    "mean": 94.49,
+    "p75": 97,
+    "max": 100,
+    "tieRate": 0.87,
+    "uniqueScores": 13
+  },
+  "componentStats": {
+    "durationWeeks": {
+      "variance": 0.093385,
+      "allOneRate": 0.05,
+      "min": 0,
+      "max": 1
+    },
+    "equipment": {
+      "variance": 0,
+      "allOneRate": 1,
+      "min": 1,
+      "max": 1
+    },
+    "experience": {
+      "variance": 0,
+      "allOneRate": 1,
+      "min": 1,
+      "max": 1
+    },
+    "focusMuscle": {
+      "variance": 0.2211,
+      "allOneRate": 0.67,
+      "min": 0,
+      "max": 1
+    },
+    "goal": {
+      "variance": 0,
+      "allOneRate": 1,
+      "min": 1,
+      "max": 1
+    },
+    "schedule": {
+      "variance": 0,
+      "allOneRate": 1,
+      "min": 1,
+      "max": 1
+    },
+    "sessionDuration": {
+      "variance": 0.011063,
+      "allOneRate": 0.03,
+      "min": 0.65,
+      "max": 1
+    }
+  },
+  "ablation": {
+    "goal": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "experience": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "schedule": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "equipment": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "sessionDuration": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "focusMuscle": {
+      "changesOrder": true,
+      "top1Changed": true
+    },
+    "durationWeeks": {
+      "changesOrder": true,
+      "top1Changed": true
+    }
+  },
+  "top5": [
+    {
+      "id": "00000087-aaaa-4aaa-8aaa-000000000087",
+      "total": 100,
+      "components": {
+        "goal": 1,
+        "experience": 1,
+        "schedule": 1,
+        "equipment": 1,
+        "sessionDuration": 0.95,
+        "focusMuscle": 1,
+        "durationWeeks": 1
+      },
+      "reasons": [
+        "PROGRAM_GOAL_MATCH",
+        "PROGRAM_EXPERIENCE_MATCH",
+        "PROGRAM_SCHEDULE_MATCH",
+        "PROGRAM_EQUIPMENT_FULL_MATCH",
+        "PROGRAM_SESSION_DURATION_STRONG_MATCH",
+        "PROGRAM_FOCUS_MUSCLE_MATCH",
+        "PROGRAM_DURATION_WEEKS_MATCH"
+      ]
+    },
+    {
+      "id": "00000025-aaaa-4aaa-8aaa-000000000025",
+      "total": 99,
+      "components": {
+        "goal": 1,
+        "experience": 1,
+        "schedule": 1,
+        "equipment": 1,
+        "sessionDuration": 0.95,
+        "focusMuscle": 1,
+        "durationWeeks": 0.8333333333333334
+      },
+      "reasons": [
+        "PROGRAM_GOAL_MATCH",
+        "PROGRAM_EXPERIENCE_MATCH",
+        "PROGRAM_SCHEDULE_MATCH",
+        "PROGRAM_EQUIPMENT_FULL_MATCH",
+        "PROGRAM_SESSION_DURATION_STRONG_MATCH",
+        "PROGRAM_FOCUS_MUSCLE_MATCH",
+        "PROGRAM_DURATION_WEEKS_PARTIAL_MATCH"
+      ]
+    },
+    {
+      "id": "00000027-aaaa-4aaa-8aaa-000000000027",
+      "total": 99,
+      "components": {
+        "goal": 1,
+        "experience": 1,
+        "schedule": 1,
+        "equipment": 1,
+        "sessionDuration": 0.9166666666666666,
+        "focusMuscle": 1,
+        "durationWeeks": 1
+      },
+      "reasons": [
+        "PROGRAM_GOAL_MATCH",
+        "PROGRAM_EXPERIENCE_MATCH",
+        "PROGRAM_SCHEDULE_MATCH",
+        "PROGRAM_EQUIPMENT_FULL_MATCH",
+        "PROGRAM_SESSION_DURATION_STRONG_MATCH",
+        "PROGRAM_FOCUS_MUSCLE_MATCH",
+        "PROGRAM_DURATION_WEEKS_MATCH"
+      ]
+    },
+    {
+      "id": "00000028-aaaa-4aaa-8aaa-000000000028",
+      "total": 99,
+      "components": {
+        "goal": 1,
+        "experience": 1,
+        "schedule": 1,
+        "equipment": 1,
+        "sessionDuration": 0.9,
+        "focusMuscle": 1,
+        "durationWeeks": 0.9166666666666666
+      },
+      "reasons": [
+        "PROGRAM_GOAL_MATCH",
+        "PROGRAM_EXPERIENCE_MATCH",
+        "PROGRAM_SCHEDULE_MATCH",
+        "PROGRAM_EQUIPMENT_FULL_MATCH",
+        "PROGRAM_SESSION_DURATION_STRONG_MATCH",
+        "PROGRAM_FOCUS_MUSCLE_MATCH",
+        "PROGRAM_DURATION_WEEKS_PARTIAL_MATCH"
+      ]
+    },
+    {
+      "id": "00000048-aaaa-4aaa-8aaa-000000000048",
+      "total": 99,
+      "components": {
+        "goal": 1,
+        "experience": 1,
+        "schedule": 1,
+        "equipment": 1,
+        "sessionDuration": 0.9166666666666666,
+        "focusMuscle": 1,
+        "durationWeeks": 0.9166666666666666
+      },
+      "reasons": [
+        "PROGRAM_GOAL_MATCH",
+        "PROGRAM_EXPERIENCE_MATCH",
+        "PROGRAM_SCHEDULE_MATCH",
+        "PROGRAM_EQUIPMENT_FULL_MATCH",
+        "PROGRAM_SESSION_DURATION_STRONG_MATCH",
+        "PROGRAM_FOCUS_MUSCLE_MATCH",
+        "PROGRAM_DURATION_WEEKS_PARTIAL_MATCH"
+      ]
+    }
+  ],
+  "goldenScenarios": {
+    "total": 5,
+    "pass": 5,
+    "fail": 0
+  },
+  "claimSecurity": {
+    "total": 4,
+    "pass": 4,
+    "fail": 0
+  },
+  "equipmentSemanticsObservedFromCurrentPredicate": {
+    "requiredMissingEligible": false,
+    "optionalMissingEligible": false,
+    "alternativeOnePresentEligible": false
+  },
+  "findingHints": [
+    "goal/experience/schedule/equipment are constant after current fitness-service hard filters",
+    "sessionDuration, focusMuscle, and durationWeeks are the only varying v1 ranking dimensions in the representative post-filter matrix",
+    "current equipment predicate rejects missing OPTIONAL and one-of-many ALTERNATIVE equipment"
+  ]
+}

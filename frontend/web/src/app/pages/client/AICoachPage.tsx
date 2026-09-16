@@ -719,7 +719,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
                 )}
                 {renderText(msg.text)}
                 {renderEvidenceSources(msg)}
-                {msg.structuredBlocks?.map((block, index) => <FitnessAgentBlock key={`${msg.id}-block-${index}`} block={block} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} />)}
+                {msg.structuredBlocks?.map((block, index) => <FitnessAgentBlock key={`${msg.id}-block-${index}`} block={block} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} onQuickReply={send} />)}
               </div>
               {msg.from === "user" && (
                 <div className="w-7 h-7 bg-zinc-800 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-zinc-700">

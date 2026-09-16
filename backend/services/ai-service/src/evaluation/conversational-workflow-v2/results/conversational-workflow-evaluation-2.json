@@ -1,0 +1,1664 @@
+{
+  "evaluator": "codex-conversational-ai-coach-evaluation-2",
+  "generatedAt": "2026-09-15T16:22:49.995Z",
+  "decision": "GO_WITH_DOCUMENTED_LIMITATIONS",
+  "summary": {
+    "PASS": 30,
+    "FAIL": 0,
+    "INFO": 0,
+    "BLOCKED": 0
+  },
+  "cases": [
+    {
+      "id": "profile-fact-use-once-goal",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT goal use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "5b16f4a0-1cf9-4142-9bbd-08d46f9085c8",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "goal",
+              "oldValue": null,
+              "newValue": "WEIGHT_LOSS"
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": null,
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "profile-fact-use-once-targetWeight",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT targetWeight use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "e0c1621c-0bfd-48fe-a58a-20ba5ac5210b",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "targetWeight",
+              "oldValue": null,
+              "newValue": 72
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "profile-fact-use-once-age",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT age use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "5daf3e11-3345-4159-a410-5a0fed7151b8",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "age",
+              "oldValue": null,
+              "newValue": 25
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": null,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "profile-fact-use-once-height",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT height use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "a2050cf4-7df8-43f0-9254-c2c4430dbb68",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "heightCm",
+              "oldValue": null,
+              "newValue": 175
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": null,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "profile-fact-use-once-currentWeight",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT currentWeight use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "8f35aaa5-64e1-40d5-9add-2fefbade2178",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "currentWeight",
+              "oldValue": null,
+              "newValue": 80
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": null,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "profile-fact-use-once-gender",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PROFILE_FACT gender use-once check.",
+      "observed": {
+        "proposalBlock": {
+          "type": "PROFILE_UPDATE_CONFIRMATION",
+          "workflowId": "a4145209-3200-4510-adca-5a51ad99bf11",
+          "allowUseOnce": false,
+          "changes": [
+            {
+              "field": "gender",
+              "oldValue": null,
+              "newValue": "MALE"
+            }
+          ]
+        },
+        "rejectedAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": null,
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "unsafe-target-known-context",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Contextually unsafe target with known context is rejected before confirmation.",
+      "observed": {
+        "response": {
+          "answer": "Với chiều cao 180cm, mức 30kg thấp hơn ngưỡng cân nặng an toàn theo phân loại BMI của WHO (khoảng 60kg trở lên). Vì lý do an toàn, Gymini chưa thể đặt mục tiêu này qua trò chuyện — bạn có thể trao đổi trực tiếp với PT/chuyên gia nếu vẫn muốn theo hướng này, hoặc cho mình một mức khác nhé?",
+          "blocks": []
+        },
+        "row": {
+          "id": "3b9f0373-3bf6-4403-a586-d6f00374ce47",
+          "userId": "v2-unsafe-known-eeb8d2ea-644c-40b2-bb1e-920660ad4388",
+          "sessionId": "207806b8-048a-46cf-8528-e632d5ca9a59",
+          "workflowType": "CREATE_ROADMAP",
+          "status": "COLLECTING_SLOTS",
+          "expectedSlot": "targetWeight",
+          "slotsJson": {},
+          "pendingProfileUpdate": null,
+          "draftRef": null,
+          "revision": 0,
+          "expiresAt": "2026-09-15T16:52:46.523Z",
+          "createdAt": "2026-09-15T16:22:46.525Z",
+          "updatedAt": "2026-09-15T16:22:46.549Z"
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 180,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "unsafe-target-deferred-context-before-confirm",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Unsafe target extracted before full context should not become a confirmable profile update later.",
+      "observed": {
+        "first": {
+          "answer": "Cân nặng hiện tại của bạn khoảng bao nhiêu kg?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "da9816c2-8c97-436b-bef4-06dd3672a4ee",
+              "workflowType": "CREATE_ROADMAP",
+              "known": [
+                {
+                  "label": "mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất)",
+                  "value": "Giảm mỡ"
+                },
+                {
+                  "label": "tuổi",
+                  "value": "30 tuổi"
+                },
+                {
+                  "label": "chiều cao",
+                  "value": "180 cm"
+                },
+                {
+                  "label": "giới tính",
+                  "value": "Nam"
+                },
+                {
+                  "label": "cân nặng mục tiêu",
+                  "value": "30 kg"
+                }
+              ],
+              "missing": [
+                "cân nặng hiện tại"
+              ]
+            }
+          ]
+        },
+        "second": {
+          "answer": "Với chiều cao 180cm, mức 30kg thấp hơn ngưỡng cân nặng an toàn theo phân loại BMI của WHO (khoảng 60kg trở lên). Vì lý do an toàn, Gymini chưa thể đặt mục tiêu này qua trò chuyện — bạn có thể trao đổi trực tiếp với PT/chuyên gia nếu vẫn muốn theo hướng này, hoặc cho mình một mức khác nhé?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "da9816c2-8c97-436b-bef4-06dd3672a4ee",
+              "workflowType": "CREATE_ROADMAP",
+              "known": [
+                {
+                  "label": "mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất)",
+                  "value": "Giảm mỡ"
+                },
+                {
+                  "label": "tuổi",
+                  "value": "30 tuổi"
+                },
+                {
+                  "label": "chiều cao",
+                  "value": "180 cm"
+                },
+                {
+                  "label": "cân nặng hiện tại",
+                  "value": "80 kg"
+                },
+                {
+                  "label": "giới tính",
+                  "value": "Nam"
+                }
+              ],
+              "missing": [
+                "cân nặng mục tiêu"
+              ]
+            }
+          ]
+        },
+        "row": {
+          "id": "da9816c2-8c97-436b-bef4-06dd3672a4ee",
+          "userId": "v2-unsafe-deferred-226a4421-1aec-48d4-8d7c-965b36444b5d",
+          "sessionId": "b8943345-74a2-4015-a9cf-eb27e26c9909",
+          "workflowType": "CREATE_ROADMAP",
+          "status": "COLLECTING_SLOTS",
+          "expectedSlot": "targetWeight",
+          "slotsJson": {
+            "age": 30,
+            "goal": "WEIGHT_LOSS",
+            "heightCm": 180,
+            "currentWeightKg": 80
+          },
+          "pendingProfileUpdate": null,
+          "draftRef": null,
+          "revision": 0,
+          "expiresAt": "2026-09-15T16:52:46.670Z",
+          "createdAt": "2026-09-15T16:22:46.636Z",
+          "updatedAt": "2026-09-15T16:22:46.671Z"
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": null,
+          "age": null,
+          "gender": "MALE",
+          "heightCm": null,
+          "currentWeight": null,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "valid-targets",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Valid targets are not over-rejected.",
+      "observed": {
+        "lossType": "PROFILE_UPDATE_CONFIRMATION",
+        "gainType": "PROFILE_UPDATE_CONFIRMATION"
+      }
+    },
+    {
+      "id": "safety-stale-context-prewrite",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Fresh-context safety check blocks values that became unsafe before confirm.",
+      "observed": {
+        "proposed": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 65 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "94a2d576-ec1f-4dd2-97d4-5b075cbc9a66",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 65
+                }
+              ]
+            }
+          ]
+        },
+        "confirmed": {
+          "answer": "Với chiều cao 200cm, mức 65kg thấp hơn ngưỡng cân nặng an toàn theo phân loại BMI của WHO (khoảng 74kg trở lên). Vì lý do an toàn, Gymini chưa thể đặt mục tiêu này qua trò chuyện — bạn có thể trao đổi trực tiếp với PT/chuyên gia nếu vẫn muốn theo hướng này, hoặc cho mình một mức khác nhé?",
+          "blocks": []
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 200,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "initial-multislot-batch-confirmation",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Initial multi-slot extraction and batch confirmation.",
+      "observed": {
+        "r1": {
+          "answer": "Bạn là nam, nữ hay khác?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "5b2cde13-4145-4527-be4b-10a733960df5",
+              "workflowType": "CREATE_ROADMAP",
+              "known": [
+                {
+                  "label": "mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất)",
+                  "value": "Giảm mỡ"
+                },
+                {
+                  "label": "tuổi",
+                  "value": "25 tuổi"
+                },
+                {
+                  "label": "chiều cao",
+                  "value": "175 cm"
+                },
+                {
+                  "label": "cân nặng hiện tại",
+                  "value": "80 kg"
+                },
+                {
+                  "label": "cân nặng mục tiêu",
+                  "value": "72 kg"
+                }
+              ],
+              "missing": [
+                "giới tính"
+              ]
+            }
+          ]
+        },
+        "slots": {
+          "age": 25,
+          "goal": "WEIGHT_LOSS",
+          "heightCm": 175,
+          "targetWeight": 72,
+          "currentWeightKg": 80
+        },
+        "expectedSlot": "gender",
+        "r2": {
+          "answer": "Mình sẽ cập nhật mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất): Chưa thiết lập → Giảm mỡ; tuổi: Chưa thiết lập → 25 tuổi; chiều cao: Chưa thiết lập → 175 cm; cân nặng hiện tại: Chưa thiết lập → 80 kg; giới tính: Chưa thiết lập → Nam; cân nặng mục tiêu: Chưa thiết lập → 72 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "5b2cde13-4145-4527-be4b-10a733960df5",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "goal",
+                  "oldValue": null,
+                  "newValue": "WEIGHT_LOSS"
+                },
+                {
+                  "field": "age",
+                  "oldValue": null,
+                  "newValue": 25
+                },
+                {
+                  "field": "heightCm",
+                  "oldValue": null,
+                  "newValue": 175
+                },
+                {
+                  "field": "currentWeight",
+                  "oldValue": null,
+                  "newValue": 80
+                },
+                {
+                  "field": "gender",
+                  "oldValue": null,
+                  "newValue": "MALE"
+                },
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 72
+                }
+              ]
+            }
+          ]
+        },
+        "changes": [
+          {
+            "field": "goal",
+            "oldValue": null,
+            "newValue": "WEIGHT_LOSS"
+          },
+          {
+            "field": "age",
+            "oldValue": null,
+            "newValue": 25
+          },
+          {
+            "field": "heightCm",
+            "oldValue": null,
+            "newValue": 175
+          },
+          {
+            "field": "currentWeight",
+            "oldValue": null,
+            "newValue": 80
+          },
+          {
+            "field": "gender",
+            "oldValue": null,
+            "newValue": "MALE"
+          },
+          {
+            "field": "targetWeight",
+            "oldValue": null,
+            "newValue": 72
+          }
+        ],
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        }
+      }
+    },
+    {
+      "id": "authoritative-profile-conflict",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Profile conflict is proposed, not silently overwritten.",
+      "observed": {
+        "response": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: 75 kg → 72 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "d15dc053-225a-47b3-82d9-677cc0544278",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": 75,
+                  "newValue": 72
+                }
+              ]
+            }
+          ]
+        },
+        "change": {
+          "field": "targetWeight",
+          "oldValue": 75,
+          "newValue": 72
+        }
+      }
+    },
+    {
+      "id": "ambiguous-multislot",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Ambiguous numbers are not guessed.",
+      "observed": {
+        "slots": {},
+        "expectedSlot": "goal"
+      }
+    },
+    {
+      "id": "follow-up-multislot",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Follow-up multi-slot extraction.",
+      "observed": {
+        "r2": {
+          "answer": "Mình sẽ cập nhật tuổi: Chưa thiết lập → 25 tuổi; chiều cao: Chưa thiết lập → 175 cm; cân nặng hiện tại: Chưa thiết lập → 80 kg; cân nặng mục tiêu: Chưa thiết lập → 72 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "855aa8ea-8e36-4b89-b6d7-dbe0e949125c",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "age",
+                  "oldValue": null,
+                  "newValue": 25
+                },
+                {
+                  "field": "heightCm",
+                  "oldValue": null,
+                  "newValue": 175
+                },
+                {
+                  "field": "currentWeight",
+                  "oldValue": null,
+                  "newValue": 80
+                },
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 72
+                }
+              ]
+            }
+          ]
+        },
+        "slots": {
+          "age": 25,
+          "heightCm": 175,
+          "targetWeight": 72,
+          "currentWeightKg": 80
+        }
+      }
+    },
+    {
+      "id": "correction-Không, 70kg",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Correction before confirmation.",
+      "observed": {
+        "response": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 70 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "9fa2d26a-e978-4840-b52e-b7d40e312f57",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 70
+                }
+              ]
+            }
+          ]
+        },
+        "change": {
+          "field": "targetWeight",
+          "oldValue": null,
+          "newValue": 70
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "correction-Ý tôi là 70kg",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Correction before confirmation.",
+      "observed": {
+        "response": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 70 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "fc9d85ee-013c-4f6d-9c36-4b38b7a263dd",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 70
+                }
+              ]
+            }
+          ]
+        },
+        "change": {
+          "field": "targetWeight",
+          "oldValue": null,
+          "newValue": 70
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "correction-Đổi thành 70kg",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Correction before confirmation.",
+      "observed": {
+        "response": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 70 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "5919d66c-fe87-4420-b0a9-a3ffddb2de94",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 70
+                }
+              ]
+            }
+          ]
+        },
+        "change": {
+          "field": "targetWeight",
+          "oldValue": null,
+          "newValue": 70
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "correction-72kg... à không 70kg",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Correction before confirmation.",
+      "observed": {
+        "response": {
+          "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 70 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+          "blocks": [
+            {
+              "type": "PROFILE_UPDATE_CONFIRMATION",
+              "workflowId": "7a0d7a0c-bf33-478b-8ae9-0b6ec70fd79b",
+              "allowUseOnce": false,
+              "changes": [
+                {
+                  "field": "targetWeight",
+                  "oldValue": null,
+                  "newValue": 70
+                }
+              ]
+            }
+          ]
+        },
+        "change": {
+          "field": "targetWeight",
+          "oldValue": null,
+          "newValue": 70
+        },
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "unsafe-correction",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Unsafe correction does not replace a safe pending value or write.",
+      "observed": {
+        "response": {
+          "answer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+          "blocks": []
+        },
+        "pending": [
+          {
+            "slotKey": "targetWeight",
+            "newValue": 72,
+            "oldValue": null,
+            "profileField": "targetWeight",
+            "expectedCurrentValue": null
+          }
+        ],
+        "calls": {
+          "updateProfileFields": [],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 180,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "concurrent-start-20",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Concurrent start invariant.",
+      "observed": {
+        "responseCount": 20,
+        "activeRows": [
+          {
+            "id": "a0b46715-9cac-4b77-a5e3-b2e6a627733b",
+            "userId": "v2-concurrent-start-5429d78c-930f-4de6-bd63-1fb1ac963ca6",
+            "sessionId": "81f1da35-3efb-4340-bea4-b7b669214d22",
+            "workflowType": "CREATE_ROADMAP",
+            "status": "COLLECTING_SLOTS",
+            "expectedSlot": "targetWeight",
+            "slotsJson": {},
+            "pendingProfileUpdate": null,
+            "draftRef": null,
+            "revision": 0,
+            "expiresAt": "2026-09-15T16:52:48.325Z",
+            "createdAt": "2026-09-15T16:22:48.327Z",
+            "updatedAt": "2026-09-15T16:22:48.400Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concurrent-different-workflows",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Different workflow race invariant.",
+      "observed": {
+        "a": {
+          "answer": "Mình đang xử lý một yêu cầu khác cho cuộc trò chuyện này — bạn thử lại sau giây lát nhé.",
+          "blocks": []
+        },
+        "b": {
+          "answer": "Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "5bb744c4-9466-4cfa-8de6-fc69ab3ddcaf",
+              "workflowType": "FIND_PT",
+              "known": [
+                {
+                  "label": "mục tiêu tập luyện",
+                  "value": "WEIGHT_LOSS"
+                },
+                {
+                  "label": "các ngày tập được",
+                  "value": "T2, T4, T6"
+                },
+                {
+                  "label": "thời lượng mỗi buổi",
+                  "value": "60 phút"
+                }
+              ],
+              "missing": [
+                "ngân sách cho PT"
+              ]
+            }
+          ]
+        },
+        "activeRows": [
+          {
+            "id": "5bb744c4-9466-4cfa-8de6-fc69ab3ddcaf",
+            "userId": "v2-concurrent-types-b9e50e29-d271-4b37-bc3a-bdb89cfe4fd3",
+            "sessionId": "76e38d1e-8aa4-43d2-9c57-fc6c0e9ac005",
+            "workflowType": "FIND_PT",
+            "status": "COLLECTING_SLOTS",
+            "expectedSlot": "budgetVnd",
+            "slotsJson": {},
+            "pendingProfileUpdate": null,
+            "draftRef": null,
+            "revision": 0,
+            "expiresAt": "2026-09-15T16:52:48.939Z",
+            "createdAt": "2026-09-15T16:22:48.941Z",
+            "updatedAt": "2026-09-15T16:22:48.954Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concurrent-slot-replies",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Concurrent slot reply coherence.",
+      "observed": {
+        "aType": "PROFILE_UPDATE_CONFIRMATION",
+        "bType": "PROFILE_UPDATE_CONFIRMATION",
+        "rows": [
+          {
+            "id": "dde14cde-a819-4b32-9848-d017829220df",
+            "userId": "v2-concurrent-slots-345cee90-44be-4ea6-be67-b081de54bc7c",
+            "sessionId": "0a19afe8-15ed-4c9f-a5a3-19b546a157f9",
+            "workflowType": "CREATE_ROADMAP",
+            "status": "AWAITING_SLOT_CONFIRMATION",
+            "expectedSlot": null,
+            "slotsJson": {
+              "targetWeight": 72
+            },
+            "pendingProfileUpdate": [
+              {
+                "slotKey": "targetWeight",
+                "newValue": 72,
+                "oldValue": null,
+                "profileField": "targetWeight",
+                "expectedCurrentValue": null
+              }
+            ],
+            "draftRef": null,
+            "revision": 0,
+            "expiresAt": "2026-09-15T16:52:49.038Z",
+            "createdAt": "2026-09-15T16:22:49.010Z",
+            "updatedAt": "2026-09-15T16:22:49.039Z"
+          }
+        ],
+        "pending": [
+          {
+            "slotKey": "targetWeight",
+            "newValue": 72,
+            "oldValue": null,
+            "profileField": "targetWeight",
+            "expectedCurrentValue": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "concurrent-confirm",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Concurrent confirm is write-claimed.",
+      "observed": {
+        "bType": "ACTION_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [
+            {
+              "targetWeight": 72
+            }
+          ],
+          "generateRoadmapDraft": [
+            {
+              "goalType": "WEIGHT_LOSS",
+              "timeframeWeeks": 16
+            }
+          ],
+          "findTrainingPrograms": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "demo": false
+            }
+          ],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "budget-parser",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Budget parser matrix.",
+      "observed": {
+        "1500000": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1.500.000": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1,500,000": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1.5 triệu": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1,5 triệu": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1tr5": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1tr500": {
+          "ok": true,
+          "value": 1500000
+        },
+        "1 triệu 500": {
+          "ok": true,
+          "value": 1500000
+        }
+      }
+    },
+    {
+      "id": "find-pt-budget-1.500.000",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "FIND_PT budget E2E.",
+      "observed": {
+        "r1": {
+          "answer": "Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "0a3e0a13-f267-4a9c-ac19-5762ccbebee9",
+              "workflowType": "FIND_PT",
+              "known": [
+                {
+                  "label": "mục tiêu tập luyện",
+                  "value": "WEIGHT_LOSS"
+                },
+                {
+                  "label": "các ngày tập được",
+                  "value": "T2, T4, T6"
+                },
+                {
+                  "label": "thời lượng mỗi buổi",
+                  "value": "60 phút"
+                }
+              ],
+              "missing": [
+                "ngân sách cho PT"
+              ]
+            }
+          ]
+        },
+        "r2Type": "PT_RECOMMENDATIONS",
+        "prefs": {
+          "goal": "WEIGHT_LOSS",
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": 1500000,
+          "demo": false
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "find-pt-budget-Không giới hạn",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "FIND_PT budget E2E.",
+      "observed": {
+        "r1": {
+          "answer": "Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "9a1da1a9-4abd-4b4a-aa47-d86c6a06a2df",
+              "workflowType": "FIND_PT",
+              "known": [
+                {
+                  "label": "mục tiêu tập luyện",
+                  "value": "WEIGHT_LOSS"
+                },
+                {
+                  "label": "các ngày tập được",
+                  "value": "T2, T4, T6"
+                },
+                {
+                  "label": "thời lượng mỗi buổi",
+                  "value": "60 phút"
+                }
+              ],
+              "missing": [
+                "ngân sách cho PT"
+              ]
+            }
+          ]
+        },
+        "r2Type": "PT_RECOMMENDATIONS",
+        "prefs": {
+          "goal": "WEIGHT_LOSS",
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "demo": false
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "find-pt-budget-Ngân sách không quan trọng",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "FIND_PT budget E2E.",
+      "observed": {
+        "r1": {
+          "answer": "Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng?",
+          "blocks": [
+            {
+              "type": "WORKFLOW_MISSING_DATA",
+              "workflowId": "1e80cb5c-6f8f-4ff4-961d-495ac5307d1e",
+              "workflowType": "FIND_PT",
+              "known": [
+                {
+                  "label": "mục tiêu tập luyện",
+                  "value": "WEIGHT_LOSS"
+                },
+                {
+                  "label": "các ngày tập được",
+                  "value": "T2, T4, T6"
+                },
+                {
+                  "label": "thời lượng mỗi buổi",
+                  "value": "60 phút"
+                }
+              ],
+              "missing": [
+                "ngân sách cho PT"
+              ]
+            }
+          ]
+        },
+        "r2Type": "PT_RECOMMENDATIONS",
+        "prefs": {
+          "goal": "WEIGHT_LOSS",
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "demo": false
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "pt-search-to-hire-two-step",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PT two-step contract flow.",
+      "observed": {
+        "selected": {
+          "type": "ACTION_CONFIRMATION",
+          "actionId": "9f855341-ae11-4ec8-916f-d17d3c4d1548",
+          "kind": "CREATE_PT_CONTRACT_DRAFT",
+          "risk": "HIGH",
+          "title": "PT Codex",
+          "summary": {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "price": 1500000,
+            "sessions": 8
+          },
+          "expiresAt": "2026-09-15T16:37:49.516Z",
+          "note": "Tạo bản nháp; chưa thanh toán. PT vẫn phải duyệt yêu cầu qua quy trình hợp đồng hiện có."
+        },
+        "draft": {
+          "type": "ACTION_CONFIRMATION",
+          "actionId": "44444444-4444-4444-8444-444444444444",
+          "kind": "CONFIRM_PT_CONTRACT",
+          "risk": "HIGH",
+          "title": "Xác nhận yêu cầu hợp đồng PT",
+          "summary": {
+            "ptId": "22222222-2222-4222-8222-222222222222",
+            "packageId": "33333333-3333-4333-8333-333333333333",
+            "preferences": {
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "demo": false,
+              "goal": "WEIGHT_LOSS",
+              "budgetVnd": 1500000,
+              "sessionMinutes": 60
+            },
+            "actionId": "9f855341-ae11-4ec8-916f-d17d3c4d1548"
+          },
+          "expiresAt": "2026-09-15T16:37:49.538Z",
+          "note": "Chỉ gửi yêu cầu hợp đồng. PT duyệt và bạn thanh toán qua quy trình hiện có; chưa tự động trừ tiền."
+        },
+        "final": {
+          "type": "ACTION_RESULT",
+          "contractId": "55555555-5555-4555-8555-555555555555",
+          "status": "ACTIVE",
+          "nextUrl": "/client/contracts"
+        },
+        "calls": {
+          "findPTCandidates": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "budgetVnd": 1500000,
+              "demo": false
+            }
+          ],
+          "createPTContractDraft": [
+            {
+              "ptId": "22222222-2222-4222-8222-222222222222",
+              "packageId": "33333333-3333-4333-8333-333333333333",
+              "preferences": {
+                "days": [
+                  1,
+                  3,
+                  5
+                ],
+                "demo": false,
+                "goal": "WEIGHT_LOSS",
+                "budgetVnd": 1500000,
+                "sessionMinutes": 60
+              },
+              "actionId": "9f855341-ae11-4ec8-916f-d17d3c4d1548"
+            }
+          ],
+          "confirmPTContract": [
+            "44444444-4444-4444-8444-444444444444"
+          ]
+        }
+      }
+    },
+    {
+      "id": "parser-days-duration-weight",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Parser low-risk variants.",
+      "observed": {
+        "days": {
+          "T2 T4 T6": {
+            "ok": true,
+            "value": [
+              1,
+              3,
+              5
+            ]
+          },
+          "thứ 2 4 6": {
+            "ok": true,
+            "value": [
+              1,
+              3,
+              5
+            ]
+          },
+          "thứ 2, thứ 4, thứ 6": {
+            "ok": true,
+            "value": [
+              1,
+              3,
+              5
+            ]
+          }
+        },
+        "duration": {
+          "60 phút": {
+            "ok": true,
+            "value": 60
+          },
+          "1 giờ": {
+            "ok": true,
+            "value": 60
+          },
+          "1 tiếng": {
+            "ok": true,
+            "value": 60
+          },
+          "1 giờ 30 phút": {
+            "ok": true,
+            "value": 90
+          },
+          "90 phút": {
+            "ok": true,
+            "value": 90
+          }
+        },
+        "weight": {
+          "72kg... à không 70kg": {
+            "ok": true,
+            "value": 70
+          }
+        }
+      }
+    },
+    {
+      "id": "failed-stale-expired-cancel-switch",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Failed write, stale confirm, expiry, cancel.",
+      "observed": {
+        "failedOk": true,
+        "staleOk": true,
+        "expiryOk": true,
+        "cancelOk": true
+      }
+    }
+  ]
+}

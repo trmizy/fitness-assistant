@@ -4,6 +4,7 @@ import { prisma } from "../repositories/prisma";
 import { fetchUserProfile } from "../clients/user.client";
 import { manualProgramDaySchema, createManualProgramSchema } from "../models/fitness.models";
 import { workoutService } from "./workout.service";
+import { isExerciseAvailable } from "../utils/equipment-availability.util";
 
 const fail = (message: string, status = 400) => Object.assign(new Error(message), { status });
 export const agentProgramDeps = { fetchUserProfile };
@@ -30,9 +31,21 @@ export const agentProgramService = {
       if (!parsed.success || parsed.data.some(d => d.exercises.length > 12)) continue;
       const ids = [...new Set(parsed.data.flatMap(d => d.exercises.map(e => e.exerciseId)))];
       const exercises = await prisma.exercise.findMany({ where: { id: { in: ids }, status: "PUBLISHED", OR: [{ ownerId: null }, { ownerId: userId }] }, include: { equipmentLinks: true } });
+      // Equipment eligibility: reuse the single canonical predicate
+      // (equipment-availability.util.ts) already shared by exercise
+      // substitution and plan-equipment validation, rather than a local
+      // reimplementation. The prior inline check here
+      // (`equipmentLinks.some(link => !equipment.has(...))`) treated EVERY
+      // linked equipment row as REQUIRED regardless of its real
+      // `requirementType`, so a program using an ALTERNATIVE-equipment
+      // exercise (e.g. "Lat Pulldown Machine" OR "Cable Machine") was
+      // rejected unless the user owned BOTH, and an OPTIONAL link (never
+      // meant to gate availability at all) also incorrectly blocked
+      // eligibility — a real false-negative recall bug (Codex Independent
+      // Evaluation #1, MEDIUM finding #1), not a safety issue.
       if (exercises.length !== ids.length || exercises.some(e => e.contraindications.length > 0 ||
         (profile.experienceLevel === "BEGINNER" && e.difficultyLevel !== "beginner") ||
-        (e.equipmentLinks.length ? e.equipmentLinks.some(link => !equipment.has(link.equipmentId)) : e.typeOfEquipment !== "BODYWEIGHT"))) continue;
+        !isExerciseAvailable(e.equipmentLinks, equipment))) continue;
       // Scheduling estimate from actual prescription, not a physiological promise.
       const estimatedMinutes = Math.ceil(Math.max(...parsed.data.map(d => d.exercises.reduce((sum, e) => sum + e.sets * ((e.reps ?? 10) * 4 + (e.restSeconds ?? 60)), 0))) / 60) + 10;
       if (estimatedMinutes > (preferences.sessionMinutes ?? 60)) continue;

@@ -18,7 +18,7 @@ import { ContractStatus } from "../generated/prisma";
  */
 
 function deps(overrides: Partial<CompleteContractDeps> = {}): { deps: CompleteContractDeps; calls: Record<string, number> } {
-  const calls = { findById: 0, updateStatus: 0, settleMoney: 0 };
+  const calls = { findById: 0, updateStatus: 0, settleMoney: 0, deriveClientJourney: 0 };
   const d: CompleteContractDeps = {
     findById: async () => {
       calls.findById++;
@@ -30,6 +30,12 @@ function deps(overrides: Partial<CompleteContractDeps> = {}): { deps: CompleteCo
     },
     settleMoney: async () => {
       calls.settleMoney++;
+    },
+    // Kept DB-free like every other dep here — see this file's own header
+    // comment ("no DB, no HTTP"). The real implementation
+    // (deriveForCompletedContract) has its own dedicated tests.
+    deriveClientJourney: async () => {
+      calls.deriveClientJourney++;
     },
     ...overrides,
   };
@@ -50,6 +56,7 @@ test("a contract whose sessions are exhausted settles its money on natural compl
   assert.equal(calls.updateStatus, 1, "status flips to COMPLETED");
   assert.equal(calls.settleMoney, 1, "terminateContractMoney is called exactly once — the plan 1.2 fix");
   assert.deepEqual(settleArgs[0], ["c1", "COMPLETED"], "settled with the contract id and reason COMPLETED");
+  assert.equal(calls.deriveClientJourney, 1, "ClientJourney derivation is attempted exactly once on natural completion");
 });
 
 test("does not settle money when sessions are not yet exhausted", async () => {

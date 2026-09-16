@@ -1,20 +1,26 @@
 import axios from "axios";
 import { z } from "zod";
-import { logger, AgentPreferencesSchema, type AgentPreferences, type PTCandidate } from "@gym-coach/shared";
+import { logger, AgentPreferencesSchema, type AgentPreferences, type PTCandidate, type TrainingProgramCandidate } from "@gym-coach/shared";
 import { profileExtractor } from "../llm/profile_extractor";
 import { buildCoachContext } from "../coach/coach_context_builder";
 import { listLocalEvidenceDocuments } from "../knowledge-pipeline/local-evidence";
 
 export interface AgentIdentity { userId: string; authorizationHeader?: string }
+// goalIntent: closes the Image -> GoalContext -> Recommendation loop
+// (docs/ai-agent-implementation-report.md's own named gap, closed in the
+// 2026-09-14 hardening pass). user-service's agenticFitnessService.context()
+// already returns the confirmed GoalIntentSchema-shaped object (primaryGoal,
+// muscularity, relativeLeanness, focusMuscles) as-is via HTTP passthrough —
+// it simply was never read on this side. Left as a loose record (not the
+// strict GoalIntentSchema, which would reject the two extra fields
+// user-service actually stores — version/confirmedAt) since this is
+// narration-input grounding, not a validated write; only known-safe
+// categorical fields are ever extracted from it downstream.
 const contextSchema = z.object({ goal: z.string().nullable(), experience: z.string().nullable(),
   days: z.array(z.number()), sessionMinutes: z.number(), budgetVnd: z.number().nullable(),
   reviewRequired: z.boolean(), injuries: z.array(z.string()), equipment: z.array(z.string()),
+  goalIntent: z.record(z.unknown()).nullable().optional(),
 }).passthrough();
-export interface ProgramCandidate {
-  id: string; name: string; goal: string; daysPerWeek: number; durationWeeks: number;
-  estimatedMinutes: number; experienceLevel: string; focusMuscles: string[];
-  fingerprint: string; dataOrigin: string; days: unknown[];
-}
 const candidateSchema = z.object({ id: z.string().uuid(), name: z.string(), packages: z.array(z.object({
   id: z.string().uuid(), price: z.number().nonnegative(), sessions: z.number().int().positive(),
 }).passthrough()), dataOrigin: z.enum(["REAL", "SYNTHETIC"]), history: z.object({ count: z.number().int().nonnegative() }).passthrough() }).passthrough();
@@ -24,7 +30,51 @@ const programSchema = z.object({ id: z.string().uuid(), name: z.string(), goal: 
   durationWeeks: z.number(), estimatedMinutes: z.number(), experienceLevel: z.string(), focusMuscles: z.array(z.string()),
   fingerprint: z.string(), dataOrigin: z.enum(["REAL", "SYNTHETIC"]), days: z.array(z.unknown()), });
 
-async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
+// Explicit whitelist for updateProfileFields() below — a strict SUBSET of
+// user-service's real profileSchema (profile.models.ts), scoped to exactly
+// the fields the AI Coach workflow orchestrator is designed to ask about
+// and persist. Anything else in the real profileSchema (photoUrl,
+// safetyScreeningStatus, hasCompletedOnboarding, unitSystem, ...) is
+// deliberately NOT reachable through this path — a workflow slot can only
+// ever target a field that's both listed here AND has a real SlotDefinition
+// mapping it (see agent-workflow/workflows/*.ts).
+// `preferredTrainingDays` is deliberately EXCLUDED here even though it is a
+// real, writable UserProfile field: user-service's own profileSchema
+// constrains it to 0-6, while every AgentPreferences-based day array
+// elsewhere in this agent system (fitness-agent-intent.ts::parseTrainingDays,
+// slot-values.ts::parseTrainingDays, AgentPreferencesSchema) uses a
+// DIFFERENT 1-7 convention (matching Vietnamese "Thứ N" numbering,
+// confirmed against the frontend's own `d === 7 ? "CN" : "T" + (d + 1)`
+// rendering). Writing one convention's values into the other's field
+// without an independently-verified conversion would risk silently
+// corrupting a real user's schedule — training-day preference therefore
+// stays WORKFLOW_ONLY (ephemeral AgentPreferences.days) for this pass,
+// exactly like it already is for PT/PROGRAM search today.
+// age/gender/heightCm/currentWeight ARE included (unlike
+// preferredTrainingDays) — each is a single unambiguous scalar with an
+// identical name/unit/range on both sides (profile.models.ts's
+// profileSchema and agent-workflow/slot-values.ts's parsers), no
+// convention mismatch to risk. This is required for correctness, not just
+// completeness: CREATE_ROADMAP's proposePlanBundle re-checks these exact
+// fields against the REAL profile after a workflow resume (it has no
+// override mechanism of its own — fitness-service's generateAiRoadmapDraft
+// route only accepts targetWeightKg/targetBodyFatPercent/
+// trainingDaysPerWeek as overrides, never age/height/currentWeight/gender,
+// see fitness-roadmap.models.ts). If a genuinely-missing one of these were
+// left WORKFLOW_ONLY, resuming after collecting it via chat would silently
+// re-hit "missing profile info" and ask the user to repeat themselves —
+// exactly the bug this whitelist exists to prevent.
+export const agentUpdatableProfileFieldsSchema = z.object({
+  goal: z.enum(["WEIGHT_LOSS", "MUSCLE_GAIN", "MAINTENANCE", "ATHLETIC_PERFORMANCE"]).optional(),
+  targetWeight: z.number().positive().max(400).optional(),
+  age: z.number().int().min(13).max(120).optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  heightCm: z.number().positive().max(300).optional(),
+  currentWeight: z.number().positive().max(400).optional(),
+}).strict();
+export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
+
+async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
   const baseURL = service === "user" ? process.env.USER_SERVICE_URL ?? "http://localhost:3004" : process.env.FITNESS_SERVICE_URL ?? "http://localhost:3002";
   try {
@@ -58,7 +108,8 @@ export const fitnessAgentTools = {
   },
   findTrainingPrograms(identity: AgentIdentity, preferences: AgentPreferences) {
     return domain(identity, "fitness", "POST", "/workouts/agent/candidates", AgentPreferencesSchema.parse(preferences),
-      z.object({ programs: z.array(programSchema).max(40), warnings: z.array(z.string()) }));
+      z.object({ programs: z.array(programSchema).max(40), warnings: z.array(z.string()) }))
+      .then(result => ({ ...result, programs: result.programs as TrainingProgramCandidate[] }));
   },
   createPTContractDraft(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "user", "POST", "/profile/agent/drafts", payload,
@@ -74,6 +125,21 @@ export const fitnessAgentTools = {
   },
   confirmGoal(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "user", "POST", "/profile/agent/goal", payload, z.record(z.unknown()));
+  },
+  // Conversational AI Coach workflow orchestration (2026-09-15) —
+  // docs/conversational-ai-coach-workflow-audit.md §5: no agent-specific
+  // profile-update endpoint exists in user-service; PUT /profile/me
+  // (profileSchema, profile.routes.ts) is the real, already-safe,
+  // already-validated write path — it just requires the end user's own
+  // JWT, which `identity.authorizationHeader` already carries (the same
+  // token-forwarding domain() uses for every other tool here). This wraps
+  // that exact endpoint with an EXPLICIT field whitelist (never a generic
+  // PATCH — see design doc §5/§29) so a slot-filling workflow can only ever
+  // set the specific fields it's designed to ask about, never an arbitrary
+  // property name an LLM extractor might produce.
+  updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
+    const body = agentUpdatableProfileFieldsSchema.parse(fields);
+    return domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
   },
   // Agent automation (chat "hãy tạo và gán lộ trình/plan tập/dinh dưỡng vào
   // hệ thống") — all four calls below reuse EXISTING, already-shipped
@@ -137,6 +203,66 @@ export const fitnessAgentTools = {
   archiveRoadmap(identity: AgentIdentity, roadmapId: string) {
     return domain(identity, "fitness", "POST", `/fitness-roadmaps/${z.string().min(1).parse(roadmapId)}/archive`, {},
       z.record(z.unknown()));
+  },
+  // "ghi lại tôi vừa ăn X" — grounds the logged calories/macros in the real
+  // Food catalog (same public search the Food Library page uses) instead
+  // of ever letting an LLM invent a nutrition number for a logged meal.
+  async searchFood(identity: AgentIdentity, name: string): Promise<{ id: string; name: string; calories: number; protein: number; carbs: number; fats: number } | null> {
+    const search = async (term: string) => domain(identity, "fitness", "GET", `/food/search?q=${encodeURIComponent(term)}`, undefined,
+      z.array(z.object({ id: z.string(), name: z.string(), calories: z.number(), protein: z.number(), carbs: z.number(), fats: z.number() }).passthrough()));
+    const pick = (foods: { id: string; name: string; calories: number; protein: number; carbs: number; fats: number }[], term: string) => {
+      if (!foods.length) return null;
+      const normalized = term.trim().toLowerCase();
+      const exact = foods.find(f => f.name.trim().toLowerCase() === normalized);
+      if (exact) return exact;
+      // Confirmed live: shortest-name-wins (the exercise-catalog heuristic)
+      // backfires for food — USDA entries like "..., NS as to cooking
+      // method, ..." (NS = Not Specified) are the semantically neutral,
+      // no-strong-assumption pick for an unspecified real dish, but they're
+      // LONGER strings than an unrelated, much more specific variant
+      // ("tenders, breaded, uncooked" for a plain "ức gà luộc" query — a
+      // raw breaded cutlet is a materially different food from boiled
+      // chicken breast). Prefer "NS as to cooking method" when present.
+      const unspecified = foods.find(f => /ns as to cooking method/i.test(f.name));
+      return unspecified ?? [...foods].sort((a, b) => a.name.length - b.name.length)[0];
+    };
+    const trimmed = name.trim();
+    let foods = await search(trimmed);
+    if (foods.length) return pick(foods, trimmed);
+
+    // Fallback: strip a trailing Vietnamese cooking-method word ("ức gà
+    // luộc" -> "ức gà") — the real catalog is USDA-style (simple
+    // ingredients), so a compound "ingredient + preparation" phrase from
+    // free-text chat often has no direct alias even when the base
+    // ingredient does.
+    const stripped = trimmed.replace(/\s+(luộc|chiên|xào|nướng|hấp|rang|áp chảo|kho)$/i, "");
+    if (stripped !== trimmed) {
+      foods = await search(stripped);
+      if (foods.length) return pick(foods, stripped);
+    }
+    return null;
+  },
+  createNutritionLog(identity: AgentIdentity, payload: unknown) {
+    return domain(identity, "fitness", "POST", "/nutrition", payload, z.record(z.unknown()));
+  },
+  // Today's scheduled workout session — start/skip/cancel via chat, same
+  // real endpoints workoutController already exposes to the client UI.
+  getTodaySchedule(identity: AgentIdentity) {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+    return domain(identity, "fitness", "GET", `/workouts/schedules?startDate=${today}&endDate=${today}`, undefined,
+      z.array(z.record(z.unknown())));
+  },
+  startWorkoutSchedule(identity: AgentIdentity, scheduleId: string) {
+    return domain(identity, "fitness", "POST", `/workouts/schedules/${z.string().min(1).parse(scheduleId)}/start`, {},
+      z.record(z.unknown()));
+  },
+  skipWorkoutSchedule(identity: AgentIdentity, scheduleId: string) {
+    return domain(identity, "fitness", "POST", `/workouts/schedules/${z.string().min(1).parse(scheduleId)}/skip`,
+      { notes: "Bỏ qua qua AI Coach" }, z.record(z.unknown()));
+  },
+  cancelWorkoutSchedule(identity: AgentIdentity, scheduleId: string) {
+    return domain(identity, "fitness", "POST", `/workouts/schedules/${z.string().min(1).parse(scheduleId)}/cancel`,
+      { reason: "Hủy qua AI Coach" }, z.record(z.unknown()));
   },
   // Same real endpoint user-service calls right after onboarding
   // (nutrition-onboarding-bootstrap.service.ts) — idempotent: returns
@@ -220,6 +346,34 @@ export const fitnessAgentTools = {
 
     return null;
   },
+  // CREATE_WORKOUT_PLAN revision ("Đổi squat", "Tôi không muốn deadlift",
+  // "Tôi không có máy cable" when a specific machine-tied exercise can be
+  // identified) — wraps the EXISTING, already-signed-off
+  // `exerciseSubstitutionService.rankSubstitutes` the "Đổi bài tập" UI
+  // already uses during live workout execution (see
+  // gymini-ai-workout-grounding skill — this is the SAME engine, not a
+  // second implementation). Real-equipment-aware and deterministic — never
+  // an LLM guess. Route is `authMiddleware`-guarded (real end-user JWT),
+  // which `domain()` already forwards via `identity.authorizationHeader`
+  // for every other tool here, so no new auth wiring is needed.
+  async getExerciseSubstitute(identity: AgentIdentity, exerciseId: string, excludeExerciseIds: string[] = []): Promise<{ id: string; exerciseName: string } | null> {
+    const query = new URLSearchParams();
+    if (excludeExerciseIds.length) query.set("excludeExerciseIds", excludeExerciseIds.join(","));
+    query.set("limit", "1");
+    try {
+      const result = await domain(identity, "fitness", "GET",
+        `/exercises/${encodeURIComponent(exerciseId)}/substitute?${query.toString()}`, undefined,
+        z.object({ success: z.boolean().optional(), substitutes: z.array(z.object({ id: z.string(), exerciseName: z.string() }).passthrough()).optional(),
+          substitute: z.object({ id: z.string(), exerciseName: z.string() }).passthrough().optional() }).passthrough());
+      const first = result.substitutes?.[0] ?? result.substitute;
+      return first ? { id: first.id, exerciseName: first.exerciseName } : null;
+    } catch {
+      // 404 ("no suitable substitute") is a real, expected outcome here,
+      // not a system failure — the caller must treat null as "couldn't
+      // swap this one", never fabricate a replacement.
+      return null;
+    }
+  },
   substituteMealItem(identity: AgentIdentity, payload: {
     currentFoodMention: string; desiredFoodMention?: string | null; mode?: "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";
     mealHint?: string | null; resolvedMealId?: string | null;
@@ -255,6 +409,16 @@ export const fitnessAgentTools = {
         decision: z.string().nullable(), userDecision: z.string(),
         nutritionDecision: z.string().nullable(), nutritionUserDecision: z.string(),
       }).passthrough());
+  },
+  // Training-cycle management via chat — reuses the same real endpoints
+  // the client UI already calls, same as roadmap advance/rebuild/archive.
+  completeCycle(identity: AgentIdentity, cycleId: string) {
+    return domain(identity, "fitness", "POST", `/training-cycles/${z.string().min(1).parse(cycleId)}/complete`, {},
+      z.record(z.unknown()));
+  },
+  cancelCycle(identity: AgentIdentity, cycleId: string) {
+    return domain(identity, "fitness", "POST", `/training-cycles/${z.string().min(1).parse(cycleId)}/cancel`, {},
+      z.record(z.unknown()));
   },
   reviewRecommendation(identity: AgentIdentity, params: {
     cycleId: string; assessmentId: string; target: "TRAINING" | "NUTRITION"; decision: "ACCEPT" | "REJECT";

@@ -582,6 +582,18 @@ exports.Prisma.AgentContractDraftScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.UserPreferenceScalarFieldEnum = {
+  userId: 'userId',
+  showRpeRir: 'showRpeRir',
+  defaultRestSeconds: 'defaultRestSeconds',
+  keepScreenAwake: 'keepScreenAwake',
+  restTimerSound: 'restTimerSound',
+  restTimerVibration: 'restTimerVibration',
+  smartPrefill: 'smartPrefill',
+  showMacros: 'showMacros',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -823,7 +835,8 @@ exports.Prisma.ModelName = {
   AuditLog: 'AuditLog',
   SessionSettlement: 'SessionSettlement',
   ClientJourney: 'ClientJourney',
-  AgentContractDraft: 'AgentContractDraft'
+  AgentContractDraft: 'AgentContractDraft',
+  UserPreference: 'UserPreference'
 };
 
 /**

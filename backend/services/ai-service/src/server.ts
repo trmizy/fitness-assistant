@@ -6,7 +6,7 @@ import { prisma } from "./repositories/conversation.repository";
 import { aiWorker } from "./workers/ai.worker";
 import { closeAiQueue } from "./workers/ai.queue";
 import { logger } from "@gym-coach/shared";
-import { getQdrantClient } from "./repositories/qdrant";
+import { getVectorStore } from "./vector-store/provider";
 import { startPersonalizedServiceAutoAcceptJob } from "./services/personalized-service-autoaccept-sweep.service";
 
 const PORT = process.env.PORT || 3003;
@@ -18,7 +18,8 @@ async function startServer() {
     // Check Qdrant connection — service starts regardless of Qdrant availability,
     // but the health endpoint and retriever are aware of the degraded state.
     try {
-      await getQdrantClient().getCollections();
+      const store = getVectorStore();
+      await store.healthCheck();
       setQdrantAvailable(true);
       logger.info("Connected to Qdrant — retrieval enabled");
     } catch {
@@ -26,7 +27,7 @@ async function startServer() {
       logger.warn(
         "Qdrant not available at startup — retrieval disabled. " +
           "AI answers will use deterministic fallback. " +
-          "Check QDRANT_HOST/QDRANT_PORT env vars.",
+          "Check VECTOR_STORE_PROVIDER and provider-specific env vars.",
       );
     }
 

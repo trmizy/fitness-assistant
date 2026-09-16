@@ -20,7 +20,10 @@ export function normalizeAgentText(text: string): string {
  */
 export function parseFitnessAgentIntent(text: string): {
   kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
-    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE" | null;
+    | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
+    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
+    | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
+    | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL" | null;
   preferences: Partial<AgentPreferences>;
   candidateNumber?: number;
   /** kind === "REVIEW" only — which pending recommendation and which way. */
@@ -85,6 +88,23 @@ export function parseFitnessAgentIntent(text: string): {
     return { kind: "SAVE_GENERATED_PLAN", preferences: {} };
   }
 
+  // AI Coach product capability expansion — standalone "tạo lịch tập cho
+  // tôi" / "tạo kế hoạch dinh dưỡng cho tôi", self-contained requests that
+  // don't reference an existing roadmap or a plan already shown earlier in
+  // the conversation. Checked AFTER CREATE_PLAN_BUNDLE/SAVE_GENERATED_PLAN
+  // (both already returned above) so a "lộ trình" or save-verb request
+  // always keeps its existing, more specific meaning.
+  const mentionsCreateWorkoutPlan = /\b(tao|len|xay|thiet ke)\b/.test(s)
+    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap)\b/.test(s);
+  if (mentionsCreateWorkoutPlan) {
+    return { kind: "CREATE_WORKOUT_PLAN", preferences: {} };
+  }
+  const mentionsCreateNutritionPlan = /\b(tao|len|thiet ke)\b/.test(s)
+    && /\b(thuc don|ke hoach dinh duong|meal plan)\b/.test(s);
+  if (mentionsCreateNutritionPlan) {
+    return { kind: "CREATE_NUTRITION_PLAN", preferences: {} };
+  }
+
   // Roadmap management for an EXISTING roadmap — distinct from
   // CREATE_PLAN_BUNDLE above (which only ever creates+activates a brand
   // NEW one). All four require "lo trinh" plus a distinguishing verb, so
@@ -107,6 +127,28 @@ export function parseFitnessAgentIntent(text: string): {
     if (/\b(hien tai|the nao|ra sao|tien do|giai doan|xem|kiem tra)\b/.test(s)) {
       return { kind: "ROADMAP_STATUS", preferences: {} };
     }
+  }
+
+  // Training-cycle management for the currently ACTIVE cycle. The
+  // EVALUATE check above already owns "chu kỳ ... thế nào/tiến độ" (a
+  // read-only status/progress check), so these two only fire on an
+  // explicit close/cancel verb and never collide with it.
+  if (/\b(chu ky|cycle)\b/.test(s)) {
+    if (/\b(hoan thanh|ket thuc|dong)\b/.test(s)) {
+      return { kind: "CYCLE_COMPLETE", preferences: {} };
+    }
+    if (/\b(huy|bo|cancel)\b/.test(s)) {
+      return { kind: "CYCLE_CANCEL", preferences: {} };
+    }
+  }
+
+  // Today's scheduled workout session — start/skip/cancel only. Scoped
+  // this narrowly deliberately: per-exercise/per-set completion during an
+  // active session needs real-time state, not a one-shot chat confirm.
+  if (/\b(buoi tap|session)\b/.test(s)) {
+    if (/\b(bat dau|start)\b/.test(s)) return { kind: "WORKOUT_START", preferences: {} };
+    if (/\b(bo qua|skip)\b/.test(s)) return { kind: "WORKOUT_SKIP", preferences: {} };
+    if (/\b(huy|cancel)\b/.test(s)) return { kind: "WORKOUT_CANCEL", preferences: {} };
   }
 
   const reviewVerb = /\b(chap nhan|đong y|dong y|ok|approve|accept)\b/.test(s)

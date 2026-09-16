@@ -25,6 +25,7 @@ import { availabilityService } from "./availability.service";
 import { auditService } from "./audit.service";
 import { terminateContractMoney } from "./contract-payout.service";
 import { settleTracked } from "./session-settlement.service";
+import { deriveForCompletedContract } from "./client-journey-derivation.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -64,11 +65,17 @@ export interface CompleteContractDeps {
   >;
   updateStatus: (id: string, status: ContractStatus, extra: { completedAt: Date }) => Promise<unknown>;
   settleMoney: (id: string, reason: "COMPLETED") => Promise<unknown>;
+  /** docs/adr-client-journey-attribution.md — best-effort, injectable the
+   * same way settleMoney is so this function's own tests can stay DB-free
+   * (see contract-natural-completion-settles-money.test.ts's own "no DB,
+   * no HTTP" design note above). */
+  deriveClientJourney: (id: string) => Promise<unknown>;
 }
 
 const defaultCompleteContractDeps: CompleteContractDeps = {
   findById: (id) => contractRepository.findById(id),
   updateStatus: (id, status, extra) => contractRepository.updateStatus(id, status, extra),
+  deriveClientJourney: (id) => deriveForCompletedContract(id),
   // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
   // committed the contract to COMPLETED — there is no going back to retry a failed settlement
   // through any status-gated endpoint, so the sweep is the only path left for it.
@@ -736,6 +743,22 @@ export const contractService = {
       } catch (e) {
         logger.error({
           error: "money settlement failed for a naturally completed contract",
+          contractId,
+          message: (e as Error).message,
+        });
+      }
+      // ClientJourney population (docs/ai-agent-system-feasibility-audit.md
+      // §2.4, docs/adr-client-journey-attribution.md) — best-effort, same
+      // isolation principle as the money settlement above: this is an
+      // analytics derivation, never allowed to affect the contract
+      // completion that already happened. deriveForCompletedContract()
+      // itself never throws (internal try/catch), this outer one is belt-
+      // and-braces only.
+      try {
+        await deps.deriveClientJourney(contractId);
+      } catch (e) {
+        logger.error({
+          error: "client journey derivation failed for a naturally completed contract",
           contractId,
           message: (e as Error).message,
         });

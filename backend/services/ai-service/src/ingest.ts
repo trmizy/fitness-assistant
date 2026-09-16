@@ -1,25 +1,17 @@
-import { QdrantClient } from "@qdrant/js-client-rest";
-import axios from "axios";
 import * as fs from "fs";
 import * as path from "path";
-
-const QDRANT_HOST = process.env.QDRANT_HOST || "localhost";
-const QDRANT_PORT = process.env.QDRANT_PORT || "6333";
-const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "nomic-embed-text";
-
-const qdrantClient = new QdrantClient({
-  url: `http://${QDRANT_HOST}:${QDRANT_PORT}`,
-  checkCompatibility: false,
-});
+import { llmService } from "./services/llm.service";
+import { EMBEDDING_VECTOR_SIZE } from "./services/embedding-config";
+import { getVectorStore } from "./vector-store/provider";
 
 async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await axios.post(`${LLM_BASE_URL}/api/embeddings`, {
-      model: EMBEDDING_MODEL,
-      prompt: text,
+    // Stored documents: the configured EMBEDDING_PROVIDER (Bedrock Cohere on
+    // AWS, Ollama locally), encoded as search_document.
+    return await llmService.generateEmbedding(text, {
+      inputType: "search_document",
+      timeoutMs: 30000,
     });
-    return response.data.embedding;
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("Error generating embedding:", msg);
@@ -119,23 +111,15 @@ async function ingestCollection(
 
   console.log(`Loaded ${items.length} items from CSV for ${collectionName}`);
 
-  // Check if collection exists
-  try {
-    await qdrantClient.getCollection(collectionName);
-    console.log(`Collection ${collectionName} exists, deleting...`);
-    await qdrantClient.deleteCollection(collectionName);
-  } catch (error) {
-    console.log(`Collection ${collectionName} does not exist, creating new...`);
-  }
-
-  // Create collection
-  await qdrantClient.createCollection(collectionName, {
-    vectors: { size: 768, distance: "Cosine" },
-  });
-  console.log(`Created collection ${collectionName}`);
+  // Ensure provider-specific vector index exists and has the configured dimension.
+  const store = getVectorStore();
+  await store.ensureIndex(collectionName, EMBEDDING_VECTOR_SIZE);
+  console.log(
+    `Ensured ${store.provider} vector index ${collectionName} at dimension ${EMBEDDING_VECTOR_SIZE}`,
+  );
 
   // Generate embeddings and upload
-  console.log("Generating embeddings and uploading to Qdrant...");
+  console.log(`Generating embeddings and uploading to ${store.provider}...`);
   const batchSize = 20;
 
   for (let i = 0; i < items.length; i += batchSize) {
@@ -156,7 +140,7 @@ async function ingestCollection(
       }),
     );
 
-    await qdrantClient.upsert(collectionName, { wait: true, points });
+    await store.upsert(collectionName, points);
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
@@ -259,8 +243,13 @@ async function main() {
     let allPopulated = true;
     for (const config of configs) {
       try {
-        const info = await qdrantClient.getCollection(config.name);
-        if ((info.points_count || 0) === 0) {
+        const info = await getVectorStore().getIndexStatus(config.name);
+        if (info.kind !== "ok") {
+          allPopulated = false;
+          console.log(`Collection ${config.name} does not exist or needs reindexing.`);
+          continue;
+        }
+        if (info.pointsCount !== undefined && info.pointsCount === 0) {
           allPopulated = false;
           console.log(`Collection ${config.name} is empty.`);
         }

@@ -23,7 +23,9 @@
  */
 
 import { QdrantClient } from "@qdrant/js-client-rest";
-import axios from "axios";
+import { EMBEDDING_MODEL, llmService } from "../../services/llm.service";
+import { EMBEDDING_PROVIDER, EMBEDDING_VECTOR_SIZE } from "../../services/embedding-config";
+import { ensureCollectionDimension } from "../../repositories/qdrant-collection";
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -32,10 +34,7 @@ import { createHash } from "node:crypto";
 
 const QDRANT_HOST = process.env.QDRANT_HOST || "localhost";
 const QDRANT_PORT = process.env.QDRANT_PORT || "6333";
-const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "nomic-embed-text";
 const COLLECTION = "fitness_evidence";
-const VECTOR_SIZE = 768;
 const BATCH_SIZE = 10;
 
 const ROOT = path.resolve(process.cwd(), "..", "..", "..", "data");
@@ -52,19 +51,14 @@ const qdrant = new QdrantClient({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Stored-document embedding through the configured EMBEDDING_PROVIDER
+ * (Bedrock Cohere on AWS, Ollama locally) — the same path the runtime
+ * knowledge pipeline uses. */
 async function embed(text: string): Promise<number[]> {
-  const r = await axios.post(
-    `${LLM_BASE_URL}/api/embeddings`,
-    {
-      model: EMBEDDING_MODEL,
-      prompt: text,
-    },
-    { timeout: 30000 },
-  );
-  if (!Array.isArray(r.data?.embedding) || r.data.embedding.length === 0) {
-    throw new Error("Empty embedding returned");
-  }
-  return r.data.embedding;
+  return llmService.generateEmbedding(text, {
+    inputType: "search_document",
+    timeoutMs: 30000,
+  });
 }
 
 /** Stable deterministic UUID v5-like ID from a string. */
@@ -73,15 +67,17 @@ function stableId(s: string): string {
 }
 
 async function ensureCollection() {
-  try {
-    await qdrant.getCollection(COLLECTION);
-    console.log(`  ✓ Collection '${COLLECTION}' already exists`);
-  } catch {
-    await qdrant.createCollection(COLLECTION, {
-      vectors: { size: VECTOR_SIZE, distance: "Cosine" },
-    });
-    console.log(`  ✓ Created collection '${COLLECTION}'`);
-  }
+  // Throws VectorDimensionMismatchError rather than writing into a collection
+  // built with a different embedding size; never deletes it.
+  const { created, size } = await ensureCollectionDimension(COLLECTION, {
+    client: qdrant,
+    expectedSize: EMBEDDING_VECTOR_SIZE,
+  });
+  console.log(
+    created
+      ? `  ✓ Created collection '${COLLECTION}' (${size} dims)`
+      : `  ✓ Collection '${COLLECTION}' already exists (${size} dims)`,
+  );
 }
 
 async function upsertBatch(
@@ -410,7 +406,7 @@ async function ingestNhanesNorms(): Promise<{ ok: number; failed: number }> {
 async function main() {
   console.log("🧬  Evidence Ingest → Qdrant fitness_evidence collection");
   console.log(`    Qdrant: http://${QDRANT_HOST}:${QDRANT_PORT}`);
-  console.log(`    Embed:  ${LLM_BASE_URL} / ${EMBEDDING_MODEL}`);
+  console.log(`    Embed:  ${EMBEDDING_PROVIDER} / ${EMBEDDING_MODEL} (${EMBEDDING_VECTOR_SIZE} dims)`);
   console.log(`    Force:  ${FORCE} | NHANES norms: ${INCLUDE_NHANES}`);
   console.log("");
 

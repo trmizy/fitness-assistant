@@ -65,7 +65,9 @@ async function main(): Promise<void> {
 
   const evidenceDocs = await retriever.retrieveEvidence([EVIDENCE_QUERY]);
   if (evidenceDocs.length === 0) {
-    const vector = await llmService.generateEmbedding(EVIDENCE_QUERY);
+    const vector = await llmService.generateEmbedding(EVIDENCE_QUERY, {
+      inputType: "search_query",
+    });
     const rawMatches = await qdrant.search(COLLECTION, {
       vector,
       limit: 3,

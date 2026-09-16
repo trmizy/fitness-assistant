@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { z } from "zod";
 import { GoalImageSchema } from "./fitness-goal-vision.service";
+import { converseVisionTool } from "./bedrock.client";
 
 /**
  * General-purpose "send a photo + a question" vision chat — distinct from
@@ -143,6 +144,22 @@ Chỉ trả lời qua tool đã cung cấp, không thêm văn bản khác.`;
 export const fitnessVisionChatDeps = {
   async analyze(image: z.infer<typeof GoalImageSchema>, question: string, userContext?: ImageChatUserContext): Promise<unknown> {
     const text = prompt(question, userContext);
+    if (process.env.LLM_PROVIDER === "bedrock") {
+      // Same forced-tool request as the Anthropic branch below, through
+      // Bedrock Converse with the Lambda execution role (no API key). The
+      // image bytes exist only inside this request — never stored or logged.
+      const input = await converseVisionTool({
+        image,
+        text,
+        toolName: "describe_image_chat_result",
+        toolDescription: "Structured, type-specific answer about the photo",
+        inputSchema: toolSchema,
+        maxTokens: 1500,
+        timeoutMs: 45000,
+      });
+      if (input === undefined) throw new Error("Vision returned no result");
+      return input;
+    }
     if (process.env.ANTHROPIC_API_KEY) {
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45000, maxRetries: 0 });
       const response = await client.messages.create({

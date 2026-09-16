@@ -1139,6 +1139,20 @@ model ClientJourney {
   user                  UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
   contract              Contract?   @relation(fields: [contractId], references: [id], onDelete: SetNull)
 
+  // ADV-006 (docs/ai-agent-adversarial-findings.md, hardening pass #2,
+  // 2026-09-14): the derivation invariant is "at most one ClientJourney
+  // per completed Contract" (see client-journey-derivation.service.ts's
+  // own findFirst-before-create guard) — this makes that invariant a real
+  // DB constraint instead of only an application-level check-then-create,
+  // which cannot prevent a race between two concurrent derivation calls
+  // for the same contract. Safe to add: contractId is nullable, and
+  // Postgres treats every NULL as distinct for uniqueness purposes, so
+  // journeys with no contract (contractId=null, including after a
+  // Contract row is hard-deleted via the onDelete:SetNull above) are
+  // never constrained against each other — only real, non-null
+  // contractId values must be unique. Verified zero existing duplicates
+  // before adding this (331 distinct contractId groups, 0 with count>1).
+  @@unique([contractId])
   @@index([dataOrigin, status, goal, experience, baselineWeight])
   @@index([ptId, dataOrigin, status])
   @@index([programId, dataOrigin, status])
@@ -1160,4 +1174,41 @@ model AgentContractDraft {
 
   @@index([userId, createdAt])
   @@map("agent_contract_drafts")
+}
+
+/// Adopted, not authored fresh — see migration
+/// `20260916100000_adopt_user_preference` and
+/// docs/aws-full-local-data-migration-schema-reconciliation.md §2. This
+/// table already existed in the local database under a migration whose
+/// folder no longer exists in this repo; its real shape is declared here
+/// exactly as found (audited via `\d "UserPreference"`, not inferred).
+/// Deliberately NOT retrofitted onto this file's later snake_case
+/// `@map`/`@@map` convention — the table/columns are already real,
+/// existing, unmapped (implicit PascalCase/camelCase) Postgres
+/// identifiers, and renaming them is out of scope. Zero application code
+/// anywhere in this repo references this model (grep-verified).
+model UserPreference {
+  userId             String   @id
+  showRpeRir         Boolean  @default(true)
+  defaultRestSeconds Int      @default(90)
+  keepScreenAwake    Boolean  @default(true)
+  restTimerSound     Boolean  @default(true)
+  restTimerVibration Boolean  @default(true)
+  smartPrefill       Boolean  @default(true)
+  showMacros         Boolean  @default(true)
+  // `@default(now())`, not `@updatedAt` — `@updatedAt` only sets the value
+  // client-side on Prisma Client `.update()` calls and emits no DB-level
+  // DEFAULT, which produced a real (if harmless) `migrate diff` delta
+  // against the live column's actual `DEFAULT CURRENT_TIMESTAMP`. This
+  // form matches the live DDL exactly.
+  updatedAt          DateTime @default(now())
+
+  // The live table also carries a CHECK constraint
+  // ("defaultRestSeconds" between 15 and 300, step 15), applied by the
+  // migration above. Prisma 5.22 has no stable `@@check` attribute in
+  // this schema (no `checkConstraints` preview feature is enabled
+  // anywhere in this file) — the constraint is real in Postgres but
+  // cannot be declared here. Documented, not silently dropped: `prisma
+  // migrate diff` will always show this one constraint as a delta
+  // against a datamodel-only comparison; it is not a data-bearing drift.
 }

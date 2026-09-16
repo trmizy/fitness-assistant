@@ -2,7 +2,7 @@ import { Job, Worker } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { requestService } from "../clients/service-lambda.client";
-import { llmService } from "../services/llm.service";
+import { LLM_MODEL, llmService } from "../services/llm.service";
 import {
   conversationRepository,
   PlanStatus,
@@ -1352,7 +1352,9 @@ export async function processAiTaskJob(job: Job): Promise<void> {
 
       content._metadata = content._metadata || {};
       content._metadata.generationTelemetry = {
-        modelVersion: process.env.LLM_MODEL || "fitness-coach-qwen2.5-1.5b:q4_K_M",
+        // The model id actually sent (BEDROCK_CHAT_MODEL on Bedrock), not a
+        // hard-coded Ollama tag that was wrong for every other provider.
+        modelVersion: LLM_MODEL,
         promptVersion: "workout-plan-v2-deterministic-candidates",
         generationAttempt: Number(job.attemptsMade ?? 0) + 1,
         repairCount: generationRepairReasons.length,

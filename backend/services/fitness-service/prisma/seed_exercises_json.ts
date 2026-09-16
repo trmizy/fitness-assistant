@@ -40,10 +40,9 @@ async function seedExercises() {
     return;
   }
   if (existingCount > 0) {
-    console.log(
-      `Exercise seed: ${existingCount} exercises present but raw_exercises.json has ${exercises.length} — re-seeding from scratch (Exercise.exerciseName has no unique constraint, so a partial catalog can't be safely topped up in place).`,
+    throw new Error(
+      `Exercise seed refused: ${existingCount} exercises are present but raw_exercises.json has ${exercises.length}. Exercise.exerciseName has no unique constraint, so a partial catalog cannot be safely topped up in place without risking duplicates or deleting USER_CUSTOM data. Start from a fresh migrated reference DB or repair manually.`,
     );
-    await prisma.exercise.deleteMany({});
   }
 
   console.log(`Found ${exercises.length} exercises to import.`);

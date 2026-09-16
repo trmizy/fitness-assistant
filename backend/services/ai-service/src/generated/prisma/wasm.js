@@ -353,6 +353,10 @@ exports.Prisma.PersonalizedServiceOrderScalarFieldEnum = {
   refundResolvedAt: 'refundResolvedAt',
   refundResolutionNote: 'refundResolutionNote',
   refundDecision: 'refundDecision',
+  milestoneIntakeReleasedAt: 'milestoneIntakeReleasedAt',
+  milestoneDraftReleasedAt: 'milestoneDraftReleasedAt',
+  milestoneAcceptedReleasedAt: 'milestoneAcceptedReleasedAt',
+  milestoneCompletedReleasedAt: 'milestoneCompletedReleasedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -516,6 +520,22 @@ exports.Prisma.FitnessAgentActionScalarFieldEnum = {
   result: 'result',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.AgentWorkflowSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  sessionId: 'sessionId',
+  workflowType: 'workflowType',
+  status: 'status',
+  expectedSlot: 'expectedSlot',
+  slotsJson: 'slotsJson',
+  pendingProfileUpdate: 'pendingProfileUpdate',
+  draftRef: 'draftRef',
+  revision: 'revision',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -686,7 +706,8 @@ exports.Prisma.ModelName = {
   KnowledgePipelineRun: 'KnowledgePipelineRun',
   KnowledgeReviewItem: 'KnowledgeReviewItem',
   FitnessRecommendation: 'FitnessRecommendation',
-  FitnessAgentAction: 'FitnessAgentAction'
+  FitnessAgentAction: 'FitnessAgentAction',
+  AgentWorkflowSession: 'AgentWorkflowSession'
 };
 
 /**

@@ -7,6 +7,7 @@ import { clientPlanDraftController } from "../controllers/client-plan-draft.cont
 import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { createRateLimiter } from "../middleware/rate-limit.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
   AskRequestSchema,
@@ -27,10 +28,30 @@ router.use("/agent", fitnessAgentRoutes);
 router.use("/sessions", sessionRoutes);
 router.use("/memories", memoryRoutes);
 
-router.post("/ask", validateBody(AskRequestSchema), aiController.ask);
+// Restores the old Express gateway's aiAskRateLimiter (20 req/60s/user) now
+// that traffic reaches this Lambda directly, without that gateway process in
+// front of it — see middleware/rate-limit.middleware.ts's doc comment.
+// Mounted after requireAuth: req.context.userId is only trustworthy from
+// this point on.
+const askRateLimiter = createRateLimiter({
+  name: "ai-ask",
+  max: Number.parseInt(process.env.AI_ASK_RATE_LIMIT_MAX || "20", 10),
+  windowSeconds: Number.parseInt(
+    process.env.AI_ASK_RATE_LIMIT_WINDOW_SECONDS || "60",
+    10,
+  ),
+});
+
+router.post(
+  "/ask",
+  askRateLimiter,
+  validateBody(AskRequestSchema),
+  aiController.ask,
+);
 
 router.post(
   "/ask/stream",
+  askRateLimiter,
   validateBody(AskRequestSchema),
   aiController.askStream,
 );
@@ -49,8 +70,22 @@ router.post(
 
 router.get("/feedback/stats", aiController.getFeedbackStats);
 
+// Second, more conservative tier for endpoints that call the LLM/vision
+// model directly and synchronously outside the /ai/ask chat path — a plain
+// quick-workout generation, same cost profile as one ask. The vision routes
+// (goal-image, image-chat) share this same tier — see fitness-agent.routes.ts.
+const expensiveRateLimiter = createRateLimiter({
+  name: "ai-expensive",
+  max: Number.parseInt(process.env.AI_EXPENSIVE_RATE_LIMIT_MAX || "10", 10),
+  windowSeconds: Number.parseInt(
+    process.env.AI_EXPENSIVE_RATE_LIMIT_WINDOW_SECONDS || "60",
+    10,
+  ),
+});
+
 router.post(
   "/generate-workout",
+  expensiveRateLimiter,
   validateBody(GenerateWorkoutRequestSchema),
   aiController.generateWorkout,
 );

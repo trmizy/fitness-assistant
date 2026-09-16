@@ -123,6 +123,21 @@ export type ClientJourney = $Result.DefaultSelection<Prisma.$ClientJourneyPayloa
  * 
  */
 export type AgentContractDraft = $Result.DefaultSelection<Prisma.$AgentContractDraftPayload>
+/**
+ * Model UserPreference
+ * Adopted, not authored fresh — see migration
+ * `20260916100000_adopt_user_preference` and
+ * docs/aws-full-local-data-migration-schema-reconciliation.md §2. This
+ * table already existed in the local database under a migration whose
+ * folder no longer exists in this repo; its real shape is declared here
+ * exactly as found (audited via `\d "UserPreference"`, not inferred).
+ * Deliberately NOT retrofitted onto this file's later snake_case
+ * `@map`/`@@map` convention — the table/columns are already real,
+ * existing, unmapped (implicit PascalCase/camelCase) Postgres
+ * identifiers, and renaming them is out of scope. Zero application code
+ * anywhere in this repo references this model (grep-verified).
+ */
+export type UserPreference = $Result.DefaultSelection<Prisma.$UserPreferencePayload>
 
 /**
  * Enums
@@ -822,6 +837,16 @@ export class PrismaClient<
     * ```
     */
   get agentContractDraft(): Prisma.AgentContractDraftDelegate<ExtArgs>;
+
+  /**
+   * `prisma.userPreference`: Exposes CRUD operations for the **UserPreference** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserPreferences
+    * const userPreferences = await prisma.userPreference.findMany()
+    * ```
+    */
+  get userPreference(): Prisma.UserPreferenceDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1284,7 +1309,8 @@ export namespace Prisma {
     AuditLog: 'AuditLog',
     SessionSettlement: 'SessionSettlement',
     ClientJourney: 'ClientJourney',
-    AgentContractDraft: 'AgentContractDraft'
+    AgentContractDraft: 'AgentContractDraft',
+    UserPreference: 'UserPreference'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1300,7 +1326,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2841,6 +2867,76 @@ export namespace Prisma {
           count: {
             args: Prisma.AgentContractDraftCountArgs<ExtArgs>
             result: $Utils.Optional<AgentContractDraftCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserPreference: {
+        payload: Prisma.$UserPreferencePayload<ExtArgs>
+        fields: Prisma.UserPreferenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserPreferenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserPreferenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          findFirst: {
+            args: Prisma.UserPreferenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserPreferenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          findMany: {
+            args: Prisma.UserPreferenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>[]
+          }
+          create: {
+            args: Prisma.UserPreferenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          createMany: {
+            args: Prisma.UserPreferenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserPreferenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>[]
+          }
+          delete: {
+            args: Prisma.UserPreferenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          update: {
+            args: Prisma.UserPreferenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          deleteMany: {
+            args: Prisma.UserPreferenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserPreferenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.UserPreferenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          aggregate: {
+            args: Prisma.UserPreferenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserPreference>
+          }
+          groupBy: {
+            args: Prisma.UserPreferenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserPreferenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserPreferenceCountArgs<ExtArgs>
+            result: $Utils.Optional<UserPreferenceCountAggregateOutputType> | number
           }
         }
       }
@@ -27885,6 +27981,966 @@ export namespace Prisma {
 
 
   /**
+   * Model UserPreference
+   */
+
+  export type AggregateUserPreference = {
+    _count: UserPreferenceCountAggregateOutputType | null
+    _avg: UserPreferenceAvgAggregateOutputType | null
+    _sum: UserPreferenceSumAggregateOutputType | null
+    _min: UserPreferenceMinAggregateOutputType | null
+    _max: UserPreferenceMaxAggregateOutputType | null
+  }
+
+  export type UserPreferenceAvgAggregateOutputType = {
+    defaultRestSeconds: number | null
+  }
+
+  export type UserPreferenceSumAggregateOutputType = {
+    defaultRestSeconds: number | null
+  }
+
+  export type UserPreferenceMinAggregateOutputType = {
+    userId: string | null
+    showRpeRir: boolean | null
+    defaultRestSeconds: number | null
+    keepScreenAwake: boolean | null
+    restTimerSound: boolean | null
+    restTimerVibration: boolean | null
+    smartPrefill: boolean | null
+    showMacros: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type UserPreferenceMaxAggregateOutputType = {
+    userId: string | null
+    showRpeRir: boolean | null
+    defaultRestSeconds: number | null
+    keepScreenAwake: boolean | null
+    restTimerSound: boolean | null
+    restTimerVibration: boolean | null
+    smartPrefill: boolean | null
+    showMacros: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type UserPreferenceCountAggregateOutputType = {
+    userId: number
+    showRpeRir: number
+    defaultRestSeconds: number
+    keepScreenAwake: number
+    restTimerSound: number
+    restTimerVibration: number
+    smartPrefill: number
+    showMacros: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UserPreferenceAvgAggregateInputType = {
+    defaultRestSeconds?: true
+  }
+
+  export type UserPreferenceSumAggregateInputType = {
+    defaultRestSeconds?: true
+  }
+
+  export type UserPreferenceMinAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+  }
+
+  export type UserPreferenceMaxAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+  }
+
+  export type UserPreferenceCountAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UserPreferenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserPreference to aggregate.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserPreferences
+    **/
+    _count?: true | UserPreferenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UserPreferenceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UserPreferenceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserPreferenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserPreferenceMaxAggregateInputType
+  }
+
+  export type GetUserPreferenceAggregateType<T extends UserPreferenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserPreference]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserPreference[P]>
+      : GetScalarType<T[P], AggregateUserPreference[P]>
+  }
+
+
+
+
+  export type UserPreferenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserPreferenceWhereInput
+    orderBy?: UserPreferenceOrderByWithAggregationInput | UserPreferenceOrderByWithAggregationInput[]
+    by: UserPreferenceScalarFieldEnum[] | UserPreferenceScalarFieldEnum
+    having?: UserPreferenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserPreferenceCountAggregateInputType | true
+    _avg?: UserPreferenceAvgAggregateInputType
+    _sum?: UserPreferenceSumAggregateInputType
+    _min?: UserPreferenceMinAggregateInputType
+    _max?: UserPreferenceMaxAggregateInputType
+  }
+
+  export type UserPreferenceGroupByOutputType = {
+    userId: string
+    showRpeRir: boolean
+    defaultRestSeconds: number
+    keepScreenAwake: boolean
+    restTimerSound: boolean
+    restTimerVibration: boolean
+    smartPrefill: boolean
+    showMacros: boolean
+    updatedAt: Date
+    _count: UserPreferenceCountAggregateOutputType | null
+    _avg: UserPreferenceAvgAggregateOutputType | null
+    _sum: UserPreferenceSumAggregateOutputType | null
+    _min: UserPreferenceMinAggregateOutputType | null
+    _max: UserPreferenceMaxAggregateOutputType | null
+  }
+
+  type GetUserPreferenceGroupByPayload<T extends UserPreferenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserPreferenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserPreferenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserPreferenceGroupByOutputType[P]>
+            : GetScalarType<T[P], UserPreferenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserPreferenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["userPreference"]>
+
+  export type UserPreferenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["userPreference"]>
+
+  export type UserPreferenceSelectScalar = {
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $UserPreferencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserPreference"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      showRpeRir: boolean
+      defaultRestSeconds: number
+      keepScreenAwake: boolean
+      restTimerSound: boolean
+      restTimerVibration: boolean
+      smartPrefill: boolean
+      showMacros: boolean
+      updatedAt: Date
+    }, ExtArgs["result"]["userPreference"]>
+    composites: {}
+  }
+
+  type UserPreferenceGetPayload<S extends boolean | null | undefined | UserPreferenceDefaultArgs> = $Result.GetResult<Prisma.$UserPreferencePayload, S>
+
+  type UserPreferenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<UserPreferenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: UserPreferenceCountAggregateInputType | true
+    }
+
+  export interface UserPreferenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserPreference'], meta: { name: 'UserPreference' } }
+    /**
+     * Find zero or one UserPreference that matches the filter.
+     * @param {UserPreferenceFindUniqueArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserPreferenceFindUniqueArgs>(args: SelectSubset<T, UserPreferenceFindUniqueArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one UserPreference that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {UserPreferenceFindUniqueOrThrowArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserPreferenceFindUniqueOrThrowArgs>(args: SelectSubset<T, UserPreferenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first UserPreference that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindFirstArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserPreferenceFindFirstArgs>(args?: SelectSubset<T, UserPreferenceFindFirstArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first UserPreference that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindFirstOrThrowArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserPreferenceFindFirstOrThrowArgs>(args?: SelectSubset<T, UserPreferenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more UserPreferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserPreferences
+     * const userPreferences = await prisma.userPreference.findMany()
+     * 
+     * // Get first 10 UserPreferences
+     * const userPreferences = await prisma.userPreference.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const userPreferenceWithUserIdOnly = await prisma.userPreference.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends UserPreferenceFindManyArgs>(args?: SelectSubset<T, UserPreferenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a UserPreference.
+     * @param {UserPreferenceCreateArgs} args - Arguments to create a UserPreference.
+     * @example
+     * // Create one UserPreference
+     * const UserPreference = await prisma.userPreference.create({
+     *   data: {
+     *     // ... data to create a UserPreference
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserPreferenceCreateArgs>(args: SelectSubset<T, UserPreferenceCreateArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many UserPreferences.
+     * @param {UserPreferenceCreateManyArgs} args - Arguments to create many UserPreferences.
+     * @example
+     * // Create many UserPreferences
+     * const userPreference = await prisma.userPreference.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserPreferenceCreateManyArgs>(args?: SelectSubset<T, UserPreferenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserPreferences and returns the data saved in the database.
+     * @param {UserPreferenceCreateManyAndReturnArgs} args - Arguments to create many UserPreferences.
+     * @example
+     * // Create many UserPreferences
+     * const userPreference = await prisma.userPreference.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserPreferences and only return the `userId`
+     * const userPreferenceWithUserIdOnly = await prisma.userPreference.createManyAndReturn({ 
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserPreferenceCreateManyAndReturnArgs>(args?: SelectSubset<T, UserPreferenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a UserPreference.
+     * @param {UserPreferenceDeleteArgs} args - Arguments to delete one UserPreference.
+     * @example
+     * // Delete one UserPreference
+     * const UserPreference = await prisma.userPreference.delete({
+     *   where: {
+     *     // ... filter to delete one UserPreference
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserPreferenceDeleteArgs>(args: SelectSubset<T, UserPreferenceDeleteArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one UserPreference.
+     * @param {UserPreferenceUpdateArgs} args - Arguments to update one UserPreference.
+     * @example
+     * // Update one UserPreference
+     * const userPreference = await prisma.userPreference.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserPreferenceUpdateArgs>(args: SelectSubset<T, UserPreferenceUpdateArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more UserPreferences.
+     * @param {UserPreferenceDeleteManyArgs} args - Arguments to filter UserPreferences to delete.
+     * @example
+     * // Delete a few UserPreferences
+     * const { count } = await prisma.userPreference.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserPreferenceDeleteManyArgs>(args?: SelectSubset<T, UserPreferenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserPreferences
+     * const userPreference = await prisma.userPreference.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserPreferenceUpdateManyArgs>(args: SelectSubset<T, UserPreferenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one UserPreference.
+     * @param {UserPreferenceUpsertArgs} args - Arguments to update or create a UserPreference.
+     * @example
+     * // Update or create a UserPreference
+     * const userPreference = await prisma.userPreference.upsert({
+     *   create: {
+     *     // ... data to create a UserPreference
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserPreference we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserPreferenceUpsertArgs>(args: SelectSubset<T, UserPreferenceUpsertArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of UserPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceCountArgs} args - Arguments to filter UserPreferences to count.
+     * @example
+     * // Count the number of UserPreferences
+     * const count = await prisma.userPreference.count({
+     *   where: {
+     *     // ... the filter for the UserPreferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserPreferenceCountArgs>(
+      args?: Subset<T, UserPreferenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserPreferenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserPreferenceAggregateArgs>(args: Subset<T, UserPreferenceAggregateArgs>): Prisma.PrismaPromise<GetUserPreferenceAggregateType<T>>
+
+    /**
+     * Group by UserPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserPreferenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserPreferenceGroupByArgs['orderBy'] }
+        : { orderBy?: UserPreferenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserPreferenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserPreferenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserPreference model
+   */
+  readonly fields: UserPreferenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserPreference.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserPreferenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserPreference model
+   */ 
+  interface UserPreferenceFieldRefs {
+    readonly userId: FieldRef<"UserPreference", 'String'>
+    readonly showRpeRir: FieldRef<"UserPreference", 'Boolean'>
+    readonly defaultRestSeconds: FieldRef<"UserPreference", 'Int'>
+    readonly keepScreenAwake: FieldRef<"UserPreference", 'Boolean'>
+    readonly restTimerSound: FieldRef<"UserPreference", 'Boolean'>
+    readonly restTimerVibration: FieldRef<"UserPreference", 'Boolean'>
+    readonly smartPrefill: FieldRef<"UserPreference", 'Boolean'>
+    readonly showMacros: FieldRef<"UserPreference", 'Boolean'>
+    readonly updatedAt: FieldRef<"UserPreference", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserPreference findUnique
+   */
+  export type UserPreferenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference findUniqueOrThrow
+   */
+  export type UserPreferenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference findFirst
+   */
+  export type UserPreferenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserPreferences.
+     */
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference findFirstOrThrow
+   */
+  export type UserPreferenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserPreferences.
+     */
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference findMany
+   */
+  export type UserPreferenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreferences to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference create
+   */
+  export type UserPreferenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The data needed to create a UserPreference.
+     */
+    data: XOR<UserPreferenceCreateInput, UserPreferenceUncheckedCreateInput>
+  }
+
+  /**
+   * UserPreference createMany
+   */
+  export type UserPreferenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserPreferences.
+     */
+    data: UserPreferenceCreateManyInput | UserPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserPreference createManyAndReturn
+   */
+  export type UserPreferenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many UserPreferences.
+     */
+    data: UserPreferenceCreateManyInput | UserPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserPreference update
+   */
+  export type UserPreferenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The data needed to update a UserPreference.
+     */
+    data: XOR<UserPreferenceUpdateInput, UserPreferenceUncheckedUpdateInput>
+    /**
+     * Choose, which UserPreference to update.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference updateMany
+   */
+  export type UserPreferenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserPreferences.
+     */
+    data: XOR<UserPreferenceUpdateManyMutationInput, UserPreferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which UserPreferences to update
+     */
+    where?: UserPreferenceWhereInput
+  }
+
+  /**
+   * UserPreference upsert
+   */
+  export type UserPreferenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The filter to search for the UserPreference to update in case it exists.
+     */
+    where: UserPreferenceWhereUniqueInput
+    /**
+     * In case the UserPreference found by the `where` argument doesn't exist, create a new UserPreference with this data.
+     */
+    create: XOR<UserPreferenceCreateInput, UserPreferenceUncheckedCreateInput>
+    /**
+     * In case the UserPreference was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserPreferenceUpdateInput, UserPreferenceUncheckedUpdateInput>
+  }
+
+  /**
+   * UserPreference delete
+   */
+  export type UserPreferenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter which UserPreference to delete.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference deleteMany
+   */
+  export type UserPreferenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserPreferences to delete
+     */
+    where?: UserPreferenceWhereInput
+  }
+
+  /**
+   * UserPreference without action
+   */
+  export type UserPreferenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -28422,6 +29478,21 @@ export namespace Prisma {
   };
 
   export type AgentContractDraftScalarFieldEnum = (typeof AgentContractDraftScalarFieldEnum)[keyof typeof AgentContractDraftScalarFieldEnum]
+
+
+  export const UserPreferenceScalarFieldEnum: {
+    userId: 'userId',
+    showRpeRir: 'showRpeRir',
+    defaultRestSeconds: 'defaultRestSeconds',
+    keepScreenAwake: 'keepScreenAwake',
+    restTimerSound: 'restTimerSound',
+    restTimerVibration: 'restTimerVibration',
+    smartPrefill: 'smartPrefill',
+    showMacros: 'showMacros',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UserPreferenceScalarFieldEnum = (typeof UserPreferenceScalarFieldEnum)[keyof typeof UserPreferenceScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -31389,12 +32460,12 @@ export namespace Prisma {
 
   export type ClientJourneyWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    contractId?: string
     AND?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
     OR?: ClientJourneyWhereInput[]
     NOT?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
     userId?: StringFilter<"ClientJourney"> | string
     ptId?: StringNullableFilter<"ClientJourney"> | string | null
-    contractId?: StringNullableFilter<"ClientJourney"> | string | null
     programId?: StringNullableFilter<"ClientJourney"> | string | null
     trainingCycleId?: StringNullableFilter<"ClientJourney"> | string | null
     nutritionGoalId?: StringNullableFilter<"ClientJourney"> | string | null
@@ -31424,7 +32495,7 @@ export namespace Prisma {
     baselineSnapshot?: JsonNullableFilter<"ClientJourney">
     user?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
     contract?: XOR<ContractNullableRelationFilter, ContractWhereInput> | null
-  }, "id">
+  }, "id" | "contractId">
 
   export type ClientJourneyOrderByWithAggregationInput = {
     id?: SortOrder
@@ -31575,6 +32646,80 @@ export namespace Prisma {
     contractId?: StringNullableWithAggregatesFilter<"AgentContractDraft"> | string | null
     expiresAt?: DateTimeWithAggregatesFilter<"AgentContractDraft"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"AgentContractDraft"> | Date | string
+  }
+
+  export type UserPreferenceWhereInput = {
+    AND?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    OR?: UserPreferenceWhereInput[]
+    NOT?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    userId?: StringFilter<"UserPreference"> | string
+    showRpeRir?: BoolFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolFilter<"UserPreference"> | boolean
+    showMacros?: BoolFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeFilter<"UserPreference"> | Date | string
+  }
+
+  export type UserPreferenceOrderByWithRelationInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    OR?: UserPreferenceWhereInput[]
+    NOT?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    showRpeRir?: BoolFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolFilter<"UserPreference"> | boolean
+    showMacros?: BoolFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeFilter<"UserPreference"> | Date | string
+  }, "userId">
+
+  export type UserPreferenceOrderByWithAggregationInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UserPreferenceCountOrderByAggregateInput
+    _avg?: UserPreferenceAvgOrderByAggregateInput
+    _max?: UserPreferenceMaxOrderByAggregateInput
+    _min?: UserPreferenceMinOrderByAggregateInput
+    _sum?: UserPreferenceSumOrderByAggregateInput
+  }
+
+  export type UserPreferenceScalarWhereWithAggregatesInput = {
+    AND?: UserPreferenceScalarWhereWithAggregatesInput | UserPreferenceScalarWhereWithAggregatesInput[]
+    OR?: UserPreferenceScalarWhereWithAggregatesInput[]
+    NOT?: UserPreferenceScalarWhereWithAggregatesInput | UserPreferenceScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"UserPreference"> | string
+    showRpeRir?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntWithAggregatesFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    showMacros?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeWithAggregatesFilter<"UserPreference"> | Date | string
   }
 
   export type UserProfileCreateInput = {
@@ -34848,6 +35993,90 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type UserPreferenceCreateInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUncheckedCreateInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceCreateManyInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUpdateManyMutationInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -37395,6 +38624,50 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedJsonFilter<$PrismaModel>
     _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type UserPreferenceCountOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceAvgOrderByAggregateInput = {
+    defaultRestSeconds?: SortOrder
+  }
+
+  export type UserPreferenceMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceMinOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceSumOrderByAggregateInput = {
+    defaultRestSeconds?: SortOrder
   }
 
   export type UserProfileCreatesafetyScreeningFlagsInput = {
@@ -45219,6 +46492,10 @@ export namespace Prisma {
      * @deprecated Use AgentContractDraftDefaultArgs instead
      */
     export type AgentContractDraftArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AgentContractDraftDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use UserPreferenceDefaultArgs instead
+     */
+    export type UserPreferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserPreferenceDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

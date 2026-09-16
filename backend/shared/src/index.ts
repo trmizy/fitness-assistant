@@ -11,3 +11,4 @@ export * from "./metrics";
 export * from "./gatewayTrust";
 export * from "./fitness-agent";
 export * from "./fitness-agent-scoring";
+export * from "./fitness-agent-context";

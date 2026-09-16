@@ -2,6 +2,7 @@ import { llmService, LLM_PROVIDER } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
 import { fitnessAgent } from "../services/fitness-agent.service";
 import { conversationRepository } from "../repositories/conversation.repository";
+import { persistDeterministicMemoryCandidates } from "./memory_extraction";
 import { logger } from "@gym-coach/shared";
 import {
   nutritionResponseSourceTotal,
@@ -374,6 +375,19 @@ export const llmOrchestrator = {
     // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
     const safetyCheck = safetyGuard.check(question);
+
+    // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
+    // memory-write provenance (see memory_extraction.ts's own doc comment).
+    // Placed here, before every downstream early-return branch, so it runs
+    // on every real authenticated chat turn regardless of intent routing —
+    // this is now the ONLY path that can create a durable UserMemory row
+    // from a live chat turn (the LLM can no longer trigger a write via
+    // tool-calling, see tools.ts's AVAILABLE_TOOLS comment). Fire-and-forget:
+    // never awaited into the response, never allowed to affect the chat
+    // answer or its latency.
+    void persistDeterministicMemoryCandidates(userId, question, {
+      knownPromptInjection: safetyCheck.type === "prompt_injection_attempt",
+    }).catch((err) => logger.warn({ err: (err as Error)?.message, userId }, "[memory-provenance] unexpected error; chat turn unaffected"));
 
     if (
       safetyCheck.type === "off_topic" ||
@@ -919,7 +933,9 @@ export const llmOrchestrator = {
           // of blanket-raising it, so switching back to the local model keeps
           // its tuned budget.
           numPredict:
-            LLM_PROVIDER === "anthropic"
+            // bedrock added (AWS Bedrock Claude pass): same Claude model, same
+            // truncation risk, so it takes the anthropic budget.
+            LLM_PROVIDER === "anthropic" || LLM_PROVIDER === "bedrock"
               ? bodyCompositionQuestion
                 ? 2000
                 : 1500

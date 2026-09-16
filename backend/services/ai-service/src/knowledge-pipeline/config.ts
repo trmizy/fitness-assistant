@@ -1,6 +1,10 @@
+import { EMBEDDING_VECTOR_SIZE } from "../services/embedding-config";
+
 export const KNOWLEDGE_PIPELINE = {
   collection: process.env.KNOWLEDGE_QDRANT_COLLECTION || "fitness_evidence",
-  vectorSize: Number.parseInt(process.env.KNOWLEDGE_VECTOR_SIZE || "768", 10),
+  // Resolved once in embedding-config.ts (KNOWLEDGE_VECTOR_SIZE, else 1024 for
+  // Bedrock Cohere / 768 for Ollama nomic-embed-text) — never re-parsed here.
+  vectorSize: EMBEDDING_VECTOR_SIZE,
   acceptThreshold: Number.parseFloat(
     process.env.TRUST_THRESHOLD_ACCEPT || "0.6",
   ),

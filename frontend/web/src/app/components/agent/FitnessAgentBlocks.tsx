@@ -5,10 +5,47 @@ import { isSafeHttpUrl } from "../../utils/safeUrl";
 
 const button = "min-h-11 rounded-lg border border-emerald-600 px-3 py-2 text-sm text-emerald-300 disabled:opacity-50";
 const money = (n: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+const RISK_LABEL_VI: Record<string, string> = { LOW: "Rủi ro thấp", MEDIUM: "Rủi ro trung bình", HIGH: "Rủi ro cao" };
+const RISK_CLASS: Record<string, string> = {
+  LOW: "bg-zinc-700/60 text-zinc-300 border-zinc-600",
+  MEDIUM: "bg-amber-500/10 text-amber-300 border-amber-500/40",
+  HIGH: "bg-red-500/10 text-red-300 border-red-500/40",
+};
+function RiskBadge({ risk }: { risk?: "LOW" | "MEDIUM" | "HIGH" }) {
+  if (!risk || !RISK_LABEL_VI[risk]) return null;
+  return <span className={`inline-block shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${RISK_CLASS[risk]}`}>{RISK_LABEL_VI[risk]}</span>;
+}
+// Same Vietnamese labels as backend's TRAINING_DECISION_LABEL_VI/NUTRITION_DECISION_LABEL_VI
+// (ai-service/src/services/fitness-agent.service.ts) — kept in sync manually, no shared package export.
+const TRAINING_DECISION_LABEL_VI: Record<string, string> = {
+  KEEP: "Giữ nguyên", PROGRESS: "Tăng tải", ADJUST: "Điều chỉnh nhỏ", DELOAD: "Giảm tải (deload)",
+  REBUILD: "Xây lại chương trình", INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
+};
+const NUTRITION_DECISION_LABEL_VI: Record<string, string> = {
+  KEEP_PLAN: "Giữ nguyên dinh dưỡng", PROPOSE_ADJUSTMENT: "Đề xuất điều chỉnh", PROPOSE_DIET_BREAK: "Đề xuất nghỉ diet break",
+  REQUEST_MORE_DATA: "Cần thêm dữ liệu", EARLY_REVIEW: "Cần xem xét sớm", ESCALATE: "Cần chuyên gia xem xét",
+};
 // Exported so GuidedRoadmapWizard's own goal-image result card (Step 3) uses the exact same
 // Vietnamese muscle-group labels as this chat block — one source of truth for the wording.
 export const focusLabels: Record<string, string> = { SHOULDERS: "Vai", CHEST: "Ngực", BACK: "Lưng", ARMS: "Tay", LEGS: "Chân", GLUTES: "Mông", GENERAL: "Toàn thân" };
-export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentChatBlock; sessionId?: string; onReply: (reply: AgentReply) => void }) {
+// Same field labels/value formatting as the backend's own SlotDefinition.label/format
+// (agent-workflow/workflows/*.workflow.ts) — kept in sync manually, no shared package export.
+const PROFILE_FIELD_LABEL_VI: Record<string, string> = {
+  goal: "Mục tiêu", targetWeight: "Cân nặng mục tiêu", age: "Tuổi", gender: "Giới tính",
+  heightCm: "Chiều cao", currentWeight: "Cân nặng hiện tại",
+};
+const GOAL_LABEL_VI: Record<string, string> = { WEIGHT_LOSS: "Giảm mỡ", MUSCLE_GAIN: "Tăng cơ", MAINTENANCE: "Duy trì", ATHLETIC_PERFORMANCE: "Hiệu suất thể thao" };
+const GENDER_LABEL_VI: Record<string, string> = { MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" };
+function formatProfileFieldValue(field: string, value: unknown): string {
+  if (value == null) return "Chưa thiết lập";
+  if (field === "goal") return GOAL_LABEL_VI[String(value)] ?? String(value);
+  if (field === "gender") return GENDER_LABEL_VI[String(value)] ?? String(value);
+  if (field === "targetWeight" || field === "currentWeight") return `${value} kg`;
+  if (field === "heightCm") return `${value} cm`;
+  if (field === "age") return `${value} tuổi`;
+  return String(value);
+}
+export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: { block: AgentChatBlock; sessionId?: string; onReply: (reply: AgentReply) => void; onQuickReply?: (text: string) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
   const [goal, setGoal] = useState("MUSCLE_GAIN");
@@ -25,7 +62,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
   }
   return <section className="mt-3 min-w-0 space-y-3 break-words" onClick={e => e.stopPropagation()} aria-busy={busy}>
     {block.warnings?.map(w => <p key={w} className="text-amber-300">{w}</p>)}
-    {block.candidates?.map((c, i) => <article key={c.id} className="rounded-xl border border-zinc-700 p-3 space-y-2">
+    {(block.type === "PT_RECOMMENDATIONS" || block.type === "PROGRAM_RECOMMENDATIONS") && block.candidates?.map((c, i) => <article key={c.id} className="rounded-xl border border-zinc-700 p-3 space-y-2">
       <div className="flex items-start gap-2">
         {c.photoUrl && isSafeHttpUrl(c.photoUrl) && <img src={c.photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />}
         <div className="min-w-0"><h3 className="font-semibold text-zinc-100">{i + 1}. {c.name}</h3>
@@ -39,6 +76,10 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
       {c.reviewCount > 0 && <p>Đánh giá {Number(c.averageRating).toFixed(1)}/5 ({c.reviewCount} lượt)</p>}
       <details><summary className="cursor-pointer min-h-11 py-2">Lý do và bằng chứng</summary>
         <ul className="list-disc pl-5">{c.why?.map((w: string) => <li key={w}>{w}</li>)}</ul>
+        {c.narration?.uncertainty?.length > 0 && <div className="mt-2 rounded-lg bg-zinc-800/60 p-2 text-xs text-zinc-300 space-y-1">
+          <p className="font-medium text-zinc-200">Lưu ý:</p>
+          <ul className="list-disc pl-4">{c.narration.uncertainty.map((u: string) => <li key={u}>{u}</li>)}</ul>
+        </div>}
         {c.history && <div className="mt-2 text-xs space-y-1">
           <p>{c.history.count > 0 ? `${c.history.count} journey tương đồng` : "Chưa đủ bằng chứng lịch sử."}</p>
           {c.history.medianTrainingAdherence != null && <p>Tuân thủ tập trung vị: {Math.round(c.history.medianTrainingAdherence * 100)}%</p>}
@@ -63,7 +104,10 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
       {block.evidence.map(e => <div key={e.id} className="mb-3 text-xs"><a href={isSafeHttpUrl(e.sourceUrl) ? e.sourceUrl : undefined} target="_blank" rel="noreferrer" className="text-cyan-300 underline">{e.title}</a><p>{e.evidenceLevel}</p><p>{e.finding}</p></div>)}
     </details> : null}
     {block.type === "ACTION_CONFIRMATION" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
-      <h3 className="font-semibold">{block.title}</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-semibold">{block.title}</h3>
+        <RiskBadge risk={block.risk} />
+      </div>
       {block.summary?.ptName && <p>PT: {block.summary.ptName}</p>}
       {block.summary?.name && <p>Gói: {block.summary.name}</p>}
       {block.summary?.price != null && <p>Tổng giá: {money(block.summary.price)}</p>}
@@ -94,6 +138,20 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
       {block.kind === "ROADMAP_ARCHIVE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
         <p>🗄️ {block.summary?.isDraft ? "Bản nháp" : "Lộ trình đang hoạt động"} · mục tiêu {block.summary?.goalType ?? "?"}</p>
         <p className="text-amber-300">Lộ trình sẽ không còn hoạt động sau khi xác nhận.</p>
+      </div>}
+      {block.kind === "CYCLE_COMPLETE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>✅ {block.summary?.cycleName ?? "Chu kỳ tập hiện tại"}{block.summary?.goal ? ` · ${block.summary.goal}` : ""}</p>
+      </div>}
+      {block.kind === "CYCLE_CANCEL" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🚫 {block.summary?.cycleName ?? "Chu kỳ tập hiện tại"}</p>
+        <p className="text-amber-300">Không thể hoàn tác sau khi xác nhận.</p>
+      </div>}
+      {block.kind === "NUTRITION_LOG_MEAL" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🍽️ {block.summary?.foodName} · {block.summary?.mealTypeLabel}</p>
+        <p>{block.summary?.calories} kcal · {block.summary?.protein}g đạm · {block.summary?.carbs}g carb · {block.summary?.fats}g béo</p>
+      </div>}
+      {(block.kind === "WORKOUT_START" || block.kind === "WORKOUT_SKIP" || block.kind === "WORKOUT_CANCEL") && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p>🏋️ {block.summary?.dayTitle ?? "Buổi tập hôm nay"}</p>
       </div>}
       <p>{block.note}</p>
       <button className={button} disabled={busy || completed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}</button>
@@ -130,7 +188,49 @@ export function FitnessAgentBlock({ block, sessionId, onReply }: { block: AgentC
     {block.type === "ACTION_RESULT" && <div role="status" className="space-y-1.5">
       <p>{block.message ?? (block.goalConfirmed ? "Đã lưu mục tiêu. Bạn có thể yêu cầu gợi ý PT hoặc chương trình tập." : "Thao tác đã hoàn tất.")}</p>
       {Array.isArray(block.steps) && <ul className="space-y-0.5 text-xs">{block.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>}
-      {block.nextUrl && ["/client/contracts", "/client/training", "/client/dashboard"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}
+      {block.nextUrl && ["/client/contracts", "/client/training", "/client/dashboard", "/client/nutrition"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}
+    </div>}
+    {block.type === "SUBSTITUTE_RESULT" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
+      <p className="text-zinc-200">{block.message}</p>
+      {Array.isArray(block.candidates) && block.candidates.length > 0 && <ul className="space-y-1 text-xs text-zinc-400">
+        {block.candidates.map((c: any, i: number) => <li key={c.mealId ?? c.itemId ?? i} className="rounded-lg border border-zinc-700 px-2 py-1.5">{c.label ?? c.itemName}{c.label && c.itemName ? ` — ${c.itemName}` : ""}</li>)}
+      </ul>}
+    </div>}
+    {block.type === "CYCLE_EVALUATION_RESULT" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
+      <p className="font-semibold text-zinc-100">{block.decision ? (TRAINING_DECISION_LABEL_VI[block.decision] ?? block.decision) : "Chưa xác định"}</p>
+      {block.aiSummary && <p className="text-zinc-300">{block.aiSummary}</p>}
+      {block.nutritionDecision && <div className="mt-2 border-t border-zinc-800 pt-2">
+        <p className="font-semibold text-zinc-100">{NUTRITION_DECISION_LABEL_VI[block.nutritionDecision] ?? block.nutritionDecision}</p>
+        {block.nutritionAiHeadline && <p className="text-zinc-300">{block.nutritionAiHeadline}</p>}
+        {block.nutritionAiExplanation && <p className="text-xs text-zinc-400">{block.nutritionAiExplanation}</p>}
+      </div>}
+      {((block.userDecision === "PENDING" && block.decision) || (block.nutritionUserDecision === "PENDING" && block.nutritionDecision)) &&
+        <p className="text-xs text-amber-300">Bạn có thể nhắn "chấp nhận" hoặc "từ chối" để phản hồi đề xuất này.</p>}
+    </div>}
+    {block.type === "WORKFLOW_MISSING_DATA" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
+      {block.known?.length ? <ul className="space-y-0.5 text-xs text-zinc-400">{block.known.map((k, i) => <li key={i}>✓ {k}</li>)}</ul> : null}
+      {block.missing?.length ? <ul className="space-y-0.5 text-xs text-amber-300">{block.missing.map((m, i) => <li key={i}>• {m}</li>)}</ul> : null}
+    </div>}
+    {block.type === "PROFILE_UPDATE_CONFIRMATION" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
+      <h3 className="font-semibold">Cập nhật hồ sơ</h3>
+      <ul className="space-y-1 text-sm">
+        {block.changes?.map((c, i) => <li key={i} className="rounded-lg border border-zinc-700 px-2 py-1.5">
+          <span className="text-zinc-400">{PROFILE_FIELD_LABEL_VI[c.field] ?? c.field}: </span>
+          {formatProfileFieldValue(c.field, c.oldValue)} → <span className="text-emerald-300">{formatProfileFieldValue(c.field, c.newValue)}</span>
+        </li>)}
+      </ul>
+      {/* Codex Conversational AI Coach Evaluation #1 — "Chỉ dùng cho lần
+          này" is only ever offered when the backend says this batch
+          genuinely allows it (server-owned policy, never hardcoded here).
+          Every field shown above is required by real downstream generation
+          (profile facts), so it is explained rather than made to look
+          optional when use-once isn't available. */}
+      {block.allowUseOnce === false && <p className="text-xs text-zinc-400">Gymini cần lưu thông tin này vào hồ sơ để sử dụng dữ liệu chính xác — bạn có thể xác nhận, hoặc nhắn một giá trị khác nếu muốn chỉnh lại.</p>}
+      <div className="flex flex-wrap gap-2">
+        <button className={button} disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Xác nhận cập nhật"); }}>Xác nhận cập nhật</button>
+        {block.allowUseOnce !== false && <button className="min-h-11 rounded-lg border border-zinc-600 px-3 py-2 text-sm text-zinc-300" disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Chỉ dùng cho lần này"); }}>Chỉ dùng cho lần này</button>}
+        <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Hủy"); }}>Hủy</button>
+      </div>
     </div>}
     {error && <p role="alert" className="text-red-300">{error}</p>}
   </section>;

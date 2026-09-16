@@ -1,3 +1,14 @@
+// NOTE: this script's index step (`indexResearchRecordsToQdrant`) uses the
+// DEPRECATED `knowledge/pipeline/chunk.ts` + `index_to_qdrant.ts` path — a
+// cruder, no-overlap chunker that also bypasses the production
+// trust-scoring/safety-judge gate (`knowledge-pipeline/scoring.ts` +
+// `safety-judge.ts`). It is kept working here only because
+// `ENABLE_RESEARCH_AUTOMATION` / `researchScheduler.ts` may still depend on
+// it externally. See `docs/ai-agent-system-feasibility-audit.md` section 1.3
+// and `src/knowledge/README.md` for the consolidation decision and the
+// recommended replacement (reshape approved records into
+// `data/processed/evidence/*.jsonl` and run `runLocalEvidencePipeline()` /
+// `POST /internal/knowledge/local-evidence` instead).
 import path from "path";
 import { readNormalizedJsonl } from "../knowledge/connectors";
 import { readApprovedReviewRecords } from "../knowledge/pipeline/review_queue";

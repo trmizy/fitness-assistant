@@ -1,6 +1,7 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { GoalIntentSchema, logger } from "@gym-coach/shared";
+import { createRateLimiter } from "../middleware/rate-limit.middleware";
 import { fitnessAgent, type AgentBlock } from "../services/fitness-agent.service";
 import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { analyzeGoalImage, GoalImageSchema } from "../services/fitness-goal-vision.service";
@@ -10,6 +11,21 @@ import { prisma } from "../repositories/conversation.repository";
 
 const router = Router();
 const uuid = z.string().uuid();
+
+// Same tier and same "ai-expensive" bucket as POST /ai/generate-workout (see
+// ai.routes.ts) — a direct, synchronous vision call to Bedrock is at least as
+// costly per request, and sharing one bucket keeps a user from working
+// around the workout-generation limit by hitting these instead. Mounted
+// after /ai's own requireAuth (this router is mounted at /ai/agent), so
+// req.context.userId is already trustworthy here.
+const expensiveRateLimiter = createRateLimiter({
+  name: "ai-expensive",
+  max: Number.parseInt(process.env.AI_EXPENSIVE_RATE_LIMIT_MAX || "10", 10),
+  windowSeconds: Number.parseInt(
+    process.env.AI_EXPENSIVE_RATE_LIMIT_WINDOW_SECONDS || "60",
+    10,
+  ),
+});
 async function sessionFor(req: Request, supplied?: string, title = "Mục tiêu hình thể") {
   if (!supplied) return prisma.chatSession.create({ data: { userId: req.context.userId, title } });
   const session = await prisma.chatSession.findFirst({ where: { id: supplied, userId: req.context.userId, archivedAt: null } });
@@ -46,14 +62,14 @@ router.post("/actions/:id/confirm", handle(async req => {
   const action = await prisma.fitnessAgentAction.findFirstOrThrow({ where: { id, userId: req.context.userId } });
   return persist(req, action.sessionId, block, "Xác nhận thao tác");
 }));
-router.post("/goal-image", handle(async req => {
+router.post("/goal-image", expensiveRateLimiter, handle(async req => {
   const body = z.object({ image: GoalImageSchema, sessionId: uuid.optional() }).strict().parse(req.body);
   const session = await sessionFor(req, body.sessionId);
   const attributes = await analyzeGoalImage(body.image);
   return persist(req, session.id, { type: "GOAL_ANALYSIS", attributes,
     note: "Đây là gợi ý đặc điểm hình thể, không phải phép đo cơ thể hay cam kết kết quả. Có đúng đây là đặc điểm bạn muốn hướng tới không?" }, "Phân tích ảnh tham khảo mục tiêu");
 }));
-router.post("/image-chat", handle(async req => {
+router.post("/image-chat", expensiveRateLimiter, handle(async req => {
   const body = z.object({ image: GoalImageSchema, question: z.string().max(500).optional(), sessionId: uuid.optional() }).strict().parse(req.body);
   const session = await sessionFor(req, body.sessionId, "Hỏi AI về ảnh");
   // Real bug found live this session: this route used to call analyzeImageChat

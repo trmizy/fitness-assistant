@@ -1,0 +1,129 @@
+{
+  "evaluator": "codex-training-program-recommendation-v2-final",
+  "generatedAt": "2026-09-15T04:30:31.544Z",
+  "scoringVersions": {
+    "retired": "program-compatibility-v1",
+    "productionExpected": "program-compatibility-v2"
+  },
+  "distributionCheck": {
+    "v1UniqueScores": 13,
+    "v2UniqueScores": 42,
+    "v1TieRate": 0.87,
+    "v2TieRate": 0.58
+  },
+  "summary": {
+    "totalCases": 27,
+    "passed": 27,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "name": "v2 scoring version is persisted as program-compatibility-v2",
+      "status": "PASS"
+    },
+    {
+      "name": "hard-filter dimensions are not weighted components",
+      "status": "PASS"
+    },
+    {
+      "name": "eligibility facts remain available for explainability",
+      "status": "PASS"
+    },
+    {
+      "name": "session target prefers 51 minutes over 60 when requested session is 60",
+      "status": "PASS"
+    },
+    {
+      "name": "session scoring is monotonic around the 85 percent target",
+      "status": "PASS"
+    },
+    {
+      "name": "focus full overlap beats partial overlap",
+      "status": "PASS"
+    },
+    {
+      "name": "focus partial overlap beats zero overlap",
+      "status": "PASS"
+    },
+    {
+      "name": "GENERAL is ignored as a non-specific focus token",
+      "status": "PASS"
+    },
+    {
+      "name": "duration weeks exact match beats near match",
+      "status": "PASS"
+    },
+    {
+      "name": "duration weeks near match beats far match",
+      "status": "PASS"
+    },
+    {
+      "name": "missing focus preference excludes focus from denominator",
+      "status": "PASS"
+    },
+    {
+      "name": "missing durationWeeks preference excludes duration from denominator",
+      "status": "PASS"
+    },
+    {
+      "name": "missing sessionMinutes preference excludes session from denominator",
+      "status": "PASS"
+    },
+    {
+      "name": "zero ranking signal ties at documented neutral value",
+      "status": "PASS"
+    },
+    {
+      "name": "zero ranking signal is reproducible across candidates",
+      "status": "PASS"
+    },
+    {
+      "name": "session-only signal can produce a real ranking",
+      "status": "PASS"
+    },
+    {
+      "name": "focus-only signal can produce a real ranking",
+      "status": "PASS"
+    },
+    {
+      "name": "duration-only signal can produce a real ranking",
+      "status": "PASS"
+    },
+    {
+      "name": "session weight dominates a lower-priority focus conflict",
+      "status": "PASS"
+    },
+    {
+      "name": "identical input is deterministic",
+      "status": "PASS"
+    },
+    {
+      "name": "tie-breaking by id is stable outside the scorer",
+      "status": "PASS"
+    },
+    {
+      "name": "v2 has more unique scores than v1 on the representative matrix",
+      "status": "PASS"
+    },
+    {
+      "name": "v2 tie rate is lower than v1 on the representative matrix",
+      "status": "PASS"
+    },
+    {
+      "name": "v2 produces a wider gap from the same real session signal than v1",
+      "status": "PASS"
+    },
+    {
+      "name": "program claim catalog always includes no-outcome-history disclosure",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-signal catalog includes mandatory zero-ranking disclosure",
+      "status": "PASS"
+    },
+    {
+      "name": "mandatory zero-ranking disclosure renders even if not selected",
+      "status": "PASS"
+    }
+  ]
+}

@@ -29,14 +29,6 @@ interface ProvinceData {
 }
 
 async function main() {
-  const existing = await prisma.vietnamProvince.count();
-  if (existing > 0) {
-    console.log(
-      `Vietnam locations already seeded (${existing} provinces). Skipping.`,
-    );
-    return;
-  }
-
   const dataPath = path.join(__dirname, "data", "vietnam_provinces.json");
   const raw = fs.readFileSync(dataPath, "utf-8");
   const provinces: ProvinceData[] = JSON.parse(raw);

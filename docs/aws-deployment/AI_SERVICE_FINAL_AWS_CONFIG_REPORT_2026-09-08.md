@@ -10,6 +10,102 @@ Chỉ audit source thật + build artifact thật.
 
 ---
 
+## 0. CẬP NHẬT 2026-09-15 — AWS RUNTIME CHUYỂN SANG AMAZON BEDROCK
+
+Mục này **thay thế** các phần tương ứng bên dưới (mục 3, 4, 11, 19, 20, 26–28,
+30, 31) ở những điểm nói Ollama/Anthropic API là bắt buộc trên AWS.
+
+```text
+LLM_PROVIDER=bedrock        Claude Sonnet 5 qua Bedrock Runtime Converse API
+EMBEDDING_PROVIDER=bedrock  Cohere Embed Multilingual v3 qua Bedrock InvokeModel
+OLLAMA REQUIRED ON AWS = NO
+ANTHROPIC_API_KEY REQUIRED ON AWS = NO
+```
+
+Provider cũ vẫn giữ nguyên: `anthropic`, `ollama`, `mock`, OpenAI-compatible
+(có test regression riêng cho `ollama` và `anthropic`).
+
+| Hạng mục | AWS target |
+|---|---|
+| Chat / reasoning | `global.anthropic.claude-sonnet-5` (Converse) |
+| Vision (goal image + image chat) | `global.anthropic.claude-sonnet-5` (Converse, image bytes + forced tool) |
+| Embeddings | `cohere.embed-multilingual-v3`, `ap-southeast-1` |
+| `input_type` | `search_document` khi ghi Qdrant, `search_query` khi truy vấn RAG |
+| Vector dimension | **1024** (`KNOWLEDGE_VECTOR_SIZE`, mặc định 1024 khi `EMBEDDING_PROVIDER=bedrock`) |
+| Credentials | Lambda execution role (SDK default chain) — không access key, không API key |
+
+File mới: `src/services/bedrock.client.ts`, `src/services/embedding-config.ts`,
+`src/repositories/qdrant-collection.ts`. Dependency mới:
+`@aws-sdk/client-bedrock-runtime`.
+
+### Qdrant và số chiều vector
+
+- Không còn chỗ nào trong đường runtime hard-code 768: collection tạo theo
+  `EMBEDDING_VECTOR_SIZE`.
+- Ghi (knowledge pipeline, `ingest.ts`, `data:ingest`, `ingest:training-methods`):
+  collection thiếu → tạo đúng size; collection sai size → ném
+  `VectorDimensionMismatchError` (`QDRANT_VECTOR_DIMENSION_MISMATCH`),
+  **không xoá, không tạo lại**.
+- Đọc (retriever): collection sai size bị bỏ qua kèm log lỗi "Re-index required",
+  không lẫn vector 768/1024.
+- Mọi vector Bedrock được kiểm tra đúng 1024 chiều trước khi dùng.
+- **Collection hiện có (768, nomic-embed-text) phải re-index** trước khi RAG trên
+  AWS trả kết quả: `exercises`, `fitness_knowledge`, `fitness_faq`
+  (`npm run ingest`), `fitness_evidence` (`npm run data:ingest`,
+  `npm run ingest:training-methods`, knowledge pipeline) — chạy với
+  `EMBEDDING_PROVIDER=bedrock` trỏ vào Qdrant AWS, vào collection mới/trống.
+- Còn sót (không sửa, file đang do agent khác sửa dở, đường deprecated không nằm
+  trong Lambda): `src/knowledge/pipeline/index_to_qdrant.ts` vẫn tạo collection
+  768 khi thiếu; nếu chạy nhầm, lần ghi Bedrock tiếp theo sẽ fail rõ ràng thay vì
+  trộn vector.
+
+### IAM Bedrock (runtime Lambda)
+
+Chỉ `bedrock:InvokeModel` (Converse và InvokeModel đều dùng quyền này). Source
+**không** gọi ConverseStream / InvokeModelWithResponseStream nên **không** cần
+`bedrock:InvokeModelWithResponseStream`. Không dùng `AmazonBedrockFullAccess`.
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "bedrock:InvokeModel",
+  "Resource": [
+    "arn:aws:bedrock:ap-southeast-1:<account-id>:inference-profile/global.anthropic.claude-sonnet-5",
+    "arn:aws:bedrock:ap-southeast-1::foundation-model/anthropic.claude-sonnet-5*",
+    "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5*",
+    "arn:aws:bedrock:ap-southeast-1::foundation-model/cohere.embed-multilingual-v3"
+  ]
+}
+```
+
+Áp cho HTTP, Worker và Jobs Lambda. Migration Lambda không cần Bedrock. Tên
+foundation model phía sau global inference profile phải copy chính xác từ trang
+inference profile trên Bedrock console (không kiểm chứng offline được).
+
+### Artifact (rebuild 2026-09-15)
+
+```text
+ai-lambda.zip          35,068,532 bytes (33.44 MiB) / 105,076,136 bytes giải nén / 11,821 entries
+ai-worker-lambda.zip   35,068,532 bytes, byte-identical với ai-lambda.zip
+ai-migrate-lambda.zip  22,326,074 bytes (21.29 MiB) /  53,238,068 bytes giải nén /  3,138 entries
+```
+
+Native binary trong zip đều là Linux x86-64 ELF, mode 0755: Prisma
+`rhel-openssl-3.0.x` query engine + schema engine, `msgpackr-extract-linux-x64`.
+Không có entry win32/darwin, `.env`, `.git`, hay test của service.
+
+### Bằng chứng (nhãn theo CLAUDE.md)
+
+- `TEST FIXTURE`: `bedrock-provider.test.ts` 25/25 — recorder thay transport
+  Bedrock + Qdrant stub HTTP; retriever và knowledge writer thật chạy end-to-end.
+- `TEST FIXTURE`: `llm-provider-ollama-regression.test.ts` 4/4,
+  `llm-provider-anthropic-regression.test.ts` 3/3, `qdrant-vector-dimension.test.ts` 9/9.
+- **Chưa có** `REAL HTTP/API` tới Bedrock (không được tạo/gọi tài nguyên AWS trong
+  pass này): quyền truy cập model Claude Sonnet 5 và Cohere Embed ở
+  `ap-southeast-1` phải được owner bật và thử trên console.
+
+---
+
 ## 1. AI SERVICE RESPONSIBILITIES
 
 Xác định bằng route + service + schema thật, không suy đoán:
@@ -1251,11 +1347,11 @@ backend/services/ai-service/artifacts/ai-lambda.zip
 Size:
 
 ```text
-34,681,079 bytes
-≈ 33.07 MiB compressed
-103,607,399 bytes
-≈ 98.81 MiB uncompressed
-11,548 entries
+35,068,532 bytes
+≈ 33.44 MiB compressed
+105,076,136 bytes
+≈ 100.21 MiB uncompressed
+11,821 entries
 ```
 
 Nội dung đã verify (đọc central directory của zip):
@@ -1293,11 +1389,11 @@ backend/services/ai-service/artifacts/ai-worker-lambda.zip
 Size:
 
 ```text
-34,681,079 bytes
-≈ 33.07 MiB compressed
-103,607,399 bytes
-≈ 98.81 MiB uncompressed
-11,548 entries
+35,068,532 bytes
+≈ 33.44 MiB compressed
+105,076,136 bytes
+≈ 100.21 MiB uncompressed
+11,821 entries
 ```
 
 Artifact này **byte-identical** với `ai-lambda.zip` — cùng dependency graph, chỉ
@@ -1325,11 +1421,11 @@ backend/services/ai-service/artifacts/ai-migrate-lambda.zip
 Size:
 
 ```text
-22,321,148 bytes
+22,326,074 bytes
 ≈ 21.29 MiB compressed
-53,231,737 bytes
+53,238,068 bytes
 ≈ 50.77 MiB uncompressed
-3,126 entries
+3,138 entries
 ```
 
 Nội dung đã verify:
@@ -1429,9 +1525,10 @@ Migration ZIP dưới 50 MiB → upload trực tiếp qua Console được.
    lời rơi về deterministic fallback. `docker-compose.prod.yml` của chính repo đã
    ghi "no AWS managed equivalent for Qdrant". Không tạo vector infra trong pass này.
 
-2. **Embeddings vẫn cần endpoint Ollama-compatible**, kể cả khi
-   `LLM_PROVIDER=anthropic`, do `llm.service.ts` hard-code đường embeddings. Không
-   có Bedrock trong source và pass này không migrate sang Bedrock theo yêu cầu.
+2. ~~**Embeddings vẫn cần endpoint Ollama-compatible.**~~ **ĐÃ GIẢI QUYẾT**
+   (2026-09-15): `EMBEDDING_PROVIDER=bedrock` dùng Cohere Embed Multilingual v3
+   trên Bedrock; `LLM_BASE_URL` / `OLLAMA_BASE_URL` không còn cần trên AWS. Thay
+   vào đó, collection Qdrant 768 chiều hiện có phải re-index sang 1024 (mục 0).
 
 3. **Redis hay SQS — chưa có cái nào tồn tại trên AWS.** Code đã hỗ trợ cả hai
    (`QUEUE_PROVIDER`). Nếu chọn SQS thì phải tạo queue + DLQ; nếu chọn Redis thì
@@ -1474,10 +1571,11 @@ Migration ZIP dưới 50 MiB → upload trực tiếp qua Console được.
 ## 31. FINAL VERDICT
 
 ```text
-AI SERVICE READY FOR AWS INFRA CONFIGURATION
+AI SERVICE READY FOR BEDROCK AWS DEPLOYMENT
 ```
 
-(cập nhật 2026-09-08, pass 2 — trước đó là `NOT READY` do blocker 4 và 8)
+(cập nhật 2026-09-15 — chuyển runtime AI sang Bedrock, xem mục 0; trước đó là
+`AI SERVICE READY FOR AWS INFRA CONFIGURATION`)
 
 Phía code đã đóng hết những gì code có thể đóng:
 
@@ -1627,9 +1725,9 @@ Result: tests 337 / pass 332 / fail 1
 
 pnpm --filter @gym-coach/ai-service run build:lambda:package
 Result: PASS
-  ai-lambda.zip          34,681,079 bytes
-  ai-worker-lambda.zip   34,681,079 bytes
-  ai-migrate-lambda.zip  22,321,148 bytes
+  ai-lambda.zip          35,068,532 bytes
+  ai-worker-lambda.zip   35,068,532 bytes
+  ai-migrate-lambda.zip  22,326,074 bytes
 ```
 
 Rebuild artifact bất kỳ lúc nào sau khi đổi code:

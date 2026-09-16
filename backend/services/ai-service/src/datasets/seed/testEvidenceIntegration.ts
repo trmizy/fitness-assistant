@@ -72,7 +72,9 @@ async function testRetrieval(query: string): Promise<void> {
 
   let vector: number[];
   try {
-    vector = await llmService.generateEmbedding(query);
+    vector = await llmService.generateEmbedding(query, {
+      inputType: "search_query",
+    });
   } catch (err: any) {
     console.log(
       `   ⚠  Embedding service unavailable: ${err.message}. Skipping retrieval test.`,

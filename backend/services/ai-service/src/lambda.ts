@@ -38,20 +38,20 @@ import {
 // this runs at most once per cold start (module-level code), not per
 // request — same intent as server.ts's startup check, adapted to not block
 // the very first request on it. A cold start pays this once; a warm
-// container reuses the cached result via qdrantAvailable's module state in
+// container reuses the cached result via vector availability module state in
 // app.ts (checked lazily below, not on a fixed interval — Lambda has no
 // long-lived process to run setInterval against).
-let qdrantCheckedAt = 0;
-const QDRANT_RECHECK_MS = 60_000;
+let vectorStoreCheckedAt = 0;
+const VECTOR_STORE_RECHECK_MS = 60_000;
 
-async function ensureQdrantChecked(): Promise<void> {
+async function ensureVectorStoreChecked(): Promise<void> {
   const now = Date.now();
-  if (now - qdrantCheckedAt < QDRANT_RECHECK_MS) return;
-  qdrantCheckedAt = now;
+  if (now - vectorStoreCheckedAt < VECTOR_STORE_RECHECK_MS) return;
+  vectorStoreCheckedAt = now;
   const { setQdrantAvailable } = await import("./app");
-  const { getQdrantClient } = await import("./repositories/qdrant");
+  const { getVectorStore } = await import("./vector-store/provider");
   try {
-    await getQdrantClient().getCollections();
+    await getVectorStore().healthCheck();
     setQdrantAvailable(true);
   } catch {
     setQdrantAvailable(false);
@@ -82,6 +82,6 @@ async function getHandler() {
 
 export const handler = async (event: unknown, context: unknown) => {
   const activeHandler = await getHandler();
-  await ensureQdrantChecked();
+  await ensureVectorStoreChecked();
   return activeHandler(event as never, context as never);
 };
