@@ -141,7 +141,7 @@ export function RegisterPage() {
               <Dumbbell className="w-4 h-4 text-black" />
             </div>
             <span className="text-white font-bold tracking-tight uppercase">
-              Fitness AI
+              Gymini
             </span>
           </div>
 

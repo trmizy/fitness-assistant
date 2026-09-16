@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FitnessAssistant",
+    "name": "Gymini",
     "slug": "fitnessassistant-mobile",
     "scheme": "fitnessassistant",
     "version": "1.0.0",
@@ -41,7 +41,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FitnessAssistant cần quyền camera để chụp ảnh InBody, giấy tờ xác minh và quét mã QR check-in."
+          "cameraPermission": "Gymini cần quyền camera để chụp ảnh InBody, giấy tờ xác minh và quét mã QR check-in."
         }
       ],
       [
@@ -54,14 +54,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "FitnessAssistant cần quyền truy cập thư viện ảnh để chọn ảnh chi nhánh, ảnh minh chứng."
+          "photosPermission": "Gymini cần quyền truy cập thư viện ảnh để chọn ảnh chi nhánh, ảnh minh chứng."
         }
       ],
       [
         "@config-plugins/react-native-webrtc",
         {
-          "cameraPermission": "FitnessAssistant cần quyền camera để gọi video với PT.",
-          "microphonePermission": "FitnessAssistant cần quyền microphone để gọi thoại/video với PT."
+          "cameraPermission": "Gymini cần quyền camera để gọi video với PT.",
+          "microphonePermission": "Gymini cần quyền microphone để gọi thoại/video với PT."
         }
       ],
       "./plugins/shortenPackagePaths.js",

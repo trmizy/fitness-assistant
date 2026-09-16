@@ -321,7 +321,7 @@ export const authService = {
     try {
       const emailResult = await sendPlainEmail({
         to: user.email,
-        subject: "Đặt lại mật khẩu AI Gym Coach",
+        subject: "Đặt lại mật khẩu Gymini",
         text: [
           greeting,
           "",

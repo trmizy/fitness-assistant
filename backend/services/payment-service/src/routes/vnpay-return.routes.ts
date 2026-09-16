@@ -44,7 +44,7 @@ router.get('/vnpay/sim', async (req: Request, res: Response) => {
 <body><div class="card">
  <div class="hd"><span>VNPAY<small> QR</small></span><small>MÔI TRƯỜNG DEMO</small></div>
  <div class="bd">
-   <div class="row"><span>Nhà cung cấp</span><b>AI Gym Coach</b></div>
+   <div class="row"><span>Nhà cung cấp</span><b>Gymini</b></div>
    <div class="row"><span>Nội dung</span><b>Nạp ví</b></div>
    <div class="row"><span>Mã giao dịch</span><b style="font-size:11px">${txnId.slice(0, 18)}…</b></div>
    <div class="amt">${amountVnd} ₫</div>
