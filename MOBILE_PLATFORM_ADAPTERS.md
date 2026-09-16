@@ -787,8 +787,8 @@ resolve khi phần việc mạng thật sự xong, đúng cái người dùng đ
 | Thẻ "buổi tập chờ xác nhận" (Home) | Xác nhận buổi tập thuộc luồng hợp đồng/buổi tập | 7 |
 | Hai ô calo/nước (Home) | Thuộc domain dinh dưỡng. **Bố cục hai ô giữ nguyên**, tạm điền chỉ số cơ thể (cân nặng, cơ bắp) đúng như web đang hiện trên chính màn này | 6 |
 | ~~Video preview của bài tập~~ | **ĐÃ LÀM 16/9 (§20.11)** — ghi chú cũ sai: catalog không có video, `video_url` là 2 khung JPG, chỉ cần `expo-image`, không cần `expo-video` | 5 |
-| Thư viện thực phẩm / Kiến thức dinh dưỡng | Domain dinh dưỡng | 6 |
-| Tìm kiếm tổng hợp: nhóm thực phẩm + bài viết | Cùng lý do — trả kết quả dẫn tới một placeholder còn tệ hơn là chưa có | 6 |
+| ~~Thư viện thực phẩm / Kiến thức dinh dưỡng~~ | **ĐÃ LÀM 17/9 (§22.4)** | 6 |
+| ~~Tìm kiếm tổng hợp: nhóm thực phẩm + bài viết~~ | **ĐÃ LÀM 17/9** — cùng dải xem trước ở hub Khám phá | 6 |
 
 ### 20.6 — Cụm Tập luyện (CL-02 / CL-17 / CL-16 / SH-10)
 
@@ -1234,3 +1234,31 @@ thành hiện thẻ với mọi vùng 0 kg: người xem sẽ tưởng cơ thể
    phần trăm của thanh bar ra 0. Phải cho vùng vẽ một chiều cao thật (`h-24`).
 4. **Lưu xong không quay lại màn trước:** `router.back()` không làm gì khi màn đang là gốc của stack
    (mở thẳng bằng deep link). Dùng `canGoBack()` rồi mới `back()`, không thì `replace`.
+
+### 22.4 — Thư viện thực phẩm (SH-13) và Kiến thức dinh dưỡng (SH-16), 2026-09-17
+
+**SH-13 — bản thiết kế lọc theo "nhóm thực phẩm", dữ liệu thì không có thứ đó.** Bảng `Food` không
+có cột nhóm; chính web đã ghi chú điều này rồi đưa ra thứ tính được: sắp xếp theo macro
+(`sortBy=name|protein|carbs|fats`) và lọc theo nguồn / dạng / thực phẩm bổ sung / có ảnh. Mobile giữ
+đúng bố cục thiết kế (ô tìm, hàng chip, mỗi dòng có ảnh + macro) nhưng chip mang nghĩa thật.
+
+**Tìm và duyệt là hai endpoint khác nhau:** `/food/search` khớp mờ, trả mảng trần, **không phân
+trang**; `/food` phân trang toàn bộ 13.159 món. Nên khi đang tìm thì hàng chip sắp xếp/lọc **ẩn đi**
+thay vì giả vờ có tác dụng — giống web.
+
+**SH-16 gọi 0 endpoint.** Nội dung là 12 bài tĩnh, **chép nguyên văn** từ
+`frontend/web/.../nutritionKnowledge.ts` sang `src/features/library/nutritionKnowledge.ts` (có ghi
+chú tắt luật `array-type` để giữ y bản gốc, còn diff được khi web sửa). Spec đứng sau nội dung này
+yêu cầu bài viết phải ổn định, không sinh live bằng mô hình — nên chép là đúng, không phải lười.
+Bản thiết kế vẽ ảnh cho mỗi bài; nội dung thật **không có ảnh**, nên thẻ dẫn bằng nhãn nhóm + thời
+gian đọc thay vì một tấm ảnh bịa. Nút "Hỏi AI về chủ đề này" của web thuộc domain AI Coach (Phase 9),
+chưa dựng.
+
+**Gỡ xong hai món nợ ở §20.5:** hub Khám phá nay có đủ 4 dải xem trước (bài tập, thực phẩm, kiến
+thức, nhóm cơ) và màn Tìm kiếm có đủ 4 nhóm kết quả. Nhóm kiến thức được khớp **ngay trong máy** chứ
+không gọi mạng, nên một lần tìm vẫn chỉ tốn 2 request.
+
+**Một lỗi bố cục lặp lại lần thứ ba:** `ScrollView` ngang để trần trong một cột sẽ nở hết chiều cao
+còn lại, đẩy danh sách xuống dưới màn hình. Phải bọc trong `View` (đúng như màn thư viện bài tập đã
+làm). Đây là lần thứ ba cùng một lỗi trong dự án — nếu gặp một hàng chip bị giãn, hãy nhìn ngay vào
+chỗ này.

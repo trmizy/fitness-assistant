@@ -5,7 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Apple, BookOpen, ChevronRight, Compass, Dumbbell, PersonStanding, Search, type LucideIcon } from "lucide-react-native";
 
 import { Card, ExerciseMedia, Skeleton, Stagger, StaggerItem, Tappable } from "../../../src/components/ui";
-import { workoutService } from "../../../src/services/api";
+import { foodService, workoutService } from "../../../src/services/api";
+import { normalizeFoods } from "../../../src/features/library/foodLibrary";
+import { NUTRITION_ARTICLES } from "../../../src/features/library/nutritionArticles";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -17,10 +19,9 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
  * same 5-minute staleTime (this is a catalog, not live data; re-fetching it on every visit is
  * pure waste on a phone connection).
  *
- * Food and nutrition-knowledge previews are NOT fetched here yet: their screens land in Phase 6
- * with the rest of the nutrition domain, so pulling their data now would render a preview strip
- * that navigates nowhere. The two cards stay — they are part of the hub's design — and point at
- * the Phase 6 placeholders.
+ * All four previews are live as of Phase 6 (SH-13/SH-16 built): exercises and foods come from the
+ * catalog endpoints, muscles from the taxonomy, and the knowledge strip from the static article
+ * library — which calls nothing, so it needs no query at all.
  */
 const DESTINATIONS: {
   href: "/client/library/exercises" | "/client/library/foods" | "/client/library/learn" | "/client/library/muscles";
@@ -75,13 +76,23 @@ export default function LibraryHubScreen() {
     staleTime: 5 * 60_000,
   });
 
+  const foodsQuery = useQuery({
+    queryKey: ["library-preview-foods"],
+    queryFn: () => foodService.list({ page: 1, limit: 6, hasImage: true }),
+    staleTime: 5 * 60_000,
+  });
+
   const { refreshing, onRefresh } = usePullToRefresh([
     ["library-preview-exercises-with-media"],
     ["library-preview-muscles"],
+    ["library-preview-foods"],
   ]);
 
   const exercises: any[] = Array.isArray(exercisesQuery.data) ? exercisesQuery.data : [];
   const muscles = (musclesQuery.data ?? []).slice(0, 6);
+  const foods = normalizeFoods(foodsQuery.data).slice(0, 6);
+  // Static content: no query, no loading state, nothing to fail.
+  const articles = NUTRITION_ARTICLES.slice(0, 6);
 
   return (
     <ScrollView
@@ -139,6 +150,38 @@ export default function LibraryHubScreen() {
               label: ex.exerciseName,
               media: ex.videoUrl ?? null,
               onPress: () => router.push({ pathname: "/client/library/exercises/[id]", params: { id: String(ex.id) } }),
+            }))}
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <PreviewStrip
+            title="Thực phẩm có ảnh"
+            loading={foodsQuery.isLoading}
+            empty="Chưa tải được danh sách thực phẩm."
+            items={foods.map((food) => ({
+              key: food.id,
+              label: food.name,
+              media: food.imageUrl,
+              onPress: () =>
+                router.push({ pathname: "/client/library/foods/[id]", params: { id: food.id } }),
+            }))}
+          />
+        </StaggerItem>
+
+        <StaggerItem>
+          <PreviewStrip
+            title="Kiến thức dinh dưỡng"
+            loading={false}
+            empty="Chưa có bài viết nào."
+            items={articles.map((article) => ({
+              key: article.slug,
+              label: article.title,
+              onPress: () =>
+                router.push({
+                  pathname: "/client/library/learn/[slug]",
+                  params: { slug: article.slug },
+                }),
             }))}
           />
         </StaggerItem>

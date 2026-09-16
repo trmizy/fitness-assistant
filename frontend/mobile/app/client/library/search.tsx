@@ -3,11 +3,13 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, PersonStanding, Search } from "lucide-react-native";
+import { Apple, BookOpen, ChevronLeft, PersonStanding, Search } from "lucide-react-native";
 
 import { Card, EmptyState, ExerciseMedia, Input, Tappable } from "../../../src/components/ui";
-import { workoutService } from "../../../src/services/api";
+import { foodService, workoutService } from "../../../src/services/api";
 import { bodyPartLabel, equipmentLabel } from "../../../src/config/exerciseLabels";
+import { caloriesLabel, gramLabel, normalizeFoods } from "../../../src/features/library/foodLibrary";
+import { categoryLabel, searchArticles } from "../../../src/features/library/nutritionArticles";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
 const MAX_GROUP_RESULTS = 8;
@@ -26,9 +28,9 @@ function textMatches(query: string, values: (string | null | undefined)[]) {
  * cap, same client-side filtering of the muscle taxonomy (it arrives whole, so filtering it here
  * is both faster and the only way to match on `anatomyRegion`).
  *
- * Web searches four groups; this searches the two whose screens exist. Foods and nutrition
- * articles join in Phase 6 alongside their own screens — returning results that navigate to a
- * placeholder would be worse than not offering them yet.
+ * All four groups are live as of Phase 6: exercises and foods hit their catalog endpoints, muscles
+ * are filtered from the taxonomy that arrives whole, and articles are matched in-process against the
+ * static knowledge library — so a search costs two requests, not four.
  */
 export default function GlobalSearchScreen() {
   const accent = useWorkspaceAccent();
@@ -46,15 +48,19 @@ export default function GlobalSearchScreen() {
   const results = useQuery({
     queryKey: ["global-search", query],
     queryFn: async () => {
-      const [exercises, muscles] = await Promise.all([
+      const [exercises, muscles, foods] = await Promise.all([
         workoutService.getExercises({ search: query, page: 1, limit: MAX_GROUP_RESULTS }),
         workoutService.getMuscleTaxonomy(),
+        foodService.search(query),
       ]);
       return {
         exercises: (Array.isArray(exercises) ? exercises : []).slice(0, MAX_GROUP_RESULTS),
         muscles: (Array.isArray(muscles) ? muscles : [])
           .filter((m) => textMatches(query, [m.code, m.nameVi, m.nameEn, m.anatomyRegion]))
           .slice(0, MAX_GROUP_RESULTS),
+        foods: normalizeFoods(foods).slice(0, MAX_GROUP_RESULTS),
+        // Static library — matched here rather than fetched, same matcher web uses.
+        articles: searchArticles(query).slice(0, MAX_GROUP_RESULTS),
       };
     },
     enabled: canSearch,
@@ -63,7 +69,15 @@ export default function GlobalSearchScreen() {
 
   const exercises = results.data?.exercises ?? [];
   const muscles = results.data?.muscles ?? [];
-  const nothingFound = canSearch && !results.isLoading && exercises.length === 0 && muscles.length === 0;
+  const foods = results.data?.foods ?? [];
+  const articles = results.data?.articles ?? [];
+  const nothingFound =
+    canSearch &&
+    !results.isLoading &&
+    exercises.length === 0 &&
+    muscles.length === 0 &&
+    foods.length === 0 &&
+    articles.length === 0;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top + 12 }}>
@@ -134,6 +148,59 @@ export default function GlobalSearchScreen() {
                       </Text>
                       <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
                         {bodyPartLabel(ex.bodyPart)} · {equipmentLabel(ex.typeOfEquipment)}
+                      </Text>
+                    </View>
+                  </Card>
+                ))}
+              </Group>
+            ) : null}
+
+            {foods.length > 0 ? (
+              <Group title="Thực phẩm">
+                {foods.map((food) => (
+                  <Card
+                    key={food.id}
+                    className="mb-2.5 flex-row items-center gap-3 p-4"
+                    onPress={() =>
+                      router.push({ pathname: "/client/library/foods/[id]", params: { id: food.id } })
+                    }
+                  >
+                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                      <Apple size={19} color={accent.primary} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+                        {food.name}
+                      </Text>
+                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                        {caloriesLabel(food.calories)} · {gramLabel(food.protein)} đạm / 100 g
+                      </Text>
+                    </View>
+                  </Card>
+                ))}
+              </Group>
+            ) : null}
+
+            {articles.length > 0 ? (
+              <Group title="Kiến thức dinh dưỡng">
+                {articles.map((article) => (
+                  <Card
+                    key={article.slug}
+                    className="mb-2.5 flex-row items-center gap-3 p-4"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/client/library/learn/[slug]",
+                        params: { slug: article.slug },
+                      })
+                    }
+                  >
+                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                      <BookOpen size={19} color={accent.primary} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-body-semibold text-sm text-foreground">{article.title}</Text>
+                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                        {categoryLabel(article.category)} · {article.readMinutes} phút đọc
                       </Text>
                     </View>
                   </Card>
