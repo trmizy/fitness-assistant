@@ -22,6 +22,23 @@ export const CANCEL_WINDOW_HOURS = 24;
 export const NO_SHOW_GRACE_MINUTES = 15;
 export const AUTO_CONFIRM_DAYS = 3;
 
+/**
+ * A proposal to move a session. Either side may raise one, and only the OTHER side may answer it —
+ * "You cannot respond to your own reschedule request" is a 403, so which direction a proposal runs
+ * in decides the whole shape of the card.
+ */
+export type RescheduleRequest = {
+  id: string;
+  requestedBy: "CLIENT" | "PT";
+  originalStartAt: string | null;
+  originalEndAt: string | null;
+  proposedStartAt: string | null;
+  proposedEndAt: string | null;
+  reason: string | null;
+  status: string;
+  responseNote: string | null;
+};
+
 export type SessionRow = {
   id: string;
   contractId: string;
@@ -39,7 +56,23 @@ export type SessionRow = {
   ptAtFault: boolean;
   confirmDeadline: string | null;
   autoConfirmed: boolean;
+  /** Only `/sessions/upcoming` carries these; the per-contract list does not. */
+  reschedules: RescheduleRequest[];
 };
+
+function normalizeRescheduleRequest(raw: any): RescheduleRequest {
+  return {
+    id: String(raw?.id ?? ""),
+    requestedBy: raw?.requestedBy === "PT" ? "PT" : "CLIENT",
+    originalStartAt: raw?.originalStartAt ?? null,
+    originalEndAt: raw?.originalEndAt ?? null,
+    proposedStartAt: raw?.proposedStartAt ?? null,
+    proposedEndAt: raw?.proposedEndAt ?? null,
+    reason: raw?.reason ?? null,
+    status: String(raw?.status ?? ""),
+    responseNote: raw?.responseNote ?? null,
+  };
+}
 
 export function normalizeSession(raw: any): SessionRow {
   return {
@@ -58,7 +91,27 @@ export function normalizeSession(raw: any): SessionRow {
     ptAtFault: raw?.ptAtFault === true,
     confirmDeadline: raw?.clientConfirmDeadline ?? null,
     autoConfirmed: raw?.autoConfirmed === true,
+    reschedules: Array.isArray(raw?.rescheduleRequests)
+      ? raw.rescheduleRequests.map(normalizeRescheduleRequest).filter((r: RescheduleRequest) => r.id)
+      : [],
   };
+}
+
+/** The one open proposal, if any — the server allows only one per session at a time. */
+export function pendingReschedule(session: SessionRow): RescheduleRequest | null {
+  return session.reschedules.find((request) => request.status === "PENDING") ?? null;
+}
+
+/** A proposal the CLIENT must answer: raised by the trainer and still open. */
+export function incomingReschedule(session: SessionRow): RescheduleRequest | null {
+  const request = pendingReschedule(session);
+  return request && request.requestedBy === "PT" ? request : null;
+}
+
+/** A proposal the client raised and the trainer has not answered yet. */
+export function outgoingReschedule(session: SessionRow): RescheduleRequest | null {
+  const request = pendingReschedule(session);
+  return request && request.requestedBy === "CLIENT" ? request : null;
 }
 
 export function normalizeSessions(raw: any): SessionRow[] {
@@ -109,6 +162,9 @@ export function groupOf(session: SessionRow, now: Date = new Date()): SessionGro
   if (["PENDING_CLIENT_CONFIRMATION", "DISPUTED", "PT_NO_SHOW_REPORTED"].includes(session.status)) {
     return "action";
   }
+  // A proposal from the trainer is waiting on THIS client — it belongs with the other things only
+  // they can clear, not buried among the upcoming sessions.
+  if (incomingReschedule(session)) return "action";
   if (["REQUESTED", "CONFIRMED"].includes(session.status)) {
     const end = session.endAt ? Date.parse(session.endAt) : NaN;
     // A confirmed session whose time has passed is not "upcoming" any more, even though the PT has
@@ -157,6 +213,13 @@ export function rescheduleBlockedReason(session: SessionRow, now: Date = new Dat
   if (session.status !== "CONFIRMED") {
     return "Chỉ buổi đã được huấn luyện viên xác nhận mới đổi lịch được.";
   }
+  // The server keeps at most one open proposal per session, so a second one is refused.
+  const open = pendingReschedule(session);
+  if (open) {
+    return open.requestedBy === "CLIENT"
+      ? "Bạn đã gửi một đề nghị đổi lịch, đang chờ huấn luyện viên trả lời."
+      : "Huấn luyện viên đang đề nghị đổi lịch — trả lời đề nghị đó trước.";
+  }
   const hours = hoursUntil(session, now);
   if (hours === null) return "Buổi tập chưa có giờ cụ thể.";
   if (hours <= 0) return "Buổi tập đã bắt đầu, không đổi lịch được nữa.";
@@ -169,6 +232,7 @@ export function rescheduleBlockedReason(session: SessionRow, now: Date = new Dat
 export type SessionAction =
   | "cancel"
   | "reschedule"
+  | "answer-reschedule"
   | "confirm"
   | "dispute"
   | "report-no-show"
@@ -179,7 +243,10 @@ export function clientActions(session: SessionRow, now: Date = new Date()): Sess
   switch (session.status) {
     case "REQUESTED":
     case "CONFIRMED": {
-      const actions: SessionAction[] = ["cancel"];
+      const actions: SessionAction[] = [];
+      // Answering the trainer leads: until it is answered, nothing else about the time can move.
+      if (incomingReschedule(session)) actions.push("answer-reschedule");
+      actions.push("cancel");
       // Offered only when it would actually be accepted — the 12-hour rule is the server's, and a
       // button that always answers 400 is worse than no button.
       if (!rescheduleBlockedReason(session, now)) actions.push("reschedule");
@@ -307,4 +374,44 @@ export function bookingBlockedReason(input: {
   if (!input.date) return "Chọn ngày tập.";
   if (!input.time) return "Chọn khung giờ.";
   return null;
+}
+
+/** "PT đề nghị dời sang Th 7, 20/09 · 09:00" — the sentence the card leads with. */
+export function proposalSummary(request: RescheduleRequest): string {
+  const start = request.proposedStartAt ? new Date(request.proposedStartAt) : null;
+  if (!start || Number.isNaN(start.getTime())) return "Đề nghị đổi sang một giờ khác";
+  const weekday = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"][start.getDay()];
+  const date = `${weekday}, ${String(start.getDate()).padStart(2, "0")}/${String(start.getMonth() + 1).padStart(2, "0")}`;
+  const time = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
+  const who = request.requestedBy === "PT" ? "Huấn luyện viên đề nghị" : "Bạn đã đề nghị";
+  return `${who} dời sang ${date} · ${time}`;
+}
+
+/**
+ * Accepting moves the session to the proposed time and it stays CONFIRMED; rejecting only closes
+ * the proposal and leaves the original time standing. Saying which is which in advance matters —
+ * "Từ chối" does not cancel the session.
+ */
+export function proposalOutcomeText(action: "ACCEPT" | "REJECT"): string {
+  return action === "ACCEPT"
+    ? "Buổi tập sẽ chuyển sang giờ mới và vẫn ở trạng thái đã xác nhận."
+    : "Buổi tập giữ nguyên giờ cũ. Từ chối đề nghị KHÔNG huỷ buổi tập.";
+}
+
+/**
+ * Merge the session lists, richest source first.
+ *
+ * This is not a detail: `/sessions/upcoming` carries `rescheduleRequests` and the per-contract list
+ * does NOT, so a plain "last write wins" merge silently drops every open proposal — which is
+ * exactly what happened on the device before this existed. First write wins instead, and the
+ * caller passes the endpoints in priority order.
+ */
+export function mergeSessionSources(...sources: SessionRow[][]): SessionRow[] {
+  const merged = new Map<string, SessionRow>();
+  for (const source of sources) {
+    for (const session of source) {
+      if (!merged.has(session.id)) merged.set(session.id, session);
+    }
+  }
+  return [...merged.values()];
 }

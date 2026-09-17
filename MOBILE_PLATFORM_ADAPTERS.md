@@ -1495,3 +1495,34 @@ ACTIVE/COMPLETED/EXPIRED rồi gộp theo id.
 từ trên máy khi còn hơn 24 giờ → `CANCELLED` với `sessionDeducted: false`; gửi đề nghị đổi lịch qua
 API với đúng payload của màn → tạo `8312d46e…` **PENDING** rồi thu hồi sạch. 26 unit test cho tầng
 logic buổi tập.
+
+### 23.6 — Đề nghị đổi lịch chạy hai chiều (bổ sung cho CL-07)
+
+**Chỉ BÊN KIA được trả lời một đề nghị.** `respondToReschedule` kiểm đúng điều đó:
+`expectedResponder = requestedBy === "CLIENT" ? "PT" : "CLIENT"`, sai vai thì **403 "You cannot
+respond to your own reschedule request"** (đã thử thật, đúng nguyên văn). Nên màn hình phân biệt rõ:
+
+- **PT đề nghị** → buổi đó nhảy vào nhóm **"Cần xử lý"**, thẻ hiện "Huấn luyện viên đề nghị dời
+  sang …", sheet có **Đồng ý / Từ chối** kèm ghi chú tuỳ chọn.
+- **Khách đề nghị** → chỉ là tin tức: "… — chờ huấn luyện viên trả lời", buổi vẫn nằm ở "Sắp tới".
+
+**Từ chối KHÔNG phải huỷ buổi** — sheet nói trước hậu quả của từng lựa chọn, vì "Từ chối" rất dễ bị
+đọc thành "huỷ buổi tập": đồng ý thì buổi chuyển sang giờ mới và vẫn `CONFIRMED`, từ chối thì buổi
+giữ nguyên giờ cũ.
+
+**Mỗi buổi chỉ có MỘT đề nghị mở** (luật máy chủ), nên khi đang có đề nghị, nút "Đổi lịch" biến mất
+kèm câu giải thích đúng chiều đang chờ ai.
+
+**Một lỗi thật do phép gộp dữ liệu, bắt được trên máy:** `/sessions/upcoming` **có** kèm
+`rescheduleRequests`, còn `/sessions/contract/:id` **không**. Bản gộp đầu tiên dùng kiểu "ghi đè sau
+cùng thắng", nên dòng từ danh sách theo hợp đồng xoá sạch đề nghị của dòng từ danh sách sắp tới —
+giao diện im lặng như chưa từng có đề nghị nào. Đã tách thành `mergeSessionSources()` (nguồn giàu dữ
+liệu đi trước, **ghi đầu tiên thắng**) và có test riêng chặn tái phát.
+
+**Kiểm chứng đến đâu (17/9):** phần khách gửi đề nghị — kiểm **end-to-end thật** trên máy (thẻ và
+sheet hiện đúng, nút Đổi lịch bị chặn đúng câu). Phần **khách trả lời đề nghị của PT** mới kiểm
+được hợp đồng endpoint (URL + payload đúng handler, 403 đúng luật) và unit test, **chưa chạy vòng
+tròn đầy đủ**: hợp đồng ACTIVE của tài khoản thử `john.doe` có PT chính là tài khoản cá nhân của
+Ngài (`huytronh4@gmail.com`), và tại hạ không đăng nhập vào tài khoản của Ngài để tạo đề nghị từ
+phía PT. Chốt được ngay khi Ngài gửi một đề nghị đổi lịch từ phía PT, hoặc khi Phase 10/11 dựng
+xong giao diện PT.

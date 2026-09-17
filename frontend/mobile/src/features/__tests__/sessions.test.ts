@@ -24,6 +24,12 @@ import {
   normalizeSession,
   normalizeSessions,
   normalizeSlots,
+  incomingReschedule,
+  mergeSessionSources,
+  outgoingReschedule,
+  pendingReschedule,
+  proposalOutcomeText,
+  proposalSummary,
   rescheduleBlockedReason,
   reviewBlockedReason,
   sessionDurationMinutes,
@@ -297,5 +303,95 @@ describe("the reschedule rules", () => {
       /đã bắt đầu/,
     );
     assert.equal(rescheduleBlockedReason(at("CONFIRMED"), new Date("2026-09-16T10:00:00.000Z")), null);
+  });
+});
+
+describe("reschedule proposals, both directions", () => {
+  // The shape /sessions/upcoming attaches to a row, taken from a real request created on 17/9.
+  const request = (overrides: Record<string, any> = {}) => ({
+    id: "8312d46e-c12c-47e9-94e6-6eb28c3a9264",
+    sessionId: RAW_SESSION.id,
+    requestedBy: "PT",
+    originalStartAt: "2026-09-18T09:00:00.000Z",
+    originalEndAt: "2026-09-18T10:00:00.000Z",
+    proposedStartAt: "2026-09-20T02:00:00.000Z",
+    proposedEndAt: "2026-09-20T03:00:00.000Z",
+    reason: "PT ban dot xuat",
+    status: "PENDING",
+    responseNote: null,
+    ...overrides,
+  });
+
+  const withRequests = (...requests: any[]) =>
+    normalizeSession({ ...RAW_SESSION, rescheduleRequests: requests });
+
+  it("tells a proposal from the trainer apart from one the client sent", () => {
+    const fromPt = withRequests(request());
+    const fromClient = withRequests(request({ requestedBy: "CLIENT" }));
+    assert.equal(incomingReschedule(fromPt)?.id, request().id);
+    assert.equal(outgoingReschedule(fromPt), null);
+    assert.equal(outgoingReschedule(fromClient)?.id, request().id);
+    assert.equal(incomingReschedule(fromClient), null);
+  });
+
+  it("ignores proposals that are already settled", () => {
+    const answered = withRequests(request({ status: "ACCEPTED" }), request({ id: "r2", status: "REJECTED" }));
+    assert.equal(pendingReschedule(answered), null);
+    assert.equal(incomingReschedule(answered), null);
+  });
+
+  it("moves a session the trainer is waiting on into the action list", () => {
+    const now = new Date("2026-09-16T10:00:00.000Z");
+    assert.equal(groupOf(withRequests(request()), now), "action");
+    // The client's own proposal is not something they can act on — it stays where it was.
+    assert.equal(groupOf(withRequests(request({ requestedBy: "CLIENT" })), now), "upcoming");
+  });
+
+  it("offers answering first, and never a second proposal while one is open", () => {
+    const now = new Date("2026-09-16T10:00:00.000Z");
+    const fromPt = withRequests(request());
+    assert.deepEqual(clientActions(fromPt, now), ["answer-reschedule", "cancel"]);
+    assert.match(rescheduleBlockedReason(fromPt, now)!, /trả lời đề nghị đó trước/);
+
+    const fromClient = withRequests(request({ requestedBy: "CLIENT" }));
+    assert.deepEqual(clientActions(fromClient, now), ["cancel"]);
+    assert.match(rescheduleBlockedReason(fromClient, now)!, /đang chờ huấn luyện viên/);
+  });
+
+  it("says who proposed what, and what each answer does", () => {
+    const summary = proposalSummary(normalizeSession({ ...RAW_SESSION, rescheduleRequests: [request()] }).reschedules[0]);
+    assert.match(summary, /Huấn luyện viên đề nghị dời sang/);
+    // Rejecting must never read as cancelling the session.
+    assert.match(proposalOutcomeText("REJECT"), /KHÔNG huỷ buổi tập/);
+    assert.match(proposalOutcomeText("ACCEPT"), /giờ mới/);
+  });
+});
+
+describe("mergeSessionSources", () => {
+  it("keeps the richer row when two endpoints answer with the same session", () => {
+    // /sessions/upcoming knows about the open proposal; /sessions/contract/:id does not.
+    const rich = normalizeSessions([
+      {
+        ...RAW_SESSION,
+        rescheduleRequests: [
+          { id: "r1", requestedBy: "PT", status: "PENDING", proposedStartAt: "2026-09-20T02:00:00.000Z" },
+        ],
+      },
+    ]);
+    const poor = normalizeSessions([{ ...RAW_SESSION }]);
+
+    const merged = mergeSessionSources(rich, poor);
+    assert.equal(merged.length, 1);
+    // The bug this guards: the second source overwrote the first and the proposal vanished.
+    assert.equal(merged[0].reschedules.length, 1);
+  });
+
+  it("still brings in sessions only the later source has", () => {
+    const upcoming = normalizeSessions([{ ...RAW_SESSION, id: "a" }]);
+    const history = normalizeSessions([
+      { ...RAW_SESSION, id: "a" },
+      { ...RAW_SESSION, id: "b", status: "COMPLETED" },
+    ]);
+    assert.deepEqual(mergeSessionSources(upcoming, history).map((s) => s.id), ["a", "b"]);
   });
 });

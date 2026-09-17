@@ -39,8 +39,14 @@ import {
   clientActions,
   confirmDeadlineText,
   groupOf,
+  incomingReschedule,
+  mergeSessionSources,
   normalizeSessions,
   normalizeSlots,
+  outgoingReschedule,
+  pendingReschedule,
+  proposalOutcomeText,
+  proposalSummary,
   rescheduleBlockedReason,
   reviewBlockedReason,
   sessionStatus,
@@ -121,13 +127,17 @@ export default function BookingScreen() {
     })),
   });
 
-  const sessions = useMemo(() => {
-    const merged = new Map<string, SessionRow>();
-    for (const source of [upcomingQuery.data, pendingQuery.data, ...historyQueries.map((q) => q.data)]) {
-      for (const session of normalizeSessions(source)) merged.set(session.id, session);
-    }
-    return [...merged.values()];
-  }, [upcomingQuery.data, pendingQuery.data, historyQueries]);
+  // Order matters: the two list endpoints carry the open reschedule proposals, the per-contract
+  // history does not — see mergeSessionSources.
+  const sessions = useMemo(
+    () =>
+      mergeSessionSources(
+        normalizeSessions(upcomingQuery.data),
+        normalizeSessions(pendingQuery.data),
+        ...historyQueries.map((query) => normalizeSessions(query.data)),
+      ),
+    [upcomingQuery.data, pendingQuery.data, historyQueries],
+  );
 
   const groups = useMemo(
     () => ({
@@ -269,6 +279,24 @@ export default function BookingScreen() {
             {confirmDeadlineText(detail) ? (
               <Text className="font-body text-xs text-warning">{confirmDeadlineText(detail)}</Text>
             ) : null}
+
+            {pendingReschedule(detail) ? (
+              <View className="gap-1 rounded-xl border border-border bg-panel p-3">
+                <Text className="font-body-medium text-sm text-foreground">
+                  {proposalSummary(pendingReschedule(detail)!)}
+                </Text>
+                {pendingReschedule(detail)!.reason ? (
+                  <Text className="font-body text-xs text-muted-foreground">
+                    {`Lý do: ${pendingReschedule(detail)!.reason}`}
+                  </Text>
+                ) : null}
+                {outgoingReschedule(detail) ? (
+                  <Text className="font-body text-xs text-muted-foreground">
+                    Đang chờ huấn luyện viên trả lời đề nghị của bạn.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {detail.location ? (
               <View className="flex-row items-center gap-1.5">
                 <MapPin size={13} color="#8b9299" />
@@ -289,13 +317,15 @@ export default function BookingScreen() {
                 <Button
                   key={item}
                   full
-                  variant={item === "confirm" ? "primary" : "secondary"}
+                  variant={item === "confirm" || item === "answer-reschedule" ? "primary" : "secondary"}
                   onPress={() => {
                     setReason("");
                     setAction(item);
                   }}
                 >
-                  {item === "cancel"
+                  {item === "answer-reschedule"
+                    ? "Trả lời đề nghị đổi lịch"
+                    : item === "cancel"
                     ? "Huỷ buổi tập"
                     : item === "reschedule"
                       ? "Đổi lịch"
@@ -323,6 +353,24 @@ export default function BookingScreen() {
           </View>
         ) : null}
       </BottomSheet>
+
+      {/* Answering the trainer's proposal. Only the other side may answer one, so this sheet exists
+          for exactly the PT-raised case — a client answering their own would be a 403. */}
+      <AnswerRescheduleSheet
+        key={action === "answer-reschedule" ? "answer-open" : "answer-closed"}
+        open={action === "answer-reschedule"}
+        session={detail}
+        onClose={() => setAction(null)}
+        onDone={(accepted) => {
+          setAction(null);
+          setDetail(null);
+          refreshSessions();
+          toast.show(
+            accepted ? "Đã đồng ý đổi lịch — buổi tập chuyển sang giờ mới." : "Đã từ chối đề nghị đổi lịch.",
+            "success",
+          );
+        }}
+      />
 
       {/* Rescheduling reuses the same day/slot picker as booking — a proposal the PT then answers. */}
       <RescheduleSheet
@@ -353,7 +401,9 @@ export default function BookingScreen() {
 
       {/* The confirm step for an action that costs something or needs a reason. */}
       <BottomSheet
-        open={!!action && action !== "reschedule" && action !== "review"}
+        open={
+          !!action && action !== "reschedule" && action !== "review" && action !== "answer-reschedule"
+        }
         onClose={() => setAction(null)}
         title={
           action === "cancel"
@@ -460,6 +510,16 @@ function SessionCard({ session, onPress }: { session: SessionRow; onPress: () =>
         {confirmDeadlineText(session) ? (
           <Text className="font-body text-xs text-warning">{confirmDeadlineText(session)}</Text>
         ) : null}
+        {/* A proposal from the trainer needs an answer; one the client sent is just news. */}
+        {incomingReschedule(session) ? (
+          <Text className="font-body-medium text-xs text-warning">
+            {proposalSummary(incomingReschedule(session)!)}
+          </Text>
+        ) : outgoingReschedule(session) ? (
+          <Text className="font-body text-xs text-muted-foreground">
+            {`${proposalSummary(outgoingReschedule(session)!)} — chờ huấn luyện viên trả lời`}
+          </Text>
+        ) : null}
         {session.location ? (
           <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
             {session.location}
@@ -467,6 +527,101 @@ function SessionCard({ session, onPress }: { session: SessionRow; onPress: () =>
         ) : null}
       </Card>
     </Tappable>
+  );
+}
+
+/**
+ * Answering a proposal raised by the trainer.
+ *
+ * Accepting moves the session to the proposed time and leaves it CONFIRMED; rejecting closes the
+ * proposal and the original time stands. That difference is spelled out before either tap, because
+ * "Từ chối" reads to a lot of people like "huỷ buổi tập", which it is not.
+ */
+function AnswerRescheduleSheet({
+  open,
+  session,
+  onClose,
+  onDone,
+}: {
+  open: boolean;
+  session: SessionRow | null;
+  onClose: () => void;
+  onDone: (accepted: boolean) => void;
+}) {
+  const toast = useToast();
+  const [note, setNote] = useState("");
+  const request = session ? incomingReschedule(session) : null;
+
+  const mutation = useMutation({
+    mutationFn: (choice: "ACCEPT" | "REJECT") =>
+      sessionService.respondToReschedule(request!.id, choice, note.trim() || undefined),
+    onSuccess: (_data, choice) => onDone(choice === "ACCEPT"),
+    onError: (error: any) => {
+      toast.show(
+        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được trả lời",
+        "danger",
+      );
+    },
+  });
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Đề nghị đổi lịch từ huấn luyện viên">
+      <View className="gap-3 pb-2">
+        {request ? (
+          <>
+            <View className="gap-1 rounded-xl border border-border bg-panel p-3">
+              <Text className="font-body text-xs text-muted-foreground">
+                {`Giờ hiện tại: ${dateLabel(request.originalStartAt)} · ${timeLabel(request.originalStartAt)}–${timeLabel(request.originalEndAt)}`}
+              </Text>
+              <Text className="font-body-medium text-sm text-foreground">
+                {`Giờ đề nghị: ${dateLabel(request.proposedStartAt)} · ${timeLabel(request.proposedStartAt)}–${timeLabel(request.proposedEndAt)}`}
+              </Text>
+              {request.reason ? (
+                <Text className="font-body text-xs text-muted-foreground">
+                  {`Lý do: ${request.reason}`}
+                </Text>
+              ) : null}
+            </View>
+
+            <Text className="font-body text-xs text-muted-foreground">
+              {proposalOutcomeText("ACCEPT")}
+            </Text>
+            <Text className="font-body text-xs text-muted-foreground">
+              {proposalOutcomeText("REJECT")}
+            </Text>
+
+            <Input
+              value={note}
+              onChangeText={setNote}
+              placeholder="Nhắn kèm cho huấn luyện viên (tuỳ chọn)"
+              icon={MessageSquare}
+            />
+
+            <View className="flex-row gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={mutation.isPending}
+                onPress={() => mutation.mutate("REJECT")}
+              >
+                Từ chối
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={mutation.isPending}
+                onPress={() => mutation.mutate("ACCEPT")}
+              >
+                Đồng ý đổi
+              </Button>
+            </View>
+          </>
+        ) : (
+          <Text className="font-body text-sm text-muted-foreground">
+            Đề nghị này không còn nữa — có thể huấn luyện viên đã thu hồi.
+          </Text>
+        )}
+      </View>
+    </BottomSheet>
   );
 }
 
