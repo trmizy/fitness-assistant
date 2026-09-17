@@ -1398,3 +1398,42 @@ chủ chứ không nuốt.
 "Gói 10 buổi tăng cơ", 3.000.000 đ, `source: GYM`, `ptRate 0.5 / gymRate 0.4` **lấy từ thoả thuận
 hợp tác thật** (không phải giá trị mặc định), và tài khoản PT gọi `/contracts/pt` thấy đúng hợp
 đồng đó. 27 unit test cho tầng logic của cụm này.
+
+### 23.3 — Phòng gym, gói hội viên, và "Hội viên của tôi" (CL-09, hai tab của CL-04)
+
+**Hai trục trạng thái, không phải một.** Một phòng gym có `status` (duyệt) và `operationalStatus`
+(vận hành) độc lập nhau; `membershipService.purchase` chặn ở **cả hai**, và webhook kích hoạt còn
+kiểm lại lần nữa (gym đóng cửa giữa lúc thanh toán → hợp đồng rơi vào `PENDING_ISSUE`, không phải
+huỷ). Màn hình nào chỉ đọc một trục sẽ vui vẻ bán gói ở một phòng gym đã đóng cửa.
+
+**Gói thuộc THƯƠNG HIỆU, không thuộc chi nhánh** — đúng bất biến one-owner-one-brand. Mua qua một
+chi nhánh nhưng dùng được ở mọi chi nhánh cùng thương hiệu, nên màn nói thẳng câu đó thay vì để
+người dùng đoán.
+
+**Giá gói về dạng chuỗi.** `price` là Decimal của Prisma, JSON hoá thành `"300000"`. Cộng thẳng là
+ra nối chuỗi, nên `normalizePlan` ép `Number()` ngay tại biên.
+
+**Cảnh báo đa gym là CẢNH BÁO.** `GET /gyms/:gymId/membership-warnings` trả danh sách gym khác mà
+khách còn gói hiệu lực; nó không bao giờ chặn mua (money-flow §2.6). Xác nhận của khách đi kèm
+request thành `multiGymWarned` — **bằng chứng đã được báo**, không phải cái khoá.
+
+**Một khách chỉ có một gói MỞ tại mỗi gym** (unique index ở DB, không chỉ luật ứng dụng). Vì thế
+`purchaseBlockedReason` phân biệt rõ hai trường hợp — đang có gói hiệu lực, và đang có gói chờ
+thanh toán — và tab Hội viên có nút **Huỷ yêu cầu** cho cái thứ hai, đúng mục đích mà route
+`/me/gym-memberships/:id/cancel` sinh ra.
+
+**Dừng ở "chờ thanh toán" một cách có chủ đích.** `purchase` tạo hàng membership TRƯỚC khi thử
+thanh toán, nên Phase 7 gọi nó **không kèm `provider`**: gói được giữ ở `PENDING_PAYMENT`, giao diện
+nói thật là cổng thanh toán mở ở bản sau, và không mở trình duyệt nào cả (đó là Phase 14).
+
+**Kiểm thật (17/9)**: gói `3df3f15e-23a5-4a78-8d20-197183dd941b` — PENDING_PAYMENT, 300.000 đ,
+30 ngày, đúng giá gói; bấm "Huỷ yêu cầu" trên máy → CANCELLED, xác nhận lại ở backend. 19 unit test
+cho tầng logic của cụm này.
+
+**Một hạn chế còn lại, đã biết:** hàng membership chỉ có `gymId`, không có tên gym, nên tab Hội viên
+ghép tên từ danh sách gym công khai. Gym nào không còn nằm trong danh sách công khai (bị gỡ duyệt,
+đóng vĩnh viễn) sẽ hiện nhãn chung "Phòng gym" — thà vậy còn hơn bịa tên.
+
+**Một bài học về công cụ, không phải về code:** `.expo/types/router.d.ts` sinh ra trong lúc đang ghi
+file có thể chứa route rác (lần này là `/../src/features/services/gymDirectory`). Khởi động lại
+Metro với `--clear` là hết — đừng đi sửa code theo một file sinh tự động đang dở dang.

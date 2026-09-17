@@ -2,11 +2,22 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, ShieldCheck, SlidersHorizontal, Star, UserSearch } from "lucide-react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Building2,
+  ChevronRight,
+  MapPin,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Star,
+  Ticket,
+  UserSearch,
+} from "lucide-react-native";
 
 import {
   Avatar,
+  Badge,
   BottomSheet,
   Button,
   Card,
@@ -15,12 +26,23 @@ import {
   Stagger,
   StaggerItem,
   Tappable,
+  useToast,
 } from "../../../src/components/ui";
-import { profileService } from "../../../src/services/api";
+import { gymService, profileService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
 import { QUICK_FILTERS } from "../../../src/constants/specialties";
+import {
+  daysRemaining,
+  groupByBrand,
+  gymBlockedReason,
+  membershipStatusLabel,
+  normalizeGyms,
+  normalizeMemberships,
+  searchGyms,
+  type GymRow,
+} from "../../../src/features/services/gymDirectory";
 import {
   EMPTY_PT_FILTERS,
   SESSION_MODES,
@@ -86,7 +108,15 @@ export default function ClientServicesScreen() {
         </View>
       </View>
 
-      {tab === "Tìm PT" ? <FindPtTab /> : <ComingInThisPhase tab={tab} />}
+      {tab === "Tìm PT" ? (
+        <FindPtTab />
+      ) : tab === "Phòng gym" ? (
+        <GymsTab />
+      ) : tab === "Hội viên" ? (
+        <MembershipsTab onBrowseGyms={() => setTab("Phòng gym")} />
+      ) : (
+        <ComingInThisPhase tab={tab} />
+      )}
     </View>
   );
 }
@@ -376,6 +406,246 @@ function FilterSheet({
         </View>
       </View>
     </BottomSheet>
+  );
+}
+
+/** CL-09's list half — branches gathered under their brand, which is how the data model has them. */
+function GymsTab() {
+  const accent = useWorkspaceAccent();
+  const [query, setQuery] = useState("");
+
+  const gymsQuery = useQuery({
+    queryKey: ["gyms"],
+    queryFn: () => gymService.listGyms(),
+  });
+  const { refreshing, onRefresh } = usePullToRefresh([["gyms"]]);
+
+  const gyms = useMemo(() => normalizeGyms(gymsQuery.data), [gymsQuery.data]);
+  const groups = useMemo(() => groupByBrand(searchGyms(gyms, query)), [gyms, query]);
+
+  return (
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ paddingBottom: 120, paddingTop: 12 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent.primary} />
+      }
+    >
+      <View className="px-5">
+        <Input
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Tìm theo tên, thương hiệu hoặc thành phố..."
+          icon={Search}
+          returnKeyType="search"
+        />
+      </View>
+
+      {gymsQuery.isLoading ? (
+        <View className="items-center py-16">
+          <ActivityIndicator color={accent.primary} />
+        </View>
+      ) : groups.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="Không tìm thấy phòng gym phù hợp"
+          description="Thử từ khoá khác, hoặc kéo xuống để tải lại."
+        />
+      ) : (
+        <Stagger className="mt-4 gap-6 px-5">
+          {groups.map((group) => (
+            <StaggerItem key={group.brandId || group.brandName}>
+              <View className="mb-2.5 flex-row items-center gap-2">
+                <View className="h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+                  <Building2 size={16} color={accent.primary} />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-display text-base text-foreground" numberOfLines={1}>
+                    {group.brandName}
+                  </Text>
+                  <Text className="font-body text-[11px] text-muted-foreground">
+                    {group.branches.length} chi nhánh
+                  </Text>
+                </View>
+              </View>
+              <View className="gap-3">
+                {group.branches.map((gym) => (
+                  <GymCard
+                    key={gym.id}
+                    gym={gym}
+                    onPress={() =>
+                      router.push({ pathname: "/client/services/gyms/[id]", params: { id: gym.id } })
+                    }
+                  />
+                ))}
+              </View>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      )}
+    </ScrollView>
+  );
+}
+
+function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) {
+  const accent = useWorkspaceAccent();
+  const closed = gymBlockedReason(gym);
+  return (
+    <Tappable onPress={onPress}>
+      <Card className="gap-2 p-4">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className="font-display text-base text-foreground" numberOfLines={1}>
+              {gym.name}
+            </Text>
+            {gym.city || gym.address ? (
+              <View className="mt-0.5 flex-row items-center gap-1">
+                <MapPin size={12} color="#8b9299" />
+                <Text className="flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
+                  {[gym.address, gym.city].filter(Boolean).join(", ")}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {gym.rating != null ? <Badge tone="warning">{`★ ${gym.rating.toFixed(1)}`}</Badge> : null}
+        </View>
+
+        <View className="flex-row items-center justify-between">
+          {/* Only a real price is accented — "no plans yet" in the same green would read as one. */}
+          <Text
+            className="font-body-medium text-sm"
+            style={{ color: gym.fromPrice != null ? accent.primary : "#8b9299" }}
+          >
+            {gym.fromPrice != null ? `Từ ${formatVND(gym.fromPrice)}` : "Chưa mở bán gói"}
+          </Text>
+          <View className="flex-row items-center gap-1">
+            <Text className="font-body text-sm text-muted-foreground">Xem gói</Text>
+            <ChevronRight size={16} color="#8b9299" />
+          </View>
+        </View>
+
+        {closed ? <Badge tone="danger">{closed}</Badge> : null}
+      </Card>
+    </Tappable>
+  );
+}
+
+/** What the client already holds — the ones waiting to be paid for included. */
+function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
+  const accent = useWorkspaceAccent();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const membershipsQuery = useQuery({
+    queryKey: ["my-memberships"],
+    queryFn: () => gymService.listMyMemberships(),
+  });
+  // A membership row carries a gymId but no gym name, so the directory is read alongside to name it.
+  const gymsQuery = useQuery({
+    queryKey: ["gyms"],
+    queryFn: () => gymService.listGyms(),
+  });
+  const { refreshing, onRefresh } = usePullToRefresh([["my-memberships"], ["gyms"]]);
+
+  const memberships = useMemo(
+    () => normalizeMemberships(membershipsQuery.data),
+    [membershipsQuery.data],
+  );
+  const gymsById = useMemo(() => {
+    const map = new Map<string, GymRow>();
+    for (const gym of normalizeGyms(gymsQuery.data)) map.set(gym.id, gym);
+    return map;
+  }, [gymsQuery.data]);
+
+  const cancelMutation = useMutation({
+    mutationFn: (membershipId: string) => gymService.cancelMembership(membershipId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
+      toast.show("Đã huỷ yêu cầu chờ thanh toán.", "success");
+    },
+    onError: (error: any) => {
+      toast.show(error?.response?.data?.error ?? "Không huỷ được yêu cầu", "danger");
+    },
+  });
+
+  return (
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ paddingBottom: 120, paddingTop: 12 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent.primary} />
+      }
+    >
+      {membershipsQuery.isLoading ? (
+        <View className="items-center py-16">
+          <ActivityIndicator color={accent.primary} />
+        </View>
+      ) : memberships.length === 0 ? (
+        <EmptyState
+          icon={Ticket}
+          title="Bạn chưa có gói hội viên nào"
+          description="Chọn một phòng gym để xem các gói đang mở bán."
+          actionLabel="Xem phòng gym"
+          onAction={onBrowseGyms}
+        />
+      ) : (
+        <Stagger className="gap-3 px-5">
+          {memberships.map((membership) => {
+            const gym = gymsById.get(membership.gymId);
+            const status = membershipStatusLabel(membership.status);
+            const left = daysRemaining(membership);
+            return (
+              <StaggerItem key={membership.id}>
+                <Card className="gap-2 p-4">
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="font-display text-base text-foreground" numberOfLines={1}>
+                        {gym?.name ?? "Phòng gym"}
+                      </Text>
+                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                        {gym?.brandName ?? ""}
+                      </Text>
+                    </View>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </View>
+
+                  <Text className="font-body text-sm text-foreground">
+                    {formatVND(membership.price)}
+                    <Text className="font-body text-xs text-muted-foreground">
+                      {` · ${membership.durationDays} ngày`}
+                      {membership.totalVisits != null
+                        ? ` · ${membership.usedVisits}/${membership.totalVisits} lượt`
+                        : ""}
+                    </Text>
+                  </Text>
+
+                  {membership.status === "ACTIVE" && left != null ? (
+                    <Text className="font-body text-xs text-muted-foreground">{`Còn ${left} ngày`}</Text>
+                  ) : null}
+
+                  {membership.status === "PENDING_PAYMENT" ? (
+                    <>
+                      <Text className="font-body text-xs text-muted-foreground">
+                        Cổng thanh toán sẽ mở trong bản cập nhật tới. Huỷ yêu cầu nếu bạn muốn chọn
+                        gói khác tại phòng gym này.
+                      </Text>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={cancelMutation.isPending}
+                        onPress={() => cancelMutation.mutate(membership.id)}
+                      >
+                        Huỷ yêu cầu
+                      </Button>
+                    </>
+                  ) : null}
+                </Card>
+              </StaggerItem>
+            );
+          })}
+        </Stagger>
+      )}
+    </ScrollView>
   );
 }
 
