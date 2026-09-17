@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { router, useFocusEffect } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   Apple,
   BarChart3,
   Bell,
+  Beef,
   ClipboardList,
   Dumbbell,
   Flame,
@@ -34,6 +35,7 @@ import {
 import { useApp } from "../../src/context/AppContext";
 import {
   inbodyService,
+  nutritionService,
   profileService,
   statsService,
   workoutService,
@@ -54,6 +56,7 @@ import {
   isSameLocalDay as isToday,
   selectUpcomingSchedules,
 } from "../../src/features/dashboard/dashboardWeek";
+import { normalizeLogs, sumTotals } from "../../src/features/nutrition/nutritionMath";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 
 /**
@@ -71,13 +74,19 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
  * 7's contract/session flow). Both are recorded as PARTIAL in MOBILE_MIGRATION_MANIFEST.md.
  * Rendering either one now would mean hardcoding a claim the backend never made.
  *
- * The reference's two stat tiles show calories and water, which come from the nutrition domain
- * (Phase 6). The tile pair is kept exactly as designed but filled with the body metrics web
- * already shows on this screen (weight, muscle mass); nutrition replaces/joins them in Phase 6.
+ * The reference's stat tiles are calories and water. Calories are real and now rendered from the
+ * nutrition domain (same figures as the nutrition screen: the server's `actualProgress` when a
+ * program is running, the day's own logs otherwise). Water is NOT: `waterMl` exists on
+ * NutritionGoal as a *target* only, and nothing in the product logs water intake — the same reason
+ * the monthly summary drops its water tile. Rather than draw a tile that can only ever read
+ * "— / 3.0 L", the second nutrition tile shows protein, the macro the app does track, and the gap
+ * is recorded in MOBILE_BACKEND_GAPS.md. The body pair (weight, muscle) web already shows on this
+ * screen stays above it.
  */
 export default function ClientDashboardScreen() {
   const { user } = useApp();
   const accent = useWorkspaceAccent();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
   const today = useMemo(() => new Date(), []);
@@ -132,13 +141,53 @@ export default function ClientDashboardScreen() {
       ),
   });
 
+  // Nutrition (Phase 6): the two tiles the reference puts on this screen. Same three sources the
+  // nutrition screen uses, so the two screens can never disagree about today's number.
+  const nutritionGoalQuery = useQuery({
+    queryKey: ["nutrition-goal"],
+    queryFn: () => nutritionService.getGoal(),
+  });
+  const nutritionLogsQuery = useQuery({
+    queryKey: ["nutrition-logs", range.startDate],
+    queryFn: () => nutritionService.getLogs(range.startDate, range.startDate),
+  });
+  const nutritionTaskQuery = useQuery({
+    queryKey: ["nutrition-daily-task", range.startDate],
+    queryFn: () => nutritionService.getDailyTask(range.startDate),
+  });
+
+  // The dashboard is a tab root: it stays mounted while the user logs a meal on another screen, so
+  // without this the tile would still show the figure from before the meal (global staleTime 30s).
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.refetchQueries({ queryKey: ["nutrition-logs", range.startDate], type: "active" }, { cancelRefetch: false });
+      void queryClient.refetchQueries({ queryKey: ["nutrition-daily-task", range.startDate], type: "active" }, { cancelRefetch: false });
+    }, [queryClient, range.startDate]),
+  );
+
   const { refreshing, onRefresh } = usePullToRefresh([
     ["profile", user?.id],
     ["inbody-history"],
     ["current-workout-program"],
     ["workout-schedules", "dashboard-upcoming"],
     ["activity-heatmap", "dashboard-week"],
+    ["nutrition-goal"],
+    ["nutrition-logs", range.startDate],
+    ["nutrition-daily-task", range.startDate],
   ]);
+
+  // Prefer the server's own progress figure when a nutrition program is running, exactly as
+  // app/client/workout/nutrition/index.tsx does; fall back to summing the day's logs.
+  const loggedTotals = useMemo(
+    () => sumTotals(normalizeLogs(nutritionLogsQuery.data)),
+    [nutritionLogsQuery.data],
+  );
+  const eaten = {
+    calories: nutritionTaskQuery.data?.actualProgress?.calories ?? loggedTotals.calories,
+    protein: nutritionTaskQuery.data?.actualProgress?.protein ?? loggedTotals.protein,
+  };
+  const nutritionGoal = nutritionGoalQuery.data;
+  const nutritionLoading = nutritionLogsQuery.isLoading || nutritionGoalQuery.isLoading;
 
   const sortedInBody = useMemo(
     () => sortInBodyNewestFirst(Array.isArray(inbodyQuery.data) ? inbodyQuery.data : []),
@@ -303,7 +352,40 @@ export default function ClientDashboardScreen() {
           </Card>
         </StaggerItem>
 
-        {/* Body metrics — the reference's tile pair; nutrition tiles join these in Phase 6. */}
+        {/* Nutrition — the reference's own tile pair (calories; water has no data source, see the
+            file header, so protein takes its place). Both open the nutrition screen. */}
+        <StaggerItem>
+          <View className="flex-row gap-3">
+            <StatTile
+              icon={Flame}
+              tint={accent.chart1}
+              label="Calo hôm nay"
+              value={nutritionLoading ? "" : String(Math.round(eaten.calories))}
+              sub={
+                nutritionGoal?.calories
+                  ? `/ ${nutritionGoal.calories.toLocaleString("vi-VN")} kcal`
+                  : "Chưa đặt mục tiêu calo"
+              }
+              loading={nutritionLoading}
+              onPress={() => router.push("/client/workout/nutrition")}
+            />
+            <StatTile
+              icon={Beef}
+              tint={accent.primary}
+              label="Đạm hôm nay"
+              value={nutritionLoading ? "" : `${Math.round(eaten.protein)}g`}
+              sub={
+                nutritionGoal?.protein
+                  ? `/ ${Math.round(nutritionGoal.protein)} g`
+                  : "Chưa đặt mục tiêu đạm"
+              }
+              loading={nutritionLoading}
+              onPress={() => router.push("/client/workout/nutrition")}
+            />
+          </View>
+        </StaggerItem>
+
+        {/* Body metrics — what web already shows on this screen. */}
         <StaggerItem>
           <View className="flex-row gap-3">
             <StatTile
@@ -465,6 +547,7 @@ function StatTile({
   value,
   sub,
   loading,
+  onPress,
 }: {
   icon: LucideIcon;
   tint: string;
@@ -472,8 +555,9 @@ function StatTile({
   value: string;
   sub: string;
   loading?: boolean;
+  onPress?: () => void;
 }) {
-  return (
+  const body = (
     <Card className="flex-1 p-4">
       <View
         className="mb-3 h-9 w-9 items-center justify-center rounded-lg"
@@ -491,5 +575,12 @@ function StatTile({
         {sub}
       </Text>
     </Card>
+  );
+
+  if (!onPress) return body;
+  return (
+    <Tappable className="flex-1" onPress={onPress} accessibilityLabel={label}>
+      {body}
+    </Tappable>
   );
 }

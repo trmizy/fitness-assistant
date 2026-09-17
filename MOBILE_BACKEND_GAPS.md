@@ -248,3 +248,26 @@
 - Đề xuất (không tự làm nếu chưa được đồng ý): đưa `muscleMass` vào cùng nhánh kiểm tra với `bodyFat`
   (400 kèm thông điệp), và thêm `DELETE /inbody/:id` chỉ cho chủ sở hữu.
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
+
+## GAP-10 — Không có đường nào ghi lượng nước uống (chỉ có mục tiêu)
+
+- Phát hiện: Phase 6 (CL-01 — hai ô chỉ số Trang chủ), 2026-09-17, rà thẳng code backend.
+- Màn hình/luồng bị ảnh hưởng: CL-01 (ô "Nước" trong thiết kế `New Frontend/src/screens/Home.tsx`),
+  CL-19 (ô "Nước TB / ngày" của bản tổng kết tháng).
+- Backend service liên quan: fitness-service.
+- Mô tả thiếu gì cụ thể: thiết kế vẽ ô nước dạng "đã uống / mục tiêu" (1.6 / 3.0 L). Trong backend:
+  - `NutritionGoal.waterMl` (`prisma/schema.prisma:432`) có thật, đọc/ghi được qua
+    `GET|PUT /nutrition/goals` — nhưng đây là **MỤC TIÊU**, không phải lượng đã uống.
+  - `NutritionLog` không có trường nước; không có route nào kiểu `POST /nutrition/water`.
+  - `BodyMetrics.body_water` (`schema.prisma:463`) là **% nước trong cơ thể** của phép đo InBody,
+    lại **không route API nào đọc nó**, và dù có cũng không phải lượng nước uống trong ngày.
+  Tức là cái thiết kế vẽ không có nguồn dữ liệu nào cả — không phải mobile chưa gọi.
+- Mức ảnh hưởng: PARTIAL — phần calo của cặp ô vẫn có dữ liệu thật.
+- Đã thử tìm endpoint thay thế chưa: có, không có gì thay thế được (xem ba gạch đầu dòng trên).
+- Đã xử lý ở client: Trang chủ hiển thị **Calo hôm nay** (thật) và **Đạm hôm nay** (thật) thay vì vẽ
+  một ô nước vĩnh viễn "— / 3.0 L"; bản tổng kết tháng bỏ hẳn ô nước. Mục tiêu nước vẫn đặt được ở
+  màn Mục tiêu dinh dưỡng vì `waterMl` ghi được — chỉ là chưa có gì đối chiếu với nó.
+- Đề xuất (không tự làm nếu chưa được đồng ý): thêm bảng/route ghi nước theo ngày
+  (`POST /nutrition/water { date, ml }` + tổng hợp trong `daily-task`), khi đó ô nước của thiết kế
+  mới dựng được đúng nghĩa.
+- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
