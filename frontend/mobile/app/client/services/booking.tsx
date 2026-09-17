@@ -41,6 +41,7 @@ import {
   groupOf,
   incomingReschedule,
   mergeSessionSources,
+  normalizeRescheduleHistory,
   normalizeSessions,
   normalizeSlots,
   outgoingReschedule,
@@ -49,6 +50,7 @@ import {
   proposalSummary,
   rescheduleBlockedReason,
   reviewBlockedReason,
+  withRescheduleHistory,
   sessionStatus,
   type SessionAction,
   type SessionRow,
@@ -97,7 +99,7 @@ export default function BookingScreen() {
   const queryClient = useQueryClient();
 
   const [segment, setSegment] = useState(SEGMENTS[0]);
-  const [detail, setDetail] = useState<SessionRow | null>(null);
+  const [openSession, setOpenSession] = useState<SessionRow | null>(null);
   const [action, setAction] = useState<SessionAction | null>(null);
   const [reason, setReason] = useState("");
   const [booking, setBooking] = useState(false);
@@ -190,6 +192,23 @@ export default function BookingScreen() {
       );
     },
   });
+
+  // The list endpoints attach only the PENDING proposal, so how many times a session has already
+  // been moved (max 2, server-enforced) is only knowable from its history — read when a session is
+  // opened, not for the whole list.
+  const historyQuery = useQuery({
+    queryKey: ["session-reschedule-history", openSession?.id],
+    queryFn: () => sessionService.getRescheduleHistory(openSession!.id),
+    enabled: !!openSession?.id,
+  });
+  const detail = useMemo(
+    () =>
+      openSession
+        ? withRescheduleHistory(openSession, normalizeRescheduleHistory(historyQuery.data))
+        : null,
+    [openSession, historyQuery.data],
+  );
+  const setDetail = setOpenSession;
 
   const loading =
     upcomingQuery.isLoading || pendingQuery.isLoading || contractsQuery.isLoading;

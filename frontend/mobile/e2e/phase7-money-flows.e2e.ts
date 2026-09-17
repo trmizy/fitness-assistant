@@ -13,6 +13,10 @@
  *   E2E_BASE_URL=... E2E_EMAIL=... E2E_PASSWORD=... pnpm test:e2e
  *
  * It is deliberately NOT part of `pnpm test`: that suite must pass with no server at all.
+ *
+ * Một lưu ý về dữ liệu: kịch bản hai phía (PT đề nghị – khách trả lời) **dời một buổi đi rồi dời
+ * lại về chỗ cũ**, tức là dùng hết ngân sách "tối đa 2 lần dời" của buổi đó. Nó luôn chọn một buổi
+ * chưa từng bị dời, và mỗi lượt chạy tiêu đúng một buổi như vậy.
  */
 
 import { after, before, describe, it } from "node:test";
@@ -22,10 +26,15 @@ import { buildContractRequestPayload, normalizePts } from "../src/features/servi
 import { normalizeGyms, normalizePlans, planOnSale } from "../src/features/services/gymDirectory";
 import { normalizeContracts } from "../src/features/services/contracts";
 import {
+  RESCHEDULE_MAX_MOVES,
+  acceptedMoves,
+  withRescheduleHistory,
   buildBookingPayload,
   buildReschedulePayload,
   hoursUntil,
+  normalizeRescheduleHistory,
   normalizeSessions,
+  normalizeSlots,
   pendingReschedule,
   type SessionRow,
 } from "../src/features/services/sessions";
@@ -33,6 +42,14 @@ import {
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const EMAIL = process.env.E2E_EMAIL ?? "john.doe@example.com";
 const PASSWORD = process.env.E2E_PASSWORD ?? "password123";
+
+/**
+ * The two-sided scenario needs the TRAINER on the client's active contract, because only the other
+ * party may answer a proposal. Credentials are read from the environment and never stored here; with
+ * none set, that one test skips and the rest still run.
+ */
+const PT_EMAIL = process.env.E2E_PT_EMAIL ?? "";
+const PT_PASSWORD = process.env.E2E_PT_PASSWORD ?? "";
 
 let token = "";
 
@@ -42,12 +59,14 @@ async function call(
   method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
+  asToken?: string,
 ): Promise<{ status: number; data: Json }> {
+  const bearer = asToken ?? token;
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -61,9 +80,9 @@ async function call(
   return { status: response.status, data };
 }
 
-const get = (path: string) => call("GET", path);
-const post = (path: string, body?: unknown) => call("POST", path, body);
-const patch = (path: string, body?: unknown) => call("PATCH", path, body);
+const get = (path: string, asToken?: string) => call("GET", path, undefined, asToken);
+const post = (path: string, body?: unknown, asToken?: string) => call("POST", path, body, asToken);
+const patch = (path: string, body?: unknown, asToken?: string) => call("PATCH", path, body, asToken);
 const del = (path: string) => call("DELETE", path);
 
 /** Everything created during the run, undone in reverse in the `after` hook. */
@@ -319,10 +338,23 @@ describe("Phase 7 — đặt buổi tập trên hợp đồng đang hiệu lực
     if (skipAll) return t.skip("backend chưa chạy");
 
     const upcoming = normalizeSessions((await get("/sessions/upcoming")).data);
-    const movable = upcoming.find(
+    // The server allows a session to be MOVED at most twice; a third proposal is a 409. The list
+    // endpoint attaches only the PENDING proposal, so the count has to come from each session's
+    // own history.
+    const candidates = upcoming.filter(
       (s: SessionRow) => s.status === "CONFIRMED" && (hoursUntil(s) ?? 0) > 12 && !pendingReschedule(s),
     );
-    if (!movable) return t.skip("không có buổi CONFIRMED nào còn hơn 12 giờ và chưa có đề nghị mở");
+    let movable: SessionRow | undefined;
+    for (const candidate of candidates) {
+      const history = normalizeRescheduleHistory((await get(`/sessions/${candidate.id}/reschedule-history`)).data);
+      if (acceptedMoves(withRescheduleHistory(candidate, history)) < RESCHEDULE_MAX_MOVES) {
+        movable = candidate;
+        break;
+      }
+    }
+    if (!movable) {
+      return t.skip("không có buổi CONFIRMED nào còn hơn 12 giờ, chưa có đề nghị mở và chưa dời quá 2 lần");
+    }
 
     const day = new Date(movable.startAt!);
     day.setDate(day.getDate() + 1);
@@ -370,5 +402,113 @@ describe("Phase 7 — đặt buổi tập trên hợp đồng đang hiệu lực
     const history = (await get(`/sessions/${movable.id}/reschedule-history`)).data ?? [];
     const row = history.find((h: any) => h?.id === requestId);
     assert.equal(String(row?.status), "CANCELLED");
+  });
+});
+
+describe("Phase 7 — PT đề nghị đổi lịch, khách trả lời", () => {
+  it("từ chối giữ nguyên giờ cũ, đồng ý chuyển sang giờ mới", async (t) => {
+    if (skipAll) return t.skip("backend chưa chạy");
+    if (!PT_EMAIL || !PT_PASSWORD) {
+      return t.skip("chưa đặt E2E_PT_EMAIL/E2E_PT_PASSWORD — không tạo được đề nghị từ phía PT");
+    }
+
+    const contracts = normalizeContracts((await get("/contracts/client")).data);
+    const active = contracts.find((c) => c.status === "ACTIVE" && c.totalSessions > c.usedSessions);
+    if (!active) return t.skip("không có hợp đồng ACTIVE còn buổi");
+
+    const ptLogin = await post("/auth/login", { email: PT_EMAIL, password: PT_PASSWORD });
+    assert.equal(ptLogin.status, 200, "đăng nhập PT thất bại");
+    const ptToken = ptLogin.data?.accessToken ?? ptLogin.data?.token ?? "";
+    assert.ok(ptToken, "không lấy được token PT");
+
+    // The scenario books its OWN session rather than moving one from the seed data: a session's
+    // original hour may sit outside the trainer's availability (the seeded 22:00 ones do), and then
+    // there is no way to put it back. Two free slots on one day is all it needs.
+    const day = new Date();
+    let dateKey = "";
+    let slots: string[] = [];
+    for (let ahead = 2; ahead <= 9 && slots.length < 2; ahead += 1) {
+      const probe = new Date(day.getFullYear(), day.getMonth(), day.getDate() + ahead);
+      const key = [
+        probe.getFullYear(),
+        String(probe.getMonth() + 1).padStart(2, "0"),
+        String(probe.getDate()).padStart(2, "0"),
+      ].join("-");
+      const free = normalizeSlots((await get(`/availability/${active.ptUserId}/slots?date=${key}`)).data);
+      if (free.length >= 2) {
+        dateKey = key;
+        slots = free;
+      }
+    }
+    if (slots.length < 2) return t.skip("PT không có ngày nào còn ít nhất 2 khung giờ trống");
+
+    const booked = await post("/sessions", {
+      contractId: active.id,
+      ...buildBookingPayload({ date: dateKey, time: slots[0], sessionMode: active.sessionMode }),
+    });
+    assert.ok(
+      booked.status >= 200 && booked.status < 300,
+      `đặt buổi thất bại: ${JSON.stringify(booked.data).slice(0, 200)}`,
+    );
+    const sessionId = String(booked.data?.id ?? booked.data?.session?.id);
+    assert.ok(sessionId, "không nhận được id buổi tập");
+    cleanup.push(async () => {
+      await patch(`/sessions/${sessionId}/cancel`, { reason: "E2E cleanup" });
+    });
+
+    // The trainer confirms it, because only a CONFIRMED session may be moved.
+    const confirmed = await patch(`/sessions/${sessionId}/confirm`, undefined, ptToken);
+    assert.ok(
+      confirmed.status >= 200 && confirmed.status < 300,
+      `PT xác nhận thất bại: ${JSON.stringify(confirmed.data).slice(0, 200)}`,
+    );
+
+    const sessionNow = async (): Promise<SessionRow> => {
+      const rows = normalizeSessions((await get("/sessions/upcoming")).data);
+      const found = rows.find((s: SessionRow) => s.id === sessionId);
+      assert.ok(found, "không đọc lại được buổi tập");
+      return found;
+    };
+
+    const propose = async (time: string, reason: string) => {
+      const session = await sessionNow();
+      const payload = buildReschedulePayload(session, dateKey, time);
+      assert.ok(payload, "không dựng được payload đổi lịch");
+      const created = await post(
+        `/sessions/${sessionId}/reschedule`,
+        { ...payload, reason },
+        ptToken,
+      );
+      assert.ok(
+        created.status >= 200 && created.status < 300,
+        `PT gửi đề nghị thất bại: ${JSON.stringify(created.data).slice(0, 200)}`,
+      );
+      return String(created.data?.id);
+    };
+
+    const originalStart = (await sessionNow()).startAt;
+
+    // ── Từ chối: đề nghị đóng lại, buổi tập KHÔNG đổi giờ và KHÔNG bị huỷ.
+    const rejectId = await propose(slots[1], "E2E - PT de nghi doi, khach se tu choi");
+    const incoming = pendingReschedule(await sessionNow());
+    assert.equal(incoming?.requestedBy, "PT", "đề nghị phải hiện ra là do PT gửi");
+
+    const rejected = await post(`/sessions/reschedules/${rejectId}/respond`, { action: "REJECT" });
+    assert.ok(rejected.status >= 200 && rejected.status < 300, JSON.stringify(rejected.data).slice(0, 200));
+
+    const afterReject = await sessionNow();
+    assert.equal(afterReject.status, "CONFIRMED", "từ chối đề nghị không được huỷ buổi tập");
+    assert.equal(afterReject.startAt, originalStart, "từ chối mà giờ vẫn bị đổi");
+
+    // ── Đồng ý: buổi chuyển sang giờ mới, vẫn CONFIRMED, vẫn chưa trừ buổi.
+    const acceptId = await propose(slots[1], "E2E - PT de nghi doi, khach se dong y");
+    const accepted = await post(`/sessions/reschedules/${acceptId}/respond`, { action: "ACCEPT" });
+    assert.ok(accepted.status >= 200 && accepted.status < 300, JSON.stringify(accepted.data).slice(0, 200));
+
+    const afterAccept = await sessionNow();
+    assert.notEqual(afterAccept.startAt, originalStart, "đồng ý mà giờ không đổi");
+    assert.equal(afterAccept.status, "CONFIRMED");
+    assert.equal(afterAccept.deducted, false, "đổi lịch không được tính là đã dạy");
+    assert.equal(pendingReschedule(afterAccept), null, "đề nghị đã trả lời mà vẫn còn mở");
   });
 });

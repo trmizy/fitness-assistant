@@ -4439,6 +4439,16 @@ export const sessionService = {
     });
     return data;
   },
+  /**
+   * Full proposal history for a session — who moved it, when, and why.
+   *
+   * Needed because `/sessions/upcoming` attaches only the PENDING proposal: the count of moves a
+   * session has already used (max 2, server-enforced) can only be read here.
+   */
+  getRescheduleHistory: async (sessionId: string) => {
+    const { data } = await api.get(`/sessions/${sessionId}/reschedule-history`);
+    return data;
+  },
   respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
     const { data } = await api.post(`/sessions/reschedules/${requestId}/respond`, {
       action,

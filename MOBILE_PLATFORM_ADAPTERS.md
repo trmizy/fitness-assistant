@@ -1519,13 +1519,14 @@ cùng thắng", nên dòng từ danh sách theo hợp đồng xoá sạch đề 
 giao diện im lặng như chưa từng có đề nghị nào. Đã tách thành `mergeSessionSources()` (nguồn giàu dữ
 liệu đi trước, **ghi đầu tiên thắng**) và có test riêng chặn tái phát.
 
-**Kiểm chứng đến đâu (17/9):** phần khách gửi đề nghị — kiểm **end-to-end thật** trên máy (thẻ và
-sheet hiện đúng, nút Đổi lịch bị chặn đúng câu). Phần **khách trả lời đề nghị của PT** mới kiểm
-được hợp đồng endpoint (URL + payload đúng handler, 403 đúng luật) và unit test, **chưa chạy vòng
-tròn đầy đủ**: hợp đồng ACTIVE của tài khoản thử `john.doe` có PT chính là tài khoản cá nhân của
-Ngài (`huytronh4@gmail.com`), và tại hạ không đăng nhập vào tài khoản của Ngài để tạo đề nghị từ
-phía PT. Chốt được ngay khi Ngài gửi một đề nghị đổi lịch từ phía PT, hoặc khi Phase 10/11 dựng
-xong giao diện PT.
+**Kiểm chứng (17/9 phần khách gửi, 18/9 phần khách trả lời — đã chạy đủ hai chiều trên máy thật):**
+- Khách gửi đề nghị: thẻ và sheet hiện đúng, nút Đổi lịch bị chặn đúng câu.
+- **Khách TỪ CHỐI** đề nghị của PT → đề nghị `REJECTED`, buổi tập **vẫn `CONFIRMED` và giữ nguyên
+  giờ cũ** (đúng như câu sheet hứa trước khi bấm).
+- **Khách ĐỒNG Ý** → buổi chuyển sang giờ mới, vẫn `CONFIRMED`, `sessionDeducted` vẫn false, đề
+  nghị `ACCEPTED`.
+Đề nghị phía PT được tạo bằng tài khoản PT thật (Ngài cấp trong phiên làm việc, **không lưu vào
+repo**), và lịch đã được trả về đúng chỗ cũ sau khi kiểm.
 
 ### 23.7 — E2E tự động cho luồng tiền Phase 7
 
@@ -1566,3 +1567,30 @@ lý do còn hơn giả vờ đã kiểm.
 **Việc duy nhất kịch bản này không tự làm được:** phần khách **trả lời** đề nghị của PT, vì cần một
 đề nghị do PT gửi — mà PT của hợp đồng ACTIVE duy nhất trên tài khoản thử lại là tài khoản cá nhân
 của Ngài. Kịch bản kiểm tới ranh giới đó (403 "không được tự trả lời đề nghị của mình") rồi dừng.
+
+### 23.8 — Ba luật đổi lịch chỉ lộ ra khi chạy thật (18/9)
+
+Chạy kịch bản hai phía lần đầu làm lộ thêm **ba điều không có trong tài liệu nào**, và cả ba đều
+đến từ chính máy chủ trả lời:
+
+1. **Một buổi chỉ được dời tối đa 2 lần** — `booking.service.ts` đếm `countAcceptedReschedules`, lần
+   thứ ba nhận `409 "Buổi tập này đã dời 2 lần — chỉ còn cách huỷ"`. Đã mô hình hoá thành
+   `RESCHEDULE_MAX_MOVES` + `acceptedMoves()`, và nút Đổi lịch biến mất kèm đúng câu đó.
+2. **Giờ đề nghị phải nằm trong khung rảnh của PT** — ngoài khung thì
+   `"Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên"`. Màn hình vốn đã đúng (chỉ chào
+   khung rảnh thật lấy từ `/availability/:id/slots`); chính **kịch bản E2E** của tại hạ mới là chỗ
+   sai khi tự cộng thêm 1 giờ.
+3. **Danh sách buổi tập chỉ đính kèm đề nghị ĐANG CHỜ.** `/sessions/upcoming` trả
+   `rescheduleRequests` chỉ gồm cái `PENDING`; những lần đã dời xong **không** có ở đó. Vì vậy số lần
+   đã dời chỉ đọc được qua `GET /sessions/:id/reschedule-history` — đã bọc thành
+   `sessionService.getRescheduleHistory` và sheet chi tiết gọi nó khi mở một buổi (một request, đúng
+   lúc cần), rồi `withRescheduleHistory()` gộp vào.
+
+**Thứ tự ưu tiên của lý do chặn** cũng quan trọng: đang có đề nghị mở thì nói "trả lời đề nghị đó
+trước" (việc người dùng làm được ngay), hết trần 2 lần mới nói "chỉ còn cách huỷ".
+
+**Kịch bản E2E hai phía tự đặt buổi của chính nó** thay vì mượn buổi trong dữ liệu seed: giờ gốc của
+buổi seed (22:00) nằm ngoài khung rảnh của PT, nên sau khi dời đi thì **không có đường đưa về** — bài
+học phải trả giá bằng bốn buổi bị lệch giờ trước khi nhận ra. Kịch bản nay: đặt buổi mới ở khung rảnh
+→ PT xác nhận → PT đề nghị đổi → khách từ chối → PT đề nghị lại → khách đồng ý → huỷ buổi của chính
+mình. Chạy lại hai lượt liên tiếp đều 5/5 và không để lại gì.

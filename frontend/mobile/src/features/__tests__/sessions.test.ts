@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  acceptedMoves,
   bookableSlots,
   bookingBlockedReason,
   buildBookingPayload,
@@ -24,6 +25,8 @@ import {
   normalizeSession,
   normalizeSessions,
   normalizeSlots,
+  normalizeRescheduleHistory,
+  withRescheduleHistory,
   incomingReschedule,
   mergeSessionSources,
   outgoingReschedule,
@@ -393,5 +396,76 @@ describe("mergeSessionSources", () => {
       { ...RAW_SESSION, id: "b", status: "COMPLETED" },
     ]);
     assert.deepEqual(mergeSessionSources(upcoming, history).map((s) => s.id), ["a", "b"]);
+  });
+});
+
+describe("giới hạn hai lần dời lịch", () => {
+  const moved = (times: number) =>
+    normalizeSession({
+      ...RAW_SESSION,
+      rescheduleRequests: Array.from({ length: times }, (_, index) => ({
+        id: `r${index}`,
+        requestedBy: index % 2 === 0 ? "PT" : "CLIENT",
+        status: "ACCEPTED",
+      })),
+    });
+
+  it("đếm những lần ĐÃ ĐỔI, không đếm đề nghị bị từ chối hay thu hồi", () => {
+    assert.equal(acceptedMoves(moved(2)), 2);
+    const noisy = normalizeSession({
+      ...RAW_SESSION,
+      rescheduleRequests: [
+        { id: "a", requestedBy: "PT", status: "REJECTED" },
+        { id: "b", requestedBy: "CLIENT", status: "CANCELLED" },
+        { id: "c", requestedBy: "PT", status: "ACCEPTED" },
+      ],
+    });
+    assert.equal(acceptedMoves(noisy), 1);
+  });
+
+  it("chặn lần dời thứ ba đúng như 409 của máy chủ", () => {
+    const far = new Date("2026-09-16T10:00:00.000Z");
+    assert.equal(rescheduleBlockedReason(moved(1), far), null);
+    assert.match(rescheduleBlockedReason(moved(2), far)!, /đã dời 2 lần/);
+    assert.deepEqual(clientActions(moved(2), far), ["cancel"]);
+  });
+});
+
+describe("lịch sử đổi lịch đọc riêng", () => {
+  const history = [
+    { id: "h1", requestedBy: "PT", status: "ACCEPTED", proposedStartAt: "2026-09-19T10:00:00.000Z" },
+    { id: "h2", requestedBy: "PT", status: "ACCEPTED", proposedStartAt: "2026-09-19T09:00:00.000Z" },
+    { id: "h3", requestedBy: "CLIENT", status: "REJECTED" },
+  ];
+
+  it("gộp lịch sử vào buổi tập mà không mất đề nghị đang chờ", () => {
+    const pendingOnly = normalizeSession({
+      ...RAW_SESSION,
+      // Đây là tất cả những gì /sessions/upcoming đính kèm: chỉ cái đang chờ.
+      rescheduleRequests: [{ id: "open", requestedBy: "PT", status: "PENDING" }],
+    });
+    const full = withRescheduleHistory(pendingOnly, normalizeRescheduleHistory(history));
+    assert.equal(full.reschedules.length, 4);
+    assert.equal(pendingReschedule(full)?.id, "open");
+    assert.equal(acceptedMoves(full), 2);
+    // Đang có đề nghị mở thì lý do đó nói trước — nó mới là việc người dùng làm được ngay.
+    assert.match(
+      rescheduleBlockedReason(full, new Date("2026-09-16T10:00:00.000Z"))!,
+      /trả lời đề nghị đó trước/,
+    );
+
+    // Trả lời xong, trần 2 lần dời mới là thứ chặn.
+    const answered = withRescheduleHistory(at("CONFIRMED"), normalizeRescheduleHistory(history));
+    assert.equal(pendingReschedule(answered), null);
+    assert.match(
+      rescheduleBlockedReason(answered, new Date("2026-09-16T10:00:00.000Z"))!,
+      /đã dời 2 lần/,
+    );
+  });
+
+  it("không đụng gì khi lịch sử rỗng", () => {
+    const session = at("CONFIRMED");
+    assert.equal(withRescheduleHistory(session, []), session);
+    assert.deepEqual(normalizeRescheduleHistory(null), []);
   });
 });

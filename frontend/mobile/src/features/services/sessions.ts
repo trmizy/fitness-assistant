@@ -97,6 +97,25 @@ export function normalizeSession(raw: any): SessionRow {
   };
 }
 
+/**
+ * `GET /sessions/:id/reschedule-history` — the FULL history, answered proposals included.
+ *
+ * The list endpoints attach only the PENDING proposal, so this is the only place a client can learn
+ * how many moves a session has already used.
+ */
+export function normalizeRescheduleHistory(raw: any): RescheduleRequest[] {
+  const list = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+  return list.map(normalizeRescheduleRequest).filter((r: RescheduleRequest) => r.id);
+}
+
+/** The session as the sheet sees it once its history has been read. */
+export function withRescheduleHistory(session: SessionRow, history: RescheduleRequest[]): SessionRow {
+  if (history.length === 0) return session;
+  const byId = new Map(history.map((request) => [request.id, request]));
+  for (const request of session.reschedules) if (!byId.has(request.id)) byId.set(request.id, request);
+  return { ...session, reschedules: [...byId.values()] };
+}
+
 /** The one open proposal, if any — the server allows only one per session at a time. */
 export function pendingReschedule(session: SessionRow): RescheduleRequest | null {
   return session.reschedules.find((request) => request.status === "PENDING") ?? null;
@@ -208,6 +227,13 @@ export function canReportNoShow(session: SessionRow, now: Date = new Date()): bo
  * required. `null` means a proposal would be accepted.
  */
 export const RESCHEDULE_WINDOW_HOURS = 12;
+/** At most two ACCEPTED moves per session, counting both sides — after that only cancelling is left. */
+export const RESCHEDULE_MAX_MOVES = 2;
+
+/** How many times this session has actually been moved (accepted proposals, either side). */
+export function acceptedMoves(session: SessionRow): number {
+  return session.reschedules.filter((request) => request.status === "ACCEPTED").length;
+}
 
 export function rescheduleBlockedReason(session: SessionRow, now: Date = new Date()): string | null {
   if (session.status !== "CONFIRMED") {
@@ -219,6 +245,10 @@ export function rescheduleBlockedReason(session: SessionRow, now: Date = new Dat
     return open.requestedBy === "CLIENT"
       ? "Bạn đã gửi một đề nghị đổi lịch, đang chờ huấn luyện viên trả lời."
       : "Huấn luyện viên đang đề nghị đổi lịch — trả lời đề nghị đó trước.";
+  }
+  // The server counts accepted moves and refuses a third with a 409.
+  if (acceptedMoves(session) >= RESCHEDULE_MAX_MOVES) {
+    return `Buổi tập này đã dời ${RESCHEDULE_MAX_MOVES} lần — chỉ còn cách huỷ.`;
   }
   const hours = hoursUntil(session, now);
   if (hours === null) return "Buổi tập chưa có giờ cụ thể.";
