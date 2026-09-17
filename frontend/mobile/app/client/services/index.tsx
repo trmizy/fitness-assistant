@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   ChevronRight,
+  FileText,
   MapPin,
   Search,
   ShieldCheck,
@@ -28,7 +29,7 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { gymService, profileService } from "../../../src/services/api";
+import { contractService, gymService, profileService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
@@ -43,6 +44,17 @@ import {
   searchGyms,
   type GymRow,
 } from "../../../src/features/services/gymDirectory";
+import {
+  CLIENT_TERMINATION_CHOICES,
+  contractStatus,
+  endActionFor,
+  isOpen,
+  normalizeContracts,
+  normalizeMoneyBreakdown,
+  sessionProgress,
+  type ContractRow,
+  type TerminationChoice,
+} from "../../../src/features/services/contracts";
 import {
   EMPTY_PT_FILTERS,
   SESSION_MODES,
@@ -115,7 +127,7 @@ export default function ClientServicesScreen() {
       ) : tab === "Hội viên" ? (
         <MembershipsTab onBrowseGyms={() => setTab("Phòng gym")} />
       ) : (
-        <ComingInThisPhase tab={tab} />
+        <ContractsTab onFindPt={() => setTab("Tìm PT")} />
       )}
     </View>
   );
@@ -649,12 +661,240 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
   );
 }
 
-function ComingInThisPhase({ tab }: { tab: Tab }) {
+/**
+ * CL-04's last tab — the client's PT contracts.
+ *
+ * Ending a contract is TWO different endpoints and the screen must not blur them: before money
+ * settles the client withdraws the request, once ACTIVE they terminate it with a reason that
+ * selects the refund formula. An active contract therefore also shows what ending it right now
+ * would return, straight from the server's own breakdown rather than a number computed here.
+ */
+function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
+  const accent = useWorkspaceAccent();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const [ending, setEnding] = useState<ContractRow | null>(null);
+  const [reason, setReason] = useState<TerminationChoice["reason"]>("CLIENT_CANCELLED");
+
+  const contractsQuery = useQuery({
+    queryKey: ["client-contracts"],
+    queryFn: () => contractService.getByClient(),
+  });
+  const { refreshing, onRefresh } = usePullToRefresh([["client-contracts"]]);
+
+  const contracts = useMemo(
+    () => normalizeContracts(contractsQuery.data),
+    [contractsQuery.data],
+  );
+  const open = contracts.filter(isOpen);
+  const past = contracts.filter((contract) => !isOpen(contract));
+
+  const endMutation = useMutation({
+    mutationFn: async (input: { contract: ContractRow; reason: TerminationChoice["reason"] }) =>
+      endActionFor(input.contract) === "withdraw"
+        ? contractService.cancelContract(input.contract.id, "Khách rút yêu cầu")
+        : contractService.terminateContract(input.contract.id, input.reason),
+    onSuccess: () => {
+      setEnding(null);
+      void queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+      toast.show("Đã cập nhật hợp đồng.", "success");
+    },
+    onError: (error: any) => {
+      // The server re-counts PT_REPEATED_NO_SHOW itself and answers 403 with the real reason —
+      // show that sentence rather than a generic failure.
+      toast.show(
+        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không thực hiện được",
+        "danger",
+      );
+    },
+  });
+
   return (
-    <EmptyState
-      icon={UserSearch}
-      title={`${tab} đang được dựng`}
-      description="Phần này thuộc Phase 7 và sẽ có ngay sau tab Tìm PT."
-    />
+    <>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 12 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent.primary} />
+        }
+      >
+        {contractsQuery.isLoading ? (
+          <View className="items-center py-16">
+            <ActivityIndicator color={accent.primary} />
+          </View>
+        ) : contracts.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="Bạn chưa có hợp đồng nào"
+            description="Tìm một huấn luyện viên và gửi yêu cầu huấn luyện để bắt đầu."
+            actionLabel="Tìm PT"
+            onAction={onFindPt}
+          />
+        ) : (
+          <View className="gap-3 px-5">
+            {open.length > 0 ? (
+              <Text className="font-body-medium text-xs text-muted-foreground">Đang diễn ra</Text>
+            ) : null}
+            {open.map((contract) => (
+              <ContractCard
+                key={contract.id}
+                contract={contract}
+                onEnd={() => {
+                  setReason("CLIENT_CANCELLED");
+                  setEnding(contract);
+                }}
+              />
+            ))}
+
+            {past.length > 0 ? (
+              <Text className="mt-2 font-body-medium text-xs text-muted-foreground">Đã kết thúc</Text>
+            ) : null}
+            {past.map((contract) => (
+              <ContractCard key={contract.id} contract={contract} />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      <BottomSheet
+        open={!!ending}
+        onClose={() => setEnding(null)}
+        title={ending && endActionFor(ending) === "withdraw" ? "Rút yêu cầu" : "Chấm dứt hợp đồng"}
+      >
+        <View className="gap-4 pb-2">
+          {ending && endActionFor(ending) === "withdraw" ? (
+            <Text className="font-body text-sm leading-6 text-foreground">
+              Yêu cầu này chưa phát sinh thanh toán, nên rút lại là xong — không có khoản nào phải
+              hoàn.
+            </Text>
+          ) : (
+            <>
+              <Text className="font-body text-sm leading-6 text-foreground">
+                Lý do bạn chọn quyết định phần tiền được hoàn, nên hãy chọn đúng.
+              </Text>
+              {CLIENT_TERMINATION_CHOICES.map((choice) => {
+                const active = choice.reason === reason;
+                return (
+                  <Tappable
+                    key={choice.reason}
+                    className={`rounded-xl border p-3.5 ${
+                      active ? "border-primary bg-primary/10" : "border-border bg-panel"
+                    }`}
+                    onPress={() => setReason(choice.reason)}
+                  >
+                    <Text className="font-body-medium text-sm text-foreground">{choice.label}</Text>
+                    <Text className="mt-1 font-body text-xs text-muted-foreground">
+                      {choice.description}
+                    </Text>
+                  </Tappable>
+                );
+              })}
+            </>
+          )}
+
+          <View className="flex-row gap-2">
+            <Button variant="secondary" className="flex-1" onPress={() => setEnding(null)}>
+              Để sau
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={endMutation.isPending}
+              onPress={() => ending && endMutation.mutate({ contract: ending, reason })}
+            >
+              Xác nhận
+            </Button>
+          </View>
+        </View>
+      </BottomSheet>
+    </>
+  );
+}
+
+function ContractCard({
+  contract,
+  onEnd,
+}: {
+  contract: ContractRow;
+  onEnd?: () => void;
+}) {
+  const accent = useWorkspaceAccent();
+  const status = contractStatus(contract.status);
+  const action = endActionFor(contract);
+
+  // Only an ACTIVE contract has money in escrow worth previewing, and the server is the one that
+  // says how much — this never computes a refund locally.
+  const breakdownQuery = useQuery({
+    queryKey: ["contract-money", contract.id],
+    queryFn: () => contractService.getMoneyBreakdown(contract.id),
+    enabled: contract.status === "ACTIVE",
+  });
+  const money = useMemo(
+    () => normalizeMoneyBreakdown(breakdownQuery.data),
+    [breakdownQuery.data],
+  );
+
+  return (
+    <Card className="gap-2 p-4">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1">
+          <Text className="font-display text-base text-foreground" numberOfLines={1}>
+            {contract.packageName}
+          </Text>
+          <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+            {contract.ptName}
+            {contract.source === "GYM" ? " · qua phòng gym" : ""}
+          </Text>
+        </View>
+        <Badge tone={status.tone}>{status.label}</Badge>
+      </View>
+
+      <Text className="font-body text-sm text-foreground">
+        {formatVND(contract.price)}
+        <Text className="font-body text-xs text-muted-foreground">
+          {` · ${contract.usedSessions}/${contract.totalSessions} buổi`}
+        </Text>
+      </Text>
+
+      {contract.status === "ACTIVE" && contract.totalSessions > 0 ? (
+        <View className="h-1.5 overflow-hidden rounded-full bg-panel">
+          <View
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.round(sessionProgress(contract) * 100)}%`,
+              backgroundColor: accent.primary,
+            }}
+          />
+        </View>
+      ) : null}
+
+      {status.note ? (
+        <Text className="font-body text-xs text-muted-foreground">{status.note}</Text>
+      ) : null}
+
+      {contract.status === "PENDING_PAYMENT" ? (
+        <Text className="font-body text-xs text-muted-foreground">
+          Cổng thanh toán sẽ mở trong bản cập nhật tới.
+        </Text>
+      ) : null}
+
+      {contract.status === "REJECTED" && contract.rejectionReason ? (
+        <Text className="font-body text-xs text-muted-foreground">
+          {`Lý do: ${contract.rejectionReason}`}
+        </Text>
+      ) : null}
+
+      {money?.refundIfCancelledNow != null ? (
+        <Text className="font-body text-xs text-muted-foreground">
+          {`Dừng bây giờ được hoàn khoảng ${formatVND(money.refundIfCancelledNow)}`}
+        </Text>
+      ) : null}
+
+      {action && onEnd ? (
+        <Button variant="secondary" size="sm" onPress={onEnd}>
+          {action === "withdraw" ? "Rút yêu cầu" : "Chấm dứt hợp đồng"}
+        </Button>
+      ) : null}
+    </Card>
   );
 }

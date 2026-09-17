@@ -1437,3 +1437,25 @@ ghép tên từ danh sách gym công khai. Gym nào không còn nằm trong danh
 **Một bài học về công cụ, không phải về code:** `.expo/types/router.d.ts` sinh ra trong lúc đang ghi
 file có thể chứa route rác (lần này là `/../src/features/services/gymDirectory`). Khởi động lại
 Metro với `--clear` là hết — đừng đi sửa code theo một file sinh tự động đang dở dang.
+
+### 23.4 — Tab Hợp đồng (CL-04 hoàn tất)
+
+**Kết thúc một hợp đồng là HAI endpoint khác nhau, không thể gộp.** Chưa phát sinh tiền
+(`PENDING_REVIEW` / `PENDING_SIGNATURE` / `PENDING_PAYMENT`) thì `PATCH /contracts/:id/cancel` —
+chỉ lật trạng thái, không có gì để hoàn. Đã `ACTIVE` thì `POST /contracts/:id/terminate` kèm **lý
+do**, và lý do chọn công thức hoàn tiền. Giao diện gọi hai cái đó bằng hai nhãn khác nhau ("Rút yêu
+cầu" / "Chấm dứt hợp đồng") thay vì một nút chung.
+
+**Khách chỉ được chọn 2 trong 7 lý do**: `CLIENT_CANCELLED` (tự dừng, mất một phần giá trị chưa
+dùng) và `PT_REPEATED_NO_SHOW` (quyền của khách sau nhiều lần PT vắng mặt **đã được xác nhận** —
+máy chủ tự đếm lại, không tin lời app, và trả 403 kèm câu giải thích nếu chưa đủ). Năm lý do còn
+lại thuộc PT/Admin nên **không hiện ra** — chào rồi bị từ chối thì tệ hơn là không chào.
+
+**Số tiền hoàn lấy từ máy chủ, không tự tính.** `GET /contracts/:id/money-breakdown` trả về mọi con
+số dưới dạng **chuỗi**, và cố ý để cạnh nhau hai sự thật khác nhau: `released` (công thức nói đã trả
+bao nhiêu) và `actuallyReleased` (sổ cái đã chuyển bao nhiêu). Thẻ hợp đồng trích đúng
+`refundIfCancelledNow`. Ví dụ thật trên máy: hợp đồng 9.000.000 đ chưa dùng buổi nào →
+"Dừng bây giờ được hoàn khoảng 8.100.000 đ" (phần còn lại là tỉ lệ nền tảng).
+
+**Kiểm thật (17/9)**: rút hợp đồng `021e8614…` từ trên máy → backend trả `CANCELLED`, `cancelledBy`
+đúng userId của khách, `cancellationReason` được ghi. 15 unit test cho tầng logic hợp đồng.
