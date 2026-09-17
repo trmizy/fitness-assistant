@@ -271,3 +271,31 @@
   (`POST /nutrition/water { date, ml }` + tổng hợp trong `daily-task`), khi đó ô nước của thiết kế
   mới dựng được đúng nghĩa.
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
+
+## GAP-11 — Danh sách gym hợp tác của PT rộng hơn điều kiện tạo hợp đồng
+
+- Phát hiện: Phase 7 (CL-10/CL-11), 2026-09-17, thử thật trên máy ảo rồi truy ngược DB.
+- Màn hình/luồng bị ảnh hưởng: CL-11 (chọn phòng gym khi gửi yêu cầu hợp đồng gói OFFLINE).
+- Backend service liên quan: gym-service (nguồn danh sách) + user-service (nơi kiểm khi tạo).
+- Mô tả thiếu gì cụ thể: **hai truy vấn lệch nhau đúng một điều kiện.**
+  - `GET /pt/:ptUserId/gyms` → `collaborationService.listAcceptedGymsForPt`:
+    `where { ptUserId, status: 'ACCEPTED', gym: { status: 'APPROVED' } }`.
+  - `POST /contracts/request` → gọi `gymClient.getActiveCollaboration` → `activeRates`:
+    cùng điều kiện trên **cộng thêm `effectiveAt: null`** (Vòng 4 / Phase E3: hợp tác đang chờ
+    chấm dứt thì không được dùng cho hợp đồng MỚI).
+  Kết quả: bộ chọn phòng gym liệt kê cả những hợp tác đang chờ chấm dứt, người dùng chọn xong thì
+  nhận 400 *"PT chưa có thoả thuận hợp tác với phòng gym này"* — một thông điệp vừa sai vừa khó hiểu,
+  vì thoả thuận có thật, chỉ là sắp hết hiệu lực. Kiểm chứng trên DB: PT `f506697b…` có 9 hợp tác
+  ACCEPTED, **4 trong đó `effective_at` đã đặt** và đúng 4 cái đó bị từ chối, 5 cái còn lại tạo được
+  hợp đồng bình thường.
+- Mức ảnh hưởng: PARTIAL — vẫn tạo được hợp đồng qua phòng gym, chỉ là người dùng có thể chọn nhầm.
+- Đã thử tìm endpoint thay thế chưa: có. Không có: response của danh sách **không trả `effectiveAt`**
+  nên client không thể tự lọc ra những hợp tác sắp hết hiệu lực.
+- **Web cũng dính y hệt** (dùng chung endpoint này ở `PTDiscoveryPage`) — đây là lỗi backend, không
+  phải khác biệt do bản mobile.
+- Đã xử lý ở client: hiện nguyên văn thông điệp lỗi của máy chủ thay vì nuốt lỗi, và **không tự bịa**
+  bộ lọc dựa trên dữ liệu không có.
+- Đề xuất (không tự làm nếu chưa được đồng ý): cho `listAcceptedGymsForPt` dùng đúng điều kiện của
+  `activeRates` (`effectiveAt: null`), hoặc trả thêm `effectiveAt` để client tự đánh dấu "sắp kết
+  thúc hợp tác".
+- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.

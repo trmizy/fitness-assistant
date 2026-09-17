@@ -1337,3 +1337,64 @@ TRÍCH XUẤT chứ không lưu, và không hề có `DELETE /inbody/:id`.
 
 Kết quả sau khi sửa: `test:unit` 185/185, `test:components` **55/55 (9 suite)**, `typecheck` 0 lỗi,
 `lint` 0 lỗi / 19 cảnh báo (đều là luật React Compiler đã ghi ở §18.6, không phải từ code mới).
+
+## 23. Client C (Dịch vụ & luồng tiền) — Phase 7
+
+### 23.1 — Đối chiếu trước khi code: backend ↔ doc 01/02 (17/9)
+
+Đọc theo đúng thứ tự nguồn sự thật. **Không có xung đột nghiệp vụ** — `01-luong-hop-dong-pt-buoi-
+tap-tranh-chap.md` và `02-luong-hoi-vien-phong-gym.md` khớp code đang chạy (đúng tên trạng thái,
+đúng 7 lý do chấm dứt, đúng `PENDING_ISSUE`, đúng `multiGymWarned`). Ba điểm cần nhớ khi dựng màn:
+
+1. **Hợp đồng PT trả tiền qua CỔNG, không phải ví.** `POST /contracts/:id/pay` gọi
+   `paymentClient.checkout(...)` với `provider` + `returnBaseUrl` — giống hệt mua gói hội viên.
+   Comment "via wallet" còn sót trong `contract.routes.ts` là comment cũ, code mới đúng.
+   ⇒ Phase 7 dừng ở "đã tạo, chờ thanh toán"; mở cổng là Phase 14.
+2. **`PENDING_SIGNATURE` không xảy ra trong thực tế**: `REQUIRE_CONTRACT_ESIGN: "false"` ở cả
+   user-service lẫn gateway trong `infra/compose/docker-compose.dev.yml` (quyết định sản phẩm đã
+   chốt, không phải bypass tạm). PT bấm nhận → đi thẳng `PENDING_REVIEW → PENDING_PAYMENT`.
+   ⇒ **không dựng màn ký điện tử**, nhưng UI vẫn phải hiển thị được trạng thái đó nếu gặp.
+3. Ba máy trạng thái phải theo backend: hợp đồng 8 trạng thái; buổi tập 8 trạng thái với **chỉ
+   `COMPLETED` mới trừ quota**; hội viên 5 trạng thái (kể cả `PENDING_ISSUE`).
+
+### 23.2 — Tìm PT + Chi tiết PT + Yêu cầu hợp đồng (CL-04 một phần, CL-10, CL-11)
+
+**Hai endpoint PT trả hai hình dạng khác nhau** — cái bẫy lớn nhất của cụm này:
+
+| | `GET /profile/pts` (danh sách) | `GET /profile/pts/:id` (chi tiết) |
+|---|---|---|
+| `ptApplication` (hình thức, giới thiệu, **giá**) | ✅ | ❌ |
+| `availableSlotsNext28Days` | ✅ | ❌ |
+| `recentReviews`, `ratingDistribution` | ❌ | ✅ |
+
+Web không bao giờ vấp phải vì panel chi tiết của nó giữ nguyên dòng vừa bấm. Màn được PUSH thì
+không có dòng đó, nên `mergePtSources()` ghép hai nguồn: chi tiết thắng ở trường nó có, danh sách
+lấp phần còn lại. Nếu chỉ đọc chi tiết, PT sẽ tự nhiên bị hạ cấp thành "chưa cho biết hình thức",
+không giá, không giới thiệu — đúng cái tại hạ nhìn thấy trên máy trước khi sửa.
+
+**Giá trên thẻ PT** là `min(onlinePricePerSession, offlinePricePerSession, desiredSessionPrice)`
+(đúng công thức của web), và 0 **không phải** là giá — PT chưa báo giá thì hiện "Chưa báo giá".
+
+**Yêu cầu hợp đồng gửi `packageId`, không gửi giá**: gói là nguồn sự thật của máy chủ về giá/số
+buổi/hình thức. Gym chỉ gắn với gói **OFFLINE**. `409 LOW_AVAILABILITY` **không phải lỗi** mà là
+câu hỏi ("PT còn ít khung giờ hơn số buổi, vẫn gửi chứ?") — sheet xác nhận rồi gửi lại với
+`acknowledgedLowAvailability: true`; body thiếu một trong hai con số thì coi như **không phải**
+cảnh báo đó, thà không cảnh báo còn hơn cảnh báo bằng số đoán.
+
+**`GET /pt/:id/gyms` lồng id**: `{ collaborationId, gym: { id, name, city }, rates }` — đọc
+`row.id` là lấy nhầm id của HỢP TÁC và gửi lên một `gymId` máy chủ chưa từng thấy. Danh sách này
+còn rộng hơn điều kiện tạo hợp đồng (GAP-11), nên nhánh lỗi phải hiện nguyên văn thông điệp máy
+chủ chứ không nuốt.
+
+**Ba lỗi tự gây, bắt trên máy ảo:**
+1. `<Badge>{số} chữ</Badge>` → "Text strings must be rendered within a `<Text>` component":
+   `Badge` chỉ tự bọc `<Text>` khi con là **một chuỗi**; truyền mảng là chữ lọt ra ngoài. Sửa bằng
+   template string.
+2. Đọc `gym?.name` ở tầng ngoài → cả 8 dòng đều hiện "Phòng gym" (tên nằm ở `gym.gym.name`).
+3. Chụp màn hình sau 8 giây rồi kết luận "bấm không ăn": toast **hiện ở ĐỈNH** màn hình và tự tắt
+   sau 2,2 giây. Muốn kiểm nhánh lỗi thì phải chụp trong ~2 giây và cắt đúng phần đỉnh.
+
+**Kiểm thật end-to-end (17/9)**: hợp đồng `021e8614-43aa-4b5a-b0b0-3ee39ee88a35` — PENDING_REVIEW,
+"Gói 10 buổi tăng cơ", 3.000.000 đ, `source: GYM`, `ptRate 0.5 / gymRate 0.4` **lấy từ thoả thuận
+hợp tác thật** (không phải giá trị mặc định), và tài khoản PT gọi `/contracts/pt` thấy đúng hợp
+đồng đó. 27 unit test cho tầng logic của cụm này.
