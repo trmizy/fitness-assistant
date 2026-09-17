@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
+  CalendarClock,
   ChevronRight,
   FileText,
   MapPin,
@@ -890,11 +891,23 @@ function ContractCard({
         </Text>
       ) : null}
 
-      {action && onEnd ? (
-        <Button variant="secondary" size="sm" onPress={onEnd}>
-          {action === "withdraw" ? "Rút yêu cầu" : "Chấm dứt hợp đồng"}
-        </Button>
-      ) : null}
+      <View className="flex-row flex-wrap gap-2">
+        {contract.status === "ACTIVE" ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={CalendarClock}
+            onPress={() => router.push("/client/services/booking")}
+          >
+            Buổi tập
+          </Button>
+        ) : null}
+        {action && onEnd ? (
+          <Button variant="secondary" size="sm" onPress={onEnd}>
+            {action === "withdraw" ? "Rút yêu cầu" : "Chấm dứt hợp đồng"}
+          </Button>
+        ) : null}
+      </View>
     </Card>
   );
 }

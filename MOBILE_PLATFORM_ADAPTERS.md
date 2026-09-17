@@ -1459,3 +1459,39 @@ bao nhiêu) và `actuallyReleased` (sổ cái đã chuyển bao nhiêu). Thẻ h
 
 **Kiểm thật (17/9)**: rút hợp đồng `021e8614…` từ trên máy → backend trả `CANCELLED`, `cancelledBy`
 đúng userId của khách, `cancellationReason` được ghi. 15 unit test cho tầng logic hợp đồng.
+
+### 23.5 — Buổi tập: xem, xử lý, đặt (CL-06, CL-07, CL-08)
+
+**Chỉ `COMPLETED` mới trừ buổi trong gói.** Bảy trạng thái còn lại (kể cả `DISPUTED`,
+`PT_NO_SHOW_REPORTED`) chưa hề bị tính tiền — đó là lý do con số "còn lại" trên màn hợp đồng đáng
+tin. Có test riêng đi qua đủ 8 trạng thái để không ai vô tình đổi luật này.
+
+**Ba mốc thời gian khác nhau, dễ nhầm thành một:**
+
+| Luật | Ngưỡng | Nguồn |
+|---|---|---|
+| Huỷ buổi | dưới **24 giờ** thì TRỪ 1 buổi + PT vẫn được tính công | `CANCEL_WINDOW_MS` |
+| Đổi lịch | phải còn hơn **12 giờ**, và chỉ với buổi đã `CONFIRMED` | `booking.service.ts:1221` |
+| Báo PT vắng | chỉ sau giờ bắt đầu **+ 15 phút** ân hạn | `NO_SHOW_GRACE_MINUTES` |
+
+Giao diện nói luật huỷ **trước khi bấm** (sheet hiện đúng một trong hai câu tuỳ còn bao lâu), và
+**ẩn** nút đổi lịch khi chưa đủ điều kiện kèm câu giải thích — một cái nút chắc chắn nhận 400 còn tệ
+hơn là không có nút.
+
+**Tại hạ tự phát hiện luật 12 giờ bằng cách thử thật, không phải bằng cách đọc:** bản đầu vẫn chào
+"Đổi lịch" trên buổi cách 2 giờ, gửi lên nhận `400 "Không thể dời lịch trong vòng 12 giờ trước buổi
+tập"`. Sau đó mới truy ra `booking.service.ts` và mô hình hoá đủ **bốn** điều kiện (CONFIRMED, chưa
+bắt đầu, còn >12 giờ, bắt buộc có lý do).
+
+**Đổi lịch cần hai mốc ISO, không phải ngày + giờ.** `buildReschedulePayload` dựng `Date` theo múi
+giờ **của máy** rồi `toISOString()` — "17:00" nghĩa là 5 giờ chiều nơi khách đang đứng — và giữ
+nguyên độ dài buổi tập gốc thay vì mặc định 1 tiếng.
+
+**Lịch sử buổi tập nằm theo hợp đồng.** `/sessions/upcoming` và `/sessions/pending-confirmation`
+chỉ trả phần đang mở, nên tab "Đã qua" đọc thêm `/sessions/contract/:id` cho các hợp đồng
+ACTIVE/COMPLETED/EXPIRED rồi gộp theo id.
+
+**Kiểm thật (17/9)**: đặt buổi 19/09 17:00 → `7e7fe75a…` **REQUESTED** đúng khung giờ đã chọn; huỷ
+từ trên máy khi còn hơn 24 giờ → `CANCELLED` với `sessionDeducted: false`; gửi đề nghị đổi lịch qua
+API với đúng payload của màn → tạo `8312d46e…` **PENDING** rồi thu hồi sạch. 26 unit test cho tầng
+logic buổi tập.
