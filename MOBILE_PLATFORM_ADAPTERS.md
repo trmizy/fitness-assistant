@@ -1526,3 +1526,43 @@ tròn đầy đủ**: hợp đồng ACTIVE của tài khoản thử `john.doe` c
 Ngài (`huytronh4@gmail.com`), và tại hạ không đăng nhập vào tài khoản của Ngài để tạo đề nghị từ
 phía PT. Chốt được ngay khi Ngài gửi một đề nghị đổi lịch từ phía PT, hoặc khi Phase 10/11 dựng
 xong giao diện PT.
+
+### 23.7 — E2E tự động cho luồng tiền Phase 7
+
+`frontend/mobile/e2e/phase7-money-flows.e2e.ts`, chạy bằng `pnpm test:e2e` (mặc định gateway
+`http://localhost:3000`, tài khoản `john.doe@example.com`; đổi qua `E2E_BASE_URL` / `E2E_EMAIL` /
+`E2E_PASSWORD`).
+
+**Điều làm nó đáng chạy, thay vì là bản sao thứ hai của unit test:** mọi body request đều do **chính
+các hàm mà màn hình dùng** dựng ra — `buildContractRequestPayload`, `buildBookingPayload`,
+`buildReschedulePayload`, các tham số mua gói. Một thay đổi làm hỏng thứ app gửi đi sẽ làm hỏng cả
+kịch bản này. Sau mỗi bước, trạng thái được **đọc lại bằng một GET riêng**, không tin phản hồi của
+chính lệnh vừa gọi.
+
+Bốn kịch bản:
+1. **Yêu cầu hợp đồng** → đọc lại thấy `PENDING_REVIEW`, đúng giá/đúng số buổi, `paid=false` → rút
+   yêu cầu → `CANCELLED`.
+2. **Mua gói hội viên** → `PENDING_PAYMENT` đúng `priceAtPurchase`/`durationDaysSnapshot`, **chưa có
+   `paymentTxnId`, chưa có `startDate`** → huỷ → `CANCELLED`.
+3. **Đặt buổi tập** → `REQUESTED`, chưa trừ buổi; thử đổi lịch trên buổi `REQUESTED` → **phải 400**;
+   huỷ khi còn hơn 24 giờ → `CANCELLED` với `sessionDeducted=false`, và `usedSessions` của hợp đồng
+   **không đổi**.
+4. **Đề nghị đổi lịch** trên buổi `CONFIRMED` còn >12 giờ → đề nghị gắn đúng vào buổi trong
+   `/sessions/upcoming` với `requestedBy: CLIENT`; khách tự trả lời → **403**; thu hồi → `CANCELLED`.
+
+**Ba tính chất được giữ có chủ đích:**
+- **Không nằm trong `pnpm test`** — bộ test thường phải xanh khi không có máy chủ nào cả (vẫn 279
+  unit + 55 component/service, không đổi).
+- **Không có backend thì bỏ qua, không báo hỏng**: `[e2e] Bỏ qua: không thấy backend ở …`, 4 test
+  skipped, 0 fail.
+- **Tự dọn**: mọi thứ nó tạo đều được huỷ ở `after` theo thứ tự ngược. Kiểm sau lượt chạy đầu: hợp
+  đồng hôm nay `CANCELLED, CANCELLED`, gói hội viên `CANCELLED, CANCELLED`, không còn đề nghị đổi
+  lịch nào mở.
+
+Kịch bản cũng **tự bỏ qua một cách trung thực** khi dữ liệu không cho phép (không có PT rảnh có gói
+online, không có phòng gym còn gói mở bán, không có hợp đồng ACTIVE còn buổi) — thà `t.skip()` kèm
+lý do còn hơn giả vờ đã kiểm.
+
+**Việc duy nhất kịch bản này không tự làm được:** phần khách **trả lời** đề nghị của PT, vì cần một
+đề nghị do PT gửi — mà PT của hợp đồng ACTIVE duy nhất trên tài khoản thử lại là tài khoản cá nhân
+của Ngài. Kịch bản kiểm tới ranh giới đó (403 "không được tự trả lời đề nghị của mình") rồi dừng.

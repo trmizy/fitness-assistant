@@ -70,7 +70,8 @@
     "test": "pnpm run test:unit && pnpm run test:components",
     "test:unit": "tsx --test src/**/__tests__/*.test.ts",
     "test:components": "jest",
-    "postinstall": "node scripts/shorten-package-paths.js && node scripts/patch-expo-metro-runtime-fetch.js"
+    "postinstall": "node scripts/shorten-package-paths.js && node scripts/patch-expo-metro-runtime-fetch.js",
+    "test:e2e": "tsx --test e2e/*.e2e.ts"
   },
   "private": true
 }
