@@ -76,6 +76,9 @@ module.exports = {
   moduleNameMapper: { ...cjsOverrides, ...reactModuleMap, ...relocatedModuleMap },
   resolver: "<rootDir>/jest.resolver.js",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  testMatch: ["<rootDir>/src/**/__tests__/**/*.test.tsx"],
+  testMatch: [
+    "<rootDir>/src/**/__tests__/**/*.test.tsx",
+    "<rootDir>/src/services/__tests__/api/**/*.test.ts",
+  ],
   transformIgnorePatterns,
 };

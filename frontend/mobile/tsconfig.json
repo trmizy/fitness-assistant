@@ -2,7 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
+    // Declared explicitly: under pnpm's layout TypeScript 6 no longer picks these up on its own,
+    // and without them every `node:test` unit test and every jest matcher reads as an unknown name
+    // (298 errors, all of them phantom).
+    "types": ["node", "jest"],
+    // No "baseUrl": TypeScript 6 deprecates it (TS5101 fails the whole run), and since TS 5.0
+    // "paths" resolve relative to this file on their own, which is what the two mappings below
+    // already assume.
     "paths": {
       "@/*": [
         "./src/*"

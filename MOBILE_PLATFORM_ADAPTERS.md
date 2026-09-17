@@ -1289,3 +1289,51 @@ có `maxWeightKg` toàn null → màn hiện "Chưa có số liệu cho chỉ s�
 `expo-linear-gradient`, thứ dự án đã có). Tuy vậy ba biểu đồ của Phase 6 (lưới hoạt động, thanh nhóm
 cơ, cột tiến bộ) đều là hình đơn giản, vẽ tay bằng `View`/`react-native-svg` gọn hơn là kéo cả một
 thư viện biểu đồ vào — giữ gifted-charts cho biểu đồ phức tạp hơn ở phase sau.
+
+### 22.6 — Hai ô chỉ số trên Trang chủ, và tầng kiểm thử service/API (2026-09-17)
+
+**Ô "Nước" của bản thiết kế không có nguồn dữ liệu — không phải mobile quên gọi.** Rà thẳng backend:
+`NutritionGoal.waterMl` là **mục tiêu** (đọc/ghi được ở `GET|PUT /nutrition/goals`, màn Mục tiêu dinh
+dưỡng đã dùng), `NutritionLog` không có trường nước, không có route nào ghi lượng nước uống, còn
+`BodyMetrics.body_water` là **% nước trong cơ thể** của phép đo InBody và **không route nào đọc nó**.
+Vẽ một ô "— / 3.0 L" vĩnh viễn rỗng thì tệ hơn là không vẽ, nên cặp ô dinh dưỡng của Trang chủ là
+**Calo hôm nay + Đạm hôm nay**, cả hai đều là số thật. Ghi thành GAP-10 trong
+`MOBILE_BACKEND_GAPS.md`. Cặp ô cơ thể (Cân nặng / Cơ bắp) mà web vẫn hiện ở màn này được giữ, nằm
+ngay dưới — Trang chủ nay có hai hàng ô thay vì một.
+
+**Số calo phải khớp với màn Dinh dưỡng, không được tự tính kiểu khác.** Trang chủ dùng đúng ba nguồn
+của `nutrition/index.tsx`: `actualProgress` của `/nutrition/daily-task` khi có chương trình, nếu không
+thì `sumTotals(normalizeLogs(...))` trên nhật ký trong ngày. Trang chủ là gốc của tab nên **vẫn nằm
+trong bộ nhớ** lúc người dùng ghi bữa ở màn khác; thiếu `useFocusEffect` refetch thì ô vẫn là con số
+trước bữa ăn suốt 30 giây `staleTime` — lỗi hệt CL-17 ở §20.x, lần thứ tư của cùng một cái bẫy.
+
+**Tầng kiểm thử mới: `test:components` giờ chạy cả service/API test.** `jest.config.js` thêm
+`<rootDir>/src/services/__tests__/api/**/*.test.ts` vào `testMatch` (thư mục con `api/` để không giẫm
+lên `test:unit`, vốn quét `src/**/__tests__/*.test.ts` bằng `tsx --test`). Cách làm:
+`src/services/__tests__/api/httpStub.ts` chỉ thay **adapter** của axios instance thật — baseURL,
+interceptor request/response, cách axios dựng query và body đều chạy thật; chỉ cái mở socket là giả.
+Lỗi trả về được ném đúng dạng `AxiosError` kèm `response`, nên interceptor nhìn thấy đúng thứ nó sẽ
+thấy với gateway thật.
+
+Ba thứ phải mock trong `jest.setup.js` mới nạp được `services/api.ts`: AsyncStorage (dùng mock
+in-memory chính package phát hành), `expo-secure-store` (Map in-memory) và `expo-file-system`/
+`expo-sharing` (module native, `services/files.ts` import ở tầng đầu). Không có chúng thì suite chết
+ngay lúc import, chưa kịp chạy test nào.
+
+**24 test cho hai domain**, mỗi test bám một hợp đồng đã tự tay kiểm với backend: `fats` chứ không
+phải `fat` (đúng cái làm web cộng ra 0 g mỡ), bỏ hẳn macro bằng 0 vì `z.number().positive()`, 400 của
+Atwater ±50 kcal, envelope `data.data` chỉ có ở nhóm endpoint chương trình, `/inbody` trả mảng không
+thứ tự nên sắp xếp là việc của client, 500 khi thiếu `muscleMass` (GAP-9), `/inbody/upload` chỉ
+TRÍCH XUẤT chứ không lưu, và không hề có `DELETE /inbody/:id`.
+
+**Ba thứ của môi trường phải sửa mới chạy được tầng này** (đều là nợ có sẵn, không do Phase 6 sinh ra):
+1. `jest` phải chạy **qua pnpm** (`pnpm test:components`), không gọi `node node_modules/jest/bin/jest.js`
+   trực tiếp: pnpm mới đặt `NODE_PATH` tới `node_modules/.pnpm/node_modules`, thiếu nó babel không tìm
+   thấy `babel-preset-expo` và cả suite đỏ vì lý do hoàn toàn giả.
+2. `@types/node` chưa được khai báo ở `frontend/mobile` (pnpm strict nên không nhìn thấy bản ở gốc).
+3. TypeScript đã ghim `~6.0.3`: `baseUrl` bị khai tử (TS5101 làm hỏng cả lượt chạy) và `types` không
+   còn tự gom. `tsconfig.json` nay bỏ `baseUrl` (từ TS 5.0, `paths` tự tính theo vị trí file config)
+   và khai báo `"types": ["node", "jest"]`. Trước khi sửa: 298 lỗi, toàn lỗi ma trong file test.
+
+Kết quả sau khi sửa: `test:unit` 185/185, `test:components` **55/55 (9 suite)**, `typecheck` 0 lỗi,
+`lint` 0 lỗi / 19 cảnh báo (đều là luật React Compiler đã ghi ở §18.6, không phải từ code mới).
