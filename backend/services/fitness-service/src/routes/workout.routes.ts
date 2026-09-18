@@ -1,4 +1,5 @@
 import { Router } from "express";
+import agentProgramRoutes from "./agent-program.routes";
 import {
   authMiddleware,
   internalAuthMiddleware,
@@ -6,6 +7,7 @@ import {
 import { workoutController } from "../controllers/workout.controller";
 
 const router = Router();
+router.use("/agentic", agentProgramRoutes);
 
 // NOTE: named routes must be declared BEFORE /:id to avoid route shadowing
 router.post(

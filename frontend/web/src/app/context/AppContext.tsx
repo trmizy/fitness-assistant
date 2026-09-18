@@ -37,6 +37,12 @@ interface AppContextType {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
+  // AI Coach floating panel (see AICoachFloatingButton/Panel) — global so
+  // any page (e.g. NutritionPage's "ask AI coach" CTA) can open it without
+  // navigating away from where the user currently is.
+  isAiCoachOpen: boolean;
+  openAiCoach: () => void;
+  closeAiCoach: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +53,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthenticated, setIsAuth] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAiCoachOpen, setIsAiCoachOpen] = useState(false);
+  const openAiCoach = useCallback(() => setIsAiCoachOpen(true), []);
+  const closeAiCoach = useCallback(() => setIsAiCoachOpen(false), []);
   const [activeView, setActiveView] = useState<WorkspaceView>("client");
   const [user, setUser] = useState<User | null>(null);
 
@@ -80,6 +89,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsAuth(false);
       setUser(null);
       setActiveView("client");
+      // gymini-account-session-isolation — cancel in-flight user-scoped
+      // fetches before wiping the cache: a request from the outgoing
+      // session that hasn't settled yet must never be allowed to resolve
+      // into whatever query object exists for the next session's data.
+      void queryClient.cancelQueries();
       queryClient.clear();
       // No useLocation() out here (this fires from outside any route render), so read the
       // current URL directly — same "send them back after login" carry as AppShell's guard.
@@ -171,6 +185,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authService.login(email, password);
       if (res.success && res.user) {
+        // gymini-account-session-isolation — same reasoning as the
+        // session-expired listener above: cancel before clearing so a
+        // still-in-flight request from whoever was logged in before this
+        // call can't paint its result into the incoming account's screen.
+        void queryClient.cancelQueries();
         queryClient.clear();
         await Preferences.set({ key: "user", value: JSON.stringify(res.user) });
         setUser(res.user);
@@ -194,6 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (user?.id) {
       clearPendingAiState(user.id);
     }
+    void queryClient.cancelQueries();
     queryClient.clear();
     // Revokes the refresh token server-side, clears Preferences, then emits
     // "session expired" — the listener above turns that into a router navigation.
@@ -234,6 +254,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sidebarOpen,
         setSidebarOpen,
         updateUser,
+        isAiCoachOpen,
+        openAiCoach,
+        closeAiCoach,
       }}
     >
       {children}

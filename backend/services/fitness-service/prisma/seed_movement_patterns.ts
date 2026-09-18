@@ -111,7 +111,10 @@ async function main() {
 
   for (const ex of exercises) {
     const { pattern, tier } = classify(ex);
-    await prisma.exercise.update({ where: { id: ex.id }, data: { movementPattern: pattern } });
+    await prisma.exercise.updateMany({
+      where: { id: ex.id, movementPattern: null },
+      data: { movementPattern: pattern },
+    });
     if (tier === "name") byName++;
     else {
       byFallback++;

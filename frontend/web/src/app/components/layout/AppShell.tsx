@@ -12,6 +12,8 @@ import { ForceChangePasswordScreen } from "../auth/ForceChangePasswordScreen";
 import { PartnerOnboardingWizard } from "../auth/PartnerOnboardingWizard";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
+import { AICoachFloatingButton } from "./AICoachFloatingButton";
+import { AICoachFloatingPanel } from "./AICoachFloatingPanel";
 
 // Vòng 4 / Phase D1 — was a Vite ES import of a 6MB src/assets/bg-gym.jpg (duplicated
 // byte-for-byte in public/bg-gym.jpg, which public/offline.html and public/sw.js's precache
@@ -83,6 +85,8 @@ export function AppShell() {
   return (
     <>
       <CallOverlay />
+      <AICoachFloatingButton />
+      <AICoachFloatingPanel />
       <AppShellInner />
     </>
   );

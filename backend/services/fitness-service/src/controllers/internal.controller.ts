@@ -13,6 +13,8 @@ import { workoutService } from "../services/workout.service";
 import { createManualProgramSchema } from "../models/fitness.models";
 import { z } from "zod";
 import { formatZodErrors } from "../utils/workout-validation";
+import { bootstrapNutritionForUser } from "../services/nutrition-onboarding-bootstrap.service";
+import { maybeAutoTriggerInBodyReassessment } from "../services/inbody-reassessment.service";
 
 // Equipment allowed per training location / preference
 const HOME_EQUIPMENT = [
@@ -233,14 +235,61 @@ export const internalController = {
       // Shuffle before truncating so the candidate pool is a representative
       // sample instead of a fixed alphabetical prefix.
       const pool = shuffleInPlace([...candidates]);
-      let exercises = pool.slice(0, lim).map((ex) => ({
+      const selectedPool = pool.slice(0, lim);
+      const [equipmentLinksForResponse, muscleLinksForResponse] =
+        selectedPool.length > 0
+          ? await Promise.all([
+              prisma.exerciseEquipment.findMany({
+                where: { exerciseId: { in: selectedPool.map((exercise) => exercise.id) } },
+                include: { equipment: { select: { id: true, slug: true, name: true } } },
+                orderBy: { equipment: { slug: "asc" } },
+              }),
+              prisma.exerciseMuscle.findMany({
+                where: { exerciseId: { in: selectedPool.map((exercise) => exercise.id) } },
+                include: { muscle: { select: { id: true, code: true, nameVi: true, nameEn: true } } },
+                orderBy: [{ role: "asc" }, { muscle: { code: "asc" } }],
+              }),
+            ])
+          : [[], []];
+      const equipmentByExercise = new Map<string, any[]>();
+      for (const link of equipmentLinksForResponse) {
+        const list = equipmentByExercise.get(link.exerciseId) ?? [];
+        list.push(link);
+        equipmentByExercise.set(link.exerciseId, list);
+      }
+      const musclesByExercise = new Map<string, any[]>();
+      for (const link of muscleLinksForResponse) {
+        const list = musclesByExercise.get(link.exerciseId) ?? [];
+        list.push(link);
+        musclesByExercise.set(link.exerciseId, list);
+      }
+
+      let exercises = selectedPool.map((ex) => ({
         id: ex.id,
         exerciseName: ex.exerciseName,
         bodyPart: ex.bodyPart,
         typeOfEquipment: ex.typeOfEquipment,
         typeOfActivity: ex.typeOfActivity,
         type: ex.type,
+        movementPattern: ex.movementPattern,
+        mechanics: ex.mechanics,
+        difficultyLevel: ex.difficultyLevel,
+        loggingMode: ex.loggingMode,
+        contraindications: ex.contraindications,
         muscleGroupsActivated: ex.muscleGroupsActivated,
+        equipmentRequirements: (equipmentByExercise.get(ex.id) ?? []).map((link) => ({
+          equipmentId: link.equipmentId,
+          slug: link.equipment.slug,
+          name: link.equipment.name,
+          requirementType: link.requirementType,
+        })),
+        muscles: (musclesByExercise.get(ex.id) ?? []).map((link) => ({
+          muscleId: link.muscleId,
+          code: link.muscle.code,
+          nameVi: link.muscle.nameVi,
+          nameEn: link.muscle.nameEn,
+          role: link.role,
+        })),
         instructions: ex.instructions,
         updatedAt: ex.updatedAt,
       }));
@@ -447,6 +496,22 @@ export const internalController = {
     }
   },
 
+  // AI Nutrition Cycle Engine (Gymini) — user-service calls this exactly
+  // once per user, right after OnboardingWizardPage's final submit flips
+  // hasCompletedOnboarding false->true (see profileService.upsertProfile).
+  // Idempotent — see nutrition-onboarding-bootstrap.service.ts's own doc
+  // comment for why a retry/refresh never creates a duplicate active plan.
+  async bootstrapNutrition(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await bootstrapNutritionForUser(userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      logger.error({ err }, "internal.bootstrapNutrition failed");
+      res.status(500).json({ success: false, error: "Failed to bootstrap nutrition" });
+    }
+  },
+
   // Hardening pass §7/§8 — ai-service calls this as a FINAL, authoritative
   // equipment-compliance check on a specific generated plan's exact
   // exerciseIds, right before persisting it. Deliberately separate from
@@ -496,6 +561,22 @@ export const internalController = {
       }
       logger.error({ err }, "internal.commitManualProgram failed");
       res.status(500).json({ success: false, error: "Failed to commit program" });
+    }
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) Phase 3 — user-service calls this
+  // (fire-and-forget, best-effort) right after a new InBody entry is
+  // recorded. Returns immediately — the actual evaluation (if triggered)
+  // runs detached inside this service; see inbody-reassessment.service.ts
+  // for the full gating/no-spam design.
+  async checkInBodyReassessment(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await maybeAutoTriggerInBodyReassessment(userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      logger.error({ err }, "internal.checkInBodyReassessment failed");
+      res.status(500).json({ success: false, error: "Failed to check InBody reassessment" });
     }
   },
 

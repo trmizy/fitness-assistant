@@ -49,6 +49,7 @@ export function LoginPage() {
   // (see config/serverUrl.ts + CAPACITOR-NOTES.md). Saving reloads so every module re-reads it.
   const [showServer, setShowServer] = useState(false);
   const [serverInput, setServerInput] = useState(getServerOverride());
+  const [serverUrlError, setServerUrlError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,7 +272,16 @@ export function LoginPage() {
                 <input
                   id="server-url"
                   value={serverInput}
-                  onChange={(e) => setServerInput(e.target.value)}
+                  onChange={(e) => {
+                    setServerInput(e.target.value);
+                    setServerUrlError(null);
+                  }}
+                  // Select the whole (pre-filled, possibly stale) value on focus so a paste
+                  // REPLACES it instead of landing at the cursor and concatenating two URLs
+                  // together with no separator — the exact shape of a real bug this once
+                  // caused (a doubled origin baked into every request's baseURL; see
+                  // config/serverUrl.ts's normalize() doc comment).
+                  onFocus={(e) => e.currentTarget.select()}
                   placeholder="https://vi-du.trycloudflare.com"
                   className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
                 />
@@ -279,10 +289,18 @@ export function LoginPage() {
                   Dán địa chỉ đường hầm (Cloudflare) rồi bấm Lưu. Để trống rồi Lưu để quay về
                   địa chỉ mặc định của bản build.
                 </p>
+                {serverUrlError && (
+                  <p className="text-[11px] text-red-400 mt-2">{serverUrlError}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => {
-                    setServerOverride(serverInput);
+                    if (!setServerOverride(serverInput)) {
+                      setServerUrlError(
+                        "Địa chỉ không hợp lệ — kiểm tra lại, có thể ô nhập còn dính URL cũ chưa xoá hết.",
+                      );
+                      return;
+                    }
                     window.location.reload();
                   }}
                   className="mt-2 w-full py-2 rounded-lg bg-green-500 hover:bg-green-400 text-black text-sm font-bold transition-colors"

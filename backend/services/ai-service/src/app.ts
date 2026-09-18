@@ -12,6 +12,7 @@ import { llmService } from "./services/llm.service";
 
 const app = express();
 
+app.use("/ai/agent/goal-image", express.json({ limit: "6mb" }));
 app.use(express.json());
 app.use(metricsMiddleware());
 

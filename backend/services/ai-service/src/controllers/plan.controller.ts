@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { logger, aiPlanGenerationsTotal } from "@gym-coach/shared";
 import { aiQueue } from "../workers/ai.queue";
+import { requestService } from "../clients/service-lambda.client";
 import { conversationService } from "../services/conversation.service";
 import {
   conversationRepository,
@@ -22,10 +23,6 @@ import type {
 } from "../schemas/plan.schemas";
 import type { PlanContent } from "../schemas/plan.schemas";
 
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL || "http://user-service:3004";
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://auth-service:3001";
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
   "dev_internal_service_secret_change_in_production";
@@ -226,14 +223,14 @@ export const planController = {
 
       // Verify contractId via user-service (fail-closed: contractId sent but invalid → 400)
       if (contractId) {
-        const verifyRes = await axios.get(
-          `${USER_SERVICE_URL}/internal/contracts/active-pt`,
-          {
-            params: { clientId: userId, contractId },
-            headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-            timeout: 3000,
-          },
-        );
+        const verifyRes = await requestService({
+          service: "user",
+          method: "GET",
+          path: "/internal/contracts/active-pt",
+          params: { clientId: userId, contractId },
+          headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
+          timeoutMs: 3000,
+        });
         ptUserId = verifyRes.data?.ptUserId ?? null;
         if (!ptUserId) {
           res.status(400).json({
@@ -245,13 +242,13 @@ export const planController = {
 
       // Fetch clientName from auth-service (fail-safe — empty name is fine)
       try {
-        const authRes = await axios.get(
-          `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-          {
-            headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-            timeout: 3000,
-          },
-        );
+        const authRes = await requestService({
+          service: "auth",
+          method: "GET",
+          path: `/auth/internal/users/${userId}`,
+          headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
+          timeoutMs: 3000,
+        });
         const u = authRes.data?.user ?? authRes.data;
         clientName =
           [u?.firstName, u?.lastName].filter(Boolean).join(" ") ||
@@ -674,13 +671,13 @@ export const planController = {
       // Fetch PT name from auth-service (fail-safe)
       let ptName: string | null = null;
       try {
-        const authRes = await axios.get(
-          `${AUTH_SERVICE_URL}/auth/internal/users/${ptUserId}`,
-          {
-            headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-            timeout: 3000,
-          },
-        );
+        const authRes = await requestService({
+          service: "auth",
+          method: "GET",
+          path: `/auth/internal/users/${ptUserId}`,
+          headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
+          timeoutMs: 3000,
+        });
         const u = authRes.data?.user ?? authRes.data;
         ptName = [u?.firstName, u?.lastName].filter(Boolean).join(" ") || null;
       } catch {
@@ -929,13 +926,13 @@ export const planController = {
           );
         return;
       }
-      const fitnessServiceUrl =
-        process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
       const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
-      const response = await axios.post(
-        `${fitnessServiceUrl}/workouts/from-ai-plan`,
-        {
+      const response = await requestService({
+        service: "fitness",
+        method: "POST",
+        path: "/workouts/from-ai-plan",
+        body: {
           sourcePlanId: plan.id,
           sourcePlanVersion: plan.version,
           sourcePlanName: plan.name,
@@ -948,16 +945,17 @@ export const planController = {
           weeklySchedule: planContent.weeklySchedule,
           replaceExisting: replaceExisting !== false, // default true
         },
-        {
-          timeout: 20000,
-          headers: {
-            "x-user-id": userId,
-            "x-user-email": req.headers["x-user-email"] as string | undefined,
-            "x-user-role": req.headers["x-user-role"] as string | undefined,
-            ...(internalSecret ? { "x-internal-token": internalSecret } : {}),
-          },
+        timeoutMs: 20000,
+        headers: {
+          "x-user-id": userId,
+          // Role comes from req.context (verified JWT, or a caller that proved
+          // INTERNAL_SERVICE_SECRET) — never straight off the client's own
+          // x-user-role header, which would forward an unverified claim
+          // downstream. See auth.middleware.ts's trust model.
+          "x-user-role": req.context.role,
+          ...(internalSecret ? { "x-internal-token": internalSecret } : {}),
         },
-      );
+      });
 
       const fitnessPayload = response.data?.success
         ? (response.data.data ?? response.data)
@@ -1376,13 +1374,13 @@ Hãy giải thích:
         return;
       }
 
-      const fitnessServiceUrl =
-        process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
       const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
-      const response = await axios.post(
-        `${fitnessServiceUrl}/nutrition/from-ai-plan`,
-        {
+      const response = await requestService({
+        service: "fitness",
+        method: "POST",
+        path: "/nutrition/from-ai-plan",
+        body: {
           sourcePlanId: plan.id,
           sourcePlanName: plan.name,
           goal: plan.goal,
@@ -1398,16 +1396,15 @@ Hãy giải thích:
           carbTargetGrams: planContent.carbTargetGrams,
           fatTargetGrams: planContent.fatTargetGrams,
         },
-        {
-          timeout: 20000,
-          headers: {
-            "x-user-id": userId,
-            "x-user-email": req.headers["x-user-email"] as string | undefined,
-            "x-user-role": req.headers["x-user-role"] as string | undefined,
-            ...(internalSecret ? { "x-internal-token": internalSecret } : {}),
-          },
+        timeoutMs: 20000,
+        headers: {
+          "x-user-id": userId,
+          // Verified role, not the raw client header — see the identical note
+          // on savePlanToWorkoutLog above.
+          "x-user-role": req.context.role,
+          ...(internalSecret ? { "x-internal-token": internalSecret } : {}),
         },
-      );
+      });
 
       const fitnessPayload = response.data?.success
         ? (response.data.data ?? response.data)

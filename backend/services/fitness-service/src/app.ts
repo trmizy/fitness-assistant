@@ -7,11 +7,15 @@ import statsRoutes from "./routes/stats.routes";
 import foodRoutes from "./routes/food.routes";
 import internalRoutes from "./routes/internal.routes";
 import trainingCycleRoutes from "./routes/training-cycle.routes";
+import fitnessRoadmapRoutes from "./routes/fitness-roadmap.routes";
 import coachRoutes from "./routes/coach.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import importRoutes from "./routes/import.routes";
 import exportRoutes from "./routes/export.routes";
 import templateRoutes from "./routes/template.routes";
+
+import agentProgramRoutes from "./routes/agent-program.routes";
+import nutritionAgentRoutes from "./routes/nutrition-agent.routes";
 
 const app = express();
 
@@ -35,12 +39,15 @@ app.get("/metrics", async (_req, res) => {
 });
 
 app.use("/exercises", exerciseRoutes);
+app.use("/workouts/agent", agentProgramRoutes);
 app.use("/workouts", workoutRoutes);
+app.use("/nutrition/agent", nutritionAgentRoutes);
 app.use("/nutrition", nutritionRoutes);
 app.use("/stats", statsRoutes);
 app.use("/food", foodRoutes);
 app.use("/internal", internalRoutes);
 app.use("/training-cycles", trainingCycleRoutes);
+app.use("/fitness-roadmaps", fitnessRoadmapRoutes);
 app.use("/coach", coachRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/imports", importRoutes);

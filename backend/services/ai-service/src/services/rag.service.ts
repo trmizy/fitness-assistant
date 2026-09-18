@@ -117,6 +117,7 @@ export const ragService = {
       sessionId: effectiveSessionId,
       question,
       answer: orchestrated.answer,
+      structuredBlocks: orchestrated.structuredBlocks as any,
       modelUsed: LLM_MODEL,
       responseTime,
       relevance: SELF_EVAL_ENABLED ? relevanceEval.Relevance : null,
@@ -150,6 +151,7 @@ export const ragService = {
 
     return {
       conversationId: conversation.id,
+      ...(orchestrated.structuredBlocks ? { structuredBlocks: orchestrated.structuredBlocks } : {}),
       sessionId: effectiveSessionId,
       question,
       answer: orchestrated.answer,

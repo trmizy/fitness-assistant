@@ -1,6 +1,8 @@
-import { llmService } from "../services/llm.service";
+import { llmService, LLM_PROVIDER } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
+import { fitnessAgent } from "../services/fitness-agent.service";
 import { conversationRepository } from "../repositories/conversation.repository";
+import { persistDeterministicMemoryCandidates } from "./memory_extraction";
 import { logger } from "@gym-coach/shared";
 import {
   nutritionResponseSourceTotal,
@@ -147,6 +149,19 @@ function isBodyCompositionQuestion(question: string): boolean {
   );
 }
 
+export function isFitnessScopeRefusal(answer: string): boolean {
+  const q = foldForIntent(answer);
+  const apologyOrRefusal =
+    /\b(xin loi|sorry|khong the ho tro|khong the ho tro chinh xac|wouldn'?t be able|cannot help)\b/i.test(
+      q,
+    );
+  const fitnessScopeClaim =
+    /(chi ho tro|only support|specialized in|chuyen ve).{0,120}(fitness|the hinh|tap luyen|suc khoe|dinh duong|physical health)|ngoai linh vuc|outside (my )?(area|scope)/i.test(
+      q,
+    );
+  return apologyOrRefusal && fitnessScopeClaim;
+}
+
 function isTimeoutError(err: unknown): boolean {
   const message = safeErrorMessage(err);
   return /timeout|timed out|ECONNABORTED/i.test(message);
@@ -157,7 +172,10 @@ function buildDeterministicBodyCompFallback(
   bodyCompText: string,
   deterministicAnswer: string,
 ): string {
-  const analysis = bodyCompText.trim() || deterministicAnswer.trim();
+  const analysis = localizeBodyCompTextForFallback(
+    language,
+    bodyCompText.trim() || deterministicAnswer.trim(),
+  );
   if (language.responseLanguage === "vi") {
     return [
       "Tôi chưa dùng được LLM chi tiết lúc này, nên trả phân tích deterministic từ dữ liệu hiện có:",
@@ -174,6 +192,88 @@ function buildDeterministicBodyCompFallback(
     analysis,
     "",
     "If this is not detailed enough, check Ollama readiness and retry for the full narrative analysis.",
+  ].join("\n");
+}
+
+function localizeBodyCompTextForFallback(
+  language: LanguageDecision,
+  text: string,
+): string {
+  if (language.responseLanguage !== "vi") return text;
+  return text.replace(
+    "No InBody/DXA data available. Using self-reported profile weight. Body composition estimates will be less accurate. Recommend measuring InBody for better personalization.",
+    "Chưa tìm thấy dữ liệu InBody/DXA trong hồ sơ hiện tại. Nếu bạn vừa cập nhật InBody, hãy đồng bộ lại dữ liệu hoặc thử lại sau ít phút; nếu chưa có, hãy thêm lần đo InBody để phân tích cá nhân hóa chính xác hơn.",
+  );
+}
+
+function buildVerifiedBodyCompFallback(
+  language: LanguageDecision,
+  bodyCompText: string,
+  deterministicAnswer: string,
+): string {
+  const analysis = localizeBodyCompTextForFallback(
+    language,
+    bodyCompText.trim() || deterministicAnswer.trim(),
+  );
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là yêu cầu phân tích InBody/hồ sơ cơ thể.",
+      "",
+      analysis,
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as a body-composition/InBody analysis request.",
+    "",
+    analysis,
+  ].join("\n");
+}
+
+function buildVerifiedFitnessFallback(
+  language: LanguageDecision,
+  deterministicAnswer: string,
+): string {
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là câu hỏi thuộc phạm vi tập luyện/sức khỏe.",
+      "",
+      deterministicAnswer.trim(),
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as a training or physical-health question.",
+    "",
+    deterministicAnswer.trim(),
+  ].join("\n");
+}
+
+function buildInjuryScopeFallback(language: LanguageDecision): string {
+  if (language.responseLanguage === "vi") {
+    return [
+      "Mình đã nhận diện đây là câu hỏi về chấn thương/đau khi tập.",
+      "",
+      "## Việc nên làm ngay",
+      "1. Dừng các bài làm đau vai, đặc biệt là đẩy vai, bench press nặng, dips, upright row hoặc động tác đưa tay qua đầu.",
+      "2. Không cố tập xuyên đau. Nếu đau sắc, yếu tay, tê lan, sưng/bầm rõ, hoặc đau sau té/ngã, hãy đi khám bác sĩ/chuyên gia vật lý trị liệu.",
+      "3. Trong 24-48 giờ đầu, ưu tiên nghỉ tương đối, ngủ đủ, và chỉ vận động nhẹ trong biên độ không đau.",
+      "",
+      "## Khi quay lại tập",
+      "- Tập thân dưới, core nhẹ, đi bộ/cardio nhẹ nếu không làm vai đau.",
+      "- Với vai, chỉ bắt đầu bằng bài phục hồi rất nhẹ như external rotation bằng dây, scapular retraction, wall slide trong biên độ không đau.",
+      "- Giảm tải ít nhất 30-50% khi tập lại và tăng dần nếu không đau trong/sau buổi tập.",
+      "",
+      "Bạn cho mình biết đau ở vị trí nào của vai, đau khi làm động tác nào, mức đau 0-10, và chấn thương xảy ra từ khi nào nhé.",
+    ].join("\n");
+  }
+
+  return [
+    "I recognized this as an injury/pain question.",
+    "",
+    "Stop movements that provoke shoulder pain, avoid pressing or overhead work for now, and seek medical/physio care if pain is sharp, spreading, associated with weakness/numbness, visible swelling/bruising, or followed a fall.",
+    "",
+    "You can keep training pain-free lower-body, light core, and easy cardio. For the shoulder, restart only with very light pain-free rehab work, then ramp load gradually.",
   ].join("\n");
 }
 
@@ -276,6 +376,19 @@ export const llmOrchestrator = {
     // Off-topic and medical emergency return immediately without hitting downstream services.
     const safetyCheck = safetyGuard.check(question);
 
+    // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
+    // memory-write provenance (see memory_extraction.ts's own doc comment).
+    // Placed here, before every downstream early-return branch, so it runs
+    // on every real authenticated chat turn regardless of intent routing —
+    // this is now the ONLY path that can create a durable UserMemory row
+    // from a live chat turn (the LLM can no longer trigger a write via
+    // tool-calling, see tools.ts's AVAILABLE_TOOLS comment). Fire-and-forget:
+    // never awaited into the response, never allowed to affect the chat
+    // answer or its latency.
+    void persistDeterministicMemoryCandidates(userId, question, {
+      knownPromptInjection: safetyCheck.type === "prompt_injection_attempt",
+    }).catch((err) => logger.warn({ err: (err as Error)?.message, userId }, "[memory-provenance] unexpected error; chat turn unaffected"));
+
     if (
       safetyCheck.type === "off_topic" ||
       safetyCheck.type === "medical_emergency" ||
@@ -331,6 +444,13 @@ export const llmOrchestrator = {
     }
 
     // Emit before any I/O - fires immediately after safety gate passes.
+    if (userId && sessionId) {
+      const agentResult = await fitnessAgent.tryTurn(question, { userId, authorizationHeader: authHeader }, sessionId);
+      if (agentResult) {
+        traceLogger.end(trace, { retrievalEmpty: false, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "fitness_agent" });
+        return { ...makeEarlyPayload(trace.traceId, agentResult.answer, language, "fitness_agent"), structuredBlocks: agentResult.blocks };
+      }
+    }
     onProgress?.("AI đang phân tích dữ liệu...");
 
     // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently -
@@ -773,6 +893,7 @@ export const llmOrchestrator = {
     const needsLlm =
       llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
     const bodyCompositionQuestion = isBodyCompositionQuestion(question);
+    let usedDeterministicFallbackBecauseOfValidation = false;
 
     // Merge evidence docs into retrieval so compactRetrieval() can format citations
     const mergedRetrieval =
@@ -802,11 +923,27 @@ export const llmOrchestrator = {
         const llmCallOpts = {
           timeoutMs: LLM_TIMEOUT_MS,
           temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
-          numPredict: bodyCompositionQuestion
-            ? 650
-            : routedIntent.intent === "general_fitness_knowledge"
-              ? 420
-              : undefined,
+          // These caps were tuned for the small local fine-tuned Ollama model
+          // (fitness-coach-qwen2.5-1.5b), where ~420 tokens is a full answer.
+          // On a Claude model the same cap truncates hard — and with a
+          // Vietnamese answer (far more tokens per word) it produced a
+          // completely EMPTY text block: 420 output tokens were consumed
+          // before any answer text was emitted (confirmed live: completionTokens
+          // hit exactly 420 with answer: ""). Scale the cap by provider instead
+          // of blanket-raising it, so switching back to the local model keeps
+          // its tuned budget.
+          numPredict:
+            // bedrock added (AWS Bedrock Claude pass): same Claude model, same
+            // truncation risk, so it takes the anthropic budget.
+            LLM_PROVIDER === "anthropic" || LLM_PROVIDER === "bedrock"
+              ? bodyCompositionQuestion
+                ? 2000
+                : 1500
+              : bodyCompositionQuestion
+                ? 650
+                : routedIntent.intent === "general_fitness_knowledge"
+                  ? 420
+                  : undefined,
         };
         const llmResponse = await timeAsync(timing, "llmGenerateMs", () =>
           ENABLE_TOOL_CALLING
@@ -820,6 +957,52 @@ export const llmOrchestrator = {
         promptTokens = llmResponse.promptTokens;
         completionTokens = llmResponse.completionTokens;
         totalTokens = llmResponse.totalTokens;
+        // A model can return a technically-successful response whose text
+        // block is empty (e.g. the whole output-token budget was consumed
+        // before any answer text was emitted). Without this guard that empty
+        // string flows all the way to the user as a blank chat bubble with
+        // usedFallback:false — confirmed live on a Vietnamese question. An
+        // empty answer is a failed answer: fall back to the deterministic one.
+        if (!llmAnswer.trim() && deterministicAnswer.trim()) {
+          logger.warn(
+            {
+              request_id: trace.traceId,
+              route: routedIntent.intent,
+              completionTokens,
+            },
+            "AI chat LLM returned an empty answer; using deterministic fallback",
+          );
+          llmAnswer = deterministicAnswer;
+          usedDeterministicFallbackBecauseOfValidation = true;
+          fallbackReason = "llm_empty_answer";
+        }
+        if (
+          safetyCheck.type === "safe" &&
+          isFitnessScopeRefusal(llmAnswer) &&
+          deterministicAnswer.trim()
+        ) {
+          llmAnswer =
+            bodyCompositionQuestion && bodyCompText.trim()
+              ? buildVerifiedBodyCompFallback(
+                  language,
+                  bodyCompText,
+                  deterministicAnswer,
+                )
+              : parsedInput.mentionsInjury
+                ? buildInjuryScopeFallback(language)
+              : buildVerifiedFitnessFallback(language, deterministicAnswer);
+          usedDeterministicFallbackBecauseOfValidation = true;
+          fallbackReason = bodyCompositionQuestion
+            ? "llm_scope_refusal_deterministic_body_comp"
+            : parsedInput.mentionsInjury
+              ? "llm_scope_refusal_injury_fallback"
+              : "llm_scope_refusal_deterministic_fitness";
+          onProgress?.(
+            bodyCompositionQuestion
+              ? "Đang dùng phân tích InBody đã kiểm chứng."
+              : "Đang dùng câu trả lời đã kiểm chứng.",
+          );
+        }
       } catch (err) {
         const useBodyCompDeterministicFallback =
           bodyCompositionQuestion && (bodyCompText.trim() || deterministicAnswer.trim());
@@ -861,7 +1044,6 @@ export const llmOrchestrator = {
     // structural validation - injury/advisory answers legitimately lack workout structure.
     const injuryForcedLlm =
       parsedInput.mentionsInjury && !llmIntents.has(routedIntent.intent);
-    let usedDeterministicFallbackBecauseOfValidation = false;
     if (
       needsLlm &&
       !unsafe?.blocked &&

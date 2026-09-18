@@ -65,6 +65,7 @@ async function deleteSeed(db: PrismaClientLike, userId: string) {
   await db.workout.deleteMany({ where: { userId } });
   await db.workoutSchedule.deleteMany({ where: { userId } });
   await db.workoutProgram.deleteMany({ where: { userId } });
+  await db.exercise.deleteMany({ where: { id: { startsWith: userId } } });
 }
 
 async function seedTwoExerciseProgram(db: PrismaClientLike, userId: string, exAId: string, exBId: string, date: Date) {

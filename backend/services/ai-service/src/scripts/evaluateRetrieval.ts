@@ -120,7 +120,9 @@ async function evaluateCase(testCase: EvalCase): Promise<{
   topScore: number | null;
   failed?: FailedQuery;
 }> {
-  const vector = await llmService.generateEmbedding(testCase.question);
+  const vector = await llmService.generateEmbedding(testCase.question, {
+    inputType: "search_query",
+  });
   const matches = await getQdrantClient().search(COLLECTION, {
     vector,
     limit: K,

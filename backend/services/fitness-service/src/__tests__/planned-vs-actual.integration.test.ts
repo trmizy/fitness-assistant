@@ -29,13 +29,22 @@ type TrainingCycleServiceLike = (typeof import("../services/training-cycle.servi
 
 let prisma: PrismaClientLike | undefined;
 let trainingCycleService: TrainingCycleServiceLike | undefined;
+let repsLoadExerciseId: string | undefined;
 
 async function loadModules() {
   if (!prisma) {
     prisma = (await import("../repositories/prisma")).prisma;
     trainingCycleService = (await import("../services/training-cycle.service")).trainingCycleService;
   }
-  return { prisma: prisma!, trainingCycleService: trainingCycleService! };
+  if (!repsLoadExerciseId) {
+    // Looked up by name rather than hardcoded — Exercise.exerciseName has
+    // no unique constraint and the seed script assigns fresh random ids
+    // on every re-run (prisma/seed_exercises_json.ts), so a literal id
+    // here goes silently stale the next time the catalog is reseeded.
+    const row = await prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Barbell Curl" } });
+    repsLoadExerciseId = row.id;
+  }
+  return { prisma: prisma!, trainingCycleService: trainingCycleService!, repsLoadExerciseId: repsLoadExerciseId! };
 }
 
 test.after(async () => {
@@ -49,13 +58,11 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-const REPS_LOAD_EXERCISE_ID = "f1b609bf-0994-4a70-b2d5-a22465438312"; // real seeded "Barbell Curl" (REPS_LOAD)
-
 test(
   "getCycleReport: plannedVsActual compares real planned targets against real logged sets, mode-gated",
   skipOpts,
   async () => {
-    const { prisma: db, trainingCycleService: svc } = await loadModules();
+    const { prisma: db, trainingCycleService: svc, repsLoadExerciseId } = await loadModules();
     const userId = randomUUID();
 
     // A real bodyweight exercise to exercise the BODYWEIGHT_REPS path —
@@ -82,7 +89,7 @@ test(
       data: { programId: program.id, dayNumber: 1, title: "Day 1" },
     });
     await db.workoutProgramExercise.create({
-      data: { programDayId: programDay.id, exerciseId: REPS_LOAD_EXERCISE_ID, order: 0, sets: 3, reps: 10, weight: 40 },
+      data: { programDayId: programDay.id, exerciseId: repsLoadExerciseId, order: 0, sets: 3, reps: 10, weight: 40 },
     });
     await db.workoutProgramExercise.create({
       data: { programDayId: programDay.id, exerciseId: bwExercise.id, order: 1, sets: 3, reps: 12 },
@@ -96,7 +103,7 @@ test(
         exercises: {
           create: [
             {
-              exerciseId: REPS_LOAD_EXERCISE_ID,
+              exerciseId: repsLoadExerciseId,
               sets: 3,
               order: 0,
               workoutSets: {
@@ -142,7 +149,7 @@ test(
       const report: any = await svc.getCycleReport(cycle.id, userId);
       const byExercise: any[] = report.plannedVsActual.byExercise;
 
-      const repsLoadRow = byExercise.find((e) => e.exerciseId === REPS_LOAD_EXERCISE_ID);
+      const repsLoadRow = byExercise.find((e) => e.exerciseId === repsLoadExerciseId);
       assert.ok(repsLoadRow, "the REPS_LOAD exercise must appear in the breakdown");
       assert.equal(repsLoadRow.loggingMode, "REPS_LOAD");
       assert.equal(repsLoadRow.plannedVolumeKg, 3 * 10 * 40); // 1200

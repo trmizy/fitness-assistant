@@ -19,6 +19,8 @@ router.patch("/:id", authMiddleware, trainingCycleController.update as any);
 router.get("/:id/progress", authMiddleware, trainingCycleController.progress as any);
 router.post("/:id/evaluate", authMiddleware, trainingCycleController.evaluate as any);
 router.get("/:id/assessments/latest", authMiddleware, trainingCycleController.latestAssessment as any);
+// Diet break / maintenance-phase modeling — "how close am I" status (2026-09-07).
+router.get("/:id/diet-break-status", authMiddleware, trainingCycleController.dietBreakStatus as any);
 router.get("/:id/assessments", authMiddleware, trainingCycleController.listAssessments as any);
 router.post("/:id/recommendation/accept", authMiddleware, trainingCycleController.acceptRecommendation as any);
 router.post("/:id/recommendation/reject", authMiddleware, trainingCycleController.rejectRecommendation as any);

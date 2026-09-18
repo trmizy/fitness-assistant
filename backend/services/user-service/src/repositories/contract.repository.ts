@@ -9,6 +9,7 @@ type Db = typeof prisma | Prisma.TransactionClient;
 
 export const contractRepository = {
   create: (data: {
+    agentActionId?: string;
     ptUserId: string;
     clientUserId: string;
     status?: ContractStatus;

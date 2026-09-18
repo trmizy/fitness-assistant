@@ -32,6 +32,8 @@ export type ApiErrorCode =
   | "PERSONALIZED_SERVICE_ADMIN_ONLY"
   | "PERSONALIZED_SERVICE_CHECKIN_INVALID_STATE"
   | "PERSONALIZED_SERVICE_ACTIVATION_FAILED"
+  | "RATE_LIMITED"
+  | "RATE_LIMIT_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export class ApiError extends Error {
@@ -66,6 +68,41 @@ export class LlmError extends ApiError {
     super("LLM_UNAVAILABLE", message, 503);
     this.name = "LlmError";
     Object.setPrototypeOf(this, LlmError.prototype);
+  }
+}
+
+/**
+ * Thrown when a per-user rate limit (see services/rate-limit/) has been
+ * exceeded. `retryAfterSeconds` is surfaced as the Retry-After header by
+ * middleware/rate-limit.middleware.ts, not by toJSON() — callers that only
+ * read the JSON body still get a stable {code, message} shape.
+ */
+export class RateLimitedError extends ApiError {
+  constructor(
+    message: string,
+    public readonly retryAfterSeconds: number,
+  ) {
+    super("RATE_LIMITED", message, 429);
+    this.name = "RateLimitedError";
+    Object.setPrototypeOf(this, RateLimitedError.prototype);
+  }
+}
+
+/**
+ * Thrown when the rate limiter itself cannot be evaluated (e.g. DynamoDB
+ * unreachable) for a route that calls a billed AI provider. Fail-closed by
+ * design — see rate-limit.middleware.ts's doc comment for why an unlimited
+ * Bedrock call is worse than a temporary 503.
+ */
+export class RateLimitUnavailableError extends ApiError {
+  constructor() {
+    super(
+      "RATE_LIMIT_UNAVAILABLE",
+      "AI service is temporarily unavailable. Please try again shortly.",
+      503,
+    );
+    this.name = "RateLimitUnavailableError";
+    Object.setPrototypeOf(this, RateLimitUnavailableError.prototype);
   }
 }
 

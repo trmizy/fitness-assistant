@@ -331,6 +331,7 @@ export interface AiChatTiming {
 }
 
 export interface FinalAnswerPayload {
+  structuredBlocks?: import("../services/fitness-agent.service").AgentBlock[];
   traceId: string;
   answer: string;
   responseLanguage?: ResponseLanguage;

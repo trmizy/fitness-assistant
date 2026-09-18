@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import { logger, readGatewayVerifiedUser } from "@gym-coach/shared";
+import { verifyToken } from "../clients/auth-service.client";
 
 export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
@@ -28,14 +29,7 @@ export async function authMiddleware(
     }
 
     const token = authHeader.substring(7);
-    const authServiceUrl =
-      process.env.AUTH_SERVICE_URL || "http://localhost:3001";
-
-    const { data } = await axios.post(
-      `${authServiceUrl}/auth/verify`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
-    );
+    const data = await verifyToken(token);
 
     req.user = data.user;
     return next();

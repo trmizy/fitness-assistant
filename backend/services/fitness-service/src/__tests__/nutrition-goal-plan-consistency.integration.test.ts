@@ -304,3 +304,64 @@ test("upsertGoal creates a stale plan, then importing a new AI plan links source
     await cleanup(prisma, userId);
   }
 });
+
+// Gymini Adaptive Cycle Transition Continuity §20 — a historical
+// NutritionProgram must stay pinned to the NutritionGoal version it was
+// actually built from, even after the user's goal is superseded to a new
+// version and a second program is created. sourceGoalId is written once,
+// at program-creation time (nutrition.service.ts) — nothing anywhere
+// re-stamps it when the goal later changes, so P1 must keep V1 forever.
+test("V1->V2 goal versioning: an older NutritionProgram (P1) keeps sourceGoalId=V1 forever; a newer program (P2) gets sourceGoalId=V2", skipOpts, async () => {
+  const { prisma, nutritionRepository, consistencyService } = await loadModules();
+  const userId = randomUUID();
+  try {
+    const v1 = await nutritionRepository.upsertGoal(userId, { calories: 2000, protein: 150, carbs: 200, fat: 65 });
+    const p1 = await seedProgram(prisma, userId, {
+      dailyCaloriesTarget: 2000, proteinTargetGrams: 150, carbTargetGrams: 200, fatTargetGrams: 65,
+      sourceGoalId: v1.id,
+    });
+
+    // Real versioning transition — upsertGoal's own atomic SUPERSEDE+INSERT.
+    const v2 = await nutritionRepository.upsertGoal(userId, { calories: 2400, protein: 180, carbs: 240, fat: 70 });
+    assert.notEqual(v2.id, v1.id);
+
+    // P1 must not be silently rewritten by the goal change.
+    const p1AfterGoalChange = await prisma.nutritionProgram.findUnique({ where: { id: p1.id } });
+    assert.equal(p1AfterGoalChange?.sourceGoalId, v1.id, "an older program must never be re-pointed to a newer goal version");
+
+    // A real detector run against the now-stale P1 must flag it, never
+    // silently treat V2 as if it always matched P1. P1's own macros (built
+    // from V1) also genuinely differ from V2's numbers here, so the real
+    // engine reports the more specific MACRO_MISMATCH rather than
+    // STALE_GOAL_CHANGED (which is reserved for the case where the numbers
+    // still coincidentally match despite the sourceGoalId pointing at a
+    // superseded goal — see the dedicated test above for that case).
+    const staleCheck = await consistencyService.compute(userId);
+    assert.equal(staleCheck.status, "MACRO_MISMATCH");
+
+    // Archive P1 (mirrors the real save flow's forceArchive behavior) and
+    // create P2 sourced from the CURRENT active goal (V2) — the real
+    // "regenerate" path a user takes after seeing the stale-plan banner.
+    await prisma.nutritionProgram.update({ where: { id: p1.id }, data: { status: "ARCHIVED" } });
+    const p2 = await seedProgram(prisma, userId, {
+      dailyCaloriesTarget: 2400, proteinTargetGrams: 180, carbTargetGrams: 240, fatTargetGrams: 70,
+      sourceGoalId: v2.id,
+    });
+
+    const p1Final = await prisma.nutritionProgram.findUnique({ where: { id: p1.id } });
+    const p2Final = await prisma.nutritionProgram.findUnique({ where: { id: p2.id } });
+    assert.equal(p1Final?.sourceGoalId, v1.id, "P1 must remain tied to V1 even after P2 exists");
+    assert.equal(p2Final?.sourceGoalId, v2.id, "P2 must be tied to the goal it was actually generated from (V2)");
+
+    // Calories/macros stay authoritative on NutritionGoal itself — the
+    // meal-plan program never silently supersedes the goal's own numbers.
+    const activeGoal = await nutritionRepository.findGoalByUserId(userId);
+    assert.equal(activeGoal?.id, v2.id);
+    assert.equal(activeGoal?.calories, 2400);
+
+    const finalCheck = await consistencyService.compute(userId);
+    assert.equal(finalCheck.status, "MATCHED", "P2 (built from V2) must now match the current active goal (V2)");
+  } finally {
+    await cleanup(prisma, userId);
+  }
+});

@@ -1,5 +1,9 @@
 # 04 — Backend migration plan
 
+> Historical sequencing proposal, retained because source comments reference it.
+> It is not the current deployment checklist. Use the
+> [deployment runbook](AWS_DEPLOYMENT_RUNBOOK.md) and current Lambda artifacts.
+
 ## First service candidate
 
 `auth-service` is the best first backend migration candidate after Phase 2:

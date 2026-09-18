@@ -120,6 +120,7 @@ export const aiController = {
       }
 
       sendEvent("done", {
+        structuredBlocks: result.structuredBlocks,
         conversationId: result.conversationId,
         sessionId: result.sessionId,
         evidenceUsed: result.evidenceUsed ?? [],

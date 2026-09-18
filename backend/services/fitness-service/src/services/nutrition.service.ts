@@ -1,8 +1,12 @@
 import { nutritionRepository } from "../repositories/nutrition.repository";
 import type { CreateNutritionDto } from "../models/fitness.models";
 import type { UpsertNutritionGoalDto } from "../models/fitness.models";
-import { checkNutritionGoalMacroConsistency } from "./nutrition-goal-macro-validator";
+import { checkNutritionGoalMacroConsistency, assertCalorieFloor } from "./nutrition-goal-macro-validator";
 import { nutritionGoalPlanConsistencyService } from "./nutrition-goal-plan-consistency.service";
+import { buildFoodSuggestions, dietaryPreferenceToVegetarianMode, type BudgetLevel } from "./nutrition-food-suggestion.engine";
+import { findFoodSubstitute, type SubstituteMode } from "./nutrition-food-substitution.engine";
+import { isVietnameseRegion } from "../config/vietnamese-region-food.config";
+import { fetchUserProfile } from "../clients/user.client";
 
 const DEFAULT_NUTRITION_GOAL = {
   calories: 2000,
@@ -37,6 +41,60 @@ function sumNutritionItems(items: any[]) {
   );
 }
 
+/**
+ * Found 2026-09-07 (AI agent food-substitution work): addMealItem/
+ * updateMealItem/deleteMealItem each write the single NutritionProgramMealItem
+ * row but never touched the parent NutritionProgramMeal.calories/proteinGrams/
+ * carbGrams/fatGrams or NutritionProgramDay.totalCalories/... rollup columns —
+ * so any edit (manual, or via the new AI substitute action) left those stored
+ * totals stale, and the frontend (CurrentNutritionProgram.tsx, NutritionPage.tsx)
+ * displays those stored fields directly, not a client-side re-sum. This is a
+ * real, pre-existing gap, independent of the agent feature — it just would
+ * have been directly exposed by it.
+ *
+ * At PLAN CREATION time (createProgramFromPlan below) the day/meal totals are
+ * trusted verbatim from the AI-generated payload rather than summed — a
+ * deliberate "trust the source, it already did the math" choice for that one
+ * path. Any edit AFTER creation breaks that trust, so it must be re-derived
+ * from the real items, not left stale or re-copied from the edit request.
+ *
+ * Call within the same transaction as the item mutation that triggered it,
+ * passing the mealId whose item just changed — recomputes that meal from its
+ * live items, then that meal's day from ALL of the day's now-current meals.
+ */
+async function recomputeMealAndDayTotals(tx: any, mealId: string): Promise<void> {
+  const meal = await tx.nutritionProgramMeal.findUnique({
+    where: { id: mealId },
+    include: { items: true },
+  });
+  if (!meal) return; // meal itself was deleted in the same transaction — nothing to roll up
+  const mealTotals = sumNutritionItems(meal.items);
+  await tx.nutritionProgramMeal.update({
+    where: { id: mealId },
+    data: {
+      calories: Math.round(mealTotals.calories),
+      proteinGrams: roundMacro(mealTotals.protein),
+      carbGrams: roundMacro(mealTotals.carbs),
+      fatGrams: roundMacro(mealTotals.fat),
+    },
+  });
+
+  // Re-fetch ALL of the day's meals fresh (not the `meal` object above,
+  // which is now stale for this one meal after the update just above it) so
+  // the day total reflects the meal we just recomputed plus every sibling.
+  const freshMeals = await tx.nutritionProgramMeal.findMany({ where: { dayId: meal.dayId } });
+  const dayTotals = sumNutritionItems(freshMeals);
+  await tx.nutritionProgramDay.update({
+    where: { id: meal.dayId },
+    data: {
+      totalCalories: Math.round(dayTotals.calories),
+      proteinGrams: roundMacro(dayTotals.protein),
+      carbGrams: roundMacro(dayTotals.carbs),
+      fatGrams: roundMacro(dayTotals.fat),
+    },
+  });
+}
+
 function normalizePlanMealItem(item: any) {
   return {
     ...item,
@@ -57,6 +115,39 @@ function normalizePlanMealItem(item: any) {
     carbs: item.carbGrams ?? 0,
     fat: item.fatGrams ?? 0,
     editable: true,
+  };
+}
+
+/**
+ * AI Nutrition Cycle Engine (Gymini) — "how much do I have left today"
+ * (spec §XI/§XXV). `target` prefers the active plan's own daily targets
+ * (what the user is actually following this specific day) and falls back
+ * to the standing NutritionGoal prescription when there's no plan for this
+ * date (spec §IV: nutrition must be usable even before any plan/InBody
+ * exists — the deterministic goal alone is enough to compute this).
+ * `remaining` is intentionally signed (can go negative) rather than
+ * clamped at 0 — the frontend decides how to phrase "you're over target"
+ * vs. hiding a negative number; this function only computes, never
+ * presents (spec §IX's determinism/AI-presentation split).
+ */
+function buildDailySummary(
+  target: { calories: number; protein: number; carbs: number; fat: number } | null,
+  consumed: { calories: number; protein: number; carbs: number; fat: number },
+) {
+  if (!target) return null;
+  return {
+    targetCalories: Math.round(target.calories),
+    targetProtein: roundMacro(target.protein),
+    targetCarbs: roundMacro(target.carbs),
+    targetFat: roundMacro(target.fat),
+    consumedCalories: Math.round(consumed.calories),
+    consumedProtein: roundMacro(consumed.protein),
+    consumedCarbs: roundMacro(consumed.carbs),
+    consumedFat: roundMacro(consumed.fat),
+    remainingCalories: Math.round(target.calories - consumed.calories),
+    remainingProtein: roundMacro(target.protein - consumed.protein),
+    remainingCarbs: roundMacro(target.carbs - consumed.carbs),
+    remainingFat: roundMacro(target.fat - consumed.fat),
   };
 }
 
@@ -147,6 +238,11 @@ export const nutritionService = {
         computedCalories: check.computedCalories,
       };
     }
+    // Safety-floor audit (2026-09-07) — this manual self-edit path is a
+    // direct client-typed number, previously with no floor at all (only
+    // `.positive()` in the Zod schema); see assertCalorieFloor's own doc
+    // comment for the full inconsistency this closes.
+    assertCalorieFloor(data.calories, "CLIENT");
     const goal = await nutritionRepository.upsertGoal(userId, data);
 
     // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
@@ -247,35 +343,39 @@ export const nutritionService = {
       if (!food) throw { status: 400, message: "Food not found in catalog" };
     }
 
-    return prisma.nutritionProgramMealItem.create({
-      data: {
-        mealId,
-        foodId: data.foodId || null,
-        customFoodName: data.customFoodName || data.name || null,
-        quantity: typeof data.quantity === "number" ? data.quantity : 100,
-        unit: data.unit || "g",
-        calories: typeof data.calories === "number" ? data.calories : 0,
-        proteinGrams:
-          typeof data.protein === "number"
-            ? data.protein
-            : typeof data.proteinGrams === "number"
-              ? data.proteinGrams
-              : 0,
-        carbGrams:
-          typeof data.carbs === "number"
-            ? data.carbs
-            : typeof data.carbGrams === "number"
-              ? data.carbGrams
-              : 0,
-        fatGrams:
-          typeof data.fat === "number"
-            ? data.fat
-            : typeof data.fatGrams === "number"
-              ? data.fatGrams
-              : 0,
-        notes: data.notes || null,
-      },
-      include: { food: true },
+    return prisma.$transaction(async (tx: any) => {
+      const created = await tx.nutritionProgramMealItem.create({
+        data: {
+          mealId,
+          foodId: data.foodId || null,
+          customFoodName: data.customFoodName || data.name || null,
+          quantity: typeof data.quantity === "number" ? data.quantity : 100,
+          unit: data.unit || "g",
+          calories: typeof data.calories === "number" ? data.calories : 0,
+          proteinGrams:
+            typeof data.protein === "number"
+              ? data.protein
+              : typeof data.proteinGrams === "number"
+                ? data.proteinGrams
+                : 0,
+          carbGrams:
+            typeof data.carbs === "number"
+              ? data.carbs
+              : typeof data.carbGrams === "number"
+                ? data.carbGrams
+                : 0,
+          fatGrams:
+            typeof data.fat === "number"
+              ? data.fat
+              : typeof data.fatGrams === "number"
+                ? data.fatGrams
+                : 0,
+          notes: data.notes || null,
+        },
+        include: { food: true },
+      });
+      await recomputeMealAndDayTotals(tx, mealId);
+      return created;
     });
   },
 
@@ -328,10 +428,14 @@ export const nutritionService = {
     if (typeof data.fatGrams === "number") patch.fatGrams = data.fatGrams;
     if (data.notes !== undefined) patch.notes = data.notes;
 
-    return prisma.nutritionProgramMealItem.update({
-      where: { id: itemId },
-      data: patch,
-      include: { food: true },
+    return prisma.$transaction(async (tx: any) => {
+      const updated = await tx.nutritionProgramMealItem.update({
+        where: { id: itemId },
+        data: patch,
+        include: { food: true },
+      });
+      await recomputeMealAndDayTotals(tx, (item as any).mealId);
+      return updated;
     });
   },
 
@@ -362,7 +466,11 @@ export const nutritionService = {
         status: 409,
         message: "Cannot delete items from a completed or partial meal",
       };
-    return prisma.nutritionProgramMealItem.delete({ where: { id: itemId } });
+    return prisma.$transaction(async (tx: any) => {
+      const deleted = await tx.nutritionProgramMealItem.delete({ where: { id: itemId } });
+      await recomputeMealAndDayTotals(tx, (item as any).mealId);
+      return deleted;
+    });
   },
 
   /**
@@ -614,7 +722,20 @@ export const nutritionService = {
       ]);
     }
 
+    // AI Nutrition Cycle Engine (Gymini) — the standing NutritionGoal is the
+    // dailySummary target fallback whenever there's no active plan (or the
+    // selected date falls outside it), and the sole target when there's no
+    // plan at all (spec §IV: Nutrition must be usable from profile alone).
+    const activeGoal = await nutritionRepository.findGoalByUserId(userId);
+    const goalTarget = activeGoal
+      ? { calories: activeGoal.calories, protein: activeGoal.protein, carbs: activeGoal.carbs, fat: activeGoal.fat }
+      : null;
+
     if (!program) {
+      // No structured plan at all — every logged item for the day came
+      // through the free-text diary (NutritionLog), never merged into any
+      // meal's items above.
+      const allLogTotals = sumNutritionItems(dailyLogs.map(normalizeLogMealItem));
       return {
         hasProgram: false,
         date: dateStr,
@@ -622,6 +743,7 @@ export const nutritionService = {
         day: null,
         meals: [],
         actualProgress: null,
+        dailySummary: buildDailySummary(goalTarget, allLogTotals),
       };
     }
 
@@ -674,6 +796,15 @@ export const nutritionService = {
           actualProgress: null,
           outOfRange: true,
           message: "Nutrition plan has ended for this date.",
+          dailySummary: buildDailySummary(
+            goalTarget ?? {
+              calories: program.dailyCaloriesTarget ?? 0,
+              protein: program.proteinTargetGrams ?? 0,
+              carbs: program.carbTargetGrams ?? 0,
+              fat: program.fatTargetGrams ?? 0,
+            },
+            sumNutritionItems(dailyLogs.map(normalizeLogMealItem)),
+          ),
         };
       }
     }
@@ -714,6 +845,15 @@ export const nutritionService = {
         message: isBeforeStart
           ? "Nutrition plan has not started on this date."
           : `This date is outside the ${totalDays}-day nutrition plan range. Enable repeat menu to apply the cycle.`,
+        dailySummary: buildDailySummary(
+          goalTarget ?? {
+            calories: program.dailyCaloriesTarget ?? 0,
+            protein: program.proteinTargetGrams ?? 0,
+            carbs: program.carbTargetGrams ?? 0,
+            fat: program.fatTargetGrams ?? 0,
+          },
+          sumNutritionItems(dailyLogs.map(normalizeLogMealItem)),
+        ),
       };
     }
 
@@ -734,6 +874,15 @@ export const nutritionService = {
         day: null,
         meals: [],
         actualProgress: null,
+        dailySummary: buildDailySummary(
+          goalTarget ?? {
+            calories: program.dailyCaloriesTarget ?? 0,
+            protein: program.proteinTargetGrams ?? 0,
+            carbs: program.carbTargetGrams ?? 0,
+            fat: program.fatTargetGrams ?? 0,
+          },
+          sumNutritionItems(dailyLogs.map(normalizeLogMealItem)),
+        ),
       };
     }
 
@@ -741,6 +890,20 @@ export const nutritionService = {
       totalPro = 0,
       totalCarb = 0,
       totalFat = 0;
+
+    // AI Nutrition Cycle Engine (Gymini) — every meal-type key this day's
+    // plan actually has a slot for; a NutritionLog entry logged under any
+    // OTHER meal type (e.g. "snack" when the plan has no snack) never gets
+    // merged into `items` above, so it must be added to dailySummary's
+    // consumed total separately below, or it silently vanishes.
+    const matchedMealTypeKeys = new Set(
+      (day.meals as any[]).map(
+        (meal: any) =>
+          PLAN_TO_LOG_MEAL_TYPE[String(meal.mealType || "").toUpperCase()] ??
+          String(meal.mealType || "").toLowerCase(),
+      ),
+    );
+    let tableTotalsSum = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     const meals = (day.meals as any[]).map((meal: any) => {
       const completion = meal.completions?.[0] ?? null;
@@ -754,15 +917,79 @@ export const nutritionService = {
       const items = [...planItems, ...logItems];
       const plannedTotals = sumNutritionItems(planItems);
       const tableTotals = sumNutritionItems(items);
+
+      // Unify-the-two-write-paths fix (found auditing "log food after
+      // marking a meal complete"): upsertMealCompletion freezes
+      // consumedCalories/etc at the moment it's called, computed from
+      // whatever NutritionLog rows existed for this mealType+date THEN. A
+      // NutritionLog created afterwards for the SAME mealType+date (the
+      // free-text "Add food" form, or applyFoodSuggestion's "Thêm bữa
+      // này") already shows up in `items`/`tableTotals` above (so the UI
+      // looks like it was recorded) but was previously invisible to
+      // consumedTotals — logging food after completing a meal silently
+      // undercounted it. Never rewritten in place (that would risk
+      // clobbering an explicit overrideCalories the user typed, which
+      // isn't distinguishable from a percent-derived figure on this row)
+      // — instead, anything logged strictly after the completion's own
+      // last write is treated as a pure addition on top of the frozen
+      // snapshot, using the exact same raw rows (pre-normalization, so
+      // their real createdAt survives) that built logItems above.
+      const rawLogsForMeal = dailyLogs.filter(
+        (log: any) => String(log.mealType || "").toLowerCase() === mealTypeKey,
+      );
+      const loggedAfterCompletion = completion
+        ? rawLogsForMeal.filter(
+            (log: any) => new Date(log.createdAt).getTime() > new Date(completion.updatedAt).getTime(),
+          )
+        : [];
+      const extraSinceCompletion =
+        loggedAfterCompletion.length > 0
+          ? sumNutritionItems(loggedAfterCompletion.map(normalizeLogMealItem))
+          : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      // AI Nutrition Cycle Engine (Gymini) — canonical PLANNED-vs-CONSUMED
+      // rule (Phase 2 §III/§IX). `tableTotals` is what's PLANNED/LISTED for
+      // this meal; how much of it actually counts as CONSUMED depends on
+      // completion status, computed once here and reused by both
+      // `dailySummary` and `actualProgress` so they can never disagree:
+      //   SKIPPED            -> 0, regardless of listed items (explicit
+      //                          "I did not eat this" overrides the list)
+      //   COMPLETED / PARTIAL -> completion.consumedCalories/Protein/Carbs/Fat
+      //                          (already scaled by percentConsumed or the
+      //                          user's own override at upsertMealCompletion
+      //                          time — the canonical, single-computed figure;
+      //                          summing tableTotals again here would double count
+      //                          a PARTIAL meal, or ignore an explicit override)
+      //                          PLUS anything logged after that snapshot
+      //                          was frozen (see extraSinceCompletion above).
+      //   no completion / PENDING -> tableTotals (provisional: items were
+      //                          added but the user hasn't explicitly marked
+      //                          the meal one way or the other yet)
+      const consumedTotals =
+        completion && completion.status === "SKIPPED"
+          ? { calories: 0, protein: 0, carbs: 0, fat: 0 }
+          : completion && (completion.status === "COMPLETED" || completion.status === "PARTIAL")
+            ? {
+                calories: (completion.consumedCalories ?? 0) + extraSinceCompletion.calories,
+                protein: (completion.consumedProtein ?? 0) + extraSinceCompletion.protein,
+                carbs: (completion.consumedCarbs ?? 0) + extraSinceCompletion.carbs,
+                fat: (completion.consumedFat ?? 0) + extraSinceCompletion.fat,
+              }
+            : tableTotals;
+
+      tableTotalsSum.calories += consumedTotals.calories;
+      tableTotalsSum.protein += consumedTotals.protein;
+      tableTotalsSum.carbs += consumedTotals.carbs;
+      tableTotalsSum.fat += consumedTotals.fat;
       if (
         completion &&
         completion.status !== "SKIPPED" &&
         completion.status !== "PENDING"
       ) {
-        totalCal += completion.consumedCalories ?? 0;
-        totalPro += completion.consumedProtein ?? 0;
-        totalCarb += completion.consumedCarbs ?? 0;
-        totalFat += completion.consumedFat ?? 0;
+        totalCal += consumedTotals.calories;
+        totalPro += consumedTotals.protein;
+        totalCarb += consumedTotals.carbs;
+        totalFat += consumedTotals.fat;
       }
       return {
         ...meal,
@@ -788,6 +1015,25 @@ export const nutritionService = {
         completion,
       };
     });
+
+    const unmatchedLogs = dailyLogs.filter((log: any) => {
+      const key = String(log.mealType || "").toLowerCase();
+      return !matchedMealTypeKeys.has(key);
+    });
+    if (unmatchedLogs.length > 0) {
+      const unmatchedTotals = sumNutritionItems(unmatchedLogs.map(normalizeLogMealItem));
+      tableTotalsSum.calories += unmatchedTotals.calories;
+      tableTotalsSum.protein += unmatchedTotals.protein;
+      tableTotalsSum.carbs += unmatchedTotals.carbs;
+      tableTotalsSum.fat += unmatchedTotals.fat;
+    }
+
+    const dayTarget = {
+      calories: day.totalCalories ?? program.dailyCaloriesTarget ?? goalTarget?.calories ?? 0,
+      protein: day.proteinGrams ?? program.proteinTargetGrams ?? goalTarget?.protein ?? 0,
+      carbs: day.carbGrams ?? program.carbTargetGrams ?? goalTarget?.carbs ?? 0,
+      fat: day.fatGrams ?? program.fatTargetGrams ?? goalTarget?.fat ?? 0,
+    };
 
     return {
       hasProgram: true,
@@ -819,7 +1065,154 @@ export const nutritionService = {
         carbs: Math.round(totalCarb * 10) / 10,
         fat: Math.round(totalFat * 10) / 10,
       },
+      dailySummary: buildDailySummary(dayTarget, tableTotalsSum),
     };
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 §III/§IX/canonical source
+  // of truth. Reuses getDailyTask's dailySummary (already the single
+  // correct consumed-totals computation, respecting SKIPPED/PARTIAL/
+  // COMPLETED completion status so nothing is double-counted) for each of
+  // the last `days` calendar days, so any consumer that needs "how much did
+  // this user actually eat recently" (AI chat context, adherence, a future
+  // trends chart) reads the EXACT same numbers the Nutrition dashboard
+  // shows — never a second, independently-aggregated total that can
+  // silently drift from it (the AI chat's own nutritionHistory context
+  // previously only ever read raw NutritionLog rows, missing anything
+  // logged via the structured meal-item flow entirely).
+  async getDailyConsumptionHistory(userId: string, days: number) {
+    const clampedDays = Math.max(1, Math.min(30, Math.trunc(days) || 7));
+    const today = new Date();
+    const results: Array<{
+      date: string;
+      hasProgram: boolean;
+      targetCalories: number | null;
+      targetProtein: number | null;
+      consumedCalories: number | null;
+      consumedProtein: number | null;
+      consumedCarbs: number | null;
+      consumedFat: number | null;
+    }> = [];
+    for (let i = 0; i < clampedDays; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const day = await this.getDailyTask(userId, dateStr);
+      results.push({
+        date: dateStr,
+        hasProgram: day.hasProgram,
+        targetCalories: day.dailySummary?.targetCalories ?? null,
+        targetProtein: day.dailySummary?.targetProtein ?? null,
+        consumedCalories: day.dailySummary?.consumedCalories ?? null,
+        consumedProtein: day.dailySummary?.consumedProtein ?? null,
+        consumedCarbs: day.dailySummary?.consumedCarbs ?? null,
+        consumedFat: day.dailySummary?.consumedFat ?? null,
+      });
+    }
+    return results;
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — spec §XII/§XIII. `budgetLevelOverride`
+  // lets a caller who already has the profile loaded skip the extra
+  // cross-service round trip; omitted, this falls back to the user's saved
+  // UserProfile.nutritionBudgetLevel (defaulting to NORMAL if never set).
+  async getFoodSuggestions(userId: string, dateStr: string, budgetLevelOverride?: string) {
+    const daily = await this.getDailyTask(userId, dateStr);
+    const remainingCalories = daily.dailySummary?.remainingCalories ?? 0;
+    const remainingProtein = daily.dailySummary?.remainingProtein ?? 0;
+
+    // One profile fetch covers budget, region, and dietary preference —
+    // never three separate cross-service round trips for one page load.
+    const profile = await fetchUserProfile(userId);
+
+    let budgetLevel = (budgetLevelOverride?.toUpperCase() as BudgetLevel | undefined) ?? undefined;
+    if (!budgetLevel || !["LOW", "NORMAL", "FLEXIBLE"].includes(budgetLevel)) {
+      const saved = (profile?.nutritionBudgetLevel ?? "NORMAL").toUpperCase();
+      budgetLevel = (["LOW", "NORMAL", "FLEXIBLE"].includes(saved) ? saved : "NORMAL") as BudgetLevel;
+    }
+    const region = isVietnameseRegion(profile?.region) ? profile!.region : null;
+    const vegetarianMode = dietaryPreferenceToVegetarianMode(profile?.dietaryPreference);
+
+    const options = await buildFoodSuggestions(remainingCalories, remainingProtein, budgetLevel, region, vegetarianMode);
+    return {
+      date: dateStr,
+      remainingCalories,
+      remainingProtein,
+      budgetLevel,
+      region,
+      options,
+    };
+  },
+
+  // Smart Substitute variants (Production Hardening report §16) — swap ONE
+  // food item for a different one, cheaper, higher-protein, or vegetarian.
+  // Region + dietaryPreference come from the SAME profile snapshot pattern
+  // as getFoodSuggestions above; an explicit per-call override lets the
+  // frontend preview "what if I were in Miền Trung" without changing the
+  // user's saved profile (used by the Settings-less quick-try flow, if
+  // any — today only the saved profile value is actually sent).
+  async getFoodSubstitute(
+    userId: string,
+    item: { foodId?: string | null; foodName: string; quantityG: number; calories: number; protein: number },
+    mode: SubstituteMode,
+  ) {
+    const profile = await fetchUserProfile(userId);
+    const budgetLevel = (["LOW", "NORMAL", "FLEXIBLE"].includes((profile?.nutritionBudgetLevel ?? "").toUpperCase())
+      ? (profile!.nutritionBudgetLevel as string).toUpperCase()
+      : "NORMAL") as BudgetLevel;
+    const region = isVietnameseRegion(profile?.region) ? profile!.region : null;
+    const vegetarianMode = dietaryPreferenceToVegetarianMode(profile?.dietaryPreference);
+
+    return findFoodSubstitute({
+      currentFoodId: item.foodId ?? null,
+      currentFoodName: item.foodName,
+      currentQuantityG: item.quantityG,
+      currentCalories: item.calories,
+      currentProtein: item.protein,
+      mode,
+      budgetLevel,
+      region,
+      vegetarianMode,
+    });
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 §VI "Add this suggestion":
+  // a suggested combo isn't tied to any specific planned meal slot (it's
+  // "what to eat next", not "what's for breakfast"), so this logs it via
+  // the free-text NutritionLog path (one row per item) rather than
+  // requiring a NutritionProgramMealItem/mealId — works identically for a
+  // user with or without an active NutritionProgram, and is already
+  // correctly picked up by getDailyTask's canonical dailySummary (either
+  // merged into a matching planned meal, or counted via the unmatched-logs
+  // path — see nutrition-daily-summary.integration.test.ts). Never a fake
+  // success: each item is a real, separately-persisted NutritionLog row;
+  // if any single insert fails the caller gets a real error, not a
+  // best-effort partial silently reported as success.
+  async applyFoodSuggestion(
+    userId: string,
+    dateStr: string,
+    items: Array<{ foodName: string; quantityG: number; calories: number; protein: number; carbs: number; fat: number }>,
+  ) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw { status: 400, message: "items must be a non-empty array" };
+    }
+    const hour = new Date().getHours();
+    const mealType = hour < 10 ? "breakfast" : hour < 15 ? "lunch" : hour < 19 ? "dinner" : "snack";
+    const created = [];
+    for (const item of items) {
+      const row = await nutritionRepository.create(userId, {
+        date: dateStr,
+        mealType,
+        foodName: `${item.foodName} (${Math.round(item.quantityG)}g)`,
+        calories: Math.round(item.calories),
+        protein: item.protein,
+        carbs: item.carbs,
+        fats: item.fat,
+        notes: "Từ gợi ý món ăn của Gymini",
+      });
+      created.push(row);
+    }
+    return created;
   },
 
   /** Mark a meal as COMPLETED / PARTIAL / SKIPPED for a given date.

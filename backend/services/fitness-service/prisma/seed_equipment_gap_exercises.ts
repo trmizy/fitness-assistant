@@ -33,6 +33,50 @@ type CuratedExercise = {
   movementPattern: string;
 };
 
+function externalIdFor(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+async function ensureMetadataAndLinks(exerciseId: string, item: CuratedExercise) {
+  for (const slug of item.equipmentSlugs) {
+    const equipment = await prisma.equipment.findUnique({ where: { slug } });
+    if (!equipment) {
+      console.warn(`  equipment slug "${slug}" not found - skipping link for ${item.exerciseName}`);
+      continue;
+    }
+    await prisma.exerciseEquipment.upsert({
+      where: { exerciseId_equipmentId: { exerciseId, equipmentId: equipment.id } },
+      update: { requirementType: "REQUIRED" },
+      create: { exerciseId, equipmentId: equipment.id, requirementType: "REQUIRED" },
+    });
+  }
+
+  await prisma.exerciseSource.upsert({
+    where: {
+      exerciseId_sourceName_externalId: {
+        exerciseId,
+        sourceName: "equipment_gap_seed",
+        externalId: externalIdFor(item.exerciseName),
+      },
+    },
+    update: {
+      dataLicense: "original_curated",
+      sourceVersion: "2026-09-09",
+    },
+    create: {
+      exerciseId,
+      sourceName: "equipment_gap_seed",
+      externalId: externalIdFor(item.exerciseName),
+      dataLicense: "original_curated",
+      sourceVersion: "2026-09-09",
+    },
+  });
+}
+
 const CURATED: CuratedExercise[] = [
   {
     exerciseName: "Suspension Row",
@@ -152,6 +196,7 @@ async function main() {
   for (const item of CURATED) {
     const existing = await prisma.exercise.findFirst({ where: { exerciseName: item.exerciseName } });
     if (existing) {
+      await ensureMetadataAndLinks(existing.id, item);
       skipped++;
       continue;
     }
@@ -182,6 +227,7 @@ async function main() {
       });
     }
 
+    await ensureMetadataAndLinks(exercise.id, item);
     created++;
   }
 

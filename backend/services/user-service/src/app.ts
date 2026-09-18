@@ -19,6 +19,8 @@ import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 
+import agenticFitnessRoutes from "./routes/agentic-fitness.routes";
+
 const app = express();
 
 app.use(
@@ -97,6 +99,7 @@ if (REQUIRE_CONTRACT_ESIGN) {
   logger.info("REQUIRE_CONTRACT_ESIGN=false — /webhooks/dropbox-sign is not registered");
 }
 
+app.use("/profile/agent", agenticFitnessRoutes);
 app.use("/profile", profileRoutes);
 app.use("/inbody", inbodyRoutes);
 app.use("/pt-applications", ptApplicationRoutes);

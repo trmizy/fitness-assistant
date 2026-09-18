@@ -1,11 +1,9 @@
-import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
 import { canCreateDirectChat } from "./chat.policy";
 import { getIo } from "../socket";
+import { getInternalUser } from "../clients/auth-service.client";
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
   "dev_internal_service_secret_change_in_production";
@@ -14,13 +12,7 @@ async function fetchUserInfo(
   userId: string,
 ): Promise<{ id: string; firstName: string; lastName: string; role: string }> {
   try {
-    const { data } = await axios.get(
-      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
-      {
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
-    );
+    const data = await getInternalUser(userId, INTERNAL_SERVICE_SECRET);
     const user = data.user;
     if (user) {
       return {

@@ -14,24 +14,36 @@ const prisma = new PrismaClient();
 async function seedExercises() {
   console.log("Checking exercise seed...");
 
-  const existingCount = await prisma.exercise.count();
-  if (existingCount > 0) {
-    console.log(
-      `Exercise seed skipped: ${existingCount} exercises already in database.`,
-    );
-    return;
-  }
-
-  console.log("No exercises found. Starting seed...");
-
   const jsonPath = path.join(__dirname, "raw_exercises.json");
   if (!fs.existsSync(jsonPath)) {
     console.error(`CRITICAL ERROR: Seed file not found at ${jsonPath}`);
     process.exit(1);
   }
-
   const rawData = fs.readFileSync(jsonPath, "utf8");
   const exercises = JSON.parse(rawData);
+
+  // Found 2026-09-07: this used to be `existingCount > 0` — ANY existing
+  // exercise (even 1, e.g. a leftover test fixture) permanently skipped
+  // this seed forever, so a partially-seeded DB (274, then observed as
+  // 409 in this session — never fully investigated why it grew, out of
+  // scope here) never reached the real, full catalog, and
+  // seed_equipment.ts (which depends on the full set to classify/map
+  // correctly) silently had nothing to do. Comparing against the actual
+  // source file's own row count — the only number that means "this
+  // catalog is genuinely complete" — makes this self-healing instead of
+  // permanently stuck the first time anything touches the table.
+  const existingCount = await prisma.exercise.count();
+  if (existingCount >= exercises.length) {
+    console.log(
+      `Exercise seed skipped: ${existingCount} exercises already in database (>= the ${exercises.length} in raw_exercises.json).`,
+    );
+    return;
+  }
+  if (existingCount > 0) {
+    throw new Error(
+      `Exercise seed refused: ${existingCount} exercises are present but raw_exercises.json has ${exercises.length}. Exercise.exerciseName has no unique constraint, so a partial catalog cannot be safely topped up in place without risking duplicates or deleting USER_CUSTOM data. Start from a fresh migrated reference DB or repair manually.`,
+    );
+  }
 
   console.log(`Found ${exercises.length} exercises to import.`);
 

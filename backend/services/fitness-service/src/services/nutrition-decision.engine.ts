@@ -21,9 +21,27 @@ import type { WeightTrendResult } from "./weight-trend.util";
 export type AdaptiveNutritionDecision =
   | "KEEP_PLAN"
   | "PROPOSE_ADJUSTMENT"
+  | "PROPOSE_DIET_BREAK"
   | "REQUEST_MORE_DATA"
   | "EARLY_REVIEW"
   | "ESCALATE";
+
+// The reason code this engine's own algorithm-triggered diet break uses.
+// A PT can ALSO manually trigger one directly (coach.service.ts's
+// triggerDietBreakRecommendation, outside this engine's own evaluation —
+// see its own doc comment for why that's a separate code path, not a
+// bypass of it) with a DIFFERENT, honestly-distinct code
+// (PT_INITIATED_DIET_BREAK) so the two are never conflated in an audit
+// trail. training-cycle.service.ts's computeWeeksSinceDeficitPhaseStarted
+// resets the deficit-duration clock on EITHER — both put the user at
+// maintenance calories starting now, which is the only thing that
+// actually matters for that computation.
+export const DIET_BREAK_REASON_CODE_ALGORITHM = "SUSTAINED_DEFICIT_DIET_BREAK_RECOMMENDED";
+export const DIET_BREAK_REASON_CODE_PT_INITIATED = "PT_INITIATED_DIET_BREAK";
+export const DIET_BREAK_REASON_CODES: readonly string[] = [
+  DIET_BREAK_REASON_CODE_ALGORITHM,
+  DIET_BREAK_REASON_CODE_PT_INITIATED,
+];
 
 export type NutritionConfidence = "LOW" | "MEDIUM" | "HIGH";
 
@@ -70,6 +88,24 @@ export interface NutritionDecisionInput {
   metrics: CycleMetricsResult;
   activeNutritionGoal: ActiveNutritionPrescription | null;
   cycleDurationDaysSoFar: number;
+  /** Diet-break modeling (2026-09-07, see cycle-thresholds.config.ts's
+   * dietBreakThresholdWeeks doc comment for the research this is
+   * grounded in). Continuous weeks the user has been in an active
+   * WEIGHT_LOSS deficit, measured by the CALLER (this pure engine has no
+   * DB access) from the start of the current unbroken run of WEIGHT_LOSS
+   * cycles or the most recent diet-break goal, whichever is more recent.
+   * Null when goal isn't WEIGHT_LOSS or this can't be computed (e.g. no
+   * cycle history) — never defaulted to 0, which would look identical to
+   * "just started" and could suppress a break that's actually overdue on
+   * a caller bug, or falsely propose one on missing data. */
+  weeksSinceDeficitPhaseStarted?: number | null;
+  /** Same BMR/TDEE estimate nutrition-bootstrap.engine.ts's
+   * computeInitialNutritionPrescription would produce right now for this
+   * user (useMaintenanceOnly mode) — reused, not recomputed, so a
+   * diet-break's suggested calories and a fresh bootstrap always agree.
+   * Null if the caller couldn't resolve current weight/height/age/gender/
+   * activityLevel (diet-break is simply never proposed without it). */
+  estimatedMaintenanceCalories?: number | null;
 }
 
 export interface NutritionDecisionResult {
@@ -120,7 +156,7 @@ function buildSignals(input: NutritionDecisionInput): NutritionDecisionSignals {
  * anchor the g/kg range — callers must not invoke this without a resolved
  * weight (see evaluateNutritionAdaptive's gating above).
  */
-function redistributeMacros(
+export function redistributeMacros(
   active: ActiveNutritionPrescription,
   newCalories: number,
   currentWeightKg: number,
@@ -274,6 +310,43 @@ export function evaluateNutritionAdaptive(input: NutritionDecisionInput): Nutrit
   }
 
   const goal = input.goal;
+
+  // ── 4.5 Diet break — checked BEFORE the normal pace evaluation below and
+  // takes priority over it: even a cut that's currently ON pace benefits
+  // from a scheduled metabolic-rest break per the research this is
+  // grounded in (see dietBreakThresholdWeeks's doc comment), so this
+  // doesn't require offTarget to be true. Only proposed with enough data
+  // to actually compute a safe maintenance-calorie number.
+  if (
+    goal === "WEIGHT_LOSS" &&
+    input.weeksSinceDeficitPhaseStarted != null &&
+    input.weeksSinceDeficitPhaseStarted >= t.dietBreakThresholdWeeks &&
+    input.estimatedMaintenanceCalories != null &&
+    input.estimatedMaintenanceCalories > input.activeNutritionGoal.calories
+  ) {
+    // Same redistribution helper the normal adjustment path uses below —
+    // protein held at/above current (never lowered), fat held stable,
+    // carbs absorb the increase up to maintenance. Keeping protein high
+    // during a diet break (rather than letting it scale down with the
+    // extra calories) is the general diet-break guidance this app can
+    // actually implement without inventing new macro logic.
+    const proposedChanges = redistributeMacros(
+      input.activeNutritionGoal,
+      input.estimatedMaintenanceCalories,
+      currentWeightKg,
+    );
+    return {
+      decision: "PROPOSE_DIET_BREAK",
+      confidence,
+      evaluatedWindowDays,
+      signals,
+      proposedChanges,
+      reasonCodes: [DIET_BREAK_REASON_CODE_ALGORITHM],
+      evidenceIds: [],
+      requiresConfirmation: true,
+    };
+  }
+
   let offTarget = false;
   let direction: "increase" | "decrease" | null = null;
   const reasonCodes: string[] = [];

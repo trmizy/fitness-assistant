@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   MagnifyingGlassIcon as Search,
   MedalIcon as Award,
@@ -111,9 +111,10 @@ const filterValues = ["All", ...QUICK_FILTERS];
 
 export function PTDiscoveryPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState("All");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("ptId"));
   const [messagingPT, setMessagingPT] = useState(false);
   // Mirrors this page's own `lg` (1024px) breakpoint exactly (the list/detail layout
   // switches from flex-col to flex-row there) — deliberately not the shared useIsMobile
@@ -346,7 +347,8 @@ export function PTDiscoveryPage() {
     );
   });
 
-  const selectedPT = ptsList.find((pt: any) => pt.userId === selectedId);
+  const selectedPT = ptsList.find((pt: any) => pt.userId === selectedId)
+    ?? (ptDetail?.userId === selectedId ? ptDetail : undefined);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">

@@ -65,7 +65,70 @@ test("authServiceClient resolves 200 -> req.user set, next() called", async () =
     });
     assert.strictEqual(nextCalled, true);
     assert.strictEqual(req.user.id, "u1");
+    assert.strictEqual(req.headers["x-user-id"], "u1");
+    assert.strictEqual(req.headers["x-user-email"], "a@b.com");
+    assert.strictEqual(req.headers["x-user-role"], "CUSTOMER");
     assert.strictEqual(forwardedHeader, "Bearer good-token");
+  } finally {
+    authServiceClient.verifyToken = original;
+  }
+});
+
+test("browser-supplied trusted identity headers are overwritten by Auth Service verification", async () => {
+  const original = authServiceClient.verifyToken;
+  authServiceClient.verifyToken = (async () => ({
+    status: 200,
+    data: { user: { id: "real-user", email: "real@example.com", role: "CUSTOMER" } },
+  })) as any;
+  try {
+    const req: any = {
+      headers: {
+        authorization: "Bearer good-token",
+        "x-user-id": "spoofed-admin",
+        "x-user-email": "spoofed@example.com",
+        "x-user-role": "ADMIN",
+        "x-internal-token": "browser-controlled",
+      },
+    };
+    const res = fakeRes();
+    let nextCalled = false;
+    await authMiddleware(req, res, () => {
+      nextCalled = true;
+    });
+    assert.strictEqual(nextCalled, true);
+    assert.deepStrictEqual(req.user, {
+      id: "real-user",
+      email: "real@example.com",
+      role: "CUSTOMER",
+    });
+    assert.strictEqual(req.headers["x-user-id"], "real-user");
+    assert.strictEqual(req.headers["x-user-email"], "real@example.com");
+    assert.strictEqual(req.headers["x-user-role"], "CUSTOMER");
+    assert.strictEqual(req.headers["x-internal-token"], undefined);
+  } finally {
+    authServiceClient.verifyToken = original;
+  }
+});
+
+test("gateway-style identity headers without Authorization are not accepted", async () => {
+  const original = authServiceClient.verifyToken;
+  let called = false;
+  authServiceClient.verifyToken = (async () => {
+    called = true;
+    return { status: 200, data: { user: { id: "u1", email: "a@b.com", role: "CUSTOMER" } } };
+  }) as any;
+  try {
+    const req: any = {
+      headers: {
+        "x-gateway-secret": "legacy-gateway-secret",
+        "x-user-id": "legacy-user",
+        "x-user-role": "ADMIN",
+      },
+    };
+    const res = fakeRes();
+    await authMiddleware(req, res, () => assert.fail("next() should not be called"));
+    assert.strictEqual(res.statusCode, 401);
+    assert.strictEqual(called, false);
   } finally {
     authServiceClient.verifyToken = original;
   }

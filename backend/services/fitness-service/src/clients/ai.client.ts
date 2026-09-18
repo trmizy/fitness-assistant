@@ -306,3 +306,100 @@ export async function generateClientPlanDraftSafe(
     return null;
   }
 }
+
+export interface GenerateRoadmapDraftResult {
+  summary: string;
+  reasoningSummary: string;
+  confidence: number;
+  phases: Array<{
+    phaseType: string;
+    name: string;
+    plannedDurationWeeks: number;
+    objectiveMaxCycles?: number;
+    reason: string;
+  }>;
+  warnings: string[];
+  assumptions: string[];
+}
+
+/** Calls ai-service's POST /ai/generate-roadmap-draft — Phase B of the
+ * roadmap next-phase work. Draft-only: fitness-roadmap.service.ts never
+ * persists this response directly, only offers it back to the caller for
+ * review; see fitnessRoadmapService.generateAiRoadmapDraft. */
+export async function generateRoadmapDraft(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateRoadmapDraftResult> {
+  const res = await axios.post(
+    `${resolveAiServiceUrl()}/ai/generate-roadmap-draft`,
+    payload,
+    {
+      headers: internalHeaders(userId),
+      timeout: Number(process.env.ROADMAP_DRAFT_TIMEOUT_MS ?? 90_000),
+    },
+  );
+  return res.data.data as GenerateRoadmapDraftResult;
+}
+
+export async function generateRoadmapDraftSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<GenerateRoadmapDraftResult | null> {
+  try {
+    return await generateRoadmapDraft(userId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[fitness-roadmap] generate-roadmap-draft call failed",
+    );
+    return null;
+  }
+}
+
+export interface QueueNutritionPlanResult {
+  planId: string;
+  jobId: string;
+  status: string;
+}
+
+/**
+ * AI Nutrition Cycle Engine (Gymini) — queues ai-service's existing AI
+ * meal-plan generator (POST /plans/nutrition/generate, same endpoint the
+ * frontend's manual "Generate Plan" flow already calls) using the exact
+ * internal-token + x-user-id path requireAuth already accepts from any
+ * trusted service (see this file's doc comment). `autoSaveOnComplete: true`
+ * tells ai-service's worker (nutrition.processor.ts) to push the finished
+ * 7-day plan straight into fitness-service's NutritionProgram the moment it
+ * completes, instead of waiting for the user to click "Save" — see spec
+ * §IV/§XXXIII: a beginner must never land on an empty Nutrition page.
+ *
+ * Fire-and-forget from the caller's point of view: the deterministic
+ * NutritionGoal (calorie/macro targets) computed by
+ * nutrition-bootstrap.engine.ts already exists and is usable the moment
+ * this call is made — the meal plan is a bonus that arrives a little later,
+ * and its failure (LLM down, timeout) must never fail onboarding itself
+ * (spec §LI fallback rule).
+ */
+export async function queueInitialNutritionPlanSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<QueueNutritionPlanResult | null> {
+  try {
+    const res = await axios.post(
+      `${resolveAiServiceUrl()}/plans/nutrition/generate`,
+      { ...payload, autoSaveOnComplete: true },
+      {
+        headers: internalHeaders(userId),
+        timeout: Number(process.env.NUTRITION_BOOTSTRAP_QUEUE_TIMEOUT_MS ?? 15_000),
+      },
+    );
+    const data = res.data?.success ? (res.data.data ?? res.data) : res.data;
+    return { planId: data.planId, jobId: data.jobId, status: data.status };
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[nutrition-bootstrap] queue-initial-nutrition-plan call failed",
+    );
+    return null;
+  }
+}

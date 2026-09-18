@@ -333,3 +333,99 @@ test("purity: identical input always produces identical output (no hidden random
   const r2 = evaluateNutritionAdaptive(input);
   assert.deepEqual(r1, r2);
 });
+
+// ── Diet break (2026-09-07) — see cycle-thresholds.config.ts's
+// dietBreakThresholdWeeks doc comment for the research this is grounded
+// in (Byrne et al. 2017 MATADOR study for the mechanism, general practical
+// coaching guidance for the specific cadence chosen).
+
+test("DIET BREAK: sustained deficit past the threshold with room below maintenance -> PROPOSE_DIET_BREAK, even on an ON-TARGET trend", () => {
+  // baseInput() alone (on-target trend) would be KEEP_PLAN — confirms the
+  // diet break check fires independently of whether the cut is "working".
+  const result = evaluateNutritionAdaptive(
+    baseInput({ weeksSinceDeficitPhaseStarted: 11, estimatedMaintenanceCalories: 2400 }),
+  );
+  assert.equal(result.decision, "PROPOSE_DIET_BREAK");
+  assert.equal(result.requiresConfirmation, true);
+  assert.ok(result.reasonCodes.includes("SUSTAINED_DEFICIT_DIET_BREAK_RECOMMENDED"));
+  assert.ok(result.proposedChanges, "must propose real numbers, not just a text nudge");
+  assert.equal(result.proposedChanges!.calories, 2400, "must propose the estimated maintenance calories exactly");
+  assert.ok(result.proposedChanges!.protein! >= activeGoal.protein, "protein must never be lowered for a diet break");
+});
+
+test("DIET BREAK: takes priority over a normal PROPOSE_ADJUSTMENT when both conditions are met (plateaued AND past the deficit threshold)", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({
+      metrics: baseMetrics({ bodyWeightTrend: { direction: "flat", changePerWeek: 0, dataPoints: 4 } }), // would be PROPOSE_ADJUSTMENT alone
+      weeksSinceDeficitPhaseStarted: 12,
+      estimatedMaintenanceCalories: 2400,
+    }),
+  );
+  assert.equal(result.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("DIET BREAK: not proposed below the threshold (still too early)", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({ weeksSinceDeficitPhaseStarted: 5, estimatedMaintenanceCalories: 2400 }),
+  );
+  assert.notEqual(result.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("DIET BREAK: never proposed for a non-WEIGHT_LOSS goal even if the signal is somehow set", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({
+      goal: "MUSCLE_GAIN",
+      metrics: baseMetrics({ bodyWeightTrend: { direction: "up", changePerWeek: 0.3, dataPoints: 4 } }),
+      weeksSinceDeficitPhaseStarted: 20,
+      estimatedMaintenanceCalories: 2400,
+    }),
+  );
+  assert.notEqual(result.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("DIET BREAK: never proposed without a resolvable maintenance-calorie estimate (missing profile data)", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({ weeksSinceDeficitPhaseStarted: 20, estimatedMaintenanceCalories: null }),
+  );
+  assert.notEqual(result.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("DIET BREAK: never proposed when the active prescription is already at or above the estimated maintenance calories (nothing to gain)", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({
+      weeksSinceDeficitPhaseStarted: 20,
+      estimatedMaintenanceCalories: 2000, // equal to activeGoal.calories, not strictly higher
+    }),
+  );
+  assert.notEqual(result.decision, "PROPOSE_DIET_BREAK");
+});
+
+test("DIET BREAK: still gated by data quality/adherence — a LOW-confidence trend returns REQUEST_MORE_DATA regardless of the deficit-duration signal", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({
+      weightTrend: goodTrend({ confidence: "LOW", sampleCount: 1 }),
+      weeksSinceDeficitPhaseStarted: 20,
+      estimatedMaintenanceCalories: 2400,
+    }),
+  );
+  assert.equal(result.decision, "REQUEST_MORE_DATA");
+});
+
+test("DIET BREAK: still gated by the severe-pain safety escalation, which overrides everything else", () => {
+  const result = evaluateNutritionAdaptive(
+    baseInput({
+      metrics: baseMetrics({ averagePainScore: 10 }),
+      weeksSinceDeficitPhaseStarted: 20,
+      estimatedMaintenanceCalories: 2400,
+    }),
+  );
+  assert.equal(result.decision, "ESCALATE");
+});
+
+test("DIET BREAK: unaffected callers (no diet-break fields passed at all) behave exactly as before — backward compatible", () => {
+  const withoutFields = evaluateNutritionAdaptive(baseInput());
+  const withExplicitNulls = evaluateNutritionAdaptive(
+    baseInput({ weeksSinceDeficitPhaseStarted: null, estimatedMaintenanceCalories: null }),
+  );
+  assert.deepEqual(withoutFields, withExplicitNulls);
+});

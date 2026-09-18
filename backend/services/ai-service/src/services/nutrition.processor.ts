@@ -66,6 +66,15 @@ const NutritionPlanJobDataSchema = z.object({
   carbsAroundWorkout: z.boolean().optional(),
   preworkoutMeal: z.boolean().optional(),
   postworkoutMeal: z.boolean().optional(),
+  // AI Nutrition Cycle Engine (Gymini) — set only by
+  // nutrition-onboarding-bootstrap.service.ts (fitness-service), never by
+  // the frontend's manual "Generate Plan" form. When true, the finished
+  // plan is pushed straight into a real NutritionProgram the moment this
+  // job completes (see the autoSaveCompletedNutritionPlan call below),
+  // instead of waiting for the user to review and click "Save" — see spec
+  // §IV/§XXXIII: a beginner must never land on an empty Nutrition page
+  // after onboarding.
+  autoSaveOnComplete: z.boolean().optional(),
 });
 
 export async function processNutritionPlanJob(job: Job) {
@@ -88,6 +97,7 @@ export async function processNutritionPlanJob(job: Job) {
     proteinTargetG,
     carbTargetG,
     fatTargetG,
+    autoSaveOnComplete,
   } = dataResult.data;
 
   logger.info(
@@ -338,6 +348,15 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       { jobId: job.id, planId, userId },
       "Nutrition plan generation completed successfully",
     );
+
+    // 8. Best-effort auto-save (onboarding bootstrap only — see schema
+    // comment above). Never throws: the plan is already successfully
+    // COMPLETED at this point regardless of whether this extra step
+    // succeeds, and the user's deterministic NutritionGoal already makes
+    // Nutrition usable even if this fails (spec §LI fallback rule).
+    if (autoSaveOnComplete) {
+      await autoSaveCompletedNutritionPlan(planId, userId, goal, content, fitnessServiceUrl, internalSecret);
+    }
   } catch (err: any) {
     logger.error(
       { err, jobId: job.id, planId },
@@ -348,6 +367,77 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       err.message || "Unknown error",
     );
     throw err;
+  }
+}
+
+function toDateOnlyString(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * AI Nutrition Cycle Engine (Gymini) — auto-save path for the onboarding
+ * bootstrap only (see NutritionPlanJobDataSchema's autoSaveOnComplete
+ * comment). Deliberately re-implements (rather than imports) the same
+ * fitness-service POST plan.controller.ts's saveNutritionPlan makes: that
+ * function is bound to an Express req/res and mid-request validation flow
+ * that doesn't fit a background job cleanly, and duplicating this ~20-line
+ * POST is lower-risk than refactoring a already-shipped, user-facing
+ * endpoint to share code with a job worker. Defaults repeatEnabled=true
+ * (unlike the manual save flow, which defaults to false) — an
+ * auto-generated first plan should keep feeding the user meals past day 7
+ * without anyone having to notice and re-save it.
+ *
+ * MUST NEVER THROW: the nutrition plan above is already successfully
+ * COMPLETED by the time this runs; letting an error escape here would be
+ * caught by processNutritionPlanJob's outer catch and incorrectly flip an
+ * already-good plan to FAILED.
+ */
+async function autoSaveCompletedNutritionPlan(
+  planId: string,
+  userId: string,
+  goal: string,
+  content: NutritionPlanContent,
+  fitnessServiceUrl: string,
+  internalSecret: string | undefined,
+): Promise<void> {
+  try {
+    const startDate = toDateOnlyString(new Date());
+    const endDateObj = new Date();
+    endDateObj.setDate(endDateObj.getDate() + 6);
+    const endDate = toDateOnlyString(endDateObj);
+
+    await axios.post(
+      `${fitnessServiceUrl}/nutrition/from-ai-plan`,
+      {
+        sourcePlanId: planId,
+        sourcePlanName: `Ke hoach dinh duong - ${goal}`,
+        goal: content.goal,
+        durationWeeks: content.durationWeeks,
+        mealsPerDay: content.mealsPerDay,
+        startDate,
+        endDate,
+        repeatEnabled: true,
+        forceArchive: false,
+        weeklySchedule: content.weeklySchedule,
+        dailyCaloriesTarget: content.dailyCaloriesTarget,
+        proteinTargetGrams: content.proteinTargetGrams,
+        carbTargetGrams: content.carbTargetGrams,
+        fatTargetGrams: content.fatTargetGrams,
+      },
+      {
+        timeout: 20000,
+        headers: {
+          "x-internal-token": internalSecret,
+          "x-user-id": userId,
+        },
+      },
+    );
+    logger.info({ planId, userId }, "[nutrition-bootstrap] auto-saved AI plan to NutritionProgram");
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, planId, userId },
+      "[nutrition-bootstrap] auto-save of completed nutrition plan failed (non-blocking)",
+    );
   }
 }
 

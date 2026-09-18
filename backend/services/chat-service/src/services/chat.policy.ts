@@ -1,7 +1,5 @@
-import axios from "axios";
+import { getChatEligibility } from "../clients/user-service.client";
 
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL || "http://localhost:3004";
 // Historical naming inconsistency: chat-service was configured with INTERNAL_API_SECRET
 // while user/auth services use INTERNAL_SERVICE_SECRET. Accept either so the policy
 // query works without forcing a docker-compose change.
@@ -22,14 +20,11 @@ export async function canUsersChat(
   _authToken?: string,
 ): Promise<boolean> {
   try {
-    const { data } = await axios.get(
-      `${USER_SERVICE_URL}/internal/chat-eligibility`,
-      {
-        params: { fromUserId: userAId, toUserId: userBId },
-        headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
-        timeout: 3000,
-      },
-    );
+    const data = await getChatEligibility({
+      fromUserId: userAId,
+      toUserId: userBId,
+      internalSecret: INTERNAL_SERVICE_SECRET,
+    });
     return data?.allowed === true;
   } catch {
     return false;

@@ -8,22 +8,29 @@
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "build:lambda-zip": "node scripts/build-lambda-artifact.js",
+    "build:migrate-lambda-zip": "node scripts/build-migrate-lambda-artifact.js",
     "test": "tsx --test src/__tests__/auth-header-spoofing.test.ts src/__tests__/contract-money.test.ts",
     "_comment_test:admin-routes": "All 5 assertions pass, but the file never exits — something it imports leaves a handle open — so node:test eventually reports the whole file as failed. Kept out of `test` so the suite stays usable; run it on its own and read the assertions.",
     "test:admin-routes": "tsx --test src/__tests__/admin-routes-auth.test.ts",
     "test:integration": "tsx --test --test-concurrency=1 src/__tests__/contract-ledger.integration.test.ts src/__tests__/membership-ledger.integration.test.ts src/__tests__/webhook-security.integration.test.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.850.0",
+    "@aws-sdk/client-secrets-manager": "^3.850.0",
     "@gym-coach/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
     "axios": "^1.6.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "pg": "^8.16.3",
+    "serverless-http": "^3.2.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.6",
+    "@types/pg": "^8.15.5",
     "prisma": "^5.22.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"

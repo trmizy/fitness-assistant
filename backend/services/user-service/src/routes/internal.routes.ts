@@ -116,6 +116,23 @@ router.get("/inbody/:userId", async (req, res) => {
   res.json(history);
 });
 
+// Gymini Adaptive Roadmap Production Closure — bounded single-row lookup.
+// A more specific path than /inbody/:userId above (an extra segment), so
+// it never collides with that route's matching regardless of
+// registration order. `before` is required — omitting it would just be
+// "the latest ever", already served by GET /inbody/:userId/latest's
+// sibling-less equivalent (fetchLatestInBodyOnOrBefore's own callers
+// always have a real cutoff in hand).
+router.get("/inbody/:userId/latest", async (req, res) => {
+  const before = typeof req.query.before === "string" ? new Date(req.query.before) : null;
+  if (!before || Number.isNaN(before.getTime())) {
+    res.status(400).json({ error: "Query param 'before' must be a valid ISO date" });
+    return;
+  }
+  const entry = await inbodyService.getLatestOnOrBefore(req.params.userId, before);
+  res.json(entry ?? null);
+});
+
 // gym-service resolves a client's typed referral code to a PT userId here at membership
 // purchase time (money-flow plan §2.1). A miss is a plain 404, not an error — an invalid
 // code is an ordinary user-input case the caller must surface, not fail on.

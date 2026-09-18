@@ -97,9 +97,9 @@ test("runAutoAcceptSweep: auto-accepts a DRAFT_DELIVERED order past its deadline
   const sellerId = `pt-${randomUUID()}`;
   const { order } = await makeDraftDeliveredOrder(sellerId, new Date(Date.now() - 60_000)); // 1 min past deadline
 
-  let commitCalledWith: any = null;
+  const commitCalls: Array<{ userId: string; draft: unknown }> = [];
   personalizedServiceDeps.commitPersonalizedPlan = async (userId, draft) => {
-    commitCalledWith = { userId, draft };
+    commitCalls.push({ userId, draft });
     return { createdProgramId: "auto-program", createdScheduleCount: 1 };
   };
   let releaseCalled = false;
@@ -108,7 +108,7 @@ test("runAutoAcceptSweep: auto-accepts a DRAFT_DELIVERED order past its deadline
     return { released: { pt: "90000.00", platform: "10000.00" } };
   };
 
-  const result = await runAutoAcceptSweep();
+  const result = await runAutoAcceptSweep({ orderIds: [order.id] });
   assert.ok(result.autoAccepted >= 1);
 
   const reread = await prisma.personalizedServiceOrder.findUnique({ where: { id: order.id } });
@@ -116,7 +116,10 @@ test("runAutoAcceptSweep: auto-accepts a DRAFT_DELIVERED order past its deadline
   assert.ok(reread!.acceptedAt);
   assert.ok(reread!.releasedAt);
   assert.equal(reread!.autoAcceptDeadline, null);
-  assert.equal(commitCalledWith.userId, order.buyerId);
+  assert.equal(
+    commitCalls.some((call) => call.userId === order.buyerId),
+    true,
+  );
   assert.equal(releaseCalled, true);
 });
 
@@ -125,7 +128,7 @@ test("runAutoAcceptSweep: leaves a DRAFT_DELIVERED order whose deadline has not 
   const { order } = await makeDraftDeliveredOrder(sellerId, new Date(Date.now() + 60 * 60 * 1000)); // 1h in the future
   personalizedServiceDeps.commitPersonalizedPlan = async () => ({ createdProgramId: "should-not-run", createdScheduleCount: 1 });
 
-  await runAutoAcceptSweep();
+  await runAutoAcceptSweep({ orderIds: [order.id] });
 
   const reread = await prisma.personalizedServiceOrder.findUnique({ where: { id: order.id } });
   assert.equal(reread!.status, "DRAFT_DELIVERED", "must not touch an order still inside its review window");
@@ -136,14 +139,30 @@ test("runAutoAcceptSweep: one order's auto-accept failure does not block the res
   const sellerB = `pt-${randomUUID()}`;
   const { order: orderA } = await makeDraftDeliveredOrder(sellerA, new Date(Date.now() - 60_000));
   const { order: orderB } = await makeDraftDeliveredOrder(sellerB, new Date(Date.now() - 60_000));
+  await prisma.personalizedServiceOrder.update({
+    where: { id: orderA.id },
+    data: {
+      draftContent: {
+        ...sampleDraft,
+        name: "Draft plan that should fail commit",
+      },
+    },
+  });
 
-  personalizedServiceDeps.commitPersonalizedPlan = async (userId) => {
-    if (userId === orderA.buyerId) throw new Error("fitness-service unreachable");
+  personalizedServiceDeps.commitPersonalizedPlan = async (_userId, draft) => {
+    if (
+      draft &&
+      typeof draft === "object" &&
+      "name" in draft &&
+      draft.name === "Draft plan that should fail commit"
+    ) {
+      throw new Error("fitness-service unreachable");
+    }
     return { createdProgramId: "program-b", createdScheduleCount: 1 };
   };
   personalizedServiceDeps.releaseOrder = async () => ({ released: { pt: "90000.00", platform: "10000.00" } });
 
-  await runAutoAcceptSweep();
+  await runAutoAcceptSweep({ orderIds: [orderA.id, orderB.id] });
 
   const rereadA = await prisma.personalizedServiceOrder.findUnique({ where: { id: orderA.id } });
   const rereadB = await prisma.personalizedServiceOrder.findUnique({ where: { id: orderB.id } });
@@ -159,7 +178,7 @@ test("runAutoAcceptSweep: retries release for an ACCEPTED order whose first rele
     throw new Error("payment-service unreachable");
   };
 
-  await runAutoAcceptSweep(); // auto-accepts, but release fails and is swallowed
+  await runAutoAcceptSweep({ orderIds: [order.id] }); // auto-accepts, but release fails and is swallowed
   const midway = await prisma.personalizedServiceOrder.findUnique({ where: { id: order.id } });
   assert.equal(midway!.status, "ACCEPTED");
   assert.equal(midway!.releasedAt, null, "release genuinely failed on the first attempt");
@@ -169,7 +188,7 @@ test("runAutoAcceptSweep: retries release for an ACCEPTED order whose first rele
     releaseRetryCalled = true;
     return { released: { pt: "90000.00", platform: "10000.00" } };
   };
-  const result = await runAutoAcceptSweep();
+  const result = await runAutoAcceptSweep({ orderIds: [order.id] });
   assert.ok(result.releaseRetried >= 1);
   assert.equal(releaseRetryCalled, true);
 

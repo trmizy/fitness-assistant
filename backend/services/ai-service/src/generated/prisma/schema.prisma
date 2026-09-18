@@ -1,7 +1,14 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  // "native" -> local dev (Windows/macOS). "linux-musl-openssl-3.0.x" -> the
+  // node:20-alpine Docker/EC2 runtime (see Dockerfile, docker-compose.prod.yml).
+  // "debian-openssl-3.0.x" -> any debian-based CI/build image.
+  // "rhel-openssl-3.0.x" -> AWS Lambda (Amazon Linux 2023 is glibc-based, not
+  // musl) — required for ai-lambda.zip / ai-migrate-lambda.zip per the AWS
+  // deployment-prep audit; without it the query engine binary fails to load
+  // at cold start on Lambda even though it works in every container target.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -10,6 +17,7 @@ datasource db {
 }
 
 model Conversation {
+  structuredBlocks          Json?     @map("structured_blocks")
   id                        String    @id @default(uuid())
   userId                    String?   @map("user_id")
   sessionId                 String?   @map("session_id")
@@ -535,6 +543,24 @@ model PersonalizedServiceOrder {
   refundResolutionNote     String?   @map("refund_resolution_note")
   refundDecision           String?   @map("refund_decision") // "APPROVED_FULL" | "APPROVED_PARTIAL" | "DENIED"
 
+  // ── Adopted, not authored fresh — see migration
+  // `20260916110000_adopt_personalized_service_escrow_milestones` and
+  // docs/aws-full-local-data-migration-schema-reconciliation.md §5. These
+  // four columns already existed in the local database (populated with
+  // real data) under a migration whose folder no longer exists in this
+  // repo. Declaring them here does NOT contradict the "No escrow/
+  // held-funds model exists anywhere in payment-service" note above —
+  // that statement is about payment-service's actual transfer behavior,
+  // which is unchanged by this pass; these four columns are dormant
+  // schema-only remnants of an apparently-paused escrow-milestone
+  // feature. Zero application code anywhere in this repo currently reads
+  // or writes any of them (grep-verified) — declaring them is purely
+  // additive and changes no runtime behavior.
+  milestoneIntakeReleasedAt    DateTime? @map("milestone_intake_released_at")
+  milestoneDraftReleasedAt     DateTime? @map("milestone_draft_released_at")
+  milestoneAcceptedReleasedAt  DateTime? @map("milestone_accepted_released_at")
+  milestoneCompletedReleasedAt DateTime? @map("milestone_completed_released_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -813,4 +839,91 @@ model KnowledgeReviewItem {
   @@index([status])
   @@index([documentId])
   @@map("knowledge_review_queue")
+}
+
+model FitnessRecommendation {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  sessionId            String   @map("session_id")
+  type                 String
+  contextSnapshot      Json     @map("context_snapshot")
+  candidateIds         String[] @map("candidate_ids")
+  scoringVersion       String   @map("scoring_version")
+  similarityVersion    String   @map("similarity_version")
+  evidenceIds          String[] @map("evidence_ids")
+  historicalJourneyIds String[] @map("historical_journey_ids")
+  result               Json
+  selectedCandidateId  String?  @map("selected_candidate_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@index([userId, sessionId, createdAt])
+  @@map("fitness_recommendations")
+}
+
+model FitnessAgentAction {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  sessionId        String   @map("session_id")
+  recommendationId String?  @map("recommendation_id")
+  kind             String
+  risk             String
+  payload          Json
+  status           String   @default("PENDING")
+  result           Json?
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId, sessionId, createdAt])
+  @@map("fitness_agent_actions")
+}
+
+// Conversational AI Coach workflow orchestration (2026-09-15) —
+// docs/conversational-ai-coach-workflow-audit.md §8: neither ChatSession
+// (id/userId/title/lastMessageAt/archivedAt only) nor FitnessAgentAction
+// (single fixed-purpose 15-min action-confirmation row, no "expected next
+// slot" concept) can safely represent multi-turn slot-filling state — a
+// real, narrow model is justified specifically for that purpose. This row
+// is NEVER business truth (see docs/conversational-ai-coach-workflow-
+// design.md "Workflow state is not business truth") — every fitness fact
+// it might temporarily hold (a candidate targetWeight the user just typed
+// but has not yet confirmed) lives only here until persisted through the
+// real authoritative service (UserProfile via user-service), never treated
+// as saved on its own.
+model AgentWorkflowSession {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  sessionId            String   @map("session_id")
+  workflowType         String   @map("workflow_type")
+  status               String   @default("COLLECTING_SLOTS")
+  // The slot key currently being asked about — user replies are interpreted
+  // against THIS first (docs/conversational-ai-coach-workflow-design.md
+  // "expected-slot priority"), before generic intent routing runs.
+  expectedSlot         String?  @map("expected_slot")
+  // { [slotKey]: { value, source, confirmed } } — tentative/known slot
+  // values collected so far this workflow, never authoritative on their own.
+  slotsJson            Json     @default("{}") @map("slots_json")
+  // A single pending persistent-field proposal awaiting explicit user
+  // confirmation (field/oldValue/newValue) — never written to the real
+  // profile until confirmed. Null when nothing is pending.
+  pendingProfileUpdate Json?    @map("pending_profile_update")
+  // Opaque reference to the workflow's own draft/preview state (e.g. the
+  // roadmap draft object + its accumulated revision constraints) — never a
+  // duplicate of a real business entity, just what's needed to regenerate
+  // the same preview on the next turn.
+  draftRef             Json?    @map("draft_ref")
+  revision             Int      @default(0)
+  expiresAt            DateTime @map("expires_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, sessionId, status])
+  // Codex Conversational AI Coach Evaluation #1 — "one active workflow per
+  // (userId, sessionId)" is additionally enforced at the DATABASE level by
+  // a partial unique index Prisma's schema DSL cannot express declaratively
+  // (mirrors fitness-service's TrainingCycle "one ACTIVE per user"
+  // precedent): see migration 20260916090000_agent_workflow_session_active_unique.
+  //   CREATE UNIQUE INDEX "agent_workflow_sessions_one_active_per_session"
+  //     ON "agent_workflow_sessions" ("user_id", "session_id")
+  //     WHERE status NOT IN ('COMPLETED', 'CANCELLED', 'EXPIRED');
+  @@map("agent_workflow_sessions")
 }

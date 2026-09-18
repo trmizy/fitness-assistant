@@ -45,6 +45,17 @@ export const profileSchema = z.object({
   targetWeight: z.number().positive().optional(),
   dietaryPreference: z.string().optional(),
   photoUrl: z.string().optional(),
+  // AI Nutrition Cycle Engine (Gymini) — food-suggestion/meal-generation
+  // budget hint (spec §13). See UserProfile.nutritionBudgetLevel's schema
+  // comment for why this is a plain string, not an enum.
+  nutritionBudgetLevel: z.enum(["LOW", "NORMAL", "FLEXIBLE"]).optional(),
+  // Smart Substitute region personalization (Nutrition Cycle Engine
+  // follow-up) — reorders Vietnamese food suggestions/substitutes by
+  // regional preference; see fitness-service's
+  // vietnamese-region-food.config.ts for the research this is grounded in.
+  // Optional, same "plain string, not enum" house style as the budget
+  // field above; unset means "national" (today's existing behavior).
+  region: z.enum(["BAC", "TRUNG", "NAM"]).optional(),
   // Advisory/UI-only free text (e.g. "Full Body", "Push/Pull/Legs") — never
   // read by the Decision Engine, which only reasons about actually-logged
   // sessions. Capped to a sane length since it's free text from a client.

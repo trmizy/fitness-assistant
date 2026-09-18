@@ -67,6 +67,25 @@ async function main() {
         continue;
       }
 
+      const sourcesForExercise = await prisma.exerciseSource.findMany({
+        where: { exerciseId: exercise.id },
+        select: { sourceName: true },
+      });
+      const hasFreeSource = sourcesForExercise.some((source) => source.sourceName === SOURCE);
+      const hasNonFreeSource = sourcesForExercise.some((source) => source.sourceName !== SOURCE);
+      if (hasNonFreeSource && !hasFreeSource) {
+        await handle.record({
+          externalRef: match.id,
+          decision: "SKIPPED_DUPLICATE",
+          detail: {
+            reason: "name matched free-exercise-db, but exercise already has non-free provenance",
+            exerciseId: exercise.id,
+            exerciseName: exercise.exerciseName,
+          },
+        });
+        continue;
+      }
+
       const existing = await prisma.exerciseSource.findFirst({
         where: { exerciseId: exercise.id, sourceName: SOURCE, externalId: match.id },
       });

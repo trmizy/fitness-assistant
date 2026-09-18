@@ -105,6 +105,19 @@ type NutritionEntry = {
   unit?: string;
 };
 
+/** Mirrors fitness-service's GET /nutrition/daily-history response shape
+ * (nutrition.service.ts's getDailyConsumptionHistory). */
+type DailyConsumptionEntry = {
+  date: string;
+  hasProgram: boolean;
+  targetCalories: number | null;
+  targetProtein: number | null;
+  consumedCalories: number | null;
+  consumedProtein: number | null;
+  consumedCarbs: number | null;
+  consumedFat: number | null;
+};
+
 export interface PersonalizationContext {
   profile: UserProfile;
   latestInBody?: InBodyMetrics;
@@ -112,6 +125,18 @@ export interface PersonalizationContext {
   inBodyHistory: InBodyEntry[];
   workoutHistory: WorkoutEntry[];
   nutritionHistory: NutritionEntry[];
+  /** AI Nutrition Cycle Engine (Gymini) — Phase 2 canonical consumption
+   * totals per day, from fitness-service's GET /nutrition/daily-history
+   * (reuses the exact same dailySummary computation the Nutrition
+   * dashboard itself uses — respects SKIPPED/PARTIAL/COMPLETED meal
+   * status, never double-counts). `nutritionHistory` above only ever
+   * reflected raw free-text NutritionLog rows, silently missing anything
+   * logged through the structured meal-item flow; prompt_builder prefers
+   * these totals when present so the AI's answer about "what have you
+   * eaten" can never disagree with the dashboard. Optional/best-effort —
+   * absent (not an empty array) if the fetch failed, so callers can tell
+   * "no data" from "fetch failed" and fall back to nutritionHistory alone. */
+  dailyConsumptionHistory?: DailyConsumptionEntry[];
   /** Current active workout program (name, goal, daysPerWeek, days[]) */
   currentWorkoutProgram?: Record<string, unknown> | null;
   /** Current active nutrition program (name, goal, dailyCaloriesTarget, macro targets) */
@@ -238,6 +263,7 @@ export const profileExtractor = {
       inBodyRes,
       workoutsRes,
       nutritionRes,
+      dailyConsumptionRes,
       workoutProgramRes,
       nutritionProgramRes,
     ] = await Promise.allSettled([
@@ -258,6 +284,13 @@ export const profileExtractor = {
         headers: authHeaders(authorizationHeader),
         timeout: 3000,
       }),
+      // AI Nutrition Cycle Engine (Gymini) — Phase 2 canonical per-day
+      // consumed totals (see PersonalizationContext.dailyConsumptionHistory's
+      // doc comment for why this exists alongside the raw-log call above).
+      axios.get<{ data: DailyConsumptionEntry[] }>(
+        `${FITNESS_SERVICE_URL}/nutrition/daily-history?days=7`,
+        { headers: authHeaders(authorizationHeader), timeout: 3000 },
+      ),
       // Current active workout program (name, days, goal, schedule)
       axios.get(`${FITNESS_SERVICE_URL}/workouts/programs/current`, {
         headers: authHeaders(authorizationHeader),
@@ -278,6 +311,13 @@ export const profileExtractor = {
       workoutsRes.status === "fulfilled" ? workoutsRes.value.data : [];
     const nutritionData =
       nutritionRes.status === "fulfilled" ? nutritionRes.value.data : [];
+    // Absent (undefined), not [], on failure — see
+    // PersonalizationContext.dailyConsumptionHistory's doc comment on why
+    // that distinction matters to callers.
+    const dailyConsumptionData =
+      dailyConsumptionRes.status === "fulfilled"
+        ? ((dailyConsumptionRes.value.data as any)?.data ?? undefined)
+        : undefined;
     // Workout program may be wrapped in { success, data: program } or returned directly
     const rawWorkoutProgram =
       workoutProgramRes.status === "fulfilled"
@@ -414,6 +454,7 @@ export const profileExtractor = {
       inBodyHistory: inBodyData,
       workoutHistory: workoutsData,
       nutritionHistory: nutritionData,
+      dailyConsumptionHistory: dailyConsumptionData,
       currentWorkoutProgram,
       currentNutritionProgram,
     };

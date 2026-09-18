@@ -23,6 +23,27 @@ router.get(
   authMiddleware,
   nutritionController.getDailyTask as any,
 );
+router.get(
+  "/food-suggestions",
+  authMiddleware,
+  nutritionController.getFoodSuggestions as any,
+);
+router.get(
+  "/daily-history",
+  authMiddleware,
+  nutritionController.getDailyConsumptionHistory as any,
+);
+router.post(
+  "/food-suggestions/apply",
+  authMiddleware,
+  nutritionController.applyFoodSuggestion as any,
+);
+// Smart Substitute variants — "Đổi món" / "Rẻ hơn" / "Nhiều đạm hơn" / "Món chay".
+router.post(
+  "/food-suggestions/substitute",
+  authMiddleware,
+  nutritionController.getFoodSubstitute as any,
+);
 router.post(
   "/meal-completions",
   authMiddleware,

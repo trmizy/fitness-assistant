@@ -11,11 +11,19 @@ import {
   throwForLambdaHttpError,
 } from "./lambda-http.client";
 
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://user-service:3004"
-    : "http://localhost:3004");
+// Resolved per-call (not frozen at import time) so a real running process
+// always reflects the current env var — behaviorally identical in
+// production, but also lets tests point calls at a local stand-in server
+// within a single process (see ai.client.ts's resolveAiServiceUrl, the
+// same pattern, added there for the same reason).
+function resolveUserServiceUrl(): string {
+  return (
+    process.env.USER_SERVICE_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "http://user-service:3004"
+      : "http://localhost:3004")
+  );
+}
 
 function userServiceHeaders() {
   return {
@@ -36,7 +44,7 @@ async function userServiceGet(path: string, params?: Record<string, string>) {
     throwForLambdaHttpError(result);
     return { data: result.body };
   }
-  return axios.get(`${USER_SERVICE_URL}${path}`, {
+  return axios.get(`${resolveUserServiceUrl()}${path}`, {
     headers: userServiceHeaders(),
     params,
     timeout: 5000,
@@ -56,7 +64,7 @@ async function userServicePut(path: string, body: unknown) {
     throwForLambdaHttpError(result);
     return { data: result.body };
   }
-  return axios.put(`${USER_SERVICE_URL}${path}`, body, {
+  return axios.put(`${resolveUserServiceUrl()}${path}`, body, {
     headers: userServiceHeaders(),
     timeout: 5000,
   });
@@ -84,6 +92,34 @@ export interface UserProfileSnapshot {
    * generation must never propose exercises that load a reported injury
    * area — see client-plan-draft.service.ts (ai-service). */
   injuries?: string[];
+  // AI Nutrition Cycle Engine (Gymini) additions — needed by
+  // nutrition-onboarding-bootstrap.service.ts's deterministic first-
+  // prescription calculation, which nothing above already carried.
+  age?: number | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  heightCm?: number | null;
+  activityLevel?:
+    | "SEDENTARY"
+    | "LIGHTLY_ACTIVE"
+    | "MODERATELY_ACTIVE"
+    | "VERY_ACTIVE"
+    | "EXTREMELY_ACTIVE"
+    | null;
+  startingWeight?: number | null;
+  hasCompletedOnboarding?: boolean;
+  nutritionBudgetLevel?: string | null;
+  safetyScreeningStatus?: "UNKNOWN" | "CLEARED" | "FOLLOW_UP_SUGGESTED" | null;
+  safetyScreeningFlags?: string[];
+  // Smart Substitute region personalization (nutrition-food-substitution/
+  // suggestion.engine.ts). "BAC" | "TRUNG" | "NAM" | null — null means
+  // "not set", never defaulted to any one region.
+  region?: string | null;
+  // Free-text (ProfilePage.tsx's own fixed option list, e.g. "Ăn chay (có
+  // trứng/sữa)" / "Thuần chay") — already a real, user-settable column on
+  // UserProfile, but never carried across this cross-service snapshot nor
+  // read by anything until now. Feeds the vegetarian-mode default in food
+  // suggestions/substitutes via dietaryPreferenceToVegetarianMode().
+  dietaryPreference?: string | null;
 }
 
 export interface InBodyEntrySnapshot {
@@ -116,6 +152,25 @@ export async function fetchUserProfile(
       experienceLevel: profile.experienceLevel ?? null,
       competesInSport: profile.competesInSport === true,
       injuries: Array.isArray(profile.injuries) ? profile.injuries : [],
+      age: profile.age ?? null,
+      gender: profile.gender ?? null,
+      heightCm: profile.heightCm ?? null,
+      activityLevel: profile.activityLevel ?? null,
+      startingWeight: profile.startingWeight ?? null,
+      hasCompletedOnboarding: profile.hasCompletedOnboarding === true,
+      nutritionBudgetLevel: profile.nutritionBudgetLevel ?? null,
+      // BUGFIX (Phase 2 audit): UserProfileSnapshot declared these two
+      // fields but this mapping never populated them, so
+      // nutritionBootstrapScreening() always saw undefined -> "UNKNOWN"/[]
+      // regardless of the user's real screening answers — the entire
+      // safety-gate was a silent no-op. Fixed here, not in the screening
+      // function itself (that logic was already correct).
+      safetyScreeningStatus: profile.safetyScreeningStatus ?? null,
+      safetyScreeningFlags: Array.isArray(profile.safetyScreeningFlags)
+        ? profile.safetyScreeningFlags
+        : [],
+      region: profile.region ?? null,
+      dietaryPreference: profile.dietaryPreference ?? null,
     };
   } catch (error) {
     logger.warn(
@@ -203,16 +258,46 @@ export async function fetchInBodyById(
   return history.find((e) => e.id === id) ?? null;
 }
 
-/** Latest InBody entry with date <= cutoff (history endpoint has no date filter, so filter client-side). */
+/** Latest InBody entry with date <= cutoff — a single bounded, server-
+ * side query (GET /internal/inbody/:userId/latest?before=...,
+ * user-service's own findLatestByUserIdOnOrBefore), not a full-history
+ * download filtered client-side. Fixed as part of Gymini Adaptive
+ * Roadmap Production Closure: getCurrentForecast's reconciliation loop
+ * calls this once per completed phase — a roadmap with N completed
+ * phases used to trigger N full-history downloads of this user's
+ * entire InBody history over HTTP; it now makes N single-row bounded
+ * queries instead (still N calls, but each one O(1) at the DB layer,
+ * never O(history length) — see
+ * docs/GYMINI_ADAPTIVE_ROADMAP_PRODUCTION_CLOSURE_DESIGN.md §6/§7/§8 for
+ * why per-phase-call-count itself was left unchanged this pass). */
 export async function fetchLatestInBodyOnOrBefore(
   userId: string,
   cutoff: Date,
 ): Promise<InBodyEntrySnapshot | null> {
-  const history = await fetchInBodyHistory(userId);
-  const eligible = history
-    .filter((e) => new Date(e.date).getTime() <= cutoff.getTime())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return eligible[0] ?? null;
+  try {
+    const res = await userServiceGet(
+      `/internal/inbody/${encodeURIComponent(userId)}/latest`,
+      { before: cutoff.toISOString() },
+    );
+    const e = res.data;
+    if (!e) return null;
+    return {
+      id: e.id,
+      date: e.date ?? e.dateOnly,
+      weight: e.weight,
+      bodyFatPct: e.bodyFatPct ?? null,
+      muscleMass: e.muscleMass,
+      visceralFat: e.visceralFat ?? null,
+      bmr: e.bmr ?? null,
+      status: e.status ?? null,
+    };
+  } catch (error) {
+    logger.warn(
+      { err: (error as Error).message, userId },
+      "[training-cycle] latest-on-or-before inbody fetch failed",
+    );
+    return null;
+  }
 }
 
 /** Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — the ONLY

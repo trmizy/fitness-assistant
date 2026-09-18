@@ -1775,6 +1775,18 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (FitnessRoadmap + RoadmapPhase — long-horizon
+// journey orchestration on top of training cycles, see
+// docs/fitness-roadmap-phase-integration-plan.md).
+router.use(
+  "/fitness-roadmaps",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (PT/coach client data + plan assignment —
 // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md). authMiddleware
 // only identifies the caller; coach.service.ts does the real per-request
@@ -2262,6 +2274,22 @@ if (process.env.REQUIRE_CONTRACT_ESIGN !== "false") {
 // Protected — Contracts (User Service)
 router.use(
   "/contracts",
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
+// Protected — PT's own service-package CRUD (User Service). Found missing
+// while building the PT Coaching Workspace E2E suite: pt_service_package.routes.ts
+// (mounted at /me/service-packages in user-service) had no gateway entry at
+// all, so the real app — anything going through the gateway, i.e. every
+// real browser session — could never reach it; PTProfilePage.tsx's package
+// management UI was silently unreachable in the real running stack.
+router.use(
+  "/me/service-packages",
   authMiddleware,
   createProxyMiddleware({
     target: USER_SERVICE_URL,

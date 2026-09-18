@@ -1,0 +1,907 @@
+{
+  "evaluator": "codex-conversational-ai-coach-evaluation-1",
+  "generatedAt": "2026-09-15T15:40:45.099Z",
+  "decision": "RETURN_TO_CLAUDE",
+  "summary": {
+    "PASS": 19,
+    "FAIL": 0,
+    "INFO": 1,
+    "BLOCKED": 0
+  },
+  "cases": [
+    {
+      "id": "roadmap-flagship-confirm-resume",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Flagship CREATE_ROADMAP confirm path should persist once and auto-resume.",
+      "observed": {
+        "r1": "WORKFLOW_MISSING_DATA",
+        "r2": "PROFILE_UPDATE_CONFIRMATION",
+        "r3": "ACTION_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [
+            {
+              "targetWeight": 72
+            }
+          ],
+          "generateRoadmapDraft": [
+            {
+              "goalType": "WEIGHT_LOSS",
+              "timeframeWeeks": 16
+            }
+          ],
+          "findTrainingPrograms": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "demo": false
+            }
+          ],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        },
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        }
+      }
+    },
+    {
+      "id": "use-once-goal",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field goal — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "goal",
+        "answer": "giảm mỡ",
+        "profileBeforeUseOnce": {
+          "goal": null,
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": null,
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "use-once-targetWeight",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field targetWeight — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "targetWeight",
+        "answer": "72 kg",
+        "profileBeforeUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "use-once-age",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field age — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "age",
+        "answer": "25 tuổi",
+        "profileBeforeUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": null,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": null,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "use-once-heightCm",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field heightCm — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "heightCm",
+        "answer": "175 cm",
+        "profileBeforeUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": null,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": null,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "use-once-currentWeight",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field currentWeight — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "currentWeight",
+        "answer": "80 kg",
+        "profileBeforeUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": null,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": null,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "use-once-gender",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Use-once is correctly rejected for PROFILE_FACT field gender — no write, unchanged profile, workflow stays AWAITING_SLOT_CONFIRMATION.",
+      "observed": {
+        "field": "gender",
+        "answer": "nam",
+        "profileBeforeUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": null,
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "profileAfterUseOnce": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": null,
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": [],
+        "responseType": null,
+        "responseAnswer": "Thông tin này cần được lưu vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác. Bạn có thể xác nhận cập nhật, cho mình một giá trị khác, hoặc hủy.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "proceeded": false,
+        "reaskedByLegacyMissing": false
+      }
+    },
+    {
+      "id": "initial-message-multislot-ignored",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Initiating message's goal/age/height/current-weight/target-weight were all extracted; only the un-stated gender is still asked.",
+      "observed": {
+        "responseType": "WORKFLOW_MISSING_DATA",
+        "answer": "Bạn là nam, nữ hay khác?",
+        "slotsJson": {
+          "age": 25,
+          "goal": "WEIGHT_LOSS",
+          "heightCm": 175,
+          "targetWeight": 72,
+          "currentWeightKg": 80
+        },
+        "expectedSlot": "gender"
+      }
+    },
+    {
+      "id": "correction-before-confirm",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Correction reply (Không, 70 kg) replaced the pending 72kg proposal with 70kg, still awaiting confirmation, nothing written.",
+      "observed": {
+        "responseType": "PROFILE_UPDATE_CONFIRMATION",
+        "answer": "Mình sẽ cập nhật cân nặng mục tiêu: Chưa thiết lập → 70 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+        "pendingProfileUpdate": [
+          {
+            "slotKey": "targetWeight",
+            "newValue": 70,
+            "oldValue": null,
+            "profileField": "targetWeight",
+            "expectedCurrentValue": null
+          }
+        ],
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": []
+      }
+    },
+    {
+      "id": "unsafe-target-weight-accepted",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "A 30kg target for 180cm/80kg passes parser and is written after confirmation; no contextual safety gate was found in workflow.",
+      "observed": {
+        "resumeType": null,
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 180,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": []
+      }
+    },
+    {
+      "id": "stale-profile-confirm-rejected",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Stale profile update should not overwrite newer truth.",
+      "observed": {
+        "answer": "Hồ sơ của bạn đã thay đổi (targetWeight) từ lúc mình đề xuất — mình không cập nhật để tránh ghi đè nhầm. Bạn thử lại yêu cầu ban đầu giúp mình nhé.",
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 70,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": []
+      }
+    },
+    {
+      "id": "expired-confirm-no-write",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Expired workflow confirmation should not write profile.",
+      "observed": {
+        "response": null,
+        "workflowStatus": "EXPIRED",
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "updateProfileCalls": []
+      }
+    },
+    {
+      "id": "failed-profile-write-does-not-resume",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Failed profile write must not complete workflow or resume roadmap generation.",
+      "observed": {
+        "answer": "Mình chưa cập nhật được hồ sơ lúc này (dịch vụ hồ sơ đang gián đoạn). Bạn thử lại sau ít phút nhé.",
+        "workflowStatus": "AWAITING_SLOT_CONFIRMATION",
+        "calls": {
+          "updateProfileFields": [
+            {
+              "targetWeight": 72
+            }
+          ],
+          "generateRoadmapDraft": [],
+          "findTrainingPrograms": [],
+          "acceptRoadmapDraft": 0,
+          "activateRoadmap": 0,
+          "applyTrainingPlan": 0,
+          "bootstrapNutrition": 0
+        }
+      }
+    },
+    {
+      "id": "concurrent-start-can-create-two-active",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Concurrent workflow starts should not create multiple active rows for one user/session.",
+      "observed": {
+        "activeRowCount": 1,
+        "rows": [
+          {
+            "id": "215f343e-3bcc-4a8b-ae0e-6d2827b4691b",
+            "status": "COLLECTING_SLOTS",
+            "expectedSlot": "targetWeight",
+            "createdAt": "2026-09-15T15:40:44.873Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema-no-db-active-workflow-invariant",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "A partial unique index on agent_workflow_sessions(user_id, session_id) WHERE status NOT IN (...) is present in migration 20260916090000_agent_workflow_session_active_unique, enforced at the database level.",
+      "observed": {
+        "model": "AgentWorkflowSession",
+        "migrationsDir": "C:\\D_Backup\\project_personal\\fitness-assistant\\backend\\services\\ai-service\\prisma\\migrations",
+        "matchedFile": "20260916090000_agent_workflow_session_active_unique"
+      }
+    },
+    {
+      "id": "find-pt-dedicated-e2e",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "FIND_PT should collect budget as WORKFLOW_ONLY and resume into PT_RECOMMENDATIONS.",
+      "observed": {
+        "r1Type": "WORKFLOW_MISSING_DATA",
+        "r2Type": "PT_RECOMMENDATIONS",
+        "profile": {
+          "goal": "WEIGHT_LOSS",
+          "age": 30,
+          "gender": "MALE",
+          "heightCm": 170,
+          "currentWeight": 80,
+          "targetWeight": 72,
+          "days": [
+            1,
+            3,
+            5
+          ],
+          "sessionMinutes": 60,
+          "budgetVnd": null,
+          "reviewRequired": false,
+          "injuries": [],
+          "equipment": [],
+          "experience": "BEGINNER",
+          "goalIntent": null
+        },
+        "calls": {
+          "findPTCandidates": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "budgetVnd": 1500000,
+              "demo": false
+            }
+          ],
+          "createPTContractDraft": [],
+          "confirmPTContract": []
+        }
+      }
+    },
+    {
+      "id": "find-pt-existing-budget-no-ask",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "Existing profile budget should avoid budget re-ask.",
+      "observed": {
+        "responseType": "PT_RECOMMENDATIONS",
+        "calls": {
+          "findPTCandidates": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "budgetVnd": 1500000,
+              "demo": false
+            }
+          ],
+          "createPTContractDraft": [],
+          "confirmPTContract": []
+        }
+      }
+    },
+    {
+      "id": "find-pt-unlimited-budget-traps-user",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "\"Ngân sách không quan trọng\" resolves the FIND_PT budget slot to a typed no-cap sentinel and resumes into real PT_RECOMMENDATIONS with no budget filter, never a fake numeric budget.",
+      "observed": {
+        "answer": "Đây là các lựa chọn phù hợp từ dữ liệu Gymini. Compatibility Score là điểm phù hợp, không phải xác suất thành công. Mở từng thẻ để xem lý do và nguồn bằng chứng.",
+        "responseType": "PT_RECOMMENDATIONS",
+        "calls": {
+          "findPTCandidates": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "demo": false
+            }
+          ],
+          "createPTContractDraft": [],
+          "confirmPTContract": []
+        }
+      }
+    },
+    {
+      "id": "pt-search-to-hire-two-step",
+      "status": "PASS",
+      "severity": "INFO",
+      "summary": "PT search results should still use existing draft confirmation plus critical contract confirmation.",
+      "observed": {
+        "searchType": "PT_RECOMMENDATIONS",
+        "confirmDraft": {
+          "type": "ACTION_CONFIRMATION",
+          "actionId": "7324cf4c-8a66-4e7c-a249-d4991e33f58d",
+          "kind": "CREATE_PT_CONTRACT_DRAFT",
+          "risk": "HIGH",
+          "title": "PT Codex",
+          "summary": {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "price": 1500000,
+            "sessions": 8
+          },
+          "expiresAt": "2026-09-15T15:55:45.048Z",
+          "note": "Tạo bản nháp; chưa thanh toán. PT vẫn phải duyệt yêu cầu qua quy trình hợp đồng hiện có."
+        },
+        "draftResult": {
+          "type": "ACTION_CONFIRMATION",
+          "actionId": "44444444-4444-4444-8444-444444444444",
+          "kind": "CONFIRM_PT_CONTRACT",
+          "risk": "HIGH",
+          "title": "Xác nhận yêu cầu hợp đồng PT",
+          "summary": {
+            "ptId": "22222222-2222-4222-8222-222222222222",
+            "packageId": "33333333-3333-4333-8333-333333333333",
+            "preferences": {
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "demo": false,
+              "goal": "WEIGHT_LOSS",
+              "budgetVnd": 1500000,
+              "sessionMinutes": 60
+            },
+            "actionId": "7324cf4c-8a66-4e7c-a249-d4991e33f58d"
+          },
+          "expiresAt": "2026-09-15T15:55:45.063Z",
+          "note": "Chỉ gửi yêu cầu hợp đồng. PT duyệt và bạn thanh toán qua quy trình hiện có; chưa tự động trừ tiền."
+        },
+        "criticalResult": {
+          "type": "ACTION_RESULT",
+          "contractId": "55555555-5555-4555-8555-555555555555",
+          "status": "ACTIVE",
+          "nextUrl": "/client/contracts"
+        },
+        "calls": {
+          "findPTCandidates": [
+            {
+              "goal": "WEIGHT_LOSS",
+              "days": [
+                1,
+                3,
+                5
+              ],
+              "sessionMinutes": 60,
+              "budgetVnd": 1500000,
+              "demo": false
+            }
+          ],
+          "createPTContractDraft": [
+            {
+              "ptId": "22222222-2222-4222-8222-222222222222",
+              "packageId": "33333333-3333-4333-8333-333333333333",
+              "preferences": {
+                "days": [
+                  1,
+                  3,
+                  5
+                ],
+                "demo": false,
+                "goal": "WEIGHT_LOSS",
+                "budgetVnd": 1500000,
+                "sessionMinutes": 60
+              },
+              "actionId": "7324cf4c-8a66-4e7c-a249-d4991e33f58d"
+            }
+          ],
+          "confirmPTContract": [
+            "44444444-4444-4444-8444-444444444444"
+          ]
+        }
+      }
+    },
+    {
+      "id": "parser-quality-snapshot",
+      "status": "INFO",
+      "severity": "INFO",
+      "summary": "Deterministic parser behavior snapshot for realistic variants.",
+      "observed": {
+        "weight": {
+          "72kg": {
+            "ok": true,
+            "value": 72
+          },
+          "72 kg": {
+            "ok": true,
+            "value": 72
+          },
+          "72 ký": {
+            "ok": true,
+            "value": 72
+          },
+          "72 kí": {
+            "ok": true,
+            "value": 72
+          },
+          "72 cân": {
+            "ok": true,
+            "value": 72
+          },
+          "72 kg... à không 70 kg": {
+            "ok": true,
+            "value": 70
+          }
+        },
+        "days": {
+          "thứ 2 4 6": {
+            "ok": true,
+            "value": [
+              1,
+              3,
+              5
+            ]
+          },
+          "T2 T4 T6": {
+            "ok": true,
+            "value": [
+              1,
+              3,
+              5
+            ]
+          },
+          "3 buổi mỗi tuần": {
+            "ok": true,
+            "value": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "budget": {
+          "1500000": {
+            "ok": true,
+            "value": 1500000
+          },
+          "1.5 triệu": {
+            "ok": true,
+            "value": 1500000
+          },
+          "1tr5": {
+            "ok": true,
+            "value": 1500000
+          },
+          "không giới hạn": {
+            "ok": false,
+            "reason": "no_number_found",
+            "clarifyingQuestion": "Ngân sách của bạn khoảng bao nhiêu (VD: 1.5 triệu)?"
+          }
+        },
+        "duration": {
+          "60 phút": {
+            "ok": true,
+            "value": 60
+          },
+          "1 tiếng": {
+            "ok": true,
+            "value": 60
+          },
+          "1 giờ": {
+            "ok": true,
+            "value": 60
+          }
+        },
+        "age": {
+          "25 tuổi": {
+            "ok": true,
+            "value": 25
+          }
+        },
+        "height": {
+          "1m75": {
+            "ok": true,
+            "value": 175
+          },
+          "175cm": {
+            "ok": true,
+            "value": 175
+          }
+        }
+      }
+    }
+  ]
+}

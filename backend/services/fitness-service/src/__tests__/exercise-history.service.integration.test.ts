@@ -24,13 +24,22 @@ type ExerciseHistoryServiceLike = (typeof import("../services/exercise-history.s
 
 let prisma: PrismaClientLike | undefined;
 let exerciseHistoryService: ExerciseHistoryServiceLike | undefined;
+let exerciseId: string | undefined;
 
 async function loadModules() {
   if (!prisma) {
     prisma = (await import("../repositories/prisma")).prisma;
     exerciseHistoryService = (await import("../services/exercise-history.service")).exerciseHistoryService;
   }
-  return { prisma: prisma!, exerciseHistoryService: exerciseHistoryService! };
+  if (!exerciseId) {
+    // Looked up by name rather than hardcoded — Exercise.exerciseName has
+    // no unique constraint and the seed script assigns fresh random ids
+    // on every re-run (prisma/seed_exercises_json.ts), so a literal id
+    // here goes silently stale the next time the catalog is reseeded.
+    const row = await prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Barbell Curl" } });
+    exerciseId = row.id;
+  }
+  return { prisma: prisma!, exerciseHistoryService: exerciseHistoryService!, exerciseId: exerciseId! };
 }
 
 test.after(async () => {
@@ -53,8 +62,6 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-const EXERCISE_ID = "f1b609bf-0994-4a70-b2d5-a22465438312"; // real seeded "Barbell Curl" (REPS_LOAD)
-
 async function cleanup(db: PrismaClientLike, userId: string) {
   await db.workoutSet.deleteMany({ where: { workoutExercise: { workout: { userId } } } });
   await db.workoutExercise.deleteMany({ where: { workout: { userId } } });
@@ -65,7 +72,7 @@ test(
   "getExerciseHistoryDetail: composes real recent sessions, personal record, and progression for a real exercise",
   skipOpts,
   async () => {
-    const { prisma: db, exerciseHistoryService: svc } = await loadModules();
+    const { prisma: db, exerciseHistoryService: svc, exerciseId } = await loadModules();
     const userId = `exercise-history-it-${Date.now()}`;
     try {
       await db.workout.create({
@@ -76,7 +83,7 @@ test(
           notes: null,
           exercises: {
             create: [{
-              exerciseId: EXERCISE_ID,
+              exerciseId,
               sets: 2,
               order: 0,
               notes: "Felt heavy today",
@@ -97,7 +104,7 @@ test(
           date: daysAgo(3),
           exercises: {
             create: [{
-              exerciseId: EXERCISE_ID,
+              exerciseId,
               sets: 1,
               order: 0,
               workoutSets: { create: [{ setNumber: 1, weight: 50, reps: 5, completed: true }] },
@@ -106,9 +113,9 @@ test(
         },
       });
 
-      const result: any = await svc.getExerciseHistoryDetail(userId, EXERCISE_ID);
+      const result: any = await svc.getExerciseHistoryDetail(userId, exerciseId);
 
-      assert.equal(result.exercise.id, EXERCISE_ID);
+      assert.equal(result.exercise.id, exerciseId);
       assert.equal(result.exercise.loggingMode, "REPS_LOAD");
 
       // Recent sessions: 2 real sessions, newest first, with real notes on

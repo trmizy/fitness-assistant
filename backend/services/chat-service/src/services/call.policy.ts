@@ -1,8 +1,5 @@
-import axios from "axios";
 import { chatRepository } from "../repositories/chat.repository";
-
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL || "http://localhost:3004";
+import { checkRelationship, getSession } from "../clients/user-service.client";
 
 /**
  * Chat-linked call: both users must be conversation participants,
@@ -30,14 +27,7 @@ export async function canInitiateCallFromChat(
 
   // Check that neither account is deactivated/blocked via user-service
   try {
-    const { data } = await axios.get(
-      `${USER_SERVICE_URL}/contracts/check-relationship`,
-      {
-        params: { userAId: callerId, userBId: calleeId },
-        headers: { Authorization: `Bearer ${authToken}` },
-        timeout: 3000,
-      },
-    );
+    const data = await checkRelationship({ userAId: callerId, userBId: calleeId, authToken });
     // allowed === false only means one account is inactive/blocked
     if (data.blocked) {
       return { allowed: false, reason: "One or both accounts are deactivated" };
@@ -65,13 +55,7 @@ export async function canInitiateCallFromSession(
   conversationId?: string;
 }> {
   try {
-    const { data: session } = await axios.get(
-      `${USER_SERVICE_URL}/sessions/${coachingSessionId}`,
-      {
-        headers: { Authorization: `Bearer ${authToken}` },
-        timeout: 3000,
-      },
-    );
+    const session = await getSession(coachingSessionId, authToken);
 
     if (!session) return { allowed: false, reason: "Session not found" };
     if (session.status !== "CONFIRMED")

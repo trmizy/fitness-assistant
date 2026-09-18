@@ -152,6 +152,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   startingWeightSource: 'startingWeightSource',
   dietaryPreference: 'dietaryPreference',
   photoUrl: 'photoUrl',
+  nutritionBudgetLevel: 'nutritionBudgetLevel',
+  region: 'region',
   unitSystem: 'unitSystem',
   energyUnit: 'energyUnit',
   sessionDurationMinutes: 'sessionDurationMinutes',
@@ -165,7 +167,10 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   gymId: 'gymId',
   specialties: 'specialties',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  dataOrigin: 'dataOrigin',
+  goalIntent: 'goalIntent',
+  ptBudgetVnd: 'ptBudgetVnd'
 };
 
 exports.Prisma.PTApplicationScalarFieldEnum = {
@@ -222,12 +227,15 @@ exports.Prisma.PTApplicationScalarFieldEnum = {
   reviewedAt: 'reviewedAt',
   approvedAt: 'approvedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  languages: 'languages'
 };
 
 exports.Prisma.PTApplicationCertificateScalarFieldEnum = {
   id: 'id',
   applicationId: 'applicationId',
+  verificationStatus: 'verificationStatus',
+  certificationNumber: 'certificationNumber',
   certificateName: 'certificateName',
   issuingOrganization: 'issuingOrganization',
   isCurrentlyValid: 'isCurrentlyValid',
@@ -248,6 +256,8 @@ exports.Prisma.PTApplicationMediaScalarFieldEnum = {
 };
 
 exports.Prisma.ContractScalarFieldEnum = {
+  agentActionId: 'agentActionId',
+  dataOrigin: 'dataOrigin',
   id: 'id',
   ptUserId: 'ptUserId',
   clientUserId: 'clientUserId',
@@ -526,6 +536,64 @@ exports.Prisma.SessionSettlementScalarFieldEnum = {
   settledAt: 'settledAt'
 };
 
+exports.Prisma.ClientJourneyScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  ptId: 'ptId',
+  contractId: 'contractId',
+  programId: 'programId',
+  trainingCycleId: 'trainingCycleId',
+  nutritionGoalId: 'nutritionGoalId',
+  goal: 'goal',
+  experience: 'experience',
+  ageBand: 'ageBand',
+  baselineWeight: 'baselineWeight',
+  baselineBodyFat: 'baselineBodyFat',
+  baselineLeanMass: 'baselineLeanMass',
+  trainingDays: 'trainingDays',
+  sessionMinutes: 'sessionMinutes',
+  constraints: 'constraints',
+  durationWeeks: 'durationWeeks',
+  sessionsPrescribed: 'sessionsPrescribed',
+  sessionsCompleted: 'sessionsCompleted',
+  nutritionAdherence: 'nutritionAdherence',
+  endingWeight: 'endingWeight',
+  endingBodyFat: 'endingBodyFat',
+  endingLeanMass: 'endingLeanMass',
+  strengthChangePercent: 'strengthChangePercent',
+  goalAchievement: 'goalAchievement',
+  verificationStatus: 'verificationStatus',
+  dataOrigin: 'dataOrigin',
+  status: 'status',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  baselineSnapshot: 'baselineSnapshot'
+};
+
+exports.Prisma.AgentContractDraftScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  ptId: 'ptId',
+  packageId: 'packageId',
+  snapshot: 'snapshot',
+  status: 'status',
+  contractId: 'contractId',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.UserPreferenceScalarFieldEnum = {
+  userId: 'userId',
+  showRpeRir: 'showRpeRir',
+  defaultRestSeconds: 'defaultRestSeconds',
+  keepScreenAwake: 'keepScreenAwake',
+  restTimerSound: 'restTimerSound',
+  restTimerVibration: 'restTimerVibration',
+  smartPrefill: 'smartPrefill',
+  showMacros: 'showMacros',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -536,20 +604,24 @@ exports.Prisma.NullableJsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
-};
-
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
 };
 
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 exports.Gender = exports.$Enums.Gender = {
   MALE: 'MALE',
@@ -679,7 +751,9 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   WORKOUT_RESCHEDULED: 'WORKOUT_RESCHEDULED',
   WORKOUT_UNFINISHED: 'WORKOUT_UNFINISHED',
   TRAINING_PLAN_UPDATED: 'TRAINING_PLAN_UPDATED',
+  NUTRITION_PLAN_READY: 'NUTRITION_PLAN_READY',
   PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED',
+  CYCLE_REASSESSMENT_READY: 'CYCLE_REASSESSMENT_READY',
   GYM_COMPLAINT_RESOLVED: 'GYM_COMPLAINT_RESOLVED',
   GYM_BRANCH_CHANGES_REQUESTED: 'GYM_BRANCH_CHANGES_REQUESTED'
 };
@@ -689,6 +763,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   SESSION: 'SESSION',
   WORKOUT_SCHEDULE: 'WORKOUT_SCHEDULE',
   TRAINING_PROGRAM: 'TRAINING_PROGRAM',
+  NUTRITION_PROGRAM: 'NUTRITION_PROGRAM',
+  TRAINING_CYCLE: 'TRAINING_CYCLE',
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH'
 };
@@ -757,7 +833,10 @@ exports.Prisma.ModelName = {
   SessionRescheduleRequest: 'SessionRescheduleRequest',
   InBodyEntry: 'InBodyEntry',
   AuditLog: 'AuditLog',
-  SessionSettlement: 'SessionSettlement'
+  SessionSettlement: 'SessionSettlement',
+  ClientJourney: 'ClientJourney',
+  AgentContractDraft: 'AgentContractDraft',
+  UserPreference: 'UserPreference'
 };
 
 /**

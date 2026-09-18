@@ -145,6 +145,22 @@ model UserProfile {
   dietaryPreference String? @map("dietary_preference")
   photoUrl          String? @map("photo_url")
 
+  // AI Nutrition Cycle Engine (Gymini) — food-suggestion/meal-generation
+  // budget hint (spec §13). Plain string, not enum, matching this model's
+  // house style for preference fields: "LOW" | "NORMAL" | "FLEXIBLE". Null
+  // means "not set yet" — nutrition-food-suggestion.engine.ts and the AI
+  // meal-plan prompt both treat null the same as "NORMAL" rather than
+  // requiring every existing profile to be backfilled.
+  nutritionBudgetLevel String? @map("nutrition_budget_level")
+
+  // Smart Substitute region personalization — reorders Vietnamese food
+  // suggestions/substitutes by regional preference (Bắc/Trung/Nam), never
+  // bypasses the budget tier. Plain string, not enum, same house style as
+  // nutritionBudgetLevel above. Null = "not set" (national/no preference),
+  // never defaulted to any one region — see fitness-service's
+  // vietnamese-region-food.config.ts for the research this is grounded in.
+  region String?
+
   // Product Completeness pass — docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md §9.
   // Display-only unit preferences for the Settings Center. Canonical storage for every
   // domain field (heightCm, currentWeight, etc.) stays metric everywhere in this and every
@@ -177,6 +193,12 @@ model UserProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  dataOrigin  String               @default("REAL") @map("data_origin")
+  goalIntent  Json?                @map("goal_intent")
+  ptBudgetVnd Int?                 @map("pt_budget_vnd")
+  journeys    ClientJourney[]
+  agentDrafts AgentContractDraft[]
 
   ptApplication     PTApplication?
   trainingLocations PTTrainingLocation[]
@@ -284,6 +306,7 @@ model PTApplication {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  languages    String[]                   @default([])
   certificates PTApplicationCertificate[]
   media        PTApplicationMedia[]
 
@@ -295,6 +318,8 @@ model PTApplication {
 model PTApplicationCertificate {
   id                  String    @id @default(uuid())
   applicationId       String    @map("application_id")
+  verificationStatus  String    @default("UNVERIFIED") @map("verification_status")
+  certificationNumber String?   @map("certification_number")
   certificateName     String    @map("certificate_name")
   issuingOrganization String    @map("issuing_organization")
   isCurrentlyValid    Boolean   @map("is_currently_valid")
@@ -439,7 +464,24 @@ enum NotificationEventType {
   WORKOUT_RESCHEDULED
   WORKOUT_UNFINISHED
   TRAINING_PLAN_UPDATED
+  // AI Nutrition Cycle Engine (Gymini) — fired once when the onboarding
+  // bootstrap's async AI meal plan finishes and is auto-saved (spec §XXIV:
+  // "Kế hoạch dinh dưỡng mới đã sẵn sàng"), and again whenever the user
+  // accepts a next-cycle nutrition recommendation.
+  NUTRITION_PLAN_READY
   PT_FEEDBACK_RECEIVED
+  // AI Nutrition Cycle Engine (Gymini) Phase 3 — fired when a new InBody
+  // measurement auto-triggers a cycle reassessment (never a blind
+  // recompute — evaluateCycle's own engine still decides whether anything
+  // is actually proposed) AND that reassessment produced something
+  // actionable (not a plain KEEP_PLAN/INSUFFICIENT_DATA no-op — see
+  // inbody-reassessment.service.ts in fitness-service for the "no spam"
+  // gating). Distinct from the pre-existing real-time-only
+  // pushCycleAssessmentNotification (fires on every assessment,
+  // including no-ops, but is lost if the user isn't connected at that
+  // instant) — this one is persistent and only fires when there's
+  // something worth a user coming back to look at.
+  CYCLE_REASSESSMENT_READY
   // GYM_MANAGEMENT master spec, Phase 5 (Complaints) — gym-service-originated, written here
   // via the same /internal/notifications endpoint. Deliberately no
   // PREFERENCE_FIELD_BY_EVENT_TYPE entry (see notification.service.ts) — this is a direct
@@ -463,6 +505,11 @@ enum NotificationEntityType {
   // lives in this service — no new entity type needed).
   WORKOUT_SCHEDULE
   TRAINING_PROGRAM
+  // NUTRITION_PLAN_READY's entityId (fitness-service's NutritionProgram.id
+  // or NutritionGoal.id).
+  NUTRITION_PROGRAM
+  // CYCLE_REASSESSMENT_READY's entityId (fitness-service's TrainingCycle.id).
+  TRAINING_CYCLE
   // GYM_MANAGEMENT master spec, Phase 5 — entityId = gym-service's GymComplaint.id (a
   // cross-service reference by convention, same as WORKOUT_SCHEDULE/TRAINING_PROGRAM above).
   GYM_COMPLAINT
@@ -486,10 +533,13 @@ enum RescheduleRequestedBy {
 // ─── Contract ─────────────────────────────────────────────────────
 
 model Contract {
-  id           String         @id @default(uuid())
-  ptUserId     String         @map("pt_user_id")
-  clientUserId String         @map("client_user_id")
-  status       ContractStatus @default(PENDING_REVIEW)
+  agentActionId String?         @unique @map("agent_action_id")
+  dataOrigin    String          @default("REAL") @map("data_origin")
+  journeys      ClientJourney[]
+  id            String          @id @default(uuid())
+  ptUserId      String          @map("pt_user_id")
+  clientUserId  String          @map("client_user_id")
+  status        ContractStatus  @default(PENDING_REVIEW)
 
   // Package details
   packageType         PackageType  @default(PACKAGE) @map("package_type")
@@ -1051,4 +1101,114 @@ model SessionSettlement {
   // The sweep's own query: "everything not yet SETTLED".
   @@index([status])
   @@map("session_settlements")
+}
+
+// Cross-service training/nutrition IDs are references, not cross-database FKs.
+model ClientJourney {
+  id                    String      @id @default(uuid())
+  userId                String      @map("user_id")
+  ptId                  String?     @map("pt_id")
+  contractId            String?     @map("contract_id")
+  programId             String?     @map("program_id")
+  trainingCycleId       String?     @map("training_cycle_id")
+  nutritionGoalId       String?     @map("nutrition_goal_id")
+  goal                  String
+  experience            String
+  ageBand               String?     @map("age_band")
+  baselineWeight        Float       @map("baseline_weight")
+  baselineBodyFat       Float?      @map("baseline_body_fat")
+  baselineLeanMass      Float?      @map("baseline_lean_mass")
+  trainingDays          Int         @map("training_days")
+  sessionMinutes        Int         @map("session_minutes")
+  constraints           String[]    @default([])
+  durationWeeks         Int         @map("duration_weeks")
+  sessionsPrescribed    Int         @map("sessions_prescribed")
+  sessionsCompleted     Int         @default(0) @map("sessions_completed")
+  nutritionAdherence    Float?      @map("nutrition_adherence")
+  endingWeight          Float?      @map("ending_weight")
+  endingBodyFat         Float?      @map("ending_body_fat")
+  endingLeanMass        Float?      @map("ending_lean_mass")
+  strengthChangePercent Float?      @map("strength_change_percent")
+  goalAchievement       String?     @map("goal_achievement")
+  verificationStatus    String      @default("SELF_REPORTED") @map("verification_status")
+  dataOrigin            String      @default("REAL") @map("data_origin")
+  status                String      @default("ACTIVE")
+  startedAt             DateTime    @default(now()) @map("started_at")
+  endedAt               DateTime?   @map("ended_at")
+  baselineSnapshot      Json?       @map("baseline_snapshot")
+  user                  UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  contract              Contract?   @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  // ADV-006 (docs/ai-agent-adversarial-findings.md, hardening pass #2,
+  // 2026-09-14): the derivation invariant is "at most one ClientJourney
+  // per completed Contract" (see client-journey-derivation.service.ts's
+  // own findFirst-before-create guard) — this makes that invariant a real
+  // DB constraint instead of only an application-level check-then-create,
+  // which cannot prevent a race between two concurrent derivation calls
+  // for the same contract. Safe to add: contractId is nullable, and
+  // Postgres treats every NULL as distinct for uniqueness purposes, so
+  // journeys with no contract (contractId=null, including after a
+  // Contract row is hard-deleted via the onDelete:SetNull above) are
+  // never constrained against each other — only real, non-null
+  // contractId values must be unique. Verified zero existing duplicates
+  // before adding this (331 distinct contractId groups, 0 with count>1).
+  @@unique([contractId])
+  @@index([dataOrigin, status, goal, experience, baselineWeight])
+  @@index([ptId, dataOrigin, status])
+  @@index([programId, dataOrigin, status])
+  @@index([userId, startedAt])
+  @@map("client_journeys")
+}
+
+model AgentContractDraft {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  ptId       String      @map("pt_id")
+  packageId  String      @map("package_id")
+  snapshot   Json
+  status     String      @default("PENDING")
+  contractId String?     @map("contract_id")
+  expiresAt  DateTime    @map("expires_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  user       UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("agent_contract_drafts")
+}
+
+/// Adopted, not authored fresh — see migration
+/// `20260916100000_adopt_user_preference` and
+/// docs/aws-full-local-data-migration-schema-reconciliation.md §2. This
+/// table already existed in the local database under a migration whose
+/// folder no longer exists in this repo; its real shape is declared here
+/// exactly as found (audited via `\d "UserPreference"`, not inferred).
+/// Deliberately NOT retrofitted onto this file's later snake_case
+/// `@map`/`@@map` convention — the table/columns are already real,
+/// existing, unmapped (implicit PascalCase/camelCase) Postgres
+/// identifiers, and renaming them is out of scope. Zero application code
+/// anywhere in this repo references this model (grep-verified).
+model UserPreference {
+  userId             String   @id
+  showRpeRir         Boolean  @default(true)
+  defaultRestSeconds Int      @default(90)
+  keepScreenAwake    Boolean  @default(true)
+  restTimerSound     Boolean  @default(true)
+  restTimerVibration Boolean  @default(true)
+  smartPrefill       Boolean  @default(true)
+  showMacros         Boolean  @default(true)
+  // `@default(now())`, not `@updatedAt` — `@updatedAt` only sets the value
+  // client-side on Prisma Client `.update()` calls and emits no DB-level
+  // DEFAULT, which produced a real (if harmless) `migrate diff` delta
+  // against the live column's actual `DEFAULT CURRENT_TIMESTAMP`. This
+  // form matches the live DDL exactly.
+  updatedAt          DateTime @default(now())
+
+  // The live table also carries a CHECK constraint
+  // ("defaultRestSeconds" between 15 and 300, step 15), applied by the
+  // migration above. Prisma 5.22 has no stable `@@check` attribute in
+  // this schema (no `checkConstraints` preview feature is enabled
+  // anywhere in this file) — the constraint is real in Postgres but
+  // cannot be declared here. Documented, not silently dropped: `prisma
+  // migrate diff` will always show this one constraint as a delta
+  // against a datamodel-only comparison; it is not a data-bearing drift.
 }

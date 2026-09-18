@@ -35,23 +35,32 @@ type StatsServiceModule = typeof import("../services/stats.service");
 
 let prisma: PrismaClientLike | undefined;
 let statsModule: StatsServiceModule | undefined;
+let airBikeId: string | undefined;
+let carDriversId: string | undefined;
 
 async function loadModules() {
   if (!prisma) {
     prisma = (await import("../repositories/prisma")).prisma;
     statsModule = await import("../services/stats.service");
   }
-  return { prisma: prisma!, statsService: statsModule!.statsService };
+  if (!airBikeId || !carDriversId) {
+    // Looked up by name rather than hardcoded — Exercise.exerciseName has
+    // no unique constraint and the seed script assigns fresh random ids
+    // on every re-run (prisma/seed_exercises_json.ts), so a literal id
+    // here goes silently stale the next time the catalog is reseeded.
+    const [airBike, carDrivers] = await Promise.all([
+      prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Air Bike" } }),
+      prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Car Drivers" } }),
+    ]);
+    airBikeId = airBike.id;
+    carDriversId = carDrivers.id;
+  }
+  return { prisma: prisma!, statsService: statsModule!.statsService, airBikeId, carDriversId };
 }
 
 test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
-
-// Real, existing catalog exercises with real ExerciseMuscle mappings
-// (verified directly against the seed data before writing this file).
-const AIR_BIKE_ID = "c0ffb793-7e84-413e-935a-480c402f914b"; // primary: abs
-const CAR_DRIVERS_ID = "00336f39-4f7d-462c-a16c-ca470e0ab17e"; // primary: side_delts, secondary: forearms
 
 function daysAgo(n: number): Date {
   const d = new Date();
@@ -96,20 +105,20 @@ test(
   "getMuscleHeatmap: 7d range scores primary=1.0/secondary=0.5 per completed working set, excludes WARMUP, excludes out-of-range workouts, scoped to the requesting user only",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId, carDriversId } = await loadModules();
     const userId = `heatmap-it-${Date.now()}`;
     const otherUserId = `heatmap-other-it-${Date.now()}`;
     try {
       // Within the 7d window: 3 real working sets of Air Bike (abs x3),
       // Car Drivers with 1 WARMUP (excluded) + 1 real working set.
       await seedWorkout(db, userId, daysAgo(2), [
-        { exerciseId: AIR_BIKE_ID, sets: [{ completed: true }, { completed: true }, { completed: true }] },
-        { exerciseId: CAR_DRIVERS_ID, sets: [{ completed: true, setType: "WARMUP" }, { completed: true }] },
+        { exerciseId: airBikeId, sets: [{ completed: true }, { completed: true }, { completed: true }] },
+        { exerciseId: carDriversId, sets: [{ completed: true, setType: "WARMUP" }, { completed: true }] },
       ]);
       // Outside the 7d window (but inside 30d) — must not appear in 7d results.
-      await seedWorkout(db, userId, daysAgo(20), [{ exerciseId: AIR_BIKE_ID, sets: [{ completed: true }] }]);
+      await seedWorkout(db, userId, daysAgo(20), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);
       // Another user's own real data — must never leak into this user's heatmap.
-      await seedWorkout(db, otherUserId, daysAgo(2), [{ exerciseId: AIR_BIKE_ID, sets: [{ completed: true }, { completed: true }] }]);
+      await seedWorkout(db, otherUserId, daysAgo(2), [{ exerciseId: airBikeId, sets: [{ completed: true }, { completed: true }] }]);
 
       const result = await svc.getMuscleHeatmap(userId, { range: "7d" });
       assert.equal(result.range, "7d");
@@ -132,10 +141,10 @@ test(
   "getMuscleHeatmap: 30d range includes a workout the 7d range excludes",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-30d-it-${Date.now()}`;
     try {
-      await seedWorkout(db, userId, daysAgo(20), [{ exerciseId: AIR_BIKE_ID, sets: [{ completed: true }] }]);
+      await seedWorkout(db, userId, daysAgo(20), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);
 
       const result7d = await svc.getMuscleHeatmap(userId, { range: "7d" });
       assert.equal(result7d.muscles.length, 0, "a 20-day-old workout must not appear in the 7d window");
@@ -153,7 +162,7 @@ test(
   "getMuscleHeatmap: cycle range uses the user's real ACTIVE TrainingCycle window; reports an explicit noActiveCycle state when there isn't one",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-cycle-it-${Date.now()}`;
     try {
       const noCycleResult = await svc.getMuscleHeatmap(userId, { range: "cycle" });
@@ -165,7 +174,7 @@ test(
       });
       // Inside the cycle window but outside 7d/30d-from-now-relative windows is not tested here —
       // this workout is 15 days ago, inside the cycle's [-15d, +15d] window.
-      await seedWorkout(db, userId, daysAgo(12), [{ exerciseId: AIR_BIKE_ID, sets: [{ completed: true }] }]);
+      await seedWorkout(db, userId, daysAgo(12), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);
 
       const cycleResult = await svc.getMuscleHeatmap(userId, { range: "cycle" });
       assert.equal(cycleResult.noActiveCycle, false);
@@ -181,10 +190,10 @@ test(
   "getMuscleHeatmap: custom range respects explicit from/to; rejects an invalid custom range",
   { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database." },
   async () => {
-    const { prisma: db, statsService: svc } = await loadModules();
+    const { prisma: db, statsService: svc, airBikeId } = await loadModules();
     const userId = `heatmap-custom-it-${Date.now()}`;
     try {
-      await seedWorkout(db, userId, daysAgo(50), [{ exerciseId: AIR_BIKE_ID, sets: [{ completed: true }] }]);
+      await seedWorkout(db, userId, daysAgo(50), [{ exerciseId: airBikeId, sets: [{ completed: true }] }]);
 
       const outsideResult = await svc.getMuscleHeatmap(userId, { range: "custom", from: "2020-01-01", to: "2020-01-31" });
       assert.equal(outsideResult.muscles.length, 0);

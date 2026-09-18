@@ -8,6 +8,15 @@ import {
 } from "../models/fitness.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
+const foodSubstituteSchema = z.object({
+  foodId: z.string().optional().nullable(),
+  foodName: z.string().min(1),
+  quantityG: z.number().positive(),
+  calories: z.number().nonnegative(),
+  protein: z.number().nonnegative(),
+  mode: z.enum(["REPLACE", "CHEAPER", "HIGHER_PROTEIN", "VEGETARIAN"]),
+});
+
 export const nutritionController = {
   async listLogs(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -242,6 +251,101 @@ export const nutritionController = {
       res.status(500).json({
         success: false,
         error: "Failed to fetch daily nutrition task",
+      });
+    }
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 §VI: persist a food
+  // suggestion the user tapped "Thêm bữa này" on. Real writes, not a fake
+  // success toast — see nutritionService.applyFoodSuggestion's doc comment.
+  async applyFoodSuggestion(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { date, items } = req.body as {
+        date?: string;
+        items?: Array<{ foodName: string; quantityG: number; calories: number; protein: number; carbs: number; fat: number }>;
+      };
+      const dateStr = date || new Date().toISOString().slice(0, 10);
+      if (!Array.isArray(items) || items.length === 0) {
+        res.status(400).json({ success: false, error: "items is required" });
+        return;
+      }
+      const result = await nutritionService.applyFoodSuggestion(req.user!.id, dateStr, items);
+      res.status(201).json({ success: true, data: { created: result.length } });
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ success: false, error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error applying food suggestion");
+      res.status(500).json({ success: false, error: "Failed to apply food suggestion" });
+    }
+  },
+
+  // Smart Substitute variants (Production Hardening report §16) — "Đổi
+  // món" / "Rẻ hơn" / "Nhiều đạm hơn" / "Món chay" for a single food item
+  // (from a suggestion option or an already-logged item), region- and
+  // dietary-preference-aware. Deterministic, no LLM call — see
+  // nutrition-food-substitution.engine.ts.
+  async getFoodSubstitute(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = foodSubstituteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: "Invalid substitute request", details: parsed.error.errors });
+        return;
+      }
+      const { mode, ...item } = parsed.data;
+      const result = await nutritionService.getFoodSubstitute(req.user!.id, item, mode);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error?.status) {
+        res.status(error.status).json({ success: false, error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error finding food substitute");
+      res.status(500).json({ success: false, error: "Failed to find food substitute" });
+    }
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 canonical consumption
+  // history, for any consumer (currently: none wired yet — see
+  // nutrition-onboarding-bootstrap report §21) that needs "what did this
+  // user actually eat over the last N days" using the SAME totals the
+  // dashboard shows, never a second independently-computed number.
+  async getDailyConsumptionHistory(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const days = req.query.days ? Number(req.query.days) : 7;
+      const result = await nutritionService.getDailyConsumptionHistory(req.user!.id, days);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error({ err: error }, "Error fetching daily consumption history");
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch daily consumption history",
+      });
+    }
+  },
+
+  // AI Nutrition Cycle Engine (Gymini) — spec §XII/§XIII: translate "you
+  // have 450 kcal and 35g protein left" into concrete, budget-aware food
+  // combos. `budgetLevel` is an optional query override; the frontend
+  // normally omits it and lets the service fall back to the caller's own
+  // saved profile preference (see nutritionService.getFoodSuggestions).
+  async getFoodSuggestions(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const date =
+        (req.query.date as string) || new Date().toISOString().slice(0, 10);
+      const budgetLevelOverride = req.query.budgetLevel as string | undefined;
+      const result = await nutritionService.getFoodSuggestions(
+        req.user!.id,
+        date,
+        budgetLevelOverride,
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error({ err: error }, "Error building food suggestions");
+      res.status(500).json({
+        success: false,
+        error: "Failed to build food suggestions",
       });
     }
   },

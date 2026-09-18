@@ -229,3 +229,367 @@ explicitly opt-in in the Docker test stack.
 - Queue issue: inspect BullMQ keys and job records before deleting anything.
 - Full local reset: follow the volume warning in `docs/setup/README.md`; it
   deletes all development databases and indexes.
+
+---
+
+<a id="merged-ai-chat-performance-audit"></a>
+
+## Consolidated reference: ai-chat-performance-audit.md
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+## AI Chat Performance Audit
+
+Scope: AI Coach chat latency for requests such as `Phan tich InBody moi nhat cua toi`.
+
+Status: current diagnostic reference. Runtime defaults come from
+`infra/compose/docker-compose.dev.yml` and `.env.example`.
+
+### Request Flow
+
+Frontend:
+
+- `frontend/web/src/app/pages/client/AICoachPage.tsx`
+- `frontend/web/src/app/stores/pendingAiTasks.ts`
+- `frontend/web/src/app/services/api.ts`
+- Streaming endpoint: `POST /ai/ask/stream`
+- Non-stream fallback endpoint: `POST /ai/ask`
+
+Gateway:
+
+- `backend/gateway/src/routes/proxy.routes.ts`
+- Generic AI proxy timeout is longer than the AI service internal timeout.
+- Streaming chat is proxied as an SSE request.
+
+AI service:
+
+- Route/controller: `backend/services/ai-service/src/controllers/ai.controller.ts`
+- Service wrapper: `backend/services/ai-service/src/services/rag.service.ts`
+- Orchestration: `backend/services/ai-service/src/llm/orchestrator.service.ts`
+- Context: `profile_extractor.ts`, workout/nutrition context resolvers
+- Retrieval: `retriever.ts` -> Qdrant
+- Generation: `llm.service.ts` -> Ollama
+- Validation/fallback: `answer_validator.ts`, deterministic formatter
+
+### Main Latency Risks
+
+- Ollama cold start or missing `LLM_MODEL`.
+- Embedding model cold start or missing `EMBEDDING_MODEL`.
+- RAG query expansion creating multiple embedding calls.
+- Qdrant missing collections or slow search.
+- Downstream profile/InBody/workout/nutrition context calls.
+- Long prompt generation on local CPU.
+
+### Timeouts And Fallbacks
+
+Default limits:
+
+- Profile/context fetch: `AI_CHAT_CONTEXT_TIMEOUT_MS`, default `5000`.
+- RAG retrieval: `AI_CHAT_RAG_TIMEOUT_MS`, default `8000`.
+- Body-composition evidence: `AI_CHAT_EVIDENCE_TIMEOUT_MS`, default `8000`.
+- Embedding call: `RAG_EMBEDDING_TIMEOUT_MS` or `EMBEDDING_TIMEOUT_MS`;
+  Compose defaults to `120000` for the host Ollama runtime.
+- LLM generation: `AI_CHAT_LLM_TIMEOUT_MS` or `LLM_TIMEOUT_MS`; Compose defaults
+  to `300000`. Use a shorter chat-specific override only when fast fallback is
+  more important than allowing a cold model to finish.
+- Frontend stream timeout: `75000`.
+
+Fallback policy:
+
+- Context failure: continue with empty profile context and log `profile_context_unavailable`.
+- RAG failure: continue without retrieved context and log `rag_unavailable`.
+- Evidence failure: continue without evidence enrichment and log `evidence_unavailable`.
+- Nutrition context failure/timeout: return a short localized fallback and log `nutrition_context_unavailable`.
+- Workout schedule context failure/timeout: return a short localized fallback and log `workout_schedule_context_unavailable`.
+- Generic LLM failure/timeout: return a deterministic user-facing fallback and set `fallbackReason=llm_unavailable`.
+- InBody/body-composition LLM timeout with deterministic body-composition text available: return deterministic body-composition analysis and set `fallbackReason=llm_timeout_deterministic_body_comp`.
+
+### Observability
+
+Each AI chat request includes a `traceId` used as `request_id` in logs.
+
+Structured timing fields:
+
+- `totalMs`
+- `profileContextMs`
+- `ragTotalMs`
+- `chatHistoryMs`
+- `scheduleContextMs`
+- `nutritionContextMs`
+- `evidenceMs`
+- `promptBuildMs`
+- `llmGenerateMs`
+- `validationMs`
+
+The timing log intentionally does not include email, token, full prompt, full chat, or raw health/body-composition data.
+
+### Debug Commands
+
+```bash
+pnpm --filter @gym-coach/ai-service run build
+pnpm --filter @gym-coach/ai-service run ai:check:ollama
+pnpm --filter @gym-coach/ai-service run ai:warmup
+pnpm --filter @gym-coach/ai-service run ai:check:rag
+pnpm --filter @gym-coach/ai-service run ai:debug:chat -- "Phan tich InBody moi nhat cua toi"
+```
+
+If Ollama models are missing:
+
+```bash
+ollama list
+ollama pull nomic-embed-text
+```
+
+If RAG collections are missing:
+
+```bash
+pnpm --filter @gym-coach/ai-service run ai:test:seed-rag
+pnpm --filter @gym-coach/ai-service run ai:reindex
+```
+
+
+---
+
+<a id="merged-ai-knowledge-automation"></a>
+
+## Consolidated reference: ai-knowledge-automation.md
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+## AI Knowledge Automation
+
+This project uses Ollama + Qdrant + RAG as the primary knowledge architecture.
+Research automation is an evidence refresh pipeline. It is not fine-tuning and it
+never trains model weights.
+
+### What It Does
+
+- Reads configured research topics.
+- Uses allowlisted API connectors such as PubMed, Crossref, and OpenAlex.
+- Normalizes metadata into a common schema.
+- Deduplicates by DOI, PMID, normalized title, and content hash.
+- Scores evidence with transparent reasons.
+- Sends low-trust or web records to a local review queue.
+- Indexes approved/high-confidence chunks into Qdrant `fitness_evidence`.
+
+### What It Does Not Do
+
+- It does not scrape random websites.
+- It does not bypass robots.txt.
+- It does not copy full text unless source/license allow it.
+- It does not run continuously by default.
+- It does not train or fine-tune a model.
+
+### Allowed Sources
+
+Configured in `backend/services/ai-service/src/knowledge/source_registry.ts`:
+
+- PubMed metadata and abstracts.
+- PubMed Central open access metadata when appropriate.
+- Crossref metadata.
+- OpenAlex metadata.
+- Manual official guideline summaries.
+- Webpage connector only when explicitly allowlisted and robots.txt permits.
+
+### Commands
+
+Dry-run, no writes:
+
+```bash
+cd backend/services/ai-service
+pnpm run knowledge:research:dry-run
+```
+
+Fetch metadata and normalized records, no Qdrant write:
+
+```bash
+pnpm run knowledge:research:fetch
+```
+
+Review queue:
+
+```text
+data/research_review_queue.jsonl
+```
+
+Set `status` to `approved` or `rejected` for records needing review.
+
+Index approved/high-confidence records into Qdrant:
+
+```bash
+pnpm run knowledge:research:index
+```
+
+Offline eval of normalized research metadata:
+
+```bash
+pnpm run knowledge:research:eval
+```
+
+Then run retrieval eval:
+
+```bash
+pnpm run ai:test:rag
+pnpm run ai:eval:retrieval
+```
+
+### Automation
+
+No background crawler runs by default. Scheduler only runs when:
+
+```bash
+ENABLE_RESEARCH_AUTOMATION=true
+```
+
+Optional env:
+
+```bash
+RESEARCH_AUTOMATION_CRON="0 3 * * 0"
+RESEARCH_MAX_RESULTS_PER_TOPIC=5
+RESEARCH_MIN_YEAR=2015
+RESEARCH_REQUIRE_REVIEW_FOR_WEB=true
+RESEARCH_CONTACT_EMAIL=you@example.com
+PUBMED_API_KEY=
+CROSSREF_MAILTO=you@example.com
+RESEARCH_USER_AGENT="FitnessAssistantResearchBot/1.0"
+RESEARCH_WEB_ALLOWLIST="example.org"
+```
+
+### Rollback
+
+If a bad batch is indexed:
+
+1. Stop automation.
+2. Keep the normalized JSONL and review queue entry for audit.
+3. Delete Qdrant points by `source_type=research_automation` and matching `retrieved_at`/`content_hash`, or restore the Qdrant volume snapshot.
+4. Re-run `ai:test:rag` and `ai:eval:retrieval`.
+
+### Data And License Safety
+
+- Do not use unclear copyrighted full text for training/fine-tuning.
+- Do not commit private user data.
+- Do not present metadata-only or weak records as firm clinical citations.
+- User-facing citations must come from metadata fields such as title, source,
+  source_url, DOI, PMID, year/date, license/access, retrieved_at, and checksum.
+
+### Docker Research Automation Tests
+
+Research automation tests are offline by default. Docker fast mode runs dry-run and offline eval without fetching PubMed, Crossref, OpenAlex, or webpages:
+
+```bash
+pnpm docker:test:fast
+```
+
+Fixture records live under `data/research/fixtures`. They cover PubMed, Crossref, OpenAlex, and allowlisted webpage metadata so connector normalization, deduplication, scoring, chunk metadata, and review policy can be tested without external crawling.
+
+External research fetch remains opt-in only. Keep `DISABLE_EXTERNAL_RESEARCH_FETCH=true` in Docker/CI unless a maintainer deliberately runs a fetch job.
+
+
+---
+
+<a id="merged-ai-plan-evidence"></a>
+
+## Consolidated reference: ai-plan-evidence.md
+
+> Consolidated 2026-09-07. Original dates, verification results and deployment
+> snapshots below are historical; confirm them against current code/environment.
+
+## AI Plan Evidence Pipeline
+
+### Goal
+
+The evidence pipeline enriches AI workout plans with body-composition-aware adjustments and verifiable evidence metadata. It helps the plan worker explain why training volume, cardio, recovery, and nutrition guidance were adjusted, while keeping the existing `plan` response backward compatible.
+
+### Data Sources
+
+- NHANES processed body-measurement data for validation and norms.
+- ESPEN BIA guideline summaries for body-composition and BIA interpretation.
+- HHS Physical Activity Guidelines summaries.
+- WHO Physical Activity Guidelines summaries.
+- ISSN sports nutrition and body-composition summaries.
+
+The current ISSN/ESPEN/HHS/WHO chunks are `curated_summary` when they come from curated knowledge chunks. They are not labeled as parsed `paper` or `guideline` text unless the pipeline actually parsed the PDF. The original source class is preserved separately as metadata.
+
+### Commands
+
+Run from `backend/services/ai-service`:
+
+```bash
+npm run data:validate
+npm run data:ingest
+npm run ai:test:evidence
+npm run ai:test:plan-evidence
+```
+
+Optional, when curated paper chunks change:
+
+```bash
+npm run data:process:papers -- --force
+npm run data:ingest -- --force
+```
+
+### Dev InBody Seed
+
+The real AI Plan worker reads body metrics from `user-service` InBody entries. For demo data, seed a test user without resetting or deleting existing data:
+
+```bash
+docker compose -f infra/compose/docker-compose.dev.yml exec user-service \
+  sh -lc "pnpm exec tsx src/scripts/seed-dev-inbody.ts --user-id <auth-user-id> --email user@example.com"
+```
+
+The script upserts the user's profile and today's InBody entry with:
+
+- heightCm: 173
+- weightKg: 85
+- bmi: 28.4
+- bodyFatPct: 27.3
+- waistCm: 90 in notes
+- muscleMassKg: 35
+- goal: WEIGHT_LOSS
+- experience: BEGINNER
+
+### API Test
+
+Generate through the gateway:
+
+```bash
+POST /plans/workout/generate
+{
+  "goal": "FAT_LOSS",
+  "durationWeeks": 8,
+  "daysPerWeek": 4,
+  "exercisesPerDay": 2,
+  "trainingLocation": "GYM",
+  "equipmentPreference": "MIXED_GYM"
+}
+```
+
+Then poll:
+
+```bash
+GET /plans/job/:jobId
+```
+
+Completed plans keep the existing `plan` field and add:
+
+```json
+{
+  "adjustment_reason": [],
+  "evidence_used": [],
+  "safety_notes": [],
+  "adjustmentReasons": [],
+  "evidenceUsed": [],
+  "safetyNotes": []
+}
+```
+
+`evidence_used` is built from retriever metadata, not from model-generated citations. If the LLM invents a source, it is ignored.
+
+### Limitations
+
+- The AI does not diagnose disease or treat medical conditions.
+- InBody/BIA depends on hydration, timing, recent exercise, device setup, and measurement conditions.
+- Evidence supports plan adjustment; it does not replace a physician, dietitian, or qualified clinical professional.
+- Curated summaries are useful for demos and retrieval tests, but they are not a substitute for full PDF extraction and review.

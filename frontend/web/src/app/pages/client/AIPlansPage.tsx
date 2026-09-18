@@ -75,9 +75,9 @@ type PlanAdjustmentItem = {
 };
 
 const LLM_NOT_READY_MESSAGE =
-  "AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.";
+  "AI Coach hiện chưa sẵn sàng. Vui lòng thử lại sau.";
 const LLM_TIMEOUT_MESSAGE =
-  "AI model đang quá tải hoặc phản hồi chưa kịp. Vui lòng thử tạo lại sau.";
+  "AI Coach đang quá tải hoặc phản hồi chưa kịp. Vui lòng thử tạo lại sau.";
 
 const WEEKDAY_OPTIONS = [
   { value: 1, short: "T2", label: "Thứ 2" },
@@ -254,7 +254,7 @@ function summarizeApiError(error: unknown, fallback: string): string {
 function isLlmUnavailableMessage(message: string | null | undefined): boolean {
   return (
     !!message &&
-    /LLM|Ollama|ollama|AI model|timed out|unreachable|LLM_UNAVAILABLE/i.test(
+    /LLM|Ollama|ollama|AI model|AI Coach|timed out|timeout|unreachable|LLM_UNAVAILABLE/i.test(
       message,
     )
   );

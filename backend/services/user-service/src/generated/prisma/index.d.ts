@@ -113,6 +113,31 @@ export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
  * 
  */
 export type SessionSettlement = $Result.DefaultSelection<Prisma.$SessionSettlementPayload>
+/**
+ * Model ClientJourney
+ * 
+ */
+export type ClientJourney = $Result.DefaultSelection<Prisma.$ClientJourneyPayload>
+/**
+ * Model AgentContractDraft
+ * 
+ */
+export type AgentContractDraft = $Result.DefaultSelection<Prisma.$AgentContractDraftPayload>
+/**
+ * Model UserPreference
+ * Adopted, not authored fresh — see migration
+ * `20260916100000_adopt_user_preference` and
+ * docs/aws-full-local-data-migration-schema-reconciliation.md §2. This
+ * table already existed in the local database under a migration whose
+ * folder no longer exists in this repo; its real shape is declared here
+ * exactly as found (audited via `\d "UserPreference"`, not inferred).
+ * Deliberately NOT retrofitted onto this file's later snake_case
+ * `@map`/`@@map` convention — the table/columns are already real,
+ * existing, unmapped (implicit PascalCase/camelCase) Postgres
+ * identifiers, and renaming them is out of scope. Zero application code
+ * anywhere in this repo references this model (grep-verified).
+ */
+export type UserPreference = $Result.DefaultSelection<Prisma.$UserPreferencePayload>
 
 /**
  * Enums
@@ -291,7 +316,9 @@ export const NotificationEventType: {
   WORKOUT_RESCHEDULED: 'WORKOUT_RESCHEDULED',
   WORKOUT_UNFINISHED: 'WORKOUT_UNFINISHED',
   TRAINING_PLAN_UPDATED: 'TRAINING_PLAN_UPDATED',
+  NUTRITION_PLAN_READY: 'NUTRITION_PLAN_READY',
   PT_FEEDBACK_RECEIVED: 'PT_FEEDBACK_RECEIVED',
+  CYCLE_REASSESSMENT_READY: 'CYCLE_REASSESSMENT_READY',
   GYM_COMPLAINT_RESOLVED: 'GYM_COMPLAINT_RESOLVED',
   GYM_BRANCH_CHANGES_REQUESTED: 'GYM_BRANCH_CHANGES_REQUESTED'
 };
@@ -304,6 +331,8 @@ export const NotificationEntityType: {
   SESSION: 'SESSION',
   WORKOUT_SCHEDULE: 'WORKOUT_SCHEDULE',
   TRAINING_PROGRAM: 'TRAINING_PROGRAM',
+  NUTRITION_PROGRAM: 'NUTRITION_PROGRAM',
+  TRAINING_CYCLE: 'TRAINING_CYCLE',
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH'
 };
@@ -788,6 +817,36 @@ export class PrismaClient<
     * ```
     */
   get sessionSettlement(): Prisma.SessionSettlementDelegate<ExtArgs>;
+
+  /**
+   * `prisma.clientJourney`: Exposes CRUD operations for the **ClientJourney** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ClientJourneys
+    * const clientJourneys = await prisma.clientJourney.findMany()
+    * ```
+    */
+  get clientJourney(): Prisma.ClientJourneyDelegate<ExtArgs>;
+
+  /**
+   * `prisma.agentContractDraft`: Exposes CRUD operations for the **AgentContractDraft** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentContractDrafts
+    * const agentContractDrafts = await prisma.agentContractDraft.findMany()
+    * ```
+    */
+  get agentContractDraft(): Prisma.AgentContractDraftDelegate<ExtArgs>;
+
+  /**
+   * `prisma.userPreference`: Exposes CRUD operations for the **UserPreference** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserPreferences
+    * const userPreferences = await prisma.userPreference.findMany()
+    * ```
+    */
+  get userPreference(): Prisma.UserPreferenceDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1248,7 +1307,10 @@ export namespace Prisma {
     SessionRescheduleRequest: 'SessionRescheduleRequest',
     InBodyEntry: 'InBodyEntry',
     AuditLog: 'AuditLog',
-    SessionSettlement: 'SessionSettlement'
+    SessionSettlement: 'SessionSettlement',
+    ClientJourney: 'ClientJourney',
+    AgentContractDraft: 'AgentContractDraft',
+    UserPreference: 'UserPreference'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1264,7 +1326,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2668,6 +2730,216 @@ export namespace Prisma {
           }
         }
       }
+      ClientJourney: {
+        payload: Prisma.$ClientJourneyPayload<ExtArgs>
+        fields: Prisma.ClientJourneyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ClientJourneyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ClientJourneyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          findFirst: {
+            args: Prisma.ClientJourneyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ClientJourneyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          findMany: {
+            args: Prisma.ClientJourneyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>[]
+          }
+          create: {
+            args: Prisma.ClientJourneyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          createMany: {
+            args: Prisma.ClientJourneyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ClientJourneyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>[]
+          }
+          delete: {
+            args: Prisma.ClientJourneyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          update: {
+            args: Prisma.ClientJourneyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          deleteMany: {
+            args: Prisma.ClientJourneyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ClientJourneyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ClientJourneyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientJourneyPayload>
+          }
+          aggregate: {
+            args: Prisma.ClientJourneyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateClientJourney>
+          }
+          groupBy: {
+            args: Prisma.ClientJourneyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ClientJourneyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ClientJourneyCountArgs<ExtArgs>
+            result: $Utils.Optional<ClientJourneyCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentContractDraft: {
+        payload: Prisma.$AgentContractDraftPayload<ExtArgs>
+        fields: Prisma.AgentContractDraftFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentContractDraftFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentContractDraftFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentContractDraftFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentContractDraftFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          findMany: {
+            args: Prisma.AgentContractDraftFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>[]
+          }
+          create: {
+            args: Prisma.AgentContractDraftCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          createMany: {
+            args: Prisma.AgentContractDraftCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentContractDraftCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentContractDraftDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          update: {
+            args: Prisma.AgentContractDraftUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentContractDraftDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentContractDraftUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AgentContractDraftUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentContractDraftPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentContractDraftAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentContractDraft>
+          }
+          groupBy: {
+            args: Prisma.AgentContractDraftGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentContractDraftGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentContractDraftCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentContractDraftCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserPreference: {
+        payload: Prisma.$UserPreferencePayload<ExtArgs>
+        fields: Prisma.UserPreferenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserPreferenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserPreferenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          findFirst: {
+            args: Prisma.UserPreferenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserPreferenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          findMany: {
+            args: Prisma.UserPreferenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>[]
+          }
+          create: {
+            args: Prisma.UserPreferenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          createMany: {
+            args: Prisma.UserPreferenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserPreferenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>[]
+          }
+          delete: {
+            args: Prisma.UserPreferenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          update: {
+            args: Prisma.UserPreferenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          deleteMany: {
+            args: Prisma.UserPreferenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserPreferenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.UserPreferenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPreferencePayload>
+          }
+          aggregate: {
+            args: Prisma.UserPreferenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserPreference>
+          }
+          groupBy: {
+            args: Prisma.UserPreferenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserPreferenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserPreferenceCountArgs<ExtArgs>
+            result: $Utils.Optional<UserPreferenceCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -2829,11 +3101,15 @@ export namespace Prisma {
    */
 
   export type UserProfileCountOutputType = {
+    journeys: number
+    agentDrafts: number
     trainingLocations: number
     servicePackages: number
   }
 
   export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    journeys?: boolean | UserProfileCountOutputTypeCountJourneysArgs
+    agentDrafts?: boolean | UserProfileCountOutputTypeCountAgentDraftsArgs
     trainingLocations?: boolean | UserProfileCountOutputTypeCountTrainingLocationsArgs
     servicePackages?: boolean | UserProfileCountOutputTypeCountServicePackagesArgs
   }
@@ -2847,6 +3123,20 @@ export namespace Prisma {
      * Select specific fields to fetch from the UserProfileCountOutputType
      */
     select?: UserProfileCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountJourneysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientJourneyWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountAgentDraftsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentContractDraftWhereInput
   }
 
   /**
@@ -2909,12 +3199,14 @@ export namespace Prisma {
    */
 
   export type ContractCountOutputType = {
+    journeys: number
     sessions: number
     reviews: number
     clientReviews: number
   }
 
   export type ContractCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    journeys?: boolean | ContractCountOutputTypeCountJourneysArgs
     sessions?: boolean | ContractCountOutputTypeCountSessionsArgs
     reviews?: boolean | ContractCountOutputTypeCountReviewsArgs
     clientReviews?: boolean | ContractCountOutputTypeCountClientReviewsArgs
@@ -2929,6 +3221,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the ContractCountOutputType
      */
     select?: ContractCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeCountJourneysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientJourneyWhereInput
   }
 
   /**
@@ -3079,6 +3378,7 @@ export namespace Prisma {
     targetWeight: number | null
     startingWeight: number | null
     sessionDurationMinutes: number | null
+    ptBudgetVnd: number | null
   }
 
   export type UserProfileSumAggregateOutputType = {
@@ -3089,6 +3389,7 @@ export namespace Prisma {
     targetWeight: number | null
     startingWeight: number | null
     sessionDurationMinutes: number | null
+    ptBudgetVnd: number | null
   }
 
   export type UserProfileMinAggregateOutputType = {
@@ -3117,6 +3418,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    nutritionBudgetLevel: string | null
+    region: string | null
     unitSystem: string | null
     energyUnit: string | null
     sessionDurationMinutes: number | null
@@ -3130,6 +3433,8 @@ export namespace Prisma {
     gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    dataOrigin: string | null
+    ptBudgetVnd: number | null
   }
 
   export type UserProfileMaxAggregateOutputType = {
@@ -3158,6 +3463,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    nutritionBudgetLevel: string | null
+    region: string | null
     unitSystem: string | null
     energyUnit: string | null
     sessionDurationMinutes: number | null
@@ -3171,6 +3478,8 @@ export namespace Prisma {
     gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    dataOrigin: string | null
+    ptBudgetVnd: number | null
   }
 
   export type UserProfileCountAggregateOutputType = {
@@ -3203,6 +3512,8 @@ export namespace Prisma {
     startingWeightSource: number
     dietaryPreference: number
     photoUrl: number
+    nutritionBudgetLevel: number
+    region: number
     unitSystem: number
     energyUnit: number
     sessionDurationMinutes: number
@@ -3217,6 +3528,9 @@ export namespace Prisma {
     specialties: number
     createdAt: number
     updatedAt: number
+    dataOrigin: number
+    goalIntent: number
+    ptBudgetVnd: number
     _all: number
   }
 
@@ -3229,6 +3543,7 @@ export namespace Prisma {
     targetWeight?: true
     startingWeight?: true
     sessionDurationMinutes?: true
+    ptBudgetVnd?: true
   }
 
   export type UserProfileSumAggregateInputType = {
@@ -3239,6 +3554,7 @@ export namespace Prisma {
     targetWeight?: true
     startingWeight?: true
     sessionDurationMinutes?: true
+    ptBudgetVnd?: true
   }
 
   export type UserProfileMinAggregateInputType = {
@@ -3267,6 +3583,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    nutritionBudgetLevel?: true
+    region?: true
     unitSystem?: true
     energyUnit?: true
     sessionDurationMinutes?: true
@@ -3280,6 +3598,8 @@ export namespace Prisma {
     gymId?: true
     createdAt?: true
     updatedAt?: true
+    dataOrigin?: true
+    ptBudgetVnd?: true
   }
 
   export type UserProfileMaxAggregateInputType = {
@@ -3308,6 +3628,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    nutritionBudgetLevel?: true
+    region?: true
     unitSystem?: true
     energyUnit?: true
     sessionDurationMinutes?: true
@@ -3321,6 +3643,8 @@ export namespace Prisma {
     gymId?: true
     createdAt?: true
     updatedAt?: true
+    dataOrigin?: true
+    ptBudgetVnd?: true
   }
 
   export type UserProfileCountAggregateInputType = {
@@ -3353,6 +3677,8 @@ export namespace Prisma {
     startingWeightSource?: true
     dietaryPreference?: true
     photoUrl?: true
+    nutritionBudgetLevel?: true
+    region?: true
     unitSystem?: true
     energyUnit?: true
     sessionDurationMinutes?: true
@@ -3367,6 +3693,9 @@ export namespace Prisma {
     specialties?: true
     createdAt?: true
     updatedAt?: true
+    dataOrigin?: true
+    goalIntent?: true
+    ptBudgetVnd?: true
     _all?: true
   }
 
@@ -3486,6 +3815,8 @@ export namespace Prisma {
     startingWeightSource: string | null
     dietaryPreference: string | null
     photoUrl: string | null
+    nutritionBudgetLevel: string | null
+    region: string | null
     unitSystem: string
     energyUnit: string
     sessionDurationMinutes: number
@@ -3500,6 +3831,9 @@ export namespace Prisma {
     specialties: string[]
     createdAt: Date
     updatedAt: Date
+    dataOrigin: string
+    goalIntent: JsonValue | null
+    ptBudgetVnd: number | null
     _count: UserProfileCountAggregateOutputType | null
     _avg: UserProfileAvgAggregateOutputType | null
     _sum: UserProfileSumAggregateOutputType | null
@@ -3551,6 +3885,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    nutritionBudgetLevel?: boolean
+    region?: boolean
     unitSystem?: boolean
     energyUnit?: boolean
     sessionDurationMinutes?: boolean
@@ -3565,6 +3901,11 @@ export namespace Prisma {
     specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    dataOrigin?: boolean
+    goalIntent?: boolean
+    ptBudgetVnd?: boolean
+    journeys?: boolean | UserProfile$journeysArgs<ExtArgs>
+    agentDrafts?: boolean | UserProfile$agentDraftsArgs<ExtArgs>
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
@@ -3601,6 +3942,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    nutritionBudgetLevel?: boolean
+    region?: boolean
     unitSystem?: boolean
     energyUnit?: boolean
     sessionDurationMinutes?: boolean
@@ -3615,6 +3958,9 @@ export namespace Prisma {
     specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    dataOrigin?: boolean
+    goalIntent?: boolean
+    ptBudgetVnd?: boolean
   }, ExtArgs["result"]["userProfile"]>
 
   export type UserProfileSelectScalar = {
@@ -3647,6 +3993,8 @@ export namespace Prisma {
     startingWeightSource?: boolean
     dietaryPreference?: boolean
     photoUrl?: boolean
+    nutritionBudgetLevel?: boolean
+    region?: boolean
     unitSystem?: boolean
     energyUnit?: boolean
     sessionDurationMinutes?: boolean
@@ -3661,9 +4009,14 @@ export namespace Prisma {
     specialties?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    dataOrigin?: boolean
+    goalIntent?: boolean
+    ptBudgetVnd?: boolean
   }
 
   export type UserProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    journeys?: boolean | UserProfile$journeysArgs<ExtArgs>
+    agentDrafts?: boolean | UserProfile$agentDraftsArgs<ExtArgs>
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
@@ -3674,6 +4027,8 @@ export namespace Prisma {
   export type $UserProfilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "UserProfile"
     objects: {
+      journeys: Prisma.$ClientJourneyPayload<ExtArgs>[]
+      agentDrafts: Prisma.$AgentContractDraftPayload<ExtArgs>[]
       ptApplication: Prisma.$PTApplicationPayload<ExtArgs> | null
       trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
       servicePackages: Prisma.$PTServicePackagePayload<ExtArgs>[]
@@ -3708,6 +4063,8 @@ export namespace Prisma {
       startingWeightSource: string | null
       dietaryPreference: string | null
       photoUrl: string | null
+      nutritionBudgetLevel: string | null
+      region: string | null
       unitSystem: string
       energyUnit: string
       sessionDurationMinutes: number
@@ -3722,6 +4079,9 @@ export namespace Prisma {
       specialties: string[]
       createdAt: Date
       updatedAt: Date
+      dataOrigin: string
+      goalIntent: Prisma.JsonValue | null
+      ptBudgetVnd: number | null
     }, ExtArgs["result"]["userProfile"]>
     composites: {}
   }
@@ -4086,6 +4446,8 @@ export namespace Prisma {
    */
   export interface Prisma__UserProfileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    journeys<T extends UserProfile$journeysArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$journeysArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findMany"> | Null>
+    agentDrafts<T extends UserProfile$agentDraftsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$agentDraftsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findMany"> | Null>
     ptApplication<T extends UserProfile$ptApplicationArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$ptApplicationArgs<ExtArgs>>): Prisma__PTApplicationClient<$Result.GetResult<Prisma.$PTApplicationPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     trainingLocations<T extends UserProfile$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
     servicePackages<T extends UserProfile$servicePackagesArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$servicePackagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findMany"> | Null>
@@ -4147,6 +4509,8 @@ export namespace Prisma {
     readonly startingWeightSource: FieldRef<"UserProfile", 'String'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
     readonly photoUrl: FieldRef<"UserProfile", 'String'>
+    readonly nutritionBudgetLevel: FieldRef<"UserProfile", 'String'>
+    readonly region: FieldRef<"UserProfile", 'String'>
     readonly unitSystem: FieldRef<"UserProfile", 'String'>
     readonly energyUnit: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
@@ -4161,6 +4525,9 @@ export namespace Prisma {
     readonly specialties: FieldRef<"UserProfile", 'String[]'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
+    readonly dataOrigin: FieldRef<"UserProfile", 'String'>
+    readonly goalIntent: FieldRef<"UserProfile", 'Json'>
+    readonly ptBudgetVnd: FieldRef<"UserProfile", 'Int'>
   }
     
 
@@ -4475,6 +4842,46 @@ export namespace Prisma {
   }
 
   /**
+   * UserProfile.journeys
+   */
+  export type UserProfile$journeysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    where?: ClientJourneyWhereInput
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    cursor?: ClientJourneyWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ClientJourneyScalarFieldEnum | ClientJourneyScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.agentDrafts
+   */
+  export type UserProfile$agentDraftsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    where?: AgentContractDraftWhereInput
+    orderBy?: AgentContractDraftOrderByWithRelationInput | AgentContractDraftOrderByWithRelationInput[]
+    cursor?: AgentContractDraftWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentContractDraftScalarFieldEnum | AgentContractDraftScalarFieldEnum[]
+  }
+
+  /**
    * UserProfile.ptApplication
    */
   export type UserProfile$ptApplicationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4735,6 +5142,7 @@ export namespace Prisma {
     approvedAt: number
     createdAt: number
     updatedAt: number
+    languages: number
     _all: number
   }
 
@@ -4918,6 +5326,7 @@ export namespace Prisma {
     approvedAt?: true
     createdAt?: true
     updatedAt?: true
+    languages?: true
     _all?: true
   }
 
@@ -5062,6 +5471,7 @@ export namespace Prisma {
     approvedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    languages: string[]
     _count: PTApplicationCountAggregateOutputType | null
     _avg: PTApplicationAvgAggregateOutputType | null
     _sum: PTApplicationSumAggregateOutputType | null
@@ -5138,6 +5548,7 @@ export namespace Prisma {
     approvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    languages?: boolean
     certificates?: boolean | PTApplication$certificatesArgs<ExtArgs>
     media?: boolean | PTApplication$mediaArgs<ExtArgs>
     userProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
@@ -5199,6 +5610,7 @@ export namespace Prisma {
     approvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    languages?: boolean
     userProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["pTApplication"]>
 
@@ -5257,6 +5669,7 @@ export namespace Prisma {
     approvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    languages?: boolean
   }
 
   export type PTApplicationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5331,6 +5744,7 @@ export namespace Prisma {
       approvedAt: Date | null
       createdAt: Date
       updatedAt: Date
+      languages: string[]
     }, ExtArgs["result"]["pTApplication"]>
     composites: {}
   }
@@ -5781,6 +6195,7 @@ export namespace Prisma {
     readonly approvedAt: FieldRef<"PTApplication", 'DateTime'>
     readonly createdAt: FieldRef<"PTApplication", 'DateTime'>
     readonly updatedAt: FieldRef<"PTApplication", 'DateTime'>
+    readonly languages: FieldRef<"PTApplication", 'String[]'>
   }
     
 
@@ -6166,6 +6581,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMinAggregateOutputType = {
     id: string | null
     applicationId: string | null
+    verificationStatus: string | null
+    certificationNumber: string | null
     certificateName: string | null
     issuingOrganization: string | null
     isCurrentlyValid: boolean | null
@@ -6179,6 +6596,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMaxAggregateOutputType = {
     id: string | null
     applicationId: string | null
+    verificationStatus: string | null
+    certificationNumber: string | null
     certificateName: string | null
     issuingOrganization: string | null
     isCurrentlyValid: boolean | null
@@ -6192,6 +6611,8 @@ export namespace Prisma {
   export type PTApplicationCertificateCountAggregateOutputType = {
     id: number
     applicationId: number
+    verificationStatus: number
+    certificationNumber: number
     certificateName: number
     issuingOrganization: number
     isCurrentlyValid: number
@@ -6207,6 +6628,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMinAggregateInputType = {
     id?: true
     applicationId?: true
+    verificationStatus?: true
+    certificationNumber?: true
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
@@ -6220,6 +6643,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMaxAggregateInputType = {
     id?: true
     applicationId?: true
+    verificationStatus?: true
+    certificationNumber?: true
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
@@ -6233,6 +6658,8 @@ export namespace Prisma {
   export type PTApplicationCertificateCountAggregateInputType = {
     id?: true
     applicationId?: true
+    verificationStatus?: true
+    certificationNumber?: true
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
@@ -6319,6 +6746,8 @@ export namespace Prisma {
   export type PTApplicationCertificateGroupByOutputType = {
     id: string
     applicationId: string
+    verificationStatus: string
+    certificationNumber: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -6349,6 +6778,8 @@ export namespace Prisma {
   export type PTApplicationCertificateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     applicationId?: boolean
+    verificationStatus?: boolean
+    certificationNumber?: boolean
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
@@ -6363,6 +6794,8 @@ export namespace Prisma {
   export type PTApplicationCertificateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     applicationId?: boolean
+    verificationStatus?: boolean
+    certificationNumber?: boolean
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
@@ -6377,6 +6810,8 @@ export namespace Prisma {
   export type PTApplicationCertificateSelectScalar = {
     id?: boolean
     applicationId?: boolean
+    verificationStatus?: boolean
+    certificationNumber?: boolean
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
@@ -6402,6 +6837,8 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       applicationId: string
+      verificationStatus: string
+      certificationNumber: string | null
       certificateName: string
       issuingOrganization: string
       isCurrentlyValid: boolean
@@ -6806,6 +7243,8 @@ export namespace Prisma {
   interface PTApplicationCertificateFieldRefs {
     readonly id: FieldRef<"PTApplicationCertificate", 'String'>
     readonly applicationId: FieldRef<"PTApplicationCertificate", 'String'>
+    readonly verificationStatus: FieldRef<"PTApplicationCertificate", 'String'>
+    readonly certificationNumber: FieldRef<"PTApplicationCertificate", 'String'>
     readonly certificateName: FieldRef<"PTApplicationCertificate", 'String'>
     readonly issuingOrganization: FieldRef<"PTApplicationCertificate", 'String'>
     readonly isCurrentlyValid: FieldRef<"PTApplicationCertificate", 'Boolean'>
@@ -8142,6 +8581,8 @@ export namespace Prisma {
   }
 
   export type ContractMinAggregateOutputType = {
+    agentActionId: string | null
+    dataOrigin: string | null
     id: string | null
     ptUserId: string | null
     clientUserId: string | null
@@ -8201,6 +8642,8 @@ export namespace Prisma {
   }
 
   export type ContractMaxAggregateOutputType = {
+    agentActionId: string | null
+    dataOrigin: string | null
     id: string | null
     ptUserId: string | null
     clientUserId: string | null
@@ -8260,6 +8703,8 @@ export namespace Prisma {
   }
 
   export type ContractCountAggregateOutputType = {
+    agentActionId: number
+    dataOrigin: number
     id: number
     ptUserId: number
     clientUserId: number
@@ -8359,6 +8804,8 @@ export namespace Prisma {
   }
 
   export type ContractMinAggregateInputType = {
+    agentActionId?: true
+    dataOrigin?: true
     id?: true
     ptUserId?: true
     clientUserId?: true
@@ -8418,6 +8865,8 @@ export namespace Prisma {
   }
 
   export type ContractMaxAggregateInputType = {
+    agentActionId?: true
+    dataOrigin?: true
     id?: true
     ptUserId?: true
     clientUserId?: true
@@ -8477,6 +8926,8 @@ export namespace Prisma {
   }
 
   export type ContractCountAggregateInputType = {
+    agentActionId?: true
+    dataOrigin?: true
     id?: true
     ptUserId?: true
     clientUserId?: true
@@ -8623,6 +9074,8 @@ export namespace Prisma {
   }
 
   export type ContractGroupByOutputType = {
+    agentActionId: string | null
+    dataOrigin: string
     id: string
     ptUserId: string
     clientUserId: string
@@ -8701,6 +9154,8 @@ export namespace Prisma {
 
 
   export type ContractSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    agentActionId?: boolean
+    dataOrigin?: boolean
     id?: boolean
     ptUserId?: boolean
     clientUserId?: boolean
@@ -8757,6 +9212,7 @@ export namespace Prisma {
     slotsAtPurchase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    journeys?: boolean | Contract$journeysArgs<ExtArgs>
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
     clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
@@ -8764,6 +9220,8 @@ export namespace Prisma {
   }, ExtArgs["result"]["contract"]>
 
   export type ContractSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    agentActionId?: boolean
+    dataOrigin?: boolean
     id?: boolean
     ptUserId?: boolean
     clientUserId?: boolean
@@ -8823,6 +9281,8 @@ export namespace Prisma {
   }, ExtArgs["result"]["contract"]>
 
   export type ContractSelectScalar = {
+    agentActionId?: boolean
+    dataOrigin?: boolean
     id?: boolean
     ptUserId?: boolean
     clientUserId?: boolean
@@ -8882,6 +9342,7 @@ export namespace Prisma {
   }
 
   export type ContractInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    journeys?: boolean | Contract$journeysArgs<ExtArgs>
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
     clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
@@ -8892,11 +9353,14 @@ export namespace Prisma {
   export type $ContractPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Contract"
     objects: {
+      journeys: Prisma.$ClientJourneyPayload<ExtArgs>[]
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       reviews: Prisma.$SessionReviewPayload<ExtArgs>[]
       clientReviews: Prisma.$ClientReviewPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
+      agentActionId: string | null
+      dataOrigin: string
       id: string
       ptUserId: string
       clientUserId: string
@@ -9041,8 +9505,8 @@ export namespace Prisma {
      * // Get first 10 Contracts
      * const contracts = await prisma.contract.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const contractWithIdOnly = await prisma.contract.findMany({ select: { id: true } })
+     * // Only select the `agentActionId`
+     * const contractWithAgentActionIdOnly = await prisma.contract.findMany({ select: { agentActionId: true } })
      * 
      */
     findMany<T extends ContractFindManyArgs>(args?: SelectSubset<T, ContractFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findMany">>
@@ -9086,9 +9550,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many Contracts and only return the `id`
-     * const contractWithIdOnly = await prisma.contract.createManyAndReturn({ 
-     *   select: { id: true },
+     * // Create many Contracts and only return the `agentActionId`
+     * const contractWithAgentActionIdOnly = await prisma.contract.createManyAndReturn({ 
+     *   select: { agentActionId: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -9322,6 +9786,7 @@ export namespace Prisma {
    */
   export interface Prisma__ContractClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    journeys<T extends Contract$journeysArgs<ExtArgs> = {}>(args?: Subset<T, Contract$journeysArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findMany"> | Null>
     sessions<T extends Contract$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany"> | Null>
     reviews<T extends Contract$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findMany"> | Null>
     clientReviews<T extends Contract$clientReviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$clientReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findMany"> | Null>
@@ -9354,6 +9819,8 @@ export namespace Prisma {
    * Fields of the Contract model
    */ 
   interface ContractFieldRefs {
+    readonly agentActionId: FieldRef<"Contract", 'String'>
+    readonly dataOrigin: FieldRef<"Contract", 'String'>
     readonly id: FieldRef<"Contract", 'String'>
     readonly ptUserId: FieldRef<"Contract", 'String'>
     readonly clientUserId: FieldRef<"Contract", 'String'>
@@ -9721,6 +10188,26 @@ export namespace Prisma {
      * Filter which Contracts to delete
      */
     where?: ContractWhereInput
+  }
+
+  /**
+   * Contract.journeys
+   */
+  export type Contract$journeysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    where?: ClientJourneyWhereInput
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    cursor?: ClientJourneyWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ClientJourneyScalarFieldEnum | ClientJourneyScalarFieldEnum[]
   }
 
   /**
@@ -25177,6 +25664,3283 @@ export namespace Prisma {
 
 
   /**
+   * Model ClientJourney
+   */
+
+  export type AggregateClientJourney = {
+    _count: ClientJourneyCountAggregateOutputType | null
+    _avg: ClientJourneyAvgAggregateOutputType | null
+    _sum: ClientJourneySumAggregateOutputType | null
+    _min: ClientJourneyMinAggregateOutputType | null
+    _max: ClientJourneyMaxAggregateOutputType | null
+  }
+
+  export type ClientJourneyAvgAggregateOutputType = {
+    baselineWeight: number | null
+    baselineBodyFat: number | null
+    baselineLeanMass: number | null
+    trainingDays: number | null
+    sessionMinutes: number | null
+    durationWeeks: number | null
+    sessionsPrescribed: number | null
+    sessionsCompleted: number | null
+    nutritionAdherence: number | null
+    endingWeight: number | null
+    endingBodyFat: number | null
+    endingLeanMass: number | null
+    strengthChangePercent: number | null
+  }
+
+  export type ClientJourneySumAggregateOutputType = {
+    baselineWeight: number | null
+    baselineBodyFat: number | null
+    baselineLeanMass: number | null
+    trainingDays: number | null
+    sessionMinutes: number | null
+    durationWeeks: number | null
+    sessionsPrescribed: number | null
+    sessionsCompleted: number | null
+    nutritionAdherence: number | null
+    endingWeight: number | null
+    endingBodyFat: number | null
+    endingLeanMass: number | null
+    strengthChangePercent: number | null
+  }
+
+  export type ClientJourneyMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ptId: string | null
+    contractId: string | null
+    programId: string | null
+    trainingCycleId: string | null
+    nutritionGoalId: string | null
+    goal: string | null
+    experience: string | null
+    ageBand: string | null
+    baselineWeight: number | null
+    baselineBodyFat: number | null
+    baselineLeanMass: number | null
+    trainingDays: number | null
+    sessionMinutes: number | null
+    durationWeeks: number | null
+    sessionsPrescribed: number | null
+    sessionsCompleted: number | null
+    nutritionAdherence: number | null
+    endingWeight: number | null
+    endingBodyFat: number | null
+    endingLeanMass: number | null
+    strengthChangePercent: number | null
+    goalAchievement: string | null
+    verificationStatus: string | null
+    dataOrigin: string | null
+    status: string | null
+    startedAt: Date | null
+    endedAt: Date | null
+  }
+
+  export type ClientJourneyMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ptId: string | null
+    contractId: string | null
+    programId: string | null
+    trainingCycleId: string | null
+    nutritionGoalId: string | null
+    goal: string | null
+    experience: string | null
+    ageBand: string | null
+    baselineWeight: number | null
+    baselineBodyFat: number | null
+    baselineLeanMass: number | null
+    trainingDays: number | null
+    sessionMinutes: number | null
+    durationWeeks: number | null
+    sessionsPrescribed: number | null
+    sessionsCompleted: number | null
+    nutritionAdherence: number | null
+    endingWeight: number | null
+    endingBodyFat: number | null
+    endingLeanMass: number | null
+    strengthChangePercent: number | null
+    goalAchievement: string | null
+    verificationStatus: string | null
+    dataOrigin: string | null
+    status: string | null
+    startedAt: Date | null
+    endedAt: Date | null
+  }
+
+  export type ClientJourneyCountAggregateOutputType = {
+    id: number
+    userId: number
+    ptId: number
+    contractId: number
+    programId: number
+    trainingCycleId: number
+    nutritionGoalId: number
+    goal: number
+    experience: number
+    ageBand: number
+    baselineWeight: number
+    baselineBodyFat: number
+    baselineLeanMass: number
+    trainingDays: number
+    sessionMinutes: number
+    constraints: number
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted: number
+    nutritionAdherence: number
+    endingWeight: number
+    endingBodyFat: number
+    endingLeanMass: number
+    strengthChangePercent: number
+    goalAchievement: number
+    verificationStatus: number
+    dataOrigin: number
+    status: number
+    startedAt: number
+    endedAt: number
+    baselineSnapshot: number
+    _all: number
+  }
+
+
+  export type ClientJourneyAvgAggregateInputType = {
+    baselineWeight?: true
+    baselineBodyFat?: true
+    baselineLeanMass?: true
+    trainingDays?: true
+    sessionMinutes?: true
+    durationWeeks?: true
+    sessionsPrescribed?: true
+    sessionsCompleted?: true
+    nutritionAdherence?: true
+    endingWeight?: true
+    endingBodyFat?: true
+    endingLeanMass?: true
+    strengthChangePercent?: true
+  }
+
+  export type ClientJourneySumAggregateInputType = {
+    baselineWeight?: true
+    baselineBodyFat?: true
+    baselineLeanMass?: true
+    trainingDays?: true
+    sessionMinutes?: true
+    durationWeeks?: true
+    sessionsPrescribed?: true
+    sessionsCompleted?: true
+    nutritionAdherence?: true
+    endingWeight?: true
+    endingBodyFat?: true
+    endingLeanMass?: true
+    strengthChangePercent?: true
+  }
+
+  export type ClientJourneyMinAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    contractId?: true
+    programId?: true
+    trainingCycleId?: true
+    nutritionGoalId?: true
+    goal?: true
+    experience?: true
+    ageBand?: true
+    baselineWeight?: true
+    baselineBodyFat?: true
+    baselineLeanMass?: true
+    trainingDays?: true
+    sessionMinutes?: true
+    durationWeeks?: true
+    sessionsPrescribed?: true
+    sessionsCompleted?: true
+    nutritionAdherence?: true
+    endingWeight?: true
+    endingBodyFat?: true
+    endingLeanMass?: true
+    strengthChangePercent?: true
+    goalAchievement?: true
+    verificationStatus?: true
+    dataOrigin?: true
+    status?: true
+    startedAt?: true
+    endedAt?: true
+  }
+
+  export type ClientJourneyMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    contractId?: true
+    programId?: true
+    trainingCycleId?: true
+    nutritionGoalId?: true
+    goal?: true
+    experience?: true
+    ageBand?: true
+    baselineWeight?: true
+    baselineBodyFat?: true
+    baselineLeanMass?: true
+    trainingDays?: true
+    sessionMinutes?: true
+    durationWeeks?: true
+    sessionsPrescribed?: true
+    sessionsCompleted?: true
+    nutritionAdherence?: true
+    endingWeight?: true
+    endingBodyFat?: true
+    endingLeanMass?: true
+    strengthChangePercent?: true
+    goalAchievement?: true
+    verificationStatus?: true
+    dataOrigin?: true
+    status?: true
+    startedAt?: true
+    endedAt?: true
+  }
+
+  export type ClientJourneyCountAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    contractId?: true
+    programId?: true
+    trainingCycleId?: true
+    nutritionGoalId?: true
+    goal?: true
+    experience?: true
+    ageBand?: true
+    baselineWeight?: true
+    baselineBodyFat?: true
+    baselineLeanMass?: true
+    trainingDays?: true
+    sessionMinutes?: true
+    constraints?: true
+    durationWeeks?: true
+    sessionsPrescribed?: true
+    sessionsCompleted?: true
+    nutritionAdherence?: true
+    endingWeight?: true
+    endingBodyFat?: true
+    endingLeanMass?: true
+    strengthChangePercent?: true
+    goalAchievement?: true
+    verificationStatus?: true
+    dataOrigin?: true
+    status?: true
+    startedAt?: true
+    endedAt?: true
+    baselineSnapshot?: true
+    _all?: true
+  }
+
+  export type ClientJourneyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientJourney to aggregate.
+     */
+    where?: ClientJourneyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientJourneys to fetch.
+     */
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ClientJourneyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientJourneys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientJourneys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ClientJourneys
+    **/
+    _count?: true | ClientJourneyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ClientJourneyAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ClientJourneySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ClientJourneyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ClientJourneyMaxAggregateInputType
+  }
+
+  export type GetClientJourneyAggregateType<T extends ClientJourneyAggregateArgs> = {
+        [P in keyof T & keyof AggregateClientJourney]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateClientJourney[P]>
+      : GetScalarType<T[P], AggregateClientJourney[P]>
+  }
+
+
+
+
+  export type ClientJourneyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientJourneyWhereInput
+    orderBy?: ClientJourneyOrderByWithAggregationInput | ClientJourneyOrderByWithAggregationInput[]
+    by: ClientJourneyScalarFieldEnum[] | ClientJourneyScalarFieldEnum
+    having?: ClientJourneyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ClientJourneyCountAggregateInputType | true
+    _avg?: ClientJourneyAvgAggregateInputType
+    _sum?: ClientJourneySumAggregateInputType
+    _min?: ClientJourneyMinAggregateInputType
+    _max?: ClientJourneyMaxAggregateInputType
+  }
+
+  export type ClientJourneyGroupByOutputType = {
+    id: string
+    userId: string
+    ptId: string | null
+    contractId: string | null
+    programId: string | null
+    trainingCycleId: string | null
+    nutritionGoalId: string | null
+    goal: string
+    experience: string
+    ageBand: string | null
+    baselineWeight: number
+    baselineBodyFat: number | null
+    baselineLeanMass: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints: string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted: number
+    nutritionAdherence: number | null
+    endingWeight: number | null
+    endingBodyFat: number | null
+    endingLeanMass: number | null
+    strengthChangePercent: number | null
+    goalAchievement: string | null
+    verificationStatus: string
+    dataOrigin: string
+    status: string
+    startedAt: Date
+    endedAt: Date | null
+    baselineSnapshot: JsonValue | null
+    _count: ClientJourneyCountAggregateOutputType | null
+    _avg: ClientJourneyAvgAggregateOutputType | null
+    _sum: ClientJourneySumAggregateOutputType | null
+    _min: ClientJourneyMinAggregateOutputType | null
+    _max: ClientJourneyMaxAggregateOutputType | null
+  }
+
+  type GetClientJourneyGroupByPayload<T extends ClientJourneyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ClientJourneyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ClientJourneyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ClientJourneyGroupByOutputType[P]>
+            : GetScalarType<T[P], ClientJourneyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ClientJourneySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    contractId?: boolean
+    programId?: boolean
+    trainingCycleId?: boolean
+    nutritionGoalId?: boolean
+    goal?: boolean
+    experience?: boolean
+    ageBand?: boolean
+    baselineWeight?: boolean
+    baselineBodyFat?: boolean
+    baselineLeanMass?: boolean
+    trainingDays?: boolean
+    sessionMinutes?: boolean
+    constraints?: boolean
+    durationWeeks?: boolean
+    sessionsPrescribed?: boolean
+    sessionsCompleted?: boolean
+    nutritionAdherence?: boolean
+    endingWeight?: boolean
+    endingBodyFat?: boolean
+    endingLeanMass?: boolean
+    strengthChangePercent?: boolean
+    goalAchievement?: boolean
+    verificationStatus?: boolean
+    dataOrigin?: boolean
+    status?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    baselineSnapshot?: boolean
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+    contract?: boolean | ClientJourney$contractArgs<ExtArgs>
+  }, ExtArgs["result"]["clientJourney"]>
+
+  export type ClientJourneySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    contractId?: boolean
+    programId?: boolean
+    trainingCycleId?: boolean
+    nutritionGoalId?: boolean
+    goal?: boolean
+    experience?: boolean
+    ageBand?: boolean
+    baselineWeight?: boolean
+    baselineBodyFat?: boolean
+    baselineLeanMass?: boolean
+    trainingDays?: boolean
+    sessionMinutes?: boolean
+    constraints?: boolean
+    durationWeeks?: boolean
+    sessionsPrescribed?: boolean
+    sessionsCompleted?: boolean
+    nutritionAdherence?: boolean
+    endingWeight?: boolean
+    endingBodyFat?: boolean
+    endingLeanMass?: boolean
+    strengthChangePercent?: boolean
+    goalAchievement?: boolean
+    verificationStatus?: boolean
+    dataOrigin?: boolean
+    status?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    baselineSnapshot?: boolean
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+    contract?: boolean | ClientJourney$contractArgs<ExtArgs>
+  }, ExtArgs["result"]["clientJourney"]>
+
+  export type ClientJourneySelectScalar = {
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    contractId?: boolean
+    programId?: boolean
+    trainingCycleId?: boolean
+    nutritionGoalId?: boolean
+    goal?: boolean
+    experience?: boolean
+    ageBand?: boolean
+    baselineWeight?: boolean
+    baselineBodyFat?: boolean
+    baselineLeanMass?: boolean
+    trainingDays?: boolean
+    sessionMinutes?: boolean
+    constraints?: boolean
+    durationWeeks?: boolean
+    sessionsPrescribed?: boolean
+    sessionsCompleted?: boolean
+    nutritionAdherence?: boolean
+    endingWeight?: boolean
+    endingBodyFat?: boolean
+    endingLeanMass?: boolean
+    strengthChangePercent?: boolean
+    goalAchievement?: boolean
+    verificationStatus?: boolean
+    dataOrigin?: boolean
+    status?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    baselineSnapshot?: boolean
+  }
+
+  export type ClientJourneyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+    contract?: boolean | ClientJourney$contractArgs<ExtArgs>
+  }
+  export type ClientJourneyIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+    contract?: boolean | ClientJourney$contractArgs<ExtArgs>
+  }
+
+  export type $ClientJourneyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ClientJourney"
+    objects: {
+      user: Prisma.$UserProfilePayload<ExtArgs>
+      contract: Prisma.$ContractPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      ptId: string | null
+      contractId: string | null
+      programId: string | null
+      trainingCycleId: string | null
+      nutritionGoalId: string | null
+      goal: string
+      experience: string
+      ageBand: string | null
+      baselineWeight: number
+      baselineBodyFat: number | null
+      baselineLeanMass: number | null
+      trainingDays: number
+      sessionMinutes: number
+      constraints: string[]
+      durationWeeks: number
+      sessionsPrescribed: number
+      sessionsCompleted: number
+      nutritionAdherence: number | null
+      endingWeight: number | null
+      endingBodyFat: number | null
+      endingLeanMass: number | null
+      strengthChangePercent: number | null
+      goalAchievement: string | null
+      verificationStatus: string
+      dataOrigin: string
+      status: string
+      startedAt: Date
+      endedAt: Date | null
+      baselineSnapshot: Prisma.JsonValue | null
+    }, ExtArgs["result"]["clientJourney"]>
+    composites: {}
+  }
+
+  type ClientJourneyGetPayload<S extends boolean | null | undefined | ClientJourneyDefaultArgs> = $Result.GetResult<Prisma.$ClientJourneyPayload, S>
+
+  type ClientJourneyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ClientJourneyFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ClientJourneyCountAggregateInputType | true
+    }
+
+  export interface ClientJourneyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ClientJourney'], meta: { name: 'ClientJourney' } }
+    /**
+     * Find zero or one ClientJourney that matches the filter.
+     * @param {ClientJourneyFindUniqueArgs} args - Arguments to find a ClientJourney
+     * @example
+     * // Get one ClientJourney
+     * const clientJourney = await prisma.clientJourney.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ClientJourneyFindUniqueArgs>(args: SelectSubset<T, ClientJourneyFindUniqueArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ClientJourney that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ClientJourneyFindUniqueOrThrowArgs} args - Arguments to find a ClientJourney
+     * @example
+     * // Get one ClientJourney
+     * const clientJourney = await prisma.clientJourney.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ClientJourneyFindUniqueOrThrowArgs>(args: SelectSubset<T, ClientJourneyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ClientJourney that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyFindFirstArgs} args - Arguments to find a ClientJourney
+     * @example
+     * // Get one ClientJourney
+     * const clientJourney = await prisma.clientJourney.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ClientJourneyFindFirstArgs>(args?: SelectSubset<T, ClientJourneyFindFirstArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ClientJourney that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyFindFirstOrThrowArgs} args - Arguments to find a ClientJourney
+     * @example
+     * // Get one ClientJourney
+     * const clientJourney = await prisma.clientJourney.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ClientJourneyFindFirstOrThrowArgs>(args?: SelectSubset<T, ClientJourneyFindFirstOrThrowArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ClientJourneys that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ClientJourneys
+     * const clientJourneys = await prisma.clientJourney.findMany()
+     * 
+     * // Get first 10 ClientJourneys
+     * const clientJourneys = await prisma.clientJourney.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const clientJourneyWithIdOnly = await prisma.clientJourney.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ClientJourneyFindManyArgs>(args?: SelectSubset<T, ClientJourneyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ClientJourney.
+     * @param {ClientJourneyCreateArgs} args - Arguments to create a ClientJourney.
+     * @example
+     * // Create one ClientJourney
+     * const ClientJourney = await prisma.clientJourney.create({
+     *   data: {
+     *     // ... data to create a ClientJourney
+     *   }
+     * })
+     * 
+     */
+    create<T extends ClientJourneyCreateArgs>(args: SelectSubset<T, ClientJourneyCreateArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ClientJourneys.
+     * @param {ClientJourneyCreateManyArgs} args - Arguments to create many ClientJourneys.
+     * @example
+     * // Create many ClientJourneys
+     * const clientJourney = await prisma.clientJourney.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ClientJourneyCreateManyArgs>(args?: SelectSubset<T, ClientJourneyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ClientJourneys and returns the data saved in the database.
+     * @param {ClientJourneyCreateManyAndReturnArgs} args - Arguments to create many ClientJourneys.
+     * @example
+     * // Create many ClientJourneys
+     * const clientJourney = await prisma.clientJourney.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ClientJourneys and only return the `id`
+     * const clientJourneyWithIdOnly = await prisma.clientJourney.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ClientJourneyCreateManyAndReturnArgs>(args?: SelectSubset<T, ClientJourneyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ClientJourney.
+     * @param {ClientJourneyDeleteArgs} args - Arguments to delete one ClientJourney.
+     * @example
+     * // Delete one ClientJourney
+     * const ClientJourney = await prisma.clientJourney.delete({
+     *   where: {
+     *     // ... filter to delete one ClientJourney
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ClientJourneyDeleteArgs>(args: SelectSubset<T, ClientJourneyDeleteArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ClientJourney.
+     * @param {ClientJourneyUpdateArgs} args - Arguments to update one ClientJourney.
+     * @example
+     * // Update one ClientJourney
+     * const clientJourney = await prisma.clientJourney.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ClientJourneyUpdateArgs>(args: SelectSubset<T, ClientJourneyUpdateArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ClientJourneys.
+     * @param {ClientJourneyDeleteManyArgs} args - Arguments to filter ClientJourneys to delete.
+     * @example
+     * // Delete a few ClientJourneys
+     * const { count } = await prisma.clientJourney.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ClientJourneyDeleteManyArgs>(args?: SelectSubset<T, ClientJourneyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ClientJourneys.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ClientJourneys
+     * const clientJourney = await prisma.clientJourney.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ClientJourneyUpdateManyArgs>(args: SelectSubset<T, ClientJourneyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ClientJourney.
+     * @param {ClientJourneyUpsertArgs} args - Arguments to update or create a ClientJourney.
+     * @example
+     * // Update or create a ClientJourney
+     * const clientJourney = await prisma.clientJourney.upsert({
+     *   create: {
+     *     // ... data to create a ClientJourney
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ClientJourney we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ClientJourneyUpsertArgs>(args: SelectSubset<T, ClientJourneyUpsertArgs<ExtArgs>>): Prisma__ClientJourneyClient<$Result.GetResult<Prisma.$ClientJourneyPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ClientJourneys.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyCountArgs} args - Arguments to filter ClientJourneys to count.
+     * @example
+     * // Count the number of ClientJourneys
+     * const count = await prisma.clientJourney.count({
+     *   where: {
+     *     // ... the filter for the ClientJourneys we want to count
+     *   }
+     * })
+    **/
+    count<T extends ClientJourneyCountArgs>(
+      args?: Subset<T, ClientJourneyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ClientJourneyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ClientJourney.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ClientJourneyAggregateArgs>(args: Subset<T, ClientJourneyAggregateArgs>): Prisma.PrismaPromise<GetClientJourneyAggregateType<T>>
+
+    /**
+     * Group by ClientJourney.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientJourneyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ClientJourneyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ClientJourneyGroupByArgs['orderBy'] }
+        : { orderBy?: ClientJourneyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ClientJourneyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetClientJourneyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ClientJourney model
+   */
+  readonly fields: ClientJourneyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ClientJourney.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ClientJourneyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    contract<T extends ClientJourney$contractArgs<ExtArgs> = {}>(args?: Subset<T, ClientJourney$contractArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ClientJourney model
+   */ 
+  interface ClientJourneyFieldRefs {
+    readonly id: FieldRef<"ClientJourney", 'String'>
+    readonly userId: FieldRef<"ClientJourney", 'String'>
+    readonly ptId: FieldRef<"ClientJourney", 'String'>
+    readonly contractId: FieldRef<"ClientJourney", 'String'>
+    readonly programId: FieldRef<"ClientJourney", 'String'>
+    readonly trainingCycleId: FieldRef<"ClientJourney", 'String'>
+    readonly nutritionGoalId: FieldRef<"ClientJourney", 'String'>
+    readonly goal: FieldRef<"ClientJourney", 'String'>
+    readonly experience: FieldRef<"ClientJourney", 'String'>
+    readonly ageBand: FieldRef<"ClientJourney", 'String'>
+    readonly baselineWeight: FieldRef<"ClientJourney", 'Float'>
+    readonly baselineBodyFat: FieldRef<"ClientJourney", 'Float'>
+    readonly baselineLeanMass: FieldRef<"ClientJourney", 'Float'>
+    readonly trainingDays: FieldRef<"ClientJourney", 'Int'>
+    readonly sessionMinutes: FieldRef<"ClientJourney", 'Int'>
+    readonly constraints: FieldRef<"ClientJourney", 'String[]'>
+    readonly durationWeeks: FieldRef<"ClientJourney", 'Int'>
+    readonly sessionsPrescribed: FieldRef<"ClientJourney", 'Int'>
+    readonly sessionsCompleted: FieldRef<"ClientJourney", 'Int'>
+    readonly nutritionAdherence: FieldRef<"ClientJourney", 'Float'>
+    readonly endingWeight: FieldRef<"ClientJourney", 'Float'>
+    readonly endingBodyFat: FieldRef<"ClientJourney", 'Float'>
+    readonly endingLeanMass: FieldRef<"ClientJourney", 'Float'>
+    readonly strengthChangePercent: FieldRef<"ClientJourney", 'Float'>
+    readonly goalAchievement: FieldRef<"ClientJourney", 'String'>
+    readonly verificationStatus: FieldRef<"ClientJourney", 'String'>
+    readonly dataOrigin: FieldRef<"ClientJourney", 'String'>
+    readonly status: FieldRef<"ClientJourney", 'String'>
+    readonly startedAt: FieldRef<"ClientJourney", 'DateTime'>
+    readonly endedAt: FieldRef<"ClientJourney", 'DateTime'>
+    readonly baselineSnapshot: FieldRef<"ClientJourney", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ClientJourney findUnique
+   */
+  export type ClientJourneyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientJourney to fetch.
+     */
+    where: ClientJourneyWhereUniqueInput
+  }
+
+  /**
+   * ClientJourney findUniqueOrThrow
+   */
+  export type ClientJourneyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientJourney to fetch.
+     */
+    where: ClientJourneyWhereUniqueInput
+  }
+
+  /**
+   * ClientJourney findFirst
+   */
+  export type ClientJourneyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientJourney to fetch.
+     */
+    where?: ClientJourneyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientJourneys to fetch.
+     */
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientJourneys.
+     */
+    cursor?: ClientJourneyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientJourneys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientJourneys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientJourneys.
+     */
+    distinct?: ClientJourneyScalarFieldEnum | ClientJourneyScalarFieldEnum[]
+  }
+
+  /**
+   * ClientJourney findFirstOrThrow
+   */
+  export type ClientJourneyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientJourney to fetch.
+     */
+    where?: ClientJourneyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientJourneys to fetch.
+     */
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientJourneys.
+     */
+    cursor?: ClientJourneyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientJourneys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientJourneys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientJourneys.
+     */
+    distinct?: ClientJourneyScalarFieldEnum | ClientJourneyScalarFieldEnum[]
+  }
+
+  /**
+   * ClientJourney findMany
+   */
+  export type ClientJourneyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter, which ClientJourneys to fetch.
+     */
+    where?: ClientJourneyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientJourneys to fetch.
+     */
+    orderBy?: ClientJourneyOrderByWithRelationInput | ClientJourneyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ClientJourneys.
+     */
+    cursor?: ClientJourneyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientJourneys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientJourneys.
+     */
+    skip?: number
+    distinct?: ClientJourneyScalarFieldEnum | ClientJourneyScalarFieldEnum[]
+  }
+
+  /**
+   * ClientJourney create
+   */
+  export type ClientJourneyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ClientJourney.
+     */
+    data: XOR<ClientJourneyCreateInput, ClientJourneyUncheckedCreateInput>
+  }
+
+  /**
+   * ClientJourney createMany
+   */
+  export type ClientJourneyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ClientJourneys.
+     */
+    data: ClientJourneyCreateManyInput | ClientJourneyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientJourney createManyAndReturn
+   */
+  export type ClientJourneyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ClientJourneys.
+     */
+    data: ClientJourneyCreateManyInput | ClientJourneyCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ClientJourney update
+   */
+  export type ClientJourneyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ClientJourney.
+     */
+    data: XOR<ClientJourneyUpdateInput, ClientJourneyUncheckedUpdateInput>
+    /**
+     * Choose, which ClientJourney to update.
+     */
+    where: ClientJourneyWhereUniqueInput
+  }
+
+  /**
+   * ClientJourney updateMany
+   */
+  export type ClientJourneyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ClientJourneys.
+     */
+    data: XOR<ClientJourneyUpdateManyMutationInput, ClientJourneyUncheckedUpdateManyInput>
+    /**
+     * Filter which ClientJourneys to update
+     */
+    where?: ClientJourneyWhereInput
+  }
+
+  /**
+   * ClientJourney upsert
+   */
+  export type ClientJourneyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ClientJourney to update in case it exists.
+     */
+    where: ClientJourneyWhereUniqueInput
+    /**
+     * In case the ClientJourney found by the `where` argument doesn't exist, create a new ClientJourney with this data.
+     */
+    create: XOR<ClientJourneyCreateInput, ClientJourneyUncheckedCreateInput>
+    /**
+     * In case the ClientJourney was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ClientJourneyUpdateInput, ClientJourneyUncheckedUpdateInput>
+  }
+
+  /**
+   * ClientJourney delete
+   */
+  export type ClientJourneyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+    /**
+     * Filter which ClientJourney to delete.
+     */
+    where: ClientJourneyWhereUniqueInput
+  }
+
+  /**
+   * ClientJourney deleteMany
+   */
+  export type ClientJourneyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientJourneys to delete
+     */
+    where?: ClientJourneyWhereInput
+  }
+
+  /**
+   * ClientJourney.contract
+   */
+  export type ClientJourney$contractArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    where?: ContractWhereInput
+  }
+
+  /**
+   * ClientJourney without action
+   */
+  export type ClientJourneyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientJourney
+     */
+    select?: ClientJourneySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClientJourneyInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentContractDraft
+   */
+
+  export type AggregateAgentContractDraft = {
+    _count: AgentContractDraftCountAggregateOutputType | null
+    _min: AgentContractDraftMinAggregateOutputType | null
+    _max: AgentContractDraftMaxAggregateOutputType | null
+  }
+
+  export type AgentContractDraftMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ptId: string | null
+    packageId: string | null
+    status: string | null
+    contractId: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type AgentContractDraftMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ptId: string | null
+    packageId: string | null
+    status: string | null
+    contractId: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type AgentContractDraftCountAggregateOutputType = {
+    id: number
+    userId: number
+    ptId: number
+    packageId: number
+    snapshot: number
+    status: number
+    contractId: number
+    expiresAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AgentContractDraftMinAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    packageId?: true
+    status?: true
+    contractId?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type AgentContractDraftMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    packageId?: true
+    status?: true
+    contractId?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type AgentContractDraftCountAggregateInputType = {
+    id?: true
+    userId?: true
+    ptId?: true
+    packageId?: true
+    snapshot?: true
+    status?: true
+    contractId?: true
+    expiresAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AgentContractDraftAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentContractDraft to aggregate.
+     */
+    where?: AgentContractDraftWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentContractDrafts to fetch.
+     */
+    orderBy?: AgentContractDraftOrderByWithRelationInput | AgentContractDraftOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentContractDraftWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentContractDrafts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentContractDrafts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentContractDrafts
+    **/
+    _count?: true | AgentContractDraftCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentContractDraftMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentContractDraftMaxAggregateInputType
+  }
+
+  export type GetAgentContractDraftAggregateType<T extends AgentContractDraftAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentContractDraft]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentContractDraft[P]>
+      : GetScalarType<T[P], AggregateAgentContractDraft[P]>
+  }
+
+
+
+
+  export type AgentContractDraftGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentContractDraftWhereInput
+    orderBy?: AgentContractDraftOrderByWithAggregationInput | AgentContractDraftOrderByWithAggregationInput[]
+    by: AgentContractDraftScalarFieldEnum[] | AgentContractDraftScalarFieldEnum
+    having?: AgentContractDraftScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentContractDraftCountAggregateInputType | true
+    _min?: AgentContractDraftMinAggregateInputType
+    _max?: AgentContractDraftMaxAggregateInputType
+  }
+
+  export type AgentContractDraftGroupByOutputType = {
+    id: string
+    userId: string
+    ptId: string
+    packageId: string
+    snapshot: JsonValue
+    status: string
+    contractId: string | null
+    expiresAt: Date
+    createdAt: Date
+    _count: AgentContractDraftCountAggregateOutputType | null
+    _min: AgentContractDraftMinAggregateOutputType | null
+    _max: AgentContractDraftMaxAggregateOutputType | null
+  }
+
+  type GetAgentContractDraftGroupByPayload<T extends AgentContractDraftGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentContractDraftGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentContractDraftGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentContractDraftGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentContractDraftGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentContractDraftSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    packageId?: boolean
+    snapshot?: boolean
+    status?: boolean
+    contractId?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentContractDraft"]>
+
+  export type AgentContractDraftSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    packageId?: boolean
+    snapshot?: boolean
+    status?: boolean
+    contractId?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentContractDraft"]>
+
+  export type AgentContractDraftSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    ptId?: boolean
+    packageId?: boolean
+    snapshot?: boolean
+    status?: boolean
+    contractId?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type AgentContractDraftInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type AgentContractDraftIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $AgentContractDraftPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentContractDraft"
+    objects: {
+      user: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      ptId: string
+      packageId: string
+      snapshot: Prisma.JsonValue
+      status: string
+      contractId: string | null
+      expiresAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["agentContractDraft"]>
+    composites: {}
+  }
+
+  type AgentContractDraftGetPayload<S extends boolean | null | undefined | AgentContractDraftDefaultArgs> = $Result.GetResult<Prisma.$AgentContractDraftPayload, S>
+
+  type AgentContractDraftCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AgentContractDraftFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AgentContractDraftCountAggregateInputType | true
+    }
+
+  export interface AgentContractDraftDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentContractDraft'], meta: { name: 'AgentContractDraft' } }
+    /**
+     * Find zero or one AgentContractDraft that matches the filter.
+     * @param {AgentContractDraftFindUniqueArgs} args - Arguments to find a AgentContractDraft
+     * @example
+     * // Get one AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentContractDraftFindUniqueArgs>(args: SelectSubset<T, AgentContractDraftFindUniqueArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AgentContractDraft that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AgentContractDraftFindUniqueOrThrowArgs} args - Arguments to find a AgentContractDraft
+     * @example
+     * // Get one AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentContractDraftFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentContractDraftFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AgentContractDraft that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftFindFirstArgs} args - Arguments to find a AgentContractDraft
+     * @example
+     * // Get one AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentContractDraftFindFirstArgs>(args?: SelectSubset<T, AgentContractDraftFindFirstArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AgentContractDraft that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftFindFirstOrThrowArgs} args - Arguments to find a AgentContractDraft
+     * @example
+     * // Get one AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentContractDraftFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentContractDraftFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AgentContractDrafts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentContractDrafts
+     * const agentContractDrafts = await prisma.agentContractDraft.findMany()
+     * 
+     * // Get first 10 AgentContractDrafts
+     * const agentContractDrafts = await prisma.agentContractDraft.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentContractDraftWithIdOnly = await prisma.agentContractDraft.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentContractDraftFindManyArgs>(args?: SelectSubset<T, AgentContractDraftFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AgentContractDraft.
+     * @param {AgentContractDraftCreateArgs} args - Arguments to create a AgentContractDraft.
+     * @example
+     * // Create one AgentContractDraft
+     * const AgentContractDraft = await prisma.agentContractDraft.create({
+     *   data: {
+     *     // ... data to create a AgentContractDraft
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentContractDraftCreateArgs>(args: SelectSubset<T, AgentContractDraftCreateArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AgentContractDrafts.
+     * @param {AgentContractDraftCreateManyArgs} args - Arguments to create many AgentContractDrafts.
+     * @example
+     * // Create many AgentContractDrafts
+     * const agentContractDraft = await prisma.agentContractDraft.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentContractDraftCreateManyArgs>(args?: SelectSubset<T, AgentContractDraftCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentContractDrafts and returns the data saved in the database.
+     * @param {AgentContractDraftCreateManyAndReturnArgs} args - Arguments to create many AgentContractDrafts.
+     * @example
+     * // Create many AgentContractDrafts
+     * const agentContractDraft = await prisma.agentContractDraft.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentContractDrafts and only return the `id`
+     * const agentContractDraftWithIdOnly = await prisma.agentContractDraft.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentContractDraftCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentContractDraftCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AgentContractDraft.
+     * @param {AgentContractDraftDeleteArgs} args - Arguments to delete one AgentContractDraft.
+     * @example
+     * // Delete one AgentContractDraft
+     * const AgentContractDraft = await prisma.agentContractDraft.delete({
+     *   where: {
+     *     // ... filter to delete one AgentContractDraft
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentContractDraftDeleteArgs>(args: SelectSubset<T, AgentContractDraftDeleteArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AgentContractDraft.
+     * @param {AgentContractDraftUpdateArgs} args - Arguments to update one AgentContractDraft.
+     * @example
+     * // Update one AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentContractDraftUpdateArgs>(args: SelectSubset<T, AgentContractDraftUpdateArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AgentContractDrafts.
+     * @param {AgentContractDraftDeleteManyArgs} args - Arguments to filter AgentContractDrafts to delete.
+     * @example
+     * // Delete a few AgentContractDrafts
+     * const { count } = await prisma.agentContractDraft.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentContractDraftDeleteManyArgs>(args?: SelectSubset<T, AgentContractDraftDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentContractDrafts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentContractDrafts
+     * const agentContractDraft = await prisma.agentContractDraft.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentContractDraftUpdateManyArgs>(args: SelectSubset<T, AgentContractDraftUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AgentContractDraft.
+     * @param {AgentContractDraftUpsertArgs} args - Arguments to update or create a AgentContractDraft.
+     * @example
+     * // Update or create a AgentContractDraft
+     * const agentContractDraft = await prisma.agentContractDraft.upsert({
+     *   create: {
+     *     // ... data to create a AgentContractDraft
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentContractDraft we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentContractDraftUpsertArgs>(args: SelectSubset<T, AgentContractDraftUpsertArgs<ExtArgs>>): Prisma__AgentContractDraftClient<$Result.GetResult<Prisma.$AgentContractDraftPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AgentContractDrafts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftCountArgs} args - Arguments to filter AgentContractDrafts to count.
+     * @example
+     * // Count the number of AgentContractDrafts
+     * const count = await prisma.agentContractDraft.count({
+     *   where: {
+     *     // ... the filter for the AgentContractDrafts we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentContractDraftCountArgs>(
+      args?: Subset<T, AgentContractDraftCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentContractDraftCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentContractDraft.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentContractDraftAggregateArgs>(args: Subset<T, AgentContractDraftAggregateArgs>): Prisma.PrismaPromise<GetAgentContractDraftAggregateType<T>>
+
+    /**
+     * Group by AgentContractDraft.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentContractDraftGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentContractDraftGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentContractDraftGroupByArgs['orderBy'] }
+        : { orderBy?: AgentContractDraftGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentContractDraftGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentContractDraftGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentContractDraft model
+   */
+  readonly fields: AgentContractDraftFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentContractDraft.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentContractDraftClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentContractDraft model
+   */ 
+  interface AgentContractDraftFieldRefs {
+    readonly id: FieldRef<"AgentContractDraft", 'String'>
+    readonly userId: FieldRef<"AgentContractDraft", 'String'>
+    readonly ptId: FieldRef<"AgentContractDraft", 'String'>
+    readonly packageId: FieldRef<"AgentContractDraft", 'String'>
+    readonly snapshot: FieldRef<"AgentContractDraft", 'Json'>
+    readonly status: FieldRef<"AgentContractDraft", 'String'>
+    readonly contractId: FieldRef<"AgentContractDraft", 'String'>
+    readonly expiresAt: FieldRef<"AgentContractDraft", 'DateTime'>
+    readonly createdAt: FieldRef<"AgentContractDraft", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentContractDraft findUnique
+   */
+  export type AgentContractDraftFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentContractDraft to fetch.
+     */
+    where: AgentContractDraftWhereUniqueInput
+  }
+
+  /**
+   * AgentContractDraft findUniqueOrThrow
+   */
+  export type AgentContractDraftFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentContractDraft to fetch.
+     */
+    where: AgentContractDraftWhereUniqueInput
+  }
+
+  /**
+   * AgentContractDraft findFirst
+   */
+  export type AgentContractDraftFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentContractDraft to fetch.
+     */
+    where?: AgentContractDraftWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentContractDrafts to fetch.
+     */
+    orderBy?: AgentContractDraftOrderByWithRelationInput | AgentContractDraftOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentContractDrafts.
+     */
+    cursor?: AgentContractDraftWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentContractDrafts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentContractDrafts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentContractDrafts.
+     */
+    distinct?: AgentContractDraftScalarFieldEnum | AgentContractDraftScalarFieldEnum[]
+  }
+
+  /**
+   * AgentContractDraft findFirstOrThrow
+   */
+  export type AgentContractDraftFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentContractDraft to fetch.
+     */
+    where?: AgentContractDraftWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentContractDrafts to fetch.
+     */
+    orderBy?: AgentContractDraftOrderByWithRelationInput | AgentContractDraftOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentContractDrafts.
+     */
+    cursor?: AgentContractDraftWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentContractDrafts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentContractDrafts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentContractDrafts.
+     */
+    distinct?: AgentContractDraftScalarFieldEnum | AgentContractDraftScalarFieldEnum[]
+  }
+
+  /**
+   * AgentContractDraft findMany
+   */
+  export type AgentContractDraftFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentContractDrafts to fetch.
+     */
+    where?: AgentContractDraftWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentContractDrafts to fetch.
+     */
+    orderBy?: AgentContractDraftOrderByWithRelationInput | AgentContractDraftOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentContractDrafts.
+     */
+    cursor?: AgentContractDraftWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentContractDrafts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentContractDrafts.
+     */
+    skip?: number
+    distinct?: AgentContractDraftScalarFieldEnum | AgentContractDraftScalarFieldEnum[]
+  }
+
+  /**
+   * AgentContractDraft create
+   */
+  export type AgentContractDraftCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentContractDraft.
+     */
+    data: XOR<AgentContractDraftCreateInput, AgentContractDraftUncheckedCreateInput>
+  }
+
+  /**
+   * AgentContractDraft createMany
+   */
+  export type AgentContractDraftCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentContractDrafts.
+     */
+    data: AgentContractDraftCreateManyInput | AgentContractDraftCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentContractDraft createManyAndReturn
+   */
+  export type AgentContractDraftCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AgentContractDrafts.
+     */
+    data: AgentContractDraftCreateManyInput | AgentContractDraftCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentContractDraft update
+   */
+  export type AgentContractDraftUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentContractDraft.
+     */
+    data: XOR<AgentContractDraftUpdateInput, AgentContractDraftUncheckedUpdateInput>
+    /**
+     * Choose, which AgentContractDraft to update.
+     */
+    where: AgentContractDraftWhereUniqueInput
+  }
+
+  /**
+   * AgentContractDraft updateMany
+   */
+  export type AgentContractDraftUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentContractDrafts.
+     */
+    data: XOR<AgentContractDraftUpdateManyMutationInput, AgentContractDraftUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentContractDrafts to update
+     */
+    where?: AgentContractDraftWhereInput
+  }
+
+  /**
+   * AgentContractDraft upsert
+   */
+  export type AgentContractDraftUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentContractDraft to update in case it exists.
+     */
+    where: AgentContractDraftWhereUniqueInput
+    /**
+     * In case the AgentContractDraft found by the `where` argument doesn't exist, create a new AgentContractDraft with this data.
+     */
+    create: XOR<AgentContractDraftCreateInput, AgentContractDraftUncheckedCreateInput>
+    /**
+     * In case the AgentContractDraft was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentContractDraftUpdateInput, AgentContractDraftUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentContractDraft delete
+   */
+  export type AgentContractDraftDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+    /**
+     * Filter which AgentContractDraft to delete.
+     */
+    where: AgentContractDraftWhereUniqueInput
+  }
+
+  /**
+   * AgentContractDraft deleteMany
+   */
+  export type AgentContractDraftDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentContractDrafts to delete
+     */
+    where?: AgentContractDraftWhereInput
+  }
+
+  /**
+   * AgentContractDraft without action
+   */
+  export type AgentContractDraftDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentContractDraft
+     */
+    select?: AgentContractDraftSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentContractDraftInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UserPreference
+   */
+
+  export type AggregateUserPreference = {
+    _count: UserPreferenceCountAggregateOutputType | null
+    _avg: UserPreferenceAvgAggregateOutputType | null
+    _sum: UserPreferenceSumAggregateOutputType | null
+    _min: UserPreferenceMinAggregateOutputType | null
+    _max: UserPreferenceMaxAggregateOutputType | null
+  }
+
+  export type UserPreferenceAvgAggregateOutputType = {
+    defaultRestSeconds: number | null
+  }
+
+  export type UserPreferenceSumAggregateOutputType = {
+    defaultRestSeconds: number | null
+  }
+
+  export type UserPreferenceMinAggregateOutputType = {
+    userId: string | null
+    showRpeRir: boolean | null
+    defaultRestSeconds: number | null
+    keepScreenAwake: boolean | null
+    restTimerSound: boolean | null
+    restTimerVibration: boolean | null
+    smartPrefill: boolean | null
+    showMacros: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type UserPreferenceMaxAggregateOutputType = {
+    userId: string | null
+    showRpeRir: boolean | null
+    defaultRestSeconds: number | null
+    keepScreenAwake: boolean | null
+    restTimerSound: boolean | null
+    restTimerVibration: boolean | null
+    smartPrefill: boolean | null
+    showMacros: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type UserPreferenceCountAggregateOutputType = {
+    userId: number
+    showRpeRir: number
+    defaultRestSeconds: number
+    keepScreenAwake: number
+    restTimerSound: number
+    restTimerVibration: number
+    smartPrefill: number
+    showMacros: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UserPreferenceAvgAggregateInputType = {
+    defaultRestSeconds?: true
+  }
+
+  export type UserPreferenceSumAggregateInputType = {
+    defaultRestSeconds?: true
+  }
+
+  export type UserPreferenceMinAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+  }
+
+  export type UserPreferenceMaxAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+  }
+
+  export type UserPreferenceCountAggregateInputType = {
+    userId?: true
+    showRpeRir?: true
+    defaultRestSeconds?: true
+    keepScreenAwake?: true
+    restTimerSound?: true
+    restTimerVibration?: true
+    smartPrefill?: true
+    showMacros?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UserPreferenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserPreference to aggregate.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserPreferences
+    **/
+    _count?: true | UserPreferenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UserPreferenceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UserPreferenceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserPreferenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserPreferenceMaxAggregateInputType
+  }
+
+  export type GetUserPreferenceAggregateType<T extends UserPreferenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserPreference]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserPreference[P]>
+      : GetScalarType<T[P], AggregateUserPreference[P]>
+  }
+
+
+
+
+  export type UserPreferenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserPreferenceWhereInput
+    orderBy?: UserPreferenceOrderByWithAggregationInput | UserPreferenceOrderByWithAggregationInput[]
+    by: UserPreferenceScalarFieldEnum[] | UserPreferenceScalarFieldEnum
+    having?: UserPreferenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserPreferenceCountAggregateInputType | true
+    _avg?: UserPreferenceAvgAggregateInputType
+    _sum?: UserPreferenceSumAggregateInputType
+    _min?: UserPreferenceMinAggregateInputType
+    _max?: UserPreferenceMaxAggregateInputType
+  }
+
+  export type UserPreferenceGroupByOutputType = {
+    userId: string
+    showRpeRir: boolean
+    defaultRestSeconds: number
+    keepScreenAwake: boolean
+    restTimerSound: boolean
+    restTimerVibration: boolean
+    smartPrefill: boolean
+    showMacros: boolean
+    updatedAt: Date
+    _count: UserPreferenceCountAggregateOutputType | null
+    _avg: UserPreferenceAvgAggregateOutputType | null
+    _sum: UserPreferenceSumAggregateOutputType | null
+    _min: UserPreferenceMinAggregateOutputType | null
+    _max: UserPreferenceMaxAggregateOutputType | null
+  }
+
+  type GetUserPreferenceGroupByPayload<T extends UserPreferenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserPreferenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserPreferenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserPreferenceGroupByOutputType[P]>
+            : GetScalarType<T[P], UserPreferenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserPreferenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["userPreference"]>
+
+  export type UserPreferenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["userPreference"]>
+
+  export type UserPreferenceSelectScalar = {
+    userId?: boolean
+    showRpeRir?: boolean
+    defaultRestSeconds?: boolean
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $UserPreferencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserPreference"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      showRpeRir: boolean
+      defaultRestSeconds: number
+      keepScreenAwake: boolean
+      restTimerSound: boolean
+      restTimerVibration: boolean
+      smartPrefill: boolean
+      showMacros: boolean
+      updatedAt: Date
+    }, ExtArgs["result"]["userPreference"]>
+    composites: {}
+  }
+
+  type UserPreferenceGetPayload<S extends boolean | null | undefined | UserPreferenceDefaultArgs> = $Result.GetResult<Prisma.$UserPreferencePayload, S>
+
+  type UserPreferenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<UserPreferenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: UserPreferenceCountAggregateInputType | true
+    }
+
+  export interface UserPreferenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserPreference'], meta: { name: 'UserPreference' } }
+    /**
+     * Find zero or one UserPreference that matches the filter.
+     * @param {UserPreferenceFindUniqueArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserPreferenceFindUniqueArgs>(args: SelectSubset<T, UserPreferenceFindUniqueArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one UserPreference that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {UserPreferenceFindUniqueOrThrowArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserPreferenceFindUniqueOrThrowArgs>(args: SelectSubset<T, UserPreferenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first UserPreference that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindFirstArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserPreferenceFindFirstArgs>(args?: SelectSubset<T, UserPreferenceFindFirstArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first UserPreference that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindFirstOrThrowArgs} args - Arguments to find a UserPreference
+     * @example
+     * // Get one UserPreference
+     * const userPreference = await prisma.userPreference.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserPreferenceFindFirstOrThrowArgs>(args?: SelectSubset<T, UserPreferenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more UserPreferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserPreferences
+     * const userPreferences = await prisma.userPreference.findMany()
+     * 
+     * // Get first 10 UserPreferences
+     * const userPreferences = await prisma.userPreference.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const userPreferenceWithUserIdOnly = await prisma.userPreference.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends UserPreferenceFindManyArgs>(args?: SelectSubset<T, UserPreferenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a UserPreference.
+     * @param {UserPreferenceCreateArgs} args - Arguments to create a UserPreference.
+     * @example
+     * // Create one UserPreference
+     * const UserPreference = await prisma.userPreference.create({
+     *   data: {
+     *     // ... data to create a UserPreference
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserPreferenceCreateArgs>(args: SelectSubset<T, UserPreferenceCreateArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many UserPreferences.
+     * @param {UserPreferenceCreateManyArgs} args - Arguments to create many UserPreferences.
+     * @example
+     * // Create many UserPreferences
+     * const userPreference = await prisma.userPreference.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserPreferenceCreateManyArgs>(args?: SelectSubset<T, UserPreferenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserPreferences and returns the data saved in the database.
+     * @param {UserPreferenceCreateManyAndReturnArgs} args - Arguments to create many UserPreferences.
+     * @example
+     * // Create many UserPreferences
+     * const userPreference = await prisma.userPreference.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserPreferences and only return the `userId`
+     * const userPreferenceWithUserIdOnly = await prisma.userPreference.createManyAndReturn({ 
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserPreferenceCreateManyAndReturnArgs>(args?: SelectSubset<T, UserPreferenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a UserPreference.
+     * @param {UserPreferenceDeleteArgs} args - Arguments to delete one UserPreference.
+     * @example
+     * // Delete one UserPreference
+     * const UserPreference = await prisma.userPreference.delete({
+     *   where: {
+     *     // ... filter to delete one UserPreference
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserPreferenceDeleteArgs>(args: SelectSubset<T, UserPreferenceDeleteArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one UserPreference.
+     * @param {UserPreferenceUpdateArgs} args - Arguments to update one UserPreference.
+     * @example
+     * // Update one UserPreference
+     * const userPreference = await prisma.userPreference.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserPreferenceUpdateArgs>(args: SelectSubset<T, UserPreferenceUpdateArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more UserPreferences.
+     * @param {UserPreferenceDeleteManyArgs} args - Arguments to filter UserPreferences to delete.
+     * @example
+     * // Delete a few UserPreferences
+     * const { count } = await prisma.userPreference.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserPreferenceDeleteManyArgs>(args?: SelectSubset<T, UserPreferenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserPreferences
+     * const userPreference = await prisma.userPreference.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserPreferenceUpdateManyArgs>(args: SelectSubset<T, UserPreferenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one UserPreference.
+     * @param {UserPreferenceUpsertArgs} args - Arguments to update or create a UserPreference.
+     * @example
+     * // Update or create a UserPreference
+     * const userPreference = await prisma.userPreference.upsert({
+     *   create: {
+     *     // ... data to create a UserPreference
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserPreference we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserPreferenceUpsertArgs>(args: SelectSubset<T, UserPreferenceUpsertArgs<ExtArgs>>): Prisma__UserPreferenceClient<$Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of UserPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceCountArgs} args - Arguments to filter UserPreferences to count.
+     * @example
+     * // Count the number of UserPreferences
+     * const count = await prisma.userPreference.count({
+     *   where: {
+     *     // ... the filter for the UserPreferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserPreferenceCountArgs>(
+      args?: Subset<T, UserPreferenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserPreferenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserPreferenceAggregateArgs>(args: Subset<T, UserPreferenceAggregateArgs>): Prisma.PrismaPromise<GetUserPreferenceAggregateType<T>>
+
+    /**
+     * Group by UserPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserPreferenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserPreferenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserPreferenceGroupByArgs['orderBy'] }
+        : { orderBy?: UserPreferenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserPreferenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserPreferenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserPreference model
+   */
+  readonly fields: UserPreferenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserPreference.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserPreferenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserPreference model
+   */ 
+  interface UserPreferenceFieldRefs {
+    readonly userId: FieldRef<"UserPreference", 'String'>
+    readonly showRpeRir: FieldRef<"UserPreference", 'Boolean'>
+    readonly defaultRestSeconds: FieldRef<"UserPreference", 'Int'>
+    readonly keepScreenAwake: FieldRef<"UserPreference", 'Boolean'>
+    readonly restTimerSound: FieldRef<"UserPreference", 'Boolean'>
+    readonly restTimerVibration: FieldRef<"UserPreference", 'Boolean'>
+    readonly smartPrefill: FieldRef<"UserPreference", 'Boolean'>
+    readonly showMacros: FieldRef<"UserPreference", 'Boolean'>
+    readonly updatedAt: FieldRef<"UserPreference", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserPreference findUnique
+   */
+  export type UserPreferenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference findUniqueOrThrow
+   */
+  export type UserPreferenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference findFirst
+   */
+  export type UserPreferenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserPreferences.
+     */
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference findFirstOrThrow
+   */
+  export type UserPreferenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreference to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserPreferences.
+     */
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference findMany
+   */
+  export type UserPreferenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter, which UserPreferences to fetch.
+     */
+    where?: UserPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserPreferences to fetch.
+     */
+    orderBy?: UserPreferenceOrderByWithRelationInput | UserPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserPreferences.
+     */
+    cursor?: UserPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserPreferences.
+     */
+    skip?: number
+    distinct?: UserPreferenceScalarFieldEnum | UserPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * UserPreference create
+   */
+  export type UserPreferenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The data needed to create a UserPreference.
+     */
+    data: XOR<UserPreferenceCreateInput, UserPreferenceUncheckedCreateInput>
+  }
+
+  /**
+   * UserPreference createMany
+   */
+  export type UserPreferenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserPreferences.
+     */
+    data: UserPreferenceCreateManyInput | UserPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserPreference createManyAndReturn
+   */
+  export type UserPreferenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many UserPreferences.
+     */
+    data: UserPreferenceCreateManyInput | UserPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserPreference update
+   */
+  export type UserPreferenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The data needed to update a UserPreference.
+     */
+    data: XOR<UserPreferenceUpdateInput, UserPreferenceUncheckedUpdateInput>
+    /**
+     * Choose, which UserPreference to update.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference updateMany
+   */
+  export type UserPreferenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserPreferences.
+     */
+    data: XOR<UserPreferenceUpdateManyMutationInput, UserPreferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which UserPreferences to update
+     */
+    where?: UserPreferenceWhereInput
+  }
+
+  /**
+   * UserPreference upsert
+   */
+  export type UserPreferenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * The filter to search for the UserPreference to update in case it exists.
+     */
+    where: UserPreferenceWhereUniqueInput
+    /**
+     * In case the UserPreference found by the `where` argument doesn't exist, create a new UserPreference with this data.
+     */
+    create: XOR<UserPreferenceCreateInput, UserPreferenceUncheckedCreateInput>
+    /**
+     * In case the UserPreference was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserPreferenceUpdateInput, UserPreferenceUncheckedUpdateInput>
+  }
+
+  /**
+   * UserPreference delete
+   */
+  export type UserPreferenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+    /**
+     * Filter which UserPreference to delete.
+     */
+    where: UserPreferenceWhereUniqueInput
+  }
+
+  /**
+   * UserPreference deleteMany
+   */
+  export type UserPreferenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserPreferences to delete
+     */
+    where?: UserPreferenceWhereInput
+  }
+
+  /**
+   * UserPreference without action
+   */
+  export type UserPreferenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserPreference
+     */
+    select?: UserPreferenceSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -25220,6 +28984,8 @@ export namespace Prisma {
     startingWeightSource: 'startingWeightSource',
     dietaryPreference: 'dietaryPreference',
     photoUrl: 'photoUrl',
+    nutritionBudgetLevel: 'nutritionBudgetLevel',
+    region: 'region',
     unitSystem: 'unitSystem',
     energyUnit: 'energyUnit',
     sessionDurationMinutes: 'sessionDurationMinutes',
@@ -25233,7 +28999,10 @@ export namespace Prisma {
     gymId: 'gymId',
     specialties: 'specialties',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    dataOrigin: 'dataOrigin',
+    goalIntent: 'goalIntent',
+    ptBudgetVnd: 'ptBudgetVnd'
   };
 
   export type UserProfileScalarFieldEnum = (typeof UserProfileScalarFieldEnum)[keyof typeof UserProfileScalarFieldEnum]
@@ -25293,7 +29062,8 @@ export namespace Prisma {
     reviewedAt: 'reviewedAt',
     approvedAt: 'approvedAt',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    languages: 'languages'
   };
 
   export type PTApplicationScalarFieldEnum = (typeof PTApplicationScalarFieldEnum)[keyof typeof PTApplicationScalarFieldEnum]
@@ -25302,6 +29072,8 @@ export namespace Prisma {
   export const PTApplicationCertificateScalarFieldEnum: {
     id: 'id',
     applicationId: 'applicationId',
+    verificationStatus: 'verificationStatus',
+    certificationNumber: 'certificationNumber',
     certificateName: 'certificateName',
     issuingOrganization: 'issuingOrganization',
     isCurrentlyValid: 'isCurrentlyValid',
@@ -25328,6 +29100,8 @@ export namespace Prisma {
 
 
   export const ContractScalarFieldEnum: {
+    agentActionId: 'agentActionId',
+    dataOrigin: 'dataOrigin',
     id: 'id',
     ptUserId: 'ptUserId',
     clientUserId: 'clientUserId',
@@ -25654,6 +29428,73 @@ export namespace Prisma {
   export type SessionSettlementScalarFieldEnum = (typeof SessionSettlementScalarFieldEnum)[keyof typeof SessionSettlementScalarFieldEnum]
 
 
+  export const ClientJourneyScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    ptId: 'ptId',
+    contractId: 'contractId',
+    programId: 'programId',
+    trainingCycleId: 'trainingCycleId',
+    nutritionGoalId: 'nutritionGoalId',
+    goal: 'goal',
+    experience: 'experience',
+    ageBand: 'ageBand',
+    baselineWeight: 'baselineWeight',
+    baselineBodyFat: 'baselineBodyFat',
+    baselineLeanMass: 'baselineLeanMass',
+    trainingDays: 'trainingDays',
+    sessionMinutes: 'sessionMinutes',
+    constraints: 'constraints',
+    durationWeeks: 'durationWeeks',
+    sessionsPrescribed: 'sessionsPrescribed',
+    sessionsCompleted: 'sessionsCompleted',
+    nutritionAdherence: 'nutritionAdherence',
+    endingWeight: 'endingWeight',
+    endingBodyFat: 'endingBodyFat',
+    endingLeanMass: 'endingLeanMass',
+    strengthChangePercent: 'strengthChangePercent',
+    goalAchievement: 'goalAchievement',
+    verificationStatus: 'verificationStatus',
+    dataOrigin: 'dataOrigin',
+    status: 'status',
+    startedAt: 'startedAt',
+    endedAt: 'endedAt',
+    baselineSnapshot: 'baselineSnapshot'
+  };
+
+  export type ClientJourneyScalarFieldEnum = (typeof ClientJourneyScalarFieldEnum)[keyof typeof ClientJourneyScalarFieldEnum]
+
+
+  export const AgentContractDraftScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    ptId: 'ptId',
+    packageId: 'packageId',
+    snapshot: 'snapshot',
+    status: 'status',
+    contractId: 'contractId',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt'
+  };
+
+  export type AgentContractDraftScalarFieldEnum = (typeof AgentContractDraftScalarFieldEnum)[keyof typeof AgentContractDraftScalarFieldEnum]
+
+
+  export const UserPreferenceScalarFieldEnum: {
+    userId: 'userId',
+    showRpeRir: 'showRpeRir',
+    defaultRestSeconds: 'defaultRestSeconds',
+    keepScreenAwake: 'keepScreenAwake',
+    restTimerSound: 'restTimerSound',
+    restTimerVibration: 'restTimerVibration',
+    smartPrefill: 'smartPrefill',
+    showMacros: 'showMacros',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UserPreferenceScalarFieldEnum = (typeof UserPreferenceScalarFieldEnum)[keyof typeof UserPreferenceScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -25670,20 +29511,19 @@ export namespace Prisma {
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
   export const QueryMode: {
     default: 'default',
     insensitive: 'insensitive'
   };
 
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
-  export const NullsOrder: {
-    first: 'first',
-    last: 'last'
-  };
-
-  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   export const JsonNullValueFilter: {
@@ -25693,6 +29533,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -25834,6 +29682,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
    * Reference to a field of type 'PTApplicationStatus'
    */
   export type EnumPTApplicationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PTApplicationStatus'>
@@ -25844,13 +29699,6 @@ export namespace Prisma {
    * Reference to a field of type 'PTApplicationStatus[]'
    */
   export type ListEnumPTApplicationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PTApplicationStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
     
 
 
@@ -26142,6 +29990,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
+    nutritionBudgetLevel?: StringNullableFilter<"UserProfile"> | string | null
+    region?: StringNullableFilter<"UserProfile"> | string | null
     unitSystem?: StringFilter<"UserProfile"> | string
     energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
@@ -26156,6 +30006,11 @@ export namespace Prisma {
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
+    dataOrigin?: StringFilter<"UserProfile"> | string
+    goalIntent?: JsonNullableFilter<"UserProfile">
+    ptBudgetVnd?: IntNullableFilter<"UserProfile"> | number | null
+    journeys?: ClientJourneyListRelationFilter
+    agentDrafts?: AgentContractDraftListRelationFilter
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
     servicePackages?: PTServicePackageListRelationFilter
@@ -26191,6 +30046,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
+    nutritionBudgetLevel?: SortOrderInput | SortOrder
+    region?: SortOrderInput | SortOrder
     unitSystem?: SortOrder
     energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -26205,6 +30062,11 @@ export namespace Prisma {
     specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    dataOrigin?: SortOrder
+    goalIntent?: SortOrderInput | SortOrder
+    ptBudgetVnd?: SortOrderInput | SortOrder
+    journeys?: ClientJourneyOrderByRelationAggregateInput
+    agentDrafts?: AgentContractDraftOrderByRelationAggregateInput
     ptApplication?: PTApplicationOrderByWithRelationInput
     trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
     servicePackages?: PTServicePackageOrderByRelationAggregateInput
@@ -26243,6 +30105,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableFilter<"UserProfile"> | string | null
+    nutritionBudgetLevel?: StringNullableFilter<"UserProfile"> | string | null
+    region?: StringNullableFilter<"UserProfile"> | string | null
     unitSystem?: StringFilter<"UserProfile"> | string
     energyUnit?: StringFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
@@ -26257,6 +30121,11 @@ export namespace Prisma {
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
+    dataOrigin?: StringFilter<"UserProfile"> | string
+    goalIntent?: JsonNullableFilter<"UserProfile">
+    ptBudgetVnd?: IntNullableFilter<"UserProfile"> | number | null
+    journeys?: ClientJourneyListRelationFilter
+    agentDrafts?: AgentContractDraftListRelationFilter
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
     servicePackages?: PTServicePackageListRelationFilter
@@ -26292,6 +30161,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
     photoUrl?: SortOrderInput | SortOrder
+    nutritionBudgetLevel?: SortOrderInput | SortOrder
+    region?: SortOrderInput | SortOrder
     unitSystem?: SortOrder
     energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -26306,6 +30177,9 @@ export namespace Prisma {
     specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    dataOrigin?: SortOrder
+    goalIntent?: SortOrderInput | SortOrder
+    ptBudgetVnd?: SortOrderInput | SortOrder
     _count?: UserProfileCountOrderByAggregateInput
     _avg?: UserProfileAvgOrderByAggregateInput
     _max?: UserProfileMaxOrderByAggregateInput
@@ -26346,6 +30220,8 @@ export namespace Prisma {
     startingWeightSource?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    nutritionBudgetLevel?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    region?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     unitSystem?: StringWithAggregatesFilter<"UserProfile"> | string
     energyUnit?: StringWithAggregatesFilter<"UserProfile"> | string
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
@@ -26360,6 +30236,9 @@ export namespace Prisma {
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
+    dataOrigin?: StringWithAggregatesFilter<"UserProfile"> | string
+    goalIntent?: JsonNullableWithAggregatesFilter<"UserProfile">
+    ptBudgetVnd?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
   }
 
   export type PTApplicationWhereInput = {
@@ -26420,6 +30299,7 @@ export namespace Prisma {
     approvedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     createdAt?: DateTimeFilter<"PTApplication"> | Date | string
     updatedAt?: DateTimeFilter<"PTApplication"> | Date | string
+    languages?: StringNullableListFilter<"PTApplication">
     certificates?: PTApplicationCertificateListRelationFilter
     media?: PTApplicationMediaListRelationFilter
     userProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
@@ -26480,6 +30360,7 @@ export namespace Prisma {
     approvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    languages?: SortOrder
     certificates?: PTApplicationCertificateOrderByRelationAggregateInput
     media?: PTApplicationMediaOrderByRelationAggregateInput
     userProfile?: UserProfileOrderByWithRelationInput
@@ -26543,6 +30424,7 @@ export namespace Prisma {
     approvedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
     createdAt?: DateTimeFilter<"PTApplication"> | Date | string
     updatedAt?: DateTimeFilter<"PTApplication"> | Date | string
+    languages?: StringNullableListFilter<"PTApplication">
     certificates?: PTApplicationCertificateListRelationFilter
     media?: PTApplicationMediaListRelationFilter
     userProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
@@ -26603,6 +30485,7 @@ export namespace Prisma {
     approvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    languages?: SortOrder
     _count?: PTApplicationCountOrderByAggregateInput
     _avg?: PTApplicationAvgOrderByAggregateInput
     _max?: PTApplicationMaxOrderByAggregateInput
@@ -26668,6 +30551,7 @@ export namespace Prisma {
     approvedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PTApplication"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PTApplication"> | Date | string
+    languages?: StringNullableListFilter<"PTApplication">
   }
 
   export type PTApplicationCertificateWhereInput = {
@@ -26676,6 +30560,8 @@ export namespace Prisma {
     NOT?: PTApplicationCertificateWhereInput | PTApplicationCertificateWhereInput[]
     id?: StringFilter<"PTApplicationCertificate"> | string
     applicationId?: StringFilter<"PTApplicationCertificate"> | string
+    verificationStatus?: StringFilter<"PTApplicationCertificate"> | string
+    certificationNumber?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
@@ -26690,6 +30576,8 @@ export namespace Prisma {
   export type PTApplicationCertificateOrderByWithRelationInput = {
     id?: SortOrder
     applicationId?: SortOrder
+    verificationStatus?: SortOrder
+    certificationNumber?: SortOrderInput | SortOrder
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
@@ -26707,6 +30595,8 @@ export namespace Prisma {
     OR?: PTApplicationCertificateWhereInput[]
     NOT?: PTApplicationCertificateWhereInput | PTApplicationCertificateWhereInput[]
     applicationId?: StringFilter<"PTApplicationCertificate"> | string
+    verificationStatus?: StringFilter<"PTApplicationCertificate"> | string
+    certificationNumber?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
@@ -26721,6 +30611,8 @@ export namespace Prisma {
   export type PTApplicationCertificateOrderByWithAggregationInput = {
     id?: SortOrder
     applicationId?: SortOrder
+    verificationStatus?: SortOrder
+    certificationNumber?: SortOrderInput | SortOrder
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
@@ -26740,6 +30632,8 @@ export namespace Prisma {
     NOT?: PTApplicationCertificateScalarWhereWithAggregatesInput | PTApplicationCertificateScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
     applicationId?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
+    verificationStatus?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
+    certificationNumber?: StringNullableWithAggregatesFilter<"PTApplicationCertificate"> | string | null
     certificateName?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolWithAggregatesFilter<"PTApplicationCertificate"> | boolean
@@ -26814,6 +30708,8 @@ export namespace Prisma {
     AND?: ContractWhereInput | ContractWhereInput[]
     OR?: ContractWhereInput[]
     NOT?: ContractWhereInput | ContractWhereInput[]
+    agentActionId?: StringNullableFilter<"Contract"> | string | null
+    dataOrigin?: StringFilter<"Contract"> | string
     id?: StringFilter<"Contract"> | string
     ptUserId?: StringFilter<"Contract"> | string
     clientUserId?: StringFilter<"Contract"> | string
@@ -26870,12 +30766,15 @@ export namespace Prisma {
     slotsAtPurchase?: IntNullableFilter<"Contract"> | number | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
+    journeys?: ClientJourneyListRelationFilter
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
     clientReviews?: ClientReviewListRelationFilter
   }
 
   export type ContractOrderByWithRelationInput = {
+    agentActionId?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     id?: SortOrder
     ptUserId?: SortOrder
     clientUserId?: SortOrder
@@ -26932,16 +30831,19 @@ export namespace Prisma {
     slotsAtPurchase?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    journeys?: ClientJourneyOrderByRelationAggregateInput
     sessions?: SessionOrderByRelationAggregateInput
     reviews?: SessionReviewOrderByRelationAggregateInput
     clientReviews?: ClientReviewOrderByRelationAggregateInput
   }
 
   export type ContractWhereUniqueInput = Prisma.AtLeast<{
+    agentActionId?: string
     id?: string
     AND?: ContractWhereInput | ContractWhereInput[]
     OR?: ContractWhereInput[]
     NOT?: ContractWhereInput | ContractWhereInput[]
+    dataOrigin?: StringFilter<"Contract"> | string
     ptUserId?: StringFilter<"Contract"> | string
     clientUserId?: StringFilter<"Contract"> | string
     status?: EnumContractStatusFilter<"Contract"> | $Enums.ContractStatus
@@ -26997,12 +30899,15 @@ export namespace Prisma {
     slotsAtPurchase?: IntNullableFilter<"Contract"> | number | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
+    journeys?: ClientJourneyListRelationFilter
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
     clientReviews?: ClientReviewListRelationFilter
-  }, "id">
+  }, "id" | "agentActionId">
 
   export type ContractOrderByWithAggregationInput = {
+    agentActionId?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     id?: SortOrder
     ptUserId?: SortOrder
     clientUserId?: SortOrder
@@ -27070,6 +30975,8 @@ export namespace Prisma {
     AND?: ContractScalarWhereWithAggregatesInput | ContractScalarWhereWithAggregatesInput[]
     OR?: ContractScalarWhereWithAggregatesInput[]
     NOT?: ContractScalarWhereWithAggregatesInput | ContractScalarWhereWithAggregatesInput[]
+    agentActionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    dataOrigin?: StringWithAggregatesFilter<"Contract"> | string
     id?: StringWithAggregatesFilter<"Contract"> | string
     ptUserId?: StringWithAggregatesFilter<"Contract"> | string
     clientUserId?: StringWithAggregatesFilter<"Contract"> | string
@@ -28476,6 +32383,345 @@ export namespace Prisma {
     settledAt?: DateTimeNullableWithAggregatesFilter<"SessionSettlement"> | Date | string | null
   }
 
+  export type ClientJourneyWhereInput = {
+    AND?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
+    OR?: ClientJourneyWhereInput[]
+    NOT?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
+    id?: StringFilter<"ClientJourney"> | string
+    userId?: StringFilter<"ClientJourney"> | string
+    ptId?: StringNullableFilter<"ClientJourney"> | string | null
+    contractId?: StringNullableFilter<"ClientJourney"> | string | null
+    programId?: StringNullableFilter<"ClientJourney"> | string | null
+    trainingCycleId?: StringNullableFilter<"ClientJourney"> | string | null
+    nutritionGoalId?: StringNullableFilter<"ClientJourney"> | string | null
+    goal?: StringFilter<"ClientJourney"> | string
+    experience?: StringFilter<"ClientJourney"> | string
+    ageBand?: StringNullableFilter<"ClientJourney"> | string | null
+    baselineWeight?: FloatFilter<"ClientJourney"> | number
+    baselineBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    baselineLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    trainingDays?: IntFilter<"ClientJourney"> | number
+    sessionMinutes?: IntFilter<"ClientJourney"> | number
+    constraints?: StringNullableListFilter<"ClientJourney">
+    durationWeeks?: IntFilter<"ClientJourney"> | number
+    sessionsPrescribed?: IntFilter<"ClientJourney"> | number
+    sessionsCompleted?: IntFilter<"ClientJourney"> | number
+    nutritionAdherence?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingWeight?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    strengthChangePercent?: FloatNullableFilter<"ClientJourney"> | number | null
+    goalAchievement?: StringNullableFilter<"ClientJourney"> | string | null
+    verificationStatus?: StringFilter<"ClientJourney"> | string
+    dataOrigin?: StringFilter<"ClientJourney"> | string
+    status?: StringFilter<"ClientJourney"> | string
+    startedAt?: DateTimeFilter<"ClientJourney"> | Date | string
+    endedAt?: DateTimeNullableFilter<"ClientJourney"> | Date | string | null
+    baselineSnapshot?: JsonNullableFilter<"ClientJourney">
+    user?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+    contract?: XOR<ContractNullableRelationFilter, ContractWhereInput> | null
+  }
+
+  export type ClientJourneyOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrderInput | SortOrder
+    contractId?: SortOrderInput | SortOrder
+    programId?: SortOrderInput | SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
+    nutritionGoalId?: SortOrderInput | SortOrder
+    goal?: SortOrder
+    experience?: SortOrder
+    ageBand?: SortOrderInput | SortOrder
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrderInput | SortOrder
+    baselineLeanMass?: SortOrderInput | SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    constraints?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrderInput | SortOrder
+    endingWeight?: SortOrderInput | SortOrder
+    endingBodyFat?: SortOrderInput | SortOrder
+    endingLeanMass?: SortOrderInput | SortOrder
+    strengthChangePercent?: SortOrderInput | SortOrder
+    goalAchievement?: SortOrderInput | SortOrder
+    verificationStatus?: SortOrder
+    dataOrigin?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    baselineSnapshot?: SortOrderInput | SortOrder
+    user?: UserProfileOrderByWithRelationInput
+    contract?: ContractOrderByWithRelationInput
+  }
+
+  export type ClientJourneyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    contractId?: string
+    AND?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
+    OR?: ClientJourneyWhereInput[]
+    NOT?: ClientJourneyWhereInput | ClientJourneyWhereInput[]
+    userId?: StringFilter<"ClientJourney"> | string
+    ptId?: StringNullableFilter<"ClientJourney"> | string | null
+    programId?: StringNullableFilter<"ClientJourney"> | string | null
+    trainingCycleId?: StringNullableFilter<"ClientJourney"> | string | null
+    nutritionGoalId?: StringNullableFilter<"ClientJourney"> | string | null
+    goal?: StringFilter<"ClientJourney"> | string
+    experience?: StringFilter<"ClientJourney"> | string
+    ageBand?: StringNullableFilter<"ClientJourney"> | string | null
+    baselineWeight?: FloatFilter<"ClientJourney"> | number
+    baselineBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    baselineLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    trainingDays?: IntFilter<"ClientJourney"> | number
+    sessionMinutes?: IntFilter<"ClientJourney"> | number
+    constraints?: StringNullableListFilter<"ClientJourney">
+    durationWeeks?: IntFilter<"ClientJourney"> | number
+    sessionsPrescribed?: IntFilter<"ClientJourney"> | number
+    sessionsCompleted?: IntFilter<"ClientJourney"> | number
+    nutritionAdherence?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingWeight?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    strengthChangePercent?: FloatNullableFilter<"ClientJourney"> | number | null
+    goalAchievement?: StringNullableFilter<"ClientJourney"> | string | null
+    verificationStatus?: StringFilter<"ClientJourney"> | string
+    dataOrigin?: StringFilter<"ClientJourney"> | string
+    status?: StringFilter<"ClientJourney"> | string
+    startedAt?: DateTimeFilter<"ClientJourney"> | Date | string
+    endedAt?: DateTimeNullableFilter<"ClientJourney"> | Date | string | null
+    baselineSnapshot?: JsonNullableFilter<"ClientJourney">
+    user?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+    contract?: XOR<ContractNullableRelationFilter, ContractWhereInput> | null
+  }, "id" | "contractId">
+
+  export type ClientJourneyOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrderInput | SortOrder
+    contractId?: SortOrderInput | SortOrder
+    programId?: SortOrderInput | SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
+    nutritionGoalId?: SortOrderInput | SortOrder
+    goal?: SortOrder
+    experience?: SortOrder
+    ageBand?: SortOrderInput | SortOrder
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrderInput | SortOrder
+    baselineLeanMass?: SortOrderInput | SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    constraints?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrderInput | SortOrder
+    endingWeight?: SortOrderInput | SortOrder
+    endingBodyFat?: SortOrderInput | SortOrder
+    endingLeanMass?: SortOrderInput | SortOrder
+    strengthChangePercent?: SortOrderInput | SortOrder
+    goalAchievement?: SortOrderInput | SortOrder
+    verificationStatus?: SortOrder
+    dataOrigin?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    baselineSnapshot?: SortOrderInput | SortOrder
+    _count?: ClientJourneyCountOrderByAggregateInput
+    _avg?: ClientJourneyAvgOrderByAggregateInput
+    _max?: ClientJourneyMaxOrderByAggregateInput
+    _min?: ClientJourneyMinOrderByAggregateInput
+    _sum?: ClientJourneySumOrderByAggregateInput
+  }
+
+  export type ClientJourneyScalarWhereWithAggregatesInput = {
+    AND?: ClientJourneyScalarWhereWithAggregatesInput | ClientJourneyScalarWhereWithAggregatesInput[]
+    OR?: ClientJourneyScalarWhereWithAggregatesInput[]
+    NOT?: ClientJourneyScalarWhereWithAggregatesInput | ClientJourneyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ClientJourney"> | string
+    userId?: StringWithAggregatesFilter<"ClientJourney"> | string
+    ptId?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    contractId?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    programId?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    trainingCycleId?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    nutritionGoalId?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    goal?: StringWithAggregatesFilter<"ClientJourney"> | string
+    experience?: StringWithAggregatesFilter<"ClientJourney"> | string
+    ageBand?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    baselineWeight?: FloatWithAggregatesFilter<"ClientJourney"> | number
+    baselineBodyFat?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    baselineLeanMass?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    trainingDays?: IntWithAggregatesFilter<"ClientJourney"> | number
+    sessionMinutes?: IntWithAggregatesFilter<"ClientJourney"> | number
+    constraints?: StringNullableListFilter<"ClientJourney">
+    durationWeeks?: IntWithAggregatesFilter<"ClientJourney"> | number
+    sessionsPrescribed?: IntWithAggregatesFilter<"ClientJourney"> | number
+    sessionsCompleted?: IntWithAggregatesFilter<"ClientJourney"> | number
+    nutritionAdherence?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    endingWeight?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    endingBodyFat?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    endingLeanMass?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    strengthChangePercent?: FloatNullableWithAggregatesFilter<"ClientJourney"> | number | null
+    goalAchievement?: StringNullableWithAggregatesFilter<"ClientJourney"> | string | null
+    verificationStatus?: StringWithAggregatesFilter<"ClientJourney"> | string
+    dataOrigin?: StringWithAggregatesFilter<"ClientJourney"> | string
+    status?: StringWithAggregatesFilter<"ClientJourney"> | string
+    startedAt?: DateTimeWithAggregatesFilter<"ClientJourney"> | Date | string
+    endedAt?: DateTimeNullableWithAggregatesFilter<"ClientJourney"> | Date | string | null
+    baselineSnapshot?: JsonNullableWithAggregatesFilter<"ClientJourney">
+  }
+
+  export type AgentContractDraftWhereInput = {
+    AND?: AgentContractDraftWhereInput | AgentContractDraftWhereInput[]
+    OR?: AgentContractDraftWhereInput[]
+    NOT?: AgentContractDraftWhereInput | AgentContractDraftWhereInput[]
+    id?: StringFilter<"AgentContractDraft"> | string
+    userId?: StringFilter<"AgentContractDraft"> | string
+    ptId?: StringFilter<"AgentContractDraft"> | string
+    packageId?: StringFilter<"AgentContractDraft"> | string
+    snapshot?: JsonFilter<"AgentContractDraft">
+    status?: StringFilter<"AgentContractDraft"> | string
+    contractId?: StringNullableFilter<"AgentContractDraft"> | string | null
+    expiresAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+    createdAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+    user?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type AgentContractDraftOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    packageId?: SortOrder
+    snapshot?: SortOrder
+    status?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    user?: UserProfileOrderByWithRelationInput
+  }
+
+  export type AgentContractDraftWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentContractDraftWhereInput | AgentContractDraftWhereInput[]
+    OR?: AgentContractDraftWhereInput[]
+    NOT?: AgentContractDraftWhereInput | AgentContractDraftWhereInput[]
+    userId?: StringFilter<"AgentContractDraft"> | string
+    ptId?: StringFilter<"AgentContractDraft"> | string
+    packageId?: StringFilter<"AgentContractDraft"> | string
+    snapshot?: JsonFilter<"AgentContractDraft">
+    status?: StringFilter<"AgentContractDraft"> | string
+    contractId?: StringNullableFilter<"AgentContractDraft"> | string | null
+    expiresAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+    createdAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+    user?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type AgentContractDraftOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    packageId?: SortOrder
+    snapshot?: SortOrder
+    status?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: AgentContractDraftCountOrderByAggregateInput
+    _max?: AgentContractDraftMaxOrderByAggregateInput
+    _min?: AgentContractDraftMinOrderByAggregateInput
+  }
+
+  export type AgentContractDraftScalarWhereWithAggregatesInput = {
+    AND?: AgentContractDraftScalarWhereWithAggregatesInput | AgentContractDraftScalarWhereWithAggregatesInput[]
+    OR?: AgentContractDraftScalarWhereWithAggregatesInput[]
+    NOT?: AgentContractDraftScalarWhereWithAggregatesInput | AgentContractDraftScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentContractDraft"> | string
+    userId?: StringWithAggregatesFilter<"AgentContractDraft"> | string
+    ptId?: StringWithAggregatesFilter<"AgentContractDraft"> | string
+    packageId?: StringWithAggregatesFilter<"AgentContractDraft"> | string
+    snapshot?: JsonWithAggregatesFilter<"AgentContractDraft">
+    status?: StringWithAggregatesFilter<"AgentContractDraft"> | string
+    contractId?: StringNullableWithAggregatesFilter<"AgentContractDraft"> | string | null
+    expiresAt?: DateTimeWithAggregatesFilter<"AgentContractDraft"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"AgentContractDraft"> | Date | string
+  }
+
+  export type UserPreferenceWhereInput = {
+    AND?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    OR?: UserPreferenceWhereInput[]
+    NOT?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    userId?: StringFilter<"UserPreference"> | string
+    showRpeRir?: BoolFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolFilter<"UserPreference"> | boolean
+    showMacros?: BoolFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeFilter<"UserPreference"> | Date | string
+  }
+
+  export type UserPreferenceOrderByWithRelationInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    OR?: UserPreferenceWhereInput[]
+    NOT?: UserPreferenceWhereInput | UserPreferenceWhereInput[]
+    showRpeRir?: BoolFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolFilter<"UserPreference"> | boolean
+    showMacros?: BoolFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeFilter<"UserPreference"> | Date | string
+  }, "userId">
+
+  export type UserPreferenceOrderByWithAggregationInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UserPreferenceCountOrderByAggregateInput
+    _avg?: UserPreferenceAvgOrderByAggregateInput
+    _max?: UserPreferenceMaxOrderByAggregateInput
+    _min?: UserPreferenceMinOrderByAggregateInput
+    _sum?: UserPreferenceSumOrderByAggregateInput
+  }
+
+  export type UserPreferenceScalarWhereWithAggregatesInput = {
+    AND?: UserPreferenceScalarWhereWithAggregatesInput | UserPreferenceScalarWhereWithAggregatesInput[]
+    OR?: UserPreferenceScalarWhereWithAggregatesInput[]
+    NOT?: UserPreferenceScalarWhereWithAggregatesInput | UserPreferenceScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"UserPreference"> | string
+    showRpeRir?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    defaultRestSeconds?: IntWithAggregatesFilter<"UserPreference"> | number
+    keepScreenAwake?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    restTimerSound?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    restTimerVibration?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    smartPrefill?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    showMacros?: BoolWithAggregatesFilter<"UserPreference"> | boolean
+    updatedAt?: DateTimeWithAggregatesFilter<"UserPreference"> | Date | string
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -28506,6 +32752,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -28520,6 +32768,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
@@ -28555,6 +32808,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -28569,6 +32824,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
@@ -28604,6 +32864,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -28618,6 +32880,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
@@ -28653,6 +32920,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -28667,6 +32936,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
@@ -28702,6 +32976,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -28716,6 +32992,9 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
   }
 
   export type UserProfileUpdateManyMutationInput = {
@@ -28748,6 +33027,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -28762,6 +33043,9 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type UserProfileUncheckedUpdateManyInput = {
@@ -28794,6 +33078,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -28808,6 +33094,9 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type PTApplicationCreateInput = {
@@ -28864,6 +33153,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateCreateNestedManyWithoutApplicationInput
     media?: PTApplicationMediaCreateNestedManyWithoutApplicationInput
     userProfile: UserProfileCreateNestedOneWithoutPtApplicationInput
@@ -28924,6 +33214,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedCreateNestedManyWithoutApplicationInput
     media?: PTApplicationMediaUncheckedCreateNestedManyWithoutApplicationInput
   }
@@ -28982,6 +33273,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUpdateManyWithoutApplicationNestedInput
     media?: PTApplicationMediaUpdateManyWithoutApplicationNestedInput
     userProfile?: UserProfileUpdateOneRequiredWithoutPtApplicationNestedInput
@@ -29042,6 +33334,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedUpdateManyWithoutApplicationNestedInput
     media?: PTApplicationMediaUncheckedUpdateManyWithoutApplicationNestedInput
   }
@@ -29101,6 +33394,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
   }
 
   export type PTApplicationUpdateManyMutationInput = {
@@ -29157,6 +33451,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
   }
 
   export type PTApplicationUncheckedUpdateManyInput = {
@@ -29214,10 +33509,13 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
   }
 
   export type PTApplicationCertificateCreateInput = {
     id?: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -29232,6 +33530,8 @@ export namespace Prisma {
   export type PTApplicationCertificateUncheckedCreateInput = {
     id?: string
     applicationId: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -29244,6 +33544,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -29258,6 +33560,8 @@ export namespace Prisma {
   export type PTApplicationCertificateUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     applicationId?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -29271,6 +33575,8 @@ export namespace Prisma {
   export type PTApplicationCertificateCreateManyInput = {
     id?: string
     applicationId: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -29283,6 +33589,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -29296,6 +33604,8 @@ export namespace Prisma {
   export type PTApplicationCertificateUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     applicationId?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -29369,6 +33679,8 @@ export namespace Prisma {
   }
 
   export type ContractCreateInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -29425,12 +33737,15 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -29487,12 +33802,15 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractUpdateInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -29549,12 +33867,15 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -29611,12 +33932,15 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type ContractCreateManyInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -29676,6 +34000,8 @@ export namespace Prisma {
   }
 
   export type ContractUpdateManyMutationInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -29735,6 +34061,8 @@ export namespace Prisma {
   }
 
   export type ContractUncheckedUpdateManyInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -31346,6 +35674,409 @@ export namespace Prisma {
     settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type ClientJourneyCreateInput = {
+    id?: string
+    ptId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    user: UserProfileCreateNestedOneWithoutJourneysInput
+    contract?: ContractCreateNestedOneWithoutJourneysInput
+  }
+
+  export type ClientJourneyUncheckedCreateInput = {
+    id?: string
+    userId: string
+    ptId?: string | null
+    contractId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    user?: UserProfileUpdateOneRequiredWithoutJourneysNestedInput
+    contract?: ContractUpdateOneWithoutJourneysNestedInput
+  }
+
+  export type ClientJourneyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyCreateManyInput = {
+    id?: string
+    userId: string
+    ptId?: string | null
+    contractId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentContractDraftCreateInput = {
+    id?: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+    user: UserProfileCreateNestedOneWithoutAgentDraftsInput
+  }
+
+  export type AgentContractDraftUncheckedCreateInput = {
+    id?: string
+    userId: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type AgentContractDraftUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserProfileUpdateOneRequiredWithoutAgentDraftsNestedInput
+  }
+
+  export type AgentContractDraftUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentContractDraftCreateManyInput = {
+    id?: string
+    userId: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type AgentContractDraftUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentContractDraftUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceCreateInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUncheckedCreateInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceCreateManyInput = {
+    userId: string
+    showRpeRir?: boolean
+    defaultRestSeconds?: number
+    keepScreenAwake?: boolean
+    restTimerSound?: boolean
+    restTimerVibration?: boolean
+    smartPrefill?: boolean
+    showMacros?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type UserPreferenceUpdateManyMutationInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserPreferenceUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    showRpeRir?: BoolFieldUpdateOperationsInput | boolean
+    defaultRestSeconds?: IntFieldUpdateOperationsInput | number
+    keepScreenAwake?: BoolFieldUpdateOperationsInput | boolean
+    restTimerSound?: BoolFieldUpdateOperationsInput | boolean
+    restTimerVibration?: BoolFieldUpdateOperationsInput | boolean
+    smartPrefill?: BoolFieldUpdateOperationsInput | boolean
+    showMacros?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -31486,6 +36217,40 @@ export namespace Prisma {
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
+  export type JsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type ClientJourneyListRelationFilter = {
+    every?: ClientJourneyWhereInput
+    some?: ClientJourneyWhereInput
+    none?: ClientJourneyWhereInput
+  }
+
+  export type AgentContractDraftListRelationFilter = {
+    every?: AgentContractDraftWhereInput
+    some?: AgentContractDraftWhereInput
+    none?: AgentContractDraftWhereInput
+  }
 
   export type PTApplicationNullableRelationFilter = {
     is?: PTApplicationWhereInput | null
@@ -31507,6 +36272,14 @@ export namespace Prisma {
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
+  }
+
+  export type ClientJourneyOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentContractDraftOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type PTTrainingLocationOrderByRelationAggregateInput = {
@@ -31547,6 +36320,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    nutritionBudgetLevel?: SortOrder
+    region?: SortOrder
     unitSystem?: SortOrder
     energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -31561,6 +36336,9 @@ export namespace Prisma {
     specialties?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    dataOrigin?: SortOrder
+    goalIntent?: SortOrder
+    ptBudgetVnd?: SortOrder
   }
 
   export type UserProfileAvgOrderByAggregateInput = {
@@ -31571,6 +36349,7 @@ export namespace Prisma {
     targetWeight?: SortOrder
     startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
+    ptBudgetVnd?: SortOrder
   }
 
   export type UserProfileMaxOrderByAggregateInput = {
@@ -31599,6 +36378,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    nutritionBudgetLevel?: SortOrder
+    region?: SortOrder
     unitSystem?: SortOrder
     energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -31612,6 +36393,8 @@ export namespace Prisma {
     gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    dataOrigin?: SortOrder
+    ptBudgetVnd?: SortOrder
   }
 
   export type UserProfileMinOrderByAggregateInput = {
@@ -31640,6 +36423,8 @@ export namespace Prisma {
     startingWeightSource?: SortOrder
     dietaryPreference?: SortOrder
     photoUrl?: SortOrder
+    nutritionBudgetLevel?: SortOrder
+    region?: SortOrder
     unitSystem?: SortOrder
     energyUnit?: SortOrder
     sessionDurationMinutes?: SortOrder
@@ -31653,6 +36438,8 @@ export namespace Prisma {
     gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    dataOrigin?: SortOrder
+    ptBudgetVnd?: SortOrder
   }
 
   export type UserProfileSumOrderByAggregateInput = {
@@ -31663,6 +36450,7 @@ export namespace Prisma {
     targetWeight?: SortOrder
     startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
+    ptBudgetVnd?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -31834,21 +36622,14 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
-
-  export type EnumPTApplicationStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.PTApplicationStatus | EnumPTApplicationStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumPTApplicationStatusFilter<$PrismaModel> | $Enums.PTApplicationStatus
-  }
-  export type JsonNullableFilter<$PrismaModel = never> = 
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
     | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
       >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     string_contains?: string | StringFieldRefInput<$PrismaModel>
@@ -31862,6 +36643,16 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPTApplicationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PTApplicationStatus | EnumPTApplicationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPTApplicationStatusFilter<$PrismaModel> | $Enums.PTApplicationStatus
   }
 
   export type EnumServiceModeNullableFilter<$PrismaModel = never> = {
@@ -31951,6 +36742,7 @@ export namespace Prisma {
     approvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    languages?: SortOrder
   }
 
   export type PTApplicationAvgOrderByAggregateInput = {
@@ -32086,31 +36878,6 @@ export namespace Prisma {
     _min?: NestedEnumPTApplicationStatusFilter<$PrismaModel>
     _max?: NestedEnumPTApplicationStatusFilter<$PrismaModel>
   }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
-  }
 
   export type EnumServiceModeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ServiceMode | EnumServiceModeFieldRefInput<$PrismaModel> | null
@@ -32130,6 +36897,8 @@ export namespace Prisma {
   export type PTApplicationCertificateCountOrderByAggregateInput = {
     id?: SortOrder
     applicationId?: SortOrder
+    verificationStatus?: SortOrder
+    certificationNumber?: SortOrder
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
@@ -32143,6 +36912,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMaxOrderByAggregateInput = {
     id?: SortOrder
     applicationId?: SortOrder
+    verificationStatus?: SortOrder
+    certificationNumber?: SortOrder
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
@@ -32156,6 +36927,8 @@ export namespace Prisma {
   export type PTApplicationCertificateMinOrderByAggregateInput = {
     id?: SortOrder
     applicationId?: SortOrder
+    verificationStatus?: SortOrder
+    certificationNumber?: SortOrder
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
@@ -32298,6 +37071,8 @@ export namespace Prisma {
   }
 
   export type ContractCountOrderByAggregateInput = {
+    agentActionId?: SortOrder
+    dataOrigin?: SortOrder
     id?: SortOrder
     ptUserId?: SortOrder
     clientUserId?: SortOrder
@@ -32376,6 +37151,8 @@ export namespace Prisma {
   }
 
   export type ContractMaxOrderByAggregateInput = {
+    agentActionId?: SortOrder
+    dataOrigin?: SortOrder
     id?: SortOrder
     ptUserId?: SortOrder
     clientUserId?: SortOrder
@@ -32435,6 +37212,8 @@ export namespace Prisma {
   }
 
   export type ContractMinOrderByAggregateInput = {
+    agentActionId?: SortOrder
+    dataOrigin?: SortOrder
     id?: SortOrder
     ptUserId?: SortOrder
     clientUserId?: SortOrder
@@ -33631,6 +38410,266 @@ export namespace Prisma {
     _max?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
   }
 
+  export type ContractNullableRelationFilter = {
+    is?: ContractWhereInput | null
+    isNot?: ContractWhereInput | null
+  }
+
+  export type ClientJourneyCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    contractId?: SortOrder
+    programId?: SortOrder
+    trainingCycleId?: SortOrder
+    nutritionGoalId?: SortOrder
+    goal?: SortOrder
+    experience?: SortOrder
+    ageBand?: SortOrder
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrder
+    baselineLeanMass?: SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    constraints?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrder
+    endingWeight?: SortOrder
+    endingBodyFat?: SortOrder
+    endingLeanMass?: SortOrder
+    strengthChangePercent?: SortOrder
+    goalAchievement?: SortOrder
+    verificationStatus?: SortOrder
+    dataOrigin?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+    baselineSnapshot?: SortOrder
+  }
+
+  export type ClientJourneyAvgOrderByAggregateInput = {
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrder
+    baselineLeanMass?: SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrder
+    endingWeight?: SortOrder
+    endingBodyFat?: SortOrder
+    endingLeanMass?: SortOrder
+    strengthChangePercent?: SortOrder
+  }
+
+  export type ClientJourneyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    contractId?: SortOrder
+    programId?: SortOrder
+    trainingCycleId?: SortOrder
+    nutritionGoalId?: SortOrder
+    goal?: SortOrder
+    experience?: SortOrder
+    ageBand?: SortOrder
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrder
+    baselineLeanMass?: SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrder
+    endingWeight?: SortOrder
+    endingBodyFat?: SortOrder
+    endingLeanMass?: SortOrder
+    strengthChangePercent?: SortOrder
+    goalAchievement?: SortOrder
+    verificationStatus?: SortOrder
+    dataOrigin?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+  }
+
+  export type ClientJourneyMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    contractId?: SortOrder
+    programId?: SortOrder
+    trainingCycleId?: SortOrder
+    nutritionGoalId?: SortOrder
+    goal?: SortOrder
+    experience?: SortOrder
+    ageBand?: SortOrder
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrder
+    baselineLeanMass?: SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrder
+    endingWeight?: SortOrder
+    endingBodyFat?: SortOrder
+    endingLeanMass?: SortOrder
+    strengthChangePercent?: SortOrder
+    goalAchievement?: SortOrder
+    verificationStatus?: SortOrder
+    dataOrigin?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+  }
+
+  export type ClientJourneySumOrderByAggregateInput = {
+    baselineWeight?: SortOrder
+    baselineBodyFat?: SortOrder
+    baselineLeanMass?: SortOrder
+    trainingDays?: SortOrder
+    sessionMinutes?: SortOrder
+    durationWeeks?: SortOrder
+    sessionsPrescribed?: SortOrder
+    sessionsCompleted?: SortOrder
+    nutritionAdherence?: SortOrder
+    endingWeight?: SortOrder
+    endingBodyFat?: SortOrder
+    endingLeanMass?: SortOrder
+    strengthChangePercent?: SortOrder
+  }
+  export type JsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type AgentContractDraftCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    packageId?: SortOrder
+    snapshot?: SortOrder
+    status?: SortOrder
+    contractId?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentContractDraftMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    packageId?: SortOrder
+    status?: SortOrder
+    contractId?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentContractDraftMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ptId?: SortOrder
+    packageId?: SortOrder
+    status?: SortOrder
+    contractId?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type UserPreferenceCountOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceAvgOrderByAggregateInput = {
+    defaultRestSeconds?: SortOrder
+  }
+
+  export type UserPreferenceMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceMinOrderByAggregateInput = {
+    userId?: SortOrder
+    showRpeRir?: SortOrder
+    defaultRestSeconds?: SortOrder
+    keepScreenAwake?: SortOrder
+    restTimerSound?: SortOrder
+    restTimerVibration?: SortOrder
+    smartPrefill?: SortOrder
+    showMacros?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserPreferenceSumOrderByAggregateInput = {
+    defaultRestSeconds?: SortOrder
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -33651,6 +38690,20 @@ export namespace Prisma {
     set: string[]
   }
 
+  export type ClientJourneyCreateNestedManyWithoutUserInput = {
+    create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
+    createMany?: ClientJourneyCreateManyUserInputEnvelope
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+  }
+
+  export type AgentContractDraftCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput> | AgentContractDraftCreateWithoutUserInput[] | AgentContractDraftUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentContractDraftCreateOrConnectWithoutUserInput | AgentContractDraftCreateOrConnectWithoutUserInput[]
+    createMany?: AgentContractDraftCreateManyUserInputEnvelope
+    connect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+  }
+
   export type PTApplicationCreateNestedOneWithoutUserProfileInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
@@ -33669,6 +38722,20 @@ export namespace Prisma {
     connectOrCreate?: PTServicePackageCreateOrConnectWithoutPtProfileInput | PTServicePackageCreateOrConnectWithoutPtProfileInput[]
     createMany?: PTServicePackageCreateManyPtProfileInputEnvelope
     connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
+  }
+
+  export type ClientJourneyUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
+    createMany?: ClientJourneyCreateManyUserInputEnvelope
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+  }
+
+  export type AgentContractDraftUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput> | AgentContractDraftCreateWithoutUserInput[] | AgentContractDraftUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentContractDraftCreateOrConnectWithoutUserInput | AgentContractDraftCreateOrConnectWithoutUserInput[]
+    createMany?: AgentContractDraftCreateManyUserInputEnvelope
+    connect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
   }
 
   export type PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput = {
@@ -33780,6 +38847,34 @@ export namespace Prisma {
     set?: Date | string
   }
 
+  export type ClientJourneyUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
+    upsert?: ClientJourneyUpsertWithWhereUniqueWithoutUserInput | ClientJourneyUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ClientJourneyCreateManyUserInputEnvelope
+    set?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    disconnect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    delete?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    update?: ClientJourneyUpdateWithWhereUniqueWithoutUserInput | ClientJourneyUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ClientJourneyUpdateManyWithWhereWithoutUserInput | ClientJourneyUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
+  }
+
+  export type AgentContractDraftUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput> | AgentContractDraftCreateWithoutUserInput[] | AgentContractDraftUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentContractDraftCreateOrConnectWithoutUserInput | AgentContractDraftCreateOrConnectWithoutUserInput[]
+    upsert?: AgentContractDraftUpsertWithWhereUniqueWithoutUserInput | AgentContractDraftUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentContractDraftCreateManyUserInputEnvelope
+    set?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    disconnect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    delete?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    connect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    update?: AgentContractDraftUpdateWithWhereUniqueWithoutUserInput | AgentContractDraftUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentContractDraftUpdateManyWithWhereWithoutUserInput | AgentContractDraftUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentContractDraftScalarWhereInput | AgentContractDraftScalarWhereInput[]
+  }
+
   export type PTApplicationUpdateOneWithoutUserProfileNestedInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
@@ -33816,6 +38911,34 @@ export namespace Prisma {
     update?: PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput[]
     updateMany?: PTServicePackageUpdateManyWithWhereWithoutPtProfileInput | PTServicePackageUpdateManyWithWhereWithoutPtProfileInput[]
     deleteMany?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
+  }
+
+  export type ClientJourneyUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
+    upsert?: ClientJourneyUpsertWithWhereUniqueWithoutUserInput | ClientJourneyUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ClientJourneyCreateManyUserInputEnvelope
+    set?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    disconnect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    delete?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    update?: ClientJourneyUpdateWithWhereUniqueWithoutUserInput | ClientJourneyUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ClientJourneyUpdateManyWithWhereWithoutUserInput | ClientJourneyUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
+  }
+
+  export type AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput> | AgentContractDraftCreateWithoutUserInput[] | AgentContractDraftUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentContractDraftCreateOrConnectWithoutUserInput | AgentContractDraftCreateOrConnectWithoutUserInput[]
+    upsert?: AgentContractDraftUpsertWithWhereUniqueWithoutUserInput | AgentContractDraftUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentContractDraftCreateManyUserInputEnvelope
+    set?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    disconnect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    delete?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    connect?: AgentContractDraftWhereUniqueInput | AgentContractDraftWhereUniqueInput[]
+    update?: AgentContractDraftUpdateWithWhereUniqueWithoutUserInput | AgentContractDraftUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentContractDraftUpdateManyWithWhereWithoutUserInput | AgentContractDraftUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentContractDraftScalarWhereInput | AgentContractDraftScalarWhereInput[]
   }
 
   export type PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput = {
@@ -33873,6 +38996,10 @@ export namespace Prisma {
   }
 
   export type PTApplicationCreateavailableDaysInput = {
+    set: string[]
+  }
+
+  export type PTApplicationCreatelanguagesInput = {
     set: string[]
   }
 
@@ -33939,6 +39066,11 @@ export namespace Prisma {
   }
 
   export type PTApplicationUpdateavailableDaysInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type PTApplicationUpdatelanguagesInput = {
     set?: string[]
     push?: string | string[]
   }
@@ -34039,6 +39171,13 @@ export namespace Prisma {
     update?: XOR<XOR<PTApplicationUpdateToOneWithWhereWithoutMediaInput, PTApplicationUpdateWithoutMediaInput>, PTApplicationUncheckedUpdateWithoutMediaInput>
   }
 
+  export type ClientJourneyCreateNestedManyWithoutContractInput = {
+    create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
+    createMany?: ClientJourneyCreateManyContractInputEnvelope
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+  }
+
   export type SessionCreateNestedManyWithoutContractInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -34058,6 +39197,13 @@ export namespace Prisma {
     connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
     createMany?: ClientReviewCreateManyContractInputEnvelope
     connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+  }
+
+  export type ClientJourneyUncheckedCreateNestedManyWithoutContractInput = {
+    create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
+    createMany?: ClientJourneyCreateManyContractInputEnvelope
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
   }
 
   export type SessionUncheckedCreateNestedManyWithoutContractInput = {
@@ -34117,6 +39263,20 @@ export namespace Prisma {
     set?: $Enums.TerminationReason | null
   }
 
+  export type ClientJourneyUpdateManyWithoutContractNestedInput = {
+    create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
+    upsert?: ClientJourneyUpsertWithWhereUniqueWithoutContractInput | ClientJourneyUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: ClientJourneyCreateManyContractInputEnvelope
+    set?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    disconnect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    delete?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    update?: ClientJourneyUpdateWithWhereUniqueWithoutContractInput | ClientJourneyUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: ClientJourneyUpdateManyWithWhereWithoutContractInput | ClientJourneyUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
+  }
+
   export type SessionUpdateManyWithoutContractNestedInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -34157,6 +39317,20 @@ export namespace Prisma {
     update?: ClientReviewUpdateWithWhereUniqueWithoutContractInput | ClientReviewUpdateWithWhereUniqueWithoutContractInput[]
     updateMany?: ClientReviewUpdateManyWithWhereWithoutContractInput | ClientReviewUpdateManyWithWhereWithoutContractInput[]
     deleteMany?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+  }
+
+  export type ClientJourneyUncheckedUpdateManyWithoutContractNestedInput = {
+    create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
+    upsert?: ClientJourneyUpsertWithWhereUniqueWithoutContractInput | ClientJourneyUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: ClientJourneyCreateManyContractInputEnvelope
+    set?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    disconnect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    delete?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    connect?: ClientJourneyWhereUniqueInput | ClientJourneyWhereUniqueInput[]
+    update?: ClientJourneyUpdateWithWhereUniqueWithoutContractInput | ClientJourneyUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: ClientJourneyUpdateManyWithWhereWithoutContractInput | ClientJourneyUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
   }
 
   export type SessionUncheckedUpdateManyWithoutContractNestedInput = {
@@ -34641,6 +39815,59 @@ export namespace Prisma {
     set?: $Enums.SessionSettlementStatus
   }
 
+  export type ClientJourneyCreateconstraintsInput = {
+    set: string[]
+  }
+
+  export type UserProfileCreateNestedOneWithoutJourneysInput = {
+    create?: XOR<UserProfileCreateWithoutJourneysInput, UserProfileUncheckedCreateWithoutJourneysInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutJourneysInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type ContractCreateNestedOneWithoutJourneysInput = {
+    create?: XOR<ContractCreateWithoutJourneysInput, ContractUncheckedCreateWithoutJourneysInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutJourneysInput
+    connect?: ContractWhereUniqueInput
+  }
+
+  export type ClientJourneyUpdateconstraintsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutJourneysNestedInput = {
+    create?: XOR<UserProfileCreateWithoutJourneysInput, UserProfileUncheckedCreateWithoutJourneysInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutJourneysInput
+    upsert?: UserProfileUpsertWithoutJourneysInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutJourneysInput, UserProfileUpdateWithoutJourneysInput>, UserProfileUncheckedUpdateWithoutJourneysInput>
+  }
+
+  export type ContractUpdateOneWithoutJourneysNestedInput = {
+    create?: XOR<ContractCreateWithoutJourneysInput, ContractUncheckedCreateWithoutJourneysInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutJourneysInput
+    upsert?: ContractUpsertWithoutJourneysInput
+    disconnect?: ContractWhereInput | boolean
+    delete?: ContractWhereInput | boolean
+    connect?: ContractWhereUniqueInput
+    update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutJourneysInput, ContractUpdateWithoutJourneysInput>, ContractUncheckedUpdateWithoutJourneysInput>
+  }
+
+  export type UserProfileCreateNestedOneWithoutAgentDraftsInput = {
+    create?: XOR<UserProfileCreateWithoutAgentDraftsInput, UserProfileUncheckedCreateWithoutAgentDraftsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutAgentDraftsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutAgentDraftsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutAgentDraftsInput, UserProfileUncheckedCreateWithoutAgentDraftsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutAgentDraftsInput
+    upsert?: UserProfileUpsertWithoutAgentDraftsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutAgentDraftsInput, UserProfileUpdateWithoutAgentDraftsInput>, UserProfileUncheckedUpdateWithoutAgentDraftsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -34942,6 +40169,28 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type NestedEnumPTApplicationStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.PTApplicationStatus | EnumPTApplicationStatusFieldRefInput<$PrismaModel>
@@ -34965,28 +40214,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPTApplicationStatusFilter<$PrismaModel>
     _max?: NestedEnumPTApplicationStatusFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedEnumServiceModeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -35357,6 +40584,136 @@ export namespace Prisma {
     _min?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
     _max?: NestedEnumSessionSettlementStatusFilter<$PrismaModel>
   }
+  export type NestedJsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type ClientJourneyCreateWithoutUserInput = {
+    id?: string
+    ptId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    contract?: ContractCreateNestedOneWithoutJourneysInput
+  }
+
+  export type ClientJourneyUncheckedCreateWithoutUserInput = {
+    id?: string
+    ptId?: string | null
+    contractId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyCreateOrConnectWithoutUserInput = {
+    where: ClientJourneyWhereUniqueInput
+    create: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput>
+  }
+
+  export type ClientJourneyCreateManyUserInputEnvelope = {
+    data: ClientJourneyCreateManyUserInput | ClientJourneyCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgentContractDraftCreateWithoutUserInput = {
+    id?: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type AgentContractDraftUncheckedCreateWithoutUserInput = {
+    id?: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type AgentContractDraftCreateOrConnectWithoutUserInput = {
+    where: AgentContractDraftWhereUniqueInput
+    create: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentContractDraftCreateManyUserInputEnvelope = {
+    data: AgentContractDraftCreateManyUserInput | AgentContractDraftCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
 
   export type PTApplicationCreateWithoutUserProfileInput = {
     id?: string
@@ -35412,6 +40769,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateCreateNestedManyWithoutApplicationInput
     media?: PTApplicationMediaCreateNestedManyWithoutApplicationInput
   }
@@ -35470,6 +40828,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedCreateNestedManyWithoutApplicationInput
     media?: PTApplicationMediaUncheckedCreateNestedManyWithoutApplicationInput
   }
@@ -35561,6 +40920,90 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ClientJourneyUpsertWithWhereUniqueWithoutUserInput = {
+    where: ClientJourneyWhereUniqueInput
+    update: XOR<ClientJourneyUpdateWithoutUserInput, ClientJourneyUncheckedUpdateWithoutUserInput>
+    create: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput>
+  }
+
+  export type ClientJourneyUpdateWithWhereUniqueWithoutUserInput = {
+    where: ClientJourneyWhereUniqueInput
+    data: XOR<ClientJourneyUpdateWithoutUserInput, ClientJourneyUncheckedUpdateWithoutUserInput>
+  }
+
+  export type ClientJourneyUpdateManyWithWhereWithoutUserInput = {
+    where: ClientJourneyScalarWhereInput
+    data: XOR<ClientJourneyUpdateManyMutationInput, ClientJourneyUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type ClientJourneyScalarWhereInput = {
+    AND?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
+    OR?: ClientJourneyScalarWhereInput[]
+    NOT?: ClientJourneyScalarWhereInput | ClientJourneyScalarWhereInput[]
+    id?: StringFilter<"ClientJourney"> | string
+    userId?: StringFilter<"ClientJourney"> | string
+    ptId?: StringNullableFilter<"ClientJourney"> | string | null
+    contractId?: StringNullableFilter<"ClientJourney"> | string | null
+    programId?: StringNullableFilter<"ClientJourney"> | string | null
+    trainingCycleId?: StringNullableFilter<"ClientJourney"> | string | null
+    nutritionGoalId?: StringNullableFilter<"ClientJourney"> | string | null
+    goal?: StringFilter<"ClientJourney"> | string
+    experience?: StringFilter<"ClientJourney"> | string
+    ageBand?: StringNullableFilter<"ClientJourney"> | string | null
+    baselineWeight?: FloatFilter<"ClientJourney"> | number
+    baselineBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    baselineLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    trainingDays?: IntFilter<"ClientJourney"> | number
+    sessionMinutes?: IntFilter<"ClientJourney"> | number
+    constraints?: StringNullableListFilter<"ClientJourney">
+    durationWeeks?: IntFilter<"ClientJourney"> | number
+    sessionsPrescribed?: IntFilter<"ClientJourney"> | number
+    sessionsCompleted?: IntFilter<"ClientJourney"> | number
+    nutritionAdherence?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingWeight?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingBodyFat?: FloatNullableFilter<"ClientJourney"> | number | null
+    endingLeanMass?: FloatNullableFilter<"ClientJourney"> | number | null
+    strengthChangePercent?: FloatNullableFilter<"ClientJourney"> | number | null
+    goalAchievement?: StringNullableFilter<"ClientJourney"> | string | null
+    verificationStatus?: StringFilter<"ClientJourney"> | string
+    dataOrigin?: StringFilter<"ClientJourney"> | string
+    status?: StringFilter<"ClientJourney"> | string
+    startedAt?: DateTimeFilter<"ClientJourney"> | Date | string
+    endedAt?: DateTimeNullableFilter<"ClientJourney"> | Date | string | null
+    baselineSnapshot?: JsonNullableFilter<"ClientJourney">
+  }
+
+  export type AgentContractDraftUpsertWithWhereUniqueWithoutUserInput = {
+    where: AgentContractDraftWhereUniqueInput
+    update: XOR<AgentContractDraftUpdateWithoutUserInput, AgentContractDraftUncheckedUpdateWithoutUserInput>
+    create: XOR<AgentContractDraftCreateWithoutUserInput, AgentContractDraftUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentContractDraftUpdateWithWhereUniqueWithoutUserInput = {
+    where: AgentContractDraftWhereUniqueInput
+    data: XOR<AgentContractDraftUpdateWithoutUserInput, AgentContractDraftUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AgentContractDraftUpdateManyWithWhereWithoutUserInput = {
+    where: AgentContractDraftScalarWhereInput
+    data: XOR<AgentContractDraftUpdateManyMutationInput, AgentContractDraftUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type AgentContractDraftScalarWhereInput = {
+    AND?: AgentContractDraftScalarWhereInput | AgentContractDraftScalarWhereInput[]
+    OR?: AgentContractDraftScalarWhereInput[]
+    NOT?: AgentContractDraftScalarWhereInput | AgentContractDraftScalarWhereInput[]
+    id?: StringFilter<"AgentContractDraft"> | string
+    userId?: StringFilter<"AgentContractDraft"> | string
+    ptId?: StringFilter<"AgentContractDraft"> | string
+    packageId?: StringFilter<"AgentContractDraft"> | string
+    snapshot?: JsonFilter<"AgentContractDraft">
+    status?: StringFilter<"AgentContractDraft"> | string
+    contractId?: StringNullableFilter<"AgentContractDraft"> | string | null
+    expiresAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+    createdAt?: DateTimeFilter<"AgentContractDraft"> | Date | string
+  }
+
   export type PTApplicationUpsertWithoutUserProfileInput = {
     update: XOR<PTApplicationUpdateWithoutUserProfileInput, PTApplicationUncheckedUpdateWithoutUserProfileInput>
     create: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
@@ -35626,6 +41069,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUpdateManyWithoutApplicationNestedInput
     media?: PTApplicationMediaUpdateManyWithoutApplicationNestedInput
   }
@@ -35684,6 +41128,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedUpdateManyWithoutApplicationNestedInput
     media?: PTApplicationMediaUncheckedUpdateManyWithoutApplicationNestedInput
   }
@@ -35761,6 +41206,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateCreateWithoutApplicationInput = {
     id?: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -35773,6 +41220,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUncheckedCreateWithoutApplicationInput = {
     id?: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -35849,6 +41298,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -35863,6 +41314,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
   }
@@ -35897,6 +41353,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -35911,6 +41369,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
   }
@@ -35942,6 +41405,8 @@ export namespace Prisma {
     NOT?: PTApplicationCertificateScalarWhereInput | PTApplicationCertificateScalarWhereInput[]
     id?: StringFilter<"PTApplicationCertificate"> | string
     applicationId?: StringFilter<"PTApplicationCertificate"> | string
+    verificationStatus?: StringFilter<"PTApplicationCertificate"> | string
+    certificationNumber?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
@@ -36021,6 +41486,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -36035,6 +41502,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
   }
@@ -36069,6 +41541,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -36083,6 +41557,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
   }
@@ -36141,6 +41620,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     media?: PTApplicationMediaCreateNestedManyWithoutApplicationInput
     userProfile: UserProfileCreateNestedOneWithoutPtApplicationInput
   }
@@ -36200,6 +41680,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     media?: PTApplicationMediaUncheckedCreateNestedManyWithoutApplicationInput
   }
 
@@ -36273,6 +41754,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     media?: PTApplicationMediaUpdateManyWithoutApplicationNestedInput
     userProfile?: UserProfileUpdateOneRequiredWithoutPtApplicationNestedInput
   }
@@ -36332,6 +41814,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     media?: PTApplicationMediaUncheckedUpdateManyWithoutApplicationNestedInput
   }
 
@@ -36389,6 +41872,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateCreateNestedManyWithoutApplicationInput
     userProfile: UserProfileCreateNestedOneWithoutPtApplicationInput
   }
@@ -36448,6 +41932,7 @@ export namespace Prisma {
     approvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    languages?: PTApplicationCreatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedCreateNestedManyWithoutApplicationInput
   }
 
@@ -36521,6 +42006,7 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUpdateManyWithoutApplicationNestedInput
     userProfile?: UserProfileUpdateOneRequiredWithoutPtApplicationNestedInput
   }
@@ -36580,7 +42066,84 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    languages?: PTApplicationUpdatelanguagesInput | string[]
     certificates?: PTApplicationCertificateUncheckedUpdateManyWithoutApplicationNestedInput
+  }
+
+  export type ClientJourneyCreateWithoutContractInput = {
+    id?: string
+    ptId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    user: UserProfileCreateNestedOneWithoutJourneysInput
+  }
+
+  export type ClientJourneyUncheckedCreateWithoutContractInput = {
+    id?: string
+    userId: string
+    ptId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyCreateOrConnectWithoutContractInput = {
+    where: ClientJourneyWhereUniqueInput
+    create: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput>
+  }
+
+  export type ClientJourneyCreateManyContractInputEnvelope = {
+    data: ClientJourneyCreateManyContractInput | ClientJourneyCreateManyContractInput[]
+    skipDuplicates?: boolean
   }
 
   export type SessionCreateWithoutContractInput = {
@@ -36715,6 +42278,22 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ClientJourneyUpsertWithWhereUniqueWithoutContractInput = {
+    where: ClientJourneyWhereUniqueInput
+    update: XOR<ClientJourneyUpdateWithoutContractInput, ClientJourneyUncheckedUpdateWithoutContractInput>
+    create: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput>
+  }
+
+  export type ClientJourneyUpdateWithWhereUniqueWithoutContractInput = {
+    where: ClientJourneyWhereUniqueInput
+    data: XOR<ClientJourneyUpdateWithoutContractInput, ClientJourneyUncheckedUpdateWithoutContractInput>
+  }
+
+  export type ClientJourneyUpdateManyWithWhereWithoutContractInput = {
+    where: ClientJourneyScalarWhereInput
+    data: XOR<ClientJourneyUpdateManyMutationInput, ClientJourneyUncheckedUpdateManyWithoutContractInput>
+  }
+
   export type SessionUpsertWithWhereUniqueWithoutContractInput = {
     where: SessionWhereUniqueInput
     update: XOR<SessionUpdateWithoutContractInput, SessionUncheckedUpdateWithoutContractInput>
@@ -36824,6 +42403,8 @@ export namespace Prisma {
   }
 
   export type ContractCreateWithoutSessionsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -36880,11 +42461,14 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutSessionsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -36941,6 +42525,7 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
@@ -37046,6 +42631,8 @@ export namespace Prisma {
   }
 
   export type ContractUpdateWithoutSessionsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -37102,11 +42689,14 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutSessionsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -37163,6 +42753,7 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
   }
@@ -37331,6 +42922,8 @@ export namespace Prisma {
   }
 
   export type ContractCreateWithoutReviewsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -37387,11 +42980,14 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     sessions?: SessionCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutReviewsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -37448,6 +43044,7 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
   }
@@ -37546,6 +43143,8 @@ export namespace Prisma {
   }
 
   export type ContractUpdateWithoutReviewsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -37602,11 +43201,14 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     sessions?: SessionUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutReviewsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -37663,6 +43265,7 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
   }
@@ -37739,6 +43342,8 @@ export namespace Prisma {
   }
 
   export type ContractCreateWithoutClientReviewsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -37795,11 +43400,14 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutClientReviewsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
     id?: string
     ptUserId: string
     clientUserId: string
@@ -37856,6 +43464,7 @@ export namespace Prisma {
     slotsAtPurchase?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
   }
@@ -37954,6 +43563,8 @@ export namespace Prisma {
   }
 
   export type ContractUpdateWithoutClientReviewsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -38010,11 +43621,14 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutClientReviewsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
     id?: StringFieldUpdateOperationsInput | string
     ptUserId?: StringFieldUpdateOperationsInput | string
     clientUserId?: StringFieldUpdateOperationsInput | string
@@ -38071,6 +43685,7 @@ export namespace Prisma {
     slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
   }
@@ -38408,6 +44023,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -38422,6 +44039,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
   }
@@ -38456,6 +44078,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -38470,6 +44094,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
   }
@@ -38590,6 +44219,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -38604,6 +44235,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
   }
@@ -38638,6 +44274,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -38652,6 +44290,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
   }
@@ -38686,6 +44329,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -38700,6 +44345,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
   }
@@ -38734,6 +44384,8 @@ export namespace Prisma {
     startingWeightSource?: string | null
     dietaryPreference?: string | null
     photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
     unitSystem?: string
     energyUnit?: string
     sessionDurationMinutes?: number
@@ -38748,6 +44400,11 @@ export namespace Prisma {
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
   }
@@ -38798,6 +44455,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -38812,6 +44471,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
   }
@@ -38846,6 +44510,8 @@ export namespace Prisma {
     startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
     photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     unitSystem?: StringFieldUpdateOperationsInput | string
     energyUnit?: StringFieldUpdateOperationsInput | string
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
@@ -38860,6 +44526,11 @@ export namespace Prisma {
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
   }
@@ -39012,6 +44683,794 @@ export namespace Prisma {
     clientReview?: ClientReviewUncheckedUpdateOneWithoutSessionNestedInput
   }
 
+  export type UserProfileCreateWithoutJourneysInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutJourneysInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutJourneysInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutJourneysInput, UserProfileUncheckedCreateWithoutJourneysInput>
+  }
+
+  export type ContractCreateWithoutJourneysInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateWithoutJourneysInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractCreateOrConnectWithoutJourneysInput = {
+    where: ContractWhereUniqueInput
+    create: XOR<ContractCreateWithoutJourneysInput, ContractUncheckedCreateWithoutJourneysInput>
+  }
+
+  export type UserProfileUpsertWithoutJourneysInput = {
+    update: XOR<UserProfileUpdateWithoutJourneysInput, UserProfileUncheckedUpdateWithoutJourneysInput>
+    create: XOR<UserProfileCreateWithoutJourneysInput, UserProfileUncheckedCreateWithoutJourneysInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutJourneysInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutJourneysInput, UserProfileUncheckedUpdateWithoutJourneysInput>
+  }
+
+  export type UserProfileUpdateWithoutJourneysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutJourneysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type ContractUpsertWithoutJourneysInput = {
+    update: XOR<ContractUpdateWithoutJourneysInput, ContractUncheckedUpdateWithoutJourneysInput>
+    create: XOR<ContractCreateWithoutJourneysInput, ContractUncheckedCreateWithoutJourneysInput>
+    where?: ContractWhereInput
+  }
+
+  export type ContractUpdateToOneWithWhereWithoutJourneysInput = {
+    where?: ContractWhereInput
+    data: XOR<ContractUpdateWithoutJourneysInput, ContractUncheckedUpdateWithoutJourneysInput>
+  }
+
+  export type ContractUpdateWithoutJourneysInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateWithoutJourneysInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+  }
+
+  export type UserProfileCreateWithoutAgentDraftsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutAgentDraftsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutAgentDraftsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutAgentDraftsInput, UserProfileUncheckedCreateWithoutAgentDraftsInput>
+  }
+
+  export type UserProfileUpsertWithoutAgentDraftsInput = {
+    update: XOR<UserProfileUpdateWithoutAgentDraftsInput, UserProfileUncheckedUpdateWithoutAgentDraftsInput>
+    create: XOR<UserProfileCreateWithoutAgentDraftsInput, UserProfileUncheckedCreateWithoutAgentDraftsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutAgentDraftsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutAgentDraftsInput, UserProfileUncheckedUpdateWithoutAgentDraftsInput>
+  }
+
+  export type UserProfileUpdateWithoutAgentDraftsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutAgentDraftsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type ClientJourneyCreateManyUserInput = {
+    id?: string
+    ptId?: string | null
+    contractId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentContractDraftCreateManyUserInput = {
+    id?: string
+    ptId: string
+    packageId: string
+    snapshot: JsonNullValueInput | InputJsonValue
+    status?: string
+    contractId?: string | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
   export type PTTrainingLocationCreateManyPtProfileInput = {
     id?: string
     provinceCode: number
@@ -39041,6 +45500,138 @@ export namespace Prisma {
     archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type ClientJourneyUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    contract?: ContractUpdateOneWithoutJourneysNestedInput
+  }
+
+  export type ClientJourneyUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentContractDraftUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentContractDraftUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentContractDraftUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PTTrainingLocationUpdateWithoutPtProfileInput = {
@@ -39138,6 +45729,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateCreateManyApplicationInput = {
     id?: string
+    verificationStatus?: string
+    certificationNumber?: string | null
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
@@ -39158,6 +45751,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUpdateWithoutApplicationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -39170,6 +45765,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUncheckedUpdateWithoutApplicationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -39182,6 +45779,8 @@ export namespace Prisma {
 
   export type PTApplicationCertificateUncheckedUpdateManyWithoutApplicationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    certificationNumber?: NullableStringFieldUpdateOperationsInput | string | null
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
@@ -39214,6 +45813,39 @@ export namespace Prisma {
     fileUrl?: StringFieldUpdateOperationsInput | string
     label?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientJourneyCreateManyContractInput = {
+    id?: string
+    userId: string
+    ptId?: string | null
+    programId?: string | null
+    trainingCycleId?: string | null
+    nutritionGoalId?: string | null
+    goal: string
+    experience: string
+    ageBand?: string | null
+    baselineWeight: number
+    baselineBodyFat?: number | null
+    baselineLeanMass?: number | null
+    trainingDays: number
+    sessionMinutes: number
+    constraints?: ClientJourneyCreateconstraintsInput | string[]
+    durationWeeks: number
+    sessionsPrescribed: number
+    sessionsCompleted?: number
+    nutritionAdherence?: number | null
+    endingWeight?: number | null
+    endingBodyFat?: number | null
+    endingLeanMass?: number | null
+    strengthChangePercent?: number | null
+    goalAchievement?: string | null
+    verificationStatus?: string
+    dataOrigin?: string
+    status?: string
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type SessionCreateManyContractInput = {
@@ -39262,6 +45894,105 @@ export namespace Prisma {
     rating: number
     comment?: string | null
     createdAt?: Date | string
+  }
+
+  export type ClientJourneyUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    user?: UserProfileUpdateOneRequiredWithoutJourneysNestedInput
+  }
+
+  export type ClientJourneyUncheckedUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ClientJourneyUncheckedUpdateManyWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    programId?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionGoalId?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    experience?: StringFieldUpdateOperationsInput | string
+    ageBand?: NullableStringFieldUpdateOperationsInput | string | null
+    baselineWeight?: FloatFieldUpdateOperationsInput | number
+    baselineBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    baselineLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    trainingDays?: IntFieldUpdateOperationsInput | number
+    sessionMinutes?: IntFieldUpdateOperationsInput | number
+    constraints?: ClientJourneyUpdateconstraintsInput | string[]
+    durationWeeks?: IntFieldUpdateOperationsInput | number
+    sessionsPrescribed?: IntFieldUpdateOperationsInput | number
+    sessionsCompleted?: IntFieldUpdateOperationsInput | number
+    nutritionAdherence?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingBodyFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    endingLeanMass?: NullableFloatFieldUpdateOperationsInput | number | null
+    strengthChangePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    goalAchievement?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationStatus?: StringFieldUpdateOperationsInput | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineSnapshot?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type SessionUpdateWithoutContractInput = {
@@ -39753,6 +46484,18 @@ export namespace Prisma {
      * @deprecated Use SessionSettlementDefaultArgs instead
      */
     export type SessionSettlementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionSettlementDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ClientJourneyDefaultArgs instead
+     */
+    export type ClientJourneyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ClientJourneyDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AgentContractDraftDefaultArgs instead
+     */
+    export type AgentContractDraftArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AgentContractDraftDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use UserPreferenceDefaultArgs instead
+     */
+    export type UserPreferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserPreferenceDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

@@ -45,4 +45,4 @@ EXPOSE 3005
 # instead. Verified live: without exec, node stays running after SIGTERM
 # reaches the wrapper shell; with it, the shutdown handler fires and the
 # process exits 0.
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node dist/server.js"]
+CMD ["sh", "-c", "exec node dist/server.js"]

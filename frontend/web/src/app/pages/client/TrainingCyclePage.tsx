@@ -779,6 +779,17 @@ function CycleFeedbackSummaryCard({ cycleId }: { cycleId: string }) {
 // marks the recommendation reviewed, it does NOT itself activate any new
 // plan or schedule change.
 
+// confidenceScore/nutritionConfidence are internal deterministic heuristic
+// scores (data-quality × decision-strength), never a statistical
+// probability — always shown as a Cao/Trung bình/Thấp tier, never as a
+// raw "%" (Adaptive Roadmap Production Closure design doc §19-§23).
+function confidenceScoreTier(score: number): "HIGH" | "MEDIUM" | "LOW" {
+  if (score >= 0.7) return "HIGH";
+  if (score >= 0.4) return "MEDIUM";
+  return "LOW";
+}
+const CONFIDENCE_TIER_LABEL_VI: Record<string, string> = { HIGH: "Cao", MEDIUM: "Trung bình", LOW: "Thấp" };
+
 const ADAPTIVE_DECISION_CONFIG: Record<AdaptiveCycleDecision, { label: string; className: string }> = {
   KEEP: { label: "Giữ nguyên", className: "border-green-500/30 bg-green-500/5 text-green-400" },
   PROGRESS: { label: "Tăng tải", className: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
@@ -789,10 +800,11 @@ const ADAPTIVE_DECISION_CONFIG: Record<AdaptiveCycleDecision, { label: string; c
 };
 
 // Phase 2 — Adaptive Nutrition Decision Engine display config.
-type AdaptiveNutritionDecision = "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE";
+type AdaptiveNutritionDecision = "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "PROPOSE_DIET_BREAK" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE";
 const NUTRITION_DECISION_CONFIG: Record<AdaptiveNutritionDecision, { label: string; className: string }> = {
   KEEP_PLAN: { label: "Giữ nguyên dinh dưỡng", className: "border-green-500/30 bg-green-500/5 text-green-400" },
   PROPOSE_ADJUSTMENT: { label: "Đề xuất điều chỉnh", className: "border-amber-500/30 bg-amber-500/5 text-amber-400" },
+  PROPOSE_DIET_BREAK: { label: "Đề xuất nghỉ diet break", className: "border-sky-500/30 bg-sky-500/5 text-sky-400" },
   REQUEST_MORE_DATA: { label: "Cần thêm dữ liệu", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
   EARLY_REVIEW: { label: "Cần xem xét sớm", className: "border-orange-500/30 bg-orange-500/5 text-orange-400" },
   ESCALATE: { label: "Cần chuyên gia xem xét", className: "border-red-500/30 bg-red-500/5 text-red-400" },
@@ -805,6 +817,14 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
   const latestQuery = useQuery({
     queryKey: ["training-cycle", "assessment", "latest", cycleId],
     queryFn: () => trainingCycleService.getLatestAssessment(cycleId),
+    retry: false,
+  });
+
+  // Diet break / maintenance-phase modeling — "how close am I" progress,
+  // shown independently of whether a proposal actually exists yet.
+  const dietBreakStatusQuery = useQuery({
+    queryKey: ["training-cycle", "diet-break-status", cycleId],
+    queryFn: () => trainingCycleService.getDietBreakStatus(cycleId),
     retry: false,
   });
 
@@ -896,7 +916,9 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
             {cfg.label}
           </span>
           {assessment.confidenceScore != null && (
-            <span className="text-xs text-zinc-500">Độ tin cậy: {Math.round(assessment.confidenceScore * 100)}%</span>
+            <span className="text-xs text-zinc-500">
+              Độ tin cậy dữ liệu: {CONFIDENCE_TIER_LABEL_VI[confidenceScoreTier(assessment.confidenceScore)]}
+            </span>
           )}
         </div>
         <span className="text-[11px] text-zinc-600">Đánh giá lần {assessment.assessmentVersion}</span>
@@ -1004,7 +1026,9 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
               {nutritionCfg.label}
             </span>
             {assessment.nutritionConfidence && (
-              <span className="text-xs text-zinc-500">Độ tin cậy: {assessment.nutritionConfidence}</span>
+              <span className="text-xs text-zinc-500">
+                Độ tin cậy dữ liệu: {CONFIDENCE_TIER_LABEL_VI[assessment.nutritionConfidence] ?? assessment.nutritionConfidence}
+              </span>
             )}
           </div>
           <span className="text-[11px] text-zinc-600">Đề xuất dinh dưỡng</span>
@@ -1042,7 +1066,7 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
         )}
 
         {assessment.nutritionUserDecision === "PENDING" ? (
-          assessment.nutritionDecision === "PROPOSE_ADJUSTMENT" ? (
+          assessment.nutritionDecision === "PROPOSE_ADJUSTMENT" || assessment.nutritionDecision === "PROPOSE_DIET_BREAK" ? (
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1050,7 +1074,8 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
                 disabled={nutritionReviewMutation.isPending}
                 className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Áp dụng mục tiêu mới
+                <CheckCircle2 className="w-3.5 h-3.5" />{" "}
+                {assessment.nutritionDecision === "PROPOSE_DIET_BREAK" ? "Bắt đầu nghỉ diet break" : "Áp dụng mục tiêu mới"}
               </button>
               <button
                 type="button"
@@ -1082,6 +1107,26 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
         )}
       </div>
     )}
+
+    {/* Diet break / maintenance-phase modeling — progress toward
+        eligibility, shown only while nothing has actually been proposed
+        yet (once eligible, the real card above takes over). */}
+    {!nutritionCfg &&
+      dietBreakStatusQuery.data?.applicable &&
+      !dietBreakStatusQuery.data.eligible &&
+      dietBreakStatusQuery.data.weeksRemaining != null && (
+        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-3 flex items-center gap-2">
+          <span className="text-lg">🧊</span>
+          <p className="text-xs text-zinc-400">
+            Còn khoảng{" "}
+            <span className="text-zinc-200 font-semibold">
+              {dietBreakStatusQuery.data.weeksRemaining} tuần
+            </span>{" "}
+            nữa đến lần đề xuất nghỉ diet break tiếp theo (sau {dietBreakStatusQuery.data.thresholdWeeks} tuần cắt calo
+            liên tục).
+          </p>
+        </div>
+      )}
     </>
   );
 }

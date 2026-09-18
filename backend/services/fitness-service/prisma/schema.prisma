@@ -43,6 +43,40 @@ enum MovementType {
   STRETCH
 }
 
+enum FitnessRoadmapStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum RoadmapCreatorRole {
+  CLIENT
+  PT
+  AI
+  SYSTEM
+}
+
+enum RoadmapPhaseType {
+  FAT_LOSS
+  DIET_BREAK
+  MAINTENANCE
+  LEAN_GAIN
+  MINI_CUT
+  RECOMPOSITION
+  PERFORMANCE
+  RECOVERY
+}
+
+enum RoadmapPhaseStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  SKIPPED
+}
+
 model Exercise {
   id                    String        @id @default(uuid())
   exerciseName          String        @map("exercise_name")
@@ -445,10 +479,37 @@ model NutritionGoal {
   // runs for both modes, this field only distinguishes UI presentation and
   // whether the frontend shows the "why" explanation.
   goalMode     String    @default("RECOMMENDED") @map("goal_mode")
+  // The TrainingCycle this prescription belongs to (nullable — plain
+  // cross-reference, no formal relation, matching this schema's
+  // CycleAssessment.appliedNutritionGoalId convention in reverse). Set at
+  // creation time by nutrition-onboarding-bootstrap.service.ts (ONBOARDING)
+  // and by TrainingCycle's accept-nutrition-recommendation flow
+  // (AI_ADAPTIVE) so "which cycle produced this target" is answerable
+  // without inferring it from timestamps. A MANUAL/PT edit made outside any
+  // cycle context leaves this null — that is a legitimate state, not a bug.
+  trainingCycleId String? @map("training_cycle_id")
+  // Phase 2 (PT nutrition workflow) — ownership/traceability additions.
+  // Cross-service actor id (auth-service User.id — the PT's id for a
+  // triggeredBy=PT version, plain FK-by-value per this schema's house
+  // style for cross-service ids). Null for ONBOARDING/AI_ADAPTIVE (no
+  // single human actor) and for pre-existing rows.
+  createdByUserId  String? @map("created_by_user_id")
+  // The specific prior ACTIVE version this one supersedes — the append-
+  // only chain already makes this reconstructable from validFrom
+  // ordering, but an explicit pointer removes any ambiguity (e.g. two
+  // versions created in the same millisecond) and is what the PT
+  // "Current: X -> Proposed: Y" UI reads directly.
+  previousGoalId   String? @map("previous_goal_id")
+  // The CycleAssessment (if any) this version was created in response to
+  // — set for AI_ADAPTIVE (client-accepted) and PT MODIFY/APPROVE actions
+  // taken on a specific assessment; null for ONBOARDING and any edit made
+  // outside a cycle-review context.
+  sourceAssessmentId String? @map("source_assessment_id")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, status])
+  @@index([trainingCycleId])
   @@map("nutrition_goals")
 }
 
@@ -471,6 +532,7 @@ model BodyMetrics {
 
 // 💪 Workout Program Templates
 model WorkoutProgram {
+  agentActionId String? @unique @map("agent_action_id")
   id            String  @id @default(uuid())
   userId        String  @map("user_id")
   name          String // "Muscle Gain", "Cutting", etc.
@@ -620,6 +682,9 @@ model WorkoutProgramExerciseSetPrescription {
 // see the impact analysis's privacy audit) or exercise-group/superset
 // structure (disclosed simplification — see Scope decisions).
 model WorkoutProgramTemplate {
+  isPublic Boolean @default(false) @map("is_public")
+  dataOrigin String @default("REAL") @map("data_origin")
+  experienceLevel String? @map("experience_level")
   id                String   @id @default(uuid())
   createdByUserId   String   @map("created_by_user_id")
   name              String
@@ -693,6 +758,61 @@ model WorkoutSchedule {
   @@map("workout_schedules")
 }
 
+model FitnessRoadmap {
+  id                 String               @id @default(uuid())
+  userId             String               @map("user_id")
+  name               String
+  goalType           String               @map("goal_type")
+  status             FitnessRoadmapStatus @default(DRAFT)
+  plannedStartAt     DateTime             @map("planned_start_at")
+  plannedEndAt       DateTime?            @map("planned_end_at")
+  actualStartAt      DateTime?            @map("actual_start_at")
+  actualEndAt        DateTime?            @map("actual_end_at")
+  createdByUserId    String?              @map("created_by_user_id")
+  createdByRole      RoadmapCreatorRole   @default(CLIENT) @map("created_by_role")
+  sourceAssessmentId String?              @map("source_assessment_id")
+  targetMetrics      Json?                @map("target_metrics")
+  configuration      Json?
+  version            Int                  @default(1)
+  previousRoadmapId  String?              @map("previous_roadmap_id")
+  idempotencyKey     String?              @map("idempotency_key")
+  archivedAt         DateTime?            @map("archived_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  phases RoadmapPhase[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, status])
+  @@index([userId, plannedStartAt])
+  @@map("fitness_roadmaps")
+}
+
+model RoadmapPhase {
+  id              String             @id @default(uuid())
+  roadmapId       String             @map("roadmap_id")
+  phaseIndex      Int                @map("phase_index")
+  name            String
+  phaseType       RoadmapPhaseType   @map("phase_type")
+  status          RoadmapPhaseStatus @default(PLANNED)
+  plannedStartAt  DateTime           @map("planned_start_at")
+  plannedEndAt    DateTime           @map("planned_end_at")
+  actualStartAt   DateTime?          @map("actual_start_at")
+  actualEndAt     DateTime?          @map("actual_end_at")
+  objective       Json?
+  constraints     Json?
+  transitionRules Json?              @map("transition_rules")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  roadmap        FitnessRoadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  trainingCycles TrainingCycle[]
+
+  @@unique([roadmapId, phaseIndex])
+  @@index([roadmapId, status])
+  @@map("roadmap_phases")
+}
+
 // 📅 Monthly Training Cycle — continuous InBody/workout monitoring during the
 // cycle, deterministic pre-classification (progressSignals) at close, and an
 // AI-proposed decision (KEEP/ADJUST/NEW_PLAN) the user reviews before the
@@ -752,6 +872,8 @@ model TrainingCycle {
   baselineMetrics Json?     @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
   targetMetrics   Json?     @map("target_metrics") // user/PT-set targets for this cycle, optional
   configuration   Json? // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring
+  roadmapPhaseId  String?   @map("roadmap_phase_id")
+  sequenceInPhase Int?      @map("sequence_in_phase")
 
   sessions         WorkoutSchedule[]
   sessionFeedback  CycleSessionFeedback[]
@@ -759,12 +881,15 @@ model TrainingCycle {
   assessments      CycleAssessment[]
   feedbackSummary  CycleFeedbackSummary?
   feedbackAnalyses CycleFeedbackAnalysisAudit[]
+  roadmapPhase     RoadmapPhase?              @relation(fields: [roadmapPhaseId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@index([userId, startDate])
+  @@index([roadmapPhaseId])
+  @@unique([roadmapPhaseId, sequenceInPhase])
   @@map("training_cycles")
 }
 
@@ -820,14 +945,37 @@ model CycleAssessment {
   // never overrides nutritionDecision above, same rule as aiSummary/decision.
   nutritionAiHeadline           String?   @map("nutrition_ai_headline")
   nutritionAiExplanation        String?   @map("nutrition_ai_explanation")
-  nutritionUserDecision         String    @default("PENDING") @map("nutrition_user_decision") // PENDING | ACCEPTED | REJECTED
+  // PENDING | ACCEPTED | REJECTED | MODIFIED_BY_PT (Phase 2 PT workflow —
+  // a PT modifying the recommendation is a distinct outcome from a plain
+  // client ACCEPTED, since the applied NutritionGoal's numbers came from
+  // the PT's own patch, not straight from nutritionProposedChanges).
+  nutritionUserDecision         String    @default("PENDING") @map("nutrition_user_decision")
   nutritionReviewedAt           DateTime? @map("nutrition_reviewed_at")
+  // Cross-service actor id (auth-service User.id) of whoever actually
+  // claimed this review — the client themselves, or the managing PT.
+  // Null for legacy rows reviewed before this column existed.
+  nutritionReviewedByUserId     String?   @map("nutrition_reviewed_by_user_id")
+  // "CLIENT" | "PT" — who nutritionReviewedByUserId is, without a
+  // cross-service lookup just to render "Reviewed by your PT" in the UI.
+  nutritionReviewedByRole       String?   @map("nutrition_reviewed_by_role")
+  // PT's free-text note on a MODIFY/REJECT action (spec §IV "Add note").
+  nutritionPtNote               String?   @map("nutrition_pt_note")
   // Set only once nutritionUserDecision=ACCEPTED actually creates a new
   // NutritionGoal version — FK-by-value (no relation; NutritionGoal has no
   // back-reference to keep that model decoupled from the cycle-assessment
   // concept, matching this file's existing FK-by-value convention for
   // cross-concept references, e.g. RecommendationAudit.aiFeedbackAnalysisId).
   appliedNutritionGoalId        String?   @map("applied_nutrition_goal_id")
+
+  // Phase 3 — InBody Reassessment Signal (inbody-reassessment.service.ts).
+  // Atomic notify-once claim: set via a conditional `UPDATE ... WHERE
+  // notified_for_reassessment_at IS NULL`, never a plain write, so two
+  // near-simultaneous auto-triggers for the same cycle (e.g. a double-tap
+  // InBody submit) can never both send the CYCLE_REASSESSMENT_READY
+  // notification for the same assessment. Unrelated to the pre-existing
+  // real-time-only pushCycleAssessmentNotification, which has no such
+  // dedup and doesn't need one (it isn't retried/duplicated the same way).
+  notifiedForReassessmentAt DateTime? @map("notified_for_reassessment_at")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -894,7 +1042,7 @@ model CoachClientActionAudit {
   id           String   @id @default(uuid())
   ptUserId     String   @map("pt_user_id")
   clientUserId String   @map("client_user_id")
-  action       String // VIEW_CLIENT_SUMMARY | CREATE_AND_ASSIGN_PLAN
+  action       String // VIEW_CLIENT_SUMMARY | CREATE_AND_ASSIGN_PLAN | APPROVE_NUTRITION_RECOMMENDATION | MODIFY_NUTRITION_RECOMMENDATION | REJECT_NUTRITION_RECOMMENDATION
   metadata     Json? // action-specific detail (e.g. {programId, planName} for an assignment)
   createdAt    DateTime @default(now()) @map("created_at")
 

@@ -4,8 +4,10 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { profileController } from "../controllers/profile.controller";
 import { ptServicePackageController } from "../controllers/pt_service_package.controller";
 import { isLambdaRuntime } from "../utils/runtime.util";
+import agenticFitnessRoutes from "./agentic-fitness.routes";
 
 const router = Router();
+router.use("/agentic", agenticFitnessRoutes);
 
 // multer({dest: <string>}) constructs a DiskStorage engine that synchronously calls
 // `fs.mkdirSync(dest, { recursive: true })` INSIDE ITS OWN CONSTRUCTOR (see

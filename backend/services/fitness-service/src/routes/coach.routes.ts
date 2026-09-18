@@ -12,7 +12,42 @@ const router = Router();
 // layer, since it depends on the caller+clientId pair rather than a static
 // role check.
 router.get("/clients/:clientId/summary", authMiddleware, coachController.getClientSummary as any);
+// PT Coaching Workspace phase §23 — lazy-loaded InBody/progress, separate
+// from the always-loaded summary above (§32: load detailed sections on
+// tab activation, not up front).
+router.get("/clients/:clientId/progress", authMiddleware, coachController.getClientProgress as any);
 router.post("/clients/:clientId/plans", authMiddleware, coachController.createAndAssignPlan as any);
 router.post("/clients/:clientId/plan-draft", authMiddleware, coachController.generatePlanDraft as any);
+
+// Phase 2 — PT Approve/Modify/Reject on a client's AI nutrition
+// recommendation (spec §XXIII).
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/approve",
+  authMiddleware,
+  coachController.approveNutritionRecommendation as any,
+);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/reject",
+  authMiddleware,
+  coachController.rejectNutritionRecommendation as any,
+);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/modify",
+  authMiddleware,
+  coachController.modifyNutritionRecommendation as any,
+);
+// FitnessRoadmap PT-assisted integration (Phase E). A PT may only view a
+// client's current roadmap and create a new DRAFT for later client review
+// — never activate/advance/rebuild/archive it directly (those stay
+// 100% client-initiated, same as an AI-generated draft).
+router.get("/clients/:clientId/roadmap", authMiddleware, coachController.getClientRoadmap as any);
+router.post("/clients/:clientId/roadmap/draft", authMiddleware, coachController.createRoadmapDraft as any);
+
+// Diet break / maintenance-phase modeling — PT-initiated trigger (2026-09-07).
+router.post(
+  "/clients/:clientId/cycles/:cycleId/nutrition-recommendation/trigger-diet-break",
+  authMiddleware,
+  coachController.triggerDietBreakRecommendation as any,
+);
 
 export default router;

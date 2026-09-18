@@ -12,13 +12,17 @@
  */
 import { prisma } from "../repositories/prisma";
 import { logger } from "@gym-coach/shared";
-import { isActivePtClientRelationship, fetchUserProfile } from "../clients/user.client";
+import { isActivePtClientRelationship, fetchUserProfile, fetchInBodyHistory } from "../clients/user.client";
 import { generateClientPlanDraftSafe } from "../clients/ai.client";
-import { trainingCycleService } from "./training-cycle.service";
+import { trainingCycleService, findAssessmentForNutritionReview } from "./training-cycle.service";
 import { cycleFeedbackAggregator } from "./cycle-feedback-aggregator";
 import { workoutService } from "./workout.service";
 import { createPersistentNotification } from "../clients/notification.client";
+import { nutritionRepository } from "../repositories/nutrition.repository";
+import { fitnessRoadmapService } from "./fitness-roadmap.service";
+import { nutritionGoalPlanConsistencyService } from "./nutrition-goal-plan-consistency.service";
 import type { CreateManualProgramDto } from "../models/fitness.models";
+import type { CreateFitnessRoadmapInput } from "../models/fitness-roadmap.models";
 
 /** Indirection point for tests — mutating this object's method (the same
  * pattern ai-service's cycle-assessment.test.ts uses for llmService.callLLM/
@@ -61,6 +65,97 @@ export const coachService = {
       priorDecisions = await trainingCycleService.getPriorCycleDecisions(clientUserId, activeCycle.cycle.id);
     }
 
+    // AI Nutrition Cycle Engine (Gymini) — spec §XXIII: a PT must be able to
+    // see a client's current nutrition target and the AI's latest nutrition
+    // recommendation from the SAME summary call, not a separate page/round
+    // trip. Never blocks the rest of this summary if either lookup fails.
+    let nutrition: {
+      activeGoal: Awaited<ReturnType<typeof nutritionRepository.findGoalByUserId>>;
+      // §19 of the PT Coaching Workspace phase — the actual meal plan
+      // (distinct from the goal/target), so a PT isn't limited to
+      // "what should they eat" without ever seeing "what are they
+      // actually following." Read-only — never duplicates the client's
+      // own nutrition engine.
+      activeProgram: {
+        id: string; name: string; dailyCaloriesTarget: number | null;
+        proteinTargetGrams: number | null; carbTargetGrams: number | null; fatTargetGrams: number | null;
+        sourceGoalId: string | null; createdAt: Date;
+      } | null;
+      consistency: Awaited<ReturnType<typeof nutritionGoalPlanConsistencyService.compute>> | null;
+      latestNutritionDecision: {
+        assessmentId: string | null;
+        decision: string | null;
+        confidence: string | null;
+        headline: string | null;
+        explanation: string | null;
+        userDecision: string;
+        reviewedAt: Date | null;
+        reviewedByRole: string | null;
+        ptNote: string | null;
+        // Phase 2 PT workflow — true only when there's a real, still-
+        // actionable proposal (PENDING + proposedChanges present) for this
+        // PT to Approve/Modify/Reject; false for KEEP_PLAN-type decisions
+        // (nothing to act on) or an already-reviewed one.
+        canPtAct: boolean;
+      } | null;
+    } = { activeGoal: null, activeProgram: null, consistency: null, latestNutritionDecision: null };
+    try {
+      nutrition.activeGoal = await nutritionRepository.findGoalByUserId(clientUserId);
+      nutrition.activeProgram = await prisma.nutritionProgram.findFirst({
+        where: { userId: clientUserId, status: "ACTIVE" },
+        select: {
+          id: true, name: true, dailyCaloriesTarget: true, proteinTargetGrams: true,
+          carbTargetGrams: true, fatTargetGrams: true, sourceGoalId: true, createdAt: true,
+        },
+      });
+      nutrition.consistency = await nutritionGoalPlanConsistencyService.compute(clientUserId);
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, clientUserId }, "[coach] client nutrition goal lookup failed");
+    }
+
+    // §21 — training-side CycleAssessment reasoning. Reuses the exact
+    // fields the client's own Journey UI reads (decision, aiSummary,
+    // reasonCodes, confidenceScore) — never the LLM's raw chain-of-
+    // thought, never a second decision engine.
+    let latestAssessment: {
+      decision: string | null; aiSummary: string | null; reasonCodes: unknown; confidenceScore: number | null;
+    } | null = null;
+    if (activeCycle) {
+      try {
+        const assessment = await prisma.cycleAssessment.findFirst({
+          where: { cycleId: activeCycle.cycle.id, status: "COMPLETED" },
+          orderBy: { assessmentVersion: "desc" },
+          select: { decision: true, aiSummary: true, reasonCodes: true, confidenceScore: true },
+        });
+        if (assessment) latestAssessment = assessment;
+      } catch (err: any) {
+        logger.warn({ err: err?.message, clientUserId }, "[coach] client latest training assessment lookup failed");
+      }
+    }
+    if (activeCycle) {
+      try {
+        const assessment = await findAssessmentForNutritionReview(activeCycle.cycle.id);
+        if (assessment?.nutritionDecision) {
+          nutrition.latestNutritionDecision = {
+            assessmentId: assessment.id,
+            decision: assessment.nutritionDecision,
+            confidence: assessment.nutritionConfidence,
+            headline: assessment.nutritionAiHeadline,
+            explanation: assessment.nutritionAiExplanation,
+            userDecision: assessment.nutritionUserDecision,
+            reviewedAt: assessment.nutritionReviewedAt,
+            reviewedByRole: assessment.nutritionReviewedByRole,
+            ptNote: assessment.nutritionPtNote,
+            canPtAct:
+              assessment.nutritionUserDecision === "PENDING" &&
+              assessment.nutritionProposedChanges != null,
+          };
+        }
+      } catch (err: any) {
+        logger.warn({ err: err?.message, clientUserId }, "[coach] client latest assessment lookup failed");
+      }
+    }
+
     try {
       await prisma.coachClientActionAudit.create({
         data: {
@@ -82,7 +177,116 @@ export const coachService = {
       cycleSummary: activeCycle?.summary ?? null,
       feedbackSummary,
       priorDecisions,
+      latestAssessment,
+      nutrition,
     };
+  },
+
+  // ── Phase 2 — PT Approve/Modify/Reject on a client's AI nutrition
+  // recommendation (spec §XXIII / PT workflow §IV). All three re-verify
+  // the active PT-client relationship AND that the cycle actually belongs
+  // to this client (trainingCycleService.ptReviewNutritionRecommendation's
+  // own ownership check) — a PT can never act on a client they don't
+  // manage, and never on someone else's cycle by guessing an id. ──
+
+  async approveNutritionRecommendation(ptUserId: string, clientUserId: string, cycleId: string, assessmentId?: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.ptReviewNutritionRecommendation(
+      ptUserId,
+      clientUserId,
+      cycleId,
+      "ACCEPTED",
+      { assessmentId },
+    );
+    await this.recordPtNutritionAction(ptUserId, clientUserId, "APPROVE_NUTRITION_RECOMMENDATION", cycleId);
+    return result;
+  },
+
+  async rejectNutritionRecommendation(
+    ptUserId: string,
+    clientUserId: string,
+    cycleId: string,
+    assessmentId?: string,
+    note?: string,
+  ) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.ptReviewNutritionRecommendation(
+      ptUserId,
+      clientUserId,
+      cycleId,
+      "REJECTED",
+      { assessmentId, ptNote: note },
+    );
+    await this.recordPtNutritionAction(ptUserId, clientUserId, "REJECT_NUTRITION_RECOMMENDATION", cycleId);
+    await createPersistentNotification({
+      userId: clientUserId,
+      text: "PT của bạn đã từ chối đề xuất dinh dưỡng của AI. Mục tiêu hiện tại được giữ nguyên.",
+      eventType: "NUTRITION_PLAN_READY",
+      entityId: cycleId,
+      link: "/client/nutrition",
+    });
+    return result;
+  },
+
+  /** MODIFY creates a NEW NutritionGoal version from the PT's own patch —
+   * never a straight application of the AI's proposedChanges (spec
+   * example: AI proposes 1900 kcal, PT modifies to 1950 kcal — the PT's
+   * number is what gets applied, `triggeredBy: "PT"`, `createdByUserId`
+   * set to this PT). */
+  async modifyNutritionRecommendation(
+    ptUserId: string,
+    clientUserId: string,
+    cycleId: string,
+    modifiedGoal: { calories: number; protein: number; carbs: number; fat: number },
+    assessmentId?: string,
+    note?: string,
+  ) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.ptReviewNutritionRecommendation(
+      ptUserId,
+      clientUserId,
+      cycleId,
+      "MODIFIED_BY_PT",
+      { assessmentId, modifiedGoal, ptNote: note },
+    );
+    await this.recordPtNutritionAction(ptUserId, clientUserId, "MODIFY_NUTRITION_RECOMMENDATION", cycleId);
+    await createPersistentNotification({
+      userId: clientUserId,
+      text: `PT của bạn đã điều chỉnh mục tiêu dinh dưỡng: ${modifiedGoal.calories} kcal, ${Math.round(modifiedGoal.protein)}g protein.`,
+      eventType: "NUTRITION_PLAN_READY",
+      entityId: cycleId,
+      link: "/client/nutrition",
+    });
+    return result;
+  },
+
+  /** Diet break / maintenance-phase modeling — PT-initiated trigger
+   * (2026-09-07). See trainingCycleService.triggerDietBreakRecommendation's
+   * own doc comment for why this is a real new PENDING assessment (still
+   * client-confirmable, not a unilateral PT overwrite) rather than a
+   * Modify-action shortcut. */
+  async triggerDietBreakRecommendation(ptUserId: string, clientUserId: string, cycleId: string, note?: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.triggerDietBreakRecommendation(ptUserId, clientUserId, cycleId, note);
+    await this.recordPtNutritionAction(ptUserId, clientUserId, "TRIGGER_DIET_BREAK_RECOMMENDATION", cycleId);
+    await createPersistentNotification({
+      userId: clientUserId,
+      text: "PT của bạn vừa đề xuất một khoảng nghỉ diet break. Xem chi tiết và xác nhận.",
+      eventType: "NUTRITION_PLAN_READY",
+      entityId: cycleId,
+      link: "/client/workout",
+    });
+    return result;
+  },
+
+  async recordPtNutritionAction(ptUserId: string, clientUserId: string, action: string, cycleId: string) {
+    try {
+      await prisma.coachClientActionAudit.create({
+        data: { ptUserId, clientUserId, action, metadata: { cycleId } as any },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] PT nutrition action audit write failed");
+    }
   },
 
   /** Creates a manual workout program directly for the client (reuses
@@ -222,5 +426,88 @@ export const coachService = {
     }));
 
     return { ...draft, days: daysWithNames };
+  },
+
+  // ── FitnessRoadmap PT-assisted integration (Phase E) ──────────────────
+  // Reuses the exact same relationship check every other PT action in this
+  // file already requires (fresh, per-request, fail-closed) and the exact
+  // same fitnessRoadmapService a client's own roadmap routes call — no
+  // parallel PT-specific roadmap logic. A PT never gets write access to a
+  // roadmap's active lifecycle transitions (activate/advance/rebuild/
+  // archive stay 100% client-initiated); a PT may only view a client's
+  // current roadmap and create a new DRAFT for the client's later review,
+  // attributed to createdByRole="PT" — the client alone decides to activate
+  // it, exactly like an AI draft the client alone decides to accept.
+
+  // Returns BOTH the client's current ACTIVE roadmap and their pending
+  // (not-yet-activated) DRAFT, if either exists — a single call, not two
+  // overlapping routes. Without this, a PT could not tell "client has no
+  // roadmap at all" apart from "client already has a draft waiting on
+  // their own review," and could be misled into offering to create a
+  // redundant second draft (closed by createDraftRoadmap's single-pending-
+  // draft policy anyway, but surfacing the existing one directly here is
+  // the correct UX, not just a safety net).
+  async getClientRoadmap(ptUserId: string, clientUserId: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+
+    async function fetchOrNull(fn: () => Promise<unknown>) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        if (err?.status === 404) return null; // normal "none yet" state, not an error
+        throw err;
+      }
+    }
+
+    const [activeRoadmap, pendingDraft] = await Promise.all([
+      fetchOrNull(() => fitnessRoadmapService.getCurrentRoadmap(clientUserId)),
+      fetchOrNull(() => fitnessRoadmapService.getCurrentDraftRoadmap(clientUserId)),
+    ]);
+    return { activeRoadmap, pendingDraft };
+  },
+
+  async createRoadmapDraftForClient(ptUserId: string, clientUserId: string, input: CreateFitnessRoadmapInput) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    return fitnessRoadmapService.createDraftRoadmap(clientUserId, input, "PT");
+  },
+
+  /** §23/§32 — a client's InBody/measurement trend, lazy-loaded only when
+   * the PT opens the Progress tab (never bundled into getClientSummary,
+   * so the always-loaded Overview call stays cheap). Reuses the exact
+   * same fetchInBodyHistory the client's own TrainingCycle baseline
+   * computation already calls — no second InBody read path, no new
+   * cross-service wiring. Deliberately re-checks the STRICT ACTIVE-only
+   * relationship gate here (not the looser "active or completed" check
+   * user-service's own GET /inbody/client/:clientUserId uses for a
+   * different purpose) — consistent with every other PT coaching
+   * surface in this file, and with this phase's own explicit "reuse the
+   * active relationship gate" instruction for InBody access.
+   * Over-fetching guard: only weight/bodyFatPct/muscleMass/date and only
+   * the 8 most recent entries — never the client's full raw history/
+   * photos/other private profile fields. */
+  async getClientProgress(ptUserId: string, clientUserId: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+
+    const history = await fetchInBodyHistory(clientUserId);
+    const sorted = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const recent = sorted.slice(0, 8).map((e) => ({
+      date: e.date,
+      weight: e.weight,
+      bodyFatPct: e.bodyFatPct,
+      muscleMass: e.muscleMass,
+    }));
+
+    try {
+      await prisma.coachClientActionAudit.create({
+        data: { ptUserId, clientUserId, action: "VIEW_CLIENT_PROGRESS", metadata: { entryCount: recent.length } as any },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] client-progress audit write failed");
+    }
+
+    return {
+      latest: recent[0] ?? null,
+      recent,
+    };
   },
 };

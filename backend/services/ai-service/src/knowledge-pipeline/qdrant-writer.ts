@@ -1,6 +1,7 @@
 import { logger } from "@gym-coach/shared";
-import { getQdrantClient } from "../repositories/qdrant";
+import { assertEmbeddingDimension } from "../services/embedding-config";
 import { llmService } from "../services/llm.service";
+import { getVectorStore } from "../vector-store/provider";
 import { chunkText } from "./chunking";
 import { KNOWLEDGE_PIPELINE } from "./config";
 import { stableUuid } from "./hash";
@@ -14,43 +15,49 @@ export type SemanticDuplicateMatch = {
   title: string | null;
 };
 
-async function ensureEvidenceCollection(): Promise<void> {
-  const client = getQdrantClient();
-  try {
-    await client.getCollection(KNOWLEDGE_PIPELINE.collection);
-  } catch {
-    await client.createCollection(KNOWLEDGE_PIPELINE.collection, {
-      vectors: { size: KNOWLEDGE_PIPELINE.vectorSize, distance: "Cosine" },
-    });
+/**
+ * Creates the knowledge collection at the configured vector size
+ * (KNOWLEDGE_VECTOR_SIZE) when missing, and throws
+ * VectorDimensionMismatchError when an existing collection has a different
+ * size — so a 768-dim collection is never written with 1024-dim vectors (or
+ * the reverse). The existing collection is never deleted or recreated here.
+ */
+async function ensureEvidenceCollection(): Promise<number> {
+  const store = getVectorStore();
+  const { size, created } = await store.ensureIndex(
+    KNOWLEDGE_PIPELINE.collection,
+    KNOWLEDGE_PIPELINE.vectorSize,
+  );
+  if (created) {
     logger.info(
-      { collection: KNOWLEDGE_PIPELINE.collection },
-      "Created knowledge Qdrant collection",
+      { provider: store.provider, index: KNOWLEDGE_PIPELINE.collection, vectorSize: size },
+      "Created knowledge vector index",
     );
   }
+  return size;
 }
 
 export async function findSemanticDuplicateDocument(
   documentId: string,
   doc: ProcessedKnowledgeDocument,
 ): Promise<SemanticDuplicateMatch | null> {
-  await ensureEvidenceCollection();
+  const collectionSize = await ensureEvidenceCollection();
 
   try {
+    // Document-to-document similarity: both sides are stored documents.
     const vector = await llmService.generateEmbedding(
       [doc.title, doc.cleanText.slice(0, 1800), doc.tags.join(" ")].join("\n"),
+      { inputType: "search_document" },
     );
+    assertEmbeddingDimension(vector, collectionSize);
 
-    const matches = await getQdrantClient().search(
-      KNOWLEDGE_PIPELINE.collection,
-      {
-        vector,
-        limit: 3,
-        with_payload: true,
-      },
-    );
+    const matches = await getVectorStore().search(KNOWLEDGE_PIPELINE.collection, {
+      vector,
+      limit: 3,
+    });
 
     for (const match of matches) {
-      const score = typeof match.score === "number" ? match.score : 0;
+      const score = match.similarity;
       const payload = (match.payload ?? {}) as Record<string, unknown>;
       const matchedDocumentId = payload.document_id
         ? String(payload.document_id)
@@ -59,7 +66,7 @@ export async function findSemanticDuplicateDocument(
       if (score >= KNOWLEDGE_PIPELINE.semanticDuplicateThreshold) {
         return {
           score,
-          vectorId: String(match.id),
+          vectorId: match.id,
           documentId: matchedDocumentId,
           title: payload.title ? String(payload.title) : null,
         };
@@ -77,7 +84,7 @@ export async function embedAndUpsertDocument(
   doc: ProcessedKnowledgeDocument,
   source: KnowledgeSource,
 ): Promise<number> {
-  await ensureEvidenceCollection();
+  const collectionSize = await ensureEvidenceCollection();
   await knowledgeRepository.deleteChunksForDocument(documentId);
 
   const chunks = chunkText(doc.cleanText);
@@ -88,15 +95,17 @@ export async function embedAndUpsertDocument(
     const vectorId = stableUuid(`${doc.contentHash}:${index}`);
     const vector = await llmService.generateEmbedding(
       [doc.title, chunk.text, doc.tags.join(" ")].join("\n"),
+      { inputType: "search_document" },
     );
+    // Guards every provider, including Ollama, whose model is not pinned to a
+    // known size the way Bedrock Cohere is.
+    assertEmbeddingDimension(vector, collectionSize);
 
-    await getQdrantClient().upsert(KNOWLEDGE_PIPELINE.collection, {
-      wait: true,
-      points: [
-        {
-          id: vectorId,
-          vector,
-          payload: {
+    await getVectorStore().upsert(KNOWLEDGE_PIPELINE.collection, [
+      {
+        id: vectorId,
+        vector,
+        payload: {
             title: doc.title,
             source_type: doc.sourceType ?? "curated_summary",
             category: doc.topic.toLowerCase(),
@@ -119,10 +128,9 @@ export async function embedAndUpsertDocument(
             quality_score: doc.qualityScore,
             language: doc.language,
             published_at: doc.publishedAt?.toISOString() ?? null,
-          },
         },
-      ],
-    });
+      },
+    ]);
 
     await knowledgeRepository.insertChunk(
       documentId,

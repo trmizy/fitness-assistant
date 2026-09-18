@@ -34,17 +34,16 @@
  */
 
 import { QdrantClient } from "@qdrant/js-client-rest";
-import axios from "axios";
+import { EMBEDDING_MODEL, llmService } from "../../services/llm.service";
+import { EMBEDDING_VECTOR_SIZE } from "../../services/embedding-config";
+import { ensureCollectionDimension } from "../../repositories/qdrant-collection";
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
 const QDRANT_HOST = process.env.QDRANT_HOST || "localhost";
 const QDRANT_PORT = process.env.QDRANT_PORT || "6333";
-const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "nomic-embed-text";
 const COLLECTION = "fitness_evidence";
-const VECTOR_SIZE = 768;
 const CREATED_FROM = "training_methods_manual_dataset";
 
 const ROOT = path.resolve(process.cwd(), "..", "..", "..", "data");
@@ -169,16 +168,13 @@ export function mapTrainingMethodToPoint(record: TrainingMethodRecord): Training
 
 // ── IO (embed + upsert) ─────────────────────────────────────────────────────
 
+/** Stored-document embedding through the configured EMBEDDING_PROVIDER
+ * (Bedrock Cohere on AWS, Ollama locally). */
 async function embed(text: string): Promise<number[]> {
-  const r = await axios.post(
-    `${LLM_BASE_URL}/api/embeddings`,
-    { model: EMBEDDING_MODEL, prompt: text },
-    { timeout: 30000 },
-  );
-  if (!Array.isArray(r.data?.embedding) || r.data.embedding.length === 0) {
-    throw new Error("Empty embedding returned");
-  }
-  return r.data.embedding;
+  return llmService.generateEmbedding(text, {
+    inputType: "search_document",
+    timeoutMs: 30000,
+  });
 }
 
 async function main() {
@@ -190,13 +186,17 @@ async function main() {
   await embed("test");
   console.log(`  ✅  Embedding service OK (${EMBEDDING_MODEL})`);
 
-  try {
-    await qdrant.getCollection(COLLECTION);
-    console.log(`  ✓ Collection '${COLLECTION}' already exists`);
-  } catch {
-    await qdrant.createCollection(COLLECTION, { vectors: { size: VECTOR_SIZE, distance: "Cosine" } });
-    console.log(`  ✓ Created collection '${COLLECTION}'`);
-  }
+  // Throws VectorDimensionMismatchError rather than writing into a collection
+  // built with a different embedding size; never deletes it.
+  const collection = await ensureCollectionDimension(COLLECTION, {
+    client: qdrant,
+    expectedSize: EMBEDDING_VECTOR_SIZE,
+  });
+  console.log(
+    collection.created
+      ? `  ✓ Created collection '${COLLECTION}' (${collection.size} dims)`
+      : `  ✓ Collection '${COLLECTION}' already exists (${collection.size} dims)`,
+  );
 
   if (!fs.existsSync(TRAINING_METHODS_PATH)) {
     console.error(`❌  Not found: ${TRAINING_METHODS_PATH}`);

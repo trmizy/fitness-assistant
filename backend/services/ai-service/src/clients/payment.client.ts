@@ -3,10 +3,8 @@
  * package purchase. Mirrors gym-service's clients/payment.client.ts — same
  * shared primitive, third caller (after gym-membership and PT-contract).
  */
-import axios from "axios";
+import { requestService } from "./service-lambda.client";
 
-const PAYMENT_SERVICE_URL =
-  process.env.PAYMENT_SERVICE_URL || "http://localhost:3007";
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
   "dev_internal_service_secret_change_in_production";
@@ -75,9 +73,11 @@ export const paymentClient = {
   }): Promise<CheckoutResult> {
     const platformRateNum = Number(params.platformRate);
     try {
-      const { data } = await axios.post(
-        `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
-        {
+      const { data } = await requestService({
+        service: "payment",
+        method: "POST",
+        path: "/internal/payments/checkout",
+        body: {
           purpose: "PERSONALIZED_SERVICE_PURCHASE",
           relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE",
           relatedEntityId: params.orderId,
@@ -92,8 +92,9 @@ export const paymentClient = {
           platform: params.platform,
           returnBaseUrl: params.returnBaseUrl,
         },
-        { headers, timeout: 20_000 },
-      );
+        headers,
+        timeoutMs: 20_000,
+      });
       return data.data as CheckoutResult;
     } catch (e: any) {
       const code = e?.response?.data?.error?.code || "CHECKOUT_FAILED";
@@ -105,7 +106,13 @@ export const paymentClient = {
   },
 
   async getTransaction(transactionId: string): Promise<any> {
-    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}`, { headers, timeout: 10_000 });
+    const { data } = await requestService({
+      service: "payment",
+      method: "GET",
+      path: `/internal/payments/${transactionId}`,
+      headers,
+      timeoutMs: 10_000,
+    });
     return data.data;
   },
 
@@ -120,9 +127,11 @@ export const paymentClient = {
     idempotencyKey: string;
   }): Promise<OrderReleaseResult> {
     const platform = Number(params.platformRate);
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/personalized-service/release`,
-      {
+    const { data } = await requestService({
+      service: "payment",
+      method: "POST",
+      path: "/internal/personalized-service/release",
+      body: {
         transactionId: params.transactionId,
         price: String(params.price),
         rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4) },
@@ -130,8 +139,9 @@ export const paymentClient = {
         label: params.label,
         idempotencyKey: params.idempotencyKey,
       },
-      { headers, timeout: 15_000 },
-    );
+      headers,
+      timeoutMs: 15_000,
+    });
     return data.data as OrderReleaseResult;
   },
 
@@ -147,9 +157,11 @@ export const paymentClient = {
     idempotencyKey: string;
   }): Promise<OrderRefundResult> {
     const platform = Number(params.platformRate);
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/personalized-service/refund`,
-      {
+    const { data } = await requestService({
+      service: "payment",
+      method: "POST",
+      path: "/internal/personalized-service/refund",
+      body: {
         transactionId: params.transactionId,
         refundAmount: String(params.refundAmount),
         rates: { platformRate: params.platformRate, ptRate: (1 - platform).toFixed(4) },
@@ -157,8 +169,9 @@ export const paymentClient = {
         label: params.label,
         idempotencyKey: params.idempotencyKey,
       },
-      { headers, timeout: 15_000 },
-    );
+      headers,
+      timeoutMs: 15_000,
+    });
     return data.data as OrderRefundResult;
   },
   async walletTransfer(params: {
@@ -176,9 +189,11 @@ export const paymentClient = {
     purpose?: "TRAINING_PACKAGE_PURCHASE" | "PERSONALIZED_SERVICE_PURCHASE";
     relatedEntityType?: "TRAINING_PACKAGE_PURCHASE" | "PERSONALIZED_SERVICE_PURCHASE";
   }): Promise<WalletTransferResult> {
-    const { data } = await axios.post(
-      `${PAYMENT_SERVICE_URL}/internal/payments/wallet-transfer`,
-      {
+    const { data } = await requestService({
+      service: "payment",
+      method: "POST",
+      path: "/internal/payments/wallet-transfer",
+      body: {
         // Cụm C1: the payer always spends from their own CLIENT (personal) wallet regardless
         // of what other role they hold — but the receiver here is never a client. Both of this
         // function's callers (marketplace TrainingPackage purchase, and — until the C2/C3 fix
@@ -199,8 +214,9 @@ export const paymentClient = {
         initiatedBy: params.initiatedBy,
         sourceService: "ai-service",
       },
-      { headers, timeout: 15_000 },
-    );
+      headers,
+      timeoutMs: 15_000,
+    });
     return data.data as WalletTransferResult;
   },
 
@@ -216,11 +232,14 @@ export const paymentClient = {
     params: { refundAmount: number; initiatedBy: string; reason: string; idempotencyKey: string },
   ): Promise<RefundResult> {
     try {
-      const { data } = await axios.post(
-        `${PAYMENT_SERVICE_URL}/internal/payments/${originalTransactionId}/refund`,
-        params,
-        { headers, timeout: 15_000 },
-      );
+      const { data } = await requestService({
+        service: "payment",
+        method: "POST",
+        path: `/internal/payments/${originalTransactionId}/refund`,
+        body: params,
+        headers,
+        timeoutMs: 15_000,
+      });
       return data.data as RefundResult;
     } catch (err: any) {
       const status = err?.response?.status ?? 500;

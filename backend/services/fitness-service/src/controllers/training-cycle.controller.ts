@@ -99,6 +99,16 @@ export const trainingCycleController = {
     }
   },
 
+  // Diet break / maintenance-phase modeling — "how close am I" status.
+  async dietBreakStatus(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const status = await trainingCycleService.getDietBreakStatus(req.params.id, req.user!.id);
+      res.json(status);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch diet break status");
+    }
+  },
+
   async acceptRecommendation(req: AuthRequest, res: Response): Promise<void> {
     try {
       const body = recommendationDecisionSchema.parse(req.body ?? {});

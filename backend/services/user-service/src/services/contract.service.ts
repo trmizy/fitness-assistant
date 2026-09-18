@@ -14,7 +14,7 @@ import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { authServiceClient } from "../clients/auth-service.client";
-import { profileRepository } from "../repositories/profile.repository";
+import { profileRepository, prisma } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
@@ -25,6 +25,7 @@ import { availabilityService } from "./availability.service";
 import { auditService } from "./audit.service";
 import { terminateContractMoney } from "./contract-payout.service";
 import { settleTracked } from "./session-settlement.service";
+import { deriveForCompletedContract } from "./client-journey-derivation.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -64,11 +65,17 @@ export interface CompleteContractDeps {
   >;
   updateStatus: (id: string, status: ContractStatus, extra: { completedAt: Date }) => Promise<unknown>;
   settleMoney: (id: string, reason: "COMPLETED") => Promise<unknown>;
+  /** docs/adr-client-journey-attribution.md — best-effort, injectable the
+   * same way settleMoney is so this function's own tests can stay DB-free
+   * (see contract-natural-completion-settles-money.test.ts's own "no DB,
+   * no HTTP" design note above). */
+  deriveClientJourney: (id: string) => Promise<unknown>;
 }
 
 const defaultCompleteContractDeps: CompleteContractDeps = {
   findById: (id) => contractRepository.findById(id),
   updateStatus: (id, status, extra) => contractRepository.updateStatus(id, status, extra),
+  deriveClientJourney: (id) => deriveForCompletedContract(id),
   // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
   // committed the contract to COMPLETED — there is no going back to retry a failed settlement
   // through any status-gated endpoint, so the sweep is the only path left for it.
@@ -284,7 +291,15 @@ export const contractService = {
        */
       acknowledgedLowAvailability?: boolean;
     },
+    agent?: { actionId: string; expectedPrice: number; expectedSessions: number; expectedMinutes: number; expectedMode: string },
   ) {
+    if (agent) {
+      const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
+      if (prior) {
+        if (prior.clientUserId !== clientUserId) throw err("Action not found", 404);
+        return prior;
+      }
+    }
     // 1. Load the package (source of truth for price/sessions/mode)
     //
     // Guard the id before it reaches Prisma: findUnique({ where: { id: undefined } }) is a
@@ -293,6 +308,10 @@ export const contractService = {
     if (!data.packageId) throw err("Thiếu packageId — hãy chọn gói dịch vụ", 400);
     const pkg = await ptServicePackageRepository.findById(data.packageId);
     if (!pkg) throw err("Gói dịch vụ không tồn tại", 404);
+    if (agent && (Number(pkg.price) !== agent.expectedPrice || pkg.sessionCount !== agent.expectedSessions ||
+      pkg.sessionDurationMinutes !== agent.expectedMinutes || pkg.sessionMode !== agent.expectedMode)) {
+      throw err("PACKAGE_CHANGED: hãy xem và xác nhận lại gói dịch vụ", 409);
+    }
     if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
     if (pkg.ptUserId !== data.ptUserId)
       throw err("Gói dịch vụ không thuộc PT này", 400);
@@ -377,6 +396,7 @@ export const contractService = {
     //    the client request. This is the security-critical step.
     const snapshot = buildPackageSnapshot(pkg);
     const contract = await contractRepository.create({
+      agentActionId: agent?.actionId,
       ptUserId: data.ptUserId,
       clientUserId,
       status: ContractStatus.PENDING_REVIEW,
@@ -723,6 +743,22 @@ export const contractService = {
       } catch (e) {
         logger.error({
           error: "money settlement failed for a naturally completed contract",
+          contractId,
+          message: (e as Error).message,
+        });
+      }
+      // ClientJourney population (docs/ai-agent-system-feasibility-audit.md
+      // §2.4, docs/adr-client-journey-attribution.md) — best-effort, same
+      // isolation principle as the money settlement above: this is an
+      // analytics derivation, never allowed to affect the contract
+      // completion that already happened. deriveForCompletedContract()
+      // itself never throws (internal try/catch), this outer one is belt-
+      // and-braces only.
+      try {
+        await deps.deriveClientJourney(contractId);
+      } catch (e) {
+        logger.error({
+          error: "client journey derivation failed for a naturally completed contract",
           contractId,
           message: (e as Error).message,
         });

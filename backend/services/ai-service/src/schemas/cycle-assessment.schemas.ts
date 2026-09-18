@@ -50,7 +50,12 @@ export const AssessCycleRequestSchema = z.object({
    * above: the LLM only EXPLAINS this, it never recomputes or overrides it. */
   nutrition: z
     .object({
-      decision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
+      // "PROPOSE_DIET_BREAK" (2026-09-07) — a scheduled temporary return to
+      // maintenance calories after a sustained deficit, distinct from
+      // PROPOSE_ADJUSTMENT (which changes the deficit itself); see
+      // fitness-service's nutrition-decision.engine.ts / cycle-thresholds.
+      // config.ts for the research this is grounded in.
+      decision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "PROPOSE_DIET_BREAK", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
       confidence: z.enum(["LOW", "MEDIUM", "HIGH"]),
       signals: z.record(z.string(), z.unknown()),
       proposedChanges: z.record(z.string(), z.unknown()).nullable(),
@@ -99,7 +104,7 @@ export const AssessCycleOutputSchema = z.object({
    * as `decision` above, enforced in cycle-assessment.service.ts). */
   nutritionSummary: z
     .object({
-      nutritionDecision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
+      nutritionDecision: z.enum(["KEEP_PLAN", "PROPOSE_ADJUSTMENT", "PROPOSE_DIET_BREAK", "REQUEST_MORE_DATA", "EARLY_REVIEW", "ESCALATE"]),
       headline: z.string(),
       explanation: z.string(),
     })

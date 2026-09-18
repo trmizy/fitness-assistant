@@ -1,4 +1,5 @@
 import { prisma } from "../repositories/prisma";
+import type { Prisma } from "../generated/prisma";
 import { redisClient } from "../repositories/redis";
 import { logger } from "@gym-coach/shared";
 import {
@@ -32,8 +33,16 @@ import {
 } from "../utils/planned-vs-actual.util";
 import { buildCycleBaselineMetrics, buildCycleTargetMetrics } from "./cycle-baseline-snapshot.util";
 import { computeWeightTrend } from "./weight-trend.util";
-import { evaluateNutritionAdaptive, type NutritionDecisionResult } from "./nutrition-decision.engine";
+import {
+  evaluateNutritionAdaptive,
+  redistributeMacros,
+  DIET_BREAK_REASON_CODES,
+  DIET_BREAK_REASON_CODE_PT_INITIATED,
+  type NutritionDecisionResult,
+} from "./nutrition-decision.engine";
+import { checkNutritionGoalMacroConsistency, assertCalorieFloor } from "./nutrition-goal-macro-validator";
 import { nutritionRepository } from "../repositories/nutrition.repository";
+import { computeInitialNutritionPrescription } from "./nutrition-bootstrap.engine";
 import { systemClock, type Clock } from "../utils/clock";
 import type { CreateTrainingCycleInput, UpdateTrainingCycleInput, SessionFeedbackInput } from "../models/training-cycle.models";
 
@@ -245,6 +254,277 @@ async function buildRollingSummary(
   };
 }
 
+// Row shape returned by the raw-SQL reads below — mirrors CycleAssessment's
+// Prisma type plus the Phase 2 (PT nutrition workflow) columns, which the
+// generated Prisma Client on this machine does not yet know about (raw SQL
+// used deliberately here — see nutrition.repository.ts for the same,
+// pre-existing pattern in this codebase for exactly this kind of
+// column-ahead-of-generate situation).
+export type CycleAssessmentNutritionRow = {
+  id: string;
+  cycleId: string;
+  nutritionDecision: string | null;
+  nutritionConfidence: string | null;
+  nutritionProposedChanges: unknown;
+  nutritionReasonCodes: unknown;
+  nutritionAiHeadline: string | null;
+  nutritionAiExplanation: string | null;
+  nutritionUserDecision: string;
+  nutritionReviewedAt: Date | null;
+  nutritionReviewedByUserId: string | null;
+  nutritionReviewedByRole: string | null;
+  nutritionPtNote: string | null;
+  appliedNutritionGoalId: string | null;
+};
+
+export async function findAssessmentForNutritionReview(
+  cycleId: string,
+  assessmentId?: string,
+): Promise<CycleAssessmentNutritionRow | null> {
+  const rows = assessmentId
+    ? await prisma.$queryRaw<CycleAssessmentNutritionRow[]>`
+        SELECT
+          id, cycle_id AS "cycleId", nutrition_decision AS "nutritionDecision",
+          nutrition_confidence AS "nutritionConfidence",
+          nutrition_proposed_changes AS "nutritionProposedChanges",
+          nutrition_reason_codes AS "nutritionReasonCodes",
+          nutrition_ai_headline AS "nutritionAiHeadline",
+          nutrition_ai_explanation AS "nutritionAiExplanation",
+          nutrition_user_decision AS "nutritionUserDecision",
+          nutrition_reviewed_at AS "nutritionReviewedAt",
+          nutrition_reviewed_by_user_id AS "nutritionReviewedByUserId",
+          nutrition_reviewed_by_role AS "nutritionReviewedByRole",
+          nutrition_pt_note AS "nutritionPtNote",
+          applied_nutrition_goal_id AS "appliedNutritionGoalId"
+        FROM cycle_assessments WHERE id = ${assessmentId} AND cycle_id = ${cycleId}
+      `
+    : await prisma.$queryRaw<CycleAssessmentNutritionRow[]>`
+        SELECT
+          id, cycle_id AS "cycleId", nutrition_decision AS "nutritionDecision",
+          nutrition_confidence AS "nutritionConfidence",
+          nutrition_proposed_changes AS "nutritionProposedChanges",
+          nutrition_reason_codes AS "nutritionReasonCodes",
+          nutrition_ai_headline AS "nutritionAiHeadline",
+          nutrition_ai_explanation AS "nutritionAiExplanation",
+          nutrition_user_decision AS "nutritionUserDecision",
+          nutrition_reviewed_at AS "nutritionReviewedAt",
+          nutrition_reviewed_by_user_id AS "nutritionReviewedByUserId",
+          nutrition_reviewed_by_role AS "nutritionReviewedByRole",
+          nutrition_pt_note AS "nutritionPtNote",
+          applied_nutrition_goal_id AS "appliedNutritionGoalId"
+        FROM cycle_assessments WHERE cycle_id = ${cycleId} AND status = 'COMPLETED'
+        ORDER BY assessment_version DESC LIMIT 1
+      `;
+  return rows[0] ?? null;
+}
+
+/**
+ * Diet-break modeling (2026-09-07) — see cycle-thresholds.config.ts's
+ * dietBreakThresholdWeeks doc comment for the research this is grounded
+ * in. Walks back through consecutive prior WEIGHT_LOSS-goal cycles (by
+ * cycleIndex) to find the start of the user's current unbroken deficit
+ * run, then checks whether a diet-break proposal was accepted anywhere
+ * inside that window — if so, the break's own start date is the more
+ * recent (and correct) reference point, not the original cut's start.
+ * Returns null for a non-WEIGHT_LOSS cycle (evaluateNutritionAdaptive
+ * itself never proposes a diet break outside WEIGHT_LOSS regardless, but
+ * this avoids the DB walk entirely for the common case).
+ */
+export async function computeWeeksSinceDeficitPhaseStarted(
+  userId: string,
+  currentCycle: { cycleIndex: number; startDate: Date; goal: string | null },
+): Promise<number | null> {
+  if (currentCycle.goal !== "WEIGHT_LOSS") return null;
+
+  let earliestStart = currentCycle.startDate;
+  let cycleIndex = currentCycle.cycleIndex;
+  while (cycleIndex > 1) {
+    const prior = await prisma.trainingCycle.findFirst({
+      where: { userId, cycleIndex: cycleIndex - 1 },
+      select: { goal: true, startDate: true },
+    });
+    if (!prior || prior.goal !== "WEIGHT_LOSS") break;
+    earliestStart = prior.startDate;
+    cycleIndex -= 1;
+  }
+
+  // A diet-break's own NutritionGoal version is created via the normal
+  // ACCEPTED path (see applyNutritionReviewDecision) and always carries
+  // sourceAssessmentId — find the most recent one (if any) whose
+  // assessment actually proposed the break, not just any accepted goal.
+  const candidateGoals = await prisma.nutritionGoal.findMany({
+    where: { userId, validFrom: { gte: earliestStart }, sourceAssessmentId: { not: null } },
+    select: { validFrom: true, sourceAssessmentId: true },
+    orderBy: { validFrom: "desc" },
+  });
+  let referenceDate = earliestStart;
+  for (const g of candidateGoals) {
+    const assessment = await prisma.cycleAssessment.findUnique({
+      where: { id: g.sourceAssessmentId! },
+      select: { nutritionReasonCodes: true },
+    });
+    const codes = Array.isArray(assessment?.nutritionReasonCodes)
+      ? (assessment!.nutritionReasonCodes as unknown as string[])
+      : [];
+    if (DIET_BREAK_REASON_CODES.some((c) => codes.includes(c))) {
+      referenceDate = g.validFrom;
+      break; // candidateGoals is validFrom desc, so the first match is the most recent break
+    }
+  }
+
+  const days = Math.floor((Date.now() - referenceDate.getTime()) / 86_400_000);
+  return days / 7;
+}
+
+/**
+ * Shared core for both the client's own accept/reject
+ * (trainingCycleService.acceptNutritionRecommendation/reject...) and a PT's
+ * Approve/Modify/Reject (trainingCycleService.ptReviewNutritionRecommendation)
+ * — callers are responsible for authorization (client: cycle ownership; PT:
+ * active PT-client relationship + cycle ownership against the CLIENT's id).
+ * This function only knows "who is claiming this review and under what
+ * role", never re-derives authorization itself.
+ *
+ * Atomic conditional claim (spec §28/§29/Phase 2 §XII — idempotent apply,
+ * no double-application under concurrency, and a PT action can never be
+ * silently clobbered by a stale client accept or vice versa): the WHERE
+ * clause re-checks nutrition_user_decision='PENDING' at the database
+ * level, so two concurrent review attempts on the SAME assessment — from
+ * the client, from a PT, or both — cannot both "win"; whichever commits
+ * first flips the row out of PENDING and the loser's UPDATE affects 0 rows.
+ */
+async function applyNutritionReviewDecision(
+  cycleId: string,
+  clientUserId: string,
+  decision: "ACCEPTED" | "REJECTED" | "MODIFIED_BY_PT",
+  actor: {
+    actingUserId: string;
+    actingRole: "CLIENT" | "PT";
+    assessmentId?: string;
+    modifiedGoal?: { calories: number; protein: number; carbs: number; fat: number };
+    ptNote?: string;
+  },
+) {
+  const assessment = await findAssessmentForNutritionReview(cycleId, actor.assessmentId);
+  if (!assessment) throw { status: 404, message: "Assessment not found" };
+  if (!assessment.nutritionDecision) {
+    throw { status: 404, message: "No nutrition recommendation on this assessment" };
+  }
+
+  // Safety-floor audit (2026-09-07) — validate a PT's own typed numbers
+  // BEFORE the atomic claim below, never after: this row can only ever be
+  // claimed (flipped out of PENDING) once, so a validation failure after
+  // the claim would leave the assessment permanently un-reviewable — a PT
+  // typo would brick the client's ability to ever act on this
+  // recommendation again. See assertCalorieFloor's doc comment for the
+  // three-way safety-floor inconsistency this (and the same check inside
+  // the MODIFIED_BY_PT branch below) closes.
+  if (decision === "MODIFIED_BY_PT") {
+    const macroCheck = checkNutritionGoalMacroConsistency(
+      actor.modifiedGoal!.calories,
+      actor.modifiedGoal!.protein,
+      actor.modifiedGoal!.carbs,
+      actor.modifiedGoal!.fat,
+    );
+    if (!macroCheck.consistent) {
+      throw {
+        status: 400,
+        message: `Mục tiêu không nhất quán: ${actor.modifiedGoal!.protein}g protein + ${actor.modifiedGoal!.carbs}g carb + ${actor.modifiedGoal!.fat}g fat = ${macroCheck.computedCalories} kcal, không khớp với ${actor.modifiedGoal!.calories} kcal đã nhập (chênh ${Math.abs(macroCheck.discrepancyKcal)} kcal). Vui lòng điều chỉnh cho khớp trước khi lưu.`,
+        code: "NUTRITION_GOAL_MACRO_MISMATCH",
+        computedCalories: macroCheck.computedCalories,
+      };
+    }
+    assertCalorieFloor(actor.modifiedGoal!.calories, "PT");
+  }
+
+  const claim = await prisma.$executeRaw`
+    UPDATE cycle_assessments
+    SET nutrition_user_decision = ${decision},
+        nutrition_reviewed_at = NOW(),
+        nutrition_reviewed_by_user_id = ${actor.actingUserId},
+        nutrition_reviewed_by_role = ${actor.actingRole},
+        nutrition_pt_note = ${actor.ptNote ?? null}
+    WHERE id = ${assessment.id} AND nutrition_user_decision = 'PENDING'
+  `;
+  if (claim === 0) {
+    throw { status: 409, message: "This nutrition recommendation has already been reviewed" };
+  }
+
+  let appliedNutritionGoalId: string | null = null;
+  if (decision === "ACCEPTED" && assessment.nutritionProposedChanges) {
+    const proposed = assessment.nutritionProposedChanges as Partial<{
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }>;
+    const current = await nutritionRepository.findGoalByUserId(clientUserId);
+    const merged = {
+      calories: proposed.calories ?? current?.calories ?? 2000,
+      protein: proposed.protein ?? current?.protein ?? 150,
+      carbs: proposed.carbs ?? current?.carbs ?? 200,
+      fat: proposed.fat ?? current?.fat ?? 65,
+      waterMl: current?.waterMl ?? null,
+    };
+    const reasonCodes = Array.isArray(assessment.nutritionReasonCodes)
+      ? (assessment.nutritionReasonCodes as unknown as string[])
+      : [];
+    const newGoal = await nutritionRepository.upsertGoal(clientUserId, merged, {
+      reason: reasonCodes.length > 0 ? reasonCodes.join("; ") : undefined,
+      triggeredBy: actor.actingRole === "PT" ? "PT" : "AI_ADAPTIVE",
+      trainingCycleId: cycleId,
+      createdByUserId: actor.actingRole === "PT" ? actor.actingUserId : null,
+      sourceAssessmentId: assessment.id,
+    });
+    appliedNutritionGoalId = newGoal.id;
+  } else if (decision === "MODIFIED_BY_PT") {
+    // The PT's own numbers — never assessment.nutritionProposedChanges
+    // (spec: a PT can prescribe something the AI never proposed at all).
+    // Already validated (macro consistency + safety floor) above, BEFORE
+    // the atomic claim — see the comment there for why order matters.
+    const current = await nutritionRepository.findGoalByUserId(clientUserId);
+    const newGoal = await nutritionRepository.upsertGoal(
+      clientUserId,
+      {
+        calories: actor.modifiedGoal!.calories,
+        protein: actor.modifiedGoal!.protein,
+        carbs: actor.modifiedGoal!.carbs,
+        fat: actor.modifiedGoal!.fat,
+        waterMl: current?.waterMl ?? null,
+      },
+      {
+        reason: actor.ptNote || "PT đã điều chỉnh mục tiêu dinh dưỡng dựa trên đề xuất của AI.",
+        triggeredBy: "PT",
+        trainingCycleId: cycleId,
+        createdByUserId: actor.actingUserId,
+        sourceAssessmentId: assessment.id,
+      },
+    );
+    appliedNutritionGoalId = newGoal.id;
+  }
+
+  if (appliedNutritionGoalId) {
+    await prisma.$executeRaw`
+      UPDATE cycle_assessments SET applied_nutrition_goal_id = ${appliedNutritionGoalId} WHERE id = ${assessment.id}
+    `;
+  }
+
+  try {
+    await prisma.recommendationAudit.updateMany({
+      where: { assessmentId: assessment.id, engineVersion: "nutrition-adaptive-v1", userAction: null },
+      data: {
+        userAction: decision === "REJECTED" ? "rejected" : "accepted",
+        userActionAt: new Date(),
+      },
+    });
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] nutrition recommendation audit update failed");
+  }
+
+  const updated = await findAssessmentForNutritionReview(cycleId, assessment.id);
+  return { ...updated, appliedNutritionGoalId: appliedNutritionGoalId ?? updated?.appliedNutritionGoalId ?? null };
+}
+
 export const trainingCycleService = {
   /** Backward-compatible: called with just (userId, planId, startDate,
    * durationDays) this behaves EXACTLY as before (creates and immediately
@@ -257,11 +537,12 @@ export const trainingCycleService = {
     durationDays = 30,
     extra?: Pick<CreateTrainingCycleInput, "name" | "status" | "targetMetrics" | "configuration">,
     clock: Clock = systemClock,
+    db: typeof prisma | Prisma.TransactionClient = prisma,
   ) {
     const requestedStatus = extra?.status ?? "ACTIVE";
 
     if (requestedStatus === "ACTIVE") {
-      const existing = await prisma.trainingCycle.findFirst({
+      const existing = await db.trainingCycle.findFirst({
         where: { userId, status: "ACTIVE", archivedAt: null },
       });
       if (existing) {
@@ -283,7 +564,7 @@ export const trainingCycleService = {
     const [profile, startInBody, lastCycle] = await Promise.all([
       fetchUserProfile(userId),
       fetchLatestInBodyOnOrBefore(userId, start),
-      prisma.trainingCycle.findFirst({
+      db.trainingCycle.findFirst({
         where: { userId },
         orderBy: { cycleIndex: "desc" },
         select: { cycleIndex: true },
@@ -305,7 +586,7 @@ export const trainingCycleService = {
       (requestedStatus === "ACTIVE" ? buildCycleTargetMetrics(profile?.targetWeight) : null);
 
     try {
-      return await prisma.trainingCycle.create({
+      return await db.trainingCycle.create({
         data: {
           userId,
           planId,
@@ -771,6 +1052,25 @@ export const trainingCycleService = {
     metrics: CycleMetricsResult;
     cycleDurationDays: number;
     now: Date;
+    /** Diet-break modeling (2026-09-07) — both optional and independently
+     * null-safe so every EXISTING caller (there weren't any others at the
+     * time this was added, but the pattern matches this file's other
+     * optional-signal params) keeps working with no diet-break signal at
+     * all, which just means evaluateNutritionAdaptive never proposes one. */
+    cycle?: { cycleIndex: number; startDate: Date };
+    profile?: {
+      currentWeight?: number | null;
+      heightCm?: number | null;
+      age?: number | null;
+      gender?: "MALE" | "FEMALE" | "OTHER" | null;
+      activityLevel?:
+        | "SEDENTARY"
+        | "LIGHTLY_ACTIVE"
+        | "MODERATELY_ACTIVE"
+        | "VERY_ACTIVE"
+        | "EXTREMELY_ACTIVE"
+        | null;
+    } | null;
   }): Promise<NutritionDecisionResult | null> {
     try {
       const trendWindowStart = new Date(
@@ -793,12 +1093,44 @@ export const trainingCycleService = {
             fat: activeGoalRow.fat,
           }
         : null;
+
+      const weeksSinceDeficitPhaseStarted = params.cycle
+        ? await computeWeeksSinceDeficitPhaseStarted(params.userId, {
+            cycleIndex: params.cycle.cycleIndex,
+            startDate: params.cycle.startDate,
+            goal: params.goal,
+          })
+        : null;
+      // Reuses the exact same BMR/TDEE formula the initial bootstrap
+      // prescription used (see nutrition-bootstrap.engine.ts) — a fresh
+      // maintenance-calorie estimate, never a stale/cached one, computed
+      // only when there's enough profile data to do so safely (missing
+      // any field here simply means no diet-break gets proposed, same
+      // "never guess" rule the bootstrap engine's own missing-fields
+      // check already applies).
+      const p = params.profile;
+      const estimatedMaintenanceCalories =
+        p && p.currentWeight != null && p.heightCm != null && p.age != null && p.gender != null && p.activityLevel != null
+          ? computeInitialNutritionPrescription({
+              weightKg: p.currentWeight,
+              heightCm: p.heightCm,
+              age: p.age,
+              gender: p.gender,
+              goal: "MAINTENANCE",
+              activityLevel: p.activityLevel,
+              experienceLevel: null,
+              useMaintenanceOnly: true,
+            }).maintenanceCalories
+          : null;
+
       // targetWeightKg isn't actually read by evaluateNutritionAdaptive
       // today (goal-specific rules key off the trend rate, not a direct
       // distance-to-target calculation) — kept in the input type for the
       // explanation layer / future use, resolved from the profile the
       // caller already fetched rather than a second lookup here.
       return evaluateNutritionAdaptive({
+        weeksSinceDeficitPhaseStarted,
+        estimatedMaintenanceCalories,
         goal: params.goal,
         targetWeightKg: null,
         weightTrend,
@@ -1281,6 +1613,16 @@ export const trainingCycleService = {
         metrics,
         cycleDurationDays,
         now,
+        cycle: { cycleIndex: cycle.cycleIndex, startDate: cycle.startDate },
+        profile: profile
+          ? {
+              currentWeight: profile.currentWeight,
+              heightCm: profile.heightCm,
+              age: profile.age,
+              gender: profile.gender,
+              activityLevel: profile.activityLevel,
+            }
+          : null,
       });
 
       const aiResult = await assessCycleSafe(userId, {
@@ -1428,6 +1770,33 @@ export const trainingCycleService = {
     return { assessments, total, page, limit };
   },
 
+  /** Diet break / maintenance-phase modeling — "how close am I to eligible"
+   * status (2026-09-07), so the client can see progress toward a break
+   * BEFORE evaluateCycle() actually proposes one, rather than only finding
+   * out once it happens to fire. Read-only, cheap (same DB walk
+   * computeWeeksSinceDeficitPhaseStarted already does for the real
+   * evaluation) — never itself proposes or changes anything. */
+  async getDietBreakStatus(cycleId: string, userId: string) {
+    const cycle = await this.getCycle(cycleId, userId);
+    const thresholdWeeks = cycleThresholds.nutritionAdaptive.dietBreakThresholdWeeks;
+    if (cycle.goal !== "WEIGHT_LOSS") {
+      return { applicable: false, weeksSinceDeficitPhaseStarted: null, thresholdWeeks, weeksRemaining: null, eligible: false };
+    }
+    const weeksSinceDeficitPhaseStarted = await computeWeeksSinceDeficitPhaseStarted(userId, {
+      cycleIndex: cycle.cycleIndex,
+      startDate: cycle.startDate,
+      goal: cycle.goal,
+    });
+    return {
+      applicable: true,
+      weeksSinceDeficitPhaseStarted,
+      thresholdWeeks,
+      weeksRemaining:
+        weeksSinceDeficitPhaseStarted != null ? Math.max(0, Math.round((thresholdWeeks - weeksSinceDeficitPhaseStarted) * 10) / 10) : null,
+      eligible: weeksSinceDeficitPhaseStarted != null && weeksSinceDeficitPhaseStarted >= thresholdWeeks,
+    };
+  },
+
   async getLatestAssessment(cycleId: string, userId: string) {
     await this.getCycle(cycleId, userId);
     const latest = await prisma.cycleAssessment.findFirst({
@@ -1506,88 +1875,180 @@ export const trainingCycleService = {
   // FROM an AI-adaptive proposal — the engine itself only ever returns a
   // recommendation, never writes. ──
   async acceptNutritionRecommendation(cycleId: string, userId: string, assessmentId?: string) {
-    return this.reviewNutritionRecommendation(cycleId, userId, "ACCEPTED", assessmentId);
+    await this.getCycle(cycleId, userId); // ownership check — the CLIENT's own cycle
+    return applyNutritionReviewDecision(cycleId, userId, "ACCEPTED", {
+      actingUserId: userId,
+      actingRole: "CLIENT",
+      assessmentId,
+    });
   },
 
   async rejectNutritionRecommendation(cycleId: string, userId: string, assessmentId?: string) {
-    return this.reviewNutritionRecommendation(cycleId, userId, "REJECTED", assessmentId);
+    await this.getCycle(cycleId, userId);
+    return applyNutritionReviewDecision(cycleId, userId, "REJECTED", {
+      actingUserId: userId,
+      actingRole: "CLIENT",
+      assessmentId,
+    });
   },
 
-  async reviewNutritionRecommendation(
+  /**
+   * Phase 2 — PT-facing nutrition recommendation Approve/Modify/Reject
+   * (spec §XXIII/PT workflow §IV). Callers (coach.service.ts) MUST already
+   * have verified an active PT-client relationship before calling this —
+   * this function only re-verifies that `cycleId` actually belongs to
+   * `clientUserId` (never trusts the caller's claim about ownership), the
+   * same ownership check the client-facing path above uses, just against
+   * the client's id instead of `req.user.id`.
+   *
+   * MODIFIED_BY_PT is a distinct outcome from ACCEPTED: the applied
+   * NutritionGoal's numbers come from the PT's own `modifiedGoal` patch,
+   * never from `assessment.nutritionProposedChanges` — a PT can prescribe
+   * numbers the AI never proposed at all (spec: "PT modifies: 2100 kcal"
+   * example, an AI proposal of 1900 kcal).
+   */
+  async ptReviewNutritionRecommendation(
+    ptUserId: string,
+    clientUserId: string,
     cycleId: string,
-    userId: string,
-    userDecision: "ACCEPTED" | "REJECTED",
-    assessmentId?: string,
+    decision: "ACCEPTED" | "REJECTED" | "MODIFIED_BY_PT",
+    options?: {
+      assessmentId?: string;
+      modifiedGoal?: { calories: number; protein: number; carbs: number; fat: number };
+      ptNote?: string;
+    },
   ) {
-    await this.getCycle(cycleId, userId);
-    const assessment = assessmentId
-      ? await prisma.cycleAssessment.findFirst({ where: { id: assessmentId, cycleId } })
-      : await prisma.cycleAssessment.findFirst({
-          where: { cycleId, status: "COMPLETED" },
-          orderBy: { assessmentVersion: "desc" },
-        });
-    if (!assessment) throw { status: 404, message: "Assessment not found" };
-    if (!assessment.nutritionDecision) {
-      throw { status: 404, message: "No nutrition recommendation on this assessment" };
+    await this.getCycle(cycleId, clientUserId);
+    if (decision === "MODIFIED_BY_PT" && !options?.modifiedGoal) {
+      throw { status: 400, message: "modifiedGoal (calories/protein/carbs/fat) is required to modify a recommendation" };
     }
-
-    // Atomic conditional update (spec §28/§29 — idempotent apply, no
-    // double-application under concurrency): the WHERE clause re-checks
-    // PENDING at the database level, so two concurrent accept/reject calls
-    // cannot both "win" the way a separate findFirst-then-update would —
-    // whichever commits first flips the row out of PENDING, and the loser's
-    // updateMany matches zero rows.
-    const claim = await prisma.cycleAssessment.updateMany({
-      where: { id: assessment.id, nutritionUserDecision: "PENDING" },
-      data: { nutritionUserDecision: userDecision, nutritionReviewedAt: new Date() },
+    return applyNutritionReviewDecision(cycleId, clientUserId, decision, {
+      actingUserId: ptUserId,
+      actingRole: "PT",
+      assessmentId: options?.assessmentId,
+      modifiedGoal: options?.modifiedGoal,
+      ptNote: options?.ptNote,
     });
-    if (claim.count === 0) {
-      throw { status: 409, message: "This nutrition recommendation has already been reviewed" };
+  },
+
+  /**
+   * Diet break / maintenance-phase modeling — PT-initiated trigger
+   * (2026-09-07). A PT could already achieve the SAME end result today via
+   * the existing Modify action (type in maintenance calories by hand,
+   * subject to the exact same floor/macro checks) — this adds a real,
+   * distinct path rather than only a UI shortcut: it creates a genuine new
+   * PENDING assessment (assessmentVersion N+1) the CLIENT still has to
+   * accept/reject through the exact same review UI every algorithm-
+   * triggered proposal uses, rather than the PT unilaterally overwriting
+   * the goal outright the way Modify does. Deliberately reuses
+   * computeInitialNutritionPrescription (useMaintenanceOnly) and
+   * redistributeMacros — the SAME formulas the automatic path uses — so a
+   * PT-initiated break is never computed differently from an algorithm-
+   * initiated one; only WHO decided the timing differs, never the numbers
+   * themselves.
+   *
+   * Deliberately does NOT go through evaluateCycle()/runVersionedAssessment
+   * (that's the training+nutrition COMBINED evaluation, cooldown-gated
+   * against being called too often) — a PT asking for a diet break right
+   * now is not "please re-run the whole cycle evaluation", it's a narrower,
+   * nutrition-only action, so this creates the assessment row directly.
+   */
+  async triggerDietBreakRecommendation(
+    _ptUserId: string,
+    clientUserId: string,
+    cycleId: string,
+    note?: string,
+  ) {
+    const cycle = await this.getCycle(cycleId, clientUserId);
+    if (cycle.status !== "ACTIVE") {
+      throw { status: 409, message: "Chỉ có thể đề xuất diet break cho chu kỳ đang hoạt động." };
+    }
+    if (cycle.goal !== "WEIGHT_LOSS") {
+      throw { status: 409, message: "Diet break chỉ áp dụng cho chu kỳ giảm cân (WEIGHT_LOSS)." };
     }
 
-    let appliedNutritionGoalId: string | null = null;
-    if (userDecision === "ACCEPTED" && assessment.nutritionProposedChanges) {
-      const proposed = assessment.nutritionProposedChanges as Partial<{
-        calories: number;
-        protein: number;
-        carbs: number;
-        fat: number;
-      }>;
-      const current = await nutritionRepository.findGoalByUserId(userId);
-      const merged = {
-        calories: proposed.calories ?? current?.calories ?? 2000,
-        protein: proposed.protein ?? current?.protein ?? 150,
-        carbs: proposed.carbs ?? current?.carbs ?? 200,
-        fat: proposed.fat ?? current?.fat ?? 65,
-        waterMl: current?.waterMl ?? null,
+    const pending = await prisma.cycleAssessment.findFirst({
+      where: { cycleId, nutritionUserDecision: "PENDING" },
+    });
+    if (pending) {
+      throw { status: 409, message: "Đã có một đề xuất dinh dưỡng đang chờ xác nhận cho chu kỳ này." };
+    }
+
+    const [profile, currentGoal] = await Promise.all([
+      fetchUserProfile(clientUserId),
+      nutritionRepository.findGoalByUserId(clientUserId),
+    ]);
+    if (!currentGoal) {
+      throw { status: 400, message: "Học viên chưa có mục tiêu dinh dưỡng nào để đề xuất diet break." };
+    }
+    if (
+      !profile ||
+      profile.currentWeight == null ||
+      profile.heightCm == null ||
+      profile.age == null ||
+      profile.gender == null ||
+      profile.activityLevel == null
+    ) {
+      throw {
+        status: 400,
+        message: "Chưa đủ dữ liệu hồ sơ (cân nặng/chiều cao/tuổi/giới tính/mức vận động) để tính calo duy trì.",
       };
-      const reasonCodes = Array.isArray(assessment.nutritionReasonCodes)
-        ? (assessment.nutritionReasonCodes as unknown as string[])
-        : [];
-      const newGoal = await nutritionRepository.upsertGoal(userId, merged, {
-        reason: reasonCodes.length > 0 ? reasonCodes.join("; ") : undefined,
-        triggeredBy: "AI_ADAPTIVE",
-      });
-      appliedNutritionGoalId = newGoal.id;
-      await prisma.cycleAssessment.update({
-        where: { id: assessment.id },
-        data: { appliedNutritionGoalId },
-      });
     }
 
-    try {
-      await prisma.recommendationAudit.updateMany({
-        where: { assessmentId: assessment.id, engineVersion: "nutrition-adaptive-v1", userAction: null },
-        data: {
-          userAction: userDecision === "ACCEPTED" ? "accepted" : "rejected",
-          userActionAt: new Date(),
-        },
-      });
-    } catch (err) {
-      logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] nutrition recommendation audit update failed");
+    const maintenanceCalories = computeInitialNutritionPrescription({
+      weightKg: profile.currentWeight,
+      heightCm: profile.heightCm,
+      age: profile.age,
+      gender: profile.gender,
+      goal: "MAINTENANCE",
+      activityLevel: profile.activityLevel,
+      experienceLevel: null,
+      useMaintenanceOnly: true,
+    }).maintenanceCalories;
+
+    if (maintenanceCalories <= currentGoal.calories) {
+      throw {
+        status: 409,
+        message: "Mục tiêu hiện tại đã ở mức bằng hoặc cao hơn calo duy trì ước tính — không có gì để đề xuất nghỉ.",
+      };
     }
 
-    return prisma.cycleAssessment.findUniqueOrThrow({ where: { id: assessment.id } });
+    const proposedChanges = redistributeMacros(
+      { calories: currentGoal.calories, protein: currentGoal.protein, carbs: currentGoal.carbs, fat: currentGoal.fat },
+      maintenanceCalories,
+      profile.currentWeight,
+    );
+
+    const lastVersion = await prisma.cycleAssessment.findFirst({
+      where: { cycleId },
+      orderBy: { assessmentVersion: "desc" },
+      select: { assessmentVersion: true },
+    });
+    const nextVersion = (lastVersion?.assessmentVersion ?? 0) + 1;
+
+    const assessment = await prisma.cycleAssessment.create({
+      data: {
+        cycleId,
+        assessmentVersion: nextVersion,
+        status: "COMPLETED",
+        nutritionDecision: "PROPOSE_DIET_BREAK",
+        nutritionConfidence: "HIGH",
+        nutritionProposedChanges: proposedChanges as any,
+        nutritionReasonCodes: [DIET_BREAK_REASON_CODE_PT_INITIATED] as any,
+        nutritionAiHeadline: "PT đề xuất nghỉ diet break",
+        nutritionAiExplanation:
+          note && note.trim().length > 0
+            ? `PT của bạn đề xuất một khoảng nghỉ ở mức calo duy trì. Ghi chú từ PT: ${note.trim()}`
+            : "PT của bạn đề xuất một khoảng nghỉ ở mức calo duy trì, dựa trên đánh giá trực tiếp — đây không phải dấu hiệu thất bại, mà là một phần có kế hoạch của quá trình giảm cân.",
+        nutritionUserDecision: "PENDING",
+        nutritionRequiresConfirmation: true,
+      },
+    });
+
+    // Audit + client notification are coach.service.ts's job for every
+    // other PT nutrition action (approve/reject/modify) — this stays
+    // consistent with that split rather than duplicating it here.
+    return assessment;
   },
 
   /** Read-only interaction log for a cycle's recommendations — see

@@ -4,8 +4,10 @@ import { cycleAnalysisController } from "../controllers/cycle-analysis.controlle
 import { cycleAssessmentController } from "../controllers/cycle-assessment.controller";
 import { feedbackAnalysisController } from "../controllers/feedback-analysis.controller";
 import { clientPlanDraftController } from "../controllers/client-plan-draft.controller";
+import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { createRateLimiter } from "../middleware/rate-limit.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
   AskRequestSchema,
@@ -15,19 +17,41 @@ import {
 } from "../schemas/ai.schemas";
 import sessionRoutes from "./session.routes";
 import memoryRoutes from "./memory.routes";
+import fitnessAgentRoutes from "./fitness-agent.routes";
 
 const router = Router();
 
 // All /ai/* routes require a verified user identity.
 router.use(requireAuth);
+router.use("/agent", fitnessAgentRoutes);
 
 router.use("/sessions", sessionRoutes);
 router.use("/memories", memoryRoutes);
 
-router.post("/ask", validateBody(AskRequestSchema), aiController.ask);
+// Restores the old Express gateway's aiAskRateLimiter (20 req/60s/user) now
+// that traffic reaches this Lambda directly, without that gateway process in
+// front of it — see middleware/rate-limit.middleware.ts's doc comment.
+// Mounted after requireAuth: req.context.userId is only trustworthy from
+// this point on.
+const askRateLimiter = createRateLimiter({
+  name: "ai-ask",
+  max: Number.parseInt(process.env.AI_ASK_RATE_LIMIT_MAX || "20", 10),
+  windowSeconds: Number.parseInt(
+    process.env.AI_ASK_RATE_LIMIT_WINDOW_SECONDS || "60",
+    10,
+  ),
+});
+
+router.post(
+  "/ask",
+  askRateLimiter,
+  validateBody(AskRequestSchema),
+  aiController.ask,
+);
 
 router.post(
   "/ask/stream",
+  askRateLimiter,
   validateBody(AskRequestSchema),
   aiController.askStream,
 );
@@ -46,8 +70,22 @@ router.post(
 
 router.get("/feedback/stats", aiController.getFeedbackStats);
 
+// Second, more conservative tier for endpoints that call the LLM/vision
+// model directly and synchronously outside the /ai/ask chat path — a plain
+// quick-workout generation, same cost profile as one ask. The vision routes
+// (goal-image, image-chat) share this same tier — see fitness-agent.routes.ts.
+const expensiveRateLimiter = createRateLimiter({
+  name: "ai-expensive",
+  max: Number.parseInt(process.env.AI_EXPENSIVE_RATE_LIMIT_MAX || "10", 10),
+  windowSeconds: Number.parseInt(
+    process.env.AI_EXPENSIVE_RATE_LIMIT_WINDOW_SECONDS || "60",
+    10,
+  ),
+});
+
 router.post(
   "/generate-workout",
+  expensiveRateLimiter,
   validateBody(GenerateWorkoutRequestSchema),
   aiController.generateWorkout,
 );
@@ -79,6 +117,14 @@ router.post("/analyze-feedback", feedbackAnalysisController.analyzeFeedback);
 // real plan here; the PT must review/edit and explicitly submit via the
 // existing POST /coach/clients/:clientId/plans.
 router.post("/generate-client-plan-draft", clientPlanDraftController.generateDraft);
+
+// FitnessRoadmap AI Draft generation (Phase B of the roadmap next-phase
+// work) — called by fitness-service's POST /fitness-roadmaps/ai-draft.
+// Returns a DRAFT phase-sequence proposal only, never persisted here; the
+// user/PT must explicitly accept it via fitness-service's own
+// POST /fitness-roadmaps/ai-draft/accept before a real FitnessRoadmap row
+// is created. See docs/FITNESS_ROADMAP_AI_DRAFT_DESIGN.md.
+router.post("/generate-roadmap-draft", roadmapDraftController.generateDraft);
 
 // openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
 // §5. Called by fitness-service's GET /workouts/exercises/:id/progression/

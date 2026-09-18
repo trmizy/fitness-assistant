@@ -7,6 +7,7 @@ export const prisma = new PrismaClient();
 // ── Conversation ──────────────────────────────────────────────────────────────
 
 export type CreateConversationInput = {
+  structuredBlocks?: import("../generated/prisma").Prisma.InputJsonValue;
   userId?: string;
   sessionId?: string;
   question: string;

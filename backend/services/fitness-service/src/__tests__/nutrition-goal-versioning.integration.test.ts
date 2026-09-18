@@ -24,18 +24,22 @@ const skipOpts = {
 
 type PrismaClientLike = (typeof import("../repositories/prisma"))["prisma"];
 type NutritionRepoLike = (typeof import("../repositories/nutrition.repository"))["nutritionRepository"];
+type NutritionServiceLike = (typeof import("../services/nutrition.service"))["nutritionService"];
 
 let prisma: PrismaClientLike | undefined;
 let nutritionRepository: NutritionRepoLike | undefined;
+let nutritionService: NutritionServiceLike | undefined;
 
 async function loadModules() {
   if (!prisma) {
     const prismaModule = await import("../repositories/prisma");
     const repoModule = await import("../repositories/nutrition.repository");
+    const serviceModule = await import("../services/nutrition.service");
     prisma = prismaModule.prisma;
     nutritionRepository = repoModule.nutritionRepository;
+    nutritionService = serviceModule.nutritionService;
   }
-  return { prisma: prisma!, nutritionRepository: nutritionRepository! };
+  return { prisma: prisma!, nutritionRepository: nutritionRepository!, nutritionService: nutritionService! };
 }
 
 test.after(async () => {
@@ -146,6 +150,60 @@ test(
         history.map((h) => h.goalMode),
         ["CUSTOM", "RECOMMENDED"], // newest first
       );
+    } finally {
+      await prisma.nutritionGoal.deleteMany({ where: { userId } });
+    }
+  },
+);
+
+// Safety-floor audit (2026-09-07) — the client's own PUT /nutrition/goals
+// save previously had NO calorie floor at all (only `.positive()`), the
+// weakest of three inconsistent numbers in this codebase (see
+// nutrition-goal-macro-validator.ts's assertCalorieFloor doc comment for
+// the full picture). This exercises the real SERVICE (nutritionService.
+// upsertGoal), not just the repository, since the floor check lives at
+// the service layer.
+
+test(
+  "SAFETY: nutritionService.upsertGoal rejects a below-floor save (400) and never persists it",
+  skipOpts,
+  async () => {
+    const { prisma, nutritionService, nutritionRepository: repo } = await loadModules();
+    const userId = randomUUID();
+    try {
+      await assert.rejects(
+        // 60*4+60*4+47*9 = 903, within the 50kcal tolerance of 900 — this
+        // ISN'T also a macro mismatch; this test is specifically about the
+        // floor, not the (separately tested) macro-consistency check.
+        () => nutritionService.upsertGoal(userId, { calories: 900, protein: 60, carbs: 60, fat: 47 } as any),
+        (err: any) => err.status === 400 && err.code === "NUTRITION_GOAL_BELOW_SAFETY_FLOOR",
+      );
+      const goal = await repo.findGoalByUserId(userId);
+      assert.equal(goal, null, "a rejected below-floor save must never create a NutritionGoal row");
+    } finally {
+      await prisma.nutritionGoal.deleteMany({ where: { userId } });
+    }
+  },
+);
+
+test(
+  "SAFETY: nutritionService.upsertGoal accepts a save exactly at the shared floor",
+  skipOpts,
+  async () => {
+    const { prisma, nutritionService, nutritionRepository: repo } = await loadModules();
+    const { cycleThresholds } = await import("../config/cycle-thresholds.config");
+    const floor = cycleThresholds.nutritionAdaptive.minPrescriptionCalories;
+    const userId = randomUUID();
+    try {
+      // protein*4+carb*4+fat*9 must land within 50kcal of `floor`.
+      const protein = 100;
+      const fat = 40;
+      const remaining = floor - protein * 4 - fat * 9;
+      const carbs = Math.round(remaining / 4);
+      const result = await nutritionService.upsertGoal(userId, { calories: floor, protein, carbs, fat } as any);
+      assert.equal((result as any).goal.calories, floor);
+      const stored = await repo.findGoalByUserId(userId);
+      assert.equal(stored?.calories, floor);
     } finally {
       await prisma.nutritionGoal.deleteMany({ where: { userId } });
     }

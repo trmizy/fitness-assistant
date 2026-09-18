@@ -1,6 +1,6 @@
 import { logger } from "@gym-coach/shared";
 import { llmService } from "../services/llm.service";
-import { getQdrantClient } from "../repositories/qdrant";
+import { getVectorStore } from "../vector-store/provider";
 import type { RetrievalDocument, RetrievalResult } from "./types";
 
 // Chat may use semantic exercise data. AI Plan generation must not use the
@@ -166,7 +166,7 @@ export function retrievalDocumentFromPayload(
         `Instructions: ${instructions}`,
       ].join("\n"),
       score,
-      source: `qdrant:${collection}`,
+      source: `${getVectorStore().provider}:${collection}`,
       category: "exercise_knowledge",
       metadata: {
         goal: movementType,
@@ -183,7 +183,7 @@ export function retrievalDocumentFromPayload(
       id: `${collection}_${id}`,
       pageContent: `Title: ${payload.titleVi}\nContent: ${payload.contentVi}`,
       score,
-      source: `qdrant:${collection}`,
+      source: `${getVectorStore().provider}:${collection}`,
       category: String(payload.category || "general"),
       metadata: {
         source_file: "data/catalog/rag/gym_rag_master_dataset.csv",
@@ -195,7 +195,7 @@ export function retrievalDocumentFromPayload(
       id: `${collection}_${id}`,
       pageContent: `Q: ${payload.questionVi}\nA: ${payload.answerVi}`,
       score,
-      source: `qdrant:${collection}`,
+      source: `${getVectorStore().provider}:${collection}`,
       category: String(payload.category || "general"),
       metadata: { source_file: "data/catalog/qa/gym_faq_qa.csv", chunk_id: id },
     };
@@ -233,7 +233,7 @@ export function retrievalDocumentFromPayload(
         content,
       ].join("\n"),
       score,
-      source: `qdrant:${collection}`,
+      source: `${getVectorStore().provider}:${collection}`,
       category,
       metadata: {
         title,
@@ -269,7 +269,7 @@ export function retrievalDocumentFromPayload(
     id: `${collection}_${id}`,
     pageContent: JSON.stringify(payload),
     score,
-    source: `qdrant:${collection}`,
+    source: `${getVectorStore().provider}:${collection}`,
     category: "unknown",
     metadata: { source_file: "unknown", chunk_id: id },
   };
@@ -294,23 +294,42 @@ async function searchCollection(
   filter?: Record<string, unknown>,
 ): Promise<RetrievalDocument[]> {
   try {
-    const results = await getQdrantClient().search(collection, {
+    // A collection built with a different embedding model (e.g. 768-dim
+    // nomic-embed-text vectors searched with a 1024-dim Bedrock Cohere query)
+    // can never match. Skip it with an explicit re-index error instead of
+    // letting Qdrant's per-query rejection disappear into an empty result.
+    // A failed check (network) falls through to the search, which reports
+    // the same failure the way it always has.
+    const store = getVectorStore();
+    const dimension = await store.getIndexStatus(collection, vector.length).catch(() => null);
+    if (dimension?.kind === "mismatch") {
+      logger.error(
+        {
+          collection,
+          code: dimension.error.code,
+          collectionDimension: dimension.error.actual,
+          queryDimension: dimension.error.expected,
+        },
+        dimension.error.message,
+      );
+      return [];
+    }
+    const results = await store.search(collection, {
       vector,
       limit: TOP_K,
-      with_payload: true,
       ...(filter ? { filter } : {}),
     });
     const docs: RetrievalDocument[] = [];
     for (const item of results) {
       const payload = (item.payload || {}) as Record<string, unknown>;
-      const score = typeof item.score === "number" ? item.score : 0;
+      const score = item.similarity;
       if (score >= MIN_SCORE)
         docs.push(
           retrievalDocumentFromPayload(
             collection,
             payload,
             score,
-            String(item.id),
+            item.id,
           ),
         );
     }
@@ -318,7 +337,7 @@ async function searchCollection(
       collection,
       retrieved: docs.length,
       rawMatches: results.length,
-      topScore: results[0]?.score,
+      topScore: results[0]?.similarity,
       documentIds: docs.slice(0, 3).map((doc) => doc.id),
       sources: docs
         .slice(0, 3)
@@ -355,6 +374,7 @@ export const retriever = {
         });
         const vector = await llmService.generateEmbedding(query, {
           timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+          inputType: "search_query",
         });
         const collectionResults = await Promise.all(
           PLAN_EVIDENCE_COLLECTIONS.map((collection) =>
@@ -392,6 +412,7 @@ export const retriever = {
       try {
         const vector = await llmService.generateEmbedding(query, {
           timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+          inputType: "search_query",
         });
         const collectionPromises = CHAT_COLLECTIONS.map((col) =>
           searchCollection(
@@ -450,6 +471,7 @@ export const retriever = {
     try {
       const vector = await llmService.generateEmbedding(query, {
         timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+        inputType: "search_query",
       });
       const filter =
         equipment === "none"

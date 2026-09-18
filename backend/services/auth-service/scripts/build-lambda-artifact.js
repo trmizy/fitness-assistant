@@ -44,7 +44,7 @@ const { execFileSync } = require("child_process");
 const AUTH_SERVICE_DIR = path.resolve(__dirname, "..");
 const REPO_ROOT = path.resolve(AUTH_SERVICE_DIR, "..", "..", "..");
 const DIST_DIR = path.join(AUTH_SERVICE_DIR, "dist");
-const ZIP_OUT = path.join(REPO_ROOT, "artifacts", "auth-lambda.zip");
+const ZIP_OUT = path.join(AUTH_SERVICE_DIR, "artifacts", "auth-lambda.zip");
 
 // Short path — Windows PowerShell/.NET zip and some npm tooling aren't long-path-safe, and
 // node_modules/@aws-sdk/*/dist-types/**/*.d.ts trees run deep enough to hit MAX_PATH (260

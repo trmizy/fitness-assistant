@@ -3,6 +3,7 @@ import { inbodyRepository } from "../repositories/inbody.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
 import { extractInBodyVision } from "./inbody-vision.service";
+import { triggerInBodyReassessmentSafe } from "../clients/fitness-service.client";
 import {
   ocrExtractionsTotal,
   ocrExtractionDuration,
@@ -66,6 +67,15 @@ export const inbodyService = {
     return inbodyRepository.findLatestByUserId(userId);
   },
 
+  // Gymini Adaptive Roadmap Production Closure — bounded server-side
+  // lookup for fitness-service's forecast-reconciliation reads (which
+  // need "the latest measurement at/before this specific historical
+  // date", not the user's whole history). See
+  // docs/GYMINI_ADAPTIVE_ROADMAP_PRODUCTION_CLOSURE_DESIGN.md §6/§7.
+  async getLatestOnOrBefore(userId: string, cutoff: Date) {
+    return inbodyRepository.findLatestByUserIdOnOrBefore(userId, cutoff);
+  },
+
   async createEntry(userId: string, data: any) {
     inbodyUploadsTotal.inc({ method: "manual" });
     const measuredDate = data.date ? new Date(data.date) : new Date();
@@ -87,6 +97,17 @@ export const inbodyService = {
       throw err("Cần nhập Mỡ cơ thể (kg) hoặc % Mỡ cơ thể để tính ra được", 400);
     }
 
+    // Same class of bug as bodyFat above (Gymini Cross-System Fitness Journey
+    // Integration phase): "Cơ bắp (kg)" (muscleMass) is presented as optional
+    // in the manual-entry form but is a non-nullable column with no
+    // derivation path (unlike bodyFat, skeletal muscle mass cannot be
+    // reasonably computed from weight/bodyFat alone) — a real, reachable
+    // submission with it left blank used to hit an uncaught Prisma
+    // validation error and a raw 500. Reject cleanly instead.
+    if (data.muscleMass === undefined || data.muscleMass === null || Number.isNaN(Number(data.muscleMass))) {
+      throw err("Cần nhập Cơ bắp (kg)", 400);
+    }
+
     const payload = { ...data, bodyFat, date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
@@ -97,6 +118,13 @@ export const inbodyService = {
     );
     // Sync latest InBody metrics to the profile so AI always reads fresh data
     await syncLatestInBodyToProfile(userId).catch(() => {});
+    // AI Nutrition Cycle Engine (Gymini) Phase 3 — best-effort, non-blocking:
+    // ask fitness-service whether this new measurement warrants an
+    // automatic cycle reassessment (see inbody-reassessment.service.ts for
+    // the cooldown/no-spam gating). triggerInBodyReassessmentSafe never
+    // throws (short timeout, resolves to null on any failure), and never
+    // affects whether this InBody entry itself was saved successfully.
+    await triggerInBodyReassessmentSafe(userId);
     return entry;
   },
 
@@ -118,6 +146,8 @@ export const inbodyService = {
       const updated = await inbodyRepository.update(id, patch);
       // Re-sync: the edit might have changed weight on the latest entry
       await syncLatestInBodyToProfile(userId).catch(() => {});
+      // See createEntry above — same best-effort reassessment-check call.
+      await triggerInBodyReassessmentSafe(userId);
       return updated;
     } catch (e: any) {
       if (isUniqueViolation(e)) {

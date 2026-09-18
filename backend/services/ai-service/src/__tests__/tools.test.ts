@@ -212,13 +212,27 @@ describe("executeTool — unknown tool", () => {
 });
 
 describe("AVAILABLE_TOOLS schema", () => {
-  it("declares the spike-verified tools plus remember_user_fact", () => {
+  // ADV-003 (docs/codex-ai-agent-regression-3-report.md): remember_user_fact
+  // is deliberately NOT offered to the model anymore — a stable-preference-
+  // shaped prompt injection can no longer reach a tool call at all, since
+  // there is no tool call for it to request. Legitimate memory-writing now
+  // happens via memory_extraction.ts's deterministic raw-message pipeline
+  // instead (see that module's doc comment).
+  it("declares only the two read-only tools — remember_user_fact is not model-selectable", () => {
     const names = AVAILABLE_TOOLS.map((t) => t.function.name).sort();
     assert.deepEqual(names, [
       "get_user_fitness_data",
-      "remember_user_fact",
       "search_exercise_library",
     ]);
+  });
+
+  it("executeTool still dispatches remember_user_fact directly (backward compatibility for direct/administrative calls) even though it is no longer offered to the model", async () => {
+    conversationRepository.createUserMemory = (async (data: any) => ({ id: "m1", ...data, createdAt: new Date() })) as any;
+    conversationRepository.pruneOldestMemories = (async () => {}) as any;
+    const result = JSON.parse(
+      await executeTool("remember_user_fact", { fact: "Vegetarian", category: "dietary" }, { personalization: emptyPersonalization() }),
+    );
+    assert.equal(result.saved, true, "the dispatcher itself must still work, unchanged, for a direct call");
   });
 });
 

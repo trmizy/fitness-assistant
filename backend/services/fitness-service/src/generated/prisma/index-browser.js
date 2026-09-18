@@ -292,6 +292,10 @@ exports.Prisma.NutritionGoalScalarFieldEnum = {
   reason: 'reason',
   triggeredBy: 'triggeredBy',
   goalMode: 'goalMode',
+  trainingCycleId: 'trainingCycleId',
+  createdByUserId: 'createdByUserId',
+  previousGoalId: 'previousGoalId',
+  sourceAssessmentId: 'sourceAssessmentId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -310,6 +314,7 @@ exports.Prisma.BodyMetricsScalarFieldEnum = {
 };
 
 exports.Prisma.WorkoutProgramScalarFieldEnum = {
+  agentActionId: 'agentActionId',
   id: 'id',
   userId: 'userId',
   name: 'name',
@@ -391,6 +396,9 @@ exports.Prisma.WorkoutProgramExerciseSetPrescriptionScalarFieldEnum = {
 };
 
 exports.Prisma.WorkoutProgramTemplateScalarFieldEnum = {
+  isPublic: 'isPublic',
+  dataOrigin: 'dataOrigin',
+  experienceLevel: 'experienceLevel',
   id: 'id',
   createdByUserId: 'createdByUserId',
   name: 'name',
@@ -432,6 +440,47 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.FitnessRoadmapScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  goalType: 'goalType',
+  status: 'status',
+  plannedStartAt: 'plannedStartAt',
+  plannedEndAt: 'plannedEndAt',
+  actualStartAt: 'actualStartAt',
+  actualEndAt: 'actualEndAt',
+  createdByUserId: 'createdByUserId',
+  createdByRole: 'createdByRole',
+  sourceAssessmentId: 'sourceAssessmentId',
+  targetMetrics: 'targetMetrics',
+  configuration: 'configuration',
+  version: 'version',
+  previousRoadmapId: 'previousRoadmapId',
+  idempotencyKey: 'idempotencyKey',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RoadmapPhaseScalarFieldEnum = {
+  id: 'id',
+  roadmapId: 'roadmapId',
+  phaseIndex: 'phaseIndex',
+  name: 'name',
+  phaseType: 'phaseType',
+  status: 'status',
+  plannedStartAt: 'plannedStartAt',
+  plannedEndAt: 'plannedEndAt',
+  actualStartAt: 'actualStartAt',
+  actualEndAt: 'actualEndAt',
+  objective: 'objective',
+  constraints: 'constraints',
+  transitionRules: 'transitionRules',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.TrainingCycleScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -456,6 +505,8 @@ exports.Prisma.TrainingCycleScalarFieldEnum = {
   baselineMetrics: 'baselineMetrics',
   targetMetrics: 'targetMetrics',
   configuration: 'configuration',
+  roadmapPhaseId: 'roadmapPhaseId',
+  sequenceInPhase: 'sequenceInPhase',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -488,7 +539,11 @@ exports.Prisma.CycleAssessmentScalarFieldEnum = {
   nutritionAiExplanation: 'nutritionAiExplanation',
   nutritionUserDecision: 'nutritionUserDecision',
   nutritionReviewedAt: 'nutritionReviewedAt',
+  nutritionReviewedByUserId: 'nutritionReviewedByUserId',
+  nutritionReviewedByRole: 'nutritionReviewedByRole',
+  nutritionPtNote: 'nutritionPtNote',
   appliedNutritionGoalId: 'appliedNutritionGoalId',
+  notifiedForReassessmentAt: 'notifiedForReassessmentAt',
   createdAt: 'createdAt'
 };
 
@@ -920,6 +975,40 @@ exports.MovementType = exports.$Enums.MovementType = {
   STRETCH: 'STRETCH'
 };
 
+exports.FitnessRoadmapStatus = exports.$Enums.FitnessRoadmapStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.RoadmapCreatorRole = exports.$Enums.RoadmapCreatorRole = {
+  CLIENT: 'CLIENT',
+  PT: 'PT',
+  AI: 'AI',
+  SYSTEM: 'SYSTEM'
+};
+
+exports.RoadmapPhaseType = exports.$Enums.RoadmapPhaseType = {
+  FAT_LOSS: 'FAT_LOSS',
+  DIET_BREAK: 'DIET_BREAK',
+  MAINTENANCE: 'MAINTENANCE',
+  LEAN_GAIN: 'LEAN_GAIN',
+  MINI_CUT: 'MINI_CUT',
+  RECOMPOSITION: 'RECOMPOSITION',
+  PERFORMANCE: 'PERFORMANCE',
+  RECOVERY: 'RECOVERY'
+};
+
+exports.RoadmapPhaseStatus = exports.$Enums.RoadmapPhaseStatus = {
+  PLANNED: 'PLANNED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  SKIPPED: 'SKIPPED'
+};
+
 exports.Prisma.ModelName = {
   Exercise: 'Exercise',
   Equipment: 'Equipment',
@@ -942,6 +1031,8 @@ exports.Prisma.ModelName = {
   WorkoutProgramExerciseSetPrescription: 'WorkoutProgramExerciseSetPrescription',
   WorkoutProgramTemplate: 'WorkoutProgramTemplate',
   WorkoutSchedule: 'WorkoutSchedule',
+  FitnessRoadmap: 'FitnessRoadmap',
+  RoadmapPhase: 'RoadmapPhase',
   TrainingCycle: 'TrainingCycle',
   CycleAssessment: 'CycleAssessment',
   RecommendationAudit: 'RecommendationAudit',
