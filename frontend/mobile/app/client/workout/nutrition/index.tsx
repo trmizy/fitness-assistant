@@ -46,6 +46,7 @@ import {
   sumTotals,
   type MealType,
 } from "../../../../src/features/nutrition/nutritionMath";
+import { BeginnerNutritionSummary } from "../../../../src/components/nutrition/BeginnerNutritionSummary";
 
 /**
  * CL-03 — the nutrition day.
@@ -253,6 +254,9 @@ export default function NutritionScreen() {
               <MacroBar label="Chất béo" value={totals.fat} goal={goal?.fat ?? 0} color={MACRO_TINTS.fat} />
             </View>
           </Card>
+
+          {/* WB-14 — web places it between the day's totals and the program card. */}
+          <BeginnerNutritionSummary dailySummary={dailyTask?.dailySummary} dateStr={today} />
 
           {/* Only with a real program behind it. */}
           {hasProgram ? (

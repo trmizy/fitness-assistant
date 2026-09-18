@@ -1,5 +1,11 @@
-# Mobile Migration Manifest — 67 màn thiết kế + 3 màn chỉ có ở web
+# Mobile Migration Manifest — 67 màn thiết kế + 14 màn chỉ có ở web (4 chốt phase, 6 chờ quyết
+định phạm vi, 4 chờ quyết định phase/xung đột)
 
+> **Cập nhật 2026-09-18:** thêm WB-11..WB-14 (FitnessRoadmap, AI Coach nút nổi + khối hành động, PT
+> xem roadmap học viên, "Smart Substitute" dinh dưỡng) sau khi merge `origin/aws-deploy`. WB-12 đang
+> **xung đột trực tiếp** với quyết định điều hướng Phase 4/9 đã chốt — chưa tự chọn bên nào, xem ghi
+> chú trong bảng WEB-ONLY. WB-14 là hồi quy trên Phase 6 đã đóng — **đã vá 18/9** theo lệnh Ngài.
+>
 > **Cập nhật 2026-09-16:** thêm mục "WEB-ONLY" ở cuối. Ba màn đó **không** nằm trong 67 màn của bản
 > thiết kế (Figma không vẽ chúng) nhưng **có thật trên web** và chặn đường vào của chủ phòng gym —
 > theo đúng luật "web là sàn tối thiểu", thiếu chúng là thiếu thật, không phải quyết định. Phát hiện
@@ -162,6 +168,36 @@ bỏ. Chúng là công cụ vận hành kiểu bàn làm việc, khác hẳn cá
 | WB-08 | `/admin/system` | `SystemMonitoring.tsx` | Giám sát hệ thống | Có lẽ để desktop |
 | WB-09 | `/admin/workflows` | `AdminWorkflowStudio.tsx` | Trình dựng luồng nghiệp vụ | Có lẽ để desktop |
 | WB-10 | `/admin/ai-observability` | `AdminAIObservability.tsx` | Quan sát hoạt động AI | Có lẽ để desktop |
+
+## Bổ sung 2026-09-18 — cụm FitnessRoadmap + AI Coach + Dinh dưỡng người mới
+
+> Phát hiện khi merge `origin/aws-deploy` (5 commit mới: `318e62c`,`1e0eaf6`,`16018e5`,`b43d6e9`,
+> `96c1040`) vào `feature/payment-gateways` và soát diff `frontend/web` theo yêu cầu của Ngài. Bốn
+> màn/cụm dưới đây **không nằm trong 67 màn thiết kế lẫn manifest cũ**, có thật trên web với backend
+> thật (`ai-service`), nên theo đúng luật "web là sàn tối thiểu" phải được map, không phải tuỳ chọn.
+
+| ID | Nguồn thị giác | Nguồn web hiện hành | Route Expo (đề xuất) | Backend + API chính | Vai trò/quyền | Spec | Trạng thái quan trọng | Modal/Sheet | Deep link | Năng lực native | Phase | Impl/Verify |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| WB-11 | **không có** (Figma không vẽ) | `pages/client/RoadmapJourneyPage.tsx` (1346 dòng) + `GuidedRoadmapWizard.tsx` (1104 dòng, thuật sĩ tạo lộ trình) | `(client)/roadmap/index.tsx` + `(client)/roadmap/wizard.tsx` | **fitness-service**: `/fitness-roadmaps/*` (`current`,`draft/current`,`:id`,`diagnosis`,`projection`,`ai-draft`,`ai-draft/accept`, `activate`, `advance`, `rebuild`, `archive`). ai-service chỉ là máy sinh bản nháp nội bộ (`/generate-roadmap-draft`, do fitness-service gọi) — client không gọi thẳng ai-service | client | — (miền hoàn toàn mới, không thuộc `imports/01-07`) | DRAFT → ACTIVE → COMPLETED/CANCELLED/ARCHIVED; dự thảo AI/PT chỉ là DRAFT, **mọi bước kích hoạt/advance/rebuild/archive đều do CHÍNH KHÁCH bấm**; đối chiếu `reconciliationStatus` | wizard nhiều bước, thẻ dự báo pha, thẻ phân tích năng lượng | không | camera/ảnh (chẩn đoán thể trạng dùng ảnh — chia sẻ adapter với InBody) | **chưa gán** — đề xuất Phase 8 | chưa làm/chưa kiểm |
+| WB-12 | `AICoach` nút nổi trong `New Frontend` giữ vai trò khác (mock tĩnh) | `components/layout/AICoachFloatingButton.tsx` + `AICoachFloatingPanel.tsx` (nút nổi TOÀN APP, tách khỏi Trò chuyện) + `components/agent/FitnessAgentBlocks.tsx` (khối hành động: đồng ý/từ chối điều chỉnh dinh dưỡng, quyết định chu kỳ, ảnh mục tiêu) | **CHƯA CHỐT** — xem ghi chú xung đột điều hướng ở Phase 9 | ai-service: `/ai/agent/*` (`recommendations/:id/choose`,`actions/:id/confirm`,`goal/confirm`,`goal-image`,`image-chat`) | client | — | AI có thể **tự hành động** qua chat (không chỉ trả lời), huy hiệu mức rủi ro LOW/MEDIUM/HIGH | panel nổi, không phải BottomSheet thường | không | ảnh (upload ảnh mục tiêu qua chat, JPEG/PNG ≤4MB) | 9 — **có xung đột, xem ghi chú** | chưa làm/chưa kiểm |
+| WB-13 | **không có** | `pages/pt/ClientRoadmapCard.tsx`, `ClientProgressCard.tsx`, `PtRoadmapDraftModal.tsx` (đều mới, nhúng trong `PTClientDetail.tsx` viết lại) | nested trong `(pt)/students/[id].tsx` | **fitness-service**: `GET /coach/clients/:clientId/roadmap`, `POST /coach/clients/:clientId/roadmap/draft` | pt — **chỉ khi có hợp đồng ACTIVE** với đúng học viên đó, kiểm lại mỗi request (`assertActivePtClientRelationship`) | — | PT **chỉ được xem + tạo bản NHÁP** (`createdByRole: PT`) để khách duyệt; không bao giờ kích hoạt/advance/rebuild/archive thay khách | modal soạn nháp | không | không | 11 | chưa làm/chưa kiểm |
+| WB-14 | **không có** | `components/nutrition/BeginnerNutritionSummary.tsx` + `pages/client/settings/NutritionSection.tsx` — "Smart Substitute" | thẻ trong `client/workout/nutrition/index.tsx` (`src/components/nutrition/BeginnerNutritionSummary.tsx`); tuỳ chỉnh ngân sách/vùng miền tạm mở từ thẻ bằng BottomSheet, chuyển về Cài đặt ở Phase 9 | fitness-service: `GET /nutrition/food-suggestions?date&budgetLevel`, `POST /nutrition/food-suggestions/apply {date, items}`, `POST /nutrition/food-suggestions/substitute {foodId, foodName, quantityG, calories, protein, mode}`, `dailySummary` trong `GET /nutrition/daily-task`; user-service `PUT /profile/me {nutritionBudgetLevel, region}` | client | — | ẩn khi không có `dailySummary` (không có NutritionGoal); nút gợi ý ẩn khi đã vượt calo; gợi ý chỉ tải khi bấm; 4 chế độ đổi món; "Thêm bữa này" ghi log thật (bữa do server chọn theo giờ) rồi làm mới tổng ngày; không bỏ chọn được vùng miền (GAP-12) | BottomSheet tuỳ chỉnh gợi ý | không | không | 6 (vá 18/9 theo lệnh Ngài) | xong / đã kiểm tự động (unit + service) — kiểm máy ảo: xem ADAPTERS §22.7 |
+
+**WB-14 là hồi quy trên một phase đã đóng.** Phase 6 (Dinh dưỡng + InBody + Thống kê) đã báo cáo
+xong và được Ngài đồng ý qua ngày 17/9 — nhưng `NutritionPage.tsx` trên web vừa mọc thêm tính năng
+"Smart Substitute" *sau* thời điểm đó. Đây không phải lỗi của Phase 6 lúc đóng (đúng sàn tối thiểu
+tại thời điểm đó), mà là sàn tối thiểu tự nó dịch chuyển. Không tự ý mở lại Phase 6 để nhét thêm —
+ghi nhận ở đây, chờ Ngài quyết: vá thêm vào Phase 6 ngay, hay gộp chung vào một đợt "rà lại parity"
+trước Phase 15. **→ 18/9 Ngài chọn vá ngay; đã vá** (xem dòng WB-14 và ADAPTERS §22.7). Còn thiếu so
+với web: công tắc "hiện macro" của Cài đặt › Dinh dưỡng (thiết lập hiển thị cục bộ) — thuộc Phase 9.
+
+**WB-12 xung đột trực tiếp với quyết định điều hướng đã chốt cho Phase 4/9.** Doc 08 §4.2 + xác nhận
+của Ngài ngày 2026-09-13 (ghi trong `client/_layout.tsx`): AI Coach gộp vào tab **Trò chuyện**, không
+có nút nổi riêng — vì bản thiết kế gốc để nút nổi mà brief lại yêu cầu gộp tab, và Ngài đã chọn gộp
+tab. Web hiện tại (`aws-deploy`) đã **đảo ngược đúng quyết định đó**: xoá `ChatCoachPage.tsx`, tách
+AI Coach ra nút nổi toàn app riêng biệt, route `/chat` nay là tin nhắn thật. Theo đúng luật "2 nguồn
+mâu thuẫn thì dừng và báo cáo, không tự chọn" — **chưa gán route Expo cho WB-12**, chờ Ngài chọn lại:
+giữ nguyên quyết định gộp tab (bỏ qua thay đổi web này), hay đổi theo web sang nút nổi toàn app.
 
 **Ba file admin KHÔNG cần dòng riêng** (đã kiểm): `AdminFinanceOverviewTab`, `AdminReconciliationPanel`,
 `PTServiceRefunds` là **tab bên trong** `AdminFinancePage.tsx` → đã nằm trong AD-04/AD-06.

@@ -1338,6 +1338,34 @@ TRÍCH XUẤT chứ không lưu, và không hề có `DELETE /inbody/:id`.
 Kết quả sau khi sửa: `test:unit` 185/185, `test:components` **55/55 (9 suite)**, `typecheck` 0 lỗi,
 `lint` 0 lỗi / 19 cảnh báo (đều là luật React Compiler đã ghi ở §18.6, không phải từ code mới).
 
+
+### 22.7 — WB-14 "Smart Substitute" vá vào Phase 6 (2026-09-18)
+
+- **Thẻ** `src/components/nutrition/BeginnerNutritionSummary.tsx`, đặt giữa thẻ tổng calo và thẻ chương trình
+  trong `client/workout/nutrition/index.tsx` (đúng thứ tự web). Logic thuần ở
+  `src/features/nutrition/foodSuggestions.ts` (13 unit test), 6 service test mới cho 3 endpoint + `dailySummary`.
+- Ẩn hẳn khi `dailySummary` null — tức tài khoản chưa có NutritionGoal thật (`GET /nutrition/goals` vẫn trả
+  mặc định 2000 kcal nhưng đó không phải bản ghi, fitness-service không dùng nó làm mục tiêu).
+- Gợi ý chỉ tải khi bấm (như web). Lựa chọn đổi món gắn với `dataUpdatedAt` của truy vấn gợi ý, dữ liệu mới
+  thì tự hết hiệu lực — thay cho `useEffect` reset của web (lint React Compiler cấm setState trong effect).
+- "Thêm bữa này" → `POST /nutrition/food-suggestions/apply`; server tự chọn bữa theo giờ. Sau đó làm mới
+  `nutrition-daily-task`, `nutrition-logs` (mobile có danh sách log riêng — web không cần), `food-suggestions`.
+- Ngân sách/vùng miền: web ở Cài đặt › Dinh dưỡng; mobile chưa có Cài đặt (Phase 9) nên mở tạm từ dòng
+  "Tuỳ chỉnh" trong thẻ, BottomSheet. Không bỏ chọn vùng miền được → **GAP-12**.
+- **Kiểm trên máy ảo (john.doe):** thẻ hiện đúng 2.000 kcal/150 g; mở gợi ý ra 3 phương án; đổi món "Rẻ hơn"
+  ra 3 ứng viên, chọn Tofu thay tại chỗ; "Thêm bữa này" → backend có đúng 2 log (Tofu 432 + Rice 390, bữa
+  snack), `dailySummary.consumedCalories` = 822, màn hình cập nhật 1.178 kcal còn lại, nút thành "Đã thêm".
+  Đã xoá 2 log thử sau đó.
+- **Điều kiện môi trường:** engine tìm món bằng bí danh tiếng Việt (`food_aliases`). DB local có 13k món USDA
+  nhưng **0 bí danh** → mọi gợi ý rỗng. Đã chạy seed có sẵn trong repo
+  (`docker exec gymcoach-fitness-dev ./node_modules/.bin/tsx prisma/seed_food_aliases.ts`, 2.731 bí danh).
+  DB mới dựng lại phải chạy lại bước này.
+- **Sự cố kéo theo từ lần merge aws-deploy:** lockfile của nhánh đó nâng `nativewind` 4.2.6 → 4.2.7, kéo
+  `react-native-css-interop` 0.2.7 trong khi mobile ghim 0.2.6 → hai bản css-interop, mọi `className` mất
+  style, app chỉ còn thanh tab (bị đẩy lên đầu) trên nền trống. Sửa: ghim `nativewind` đúng `4.2.6` trong
+  `package.json`, `pnpm install`, Metro `--clear`. Sau mỗi lần merge/đổi lockfile, kiểm
+  `ls node_modules/.pnpm | grep css-interop` chỉ còn một bản.
+
 ## 23. Client C (Dịch vụ & luồng tiền) — Phase 7
 
 ### 23.1 — Đối chiếu trước khi code: backend ↔ doc 01/02 (17/9)

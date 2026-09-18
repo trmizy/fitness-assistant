@@ -243,6 +243,7 @@ describe("the program endpoints and their envelope", () => {
       day: null,
       meals: [],
       actualProgress: null,
+      dailySummary: null,
     });
   });
 
@@ -286,5 +287,80 @@ describe("the program endpoints and their envelope", () => {
     expect(http.last().method).toBe("DELETE");
     expect(http.last().path).toBe("/nutrition/meal-completions");
     expect(http.last().query).toEqual({ mealId: "meal-1", date: "2026-09-17" });
+  });
+});
+
+describe("WB-14 — food suggestions", () => {
+  const summary = {
+    targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65,
+    consumedCalories: 0, consumedProtein: 0, consumedCarbs: 0, consumedFat: 0,
+    remainingCalories: 2000, remainingProtein: 150, remainingCarbs: 200, remainingFat: 65,
+  };
+  const item = {
+    foodId: "1d69f529-9547-41cd-87fa-7634acb1e87a",
+    foodName: "Fish, catfish, NFS",
+    quantityG: 250,
+    calories: 638,
+    protein: 33.8,
+    carbs: 29.3,
+    fat: 41.8,
+  };
+
+  it("passes the day's dailySummary through from GET /nutrition/daily-task", async () => {
+    http = stubHttp(() => ({ data: { success: true, data: { hasProgram: false, date: "2026-09-18", meals: [], actualProgress: null, dailySummary: summary } } }));
+    const task = await nutritionService.getDailyTask("2026-09-18");
+    expect(task.dailySummary).toEqual(summary);
+  });
+
+  it("asks for suggestions with only the params it was given — budget comes from the profile otherwise", async () => {
+    http = stubHttp(() => ({
+      data: { success: true, data: { date: "2026-09-18", remainingCalories: 2000, remainingProtein: 150, budgetLevel: "NORMAL", region: "NAM", options: [] } },
+    }));
+
+    const res = await nutritionService.getFoodSuggestions("2026-09-18");
+    expect(http.last().method).toBe("GET");
+    expect(http.last().path).toBe("/nutrition/food-suggestions");
+    expect(http.last().query).toEqual({ date: "2026-09-18" });
+    expect(res.region).toBe("NAM");
+
+    await nutritionService.getFoodSuggestions("2026-09-18", "LOW");
+    expect(http.last().query).toEqual({ date: "2026-09-18", budgetLevel: "LOW" });
+
+    await nutritionService.getFoodSuggestions();
+    expect(http.last().url).toBe("/nutrition/food-suggestions");
+  });
+
+  it("falls back to no options rather than undefined", async () => {
+    http = stubHttp(() => ({ data: {} }));
+    const res = await nutritionService.getFoodSuggestions("2026-09-18");
+    expect(res.options).toEqual([]);
+    expect(res.budgetLevel).toBe("NORMAL");
+  });
+
+  it("applies a combo as { date, items } and reports how many rows the server really wrote", async () => {
+    http = stubHttp(() => ({ status: 201, data: { success: true, data: { created: 2 } } }));
+    const res = await nutritionService.applyFoodSuggestion("2026-09-18", [item, item]);
+    expect(http.last().method).toBe("POST");
+    expect(http.last().path).toBe("/nutrition/food-suggestions/apply");
+    expect(http.last().body).toEqual({ date: "2026-09-18", items: [item, item] });
+    expect(res.created).toBe(2);
+  });
+
+  it("asks for a substitute with the item's fields flat, plus the mode", async () => {
+    http = stubHttp(() => ({
+      data: { success: true, data: { role: "PROTEIN", mode: "CHEAPER", candidates: [item], note: "Lượng gợi ý đã quy đổi" } },
+    }));
+    const { carbs: _c, fat: _f, ...sent } = item;
+    const res = await nutritionService.getFoodSubstitute(sent, "CHEAPER");
+    expect(http.last().method).toBe("POST");
+    expect(http.last().path).toBe("/nutrition/food-suggestions/substitute");
+    expect(http.last().body).toEqual({ ...sent, mode: "CHEAPER" });
+    expect(res.candidates).toHaveLength(1);
+  });
+
+  it("an empty substitute answer is an empty list, not a crash", async () => {
+    http = stubHttp(() => ({ data: {} }));
+    const res = await nutritionService.getFoodSubstitute(item, "VEGETARIAN");
+    expect(res).toEqual({ role: "PROTEIN", mode: "VEGETARIAN", candidates: [], note: "" });
   });
 });

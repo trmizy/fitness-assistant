@@ -299,3 +299,27 @@
   `activeRates` (`effectiveAt: null`), hoặc trả thêm `effectiveAt` để client tự đánh dấu "sắp kết
   thúc hợp tác".
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
+
+---
+
+## GAP-12 — Không bỏ chọn được vùng miền (region) một khi đã chọn
+
+- Phát hiện: vá WB-14 vào Phase 6, 2026-09-18, gọi thật `PUT /profile/me`.
+- Màn hình/luồng bị ảnh hưởng: tuỳ chỉnh gợi ý món (ngân sách + vùng miền) — mobile đặt tạm trong
+  thẻ tóm tắt dinh dưỡng, web đặt ở Cài đặt › Dinh dưỡng.
+- Backend service liên quan: user-service, `models/profile.models.ts`:
+  `region: z.enum(["BAC", "TRUNG", "NAM"]).optional()` — **không có `.nullable()`**.
+- Mô tả thiếu gì cụ thể: gửi `{ region: null }` bị trả **400** `Expected 'BAC' | 'TRUNG' | 'NAM',
+  received null` (đã thử thật trên john.doe). Không có cách nào khác để xoá trường này về rỗng, dù
+  engine gợi ý coi rỗng là "gợi ý chung toàn quốc" và giao diện web ghi rõ "chạm lại để bỏ chọn".
+- **Web dính lỗi này**: `NutritionSection.tsx` gửi `region: null` khi chạm lại vùng đang chọn → toast
+  "Không thể cập nhật". Đây là lỗi backend/web, không phải khác biệt do mobile.
+- Mức ảnh hưởng: PARTIAL — đổi vùng được, chỉ không xoá được.
+- Đã xử lý ở client: mobile **không gửi** yêu cầu biết chắc sẽ hỏng — chạm lại vùng đang chọn không
+  làm gì, và bỏ dòng "chạm lại để bỏ chọn" khỏi chú thích (`regionToSend` trong
+  `src/features/nutrition/foodSuggestions.ts`, có unit test).
+- Đề xuất (không tự làm nếu chưa được đồng ý): `.nullable().optional()` cho `region` (và
+  `nutritionBudgetLevel` nếu muốn về mặc định).
+- Tác dụng phụ trong lúc kiểm: tài khoản test john.doe nay có `region = NAM` (trước là rỗng) — không
+  đưa về rỗng được qua API vì chính lỗi này; sửa DB trực tiếp cần Ngài cho phép.
+- Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.

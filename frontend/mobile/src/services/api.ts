@@ -3896,6 +3896,62 @@ export interface NutritionGoalPlanConsistency {
   recommendedAction: string;
 }
 
+export interface NutritionDailySummary {
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFat: number;
+  consumedCalories: number;
+  consumedProtein: number;
+  consumedCarbs: number;
+  consumedFat: number;
+  remainingCalories: number;
+  remainingProtein: number;
+  remainingCarbs: number;
+  remainingFat: number;
+}
+
+export interface FoodSuggestionItem {
+  foodId: string;
+  foodName: string;
+  quantityG: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface FoodSuggestionOption {
+  label: string;
+  items: FoodSuggestionItem[];
+  sideNote: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+}
+
+export interface FoodSuggestionsResponse {
+  date: string;
+  remainingCalories: number;
+  remainingProtein: number;
+  budgetLevel: NutritionBudgetLevel;
+  region?: NutritionRegion | null;
+  options: FoodSuggestionOption[];
+}
+
+export type NutritionBudgetLevel = "LOW" | "NORMAL" | "FLEXIBLE";
+export type NutritionRegion = "BAC" | "TRUNG" | "NAM";
+
+export type SubstituteMode = "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";
+
+export interface FoodSubstituteResult {
+  role: "PROTEIN" | "CARB";
+  mode: SubstituteMode;
+  candidates: FoodSuggestionItem[];
+  note: string;
+}
+
 export const nutritionService = {
   getLogs: async (startDate?: string, endDate?: string, mealType?: string) => {
     const params = new URLSearchParams();
@@ -3955,6 +4011,7 @@ export const nutritionService = {
       carbs: number;
       fat: number;
     } | null;
+    dailySummary: NutritionDailySummary | null;
     message?: string;
   }> => {
     const qs = date ? `?date=${date}` : "";
@@ -3967,8 +4024,45 @@ export const nutritionService = {
         day: null,
         meals: [],
         actualProgress: null,
+        dailySummary: null,
       }
     );
+  },
+
+  getFoodSuggestions: async (
+    date?: string,
+    budgetLevel?: NutritionBudgetLevel,
+  ): Promise<FoodSuggestionsResponse> => {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (budgetLevel) params.set("budgetLevel", budgetLevel);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const { data } = await api.get(`/nutrition/food-suggestions${qs}`);
+    return (
+      data?.data ?? {
+        date: date ?? "",
+        remainingCalories: 0,
+        remainingProtein: 0,
+        budgetLevel: budgetLevel ?? "NORMAL",
+        options: [],
+      }
+    );
+  },
+
+  applyFoodSuggestion: async (
+    date: string,
+    items: FoodSuggestionItem[],
+  ): Promise<{ created: number }> => {
+    const { data } = await api.post("/nutrition/food-suggestions/apply", { date, items });
+    return data?.data ?? { created: 0 };
+  },
+
+  getFoodSubstitute: async (
+    item: Pick<FoodSuggestionItem, "foodId" | "foodName" | "quantityG" | "calories" | "protein">,
+    mode: SubstituteMode,
+  ): Promise<FoodSubstituteResult> => {
+    const { data } = await api.post("/nutrition/food-suggestions/substitute", { ...item, mode });
+    return data?.data ?? { role: "PROTEIN", mode, candidates: [], note: "" };
   },
 
   upsertMealCompletion: async (
