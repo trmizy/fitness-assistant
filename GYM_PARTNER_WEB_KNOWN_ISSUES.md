@@ -3,7 +3,12 @@
 Những điều còn thiếu, còn rủi ro, hoặc cố ý hoãn của luồng **Gym Partner Self-Service Onboarding**.
 Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PARTNER_WEB_TEST_REPORT.md`.
 
-## 1. Chặn go-live (phải xong trước khi deploy production)
+## 1. Việc của ngày DEPLOY — không chặn tính năng
+
+> **Đọc trước khi lo lắng.** Không mục nào dưới đây là lỗi của tính năng. Luồng đăng ký đối tác chạy
+> đầy đủ và đã được kiểm kỹ trên stack dev cục bộ (Docker + Postgres + MinIO); nó **không phụ thuộc
+> AWS** để hoạt động. Đây là danh sách việc cho **một phiên làm việc riêng về deploy**, do người vận
+> hành AWS chủ trì. Tới lúc đó mở file này ra là đủ, không cần dựng lại bối cảnh.
 
 | # | Vấn đề | Vì sao chặn | Việc cần làm |
 |---|---|---|---|
@@ -13,6 +18,22 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 | G3 | **Redis chia sẻ cho rate limit** | Limiter theo tiến trình không an toàn khi scale ngang. Production phải đặt `RATE_LIMIT_REQUIRE_SHARED=true`, và khi đó gateway **từ chối khởi động** nếu không có Redis | Cấp Redis (ElastiCache hoặc container) cho môi trường production |
 | ~~G4~~ | ~~CloudFront/OAC cho ảnh công khai~~ | **Không còn cần (2026-09-20)** — đã bỏ bucket công khai; ảnh luôn riêng tư, phục vụ bằng presigned GET. Không bề mặt ẩn danh nào hiển thị ảnh phòng gym. | — |
 | ~~G5~~ | ~~Chưa có địa chỉ hỗ trợ~~ | **Đã xong 2026-09-20** — `VITE_SUPPORT_EMAIL` mặc định `huytronh5@gmail.com` (trùng `SMTP_FROM`, thư trả lời về đúng hộp gửi) trong `docker-compose.dev.yml`; service `web` không có `env_file` nên giá trị phải nằm ở compose. Không phải bí mật: nó hiện trong bundle. | — |
+
+| G6 | **Lambda gắn VPC có tới được S3 không** | Runbook ghi Lambda phải gắn VPC nếu Aurora private, và NAT Gateway nằm trong danh sách cần soi kỹ (khả năng cao là không có). VPC + không NAT + không **S3 Gateway Endpoint** = mọi lời gọi S3 **treo rồi timeout**: presign vẫn chạy (ký cục bộ), trình duyệt vẫn tải lên được, nhưng bước `confirm` (`HeadObject` + đọc magic bytes) chết → **không ai nộp được hồ sơ** | Kiểm `VpcConfig` của hàm gym; nếu có subnet thì xem route table có `com.amazonaws.ap-southeast-1.s3` không. Thiếu thì thêm **S3 Gateway Endpoint — miễn phí**, khác NAT. Dấu hiệu tốt: nếu hàm `user` đã gọi S3 thành công trên AWS thì đường mạng có sẵn |
+
+### Vì sao danh sách này không thể đóng bằng cách test kỹ hơn ở cục bộ
+
+Bốn lớp sau nằm ngoài tầm với của stack cục bộ **về nguyên lý**, không phải vì thiếu công sức:
+
+| Lớp | Vì sao cục bộ không thấy |
+|---|---|
+| VPC không tới được S3 (G6) | Không có VPC ở máy cục bộ |
+| Đường code chỉ chạy trên Lambda | `lambda.ts` / `jobs-lambda.ts` **chưa bao giờ** chạy cục bộ — đã có một lỗi thật lòi ra từ đây |
+| Policy IAM hẹp của role gym (G1b) | Cục bộ dùng khoá MinIO toàn quyền |
+| Nhiều instance (rate limit bộ nhớ) | Cục bộ chỉ một tiến trình |
+
+Cách đóng duy nhất: **deploy lên dev rồi chạy một vòng đăng ký thật ở đó**. Một vòng đó đi qua VPC,
+qua role thật, qua S3 thật, qua Lambda thật — thay thế được cả bốn lớp. Đừng cố suy đoán cho hết trước.
 
 ## 2. Rủi ro đã biết, chấp nhận có điều kiện
 
@@ -74,5 +95,9 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
   "Đã xảy ra lỗi. Vui lòng thử lại." — mời họ thử mãi mà không bao giờ vào được. Nay hiện đúng lý do server nói.
 - Guard production cho lưu trữ: `gym-service/src/services/partner-s3.guard.ts` — production không thể trỏ
   nhầm vào MinIO/localhost; có 13 test.
+- **Sửa lỗi guard không chạy trên Lambda (2026-09-21, commit `8b1404e`)**: guard được gọi ở `server.ts`,
+  nhưng Lambda có entrypoint riêng và không đi qua đó — nên trên AWS, lời hứa "cấu hình sai thì từ chối
+  khởi động" là sai; lỗi chỉ lộ ra khi có người tải tệp. Nay gọi ở cả `lambda.ts` và `jobs-lambda.ts`.
+  Đây là lớp lỗi **chỉ môi trường AWS mới phơi bày**.
 - Gỡ luồng admin tạo/cấp tài khoản chủ gym: 410 cho hai endpoint, xoá code chết ở auth-service, gateway và
   web. Hạ tầng mời MANAGER giữ nguyên và đã hồi quy.
