@@ -12,6 +12,7 @@ Chạy trên stack dev thật (`docker compose -f infra/compose/docker-compose.d
 | `browser-e2e-mobile.cjs` | REAL BROWSER | như trên ở 360/390/412px (`W=390 node ...`), kèm kiểm tràn ngang |
 | `api-e2e.mjs` | REAL HTTP/API | magic link, phân quyền, upload, vòng đời giấy tờ/issue, approve song song, gỡ luồng cũ (410), log không lộ token |
 | `s3-smoke.ts` | REAL HTTP/API | **Không chạm CSDL, không HTTP ứng dụng.** Nghiệm thu bucket S3 thật trước khi deploy: presigned POST + điều kiện đã ký, HEAD, mã hoá, presigned GET, bỏ chữ ký → 403, CORS, xoá. Mọi khoá nằm dưới `partner-applications/smoke-test/` và được dọn sạch |
+| `legacy-owner-regression.cjs` | REAL BROWSER | **Rủi ro R1**: chủ gym đã hoạt động TỪ TRƯỚC phiên này vẫn vào thẳng workspace (không bị đẩy sang vùng ứng viên), dashboard và các trang vận hành mở được, tạo được chi nhánh đúng thương hiệu. Tự dọn chi nhánh thử |
 | `admin-regression.cjs` | REAL BROWSER | danh sách/chi tiết đối tác cũ của admin còn chạy, không còn nút tạo/cấp tài khoản |
 
 Mỗi lần chạy tạo dữ liệu `@partner-e2e.test`; dọn bằng cách xoá các user/partner/brand/gym đó ở DB dev và đối tượng trong MinIO. Không chạy trên DB có dữ liệu thật của khách.
