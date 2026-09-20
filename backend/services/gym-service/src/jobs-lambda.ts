@@ -3,6 +3,7 @@ import {
   ensureDatabaseUrlConfigured,
   validateRequiredRuntimeConfig,
 } from "./config/lambda-runtime";
+import { assertPartnerS3ProductionSafe } from "./services/partner-s3.guard";
 
 export type GymServiceJobName =
   | "membership-payout-sweep"
@@ -38,6 +39,8 @@ export async function handler(event: GymServiceJobEvent = {}) {
   try {
     await ensureDatabaseUrlConfigured();
     validateRequiredRuntimeConfig();
+    // partner-upload-sweep xoá đối tượng trên S3, nên hàm này cũng phải chịu chung chốt chặn cấu hình.
+    assertPartnerS3ProductionSafe();
     const result = await runGymServiceJob(event);
     return {
       statusCode: 200,
