@@ -238,7 +238,7 @@ function BrandResultCard({ entry, onSelectGym }: { entry: BrandEntry; onSelectGy
         <PriceTag fromPrice={entry.fromPrice} />
       </button>
       {open && (
-        <div className="divide-y divide-zinc-800/60 border-t border-zinc-800/60">
+        <div className="max-h-80 overflow-y-auto divide-y divide-zinc-800/60 border-t border-zinc-800/60">
           {entry.branches.map(({ gym: b, distance }, i) => (
             <button
               key={b.id}
@@ -432,7 +432,10 @@ export function GymsPage() {
       )}
 
       {!isLoading && entries.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start gap-4">
+          {/* items-start: thẻ chuỗi bung ra có thể cao gấp nhiều lần thẻ thường (chuỗi 40 chi
+              nhánh). Không có nó, grid kéo mọi thẻ cùng hàng cao bằng thẻ cao nhất — hai thẻ bên
+              cạnh biến thành hai ô rỗng khổng lồ. */}
           {entries.map((entry) =>
             entry.kind === "brand" ? (
               <BrandResultCard key={entry.brandId} entry={entry} onSelectGym={setSelectedGymId} />
