@@ -1,0 +1,51 @@
+{
+  "head": "96c1040f8420cc121fb10b8900b7da4c509133b0",
+  "harnessBefore": "b32935401266854c5daac59cfa09b8d18e23a062021b1204fceff516d490e0d1",
+  "harnessAfter": "b32935401266854c5daac59cfa09b8d18e23a062021b1204fceff516d490e0d1",
+  "results": [
+    {
+      "name": "original-1",
+      "exit": 0
+    },
+    {
+      "name": "original-2",
+      "exit": 0
+    },
+    {
+      "name": "concurrency",
+      "exit": 0
+    },
+    {
+      "name": "independent",
+      "exit": 0
+    },
+    {
+      "name": "fitness",
+      "exit": 0
+    },
+    {
+      "name": "workflow",
+      "exit": 0
+    },
+    {
+      "name": "focused",
+      "exit": 0
+    },
+    {
+      "name": "foundation",
+      "exit": 0
+    },
+    {
+      "name": "fitness-typecheck",
+      "exit": 0
+    },
+    {
+      "name": "ai-typecheck",
+      "exit": 0
+    },
+    {
+      "name": "frontend-build",
+      "exit": 1
+    }
+  ]
+}

@@ -48,11 +48,22 @@ function formatProfileFieldValue(field: string, value: unknown): string {
 export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: { block: AgentChatBlock; sessionId?: string; onReply: (reply: AgentReply) => void; onQuickReply?: (text: string) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
+  // L1: "Để sau"/"Bỏ qua" is NOT "saved". For generic confirmation cards it is a
+  // local-only postponement (backend action stays pending); for workout/
+  // nutrition previews "Bỏ qua" really cancels the draft server-side.
+  const [dismissed, setDismissed] = useState(false);
   const [goal, setGoal] = useState("MUSCLE_GAIN");
   const [focus, setFocus] = useState<string[]>(block.attributes?.focusMuscles ?? []);
   const [muscularity, setMuscularity] = useState(block.attributes?.muscularity ?? "MODERATE");
   const [leanness, setLeanness] = useState(block.attributes?.relativeLeanness ?? "MODERATE");
   const [packages, setPackages] = useState<Record<string, string>>({});
+  async function dismissDraft() {
+    if (busy || completed || dismissed || !block.actionId) return;
+    setBusy(true); setError("");
+    try { onReply(await fitnessAgentService.dismiss(block.actionId)); setDismissed(true); }
+    catch (e: any) { setError(e.response?.data?.error?.message ?? e.message ?? "Thao tác thất bại. Hãy thử lại."); }
+    finally { setBusy(false); }
+  }
   async function run(fn: () => Promise<AgentReply>) {
     if (busy || completed) return;
     setBusy(true); setError("");
@@ -155,7 +166,9 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       </div>}
       <p>{block.note}</p>
       <button className={button} disabled={busy || completed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}</button>
-      <button className="min-h-11 px-3" disabled={busy || completed} onClick={() => setCompleted(true)}>Để sau</button>
+      {dismissed
+        ? <p className="text-xs text-zinc-400">Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.</p>
+        : <button className="min-h-11 px-3" disabled={busy || completed} onClick={() => setDismissed(true)}>Để sau</button>}
     </div>}
     {block.type === "GOAL_ANALYSIS" && <div className="space-y-3">
       <p>{block.note}</p>
@@ -230,6 +243,57 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         <button className={button} disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Xác nhận cập nhật"); }}>Xác nhận cập nhật</button>
         {block.allowUseOnce !== false && <button className="min-h-11 rounded-lg border border-zinc-600 px-3 py-2 text-sm text-zinc-300" disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Chỉ dùng cho lần này"); }}>Chỉ dùng cho lần này</button>}
         <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed} onClick={() => { setCompleted(true); onQuickReply?.("Hủy"); }}>Hủy</button>
+      </div>
+    </div>}
+    {block.type === "WORKOUT_PLAN_PREVIEW" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-semibold">{block.title ?? "Lịch tập do AI Coach tạo"}</h3>
+        <RiskBadge risk={block.risk} />
+      </div>
+      <p className="text-xs text-zinc-400">{block.daysPerWeek} buổi/tuần · khoảng {block.sessionMinutes} phút/buổi{block.goal ? ` · ${GOAL_LABEL_VI[block.goal] ?? block.goal}` : ""}</p>
+      <div className="space-y-2">
+        {block.days?.map((d, i) => <details key={i} className="rounded-lg border border-zinc-700 p-2">
+          <summary className="cursor-pointer min-h-11 py-1 text-sm font-medium text-zinc-200">{d.day}{d.goal ? ` — ${d.goal}` : ""}{d.firstDate ? ` · từ ${d.firstDate.split("-").reverse().slice(0, 2).join("/")}` : ""}</summary>
+          <ul className="mt-1 space-y-1 text-xs text-zinc-400">
+            {d.exercises.map((e, j) => <li key={j}>{e.name} — {e.sets} × {e.reps}{e.restSeconds ? ` · nghỉ ${e.restSeconds}s` : ""}</li>)}
+          </ul>
+        </details>)}
+      </div>
+      <p className="text-xs text-zinc-400">{block.note}</p>
+      <div className="flex flex-wrap gap-2">
+        <button className={button} disabled={busy || completed || dismissed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã lưu" : "Lưu lịch tập này"}</button>
+        <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed || dismissed} onClick={() => void dismissDraft()}>{dismissed ? "Đã bỏ qua" : "Bỏ qua bản này"}</button>
+      </div>
+    </div>}
+    {block.type === "NUTRITION_PLAN_PREVIEW" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-semibold">{block.title ?? "Thực đơn do AI Coach tạo"}</h3>
+        <RiskBadge risk={block.risk} />
+      </div>
+      {block.targetNote && <p className="text-xs text-emerald-300">{block.targetNote}</p>}
+      {block.excludedFoods?.length ? <p className="text-xs text-zinc-300">Đã loại trừ: {block.excludedFoods.join(", ")}</p> : null}
+      {block.softPreferences?.length ? <p className="text-xs text-zinc-400">Gợi ý cho AI (không đảm bảo): {block.softPreferences.join("; ")}</p> : null}
+      <p className="text-xs text-zinc-400">
+        ~{block.dailyCaloriesTarget} kcal/ngày · {block.mealsPerDay} bữa/ngày
+        {block.proteinTargetGrams != null ? ` · P${Math.round(block.proteinTargetGrams)}g` : ""}
+        {block.carbTargetGrams != null ? ` C${Math.round(block.carbTargetGrams)}g` : ""}
+        {block.fatTargetGrams != null ? ` F${Math.round(block.fatTargetGrams)}g` : ""}
+      </p>
+      <div className="space-y-2">
+        {block.nutritionDays?.map((d, i) => <details key={i} className="rounded-lg border border-zinc-700 p-2">
+          <summary className="cursor-pointer min-h-11 py-1 text-sm font-medium text-zinc-200">{d.title} — {d.totalCalories} kcal</summary>
+          <div className="mt-1 space-y-1.5 text-xs text-zinc-400">
+            {d.meals.map((m, j) => <div key={j}>
+              <p className="text-zinc-300">{m.title} ({m.calories} kcal)</p>
+              <ul className="list-disc pl-4">{m.items.map((it, k) => <li key={k}>{it.name} — {it.quantity}{it.unit} ({it.calories} kcal)</li>)}</ul>
+            </div>)}
+          </div>
+        </details>)}
+      </div>
+      <p className="text-xs text-zinc-400">{block.note}</p>
+      <div className="flex flex-wrap gap-2">
+        <button className={button} disabled={busy || completed || dismissed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã lưu" : "Lưu thực đơn này"}</button>
+        <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed || dismissed} onClick={() => void dismissDraft()}>{dismissed ? "Đã bỏ qua" : "Bỏ qua bản này"}</button>
       </div>
     </div>}
     {error && <p role="alert" className="text-red-300">{error}</p>}

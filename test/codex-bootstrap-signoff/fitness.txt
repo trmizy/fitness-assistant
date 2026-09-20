@@ -1,0 +1,72 @@
+{"level":40,"time":1789885437607,"pid":21536,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"idem-apply-2c73458a-5d8f-43f8-af6f-44250b7a727a","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437610,"pid":21536,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"idem-apply-2c73458a-5d8f-43f8-af6f-44250b7a727a","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+✔ agentProgramService.apply: confirming the same action twice creates exactly one WorkoutProgram, never two (557.4537ms)
+✔ agentProgramService.apply: a stale fingerprint (state changed since propose) is rejected with 409, no partial write (49.2428ms)
+✔ agentProgramService.candidates: REQUIRED equipment present -> eligible (217.5825ms)
+✔ agentProgramService.candidates: REQUIRED equipment absent -> ineligible (95.931ms)
+✔ agentProgramService.candidates: OPTIONAL equipment absent -> STILL eligible (this is the real bug fixed this pass) (54.6563ms)
+✔ agentProgramService.candidates: one of two ALTERNATIVE equipment present -> eligible (OR-group, this is the real bug fixed this pass) (87.1681ms)
+✔ agentProgramService.candidates: ALL ALTERNATIVE equipment absent -> ineligible (79.9625ms)
+✔ agentProgramService.candidates: bodyweight/no equipment links -> eligible (40.3577ms)
+✔ agentProgramService.candidates: mixed REQUIRED (present) + OPTIONAL (absent) -> eligible (75.0705ms)
+✔ agentProgramService.candidates: mixed REQUIRED (absent) + ALTERNATIVE (present) -> ineligible (REQUIRED still gates regardless of ALTERNATIVE satisfaction) (75.9561ms)
+✔ spec §XLI scenario: 22yo male, 178cm, 113.6kg, beginner, weight loss — sane initial prescription, never an extreme deficit (2.8675ms)
+✔ never proposes below the shared safety floor (1200 kcal) even for a very light, sedentary profile (0.517ms)
+✔ MUSCLE_GAIN goal produces a surplus, not a deficit (0.5435ms)
+✔ MAINTENANCE goal keeps target at maintenance calories (0.6331ms)
+✔ prefers a measured InBody BMR over the Mifflin-St Jeor estimate when available (0.5505ms)
+✔ advanced lifters get a smaller deficit fraction than beginners for the same goal (0.4449ms)
+✔ useMaintenanceOnly forces maintenance calories even for a WEIGHT_LOSS goal — no deficit computed at all (0.511ms)
+✔ useMaintenanceOnly forces maintenance calories even for a MUSCLE_GAIN goal — no surplus computed at all (0.6883ms)
+✔ useMaintenanceOnly still computes a real, evidence-backed protein/fat/water target — never withholds a number entirely (0.7499ms)
+✔ findMissingBootstrapFields flags absent required fields without requiring experienceLevel or InBody (2.4836ms)
+{"level":40,"time":1789885436610,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"e239a52a-a11a-44d3-80f3-baea58d400e7","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885436613,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"e239a52a-a11a-44d3-80f3-baea58d400e7","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+✔ spec §XLI scenario: full profile, no InBody -> creates an ACTIVE cycle + ACTIVE goal linked together, and an explainability audit row (1884.4006ms)
+{"level":30,"time":1789885436753,"pid":28096,"hostname":"DESKTOP-UIQSF8T","userId":"63f4235c-5894-4c1c-9d4b-a5482154da54","missingFields":["heightCm","age","gender","activityLevel"],"msg":"[nutrition-bootstrap] insufficient profile data — skipping initial plan generation"}
+✔ missing required profile fields -> insufficient_data, creates nothing (no cycle, no goal) (12.2371ms)
+{"level":40,"time":1789885436789,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"3e9b78b7-57b1-4f37-8875-4a63075064a9","msg":"[training-cycle] inbody history fetch failed"}
+✔ reuses a pre-existing ACTIVE cycle instead of creating a second one (152.2094ms)
+{"level":40,"time":1789885436941,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885436948,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885436957,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885436960,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885437003,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437007,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885437010,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437011,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885437039,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437040,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885437058,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437066,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437068,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437069,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437071,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437072,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437076,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437090,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885437094,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"c1845267-6e22-4c31-ad23-c3026460b229","msg":"[training-cycle] inbody history fetch failed"}
+✔ CONCURRENCY (Phase 2 §II): 10 simultaneous bootstrap calls for the same brand-new user -> exactly one ACTIVE cycle and one ACTIVE goal survive, none crash unhandled (311.0433ms)
+{"level":40,"time":1789885437262,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"82f953f2-c02f-4b59-8255-a24d94747398","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437267,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"82f953f2-c02f-4b59-8255-a24d94747398","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885437322,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"4d30fd87-b699-4809-9551-3c993c94e455","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437323,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"4d30fd87-b699-4809-9551-3c993c94e455","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+✔ SAFETY (Phase 2 §I): a profile with reported screening flags gets a maintenance-only target, professionalReviewRequired=true, and a consultation reason — never the full WEIGHT_LOSS deficit (160.1968ms)
+{"level":40,"time":1789885437399,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"99710aba-8b9c-4433-aa04-b7c6a3d3a2f4","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885437400,"pid":28096,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"99710aba-8b9c-4433-aa04-b7c6a3d3a2f4","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+✔ SAFETY: unscreened (UNKNOWN) profile does NOT get flagged for review — matches the existing 'warn on reported risk, never on missing data' policy (70.0554ms)
+✔ no goal -> COMPUTED via the bootstrap engine (1992/128/246/55 for the Codex fixture), and NOTHING is written (1674.2015ms)
+{"level":40,"time":1789885436670,"pid":27952,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"bdfe7198-7813-48e1-adce-d85d8affe6f9","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885436673,"pid":27952,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"bdfe7198-7813-48e1-adce-d85d8affe6f9","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+✔ the resolved COMPUTED target equals exactly what bootstrap then persists (no competing prescription) (227.6105ms)
+✔ an ACTIVE NutritionGoal always wins over a recomputation (36.7764ms)
+✔ incomplete profile -> insufficient_data with the missing fields; never a guessed target (13.0701ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3597.6674
+

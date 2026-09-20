@@ -280,6 +280,28 @@ export const fitnessAgentTools = {
   importAiPlanToSchedule(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "fitness", "POST", "/workouts/from-ai-plan", payload, z.record(z.unknown()));
   },
+  // Same real endpoint plan.controller.ts's saveNutritionPlan calls
+  // (nutrition.routes.ts's /nutrition/from-ai-plan, internalAuthMiddleware-
+  // guarded — domain()'s own x-internal-token/x-user-id headers already
+  // satisfy that, exactly like bootstrapNutrition's "/internal/..." route
+  // above) — takes a COMPLETED NutritionPlan's weeklySchedule/macro targets
+  // and creates the real NutritionGoal+NutritionProgram from it. Used by
+  // CREATE_NUTRITION_PLAN so "lưu thực đơn này" persists the EXACT content
+  // already shown in chat.
+  // READ-ONLY authoritative nutrition target (fitness-service
+  // nutrition-onboarding-bootstrap.service.ts::resolveNutritionTargetForUser):
+  // the ACTIVE NutritionGoal if one exists, else the SAME deterministic
+  // initial prescription onboarding computes — never a new formula here.
+  getNutritionTargetPreview(identity: AgentIdentity) {
+    return domain(identity, "fitness", "GET", "/nutrition/target-preview", undefined, z.discriminatedUnion("status", [
+      z.object({ status: z.literal("ACTIVE_GOAL"), goalId: z.string(), calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number() }),
+      z.object({ status: z.literal("COMPUTED"), calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number(), professionalReviewRequired: z.boolean().optional() }),
+      z.object({ status: z.literal("insufficient_data"), missingFields: z.array(z.string()) }),
+    ]));
+  },
+  saveNutritionPlanFromAiPlan(identity: AgentIdentity, payload: unknown) {
+    return domain(identity, "fitness", "POST", "/nutrition/from-ai-plan", payload, z.record(z.unknown()));
+  },
   // /workouts/from-ai-plan requires a real exerciseId per exercise (Zod:
   // "Exercise ID is required") — the deterministic recommendation_engine.ts
   // template only has free-text exercise NAMES, so SAVE_GENERATED_PLAN

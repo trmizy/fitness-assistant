@@ -1,0 +1,32 @@
+import { spawnSync, execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+const dir = 'test/codex-bootstrap-signoff';
+const original = 'test/codex-ai-coach-release-readiness/bootstrap-race.ts';
+const hash = f => createHash('sha256').update(readFileSync(f)).digest('hex');
+const before = hash(original);
+const pg = 'postgresql://gymcoach_test:gymcoach_test_password@localhost:55433';
+const env = { ...process.env, NODE_ENV:'test', LLM_PROVIDER:'mock', REDIS_HOST:'localhost', REDIS_PORT:'56379', FITNESS_DISABLE_REDIS:'true', INTERNAL_SERVICE_SECRET:'test_internal_service_secret_32_chars_minimum', DATABASE_URL:`${pg}/gymcoach_ai_test?schema=public` };
+const results = [];
+function run(name, args, extra = {}, cwd = process.cwd()) {
+  const r = spawnSync(process.execPath, args, { cwd, env:{...env,...extra}, encoding:'utf8', timeout:240000, maxBuffer:20000000 });
+  writeFileSync(`${dir}/${name}.txt`, (r.stdout??'')+'\n'+(r.stderr??''));
+  const result={name,exit:r.status,error:r.error?.message}; results.push(result); console.log(JSON.stringify(result));
+}
+const tsx='node_modules/tsx/dist/cli.mjs';
+const fit={DATABASE_URL:`${pg}/gymcoach_fitness_test?schema=public`,FITNESS_DATABASE_URL:`${pg}/gymcoach_fitness_test?schema=public`};
+run('original-1',[tsx,original]);
+run('original-2',[tsx,original]);
+run('concurrency',[tsx,'--test','--test-force-exit','backend/services/fitness-service/src/__tests__/nutrition-bootstrap-concurrency.integration.test.ts'],fit);
+run('independent',[tsx,'test/codex-bootstrap-signoff/independent.ts'],fit);
+run('fitness',[tsx,'--test','--test-force-exit',...['nutrition-target-resolution.integration','nutrition-onboarding-bootstrap.integration','nutrition-bootstrap.engine','agent-program-equipment-semantics','agent-program-apply-idempotency'].map(f=>`backend/services/fitness-service/src/__tests__/${f}.test.ts`)],fit);
+run('workflow',[tsx,'--test','--test-force-exit','backend/services/ai-service/src/__tests__/agent-workflow-*.test.ts','backend/services/ai-service/src/__tests__/nutrition-food-exclusion.test.ts','backend/services/ai-service/src/__tests__/slot-values-parsers.test.ts']);
+run('focused',[tsx,'--test','--test-force-exit','backend/services/ai-service/src/__tests__/fitness-agent-*.test.ts','backend/services/ai-service/src/__tests__/training-program-scoring*.test.ts','backend/services/ai-service/src/__tests__/*plan-invariant.test.ts','backend/services/ai-service/src/llm/__tests__/memory*.test.ts','backend/services/ai-service/src/llm/__tests__/*claims.test.ts','backend/services/ai-service/src/llm/__tests__/recommendation_narrator.test.ts']);
+run('foundation',['scripts/ci-check-foundation-evaluator.mjs']);
+run('fitness-typecheck',['node_modules/typescript/bin/tsc','--noEmit','-p','backend/services/fitness-service/tsconfig.json']);
+run('ai-typecheck',['node_modules/typescript/bin/tsc','--noEmit','-p','backend/services/ai-service/tsconfig.json']);
+run('frontend-build',['node_modules/vite/bin/vite.js','build'],{},`${process.cwd()}/frontend/web`);
+const report={head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),harnessBefore:before,harnessAfter:hash(original),results};
+writeFileSync(`${dir}/summary.json`,JSON.stringify(report,null,2));
+console.log(JSON.stringify(report));
+process.exit(results.some(r=>r.exit!==0)||before!==hash(original)?1:0);

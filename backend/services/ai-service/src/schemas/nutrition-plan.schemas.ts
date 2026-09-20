@@ -27,6 +27,7 @@ export const GenerateNutritionPlanRequestSchema = z.object({
   dietPreference: z.string().max(100).optional(),
   budgetLevel: z.string().max(50).optional(),
   restrictions: z.array(z.string().max(200)).max(20).optional(),
+  excludedFoodKeys: z.array(z.string().max(40)).max(20).optional(),
   notes: z.string().max(1000).optional(),
 
   // ── Body stats ────────────────────────────────────────────────────────────

@@ -144,14 +144,22 @@ async function ensureActiveCycle(
   }
 }
 
-export async function bootstrapNutritionForUser(
-  userId: string,
-): Promise<NutritionBootstrapOutcome> {
-  const existingGoal = await nutritionRepository.findGoalByUserId(userId);
-  if (existingGoal) {
-    return { status: "already_initialized", goalId: existingGoal.id };
-  }
+type AssembledBootstrapInput =
+  | { ok: false; missingFields: string[] }
+  | {
+      ok: true;
+      profile: Awaited<ReturnType<typeof fetchUserProfile>>;
+      screening: ReturnType<typeof nutritionBootstrapScreening>;
+      input: NutritionBootstrapInput;
+      latestInBody: Awaited<ReturnType<typeof fetchLatestInBodyOnOrBefore>>;
+    };
 
+/** Shared by bootstrapNutritionForUser (persists) and
+ * resolveNutritionTargetForUser (read-only) so both derive the SAME
+ * NutritionBootstrapInput from the SAME profile/InBody sources — a
+ * chat-generated plan must never disagree with what onboarding would have
+ * computed for the same user. */
+async function assembleBootstrapInput(userId: string): Promise<AssembledBootstrapInput> {
   const profile = await nutritionBootstrapDeps.fetchUserProfile(userId);
   const screening = nutritionBootstrapScreening(profile);
   const candidateInput: Partial<Record<keyof NutritionBootstrapInput, unknown>> = {
@@ -163,16 +171,9 @@ export async function bootstrapNutritionForUser(
     activityLevel: profile?.activityLevel ?? null,
   };
   const missingFields = findMissingBootstrapFields(candidateInput);
-  if (missingFields.length > 0) {
-    logger.info(
-      { userId, missingFields },
-      "[nutrition-bootstrap] insufficient profile data — skipping initial plan generation",
-    );
-    return { status: "insufficient_data", missingFields };
-  }
+  if (missingFields.length > 0) return { ok: false, missingFields };
 
   const latestInBody = await nutritionBootstrapDeps.fetchLatestInBodyOnOrBefore(userId, new Date());
-
   const input: NutritionBootstrapInput = {
     weightKg: candidateInput.weightKg as number,
     heightCm: candidateInput.heightCm as number,
@@ -189,19 +190,66 @@ export async function bootstrapNutritionForUser(
     // string attached to the same aggressive number.
     useMaintenanceOnly: screening.professionalReviewRequired,
   };
+  return { ok: true, profile, screening, input, latestInBody };
+}
+
+export type NutritionTargetResolution =
+  | { status: "ACTIVE_GOAL"; goalId: string; calories: number; protein: number; carbs: number; fat: number }
+  | { status: "COMPUTED"; calories: number; protein: number; carbs: number; fat: number; professionalReviewRequired: boolean }
+  | { status: "insufficient_data"; missingFields: string[] };
+
+/** READ-ONLY authoritative nutrition target — never writes. An existing
+ * ACTIVE NutritionGoal always wins (it already embodies every cycle-
+ * assessment adjustment since onboarding); only when none exists is the
+ * initial deterministic prescription computed, via the exact input
+ * assembly + computeInitialNutritionPrescription bootstrap itself uses. */
+export async function resolveNutritionTargetForUser(userId: string): Promise<NutritionTargetResolution> {
+  const existingGoal = await nutritionRepository.findGoalByUserId(userId);
+  if (existingGoal) {
+    return {
+      status: "ACTIVE_GOAL", goalId: existingGoal.id,
+      calories: existingGoal.calories, protein: existingGoal.protein, carbs: existingGoal.carbs, fat: existingGoal.fat,
+    };
+  }
+  const assembled = await assembleBootstrapInput(userId);
+  if (!assembled.ok) return { status: "insufficient_data", missingFields: assembled.missingFields };
+  const prescription = computeInitialNutritionPrescription(assembled.input);
+  return {
+    status: "COMPUTED",
+    calories: prescription.targetCalories, protein: prescription.proteinGrams,
+    carbs: prescription.carbGrams, fat: prescription.fatGrams,
+    professionalReviewRequired: assembled.screening.professionalReviewRequired,
+  };
+}
+
+export async function bootstrapNutritionForUser(
+  userId: string,
+): Promise<NutritionBootstrapOutcome> {
+  const existingGoal = await nutritionRepository.findGoalByUserId(userId);
+  if (existingGoal) {
+    return { status: "already_initialized", goalId: existingGoal.id };
+  }
+
+  const assembled = await assembleBootstrapInput(userId);
+  if (!assembled.ok) {
+    logger.info(
+      { userId, missingFields: assembled.missingFields },
+      "[nutrition-bootstrap] insufficient profile data — skipping initial plan generation",
+    );
+    return { status: "insufficient_data", missingFields: assembled.missingFields };
+  }
+  const { profile, screening, input, latestInBody } = assembled;
 
   const prescription = computeInitialNutritionPrescription(input);
 
   const { cycleId, created: cycleCreated } = await ensureActiveCycle(userId, input.goal);
 
-  // Race check: if a concurrent bootstrap call already created a goal while
-  // we were computing/fetching the cycle above, don't create a second one.
-  const raceCheckGoal = await nutritionRepository.findGoalByUserId(userId);
-  if (raceCheckGoal) {
-    return { status: "already_initialized", goalId: raceCheckGoal.id };
-  }
-
-  const goal = await nutritionRepository.upsertGoal(
+  // Atomic per-user get-or-create: concurrent first-time callers serialise on a
+  // user-scoped advisory lock inside the repository; exactly one inserts, the
+  // rest observe the winner's ACTIVE goal and converge on it (no 23505/P2010).
+  // Only the creator runs the non-idempotent side effects below (audit row,
+  // meal-plan queue job, notification).
+  const { goal, created: goalCreated } = await nutritionRepository.createFirstActiveGoalIfAbsent(
     userId,
     {
       calories: prescription.targetCalories,
@@ -209,7 +257,6 @@ export async function bootstrapNutritionForUser(
       carbs: prescription.carbGrams,
       fat: prescription.fatGrams,
       waterMl: prescription.waterMl,
-      goalMode: "RECOMMENDED",
     },
     {
       // The consultation sentence is already produced by
@@ -218,10 +265,12 @@ export async function bootstrapNutritionForUser(
       // input.useMaintenanceOnly) — no separate suffix needed here, which
       // would otherwise say it twice.
       reason: reasonCodesToVietnamese(prescription.reasonCodes, input.goal),
-      triggeredBy: "ONBOARDING",
       trainingCycleId: cycleId,
     },
   );
+  if (!goalCreated) {
+    return { status: "already_initialized", goalId: goal.id };
+  }
 
   try {
     await prisma.recommendationAudit.create({

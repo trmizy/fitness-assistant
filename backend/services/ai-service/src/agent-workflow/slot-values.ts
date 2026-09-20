@@ -172,6 +172,21 @@ export function parseSessionsPerWeek(raw: string): SlotParseResult<number> {
   return { ok: true, value };
 }
 
+/** "chia 4 bữa", "3 bữa/ngày" — CREATE_NUTRITION_PLAN's one genuinely-asked
+ * slot (GenerateNutritionPlanRequestSchema bounds mealsPerDay to 2-6, same
+ * range enforced here so an out-of-range answer re-asks instead of being
+ * silently clamped at the API boundary). */
+export function parseMealsPerDay(raw: string): SlotParseResult<number> {
+  const s = normalizeAgentText(raw);
+  const match = s.match(/(\d)\s*(?:bua|meals?)?/);
+  if (!match) return { ok: false, reason: "no_number_found", clarifyingQuestion: "Bạn muốn chia thành mấy bữa mỗi ngày (2-6)?" };
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value < 2 || value > 6) {
+    return { ok: false, reason: "out_of_range", clarifyingQuestion: "Số bữa nên từ 2 đến 6 mỗi ngày — bạn nhập lại giúp mình nhé?" };
+  }
+  return { ok: true, value };
+}
+
 export function parseMinutes(raw: string): SlotParseResult<number> {
   const s = normalizeAgentText(raw);
   // Codex Evaluation #1 §32/§44 — "1 tiếng"/"1 giờ" were rejected outright

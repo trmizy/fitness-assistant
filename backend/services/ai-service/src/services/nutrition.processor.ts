@@ -10,6 +10,7 @@ import {
 import type { NutritionPlanContent } from "../schemas/nutrition-plan.schemas";
 import { safeParseJsonCandidate } from "../utils/json";
 import { validateNutritionPlanInvariants } from "./nutrition-plan-invariant.service";
+import { filterFoodsByExclusions, findExclusionViolations, isKnownExclusionKey } from "./nutrition-food-constraints";
 
 type AiFood = {
   id: string;
@@ -46,6 +47,10 @@ const NutritionPlanJobDataSchema = z.object({
   dietPreference: z.string().optional(),
   budgetLevel: z.string().optional(),
   restrictions: z.array(z.string()).optional(),
+  // Canonical, ENFORCED food exclusions (nutrition-food-constraints.ts) —
+  // unlike `restrictions` (free text, prompt-only), these filter the food
+  // pool itself and are re-checked against the final plan.
+  excludedFoodKeys: z.array(z.string()).max(20).optional(),
   // Extended fields
   weightKg: z.number().optional(),
   heightCm: z.number().optional(),
@@ -94,6 +99,7 @@ export async function processNutritionPlanJob(job: Job) {
     dietPreference,
     budgetLevel,
     restrictions,
+    excludedFoodKeys = [],
     proteinTargetG,
     carbTargetG,
     fatTargetG,
@@ -143,6 +149,19 @@ export async function processNutritionPlanJob(job: Job) {
       );
       return;
     }
+
+    const unknownExclusions = excludedFoodKeys.filter((k) => !isKnownExclusionKey(k));
+    if (unknownExclusions.length > 0) {
+      await conversationRepository.updateNutritionPlanFailed(
+        planId,
+        `Không thể đảm bảo loại trừ thực phẩm: ${unknownExclusions.join(", ")}.`,
+      );
+      return;
+    }
+    // Enforce exclusions at the SOURCE: every downstream consumer (LLM prompt
+    // list, deterministic protein/carb/fat pools, name lookup, invariant
+    // allowedFoodIds) sees only permitted foods, so nothing can re-add one.
+    allowedFoods = filterFoodsByExclusions(allowedFoods, excludedFoodKeys);
 
     if (allowedFoods.length === 0) {
       await conversationRepository.updateNutritionPlanFailed(
@@ -325,6 +344,15 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
           return;
         }
       }
+    }
+    const exclusionViolations = findExclusionViolations(content, excludedFoodKeys);
+    if (exclusionViolations.length > 0) {
+      logger.error({ jobId: job.id, planId, exclusionViolations }, "Nutrition plan violates declared food exclusions");
+      await conversationRepository.updateNutritionPlanFailed(
+        planId,
+        `Kế hoạch vi phạm thực phẩm đã loại trừ: ${exclusionViolations.slice(0, 3).join(", ")}. Vui lòng thử lại.`,
+      );
+      return;
     }
     const nutritionInvariant = validateNutritionPlanInvariants({
       content,

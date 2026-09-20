@@ -56,8 +56,17 @@ jobs:
   db-integration:
     name: Critical DB Integration Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
+      redis-test:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
       postgres-test:
         image: postgres:15-alpine
         env:
@@ -121,3 +130,31 @@ jobs:
         env:
           DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_user_test?schema=public
         run: npx tsx --test --test-force-exit src/__tests__/client-journey-derivation-idempotency.test.ts
+      # AI Coach core gates (2026-09-20 production-readiness pass). Protect the SIGNED-OFF conversational
+      # workflow foundation + product capabilities against regression: workflow/product/race suites run against the
+      # isolated ai test DB, nutrition target/bootstrap against the isolated fitness test DB. No LLM/provider is
+      # required (LLM_PROVIDER=mock; the suites stub every network boundary themselves). Live BullMQ/provider
+      # journeys are a MANUAL/NIGHTLY release gate (docs/ai-coach-production-demo-readiness.md).
+      - name: AI Coach core gates - conversational workflow, product remediation, finalization race, exclusions
+        working-directory: backend/services/ai-service
+        env:
+          NODE_ENV: test
+          LLM_PROVIDER: mock
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_ai_test?schema=public
+        run: npx tsx --test --test-force-exit src/__tests__/agent-workflow-*.test.ts src/__tests__/nutrition-food-exclusion.test.ts src/__tests__/slot-values-parsers.test.ts
+      - name: AI Coach core gates - foundation evaluator (Codex conversational-workflow v2, must stay 30/30)
+        env:
+          NODE_ENV: test
+          LLM_PROVIDER: mock
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_ai_test?schema=public
+        run: node scripts/ci-check-foundation-evaluator.mjs
+      - name: AI Coach core gates - authoritative nutrition target + bootstrap (fitness-service)
+        working-directory: backend/services/fitness-service
+        env:
+          FITNESS_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public
+          DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public
+        run: npx tsx --test --test-force-exit src/__tests__/nutrition-target-resolution.integration.test.ts src/__tests__/nutrition-onboarding-bootstrap.integration.test.ts src/__tests__/nutrition-bootstrap.engine.test.ts
