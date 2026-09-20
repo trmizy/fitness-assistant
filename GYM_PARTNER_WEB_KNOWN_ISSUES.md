@@ -7,7 +7,8 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 
 | # | Vấn đề | Vì sao chặn | Việc cần làm |
 |---|---|---|---|
-| G1 | **Chưa từng test trên AWS S3 thật** | Toàn bộ upload mới chỉ chạy trên MinIO cục bộ; hành vi riêng của S3 (điều kiện presigned POST, CORS, mã hoá mặc định, quyền IAM theo prefix) chưa được xác nhận | Cần quyền truy cập bucket từ máy dev (IAM user tạm hoặc role assume được), rồi chạy một smoke test **chỉ chạm S3** — không chạy `api-e2e.mjs` vì nó ghi dữ liệu thử vào DB |
+| G1a | **Hành vi của S3 thật chưa nghiệm thu** | Điều kiện đã ký của presigned POST, mã hoá mặc định, presigned GET, CORS — MinIO có thể khác S3 | Chạy `scripts/partner-application-e2e/s3-smoke.ts` trên bucket thật (không chạm CSDL). Chạy bằng credential nào cũng được — phần này không phụ thuộc IAM của gym |
+| G1b | **Policy IAM hẹp của role gym chưa nghiệm thu** | `Put/Get/Delete` trên `partner-applications/*` đủ hay không thì **chỉ chạy chính hàm Lambda với role đó mới biết**; chạy script bằng credential khác không kiểm được điều này | Nghiệm thu ở bước deploy. Rà bằng CODE AUDIT: code chỉ gọi PutObject (qua presigned POST), GetObject (HeadObject, GET theo Range, presigned GET) và DeleteObject; **không bao giờ ListBucket** — nên policy hiện tại là đủ |
 | G2 | **Biến môi trường trên Lambda** | Hàm `fitness-assistant-dev-gym` cần `PARTNER_S3_PRIVATE_BUCKET` và `PARTNER_S3_REGION`; thiếu thì mọi upload trả **503 `UPLOADS_UNAVAILABLE`** | Người vận hành AWS đặt hai biến đó (đã yêu cầu). Không còn Terraform nào phải apply — `partner-uploads.tf` **đã xoá** |
 | G3 | **Redis chia sẻ cho rate limit** | Limiter theo tiến trình không an toàn khi scale ngang. Production phải đặt `RATE_LIMIT_REQUIRE_SHARED=true`, và khi đó gateway **từ chối khởi động** nếu không có Redis | Cấp Redis (ElastiCache hoặc container) cho môi trường production |
 | ~~G4~~ | ~~CloudFront/OAC cho ảnh công khai~~ | **Không còn cần (2026-09-20)** — đã bỏ bucket công khai; ảnh luôn riêng tư, phục vụ bằng presigned GET. Không bề mặt ẩn danh nào hiển thị ảnh phòng gym. | — |
@@ -27,9 +28,12 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 - **R5 — Ảnh chi nhánh cũ vẫn nằm trên đĩa container.** Luồng ảnh cũ (`/uploads/gym-photos`, multer) không
   bị đụng tới và **không** có volume trong compose dev cho gym-service; trên Lambda thì các đường ghi đĩa
   này bị khoá 503. Di trú ảnh cũ sang S3 là **hạng mục riêng, chưa nằm trong kế hoạch**.
-- **R7 — Job dọn tệp mồ côi cần lịch chạy.** `partner-upload-sweep` đã có trong `jobs-lambda.ts` nhưng
-  chỉ chạy khi có EventBridge Scheduler gọi tới (giống hai sweep sẵn có). Chưa có lịch thì tệp bỏ dở
-  vẫn tích tụ.
+- **R7 — Job dọn tệp mồ côi chưa được bật.** Schedule `fitness-assistant-dev-gym-partner-upload-sweep`
+  (`rate(1 day)`) đã tồn tại nhưng đang **DISABLED**, vì hàm `gym-jobs` đang chạy chưa có code của job
+  này. Bật sau khi deploy nhánh `feature/payment-gateways`, nếu không mỗi ngày sẽ có một lần gọi hỏng.
+- **R8 — Luồng đối tác chưa deploy.** Route `/owner/application/*`, ba migration mới và job dọn rác mới
+  chỉ nằm trên nhánh, chưa lên Lambda dev nào và chưa chạy trên Aurora dev. Mọi kiểm chứng tới giờ là
+  trên stack dev cục bộ.
 - **R6 — Hai module S3 song song.** `user-service/s3-upload.service.ts` (presigned PUT, `USER_UPLOAD_BUCKET`)
   và `gym-service/partner-s3.service.ts` (presigned POST, hai bucket) không dùng chung code. Gộp lại là việc
   dọn dẹp về sau, không cần cho luồng này.
