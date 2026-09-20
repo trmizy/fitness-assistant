@@ -97,10 +97,7 @@ const sql = (q) => execSync(`docker exec gymcoach-postgres psql -U gymcoach -d g
   check("chi nhánh mới thuộc ĐÚNG thương hiệu của chủ đó", ownerBrand.length > 0 && (otherBrand === "" || ownerBrand === otherBrand), `mới=${ownerBrand} cũ=${otherBrand}`);
 
   check("không có lỗi JS trong cả phiên", errs.length === 0, errs.slice(0, 2).join("|"));
-  const known = http4xx.filter((x) => /404 GET \/owner\/brands\/.*\/plans/.test(x));
-  const unexpected = http4xx.filter((x) => !known.includes(x));
-  check("không có request hỏng nào ngoài lỗi đã biết", unexpected.length === 0, unexpected.slice(0, 3).join(" ; "));
-  if (known.length) info("LỖI CÓ SẴN (không do phiên này):", known[0], "— GymOwnerDashboard truyền gymId vào listOwnedPlans(brandId)");
+  check("không có request 4xx/5xx nào", http4xx.length === 0, http4xx.slice(0, 3).join(" ; "));
 
   // ── Dọn ─────────────────────────────────────────────────────────────────────────────────
   sql(`delete from gym_operating_hours where gym_id='${gymId}'`);

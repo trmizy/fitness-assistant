@@ -79,6 +79,20 @@ qua role thật, qua S3 thật, qua Lambda thật — thay thế được cả b
 
 ## 5. Đã đóng trong đợt này
 
+- **Hồi quy chủ gym cũ qua trình duyệt (2026-09-21)** — đóng rủi ro R1 tự nêu từ đầu kế hoạch (tách
+  `owner.routes.ts` + đổi nghĩa `isLegacy` nằm trên đường đi của chủ gym thật). 14/14:
+  không bị đẩy sang vùng ứng viên, dashboard và ba trang vận hành mở được, tạo chi nhánh đúng thương
+  hiệu và đi vòng duyệt bình thường. Kịch bản: `scripts/partner-application-e2e/legacy-owner-regression.cjs`.
+- **Thanh toán ZaloPay thật (2026-09-21)** — REAL BROWSER, người dùng tự trả 300.000đ: giao dịch PAID,
+  hợp đồng ACTIVE gắn đúng mã giao dịch, chia 270k cho gym + 30k hoa hồng, **không cộng trùng** (đúng 3
+  bút toán), không sinh giao dịch hay hợp đồng trùng. Webhook của ZaloPay không tới được localhost mà
+  giao dịch vẫn về PAID — chứng minh đường `/payments/:id/sync` hoạt động đúng.
+- **Hai lỗi giao diện CÓ SẴN, phát hiện khi hồi quy và đã sửa (2026-09-21)**:
+  - `GymOwnerDashboard` truyền `gymId` vào `listOwnedPlans(brandId)` → 404 mỗi lần mở dashboard và ô
+    "Gói hội viên đang bán" luôn bằng 0. Sau khi sửa: 20, hết 404.
+  - Lưới tìm phòng gym dùng `align-items: stretch`, một chuỗi 40 chi nhánh bung ra kéo hai thẻ cùng
+    hàng cao 1811px thành ô rỗng. Sau khi sửa: thẻ bung 472px, thẻ bên cạnh giữ 152px.
+
 - **Một bucket riêng tư (2026-09-20)**: bỏ bucket công khai, bỏ `CopyObject` sau duyệt, bỏ endpoint
   `publish-photos`, bỏ `PARTNER_S3_PUBLIC_BUCKET`/`_PUBLIC_BASE_URL`, **xoá `partner-uploads.tf`**.
   Ảnh sau duyệt vẫn PRIVATE, phục vụ bằng presigned GET. Cột `GymPhoto.visibility` **giữ nguyên**
