@@ -45,7 +45,7 @@ export async function sendOtpEmail(
   });
 
   const greeting = firstName ? `Hi ${firstName},` : "Hi,";
-  const subject = "Your AI Gym Coach verification code";
+  const subject = "Mã xác minh Gymini";
   const text = [
     `${greeting}`,
     "",

@@ -9,8 +9,15 @@ function fail(res: Response, e: any) {
   res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
 }
 
+/** Host của link mời — cùng quy tắc với partner.controller.ts: header tin cậy của gateway, không
+ *  bao giờ x-public-base-url (giả mạo được qua X-Forwarded-Host). */
 function appBaseUrl(req: Request): string {
-  const header = req.headers['x-public-base-url'];
+  // Cùng lý do: chỉ tin header khi request đi qua gateway (khớp secret nội bộ).
+  const secret = req.headers['x-gateway-secret'];
+  const fromGateway =
+    (Array.isArray(secret) ? secret[0] : secret) ===
+    (process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production');
+  const header = fromGateway ? req.headers['x-trusted-web-origin'] : undefined;
   const raw = Array.isArray(header) ? header[0] : header;
   return (raw || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 }

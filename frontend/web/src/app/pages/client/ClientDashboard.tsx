@@ -191,9 +191,14 @@ export function ClientDashboard() {
   const nextSchedule = (
     Array.isArray(upcomingSchedules) ? upcomingSchedules : []
   )
+    // A started-but-unfinished session is still the next one — it is the session to resume.
+    // Filtering on "has no workout row" hid today's session the moment it was started (startSchedule
+    // creates the workout immediately, status IN_PROGRESS) and jumped to next week's.
     .filter(
       (schedule: WorkoutScheduleRecord) =>
-        !schedule.workoutId && !schedule.workout?.id,
+        schedule.status !== "COMPLETED" &&
+        schedule.status !== "SKIPPED" &&
+        schedule.status !== "CANCELLED",
     )
     .sort(
       (a: WorkoutScheduleRecord, b: WorkoutScheduleRecord) =>

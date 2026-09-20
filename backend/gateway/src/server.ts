@@ -6,6 +6,7 @@ import app from "./app";
 import { logger } from "@gym-coach/shared";
 import { initializeSocketServer } from "./socket";
 import { chatSocketProxy } from "./routes/proxy.routes";
+import { initPartnerApplicationRateLimit } from "./middleware/partnerApplicationRateLimit.middleware";
 
 const PORT = process.env.PORT || 3000;
 const server = createServer(app);
@@ -26,18 +27,27 @@ server.on("upgrade", (req, socket, head) => {
   }
 });
 
-server.listen(PORT, () => {
-  logger.info(`API Gateway listening on port ${PORT}`);
-  logger.info(
-    `Auth Service: ${process.env.AUTH_SERVICE_URL || "http://localhost:3001"}`,
-  );
-  logger.info(
-    `Fitness Service: ${process.env.FITNESS_SERVICE_URL || "http://localhost:3002"}`,
-  );
-  logger.info(
-    `AI Service: ${process.env.AI_SERVICE_URL || "http://localhost:3003"}`,
-  );
-});
+// Production phải có store chia sẻ cho limiter theo IP của luồng đối tác (RATE_LIMIT_REQUIRE_SHARED=true
+// → từ chối khởi động nếu thiếu Redis) — xem GYM_PARTNER_SECURITY_MODEL.md §5.
+initPartnerApplicationRateLimit()
+  .then(() => {
+    server.listen(PORT, () => {
+      logger.info(`API Gateway listening on port ${PORT}`);
+      logger.info(
+        `Auth Service: ${process.env.AUTH_SERVICE_URL || "http://localhost:3001"}`,
+      );
+      logger.info(
+        `Fitness Service: ${process.env.FITNESS_SERVICE_URL || "http://localhost:3002"}`,
+      );
+      logger.info(
+        `AI Service: ${process.env.AI_SERVICE_URL || "http://localhost:3003"}`,
+      );
+    });
+  })
+  .catch((err) => {
+    logger.error({ err }, "Gateway refused to start");
+    process.exit(1);
+  });
 
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received, shutting down gracefully");

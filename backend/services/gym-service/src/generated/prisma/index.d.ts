@@ -98,10 +98,23 @@ export type GymPartnerAccount = $Result.DefaultSelection<Prisma.$GymPartnerAccou
 export type PartnerInvitation = $Result.DefaultSelection<Prisma.$PartnerInvitationPayload>
 /**
  * Model GymPartnerDocument
- * Phase 4 — giấy tờ thẩm định. Mỗi mục: tệp + trạng thái + ai kiểm + lúc nào, đúng đặc
+ * Phase 4 — giấy tờ thẩm định. Mỗi mục: tệp + trạng thái + ai kiểm + lúc n��o, đúng đặc
  * tả mục 4.1. `required=false` cho các mục 🟡 (mã số thuế, ảnh thực địa, PCCC).
  */
 export type GymPartnerDocument = $Result.DefaultSelection<Prisma.$GymPartnerDocumentPayload>
+/**
+ * Model GymPartnerReviewIssue
+ * Vấn đề admin nêu trên hồ sơ tự đăng ký, theo mục. Vòng đời OPEN → RESUBMITTED (ứng viên
+ * đánh dấu "đã cập nhật") → RESOLVED (chỉ ADMIN đóng). Nộp lại hồ sơ KHÔNG đóng vấn đề nào.
+ */
+export type GymPartnerReviewIssue = $Result.DefaultSelection<Prisma.$GymPartnerReviewIssuePayload>
+/**
+ * Model PartnerUploadIntent
+ * Một lần xin phép tải lên. Khoá đối tượng do SERVER sinh và gắn với partner; client chỉ
+ * nhận uploadId và chỉ xác nhận (confirm) được intent của CHÍNH partner đó — không có
+ * đường nào gắn một khoá S3 tuỳ ý hay của partner khác vào hồ sơ.
+ */
+export type PartnerUploadIntent = $Result.DefaultSelection<Prisma.$PartnerUploadIntentPayload>
 /**
  * Model GymPartnerContactLog
  * Phase 4 — nhật ký trao đổi: mỗi email, cuộc gọi, cam kết đều ghi lại kèm ngày và người
@@ -186,7 +199,28 @@ export type GymMembershipReferral = $Result.DefaultSelection<Prisma.$GymMembersh
  * Enums
  */
 export namespace $Enums {
-  export const BranchDocumentType: {
+  export const GymPhotoCategory: {
+  EXTERIOR: 'EXTERIOR',
+  MAIN_TRAINING_AREA: 'MAIN_TRAINING_AREA',
+  EQUIPMENT: 'EQUIPMENT',
+  CARDIO: 'CARDIO',
+  CHANGING_ROOM: 'CHANGING_ROOM',
+  AMENITIES: 'AMENITIES',
+  OTHER: 'OTHER'
+};
+
+export type GymPhotoCategory = (typeof GymPhotoCategory)[keyof typeof GymPhotoCategory]
+
+
+export const GymPhotoVisibility: {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC'
+};
+
+export type GymPhotoVisibility = (typeof GymPhotoVisibility)[keyof typeof GymPhotoVisibility]
+
+
+export const BranchDocumentType: {
   LEASE_OR_PROPERTY_DOC: 'LEASE_OR_PROPERTY_DOC',
   FIRE_SAFETY_CERTIFICATE: 'FIRE_SAFETY_CERTIFICATE',
   FACILITY_PHOTOS: 'FACILITY_PHOTOS'
@@ -285,7 +319,20 @@ export const PartnerAuditAction: {
   PARTNER_SUSPENDED: 'PARTNER_SUSPENDED',
   PARTNER_UNSUSPENDED: 'PARTNER_UNSUSPENDED',
   PARTNER_TERMINATED: 'PARTNER_TERMINATED',
-  VIEWED_AS_PARTNER: 'VIEWED_AS_PARTNER'
+  VIEWED_AS_PARTNER: 'VIEWED_AS_PARTNER',
+  APPLICATION_SUBMITTED: 'APPLICATION_SUBMITTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  ISSUE_MARKED_UPDATED: 'ISSUE_MARKED_UPDATED',
+  APPLICATION_RESUBMITTED: 'APPLICATION_RESUBMITTED',
+  ISSUE_RESOLVED: 'ISSUE_RESOLVED',
+  DOCUMENT_UPLOADED: 'DOCUMENT_UPLOADED',
+  DOCUMENT_REPLACED: 'DOCUMENT_REPLACED',
+  DOCUMENT_ACCEPTED: 'DOCUMENT_ACCEPTED',
+  DOCUMENT_UPDATE_REQUESTED: 'DOCUMENT_UPDATE_REQUESTED',
+  APPLICATION_APPROVED: 'APPLICATION_APPROVED',
+  APPLICATION_REJECTED: 'APPLICATION_REJECTED',
+  APPLICATION_REOPENED: 'APPLICATION_REOPENED',
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED'
 };
 
 export type PartnerAuditAction = (typeof PartnerAuditAction)[keyof typeof PartnerAuditAction]
@@ -329,6 +376,32 @@ export const TerminationMemberPolicy: {
 export type TerminationMemberPolicy = (typeof TerminationMemberPolicy)[keyof typeof TerminationMemberPolicy]
 
 
+export const GymPartnerSource: {
+  ADMIN_CREATED: 'ADMIN_CREATED',
+  SELF_SERVICE: 'SELF_SERVICE'
+};
+
+export type GymPartnerSource = (typeof GymPartnerSource)[keyof typeof GymPartnerSource]
+
+
+export const PartnerRepresentativeRole: {
+  GYM_OWNER: 'GYM_OWNER',
+  CO_FOUNDER: 'CO_FOUNDER',
+  LEGAL_REPRESENTATIVE: 'LEGAL_REPRESENTATIVE',
+  AUTHORIZED_MANAGER: 'AUTHORIZED_MANAGER'
+};
+
+export type PartnerRepresentativeRole = (typeof PartnerRepresentativeRole)[keyof typeof PartnerRepresentativeRole]
+
+
+export const PartnerBusinessScale: {
+  ONE_BRANCH: 'ONE_BRANCH',
+  MULTIPLE_BRANCHES: 'MULTIPLE_BRANCHES'
+};
+
+export type PartnerBusinessScale = (typeof PartnerBusinessScale)[keyof typeof PartnerBusinessScale]
+
+
 export const PartnerAccountRole: {
   OWNER: 'OWNER',
   MANAGER: 'MANAGER'
@@ -366,6 +439,37 @@ export const PartnerDocumentType: {
 };
 
 export type PartnerDocumentType = (typeof PartnerDocumentType)[keyof typeof PartnerDocumentType]
+
+
+export const PartnerReviewCategory: {
+  REPRESENTATIVE: 'REPRESENTATIVE',
+  BRAND: 'BRAND',
+  BRANCH: 'BRANCH',
+  LOCATION: 'LOCATION',
+  PHOTOS: 'PHOTOS',
+  LEGAL: 'LEGAL',
+  OTHER: 'OTHER'
+};
+
+export type PartnerReviewCategory = (typeof PartnerReviewCategory)[keyof typeof PartnerReviewCategory]
+
+
+export const PartnerReviewIssueStatus: {
+  OPEN: 'OPEN',
+  RESUBMITTED: 'RESUBMITTED',
+  RESOLVED: 'RESOLVED'
+};
+
+export type PartnerReviewIssueStatus = (typeof PartnerReviewIssueStatus)[keyof typeof PartnerReviewIssueStatus]
+
+
+export const PartnerUploadKind: {
+  DOCUMENT: 'DOCUMENT',
+  PHOTO: 'PHOTO',
+  LOGO: 'LOGO'
+};
+
+export type PartnerUploadKind = (typeof PartnerUploadKind)[keyof typeof PartnerUploadKind]
 
 
 export const PartnerContactChannel: {
@@ -489,6 +593,14 @@ export type CollaborationParty = (typeof CollaborationParty)[keyof typeof Collab
 
 }
 
+export type GymPhotoCategory = $Enums.GymPhotoCategory
+
+export const GymPhotoCategory: typeof $Enums.GymPhotoCategory
+
+export type GymPhotoVisibility = $Enums.GymPhotoVisibility
+
+export const GymPhotoVisibility: typeof $Enums.GymPhotoVisibility
+
 export type BranchDocumentType = $Enums.BranchDocumentType
 
 export const BranchDocumentType: typeof $Enums.BranchDocumentType
@@ -541,6 +653,18 @@ export type TerminationMemberPolicy = $Enums.TerminationMemberPolicy
 
 export const TerminationMemberPolicy: typeof $Enums.TerminationMemberPolicy
 
+export type GymPartnerSource = $Enums.GymPartnerSource
+
+export const GymPartnerSource: typeof $Enums.GymPartnerSource
+
+export type PartnerRepresentativeRole = $Enums.PartnerRepresentativeRole
+
+export const PartnerRepresentativeRole: typeof $Enums.PartnerRepresentativeRole
+
+export type PartnerBusinessScale = $Enums.PartnerBusinessScale
+
+export const PartnerBusinessScale: typeof $Enums.PartnerBusinessScale
+
 export type PartnerAccountRole = $Enums.PartnerAccountRole
 
 export const PartnerAccountRole: typeof $Enums.PartnerAccountRole
@@ -556,6 +680,18 @@ export const PartnerInvitationStatus: typeof $Enums.PartnerInvitationStatus
 export type PartnerDocumentType = $Enums.PartnerDocumentType
 
 export const PartnerDocumentType: typeof $Enums.PartnerDocumentType
+
+export type PartnerReviewCategory = $Enums.PartnerReviewCategory
+
+export const PartnerReviewCategory: typeof $Enums.PartnerReviewCategory
+
+export type PartnerReviewIssueStatus = $Enums.PartnerReviewIssueStatus
+
+export const PartnerReviewIssueStatus: typeof $Enums.PartnerReviewIssueStatus
+
+export type PartnerUploadKind = $Enums.PartnerUploadKind
+
+export const PartnerUploadKind: typeof $Enums.PartnerUploadKind
 
 export type PartnerContactChannel = $Enums.PartnerContactChannel
 
@@ -843,6 +979,26 @@ export class PrismaClient<
     * ```
     */
   get gymPartnerDocument(): Prisma.GymPartnerDocumentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymPartnerReviewIssue`: Exposes CRUD operations for the **GymPartnerReviewIssue** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymPartnerReviewIssues
+    * const gymPartnerReviewIssues = await prisma.gymPartnerReviewIssue.findMany()
+    * ```
+    */
+  get gymPartnerReviewIssue(): Prisma.GymPartnerReviewIssueDelegate<ExtArgs>;
+
+  /**
+   * `prisma.partnerUploadIntent`: Exposes CRUD operations for the **PartnerUploadIntent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PartnerUploadIntents
+    * const partnerUploadIntents = await prisma.partnerUploadIntent.findMany()
+    * ```
+    */
+  get partnerUploadIntent(): Prisma.PartnerUploadIntentDelegate<ExtArgs>;
 
   /**
    * `prisma.gymPartnerContactLog`: Exposes CRUD operations for the **GymPartnerContactLog** model.
@@ -1396,6 +1552,8 @@ export namespace Prisma {
     GymPartnerAccount: 'GymPartnerAccount',
     PartnerInvitation: 'PartnerInvitation',
     GymPartnerDocument: 'GymPartnerDocument',
+    GymPartnerReviewIssue: 'GymPartnerReviewIssue',
+    PartnerUploadIntent: 'PartnerUploadIntent',
     GymPartnerContactLog: 'GymPartnerContactLog',
     GymBrand: 'GymBrand',
     Gym: 'Gym',
@@ -1421,7 +1579,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2262,6 +2420,146 @@ export namespace Prisma {
           count: {
             args: Prisma.GymPartnerDocumentCountArgs<ExtArgs>
             result: $Utils.Optional<GymPartnerDocumentCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymPartnerReviewIssue: {
+        payload: Prisma.$GymPartnerReviewIssuePayload<ExtArgs>
+        fields: Prisma.GymPartnerReviewIssueFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymPartnerReviewIssueFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymPartnerReviewIssueFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          findFirst: {
+            args: Prisma.GymPartnerReviewIssueFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymPartnerReviewIssueFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          findMany: {
+            args: Prisma.GymPartnerReviewIssueFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>[]
+          }
+          create: {
+            args: Prisma.GymPartnerReviewIssueCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          createMany: {
+            args: Prisma.GymPartnerReviewIssueCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymPartnerReviewIssueCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>[]
+          }
+          delete: {
+            args: Prisma.GymPartnerReviewIssueDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          update: {
+            args: Prisma.GymPartnerReviewIssueUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymPartnerReviewIssueDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymPartnerReviewIssueUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymPartnerReviewIssueUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerReviewIssuePayload>
+          }
+          aggregate: {
+            args: Prisma.GymPartnerReviewIssueAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymPartnerReviewIssue>
+          }
+          groupBy: {
+            args: Prisma.GymPartnerReviewIssueGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymPartnerReviewIssueGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymPartnerReviewIssueCountArgs<ExtArgs>
+            result: $Utils.Optional<GymPartnerReviewIssueCountAggregateOutputType> | number
+          }
+        }
+      }
+      PartnerUploadIntent: {
+        payload: Prisma.$PartnerUploadIntentPayload<ExtArgs>
+        fields: Prisma.PartnerUploadIntentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PartnerUploadIntentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PartnerUploadIntentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          findFirst: {
+            args: Prisma.PartnerUploadIntentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PartnerUploadIntentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          findMany: {
+            args: Prisma.PartnerUploadIntentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>[]
+          }
+          create: {
+            args: Prisma.PartnerUploadIntentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          createMany: {
+            args: Prisma.PartnerUploadIntentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PartnerUploadIntentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>[]
+          }
+          delete: {
+            args: Prisma.PartnerUploadIntentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          update: {
+            args: Prisma.PartnerUploadIntentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          deleteMany: {
+            args: Prisma.PartnerUploadIntentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PartnerUploadIntentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PartnerUploadIntentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerUploadIntentPayload>
+          }
+          aggregate: {
+            args: Prisma.PartnerUploadIntentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePartnerUploadIntent>
+          }
+          groupBy: {
+            args: Prisma.PartnerUploadIntentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PartnerUploadIntentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PartnerUploadIntentCountArgs<ExtArgs>
+            result: $Utils.Optional<PartnerUploadIntentCountAggregateOutputType> | number
           }
         }
       }
@@ -3132,6 +3430,8 @@ export namespace Prisma {
     documents: number
     contactLogs: number
     internalNotes: number
+    reviewIssues: number
+    uploadIntents: number
   }
 
   export type GymPartnerCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3141,6 +3441,8 @@ export namespace Prisma {
     documents?: boolean | GymPartnerCountOutputTypeCountDocumentsArgs
     contactLogs?: boolean | GymPartnerCountOutputTypeCountContactLogsArgs
     internalNotes?: boolean | GymPartnerCountOutputTypeCountInternalNotesArgs
+    reviewIssues?: boolean | GymPartnerCountOutputTypeCountReviewIssuesArgs
+    uploadIntents?: boolean | GymPartnerCountOutputTypeCountUploadIntentsArgs
   }
 
   // Custom InputTypes
@@ -3194,6 +3496,20 @@ export namespace Prisma {
    */
   export type GymPartnerCountOutputTypeCountInternalNotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PartnerInternalNoteWhereInput
+  }
+
+  /**
+   * GymPartnerCountOutputType without action
+   */
+  export type GymPartnerCountOutputTypeCountReviewIssuesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPartnerReviewIssueWhereInput
+  }
+
+  /**
+   * GymPartnerCountOutputType without action
+   */
+  export type GymPartnerCountOutputTypeCountUploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartnerUploadIntentWhereInput
   }
 
 
@@ -3432,6 +3748,9 @@ export namespace Prisma {
     fileName: string | null
     sortOrder: number | null
     isCover: boolean | null
+    s3Key: string | null
+    category: $Enums.GymPhotoCategory | null
+    visibility: $Enums.GymPhotoVisibility | null
     createdAt: Date | null
   }
 
@@ -3441,6 +3760,9 @@ export namespace Prisma {
     fileName: string | null
     sortOrder: number | null
     isCover: boolean | null
+    s3Key: string | null
+    category: $Enums.GymPhotoCategory | null
+    visibility: $Enums.GymPhotoVisibility | null
     createdAt: Date | null
   }
 
@@ -3450,6 +3772,9 @@ export namespace Prisma {
     fileName: number
     sortOrder: number
     isCover: number
+    s3Key: number
+    category: number
+    visibility: number
     createdAt: number
     _all: number
   }
@@ -3469,6 +3794,9 @@ export namespace Prisma {
     fileName?: true
     sortOrder?: true
     isCover?: true
+    s3Key?: true
+    category?: true
+    visibility?: true
     createdAt?: true
   }
 
@@ -3478,6 +3806,9 @@ export namespace Prisma {
     fileName?: true
     sortOrder?: true
     isCover?: true
+    s3Key?: true
+    category?: true
+    visibility?: true
     createdAt?: true
   }
 
@@ -3487,6 +3818,9 @@ export namespace Prisma {
     fileName?: true
     sortOrder?: true
     isCover?: true
+    s3Key?: true
+    category?: true
+    visibility?: true
     createdAt?: true
     _all?: true
   }
@@ -3583,6 +3917,9 @@ export namespace Prisma {
     fileName: string
     sortOrder: number
     isCover: boolean
+    s3Key: string | null
+    category: $Enums.GymPhotoCategory | null
+    visibility: $Enums.GymPhotoVisibility
     createdAt: Date
     _count: GymPhotoCountAggregateOutputType | null
     _avg: GymPhotoAvgAggregateOutputType | null
@@ -3611,6 +3948,9 @@ export namespace Prisma {
     fileName?: boolean
     sortOrder?: boolean
     isCover?: boolean
+    s3Key?: boolean
+    category?: boolean
+    visibility?: boolean
     createdAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPhoto"]>
@@ -3621,6 +3961,9 @@ export namespace Prisma {
     fileName?: boolean
     sortOrder?: boolean
     isCover?: boolean
+    s3Key?: boolean
+    category?: boolean
+    visibility?: boolean
     createdAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPhoto"]>
@@ -3631,6 +3974,9 @@ export namespace Prisma {
     fileName?: boolean
     sortOrder?: boolean
     isCover?: boolean
+    s3Key?: boolean
+    category?: boolean
+    visibility?: boolean
     createdAt?: boolean
   }
 
@@ -3660,6 +4006,15 @@ export namespace Prisma {
        * gymPhotoService tự đảm bảo (bỏ cờ ảnh cũ trước khi đặt cờ ảnh mới), không phải ở CSDL.
        */
       isCover: boolean
+      /**
+       * Ảnh lưu ở S3 (hồ sơ tự đăng ký): khoá đối tượng do SERVER sinh. Null = ảnh đĩa cũ.
+       */
+      s3Key: string | null
+      category: $Enums.GymPhotoCategory | null
+      /**
+       * PRIVATE cho tới khi hồ sơ được duyệt; sau đó ảnh được sao chép sang vùng công khai.
+       */
+      visibility: $Enums.GymPhotoVisibility
       createdAt: Date
     }, ExtArgs["result"]["gymPhoto"]>
     composites: {}
@@ -4060,6 +4415,9 @@ export namespace Prisma {
     readonly fileName: FieldRef<"GymPhoto", 'String'>
     readonly sortOrder: FieldRef<"GymPhoto", 'Int'>
     readonly isCover: FieldRef<"GymPhoto", 'Boolean'>
+    readonly s3Key: FieldRef<"GymPhoto", 'String'>
+    readonly category: FieldRef<"GymPhoto", 'GymPhotoCategory'>
+    readonly visibility: FieldRef<"GymPhoto", 'GymPhotoVisibility'>
     readonly createdAt: FieldRef<"GymPhoto", 'DateTime'>
   }
     
@@ -8674,7 +9032,8 @@ export namespace Prisma {
       id: string
       partnerId: string
       /**
-       * Quản trị viên thực hiện — KHÔNG phải người bị tác động.
+       * Người thực hiện — quản trị viên, hoặc (với các sự kiện hồ sơ tự đăng ký như nộp/nộp lại/
+       * thay tệp) chính ứng viên. KHÔNG phải đối tượng bị tác động.
        */
       actorUserId: string
       action: $Enums.PartnerAuditAction
@@ -11316,6 +11675,11 @@ export namespace Prisma {
     rejectionReason: string | null
     expectedBranchCount: number | null
     negotiationNotes: string | null
+    source: $Enums.GymPartnerSource | null
+    submittedAt: Date | null
+    representativeName: string | null
+    representativeRole: $Enums.PartnerRepresentativeRole | null
+    businessScale: $Enums.PartnerBusinessScale | null
     payoutBankName: string | null
     payoutBankAccountNumber: string | null
     payoutBankAccountHolder: string | null
@@ -11352,6 +11716,11 @@ export namespace Prisma {
     rejectionReason: string | null
     expectedBranchCount: number | null
     negotiationNotes: string | null
+    source: $Enums.GymPartnerSource | null
+    submittedAt: Date | null
+    representativeName: string | null
+    representativeRole: $Enums.PartnerRepresentativeRole | null
+    businessScale: $Enums.PartnerBusinessScale | null
     payoutBankName: string | null
     payoutBankAccountNumber: string | null
     payoutBankAccountHolder: string | null
@@ -11388,6 +11757,11 @@ export namespace Prisma {
     rejectionReason: number
     expectedBranchCount: number
     negotiationNotes: number
+    source: number
+    submittedAt: number
+    representativeName: number
+    representativeRole: number
+    businessScale: number
     payoutBankName: number
     payoutBankAccountNumber: number
     payoutBankAccountHolder: number
@@ -11436,6 +11810,11 @@ export namespace Prisma {
     rejectionReason?: true
     expectedBranchCount?: true
     negotiationNotes?: true
+    source?: true
+    submittedAt?: true
+    representativeName?: true
+    representativeRole?: true
+    businessScale?: true
     payoutBankName?: true
     payoutBankAccountNumber?: true
     payoutBankAccountHolder?: true
@@ -11472,6 +11851,11 @@ export namespace Prisma {
     rejectionReason?: true
     expectedBranchCount?: true
     negotiationNotes?: true
+    source?: true
+    submittedAt?: true
+    representativeName?: true
+    representativeRole?: true
+    businessScale?: true
     payoutBankName?: true
     payoutBankAccountNumber?: true
     payoutBankAccountHolder?: true
@@ -11508,6 +11892,11 @@ export namespace Prisma {
     rejectionReason?: true
     expectedBranchCount?: true
     negotiationNotes?: true
+    source?: true
+    submittedAt?: true
+    representativeName?: true
+    representativeRole?: true
+    businessScale?: true
     payoutBankName?: true
     payoutBankAccountNumber?: true
     payoutBankAccountHolder?: true
@@ -11631,6 +12020,11 @@ export namespace Prisma {
     rejectionReason: string | null
     expectedBranchCount: number | null
     negotiationNotes: string | null
+    source: $Enums.GymPartnerSource
+    submittedAt: Date | null
+    representativeName: string | null
+    representativeRole: $Enums.PartnerRepresentativeRole | null
+    businessScale: $Enums.PartnerBusinessScale | null
     payoutBankName: string | null
     payoutBankAccountNumber: string | null
     payoutBankAccountHolder: string | null
@@ -11686,6 +12080,11 @@ export namespace Prisma {
     rejectionReason?: boolean
     expectedBranchCount?: boolean
     negotiationNotes?: boolean
+    source?: boolean
+    submittedAt?: boolean
+    representativeName?: boolean
+    representativeRole?: boolean
+    businessScale?: boolean
     payoutBankName?: boolean
     payoutBankAccountNumber?: boolean
     payoutBankAccountHolder?: boolean
@@ -11700,6 +12099,8 @@ export namespace Prisma {
     documents?: boolean | GymPartner$documentsArgs<ExtArgs>
     contactLogs?: boolean | GymPartner$contactLogsArgs<ExtArgs>
     internalNotes?: boolean | GymPartner$internalNotesArgs<ExtArgs>
+    reviewIssues?: boolean | GymPartner$reviewIssuesArgs<ExtArgs>
+    uploadIntents?: boolean | GymPartner$uploadIntentsArgs<ExtArgs>
     _count?: boolean | GymPartnerCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPartner"]>
 
@@ -11729,6 +12130,11 @@ export namespace Prisma {
     rejectionReason?: boolean
     expectedBranchCount?: boolean
     negotiationNotes?: boolean
+    source?: boolean
+    submittedAt?: boolean
+    representativeName?: boolean
+    representativeRole?: boolean
+    businessScale?: boolean
     payoutBankName?: boolean
     payoutBankAccountNumber?: boolean
     payoutBankAccountHolder?: boolean
@@ -11765,6 +12171,11 @@ export namespace Prisma {
     rejectionReason?: boolean
     expectedBranchCount?: boolean
     negotiationNotes?: boolean
+    source?: boolean
+    submittedAt?: boolean
+    representativeName?: boolean
+    representativeRole?: boolean
+    businessScale?: boolean
     payoutBankName?: boolean
     payoutBankAccountNumber?: boolean
     payoutBankAccountHolder?: boolean
@@ -11782,6 +12193,8 @@ export namespace Prisma {
     documents?: boolean | GymPartner$documentsArgs<ExtArgs>
     contactLogs?: boolean | GymPartner$contactLogsArgs<ExtArgs>
     internalNotes?: boolean | GymPartner$internalNotesArgs<ExtArgs>
+    reviewIssues?: boolean | GymPartner$reviewIssuesArgs<ExtArgs>
+    uploadIntents?: boolean | GymPartner$uploadIntentsArgs<ExtArgs>
     _count?: boolean | GymPartnerCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymPartnerIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -11795,6 +12208,8 @@ export namespace Prisma {
       documents: Prisma.$GymPartnerDocumentPayload<ExtArgs>[]
       contactLogs: Prisma.$GymPartnerContactLogPayload<ExtArgs>[]
       internalNotes: Prisma.$PartnerInternalNotePayload<ExtArgs>[]
+      reviewIssues: Prisma.$GymPartnerReviewIssuePayload<ExtArgs>[]
+      uploadIntents: Prisma.$PartnerUploadIntentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -11868,6 +12283,17 @@ export namespace Prisma {
        */
       expectedBranchCount: number | null
       negotiationNotes: string | null
+      /**
+       * Mọi dòng có từ trước là ADMIN_CREATED. SELF_SERVICE được đặt lúc bootstrap.
+       */
+      source: $Enums.GymPartnerSource
+      /**
+       * Lúc ứng viên nộp hồ sơ (UNDER_REVIEW). Null khi đang ONBOARDING.
+       */
+      submittedAt: Date | null
+      representativeName: string | null
+      representativeRole: $Enums.PartnerRepresentativeRole | null
+      businessScale: $Enums.PartnerBusinessScale | null
       payoutBankName: string | null
       payoutBankAccountNumber: string | null
       payoutBankAccountHolder: string | null
@@ -12246,6 +12672,8 @@ export namespace Prisma {
     documents<T extends GymPartner$documentsArgs<ExtArgs> = {}>(args?: Subset<T, GymPartner$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerDocumentPayload<ExtArgs>, T, "findMany"> | Null>
     contactLogs<T extends GymPartner$contactLogsArgs<ExtArgs> = {}>(args?: Subset<T, GymPartner$contactLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerContactLogPayload<ExtArgs>, T, "findMany"> | Null>
     internalNotes<T extends GymPartner$internalNotesArgs<ExtArgs> = {}>(args?: Subset<T, GymPartner$internalNotesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerInternalNotePayload<ExtArgs>, T, "findMany"> | Null>
+    reviewIssues<T extends GymPartner$reviewIssuesArgs<ExtArgs> = {}>(args?: Subset<T, GymPartner$reviewIssuesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findMany"> | Null>
+    uploadIntents<T extends GymPartner$uploadIntentsArgs<ExtArgs> = {}>(args?: Subset<T, GymPartner$uploadIntentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12300,6 +12728,11 @@ export namespace Prisma {
     readonly rejectionReason: FieldRef<"GymPartner", 'String'>
     readonly expectedBranchCount: FieldRef<"GymPartner", 'Int'>
     readonly negotiationNotes: FieldRef<"GymPartner", 'String'>
+    readonly source: FieldRef<"GymPartner", 'GymPartnerSource'>
+    readonly submittedAt: FieldRef<"GymPartner", 'DateTime'>
+    readonly representativeName: FieldRef<"GymPartner", 'String'>
+    readonly representativeRole: FieldRef<"GymPartner", 'PartnerRepresentativeRole'>
+    readonly businessScale: FieldRef<"GymPartner", 'PartnerBusinessScale'>
     readonly payoutBankName: FieldRef<"GymPartner", 'String'>
     readonly payoutBankAccountNumber: FieldRef<"GymPartner", 'String'>
     readonly payoutBankAccountHolder: FieldRef<"GymPartner", 'String'>
@@ -12739,6 +13172,46 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PartnerInternalNoteScalarFieldEnum | PartnerInternalNoteScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartner.reviewIssues
+   */
+  export type GymPartner$reviewIssuesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    where?: GymPartnerReviewIssueWhereInput
+    orderBy?: GymPartnerReviewIssueOrderByWithRelationInput | GymPartnerReviewIssueOrderByWithRelationInput[]
+    cursor?: GymPartnerReviewIssueWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPartnerReviewIssueScalarFieldEnum | GymPartnerReviewIssueScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartner.uploadIntents
+   */
+  export type GymPartner$uploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    where?: PartnerUploadIntentWhereInput
+    orderBy?: PartnerUploadIntentOrderByWithRelationInput | PartnerUploadIntentOrderByWithRelationInput[]
+    cursor?: PartnerUploadIntentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PartnerUploadIntentScalarFieldEnum | PartnerUploadIntentScalarFieldEnum[]
   }
 
   /**
@@ -14884,8 +15357,20 @@ export namespace Prisma {
 
   export type AggregateGymPartnerDocument = {
     _count: GymPartnerDocumentCountAggregateOutputType | null
+    _avg: GymPartnerDocumentAvgAggregateOutputType | null
+    _sum: GymPartnerDocumentSumAggregateOutputType | null
     _min: GymPartnerDocumentMinAggregateOutputType | null
     _max: GymPartnerDocumentMaxAggregateOutputType | null
+  }
+
+  export type GymPartnerDocumentAvgAggregateOutputType = {
+    sizeBytes: number | null
+    version: number | null
+  }
+
+  export type GymPartnerDocumentSumAggregateOutputType = {
+    sizeBytes: number | null
+    version: number | null
   }
 
   export type GymPartnerDocumentMinAggregateOutputType = {
@@ -14894,6 +15379,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType | null
     required: boolean | null
     fileUrl: string | null
+    fileKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    uploadedBy: string | null
+    version: number | null
+    reviewNote: string | null
     status: $Enums.PartnerDocumentStatus | null
     verifiedBy: string | null
     verifiedAt: Date | null
@@ -14908,6 +15399,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType | null
     required: boolean | null
     fileUrl: string | null
+    fileKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    uploadedBy: string | null
+    version: number | null
+    reviewNote: string | null
     status: $Enums.PartnerDocumentStatus | null
     verifiedBy: string | null
     verifiedAt: Date | null
@@ -14922,6 +15419,12 @@ export namespace Prisma {
     docType: number
     required: number
     fileUrl: number
+    fileKey: number
+    mimeType: number
+    sizeBytes: number
+    uploadedBy: number
+    version: number
+    reviewNote: number
     status: number
     verifiedBy: number
     verifiedAt: number
@@ -14932,12 +15435,28 @@ export namespace Prisma {
   }
 
 
+  export type GymPartnerDocumentAvgAggregateInputType = {
+    sizeBytes?: true
+    version?: true
+  }
+
+  export type GymPartnerDocumentSumAggregateInputType = {
+    sizeBytes?: true
+    version?: true
+  }
+
   export type GymPartnerDocumentMinAggregateInputType = {
     id?: true
     partnerId?: true
     docType?: true
     required?: true
     fileUrl?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    version?: true
+    reviewNote?: true
     status?: true
     verifiedBy?: true
     verifiedAt?: true
@@ -14952,6 +15471,12 @@ export namespace Prisma {
     docType?: true
     required?: true
     fileUrl?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    version?: true
+    reviewNote?: true
     status?: true
     verifiedBy?: true
     verifiedAt?: true
@@ -14966,6 +15491,12 @@ export namespace Prisma {
     docType?: true
     required?: true
     fileUrl?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    version?: true
+    reviewNote?: true
     status?: true
     verifiedBy?: true
     verifiedAt?: true
@@ -15013,6 +15544,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: GymPartnerDocumentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymPartnerDocumentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: GymPartnerDocumentMinAggregateInputType
@@ -15043,6 +15586,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: GymPartnerDocumentCountAggregateInputType | true
+    _avg?: GymPartnerDocumentAvgAggregateInputType
+    _sum?: GymPartnerDocumentSumAggregateInputType
     _min?: GymPartnerDocumentMinAggregateInputType
     _max?: GymPartnerDocumentMaxAggregateInputType
   }
@@ -15053,6 +15598,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required: boolean
     fileUrl: string | null
+    fileKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    uploadedBy: string | null
+    version: number
+    reviewNote: string | null
     status: $Enums.PartnerDocumentStatus
     verifiedBy: string | null
     verifiedAt: Date | null
@@ -15060,6 +15611,8 @@ export namespace Prisma {
     createdAt: Date
     updatedAt: Date
     _count: GymPartnerDocumentCountAggregateOutputType | null
+    _avg: GymPartnerDocumentAvgAggregateOutputType | null
+    _sum: GymPartnerDocumentSumAggregateOutputType | null
     _min: GymPartnerDocumentMinAggregateOutputType | null
     _max: GymPartnerDocumentMaxAggregateOutputType | null
   }
@@ -15084,6 +15637,12 @@ export namespace Prisma {
     docType?: boolean
     required?: boolean
     fileUrl?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    version?: boolean
+    reviewNote?: boolean
     status?: boolean
     verifiedBy?: boolean
     verifiedAt?: boolean
@@ -15099,6 +15658,12 @@ export namespace Prisma {
     docType?: boolean
     required?: boolean
     fileUrl?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    version?: boolean
+    reviewNote?: boolean
     status?: boolean
     verifiedBy?: boolean
     verifiedAt?: boolean
@@ -15114,6 +15679,12 @@ export namespace Prisma {
     docType?: boolean
     required?: boolean
     fileUrl?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    version?: boolean
+    reviewNote?: boolean
     status?: boolean
     verifiedBy?: boolean
     verifiedAt?: boolean
@@ -15140,7 +15711,26 @@ export namespace Prisma {
       docType: $Enums.PartnerDocumentType
       required: boolean
       fileUrl: string | null
+      /**
+       * Tệp do ứng viên tự tải lên S3 (khoá do SERVER sinh, bucket riêng tư). Dòng cũ do admin gõ
+       * URL chỉ có fileUrl. Không bao giờ là URL công khai.
+       */
+      fileKey: string | null
+      mimeType: string | null
+      sizeBytes: number | null
+      uploadedBy: string | null
+      /**
+       * Tăng mỗi lần ứng viên thay tệp (khoá cũ được giữ trong PartnerAuditLog.metadata).
+       */
+      version: number
+      /**
+       * Lý do admin yêu cầu cập nhật (status = REJECTED, nhãn UI "Cần cập nhật").
+       */
+      reviewNote: string | null
       status: $Enums.PartnerDocumentStatus
+      /**
+       * Người/lúc DUYỆT (chấp nhận hoặc yêu cầu cập nhật) — không đổi nghĩa so với trước.
+       */
       verifiedBy: string | null
       verifiedAt: Date | null
       /**
@@ -15549,6 +16139,12 @@ export namespace Prisma {
     readonly docType: FieldRef<"GymPartnerDocument", 'PartnerDocumentType'>
     readonly required: FieldRef<"GymPartnerDocument", 'Boolean'>
     readonly fileUrl: FieldRef<"GymPartnerDocument", 'String'>
+    readonly fileKey: FieldRef<"GymPartnerDocument", 'String'>
+    readonly mimeType: FieldRef<"GymPartnerDocument", 'String'>
+    readonly sizeBytes: FieldRef<"GymPartnerDocument", 'Int'>
+    readonly uploadedBy: FieldRef<"GymPartnerDocument", 'String'>
+    readonly version: FieldRef<"GymPartnerDocument", 'Int'>
+    readonly reviewNote: FieldRef<"GymPartnerDocument", 'String'>
     readonly status: FieldRef<"GymPartnerDocument", 'PartnerDocumentStatus'>
     readonly verifiedBy: FieldRef<"GymPartnerDocument", 'String'>
     readonly verifiedAt: FieldRef<"GymPartnerDocument", 'DateTime'>
@@ -15884,6 +16480,2089 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: GymPartnerDocumentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymPartnerReviewIssue
+   */
+
+  export type AggregateGymPartnerReviewIssue = {
+    _count: GymPartnerReviewIssueCountAggregateOutputType | null
+    _min: GymPartnerReviewIssueMinAggregateOutputType | null
+    _max: GymPartnerReviewIssueMaxAggregateOutputType | null
+  }
+
+  export type GymPartnerReviewIssueMinAggregateOutputType = {
+    id: string | null
+    partnerId: string | null
+    category: $Enums.PartnerReviewCategory | null
+    message: string | null
+    status: $Enums.PartnerReviewIssueStatus | null
+    createdBy: string | null
+    createdAt: Date | null
+    resubmitNote: string | null
+    resubmittedAt: Date | null
+    adminFollowUp: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+  }
+
+  export type GymPartnerReviewIssueMaxAggregateOutputType = {
+    id: string | null
+    partnerId: string | null
+    category: $Enums.PartnerReviewCategory | null
+    message: string | null
+    status: $Enums.PartnerReviewIssueStatus | null
+    createdBy: string | null
+    createdAt: Date | null
+    resubmitNote: string | null
+    resubmittedAt: Date | null
+    adminFollowUp: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+  }
+
+  export type GymPartnerReviewIssueCountAggregateOutputType = {
+    id: number
+    partnerId: number
+    category: number
+    message: number
+    status: number
+    createdBy: number
+    createdAt: number
+    resubmitNote: number
+    resubmittedAt: number
+    adminFollowUp: number
+    resolvedBy: number
+    resolvedAt: number
+    _all: number
+  }
+
+
+  export type GymPartnerReviewIssueMinAggregateInputType = {
+    id?: true
+    partnerId?: true
+    category?: true
+    message?: true
+    status?: true
+    createdBy?: true
+    createdAt?: true
+    resubmitNote?: true
+    resubmittedAt?: true
+    adminFollowUp?: true
+    resolvedBy?: true
+    resolvedAt?: true
+  }
+
+  export type GymPartnerReviewIssueMaxAggregateInputType = {
+    id?: true
+    partnerId?: true
+    category?: true
+    message?: true
+    status?: true
+    createdBy?: true
+    createdAt?: true
+    resubmitNote?: true
+    resubmittedAt?: true
+    adminFollowUp?: true
+    resolvedBy?: true
+    resolvedAt?: true
+  }
+
+  export type GymPartnerReviewIssueCountAggregateInputType = {
+    id?: true
+    partnerId?: true
+    category?: true
+    message?: true
+    status?: true
+    createdBy?: true
+    createdAt?: true
+    resubmitNote?: true
+    resubmittedAt?: true
+    adminFollowUp?: true
+    resolvedBy?: true
+    resolvedAt?: true
+    _all?: true
+  }
+
+  export type GymPartnerReviewIssueAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPartnerReviewIssue to aggregate.
+     */
+    where?: GymPartnerReviewIssueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerReviewIssues to fetch.
+     */
+    orderBy?: GymPartnerReviewIssueOrderByWithRelationInput | GymPartnerReviewIssueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymPartnerReviewIssueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerReviewIssues from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerReviewIssues.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymPartnerReviewIssues
+    **/
+    _count?: true | GymPartnerReviewIssueCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymPartnerReviewIssueMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymPartnerReviewIssueMaxAggregateInputType
+  }
+
+  export type GetGymPartnerReviewIssueAggregateType<T extends GymPartnerReviewIssueAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymPartnerReviewIssue]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymPartnerReviewIssue[P]>
+      : GetScalarType<T[P], AggregateGymPartnerReviewIssue[P]>
+  }
+
+
+
+
+  export type GymPartnerReviewIssueGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPartnerReviewIssueWhereInput
+    orderBy?: GymPartnerReviewIssueOrderByWithAggregationInput | GymPartnerReviewIssueOrderByWithAggregationInput[]
+    by: GymPartnerReviewIssueScalarFieldEnum[] | GymPartnerReviewIssueScalarFieldEnum
+    having?: GymPartnerReviewIssueScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymPartnerReviewIssueCountAggregateInputType | true
+    _min?: GymPartnerReviewIssueMinAggregateInputType
+    _max?: GymPartnerReviewIssueMaxAggregateInputType
+  }
+
+  export type GymPartnerReviewIssueGroupByOutputType = {
+    id: string
+    partnerId: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt: Date
+    resubmitNote: string | null
+    resubmittedAt: Date | null
+    adminFollowUp: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+    _count: GymPartnerReviewIssueCountAggregateOutputType | null
+    _min: GymPartnerReviewIssueMinAggregateOutputType | null
+    _max: GymPartnerReviewIssueMaxAggregateOutputType | null
+  }
+
+  type GetGymPartnerReviewIssueGroupByPayload<T extends GymPartnerReviewIssueGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymPartnerReviewIssueGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymPartnerReviewIssueGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymPartnerReviewIssueGroupByOutputType[P]>
+            : GetScalarType<T[P], GymPartnerReviewIssueGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymPartnerReviewIssueSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerId?: boolean
+    category?: boolean
+    message?: boolean
+    status?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    resubmitNote?: boolean
+    resubmittedAt?: boolean
+    adminFollowUp?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPartnerReviewIssue"]>
+
+  export type GymPartnerReviewIssueSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerId?: boolean
+    category?: boolean
+    message?: boolean
+    status?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    resubmitNote?: boolean
+    resubmittedAt?: boolean
+    adminFollowUp?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPartnerReviewIssue"]>
+
+  export type GymPartnerReviewIssueSelectScalar = {
+    id?: boolean
+    partnerId?: boolean
+    category?: boolean
+    message?: boolean
+    status?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    resubmitNote?: boolean
+    resubmittedAt?: boolean
+    adminFollowUp?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+  }
+
+  export type GymPartnerReviewIssueInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }
+  export type GymPartnerReviewIssueIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }
+
+  export type $GymPartnerReviewIssuePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymPartnerReviewIssue"
+    objects: {
+      partner: Prisma.$GymPartnerPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      partnerId: string
+      category: $Enums.PartnerReviewCategory
+      message: string
+      status: $Enums.PartnerReviewIssueStatus
+      createdBy: string
+      createdAt: Date
+      resubmitNote: string | null
+      resubmittedAt: Date | null
+      /**
+       * Lời nhắn của admin khi mở lại một vấn đề chưa được sửa đúng (status quay về OPEN).
+       */
+      adminFollowUp: string | null
+      resolvedBy: string | null
+      resolvedAt: Date | null
+    }, ExtArgs["result"]["gymPartnerReviewIssue"]>
+    composites: {}
+  }
+
+  type GymPartnerReviewIssueGetPayload<S extends boolean | null | undefined | GymPartnerReviewIssueDefaultArgs> = $Result.GetResult<Prisma.$GymPartnerReviewIssuePayload, S>
+
+  type GymPartnerReviewIssueCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymPartnerReviewIssueFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymPartnerReviewIssueCountAggregateInputType | true
+    }
+
+  export interface GymPartnerReviewIssueDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymPartnerReviewIssue'], meta: { name: 'GymPartnerReviewIssue' } }
+    /**
+     * Find zero or one GymPartnerReviewIssue that matches the filter.
+     * @param {GymPartnerReviewIssueFindUniqueArgs} args - Arguments to find a GymPartnerReviewIssue
+     * @example
+     * // Get one GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymPartnerReviewIssueFindUniqueArgs>(args: SelectSubset<T, GymPartnerReviewIssueFindUniqueArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymPartnerReviewIssue that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymPartnerReviewIssueFindUniqueOrThrowArgs} args - Arguments to find a GymPartnerReviewIssue
+     * @example
+     * // Get one GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymPartnerReviewIssueFindUniqueOrThrowArgs>(args: SelectSubset<T, GymPartnerReviewIssueFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymPartnerReviewIssue that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueFindFirstArgs} args - Arguments to find a GymPartnerReviewIssue
+     * @example
+     * // Get one GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymPartnerReviewIssueFindFirstArgs>(args?: SelectSubset<T, GymPartnerReviewIssueFindFirstArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymPartnerReviewIssue that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueFindFirstOrThrowArgs} args - Arguments to find a GymPartnerReviewIssue
+     * @example
+     * // Get one GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymPartnerReviewIssueFindFirstOrThrowArgs>(args?: SelectSubset<T, GymPartnerReviewIssueFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymPartnerReviewIssues that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymPartnerReviewIssues
+     * const gymPartnerReviewIssues = await prisma.gymPartnerReviewIssue.findMany()
+     * 
+     * // Get first 10 GymPartnerReviewIssues
+     * const gymPartnerReviewIssues = await prisma.gymPartnerReviewIssue.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymPartnerReviewIssueWithIdOnly = await prisma.gymPartnerReviewIssue.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymPartnerReviewIssueFindManyArgs>(args?: SelectSubset<T, GymPartnerReviewIssueFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymPartnerReviewIssue.
+     * @param {GymPartnerReviewIssueCreateArgs} args - Arguments to create a GymPartnerReviewIssue.
+     * @example
+     * // Create one GymPartnerReviewIssue
+     * const GymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.create({
+     *   data: {
+     *     // ... data to create a GymPartnerReviewIssue
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymPartnerReviewIssueCreateArgs>(args: SelectSubset<T, GymPartnerReviewIssueCreateArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymPartnerReviewIssues.
+     * @param {GymPartnerReviewIssueCreateManyArgs} args - Arguments to create many GymPartnerReviewIssues.
+     * @example
+     * // Create many GymPartnerReviewIssues
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymPartnerReviewIssueCreateManyArgs>(args?: SelectSubset<T, GymPartnerReviewIssueCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymPartnerReviewIssues and returns the data saved in the database.
+     * @param {GymPartnerReviewIssueCreateManyAndReturnArgs} args - Arguments to create many GymPartnerReviewIssues.
+     * @example
+     * // Create many GymPartnerReviewIssues
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymPartnerReviewIssues and only return the `id`
+     * const gymPartnerReviewIssueWithIdOnly = await prisma.gymPartnerReviewIssue.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymPartnerReviewIssueCreateManyAndReturnArgs>(args?: SelectSubset<T, GymPartnerReviewIssueCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymPartnerReviewIssue.
+     * @param {GymPartnerReviewIssueDeleteArgs} args - Arguments to delete one GymPartnerReviewIssue.
+     * @example
+     * // Delete one GymPartnerReviewIssue
+     * const GymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.delete({
+     *   where: {
+     *     // ... filter to delete one GymPartnerReviewIssue
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymPartnerReviewIssueDeleteArgs>(args: SelectSubset<T, GymPartnerReviewIssueDeleteArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymPartnerReviewIssue.
+     * @param {GymPartnerReviewIssueUpdateArgs} args - Arguments to update one GymPartnerReviewIssue.
+     * @example
+     * // Update one GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymPartnerReviewIssueUpdateArgs>(args: SelectSubset<T, GymPartnerReviewIssueUpdateArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymPartnerReviewIssues.
+     * @param {GymPartnerReviewIssueDeleteManyArgs} args - Arguments to filter GymPartnerReviewIssues to delete.
+     * @example
+     * // Delete a few GymPartnerReviewIssues
+     * const { count } = await prisma.gymPartnerReviewIssue.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymPartnerReviewIssueDeleteManyArgs>(args?: SelectSubset<T, GymPartnerReviewIssueDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymPartnerReviewIssues.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymPartnerReviewIssues
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymPartnerReviewIssueUpdateManyArgs>(args: SelectSubset<T, GymPartnerReviewIssueUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymPartnerReviewIssue.
+     * @param {GymPartnerReviewIssueUpsertArgs} args - Arguments to update or create a GymPartnerReviewIssue.
+     * @example
+     * // Update or create a GymPartnerReviewIssue
+     * const gymPartnerReviewIssue = await prisma.gymPartnerReviewIssue.upsert({
+     *   create: {
+     *     // ... data to create a GymPartnerReviewIssue
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymPartnerReviewIssue we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymPartnerReviewIssueUpsertArgs>(args: SelectSubset<T, GymPartnerReviewIssueUpsertArgs<ExtArgs>>): Prisma__GymPartnerReviewIssueClient<$Result.GetResult<Prisma.$GymPartnerReviewIssuePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymPartnerReviewIssues.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueCountArgs} args - Arguments to filter GymPartnerReviewIssues to count.
+     * @example
+     * // Count the number of GymPartnerReviewIssues
+     * const count = await prisma.gymPartnerReviewIssue.count({
+     *   where: {
+     *     // ... the filter for the GymPartnerReviewIssues we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymPartnerReviewIssueCountArgs>(
+      args?: Subset<T, GymPartnerReviewIssueCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymPartnerReviewIssueCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymPartnerReviewIssue.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymPartnerReviewIssueAggregateArgs>(args: Subset<T, GymPartnerReviewIssueAggregateArgs>): Prisma.PrismaPromise<GetGymPartnerReviewIssueAggregateType<T>>
+
+    /**
+     * Group by GymPartnerReviewIssue.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerReviewIssueGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymPartnerReviewIssueGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymPartnerReviewIssueGroupByArgs['orderBy'] }
+        : { orderBy?: GymPartnerReviewIssueGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymPartnerReviewIssueGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymPartnerReviewIssueGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymPartnerReviewIssue model
+   */
+  readonly fields: GymPartnerReviewIssueFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymPartnerReviewIssue.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymPartnerReviewIssueClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    partner<T extends GymPartnerDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymPartnerDefaultArgs<ExtArgs>>): Prisma__GymPartnerClient<$Result.GetResult<Prisma.$GymPartnerPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymPartnerReviewIssue model
+   */ 
+  interface GymPartnerReviewIssueFieldRefs {
+    readonly id: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly partnerId: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly category: FieldRef<"GymPartnerReviewIssue", 'PartnerReviewCategory'>
+    readonly message: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly status: FieldRef<"GymPartnerReviewIssue", 'PartnerReviewIssueStatus'>
+    readonly createdBy: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly createdAt: FieldRef<"GymPartnerReviewIssue", 'DateTime'>
+    readonly resubmitNote: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly resubmittedAt: FieldRef<"GymPartnerReviewIssue", 'DateTime'>
+    readonly adminFollowUp: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly resolvedBy: FieldRef<"GymPartnerReviewIssue", 'String'>
+    readonly resolvedAt: FieldRef<"GymPartnerReviewIssue", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymPartnerReviewIssue findUnique
+   */
+  export type GymPartnerReviewIssueFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerReviewIssue to fetch.
+     */
+    where: GymPartnerReviewIssueWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerReviewIssue findUniqueOrThrow
+   */
+  export type GymPartnerReviewIssueFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerReviewIssue to fetch.
+     */
+    where: GymPartnerReviewIssueWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerReviewIssue findFirst
+   */
+  export type GymPartnerReviewIssueFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerReviewIssue to fetch.
+     */
+    where?: GymPartnerReviewIssueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerReviewIssues to fetch.
+     */
+    orderBy?: GymPartnerReviewIssueOrderByWithRelationInput | GymPartnerReviewIssueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPartnerReviewIssues.
+     */
+    cursor?: GymPartnerReviewIssueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerReviewIssues from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerReviewIssues.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPartnerReviewIssues.
+     */
+    distinct?: GymPartnerReviewIssueScalarFieldEnum | GymPartnerReviewIssueScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerReviewIssue findFirstOrThrow
+   */
+  export type GymPartnerReviewIssueFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerReviewIssue to fetch.
+     */
+    where?: GymPartnerReviewIssueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerReviewIssues to fetch.
+     */
+    orderBy?: GymPartnerReviewIssueOrderByWithRelationInput | GymPartnerReviewIssueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPartnerReviewIssues.
+     */
+    cursor?: GymPartnerReviewIssueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerReviewIssues from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerReviewIssues.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPartnerReviewIssues.
+     */
+    distinct?: GymPartnerReviewIssueScalarFieldEnum | GymPartnerReviewIssueScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerReviewIssue findMany
+   */
+  export type GymPartnerReviewIssueFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerReviewIssues to fetch.
+     */
+    where?: GymPartnerReviewIssueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerReviewIssues to fetch.
+     */
+    orderBy?: GymPartnerReviewIssueOrderByWithRelationInput | GymPartnerReviewIssueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymPartnerReviewIssues.
+     */
+    cursor?: GymPartnerReviewIssueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerReviewIssues from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerReviewIssues.
+     */
+    skip?: number
+    distinct?: GymPartnerReviewIssueScalarFieldEnum | GymPartnerReviewIssueScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerReviewIssue create
+   */
+  export type GymPartnerReviewIssueCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymPartnerReviewIssue.
+     */
+    data: XOR<GymPartnerReviewIssueCreateInput, GymPartnerReviewIssueUncheckedCreateInput>
+  }
+
+  /**
+   * GymPartnerReviewIssue createMany
+   */
+  export type GymPartnerReviewIssueCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymPartnerReviewIssues.
+     */
+    data: GymPartnerReviewIssueCreateManyInput | GymPartnerReviewIssueCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPartnerReviewIssue createManyAndReturn
+   */
+  export type GymPartnerReviewIssueCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymPartnerReviewIssues.
+     */
+    data: GymPartnerReviewIssueCreateManyInput | GymPartnerReviewIssueCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymPartnerReviewIssue update
+   */
+  export type GymPartnerReviewIssueUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymPartnerReviewIssue.
+     */
+    data: XOR<GymPartnerReviewIssueUpdateInput, GymPartnerReviewIssueUncheckedUpdateInput>
+    /**
+     * Choose, which GymPartnerReviewIssue to update.
+     */
+    where: GymPartnerReviewIssueWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerReviewIssue updateMany
+   */
+  export type GymPartnerReviewIssueUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymPartnerReviewIssues.
+     */
+    data: XOR<GymPartnerReviewIssueUpdateManyMutationInput, GymPartnerReviewIssueUncheckedUpdateManyInput>
+    /**
+     * Filter which GymPartnerReviewIssues to update
+     */
+    where?: GymPartnerReviewIssueWhereInput
+  }
+
+  /**
+   * GymPartnerReviewIssue upsert
+   */
+  export type GymPartnerReviewIssueUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymPartnerReviewIssue to update in case it exists.
+     */
+    where: GymPartnerReviewIssueWhereUniqueInput
+    /**
+     * In case the GymPartnerReviewIssue found by the `where` argument doesn't exist, create a new GymPartnerReviewIssue with this data.
+     */
+    create: XOR<GymPartnerReviewIssueCreateInput, GymPartnerReviewIssueUncheckedCreateInput>
+    /**
+     * In case the GymPartnerReviewIssue was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymPartnerReviewIssueUpdateInput, GymPartnerReviewIssueUncheckedUpdateInput>
+  }
+
+  /**
+   * GymPartnerReviewIssue delete
+   */
+  export type GymPartnerReviewIssueDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+    /**
+     * Filter which GymPartnerReviewIssue to delete.
+     */
+    where: GymPartnerReviewIssueWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerReviewIssue deleteMany
+   */
+  export type GymPartnerReviewIssueDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPartnerReviewIssues to delete
+     */
+    where?: GymPartnerReviewIssueWhereInput
+  }
+
+  /**
+   * GymPartnerReviewIssue without action
+   */
+  export type GymPartnerReviewIssueDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerReviewIssue
+     */
+    select?: GymPartnerReviewIssueSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerReviewIssueInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PartnerUploadIntent
+   */
+
+  export type AggregatePartnerUploadIntent = {
+    _count: PartnerUploadIntentCountAggregateOutputType | null
+    _avg: PartnerUploadIntentAvgAggregateOutputType | null
+    _sum: PartnerUploadIntentSumAggregateOutputType | null
+    _min: PartnerUploadIntentMinAggregateOutputType | null
+    _max: PartnerUploadIntentMaxAggregateOutputType | null
+  }
+
+  export type PartnerUploadIntentAvgAggregateOutputType = {
+    maxBytes: number | null
+  }
+
+  export type PartnerUploadIntentSumAggregateOutputType = {
+    maxBytes: number | null
+  }
+
+  export type PartnerUploadIntentMinAggregateOutputType = {
+    id: string | null
+    partnerId: string | null
+    kind: $Enums.PartnerUploadKind | null
+    docType: $Enums.PartnerDocumentType | null
+    gymId: string | null
+    photoCategory: $Enums.GymPhotoCategory | null
+    objectKey: string | null
+    contentType: string | null
+    maxBytes: number | null
+    createdBy: string | null
+    expiresAt: Date | null
+    confirmedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PartnerUploadIntentMaxAggregateOutputType = {
+    id: string | null
+    partnerId: string | null
+    kind: $Enums.PartnerUploadKind | null
+    docType: $Enums.PartnerDocumentType | null
+    gymId: string | null
+    photoCategory: $Enums.GymPhotoCategory | null
+    objectKey: string | null
+    contentType: string | null
+    maxBytes: number | null
+    createdBy: string | null
+    expiresAt: Date | null
+    confirmedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PartnerUploadIntentCountAggregateOutputType = {
+    id: number
+    partnerId: number
+    kind: number
+    docType: number
+    gymId: number
+    photoCategory: number
+    objectKey: number
+    contentType: number
+    maxBytes: number
+    createdBy: number
+    expiresAt: number
+    confirmedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PartnerUploadIntentAvgAggregateInputType = {
+    maxBytes?: true
+  }
+
+  export type PartnerUploadIntentSumAggregateInputType = {
+    maxBytes?: true
+  }
+
+  export type PartnerUploadIntentMinAggregateInputType = {
+    id?: true
+    partnerId?: true
+    kind?: true
+    docType?: true
+    gymId?: true
+    photoCategory?: true
+    objectKey?: true
+    contentType?: true
+    maxBytes?: true
+    createdBy?: true
+    expiresAt?: true
+    confirmedAt?: true
+    createdAt?: true
+  }
+
+  export type PartnerUploadIntentMaxAggregateInputType = {
+    id?: true
+    partnerId?: true
+    kind?: true
+    docType?: true
+    gymId?: true
+    photoCategory?: true
+    objectKey?: true
+    contentType?: true
+    maxBytes?: true
+    createdBy?: true
+    expiresAt?: true
+    confirmedAt?: true
+    createdAt?: true
+  }
+
+  export type PartnerUploadIntentCountAggregateInputType = {
+    id?: true
+    partnerId?: true
+    kind?: true
+    docType?: true
+    gymId?: true
+    photoCategory?: true
+    objectKey?: true
+    contentType?: true
+    maxBytes?: true
+    createdBy?: true
+    expiresAt?: true
+    confirmedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PartnerUploadIntentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerUploadIntent to aggregate.
+     */
+    where?: PartnerUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerUploadIntents to fetch.
+     */
+    orderBy?: PartnerUploadIntentOrderByWithRelationInput | PartnerUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PartnerUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PartnerUploadIntents
+    **/
+    _count?: true | PartnerUploadIntentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PartnerUploadIntentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PartnerUploadIntentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PartnerUploadIntentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PartnerUploadIntentMaxAggregateInputType
+  }
+
+  export type GetPartnerUploadIntentAggregateType<T extends PartnerUploadIntentAggregateArgs> = {
+        [P in keyof T & keyof AggregatePartnerUploadIntent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePartnerUploadIntent[P]>
+      : GetScalarType<T[P], AggregatePartnerUploadIntent[P]>
+  }
+
+
+
+
+  export type PartnerUploadIntentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartnerUploadIntentWhereInput
+    orderBy?: PartnerUploadIntentOrderByWithAggregationInput | PartnerUploadIntentOrderByWithAggregationInput[]
+    by: PartnerUploadIntentScalarFieldEnum[] | PartnerUploadIntentScalarFieldEnum
+    having?: PartnerUploadIntentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PartnerUploadIntentCountAggregateInputType | true
+    _avg?: PartnerUploadIntentAvgAggregateInputType
+    _sum?: PartnerUploadIntentSumAggregateInputType
+    _min?: PartnerUploadIntentMinAggregateInputType
+    _max?: PartnerUploadIntentMaxAggregateInputType
+  }
+
+  export type PartnerUploadIntentGroupByOutputType = {
+    id: string
+    partnerId: string
+    kind: $Enums.PartnerUploadKind
+    docType: $Enums.PartnerDocumentType | null
+    gymId: string | null
+    photoCategory: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date
+    confirmedAt: Date | null
+    createdAt: Date
+    _count: PartnerUploadIntentCountAggregateOutputType | null
+    _avg: PartnerUploadIntentAvgAggregateOutputType | null
+    _sum: PartnerUploadIntentSumAggregateOutputType | null
+    _min: PartnerUploadIntentMinAggregateOutputType | null
+    _max: PartnerUploadIntentMaxAggregateOutputType | null
+  }
+
+  type GetPartnerUploadIntentGroupByPayload<T extends PartnerUploadIntentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PartnerUploadIntentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PartnerUploadIntentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PartnerUploadIntentGroupByOutputType[P]>
+            : GetScalarType<T[P], PartnerUploadIntentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PartnerUploadIntentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerId?: boolean
+    kind?: boolean
+    docType?: boolean
+    gymId?: boolean
+    photoCategory?: boolean
+    objectKey?: boolean
+    contentType?: boolean
+    maxBytes?: boolean
+    createdBy?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    createdAt?: boolean
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["partnerUploadIntent"]>
+
+  export type PartnerUploadIntentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partnerId?: boolean
+    kind?: boolean
+    docType?: boolean
+    gymId?: boolean
+    photoCategory?: boolean
+    objectKey?: boolean
+    contentType?: boolean
+    maxBytes?: boolean
+    createdBy?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    createdAt?: boolean
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["partnerUploadIntent"]>
+
+  export type PartnerUploadIntentSelectScalar = {
+    id?: boolean
+    partnerId?: boolean
+    kind?: boolean
+    docType?: boolean
+    gymId?: boolean
+    photoCategory?: boolean
+    objectKey?: boolean
+    contentType?: boolean
+    maxBytes?: boolean
+    createdBy?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type PartnerUploadIntentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }
+  export type PartnerUploadIntentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+  }
+
+  export type $PartnerUploadIntentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PartnerUploadIntent"
+    objects: {
+      partner: Prisma.$GymPartnerPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      partnerId: string
+      kind: $Enums.PartnerUploadKind
+      docType: $Enums.PartnerDocumentType | null
+      gymId: string | null
+      photoCategory: $Enums.GymPhotoCategory | null
+      objectKey: string
+      contentType: string
+      maxBytes: number
+      createdBy: string
+      expiresAt: Date
+      confirmedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["partnerUploadIntent"]>
+    composites: {}
+  }
+
+  type PartnerUploadIntentGetPayload<S extends boolean | null | undefined | PartnerUploadIntentDefaultArgs> = $Result.GetResult<Prisma.$PartnerUploadIntentPayload, S>
+
+  type PartnerUploadIntentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PartnerUploadIntentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PartnerUploadIntentCountAggregateInputType | true
+    }
+
+  export interface PartnerUploadIntentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PartnerUploadIntent'], meta: { name: 'PartnerUploadIntent' } }
+    /**
+     * Find zero or one PartnerUploadIntent that matches the filter.
+     * @param {PartnerUploadIntentFindUniqueArgs} args - Arguments to find a PartnerUploadIntent
+     * @example
+     * // Get one PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PartnerUploadIntentFindUniqueArgs>(args: SelectSubset<T, PartnerUploadIntentFindUniqueArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PartnerUploadIntent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PartnerUploadIntentFindUniqueOrThrowArgs} args - Arguments to find a PartnerUploadIntent
+     * @example
+     * // Get one PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PartnerUploadIntentFindUniqueOrThrowArgs>(args: SelectSubset<T, PartnerUploadIntentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PartnerUploadIntent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentFindFirstArgs} args - Arguments to find a PartnerUploadIntent
+     * @example
+     * // Get one PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PartnerUploadIntentFindFirstArgs>(args?: SelectSubset<T, PartnerUploadIntentFindFirstArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PartnerUploadIntent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentFindFirstOrThrowArgs} args - Arguments to find a PartnerUploadIntent
+     * @example
+     * // Get one PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PartnerUploadIntentFindFirstOrThrowArgs>(args?: SelectSubset<T, PartnerUploadIntentFindFirstOrThrowArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PartnerUploadIntents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PartnerUploadIntents
+     * const partnerUploadIntents = await prisma.partnerUploadIntent.findMany()
+     * 
+     * // Get first 10 PartnerUploadIntents
+     * const partnerUploadIntents = await prisma.partnerUploadIntent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const partnerUploadIntentWithIdOnly = await prisma.partnerUploadIntent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PartnerUploadIntentFindManyArgs>(args?: SelectSubset<T, PartnerUploadIntentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PartnerUploadIntent.
+     * @param {PartnerUploadIntentCreateArgs} args - Arguments to create a PartnerUploadIntent.
+     * @example
+     * // Create one PartnerUploadIntent
+     * const PartnerUploadIntent = await prisma.partnerUploadIntent.create({
+     *   data: {
+     *     // ... data to create a PartnerUploadIntent
+     *   }
+     * })
+     * 
+     */
+    create<T extends PartnerUploadIntentCreateArgs>(args: SelectSubset<T, PartnerUploadIntentCreateArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PartnerUploadIntents.
+     * @param {PartnerUploadIntentCreateManyArgs} args - Arguments to create many PartnerUploadIntents.
+     * @example
+     * // Create many PartnerUploadIntents
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PartnerUploadIntentCreateManyArgs>(args?: SelectSubset<T, PartnerUploadIntentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PartnerUploadIntents and returns the data saved in the database.
+     * @param {PartnerUploadIntentCreateManyAndReturnArgs} args - Arguments to create many PartnerUploadIntents.
+     * @example
+     * // Create many PartnerUploadIntents
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PartnerUploadIntents and only return the `id`
+     * const partnerUploadIntentWithIdOnly = await prisma.partnerUploadIntent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PartnerUploadIntentCreateManyAndReturnArgs>(args?: SelectSubset<T, PartnerUploadIntentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PartnerUploadIntent.
+     * @param {PartnerUploadIntentDeleteArgs} args - Arguments to delete one PartnerUploadIntent.
+     * @example
+     * // Delete one PartnerUploadIntent
+     * const PartnerUploadIntent = await prisma.partnerUploadIntent.delete({
+     *   where: {
+     *     // ... filter to delete one PartnerUploadIntent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PartnerUploadIntentDeleteArgs>(args: SelectSubset<T, PartnerUploadIntentDeleteArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PartnerUploadIntent.
+     * @param {PartnerUploadIntentUpdateArgs} args - Arguments to update one PartnerUploadIntent.
+     * @example
+     * // Update one PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PartnerUploadIntentUpdateArgs>(args: SelectSubset<T, PartnerUploadIntentUpdateArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PartnerUploadIntents.
+     * @param {PartnerUploadIntentDeleteManyArgs} args - Arguments to filter PartnerUploadIntents to delete.
+     * @example
+     * // Delete a few PartnerUploadIntents
+     * const { count } = await prisma.partnerUploadIntent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PartnerUploadIntentDeleteManyArgs>(args?: SelectSubset<T, PartnerUploadIntentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PartnerUploadIntents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PartnerUploadIntents
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PartnerUploadIntentUpdateManyArgs>(args: SelectSubset<T, PartnerUploadIntentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PartnerUploadIntent.
+     * @param {PartnerUploadIntentUpsertArgs} args - Arguments to update or create a PartnerUploadIntent.
+     * @example
+     * // Update or create a PartnerUploadIntent
+     * const partnerUploadIntent = await prisma.partnerUploadIntent.upsert({
+     *   create: {
+     *     // ... data to create a PartnerUploadIntent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PartnerUploadIntent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PartnerUploadIntentUpsertArgs>(args: SelectSubset<T, PartnerUploadIntentUpsertArgs<ExtArgs>>): Prisma__PartnerUploadIntentClient<$Result.GetResult<Prisma.$PartnerUploadIntentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PartnerUploadIntents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentCountArgs} args - Arguments to filter PartnerUploadIntents to count.
+     * @example
+     * // Count the number of PartnerUploadIntents
+     * const count = await prisma.partnerUploadIntent.count({
+     *   where: {
+     *     // ... the filter for the PartnerUploadIntents we want to count
+     *   }
+     * })
+    **/
+    count<T extends PartnerUploadIntentCountArgs>(
+      args?: Subset<T, PartnerUploadIntentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PartnerUploadIntentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PartnerUploadIntent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PartnerUploadIntentAggregateArgs>(args: Subset<T, PartnerUploadIntentAggregateArgs>): Prisma.PrismaPromise<GetPartnerUploadIntentAggregateType<T>>
+
+    /**
+     * Group by PartnerUploadIntent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerUploadIntentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PartnerUploadIntentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PartnerUploadIntentGroupByArgs['orderBy'] }
+        : { orderBy?: PartnerUploadIntentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PartnerUploadIntentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPartnerUploadIntentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PartnerUploadIntent model
+   */
+  readonly fields: PartnerUploadIntentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PartnerUploadIntent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PartnerUploadIntentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    partner<T extends GymPartnerDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymPartnerDefaultArgs<ExtArgs>>): Prisma__GymPartnerClient<$Result.GetResult<Prisma.$GymPartnerPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PartnerUploadIntent model
+   */ 
+  interface PartnerUploadIntentFieldRefs {
+    readonly id: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly partnerId: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly kind: FieldRef<"PartnerUploadIntent", 'PartnerUploadKind'>
+    readonly docType: FieldRef<"PartnerUploadIntent", 'PartnerDocumentType'>
+    readonly gymId: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly photoCategory: FieldRef<"PartnerUploadIntent", 'GymPhotoCategory'>
+    readonly objectKey: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly contentType: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly maxBytes: FieldRef<"PartnerUploadIntent", 'Int'>
+    readonly createdBy: FieldRef<"PartnerUploadIntent", 'String'>
+    readonly expiresAt: FieldRef<"PartnerUploadIntent", 'DateTime'>
+    readonly confirmedAt: FieldRef<"PartnerUploadIntent", 'DateTime'>
+    readonly createdAt: FieldRef<"PartnerUploadIntent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PartnerUploadIntent findUnique
+   */
+  export type PartnerUploadIntentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PartnerUploadIntent to fetch.
+     */
+    where: PartnerUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PartnerUploadIntent findUniqueOrThrow
+   */
+  export type PartnerUploadIntentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PartnerUploadIntent to fetch.
+     */
+    where: PartnerUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PartnerUploadIntent findFirst
+   */
+  export type PartnerUploadIntentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PartnerUploadIntent to fetch.
+     */
+    where?: PartnerUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerUploadIntents to fetch.
+     */
+    orderBy?: PartnerUploadIntentOrderByWithRelationInput | PartnerUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerUploadIntents.
+     */
+    cursor?: PartnerUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerUploadIntents.
+     */
+    distinct?: PartnerUploadIntentScalarFieldEnum | PartnerUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerUploadIntent findFirstOrThrow
+   */
+  export type PartnerUploadIntentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PartnerUploadIntent to fetch.
+     */
+    where?: PartnerUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerUploadIntents to fetch.
+     */
+    orderBy?: PartnerUploadIntentOrderByWithRelationInput | PartnerUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerUploadIntents.
+     */
+    cursor?: PartnerUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerUploadIntents.
+     */
+    distinct?: PartnerUploadIntentScalarFieldEnum | PartnerUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerUploadIntent findMany
+   */
+  export type PartnerUploadIntentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PartnerUploadIntents to fetch.
+     */
+    where?: PartnerUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerUploadIntents to fetch.
+     */
+    orderBy?: PartnerUploadIntentOrderByWithRelationInput | PartnerUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PartnerUploadIntents.
+     */
+    cursor?: PartnerUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerUploadIntents.
+     */
+    skip?: number
+    distinct?: PartnerUploadIntentScalarFieldEnum | PartnerUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerUploadIntent create
+   */
+  export type PartnerUploadIntentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PartnerUploadIntent.
+     */
+    data: XOR<PartnerUploadIntentCreateInput, PartnerUploadIntentUncheckedCreateInput>
+  }
+
+  /**
+   * PartnerUploadIntent createMany
+   */
+  export type PartnerUploadIntentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PartnerUploadIntents.
+     */
+    data: PartnerUploadIntentCreateManyInput | PartnerUploadIntentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartnerUploadIntent createManyAndReturn
+   */
+  export type PartnerUploadIntentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PartnerUploadIntents.
+     */
+    data: PartnerUploadIntentCreateManyInput | PartnerUploadIntentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PartnerUploadIntent update
+   */
+  export type PartnerUploadIntentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PartnerUploadIntent.
+     */
+    data: XOR<PartnerUploadIntentUpdateInput, PartnerUploadIntentUncheckedUpdateInput>
+    /**
+     * Choose, which PartnerUploadIntent to update.
+     */
+    where: PartnerUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PartnerUploadIntent updateMany
+   */
+  export type PartnerUploadIntentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PartnerUploadIntents.
+     */
+    data: XOR<PartnerUploadIntentUpdateManyMutationInput, PartnerUploadIntentUncheckedUpdateManyInput>
+    /**
+     * Filter which PartnerUploadIntents to update
+     */
+    where?: PartnerUploadIntentWhereInput
+  }
+
+  /**
+   * PartnerUploadIntent upsert
+   */
+  export type PartnerUploadIntentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PartnerUploadIntent to update in case it exists.
+     */
+    where: PartnerUploadIntentWhereUniqueInput
+    /**
+     * In case the PartnerUploadIntent found by the `where` argument doesn't exist, create a new PartnerUploadIntent with this data.
+     */
+    create: XOR<PartnerUploadIntentCreateInput, PartnerUploadIntentUncheckedCreateInput>
+    /**
+     * In case the PartnerUploadIntent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PartnerUploadIntentUpdateInput, PartnerUploadIntentUncheckedUpdateInput>
+  }
+
+  /**
+   * PartnerUploadIntent delete
+   */
+  export type PartnerUploadIntentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter which PartnerUploadIntent to delete.
+     */
+    where: PartnerUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PartnerUploadIntent deleteMany
+   */
+  export type PartnerUploadIntentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerUploadIntents to delete
+     */
+    where?: PartnerUploadIntentWhereInput
+  }
+
+  /**
+   * PartnerUploadIntent without action
+   */
+  export type PartnerUploadIntentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerUploadIntent
+     */
+    select?: PartnerUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartnerUploadIntentInclude<ExtArgs> | null
   }
 
 
@@ -16861,6 +19540,7 @@ export namespace Prisma {
     approvedName: string | null
     pendingName: string | null
     description: string | null
+    logoKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16872,6 +19552,7 @@ export namespace Prisma {
     approvedName: string | null
     pendingName: string | null
     description: string | null
+    logoKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16883,6 +19564,7 @@ export namespace Prisma {
     approvedName: number
     pendingName: number
     description: number
+    logoKey: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -16896,6 +19578,7 @@ export namespace Prisma {
     approvedName?: true
     pendingName?: true
     description?: true
+    logoKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16907,6 +19590,7 @@ export namespace Prisma {
     approvedName?: true
     pendingName?: true
     description?: true
+    logoKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16918,6 +19602,7 @@ export namespace Prisma {
     approvedName?: true
     pendingName?: true
     description?: true
+    logoKey?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -17002,6 +19687,7 @@ export namespace Prisma {
     approvedName: string | null
     pendingName: string | null
     description: string | null
+    logoKey: string | null
     createdAt: Date
     updatedAt: Date
     _count: GymBrandCountAggregateOutputType | null
@@ -17030,6 +19716,7 @@ export namespace Prisma {
     approvedName?: boolean
     pendingName?: boolean
     description?: boolean
+    logoKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
@@ -17044,6 +19731,7 @@ export namespace Prisma {
     approvedName?: boolean
     pendingName?: boolean
     description?: boolean
+    logoKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["gymBrand"]>
@@ -17055,6 +19743,7 @@ export namespace Prisma {
     approvedName?: boolean
     pendingName?: boolean
     description?: boolean
+    logoKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -17089,6 +19778,10 @@ export namespace Prisma {
       approvedName: string | null
       pendingName: string | null
       description: string | null
+      /**
+       * Khoá đối tượng S3 của logo (hồ sơ tự đăng ký). Chưa có luồng tải logo thì để null.
+       */
+      logoKey: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymBrand"]>
@@ -17492,6 +20185,7 @@ export namespace Prisma {
     readonly approvedName: FieldRef<"GymBrand", 'String'>
     readonly pendingName: FieldRef<"GymBrand", 'String'>
     readonly description: FieldRef<"GymBrand", 'String'>
+    readonly logoKey: FieldRef<"GymBrand", 'String'>
     readonly createdAt: FieldRef<"GymBrand", 'DateTime'>
     readonly updatedAt: FieldRef<"GymBrand", 'DateTime'>
   }
@@ -26949,6 +29643,9 @@ export namespace Prisma {
     fileName: 'fileName',
     sortOrder: 'sortOrder',
     isCover: 'isCover',
+    s3Key: 's3Key',
+    category: 'category',
+    visibility: 'visibility',
     createdAt: 'createdAt'
   };
 
@@ -27083,6 +29780,11 @@ export namespace Prisma {
     rejectionReason: 'rejectionReason',
     expectedBranchCount: 'expectedBranchCount',
     negotiationNotes: 'negotiationNotes',
+    source: 'source',
+    submittedAt: 'submittedAt',
+    representativeName: 'representativeName',
+    representativeRole: 'representativeRole',
+    businessScale: 'businessScale',
     payoutBankName: 'payoutBankName',
     payoutBankAccountNumber: 'payoutBankAccountNumber',
     payoutBankAccountHolder: 'payoutBankAccountHolder',
@@ -27141,6 +29843,12 @@ export namespace Prisma {
     docType: 'docType',
     required: 'required',
     fileUrl: 'fileUrl',
+    fileKey: 'fileKey',
+    mimeType: 'mimeType',
+    sizeBytes: 'sizeBytes',
+    uploadedBy: 'uploadedBy',
+    version: 'version',
+    reviewNote: 'reviewNote',
     status: 'status',
     verifiedBy: 'verifiedBy',
     verifiedAt: 'verifiedAt',
@@ -27150,6 +29858,43 @@ export namespace Prisma {
   };
 
   export type GymPartnerDocumentScalarFieldEnum = (typeof GymPartnerDocumentScalarFieldEnum)[keyof typeof GymPartnerDocumentScalarFieldEnum]
+
+
+  export const GymPartnerReviewIssueScalarFieldEnum: {
+    id: 'id',
+    partnerId: 'partnerId',
+    category: 'category',
+    message: 'message',
+    status: 'status',
+    createdBy: 'createdBy',
+    createdAt: 'createdAt',
+    resubmitNote: 'resubmitNote',
+    resubmittedAt: 'resubmittedAt',
+    adminFollowUp: 'adminFollowUp',
+    resolvedBy: 'resolvedBy',
+    resolvedAt: 'resolvedAt'
+  };
+
+  export type GymPartnerReviewIssueScalarFieldEnum = (typeof GymPartnerReviewIssueScalarFieldEnum)[keyof typeof GymPartnerReviewIssueScalarFieldEnum]
+
+
+  export const PartnerUploadIntentScalarFieldEnum: {
+    id: 'id',
+    partnerId: 'partnerId',
+    kind: 'kind',
+    docType: 'docType',
+    gymId: 'gymId',
+    photoCategory: 'photoCategory',
+    objectKey: 'objectKey',
+    contentType: 'contentType',
+    maxBytes: 'maxBytes',
+    createdBy: 'createdBy',
+    expiresAt: 'expiresAt',
+    confirmedAt: 'confirmedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type PartnerUploadIntentScalarFieldEnum = (typeof PartnerUploadIntentScalarFieldEnum)[keyof typeof PartnerUploadIntentScalarFieldEnum]
 
 
   export const GymPartnerContactLogScalarFieldEnum: {
@@ -27172,6 +29917,7 @@ export namespace Prisma {
     approvedName: 'approvedName',
     pendingName: 'pendingName',
     description: 'description',
+    logoKey: 'logoKey',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -27422,6 +30168,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'GymPhotoCategory'
+   */
+  export type EnumGymPhotoCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPhotoCategory[]'
+   */
+  export type ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPhotoVisibility'
+   */
+  export type EnumGymPhotoVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoVisibility'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPhotoVisibility[]'
+   */
+  export type ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoVisibility[]'>
+    
+
+
+  /**
    * Reference to a field of type 'DateTime'
    */
   export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -27639,6 +30413,48 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'GymPartnerSource'
+   */
+  export type EnumGymPartnerSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPartnerSource'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPartnerSource[]'
+   */
+  export type ListEnumGymPartnerSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPartnerSource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerRepresentativeRole'
+   */
+  export type EnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerRepresentativeRole'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerRepresentativeRole[]'
+   */
+  export type ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerRepresentativeRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerBusinessScale'
+   */
+  export type EnumPartnerBusinessScaleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerBusinessScale'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerBusinessScale[]'
+   */
+  export type ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerBusinessScale[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PartnerAccountRole'
    */
   export type EnumPartnerAccountRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerAccountRole'>
@@ -27691,6 +30507,48 @@ export namespace Prisma {
    * Reference to a field of type 'PartnerDocumentType[]'
    */
   export type ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerDocumentType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerReviewCategory'
+   */
+  export type EnumPartnerReviewCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerReviewCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerReviewCategory[]'
+   */
+  export type ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerReviewCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerReviewIssueStatus'
+   */
+  export type EnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerReviewIssueStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerReviewIssueStatus[]'
+   */
+  export type ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerReviewIssueStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerUploadKind'
+   */
+  export type EnumPartnerUploadKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerUploadKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'PartnerUploadKind[]'
+   */
+  export type ListEnumPartnerUploadKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerUploadKind[]'>
     
 
 
@@ -27874,6 +30732,9 @@ export namespace Prisma {
     fileName?: StringFilter<"GymPhoto"> | string
     sortOrder?: IntFilter<"GymPhoto"> | number
     isCover?: BoolFilter<"GymPhoto"> | boolean
+    s3Key?: StringNullableFilter<"GymPhoto"> | string | null
+    category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
   }
@@ -27884,6 +30745,9 @@ export namespace Prisma {
     fileName?: SortOrder
     sortOrder?: SortOrder
     isCover?: SortOrder
+    s3Key?: SortOrderInput | SortOrder
+    category?: SortOrderInput | SortOrder
+    visibility?: SortOrder
     createdAt?: SortOrder
     gym?: GymOrderByWithRelationInput
   }
@@ -27897,6 +30761,9 @@ export namespace Prisma {
     fileName?: StringFilter<"GymPhoto"> | string
     sortOrder?: IntFilter<"GymPhoto"> | number
     isCover?: BoolFilter<"GymPhoto"> | boolean
+    s3Key?: StringNullableFilter<"GymPhoto"> | string | null
+    category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
   }, "id">
@@ -27907,6 +30774,9 @@ export namespace Prisma {
     fileName?: SortOrder
     sortOrder?: SortOrder
     isCover?: SortOrder
+    s3Key?: SortOrderInput | SortOrder
+    category?: SortOrderInput | SortOrder
+    visibility?: SortOrder
     createdAt?: SortOrder
     _count?: GymPhotoCountOrderByAggregateInput
     _avg?: GymPhotoAvgOrderByAggregateInput
@@ -27924,6 +30794,9 @@ export namespace Prisma {
     fileName?: StringWithAggregatesFilter<"GymPhoto"> | string
     sortOrder?: IntWithAggregatesFilter<"GymPhoto"> | number
     isCover?: BoolWithAggregatesFilter<"GymPhoto"> | boolean
+    s3Key?: StringNullableWithAggregatesFilter<"GymPhoto"> | string | null
+    category?: EnumGymPhotoCategoryNullableWithAggregatesFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityWithAggregatesFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeWithAggregatesFilter<"GymPhoto"> | Date | string
   }
 
@@ -28469,6 +31342,11 @@ export namespace Prisma {
     rejectionReason?: StringNullableFilter<"GymPartner"> | string | null
     expectedBranchCount?: IntNullableFilter<"GymPartner"> | number | null
     negotiationNotes?: StringNullableFilter<"GymPartner"> | string | null
+    source?: EnumGymPartnerSourceFilter<"GymPartner"> | $Enums.GymPartnerSource
+    submittedAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
+    representativeName?: StringNullableFilter<"GymPartner"> | string | null
+    representativeRole?: EnumPartnerRepresentativeRoleNullableFilter<"GymPartner"> | $Enums.PartnerRepresentativeRole | null
+    businessScale?: EnumPartnerBusinessScaleNullableFilter<"GymPartner"> | $Enums.PartnerBusinessScale | null
     payoutBankName?: StringNullableFilter<"GymPartner"> | string | null
     payoutBankAccountNumber?: StringNullableFilter<"GymPartner"> | string | null
     payoutBankAccountHolder?: StringNullableFilter<"GymPartner"> | string | null
@@ -28483,6 +31361,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentListRelationFilter
     contactLogs?: GymPartnerContactLogListRelationFilter
     internalNotes?: PartnerInternalNoteListRelationFilter
+    reviewIssues?: GymPartnerReviewIssueListRelationFilter
+    uploadIntents?: PartnerUploadIntentListRelationFilter
   }
 
   export type GymPartnerOrderByWithRelationInput = {
@@ -28511,6 +31391,11 @@ export namespace Prisma {
     rejectionReason?: SortOrderInput | SortOrder
     expectedBranchCount?: SortOrderInput | SortOrder
     negotiationNotes?: SortOrderInput | SortOrder
+    source?: SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    representativeName?: SortOrderInput | SortOrder
+    representativeRole?: SortOrderInput | SortOrder
+    businessScale?: SortOrderInput | SortOrder
     payoutBankName?: SortOrderInput | SortOrder
     payoutBankAccountNumber?: SortOrderInput | SortOrder
     payoutBankAccountHolder?: SortOrderInput | SortOrder
@@ -28525,6 +31410,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentOrderByRelationAggregateInput
     contactLogs?: GymPartnerContactLogOrderByRelationAggregateInput
     internalNotes?: PartnerInternalNoteOrderByRelationAggregateInput
+    reviewIssues?: GymPartnerReviewIssueOrderByRelationAggregateInput
+    uploadIntents?: PartnerUploadIntentOrderByRelationAggregateInput
   }
 
   export type GymPartnerWhereUniqueInput = Prisma.AtLeast<{
@@ -28556,6 +31443,11 @@ export namespace Prisma {
     rejectionReason?: StringNullableFilter<"GymPartner"> | string | null
     expectedBranchCount?: IntNullableFilter<"GymPartner"> | number | null
     negotiationNotes?: StringNullableFilter<"GymPartner"> | string | null
+    source?: EnumGymPartnerSourceFilter<"GymPartner"> | $Enums.GymPartnerSource
+    submittedAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
+    representativeName?: StringNullableFilter<"GymPartner"> | string | null
+    representativeRole?: EnumPartnerRepresentativeRoleNullableFilter<"GymPartner"> | $Enums.PartnerRepresentativeRole | null
+    businessScale?: EnumPartnerBusinessScaleNullableFilter<"GymPartner"> | $Enums.PartnerBusinessScale | null
     payoutBankName?: StringNullableFilter<"GymPartner"> | string | null
     payoutBankAccountNumber?: StringNullableFilter<"GymPartner"> | string | null
     payoutBankAccountHolder?: StringNullableFilter<"GymPartner"> | string | null
@@ -28570,6 +31462,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentListRelationFilter
     contactLogs?: GymPartnerContactLogListRelationFilter
     internalNotes?: PartnerInternalNoteListRelationFilter
+    reviewIssues?: GymPartnerReviewIssueListRelationFilter
+    uploadIntents?: PartnerUploadIntentListRelationFilter
   }, "id" | "brandId">
 
   export type GymPartnerOrderByWithAggregationInput = {
@@ -28598,6 +31492,11 @@ export namespace Prisma {
     rejectionReason?: SortOrderInput | SortOrder
     expectedBranchCount?: SortOrderInput | SortOrder
     negotiationNotes?: SortOrderInput | SortOrder
+    source?: SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    representativeName?: SortOrderInput | SortOrder
+    representativeRole?: SortOrderInput | SortOrder
+    businessScale?: SortOrderInput | SortOrder
     payoutBankName?: SortOrderInput | SortOrder
     payoutBankAccountNumber?: SortOrderInput | SortOrder
     payoutBankAccountHolder?: SortOrderInput | SortOrder
@@ -28642,6 +31541,11 @@ export namespace Prisma {
     rejectionReason?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     expectedBranchCount?: IntNullableWithAggregatesFilter<"GymPartner"> | number | null
     negotiationNotes?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
+    source?: EnumGymPartnerSourceWithAggregatesFilter<"GymPartner"> | $Enums.GymPartnerSource
+    submittedAt?: DateTimeNullableWithAggregatesFilter<"GymPartner"> | Date | string | null
+    representativeName?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
+    representativeRole?: EnumPartnerRepresentativeRoleNullableWithAggregatesFilter<"GymPartner"> | $Enums.PartnerRepresentativeRole | null
+    businessScale?: EnumPartnerBusinessScaleNullableWithAggregatesFilter<"GymPartner"> | $Enums.PartnerBusinessScale | null
     payoutBankName?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     payoutBankAccountNumber?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     payoutBankAccountHolder?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
@@ -28858,6 +31762,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentType
     required?: BoolFilter<"GymPartnerDocument"> | boolean
     fileUrl?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    fileKey?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    mimeType?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    sizeBytes?: IntNullableFilter<"GymPartnerDocument"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    version?: IntFilter<"GymPartnerDocument"> | number
+    reviewNote?: StringNullableFilter<"GymPartnerDocument"> | string | null
     status?: EnumPartnerDocumentStatusFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentStatus
     verifiedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
     verifiedAt?: DateTimeNullableFilter<"GymPartnerDocument"> | Date | string | null
@@ -28873,6 +31783,12 @@ export namespace Prisma {
     docType?: SortOrder
     required?: SortOrder
     fileUrl?: SortOrderInput | SortOrder
+    fileKey?: SortOrderInput | SortOrder
+    mimeType?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
+    version?: SortOrder
+    reviewNote?: SortOrderInput | SortOrder
     status?: SortOrder
     verifiedBy?: SortOrderInput | SortOrder
     verifiedAt?: SortOrderInput | SortOrder
@@ -28892,6 +31808,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentType
     required?: BoolFilter<"GymPartnerDocument"> | boolean
     fileUrl?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    fileKey?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    mimeType?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    sizeBytes?: IntNullableFilter<"GymPartnerDocument"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    version?: IntFilter<"GymPartnerDocument"> | number
+    reviewNote?: StringNullableFilter<"GymPartnerDocument"> | string | null
     status?: EnumPartnerDocumentStatusFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentStatus
     verifiedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
     verifiedAt?: DateTimeNullableFilter<"GymPartnerDocument"> | Date | string | null
@@ -28907,6 +31829,12 @@ export namespace Prisma {
     docType?: SortOrder
     required?: SortOrder
     fileUrl?: SortOrderInput | SortOrder
+    fileKey?: SortOrderInput | SortOrder
+    mimeType?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
+    version?: SortOrder
+    reviewNote?: SortOrderInput | SortOrder
     status?: SortOrder
     verifiedBy?: SortOrderInput | SortOrder
     verifiedAt?: SortOrderInput | SortOrder
@@ -28914,8 +31842,10 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymPartnerDocumentCountOrderByAggregateInput
+    _avg?: GymPartnerDocumentAvgOrderByAggregateInput
     _max?: GymPartnerDocumentMaxOrderByAggregateInput
     _min?: GymPartnerDocumentMinOrderByAggregateInput
+    _sum?: GymPartnerDocumentSumOrderByAggregateInput
   }
 
   export type GymPartnerDocumentScalarWhereWithAggregatesInput = {
@@ -28927,12 +31857,205 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeWithAggregatesFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentType
     required?: BoolWithAggregatesFilter<"GymPartnerDocument"> | boolean
     fileUrl?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
+    fileKey?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
+    mimeType?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
+    sizeBytes?: IntNullableWithAggregatesFilter<"GymPartnerDocument"> | number | null
+    uploadedBy?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
+    version?: IntWithAggregatesFilter<"GymPartnerDocument"> | number
+    reviewNote?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
     status?: EnumPartnerDocumentStatusWithAggregatesFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentStatus
     verifiedBy?: StringNullableWithAggregatesFilter<"GymPartnerDocument"> | string | null
     verifiedAt?: DateTimeNullableWithAggregatesFilter<"GymPartnerDocument"> | Date | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"GymPartnerDocument"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymPartnerDocument"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymPartnerDocument"> | Date | string
+  }
+
+  export type GymPartnerReviewIssueWhereInput = {
+    AND?: GymPartnerReviewIssueWhereInput | GymPartnerReviewIssueWhereInput[]
+    OR?: GymPartnerReviewIssueWhereInput[]
+    NOT?: GymPartnerReviewIssueWhereInput | GymPartnerReviewIssueWhereInput[]
+    id?: StringFilter<"GymPartnerReviewIssue"> | string
+    partnerId?: StringFilter<"GymPartnerReviewIssue"> | string
+    category?: EnumPartnerReviewCategoryFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewCategory
+    message?: StringFilter<"GymPartnerReviewIssue"> | string
+    status?: EnumPartnerReviewIssueStatusFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFilter<"GymPartnerReviewIssue"> | string
+    createdAt?: DateTimeFilter<"GymPartnerReviewIssue"> | Date | string
+    resubmitNote?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resubmittedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+    adminFollowUp?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedBy?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+    partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+  }
+
+  export type GymPartnerReviewIssueOrderByWithRelationInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    category?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    resubmitNote?: SortOrderInput | SortOrder
+    resubmittedAt?: SortOrderInput | SortOrder
+    adminFollowUp?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    partner?: GymPartnerOrderByWithRelationInput
+  }
+
+  export type GymPartnerReviewIssueWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymPartnerReviewIssueWhereInput | GymPartnerReviewIssueWhereInput[]
+    OR?: GymPartnerReviewIssueWhereInput[]
+    NOT?: GymPartnerReviewIssueWhereInput | GymPartnerReviewIssueWhereInput[]
+    partnerId?: StringFilter<"GymPartnerReviewIssue"> | string
+    category?: EnumPartnerReviewCategoryFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewCategory
+    message?: StringFilter<"GymPartnerReviewIssue"> | string
+    status?: EnumPartnerReviewIssueStatusFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFilter<"GymPartnerReviewIssue"> | string
+    createdAt?: DateTimeFilter<"GymPartnerReviewIssue"> | Date | string
+    resubmitNote?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resubmittedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+    adminFollowUp?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedBy?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+    partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+  }, "id">
+
+  export type GymPartnerReviewIssueOrderByWithAggregationInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    category?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    resubmitNote?: SortOrderInput | SortOrder
+    resubmittedAt?: SortOrderInput | SortOrder
+    adminFollowUp?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    _count?: GymPartnerReviewIssueCountOrderByAggregateInput
+    _max?: GymPartnerReviewIssueMaxOrderByAggregateInput
+    _min?: GymPartnerReviewIssueMinOrderByAggregateInput
+  }
+
+  export type GymPartnerReviewIssueScalarWhereWithAggregatesInput = {
+    AND?: GymPartnerReviewIssueScalarWhereWithAggregatesInput | GymPartnerReviewIssueScalarWhereWithAggregatesInput[]
+    OR?: GymPartnerReviewIssueScalarWhereWithAggregatesInput[]
+    NOT?: GymPartnerReviewIssueScalarWhereWithAggregatesInput | GymPartnerReviewIssueScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymPartnerReviewIssue"> | string
+    partnerId?: StringWithAggregatesFilter<"GymPartnerReviewIssue"> | string
+    category?: EnumPartnerReviewCategoryWithAggregatesFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewCategory
+    message?: StringWithAggregatesFilter<"GymPartnerReviewIssue"> | string
+    status?: EnumPartnerReviewIssueStatusWithAggregatesFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringWithAggregatesFilter<"GymPartnerReviewIssue"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymPartnerReviewIssue"> | Date | string
+    resubmitNote?: StringNullableWithAggregatesFilter<"GymPartnerReviewIssue"> | string | null
+    resubmittedAt?: DateTimeNullableWithAggregatesFilter<"GymPartnerReviewIssue"> | Date | string | null
+    adminFollowUp?: StringNullableWithAggregatesFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"GymPartnerReviewIssue"> | Date | string | null
+  }
+
+  export type PartnerUploadIntentWhereInput = {
+    AND?: PartnerUploadIntentWhereInput | PartnerUploadIntentWhereInput[]
+    OR?: PartnerUploadIntentWhereInput[]
+    NOT?: PartnerUploadIntentWhereInput | PartnerUploadIntentWhereInput[]
+    id?: StringFilter<"PartnerUploadIntent"> | string
+    partnerId?: StringFilter<"PartnerUploadIntent"> | string
+    kind?: EnumPartnerUploadKindFilter<"PartnerUploadIntent"> | $Enums.PartnerUploadKind
+    docType?: EnumPartnerDocumentTypeNullableFilter<"PartnerUploadIntent"> | $Enums.PartnerDocumentType | null
+    gymId?: StringNullableFilter<"PartnerUploadIntent"> | string | null
+    photoCategory?: EnumGymPhotoCategoryNullableFilter<"PartnerUploadIntent"> | $Enums.GymPhotoCategory | null
+    objectKey?: StringFilter<"PartnerUploadIntent"> | string
+    contentType?: StringFilter<"PartnerUploadIntent"> | string
+    maxBytes?: IntFilter<"PartnerUploadIntent"> | number
+    createdBy?: StringFilter<"PartnerUploadIntent"> | string
+    expiresAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"PartnerUploadIntent"> | Date | string | null
+    createdAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+    partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+  }
+
+  export type PartnerUploadIntentOrderByWithRelationInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    kind?: SortOrder
+    docType?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    photoCategory?: SortOrderInput | SortOrder
+    objectKey?: SortOrder
+    contentType?: SortOrder
+    maxBytes?: SortOrder
+    createdBy?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    partner?: GymPartnerOrderByWithRelationInput
+  }
+
+  export type PartnerUploadIntentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    objectKey?: string
+    AND?: PartnerUploadIntentWhereInput | PartnerUploadIntentWhereInput[]
+    OR?: PartnerUploadIntentWhereInput[]
+    NOT?: PartnerUploadIntentWhereInput | PartnerUploadIntentWhereInput[]
+    partnerId?: StringFilter<"PartnerUploadIntent"> | string
+    kind?: EnumPartnerUploadKindFilter<"PartnerUploadIntent"> | $Enums.PartnerUploadKind
+    docType?: EnumPartnerDocumentTypeNullableFilter<"PartnerUploadIntent"> | $Enums.PartnerDocumentType | null
+    gymId?: StringNullableFilter<"PartnerUploadIntent"> | string | null
+    photoCategory?: EnumGymPhotoCategoryNullableFilter<"PartnerUploadIntent"> | $Enums.GymPhotoCategory | null
+    contentType?: StringFilter<"PartnerUploadIntent"> | string
+    maxBytes?: IntFilter<"PartnerUploadIntent"> | number
+    createdBy?: StringFilter<"PartnerUploadIntent"> | string
+    expiresAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"PartnerUploadIntent"> | Date | string | null
+    createdAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+    partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+  }, "id" | "objectKey">
+
+  export type PartnerUploadIntentOrderByWithAggregationInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    kind?: SortOrder
+    docType?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    photoCategory?: SortOrderInput | SortOrder
+    objectKey?: SortOrder
+    contentType?: SortOrder
+    maxBytes?: SortOrder
+    createdBy?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PartnerUploadIntentCountOrderByAggregateInput
+    _avg?: PartnerUploadIntentAvgOrderByAggregateInput
+    _max?: PartnerUploadIntentMaxOrderByAggregateInput
+    _min?: PartnerUploadIntentMinOrderByAggregateInput
+    _sum?: PartnerUploadIntentSumOrderByAggregateInput
+  }
+
+  export type PartnerUploadIntentScalarWhereWithAggregatesInput = {
+    AND?: PartnerUploadIntentScalarWhereWithAggregatesInput | PartnerUploadIntentScalarWhereWithAggregatesInput[]
+    OR?: PartnerUploadIntentScalarWhereWithAggregatesInput[]
+    NOT?: PartnerUploadIntentScalarWhereWithAggregatesInput | PartnerUploadIntentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PartnerUploadIntent"> | string
+    partnerId?: StringWithAggregatesFilter<"PartnerUploadIntent"> | string
+    kind?: EnumPartnerUploadKindWithAggregatesFilter<"PartnerUploadIntent"> | $Enums.PartnerUploadKind
+    docType?: EnumPartnerDocumentTypeNullableWithAggregatesFilter<"PartnerUploadIntent"> | $Enums.PartnerDocumentType | null
+    gymId?: StringNullableWithAggregatesFilter<"PartnerUploadIntent"> | string | null
+    photoCategory?: EnumGymPhotoCategoryNullableWithAggregatesFilter<"PartnerUploadIntent"> | $Enums.GymPhotoCategory | null
+    objectKey?: StringWithAggregatesFilter<"PartnerUploadIntent"> | string
+    contentType?: StringWithAggregatesFilter<"PartnerUploadIntent"> | string
+    maxBytes?: IntWithAggregatesFilter<"PartnerUploadIntent"> | number
+    createdBy?: StringWithAggregatesFilter<"PartnerUploadIntent"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"PartnerUploadIntent"> | Date | string
+    confirmedAt?: DateTimeNullableWithAggregatesFilter<"PartnerUploadIntent"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PartnerUploadIntent"> | Date | string
   }
 
   export type GymPartnerContactLogWhereInput = {
@@ -29010,6 +32133,7 @@ export namespace Prisma {
     approvedName?: StringNullableFilter<"GymBrand"> | string | null
     pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
+    logoKey?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
@@ -29023,6 +32147,7 @@ export namespace Prisma {
     approvedName?: SortOrderInput | SortOrder
     pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
+    logoKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     branches?: GymOrderByRelationAggregateInput
@@ -29031,19 +32156,20 @@ export namespace Prisma {
 
   export type GymBrandWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    ownerId?: string
     AND?: GymBrandWhereInput | GymBrandWhereInput[]
     OR?: GymBrandWhereInput[]
     NOT?: GymBrandWhereInput | GymBrandWhereInput[]
-    ownerId?: StringFilter<"GymBrand"> | string
     name?: StringFilter<"GymBrand"> | string
     approvedName?: StringNullableFilter<"GymBrand"> | string | null
     pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
+    logoKey?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
     plans?: GymMembershipPlanListRelationFilter
-  }, "id">
+  }, "id" | "ownerId">
 
   export type GymBrandOrderByWithAggregationInput = {
     id?: SortOrder
@@ -29052,6 +32178,7 @@ export namespace Prisma {
     approvedName?: SortOrderInput | SortOrder
     pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
+    logoKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymBrandCountOrderByAggregateInput
@@ -29069,6 +32196,7 @@ export namespace Prisma {
     approvedName?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     pendingName?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     description?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    logoKey?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
   }
@@ -29938,6 +33066,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
     gym: GymCreateNestedOneWithoutPhotosInput
   }
@@ -29948,6 +33079,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
   }
 
@@ -29956,6 +33090,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutPhotosNestedInput
   }
@@ -29966,6 +33103,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29975,6 +33115,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
   }
 
@@ -29983,6 +33126,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29992,6 +33138,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -30582,6 +33731,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -30596,6 +33750,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateInput = {
@@ -30624,6 +33780,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -30638,6 +33799,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUpdateInput = {
@@ -30666,6 +33829,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30680,6 +33848,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateInput = {
@@ -30708,6 +33878,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30722,6 +33897,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerCreateManyInput = {
@@ -30750,6 +33927,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -30786,6 +33968,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30822,6 +34009,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31066,6 +34258,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -31081,6 +34279,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -31094,6 +34298,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31109,6 +34319,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31123,6 +34339,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -31136,6 +34358,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -31150,12 +34378,233 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerReviewIssueCreateInput = {
+    id?: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    partner: GymPartnerCreateNestedOneWithoutReviewIssuesInput
+  }
+
+  export type GymPartnerReviewIssueUncheckedCreateInput = {
+    id?: string
+    partnerId: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    partner?: GymPartnerUpdateOneRequiredWithoutReviewIssuesNestedInput
+  }
+
+  export type GymPartnerReviewIssueUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPartnerReviewIssueCreateManyInput = {
+    id?: string
+    partnerId: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PartnerUploadIntentCreateInput = {
+    id?: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    createdAt?: Date | string
+    partner: GymPartnerCreateNestedOneWithoutUploadIntentsInput
+  }
+
+  export type PartnerUploadIntentUncheckedCreateInput = {
+    id?: string
+    partnerId: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerUploadIntentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    partner?: GymPartnerUpdateOneRequiredWithoutUploadIntentsNestedInput
+  }
+
+  export type PartnerUploadIntentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerUploadIntentCreateManyInput = {
+    id?: string
+    partnerId: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerUploadIntentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerUploadIntentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymPartnerContactLogCreateInput = {
@@ -31234,6 +34683,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
@@ -31247,6 +34697,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
@@ -31260,6 +34711,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
@@ -31273,6 +34725,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
@@ -31286,6 +34739,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -31297,6 +34751,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -31308,6 +34763,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -32341,6 +35797,35 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type EnumGymPhotoCategoryNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoCategory | EnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel> | $Enums.GymPhotoCategory | null
+  }
+
+  export type EnumGymPhotoVisibilityFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoVisibility | EnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel> | $Enums.GymPhotoVisibility
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -32357,12 +35842,20 @@ export namespace Prisma {
     isNot?: GymWhereInput
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type GymPhotoCountOrderByAggregateInput = {
     id?: SortOrder
     gymId?: SortOrder
     fileName?: SortOrder
     sortOrder?: SortOrder
     isCover?: SortOrder
+    s3Key?: SortOrder
+    category?: SortOrder
+    visibility?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -32376,6 +35869,9 @@ export namespace Prisma {
     fileName?: SortOrder
     sortOrder?: SortOrder
     isCover?: SortOrder
+    s3Key?: SortOrder
+    category?: SortOrder
+    visibility?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -32385,6 +35881,9 @@ export namespace Prisma {
     fileName?: SortOrder
     sortOrder?: SortOrder
     isCover?: SortOrder
+    s3Key?: SortOrder
+    category?: SortOrder
+    visibility?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -32434,6 +35933,44 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymPhotoCategoryNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoCategory | EnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymPhotoCategoryNullableWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoCategory | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymPhotoVisibilityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoVisibility | EnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoVisibilityWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoVisibility
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel>
+  }
+
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -32455,21 +35992,6 @@ export namespace Prisma {
     not?: NestedEnumBranchDocumentTypeFilter<$PrismaModel> | $Enums.BranchDocumentType
   }
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type EnumPartnerDocumentStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.PartnerDocumentStatus | EnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
     in?: $Enums.PartnerDocumentStatus[] | ListEnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
@@ -32486,11 +36008,6 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type GymBranchDocumentGymIdDocTypeCompoundUniqueInput = {
@@ -32545,24 +36062,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumBranchDocumentTypeFilter<$PrismaModel>
     _max?: NestedEnumBranchDocumentTypeFilter<$PrismaModel>
-  }
-
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type EnumPartnerDocumentStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -33084,6 +36583,27 @@ export namespace Prisma {
     not?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel> | $Enums.TerminationMemberPolicy | null
   }
 
+  export type EnumGymPartnerSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPartnerSource | EnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPartnerSourceFilter<$PrismaModel> | $Enums.GymPartnerSource
+  }
+
+  export type EnumPartnerRepresentativeRoleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerRepresentativeRole | EnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel> | $Enums.PartnerRepresentativeRole | null
+  }
+
+  export type EnumPartnerBusinessScaleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerBusinessScale | EnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel> | $Enums.PartnerBusinessScale | null
+  }
+
   export type GymPartnerAccountListRelationFilter = {
     every?: GymPartnerAccountWhereInput
     some?: GymPartnerAccountWhereInput
@@ -33120,6 +36640,18 @@ export namespace Prisma {
     none?: PartnerInternalNoteWhereInput
   }
 
+  export type GymPartnerReviewIssueListRelationFilter = {
+    every?: GymPartnerReviewIssueWhereInput
+    some?: GymPartnerReviewIssueWhereInput
+    none?: GymPartnerReviewIssueWhereInput
+  }
+
+  export type PartnerUploadIntentListRelationFilter = {
+    every?: PartnerUploadIntentWhereInput
+    some?: PartnerUploadIntentWhereInput
+    none?: PartnerUploadIntentWhereInput
+  }
+
   export type GymPartnerAccountOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -33141,6 +36673,14 @@ export namespace Prisma {
   }
 
   export type PartnerInternalNoteOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymPartnerReviewIssueOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PartnerUploadIntentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -33170,6 +36710,11 @@ export namespace Prisma {
     rejectionReason?: SortOrder
     expectedBranchCount?: SortOrder
     negotiationNotes?: SortOrder
+    source?: SortOrder
+    submittedAt?: SortOrder
+    representativeName?: SortOrder
+    representativeRole?: SortOrder
+    businessScale?: SortOrder
     payoutBankName?: SortOrder
     payoutBankAccountNumber?: SortOrder
     payoutBankAccountHolder?: SortOrder
@@ -33211,6 +36756,11 @@ export namespace Prisma {
     rejectionReason?: SortOrder
     expectedBranchCount?: SortOrder
     negotiationNotes?: SortOrder
+    source?: SortOrder
+    submittedAt?: SortOrder
+    representativeName?: SortOrder
+    representativeRole?: SortOrder
+    businessScale?: SortOrder
     payoutBankName?: SortOrder
     payoutBankAccountNumber?: SortOrder
     payoutBankAccountHolder?: SortOrder
@@ -33247,6 +36797,11 @@ export namespace Prisma {
     rejectionReason?: SortOrder
     expectedBranchCount?: SortOrder
     negotiationNotes?: SortOrder
+    source?: SortOrder
+    submittedAt?: SortOrder
+    representativeName?: SortOrder
+    representativeRole?: SortOrder
+    businessScale?: SortOrder
     payoutBankName?: SortOrder
     payoutBankAccountNumber?: SortOrder
     payoutBankAccountHolder?: SortOrder
@@ -33316,6 +36871,36 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel>
     _max?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymPartnerSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPartnerSource | EnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPartnerSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymPartnerSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPartnerSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymPartnerSourceFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerRepresentativeRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerRepresentativeRole | EnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerRepresentativeRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerRepresentativeRole | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerBusinessScaleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerBusinessScale | EnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerBusinessScaleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerBusinessScale | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel>
   }
 
   export type EnumPartnerAccountRoleFilter<$PrismaModel = never> = {
@@ -33490,6 +37075,12 @@ export namespace Prisma {
     docType?: SortOrder
     required?: SortOrder
     fileUrl?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    version?: SortOrder
+    reviewNote?: SortOrder
     status?: SortOrder
     verifiedBy?: SortOrder
     verifiedAt?: SortOrder
@@ -33498,12 +37089,23 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type GymPartnerDocumentAvgOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+    version?: SortOrder
+  }
+
   export type GymPartnerDocumentMaxOrderByAggregateInput = {
     id?: SortOrder
     partnerId?: SortOrder
     docType?: SortOrder
     required?: SortOrder
     fileUrl?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    version?: SortOrder
+    reviewNote?: SortOrder
     status?: SortOrder
     verifiedBy?: SortOrder
     verifiedAt?: SortOrder
@@ -33518,12 +37120,23 @@ export namespace Prisma {
     docType?: SortOrder
     required?: SortOrder
     fileUrl?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    version?: SortOrder
+    reviewNote?: SortOrder
     status?: SortOrder
     verifiedBy?: SortOrder
     verifiedAt?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type GymPartnerDocumentSumOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+    version?: SortOrder
   }
 
   export type EnumPartnerDocumentTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -33534,6 +37147,175 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
     _max?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerReviewCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewCategory | EnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel> | $Enums.PartnerReviewCategory
+  }
+
+  export type EnumPartnerReviewIssueStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewIssueStatus | EnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel> | $Enums.PartnerReviewIssueStatus
+  }
+
+  export type GymPartnerReviewIssueCountOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    category?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    resubmitNote?: SortOrder
+    resubmittedAt?: SortOrder
+    adminFollowUp?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type GymPartnerReviewIssueMaxOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    category?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    resubmitNote?: SortOrder
+    resubmittedAt?: SortOrder
+    adminFollowUp?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type GymPartnerReviewIssueMinOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    category?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    resubmitNote?: SortOrder
+    resubmittedAt?: SortOrder
+    adminFollowUp?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type EnumPartnerReviewCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewCategory | EnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewCategoryWithAggregatesFilter<$PrismaModel> | $Enums.PartnerReviewCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel>
+    _max?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerReviewIssueStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewIssueStatus | EnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewIssueStatusWithAggregatesFilter<$PrismaModel> | $Enums.PartnerReviewIssueStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel>
+    _max?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerUploadKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerUploadKind | EnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerUploadKindFilter<$PrismaModel> | $Enums.PartnerUploadKind
+  }
+
+  export type EnumPartnerDocumentTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerDocumentType | EnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel> | $Enums.PartnerDocumentType | null
+  }
+
+  export type PartnerUploadIntentCountOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    kind?: SortOrder
+    docType?: SortOrder
+    gymId?: SortOrder
+    photoCategory?: SortOrder
+    objectKey?: SortOrder
+    contentType?: SortOrder
+    maxBytes?: SortOrder
+    createdBy?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerUploadIntentAvgOrderByAggregateInput = {
+    maxBytes?: SortOrder
+  }
+
+  export type PartnerUploadIntentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    kind?: SortOrder
+    docType?: SortOrder
+    gymId?: SortOrder
+    photoCategory?: SortOrder
+    objectKey?: SortOrder
+    contentType?: SortOrder
+    maxBytes?: SortOrder
+    createdBy?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerUploadIntentMinOrderByAggregateInput = {
+    id?: SortOrder
+    partnerId?: SortOrder
+    kind?: SortOrder
+    docType?: SortOrder
+    gymId?: SortOrder
+    photoCategory?: SortOrder
+    objectKey?: SortOrder
+    contentType?: SortOrder
+    maxBytes?: SortOrder
+    createdBy?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerUploadIntentSumOrderByAggregateInput = {
+    maxBytes?: SortOrder
+  }
+
+  export type EnumPartnerUploadKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerUploadKind | EnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerUploadKindWithAggregatesFilter<$PrismaModel> | $Enums.PartnerUploadKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerUploadKindFilter<$PrismaModel>
+    _max?: NestedEnumPartnerUploadKindFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerDocumentTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerDocumentType | EnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerDocumentTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerDocumentType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel>
   }
 
   export type EnumPartnerContactChannelFilter<$PrismaModel = never> = {
@@ -33610,6 +37392,7 @@ export namespace Prisma {
     approvedName?: SortOrder
     pendingName?: SortOrder
     description?: SortOrder
+    logoKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -33621,6 +37404,7 @@ export namespace Prisma {
     approvedName?: SortOrder
     pendingName?: SortOrder
     description?: SortOrder
+    logoKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -33632,6 +37416,7 @@ export namespace Prisma {
     approvedName?: SortOrder
     pendingName?: SortOrder
     description?: SortOrder
+    logoKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -34474,6 +38259,18 @@ export namespace Prisma {
     set?: boolean
   }
 
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type NullableEnumGymPhotoCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.GymPhotoCategory | null
+  }
+
+  export type EnumGymPhotoVisibilityFieldUpdateOperationsInput = {
+    set?: $Enums.GymPhotoVisibility
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -34494,10 +38291,6 @@ export namespace Prisma {
 
   export type EnumBranchDocumentTypeFieldUpdateOperationsInput = {
     set?: $Enums.BranchDocumentType
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type EnumPartnerDocumentStatusFieldUpdateOperationsInput = {
@@ -34681,6 +38474,20 @@ export namespace Prisma {
     connect?: PartnerInternalNoteWhereUniqueInput | PartnerInternalNoteWhereUniqueInput[]
   }
 
+  export type GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput = {
+    create?: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput> | GymPartnerReviewIssueCreateWithoutPartnerInput[] | GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput | GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput[]
+    createMany?: GymPartnerReviewIssueCreateManyPartnerInputEnvelope
+    connect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+  }
+
+  export type PartnerUploadIntentCreateNestedManyWithoutPartnerInput = {
+    create?: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput> | PartnerUploadIntentCreateWithoutPartnerInput[] | PartnerUploadIntentUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: PartnerUploadIntentCreateOrConnectWithoutPartnerInput | PartnerUploadIntentCreateOrConnectWithoutPartnerInput[]
+    createMany?: PartnerUploadIntentCreateManyPartnerInputEnvelope
+    connect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+  }
+
   export type GymPartnerAccountUncheckedCreateNestedManyWithoutPartnerInput = {
     create?: XOR<GymPartnerAccountCreateWithoutPartnerInput, GymPartnerAccountUncheckedCreateWithoutPartnerInput> | GymPartnerAccountCreateWithoutPartnerInput[] | GymPartnerAccountUncheckedCreateWithoutPartnerInput[]
     connectOrCreate?: GymPartnerAccountCreateOrConnectWithoutPartnerInput | GymPartnerAccountCreateOrConnectWithoutPartnerInput[]
@@ -34723,6 +38530,20 @@ export namespace Prisma {
     connect?: PartnerInternalNoteWhereUniqueInput | PartnerInternalNoteWhereUniqueInput[]
   }
 
+  export type GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput = {
+    create?: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput> | GymPartnerReviewIssueCreateWithoutPartnerInput[] | GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput | GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput[]
+    createMany?: GymPartnerReviewIssueCreateManyPartnerInputEnvelope
+    connect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+  }
+
+  export type PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput = {
+    create?: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput> | PartnerUploadIntentCreateWithoutPartnerInput[] | PartnerUploadIntentUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: PartnerUploadIntentCreateOrConnectWithoutPartnerInput | PartnerUploadIntentCreateOrConnectWithoutPartnerInput[]
+    createMany?: PartnerUploadIntentCreateManyPartnerInputEnvelope
+    connect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+  }
+
   export type EnumGymPartnerKindFieldUpdateOperationsInput = {
     set?: $Enums.GymPartnerKind
   }
@@ -34745,6 +38566,18 @@ export namespace Prisma {
 
   export type NullableEnumTerminationMemberPolicyFieldUpdateOperationsInput = {
     set?: $Enums.TerminationMemberPolicy | null
+  }
+
+  export type EnumGymPartnerSourceFieldUpdateOperationsInput = {
+    set?: $Enums.GymPartnerSource
+  }
+
+  export type NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerRepresentativeRole | null
+  }
+
+  export type NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerBusinessScale | null
   }
 
   export type GymPartnerAccountUpdateManyWithoutPartnerNestedInput = {
@@ -34831,6 +38664,34 @@ export namespace Prisma {
     deleteMany?: PartnerInternalNoteScalarWhereInput | PartnerInternalNoteScalarWhereInput[]
   }
 
+  export type GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput = {
+    create?: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput> | GymPartnerReviewIssueCreateWithoutPartnerInput[] | GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput | GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput[]
+    upsert?: GymPartnerReviewIssueUpsertWithWhereUniqueWithoutPartnerInput | GymPartnerReviewIssueUpsertWithWhereUniqueWithoutPartnerInput[]
+    createMany?: GymPartnerReviewIssueCreateManyPartnerInputEnvelope
+    set?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    disconnect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    delete?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    connect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    update?: GymPartnerReviewIssueUpdateWithWhereUniqueWithoutPartnerInput | GymPartnerReviewIssueUpdateWithWhereUniqueWithoutPartnerInput[]
+    updateMany?: GymPartnerReviewIssueUpdateManyWithWhereWithoutPartnerInput | GymPartnerReviewIssueUpdateManyWithWhereWithoutPartnerInput[]
+    deleteMany?: GymPartnerReviewIssueScalarWhereInput | GymPartnerReviewIssueScalarWhereInput[]
+  }
+
+  export type PartnerUploadIntentUpdateManyWithoutPartnerNestedInput = {
+    create?: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput> | PartnerUploadIntentCreateWithoutPartnerInput[] | PartnerUploadIntentUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: PartnerUploadIntentCreateOrConnectWithoutPartnerInput | PartnerUploadIntentCreateOrConnectWithoutPartnerInput[]
+    upsert?: PartnerUploadIntentUpsertWithWhereUniqueWithoutPartnerInput | PartnerUploadIntentUpsertWithWhereUniqueWithoutPartnerInput[]
+    createMany?: PartnerUploadIntentCreateManyPartnerInputEnvelope
+    set?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    disconnect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    delete?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    connect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    update?: PartnerUploadIntentUpdateWithWhereUniqueWithoutPartnerInput | PartnerUploadIntentUpdateWithWhereUniqueWithoutPartnerInput[]
+    updateMany?: PartnerUploadIntentUpdateManyWithWhereWithoutPartnerInput | PartnerUploadIntentUpdateManyWithWhereWithoutPartnerInput[]
+    deleteMany?: PartnerUploadIntentScalarWhereInput | PartnerUploadIntentScalarWhereInput[]
+  }
+
   export type GymPartnerAccountUncheckedUpdateManyWithoutPartnerNestedInput = {
     create?: XOR<GymPartnerAccountCreateWithoutPartnerInput, GymPartnerAccountUncheckedCreateWithoutPartnerInput> | GymPartnerAccountCreateWithoutPartnerInput[] | GymPartnerAccountUncheckedCreateWithoutPartnerInput[]
     connectOrCreate?: GymPartnerAccountCreateOrConnectWithoutPartnerInput | GymPartnerAccountCreateOrConnectWithoutPartnerInput[]
@@ -34915,6 +38776,34 @@ export namespace Prisma {
     deleteMany?: PartnerInternalNoteScalarWhereInput | PartnerInternalNoteScalarWhereInput[]
   }
 
+  export type GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput = {
+    create?: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput> | GymPartnerReviewIssueCreateWithoutPartnerInput[] | GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput | GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput[]
+    upsert?: GymPartnerReviewIssueUpsertWithWhereUniqueWithoutPartnerInput | GymPartnerReviewIssueUpsertWithWhereUniqueWithoutPartnerInput[]
+    createMany?: GymPartnerReviewIssueCreateManyPartnerInputEnvelope
+    set?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    disconnect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    delete?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    connect?: GymPartnerReviewIssueWhereUniqueInput | GymPartnerReviewIssueWhereUniqueInput[]
+    update?: GymPartnerReviewIssueUpdateWithWhereUniqueWithoutPartnerInput | GymPartnerReviewIssueUpdateWithWhereUniqueWithoutPartnerInput[]
+    updateMany?: GymPartnerReviewIssueUpdateManyWithWhereWithoutPartnerInput | GymPartnerReviewIssueUpdateManyWithWhereWithoutPartnerInput[]
+    deleteMany?: GymPartnerReviewIssueScalarWhereInput | GymPartnerReviewIssueScalarWhereInput[]
+  }
+
+  export type PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput = {
+    create?: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput> | PartnerUploadIntentCreateWithoutPartnerInput[] | PartnerUploadIntentUncheckedCreateWithoutPartnerInput[]
+    connectOrCreate?: PartnerUploadIntentCreateOrConnectWithoutPartnerInput | PartnerUploadIntentCreateOrConnectWithoutPartnerInput[]
+    upsert?: PartnerUploadIntentUpsertWithWhereUniqueWithoutPartnerInput | PartnerUploadIntentUpsertWithWhereUniqueWithoutPartnerInput[]
+    createMany?: PartnerUploadIntentCreateManyPartnerInputEnvelope
+    set?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    disconnect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    delete?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    connect?: PartnerUploadIntentWhereUniqueInput | PartnerUploadIntentWhereUniqueInput[]
+    update?: PartnerUploadIntentUpdateWithWhereUniqueWithoutPartnerInput | PartnerUploadIntentUpdateWithWhereUniqueWithoutPartnerInput[]
+    updateMany?: PartnerUploadIntentUpdateManyWithWhereWithoutPartnerInput | PartnerUploadIntentUpdateManyWithWhereWithoutPartnerInput[]
+    deleteMany?: PartnerUploadIntentScalarWhereInput | PartnerUploadIntentScalarWhereInput[]
+  }
+
   export type GymPartnerAccountCreatescopedGymIdsInput = {
     set: string[]
   }
@@ -34989,6 +38878,50 @@ export namespace Prisma {
     upsert?: GymPartnerUpsertWithoutDocumentsInput
     connect?: GymPartnerWhereUniqueInput
     update?: XOR<XOR<GymPartnerUpdateToOneWithWhereWithoutDocumentsInput, GymPartnerUpdateWithoutDocumentsInput>, GymPartnerUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type GymPartnerCreateNestedOneWithoutReviewIssuesInput = {
+    create?: XOR<GymPartnerCreateWithoutReviewIssuesInput, GymPartnerUncheckedCreateWithoutReviewIssuesInput>
+    connectOrCreate?: GymPartnerCreateOrConnectWithoutReviewIssuesInput
+    connect?: GymPartnerWhereUniqueInput
+  }
+
+  export type EnumPartnerReviewCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerReviewCategory
+  }
+
+  export type EnumPartnerReviewIssueStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerReviewIssueStatus
+  }
+
+  export type GymPartnerUpdateOneRequiredWithoutReviewIssuesNestedInput = {
+    create?: XOR<GymPartnerCreateWithoutReviewIssuesInput, GymPartnerUncheckedCreateWithoutReviewIssuesInput>
+    connectOrCreate?: GymPartnerCreateOrConnectWithoutReviewIssuesInput
+    upsert?: GymPartnerUpsertWithoutReviewIssuesInput
+    connect?: GymPartnerWhereUniqueInput
+    update?: XOR<XOR<GymPartnerUpdateToOneWithWhereWithoutReviewIssuesInput, GymPartnerUpdateWithoutReviewIssuesInput>, GymPartnerUncheckedUpdateWithoutReviewIssuesInput>
+  }
+
+  export type GymPartnerCreateNestedOneWithoutUploadIntentsInput = {
+    create?: XOR<GymPartnerCreateWithoutUploadIntentsInput, GymPartnerUncheckedCreateWithoutUploadIntentsInput>
+    connectOrCreate?: GymPartnerCreateOrConnectWithoutUploadIntentsInput
+    connect?: GymPartnerWhereUniqueInput
+  }
+
+  export type EnumPartnerUploadKindFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerUploadKind
+  }
+
+  export type NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerDocumentType | null
+  }
+
+  export type GymPartnerUpdateOneRequiredWithoutUploadIntentsNestedInput = {
+    create?: XOR<GymPartnerCreateWithoutUploadIntentsInput, GymPartnerUncheckedCreateWithoutUploadIntentsInput>
+    connectOrCreate?: GymPartnerCreateOrConnectWithoutUploadIntentsInput
+    upsert?: GymPartnerUpsertWithoutUploadIntentsInput
+    connect?: GymPartnerWhereUniqueInput
+    update?: XOR<XOR<GymPartnerUpdateToOneWithWhereWithoutUploadIntentsInput, GymPartnerUpdateWithoutUploadIntentsInput>, GymPartnerUncheckedUpdateWithoutUploadIntentsInput>
   }
 
   export type GymPartnerCreateNestedOneWithoutContactLogsInput = {
@@ -35798,6 +39731,34 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoCategory | EnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel> | $Enums.GymPhotoCategory | null
+  }
+
+  export type NestedEnumGymPhotoVisibilityFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoVisibility | EnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel> | $Enums.GymPhotoVisibility
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -35861,6 +39822,54 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumGymPhotoCategoryNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoCategory | EnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymPhotoCategory[] | ListEnumGymPhotoCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymPhotoCategoryNullableWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoCategory | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoCategoryNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymPhotoVisibilityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoVisibility | EnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoVisibility[] | ListEnumGymPhotoVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoVisibilityWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoVisibility
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoVisibilityFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -35880,20 +39889,6 @@ export namespace Prisma {
     in?: $Enums.BranchDocumentType[] | ListEnumBranchDocumentTypeFieldRefInput<$PrismaModel>
     notIn?: $Enums.BranchDocumentType[] | ListEnumBranchDocumentTypeFieldRefInput<$PrismaModel>
     not?: NestedEnumBranchDocumentTypeFilter<$PrismaModel> | $Enums.BranchDocumentType
-  }
-
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type NestedEnumPartnerDocumentStatusFilter<$PrismaModel = never> = {
@@ -35922,34 +39917,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumBranchDocumentTypeFilter<$PrismaModel>
     _max?: NestedEnumBranchDocumentTypeFilter<$PrismaModel>
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedEnumPartnerDocumentStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -36210,6 +40177,27 @@ export namespace Prisma {
     not?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel> | $Enums.TerminationMemberPolicy | null
   }
 
+  export type NestedEnumGymPartnerSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPartnerSource | EnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPartnerSourceFilter<$PrismaModel> | $Enums.GymPartnerSource
+  }
+
+  export type NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerRepresentativeRole | EnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel> | $Enums.PartnerRepresentativeRole | null
+  }
+
+  export type NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerBusinessScale | EnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel> | $Enums.PartnerBusinessScale | null
+  }
+
   export type NestedEnumGymPartnerKindWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.GymPartnerKind | EnumGymPartnerKindFieldRefInput<$PrismaModel>
     in?: $Enums.GymPartnerKind[] | ListEnumGymPartnerKindFieldRefInput<$PrismaModel>
@@ -36264,6 +40252,36 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel>
     _max?: NestedEnumTerminationMemberPolicyNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymPartnerSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPartnerSource | EnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPartnerSource[] | ListEnumGymPartnerSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPartnerSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymPartnerSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPartnerSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymPartnerSourceFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerRepresentativeRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerRepresentativeRole | EnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerRepresentativeRole[] | ListEnumPartnerRepresentativeRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerRepresentativeRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerRepresentativeRole | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerRepresentativeRoleNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerBusinessScaleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerBusinessScale | EnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerBusinessScale[] | ListEnumPartnerBusinessScaleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerBusinessScaleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerBusinessScale | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerBusinessScaleNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumPartnerAccountRoleFilter<$PrismaModel = never> = {
@@ -36332,6 +40350,74 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
     _max?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerReviewCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewCategory | EnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel> | $Enums.PartnerReviewCategory
+  }
+
+  export type NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewIssueStatus | EnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel> | $Enums.PartnerReviewIssueStatus
+  }
+
+  export type NestedEnumPartnerReviewCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewCategory | EnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewCategory[] | ListEnumPartnerReviewCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewCategoryWithAggregatesFilter<$PrismaModel> | $Enums.PartnerReviewCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel>
+    _max?: NestedEnumPartnerReviewCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerReviewIssueStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerReviewIssueStatus | EnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerReviewIssueStatus[] | ListEnumPartnerReviewIssueStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerReviewIssueStatusWithAggregatesFilter<$PrismaModel> | $Enums.PartnerReviewIssueStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel>
+    _max?: NestedEnumPartnerReviewIssueStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerUploadKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerUploadKind | EnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerUploadKindFilter<$PrismaModel> | $Enums.PartnerUploadKind
+  }
+
+  export type NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerDocumentType | EnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel> | $Enums.PartnerDocumentType | null
+  }
+
+  export type NestedEnumPartnerUploadKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerUploadKind | EnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PartnerUploadKind[] | ListEnumPartnerUploadKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPartnerUploadKindWithAggregatesFilter<$PrismaModel> | $Enums.PartnerUploadKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPartnerUploadKindFilter<$PrismaModel>
+    _max?: NestedEnumPartnerUploadKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerDocumentTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerDocumentType | EnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerDocumentType[] | ListEnumPartnerDocumentTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerDocumentTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerDocumentType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerDocumentTypeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumPartnerContactChannelFilter<$PrismaModel = never> = {
@@ -37486,6 +41572,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -37499,6 +41590,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutAuditLogsInput = {
@@ -37527,6 +41620,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -37540,6 +41638,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutAuditLogsInput = {
@@ -37584,6 +41684,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37597,6 +41702,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutAuditLogsInput = {
@@ -37625,6 +41732,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37638,6 +41750,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerCreateWithoutInternalNotesInput = {
@@ -37666,6 +41780,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -37679,6 +41798,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogCreateNestedManyWithoutPartnerInput
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutInternalNotesInput = {
@@ -37707,6 +41828,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -37720,6 +41846,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedCreateNestedManyWithoutPartnerInput
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutInternalNotesInput = {
@@ -37764,6 +41892,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37777,6 +41910,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUpdateManyWithoutPartnerNestedInput
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutInternalNotesInput = {
@@ -37805,6 +41940,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37818,6 +41958,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedUpdateManyWithoutPartnerNestedInput
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerAccountCreateWithoutPartnerInput = {
@@ -37941,6 +42083,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -37954,6 +42102,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -38021,6 +42175,84 @@ export namespace Prisma {
 
   export type PartnerInternalNoteCreateManyPartnerInputEnvelope = {
     data: PartnerInternalNoteCreateManyPartnerInput | PartnerInternalNoteCreateManyPartnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymPartnerReviewIssueCreateWithoutPartnerInput = {
+    id?: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput = {
+    id?: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPartnerReviewIssueCreateOrConnectWithoutPartnerInput = {
+    where: GymPartnerReviewIssueWhereUniqueInput
+    create: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput>
+  }
+
+  export type GymPartnerReviewIssueCreateManyPartnerInputEnvelope = {
+    data: GymPartnerReviewIssueCreateManyPartnerInput | GymPartnerReviewIssueCreateManyPartnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PartnerUploadIntentCreateWithoutPartnerInput = {
+    id?: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerUploadIntentUncheckedCreateWithoutPartnerInput = {
+    id?: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerUploadIntentCreateOrConnectWithoutPartnerInput = {
+    where: PartnerUploadIntentWhereUniqueInput
+    create: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput>
+  }
+
+  export type PartnerUploadIntentCreateManyPartnerInputEnvelope = {
+    data: PartnerUploadIntentCreateManyPartnerInput | PartnerUploadIntentCreateManyPartnerInput[]
     skipDuplicates?: boolean
   }
 
@@ -38152,6 +42384,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentType
     required?: BoolFilter<"GymPartnerDocument"> | boolean
     fileUrl?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    fileKey?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    mimeType?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    sizeBytes?: IntNullableFilter<"GymPartnerDocument"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
+    version?: IntFilter<"GymPartnerDocument"> | number
+    reviewNote?: StringNullableFilter<"GymPartnerDocument"> | string | null
     status?: EnumPartnerDocumentStatusFilter<"GymPartnerDocument"> | $Enums.PartnerDocumentStatus
     verifiedBy?: StringNullableFilter<"GymPartnerDocument"> | string | null
     verifiedAt?: DateTimeNullableFilter<"GymPartnerDocument"> | Date | string | null
@@ -38216,6 +42454,75 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"PartnerInternalNote"> | Date | string
   }
 
+  export type GymPartnerReviewIssueUpsertWithWhereUniqueWithoutPartnerInput = {
+    where: GymPartnerReviewIssueWhereUniqueInput
+    update: XOR<GymPartnerReviewIssueUpdateWithoutPartnerInput, GymPartnerReviewIssueUncheckedUpdateWithoutPartnerInput>
+    create: XOR<GymPartnerReviewIssueCreateWithoutPartnerInput, GymPartnerReviewIssueUncheckedCreateWithoutPartnerInput>
+  }
+
+  export type GymPartnerReviewIssueUpdateWithWhereUniqueWithoutPartnerInput = {
+    where: GymPartnerReviewIssueWhereUniqueInput
+    data: XOR<GymPartnerReviewIssueUpdateWithoutPartnerInput, GymPartnerReviewIssueUncheckedUpdateWithoutPartnerInput>
+  }
+
+  export type GymPartnerReviewIssueUpdateManyWithWhereWithoutPartnerInput = {
+    where: GymPartnerReviewIssueScalarWhereInput
+    data: XOR<GymPartnerReviewIssueUpdateManyMutationInput, GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerInput>
+  }
+
+  export type GymPartnerReviewIssueScalarWhereInput = {
+    AND?: GymPartnerReviewIssueScalarWhereInput | GymPartnerReviewIssueScalarWhereInput[]
+    OR?: GymPartnerReviewIssueScalarWhereInput[]
+    NOT?: GymPartnerReviewIssueScalarWhereInput | GymPartnerReviewIssueScalarWhereInput[]
+    id?: StringFilter<"GymPartnerReviewIssue"> | string
+    partnerId?: StringFilter<"GymPartnerReviewIssue"> | string
+    category?: EnumPartnerReviewCategoryFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewCategory
+    message?: StringFilter<"GymPartnerReviewIssue"> | string
+    status?: EnumPartnerReviewIssueStatusFilter<"GymPartnerReviewIssue"> | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFilter<"GymPartnerReviewIssue"> | string
+    createdAt?: DateTimeFilter<"GymPartnerReviewIssue"> | Date | string
+    resubmitNote?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resubmittedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+    adminFollowUp?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedBy?: StringNullableFilter<"GymPartnerReviewIssue"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"GymPartnerReviewIssue"> | Date | string | null
+  }
+
+  export type PartnerUploadIntentUpsertWithWhereUniqueWithoutPartnerInput = {
+    where: PartnerUploadIntentWhereUniqueInput
+    update: XOR<PartnerUploadIntentUpdateWithoutPartnerInput, PartnerUploadIntentUncheckedUpdateWithoutPartnerInput>
+    create: XOR<PartnerUploadIntentCreateWithoutPartnerInput, PartnerUploadIntentUncheckedCreateWithoutPartnerInput>
+  }
+
+  export type PartnerUploadIntentUpdateWithWhereUniqueWithoutPartnerInput = {
+    where: PartnerUploadIntentWhereUniqueInput
+    data: XOR<PartnerUploadIntentUpdateWithoutPartnerInput, PartnerUploadIntentUncheckedUpdateWithoutPartnerInput>
+  }
+
+  export type PartnerUploadIntentUpdateManyWithWhereWithoutPartnerInput = {
+    where: PartnerUploadIntentScalarWhereInput
+    data: XOR<PartnerUploadIntentUpdateManyMutationInput, PartnerUploadIntentUncheckedUpdateManyWithoutPartnerInput>
+  }
+
+  export type PartnerUploadIntentScalarWhereInput = {
+    AND?: PartnerUploadIntentScalarWhereInput | PartnerUploadIntentScalarWhereInput[]
+    OR?: PartnerUploadIntentScalarWhereInput[]
+    NOT?: PartnerUploadIntentScalarWhereInput | PartnerUploadIntentScalarWhereInput[]
+    id?: StringFilter<"PartnerUploadIntent"> | string
+    partnerId?: StringFilter<"PartnerUploadIntent"> | string
+    kind?: EnumPartnerUploadKindFilter<"PartnerUploadIntent"> | $Enums.PartnerUploadKind
+    docType?: EnumPartnerDocumentTypeNullableFilter<"PartnerUploadIntent"> | $Enums.PartnerDocumentType | null
+    gymId?: StringNullableFilter<"PartnerUploadIntent"> | string | null
+    photoCategory?: EnumGymPhotoCategoryNullableFilter<"PartnerUploadIntent"> | $Enums.GymPhotoCategory | null
+    objectKey?: StringFilter<"PartnerUploadIntent"> | string
+    contentType?: StringFilter<"PartnerUploadIntent"> | string
+    maxBytes?: IntFilter<"PartnerUploadIntent"> | number
+    createdBy?: StringFilter<"PartnerUploadIntent"> | string
+    expiresAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"PartnerUploadIntent"> | Date | string | null
+    createdAt?: DateTimeFilter<"PartnerUploadIntent"> | Date | string
+  }
+
   export type GymPartnerCreateWithoutAccountsInput = {
     id?: string
     legalName: string
@@ -38242,6 +42549,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38255,6 +42567,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutAccountsInput = {
@@ -38283,6 +42597,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38296,6 +42615,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutAccountsInput = {
@@ -38340,6 +42661,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38353,6 +42679,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutAccountsInput = {
@@ -38381,6 +42709,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38394,6 +42727,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerCreateWithoutInvitationsInput = {
@@ -38422,6 +42757,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38435,6 +42775,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutInvitationsInput = {
@@ -38463,6 +42805,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38476,6 +42823,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutInvitationsInput = {
@@ -38520,6 +42869,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38533,6 +42887,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutInvitationsInput = {
@@ -38561,6 +42917,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38574,6 +42935,8 @@ export namespace Prisma {
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerCreateWithoutDocumentsInput = {
@@ -38602,6 +42965,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38615,6 +42983,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutDocumentsInput = {
@@ -38643,6 +43013,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38656,6 +43031,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedCreateNestedManyWithoutPartnerInput
     contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutDocumentsInput = {
@@ -38700,6 +43077,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38713,6 +43095,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutDocumentsInput = {
@@ -38741,6 +43125,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38754,6 +43143,424 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedUpdateManyWithoutPartnerNestedInput
     contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
+  }
+
+  export type GymPartnerCreateWithoutReviewIssuesInput = {
+    id?: string
+    legalName: string
+    partnerKind?: $Enums.GymPartnerKind
+    taxCode?: string | null
+    businessLicenseNo?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    status?: $Enums.GymPartnerStatus
+    verificationStatus?: $Enums.PartnerVerificationStatus
+    verificationNotes?: string | null
+    verifiedAt?: Date | string | null
+    verifiedBy?: string | null
+    assignedAdminId?: string | null
+    brandId?: string | null
+    commissionRateOverride?: Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: Date | string | null
+    suspendedReason?: string | null
+    suspendedBy?: string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    terminationMemberPolicy?: $Enums.TerminationMemberPolicy | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    expectedBranchCount?: number | null
+    negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
+    payoutBankName?: string | null
+    payoutBankAccountNumber?: string | null
+    payoutBankAccountHolder?: string | null
+    termsAcceptedVersion?: string | null
+    termsAcceptedAt?: Date | string | null
+    createdBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: GymPartnerAccountCreateNestedManyWithoutPartnerInput
+    invitations?: PartnerInvitationCreateNestedManyWithoutPartnerInput
+    auditLogs?: PartnerAuditLogCreateNestedManyWithoutPartnerInput
+    documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
+    contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
+    internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
+  }
+
+  export type GymPartnerUncheckedCreateWithoutReviewIssuesInput = {
+    id?: string
+    legalName: string
+    partnerKind?: $Enums.GymPartnerKind
+    taxCode?: string | null
+    businessLicenseNo?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    status?: $Enums.GymPartnerStatus
+    verificationStatus?: $Enums.PartnerVerificationStatus
+    verificationNotes?: string | null
+    verifiedAt?: Date | string | null
+    verifiedBy?: string | null
+    assignedAdminId?: string | null
+    brandId?: string | null
+    commissionRateOverride?: Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: Date | string | null
+    suspendedReason?: string | null
+    suspendedBy?: string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    terminationMemberPolicy?: $Enums.TerminationMemberPolicy | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    expectedBranchCount?: number | null
+    negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
+    payoutBankName?: string | null
+    payoutBankAccountNumber?: string | null
+    payoutBankAccountHolder?: string | null
+    termsAcceptedVersion?: string | null
+    termsAcceptedAt?: Date | string | null
+    createdBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: GymPartnerAccountUncheckedCreateNestedManyWithoutPartnerInput
+    invitations?: PartnerInvitationUncheckedCreateNestedManyWithoutPartnerInput
+    auditLogs?: PartnerAuditLogUncheckedCreateNestedManyWithoutPartnerInput
+    documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
+    contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
+    internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
+  }
+
+  export type GymPartnerCreateOrConnectWithoutReviewIssuesInput = {
+    where: GymPartnerWhereUniqueInput
+    create: XOR<GymPartnerCreateWithoutReviewIssuesInput, GymPartnerUncheckedCreateWithoutReviewIssuesInput>
+  }
+
+  export type GymPartnerUpsertWithoutReviewIssuesInput = {
+    update: XOR<GymPartnerUpdateWithoutReviewIssuesInput, GymPartnerUncheckedUpdateWithoutReviewIssuesInput>
+    create: XOR<GymPartnerCreateWithoutReviewIssuesInput, GymPartnerUncheckedCreateWithoutReviewIssuesInput>
+    where?: GymPartnerWhereInput
+  }
+
+  export type GymPartnerUpdateToOneWithWhereWithoutReviewIssuesInput = {
+    where?: GymPartnerWhereInput
+    data: XOR<GymPartnerUpdateWithoutReviewIssuesInput, GymPartnerUncheckedUpdateWithoutReviewIssuesInput>
+  }
+
+  export type GymPartnerUpdateWithoutReviewIssuesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    legalName?: StringFieldUpdateOperationsInput | string
+    partnerKind?: EnumGymPartnerKindFieldUpdateOperationsInput | $Enums.GymPartnerKind
+    taxCode?: NullableStringFieldUpdateOperationsInput | string | null
+    businessLicenseNo?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymPartnerStatusFieldUpdateOperationsInput | $Enums.GymPartnerStatus
+    verificationStatus?: EnumPartnerVerificationStatusFieldUpdateOperationsInput | $Enums.PartnerVerificationStatus
+    verificationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    commissionRateOverride?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    suspendedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    suspendedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terminationMemberPolicy?: NullableEnumTerminationMemberPolicyFieldUpdateOperationsInput | $Enums.TerminationMemberPolicy | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
+    negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
+    payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: GymPartnerAccountUpdateManyWithoutPartnerNestedInput
+    invitations?: PartnerInvitationUpdateManyWithoutPartnerNestedInput
+    auditLogs?: PartnerAuditLogUpdateManyWithoutPartnerNestedInput
+    documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
+    contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
+    internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
+  }
+
+  export type GymPartnerUncheckedUpdateWithoutReviewIssuesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    legalName?: StringFieldUpdateOperationsInput | string
+    partnerKind?: EnumGymPartnerKindFieldUpdateOperationsInput | $Enums.GymPartnerKind
+    taxCode?: NullableStringFieldUpdateOperationsInput | string | null
+    businessLicenseNo?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymPartnerStatusFieldUpdateOperationsInput | $Enums.GymPartnerStatus
+    verificationStatus?: EnumPartnerVerificationStatusFieldUpdateOperationsInput | $Enums.PartnerVerificationStatus
+    verificationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    commissionRateOverride?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    suspendedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    suspendedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terminationMemberPolicy?: NullableEnumTerminationMemberPolicyFieldUpdateOperationsInput | $Enums.TerminationMemberPolicy | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
+    negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
+    payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: GymPartnerAccountUncheckedUpdateManyWithoutPartnerNestedInput
+    invitations?: PartnerInvitationUncheckedUpdateManyWithoutPartnerNestedInput
+    auditLogs?: PartnerAuditLogUncheckedUpdateManyWithoutPartnerNestedInput
+    documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
+    contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
+    internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
+  }
+
+  export type GymPartnerCreateWithoutUploadIntentsInput = {
+    id?: string
+    legalName: string
+    partnerKind?: $Enums.GymPartnerKind
+    taxCode?: string | null
+    businessLicenseNo?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    status?: $Enums.GymPartnerStatus
+    verificationStatus?: $Enums.PartnerVerificationStatus
+    verificationNotes?: string | null
+    verifiedAt?: Date | string | null
+    verifiedBy?: string | null
+    assignedAdminId?: string | null
+    brandId?: string | null
+    commissionRateOverride?: Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: Date | string | null
+    suspendedReason?: string | null
+    suspendedBy?: string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    terminationMemberPolicy?: $Enums.TerminationMemberPolicy | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    expectedBranchCount?: number | null
+    negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
+    payoutBankName?: string | null
+    payoutBankAccountNumber?: string | null
+    payoutBankAccountHolder?: string | null
+    termsAcceptedVersion?: string | null
+    termsAcceptedAt?: Date | string | null
+    createdBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: GymPartnerAccountCreateNestedManyWithoutPartnerInput
+    invitations?: PartnerInvitationCreateNestedManyWithoutPartnerInput
+    auditLogs?: PartnerAuditLogCreateNestedManyWithoutPartnerInput
+    documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
+    contactLogs?: GymPartnerContactLogCreateNestedManyWithoutPartnerInput
+    internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+  }
+
+  export type GymPartnerUncheckedCreateWithoutUploadIntentsInput = {
+    id?: string
+    legalName: string
+    partnerKind?: $Enums.GymPartnerKind
+    taxCode?: string | null
+    businessLicenseNo?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    status?: $Enums.GymPartnerStatus
+    verificationStatus?: $Enums.PartnerVerificationStatus
+    verificationNotes?: string | null
+    verifiedAt?: Date | string | null
+    verifiedBy?: string | null
+    assignedAdminId?: string | null
+    brandId?: string | null
+    commissionRateOverride?: Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: Date | string | null
+    suspendedReason?: string | null
+    suspendedBy?: string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    terminationMemberPolicy?: $Enums.TerminationMemberPolicy | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    expectedBranchCount?: number | null
+    negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
+    payoutBankName?: string | null
+    payoutBankAccountNumber?: string | null
+    payoutBankAccountHolder?: string | null
+    termsAcceptedVersion?: string | null
+    termsAcceptedAt?: Date | string | null
+    createdBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: GymPartnerAccountUncheckedCreateNestedManyWithoutPartnerInput
+    invitations?: PartnerInvitationUncheckedCreateNestedManyWithoutPartnerInput
+    auditLogs?: PartnerAuditLogUncheckedCreateNestedManyWithoutPartnerInput
+    documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
+    contactLogs?: GymPartnerContactLogUncheckedCreateNestedManyWithoutPartnerInput
+    internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+  }
+
+  export type GymPartnerCreateOrConnectWithoutUploadIntentsInput = {
+    where: GymPartnerWhereUniqueInput
+    create: XOR<GymPartnerCreateWithoutUploadIntentsInput, GymPartnerUncheckedCreateWithoutUploadIntentsInput>
+  }
+
+  export type GymPartnerUpsertWithoutUploadIntentsInput = {
+    update: XOR<GymPartnerUpdateWithoutUploadIntentsInput, GymPartnerUncheckedUpdateWithoutUploadIntentsInput>
+    create: XOR<GymPartnerCreateWithoutUploadIntentsInput, GymPartnerUncheckedCreateWithoutUploadIntentsInput>
+    where?: GymPartnerWhereInput
+  }
+
+  export type GymPartnerUpdateToOneWithWhereWithoutUploadIntentsInput = {
+    where?: GymPartnerWhereInput
+    data: XOR<GymPartnerUpdateWithoutUploadIntentsInput, GymPartnerUncheckedUpdateWithoutUploadIntentsInput>
+  }
+
+  export type GymPartnerUpdateWithoutUploadIntentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    legalName?: StringFieldUpdateOperationsInput | string
+    partnerKind?: EnumGymPartnerKindFieldUpdateOperationsInput | $Enums.GymPartnerKind
+    taxCode?: NullableStringFieldUpdateOperationsInput | string | null
+    businessLicenseNo?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymPartnerStatusFieldUpdateOperationsInput | $Enums.GymPartnerStatus
+    verificationStatus?: EnumPartnerVerificationStatusFieldUpdateOperationsInput | $Enums.PartnerVerificationStatus
+    verificationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    commissionRateOverride?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    suspendedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    suspendedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terminationMemberPolicy?: NullableEnumTerminationMemberPolicyFieldUpdateOperationsInput | $Enums.TerminationMemberPolicy | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
+    negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
+    payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: GymPartnerAccountUpdateManyWithoutPartnerNestedInput
+    invitations?: PartnerInvitationUpdateManyWithoutPartnerNestedInput
+    auditLogs?: PartnerAuditLogUpdateManyWithoutPartnerNestedInput
+    documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
+    contactLogs?: GymPartnerContactLogUpdateManyWithoutPartnerNestedInput
+    internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+  }
+
+  export type GymPartnerUncheckedUpdateWithoutUploadIntentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    legalName?: StringFieldUpdateOperationsInput | string
+    partnerKind?: EnumGymPartnerKindFieldUpdateOperationsInput | $Enums.GymPartnerKind
+    taxCode?: NullableStringFieldUpdateOperationsInput | string | null
+    businessLicenseNo?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymPartnerStatusFieldUpdateOperationsInput | $Enums.GymPartnerStatus
+    verificationStatus?: EnumPartnerVerificationStatusFieldUpdateOperationsInput | $Enums.PartnerVerificationStatus
+    verificationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    commissionRateOverride?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suspendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    suspendedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    suspendedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terminationMemberPolicy?: NullableEnumTerminationMemberPolicyFieldUpdateOperationsInput | $Enums.TerminationMemberPolicy | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
+    negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
+    payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: GymPartnerAccountUncheckedUpdateManyWithoutPartnerNestedInput
+    invitations?: PartnerInvitationUncheckedUpdateManyWithoutPartnerNestedInput
+    auditLogs?: PartnerAuditLogUncheckedUpdateManyWithoutPartnerNestedInput
+    documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
+    contactLogs?: GymPartnerContactLogUncheckedUpdateManyWithoutPartnerNestedInput
+    internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerCreateWithoutContactLogsInput = {
@@ -38782,6 +43589,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38795,6 +43607,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogCreateNestedManyWithoutPartnerInput
     documents?: GymPartnerDocumentCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerUncheckedCreateWithoutContactLogsInput = {
@@ -38823,6 +43637,11 @@ export namespace Prisma {
     rejectionReason?: string | null
     expectedBranchCount?: number | null
     negotiationNotes?: string | null
+    source?: $Enums.GymPartnerSource
+    submittedAt?: Date | string | null
+    representativeName?: string | null
+    representativeRole?: $Enums.PartnerRepresentativeRole | null
+    businessScale?: $Enums.PartnerBusinessScale | null
     payoutBankName?: string | null
     payoutBankAccountNumber?: string | null
     payoutBankAccountHolder?: string | null
@@ -38836,6 +43655,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedCreateNestedManyWithoutPartnerInput
     documents?: GymPartnerDocumentUncheckedCreateNestedManyWithoutPartnerInput
     internalNotes?: PartnerInternalNoteUncheckedCreateNestedManyWithoutPartnerInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedCreateNestedManyWithoutPartnerInput
+    uploadIntents?: PartnerUploadIntentUncheckedCreateNestedManyWithoutPartnerInput
   }
 
   export type GymPartnerCreateOrConnectWithoutContactLogsInput = {
@@ -38880,6 +43701,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38893,6 +43719,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUpdateManyWithoutPartnerNestedInput
     documents?: GymPartnerDocumentUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymPartnerUncheckedUpdateWithoutContactLogsInput = {
@@ -38921,6 +43749,11 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedBranchCount?: NullableIntFieldUpdateOperationsInput | number | null
     negotiationNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumGymPartnerSourceFieldUpdateOperationsInput | $Enums.GymPartnerSource
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    representativeName?: NullableStringFieldUpdateOperationsInput | string | null
+    representativeRole?: NullableEnumPartnerRepresentativeRoleFieldUpdateOperationsInput | $Enums.PartnerRepresentativeRole | null
+    businessScale?: NullableEnumPartnerBusinessScaleFieldUpdateOperationsInput | $Enums.PartnerBusinessScale | null
     payoutBankName?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
@@ -38934,6 +43767,8 @@ export namespace Prisma {
     auditLogs?: PartnerAuditLogUncheckedUpdateManyWithoutPartnerNestedInput
     documents?: GymPartnerDocumentUncheckedUpdateManyWithoutPartnerNestedInput
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
+    reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
+    uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
   }
 
   export type GymCreateWithoutBrandInput = {
@@ -39167,6 +44002,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
@@ -39179,6 +44015,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
@@ -39432,6 +44269,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
   }
 
@@ -39440,6 +44280,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
   }
 
@@ -39533,6 +44376,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
@@ -39545,6 +44389,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
@@ -39782,6 +44627,9 @@ export namespace Prisma {
     fileName?: StringFilter<"GymPhoto"> | string
     sortOrder?: IntFilter<"GymPhoto"> | number
     isCover?: BoolFilter<"GymPhoto"> | boolean
+    s3Key?: StringNullableFilter<"GymPhoto"> | string | null
+    category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
   }
 
@@ -39853,6 +44701,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
@@ -39865,6 +44714,7 @@ export namespace Prisma {
     approvedName?: string | null
     pendingName?: string | null
     description?: string | null
+    logoKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
@@ -39945,6 +44795,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
@@ -39957,6 +44808,7 @@ export namespace Prisma {
     approvedName?: NullableStringFieldUpdateOperationsInput | string | null
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
@@ -41176,6 +46028,12 @@ export namespace Prisma {
     docType: $Enums.PartnerDocumentType
     required?: boolean
     fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
     status?: $Enums.PartnerDocumentStatus
     verifiedBy?: string | null
     verifiedAt?: Date | string | null
@@ -41197,6 +46055,35 @@ export namespace Prisma {
     id?: string
     authorAdminId: string
     text: string
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerReviewIssueCreateManyPartnerInput = {
+    id?: string
+    category: $Enums.PartnerReviewCategory
+    message: string
+    status?: $Enums.PartnerReviewIssueStatus
+    createdBy: string
+    createdAt?: Date | string
+    resubmitNote?: string | null
+    resubmittedAt?: Date | string | null
+    adminFollowUp?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+  }
+
+  export type PartnerUploadIntentCreateManyPartnerInput = {
+    id?: string
+    kind: $Enums.PartnerUploadKind
+    docType?: $Enums.PartnerDocumentType | null
+    gymId?: string | null
+    photoCategory?: $Enums.GymPhotoCategory | null
+    objectKey: string
+    contentType: string
+    maxBytes: number
+    createdBy: string
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -41334,6 +46221,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -41347,6 +46240,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -41360,6 +46259,12 @@ export namespace Prisma {
     docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
     required?: BoolFieldUpdateOperationsInput | boolean
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
     verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -41413,6 +46318,93 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     authorAdminId?: StringFieldUpdateOperationsInput | string
     text?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerReviewIssueUpdateWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUncheckedUpdateWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumPartnerReviewCategoryFieldUpdateOperationsInput | $Enums.PartnerReviewCategory
+    message?: StringFieldUpdateOperationsInput | string
+    status?: EnumPartnerReviewIssueStatusFieldUpdateOperationsInput | $Enums.PartnerReviewIssueStatus
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resubmitNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adminFollowUp?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PartnerUploadIntentUpdateWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerUploadIntentUncheckedUpdateWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerUploadIntentUncheckedUpdateManyWithoutPartnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPartnerUploadKindFieldUpdateOperationsInput | $Enums.PartnerUploadKind
+    docType?: NullableEnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    photoCategory?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    objectKey?: StringFieldUpdateOperationsInput | string
+    contentType?: StringFieldUpdateOperationsInput | string
+    maxBytes?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -41720,6 +46712,9 @@ export namespace Prisma {
     fileName: string
     sortOrder?: number
     isCover?: boolean
+    s3Key?: string | null
+    category?: $Enums.GymPhotoCategory | null
+    visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
   }
 
@@ -42014,6 +47009,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -42022,6 +47020,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -42030,6 +47031,9 @@ export namespace Prisma {
     fileName?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
     isCover?: BoolFieldUpdateOperationsInput | boolean
+    s3Key?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
+    visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -42281,6 +47285,14 @@ export namespace Prisma {
      * @deprecated Use GymPartnerDocumentDefaultArgs instead
      */
     export type GymPartnerDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerDocumentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymPartnerReviewIssueDefaultArgs instead
+     */
+    export type GymPartnerReviewIssueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerReviewIssueDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PartnerUploadIntentDefaultArgs instead
+     */
+    export type PartnerUploadIntentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PartnerUploadIntentDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymPartnerContactLogDefaultArgs instead
      */

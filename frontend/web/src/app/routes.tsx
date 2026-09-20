@@ -27,7 +27,11 @@ const GymManagementKitchenSink = lazy(() =>
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 const PartnerInviteAcceptPage = lazy(() => import("./pages/auth/PartnerInviteAcceptPage").then((m) => ({ default: m.PartnerInviteAcceptPage })));
+const PartnerApplyPage = lazy(() => import("./pages/partner-application/PartnerApplyPage").then((m) => ({ default: m.PartnerApplyPage })));
+const PartnerApplyVerifyPage = lazy(() => import("./pages/partner-application/PartnerApplyVerifyPage").then((m) => ({ default: m.PartnerApplyVerifyPage })));
+const PartnerApplicationPage = lazy(() => import("./pages/partner-application/PartnerApplicationPage").then((m) => ({ default: m.PartnerApplicationPage })));
 const PartnerPasswordResetPage = lazy(() => import("./pages/auth/PartnerPasswordResetPage").then((m) => ({ default: m.PartnerPasswordResetPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 
 // Client pages
 const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard").then((m) => ({ default: m.ClientDashboard })));
@@ -122,6 +126,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { RequireRole } from "./components/RequireRole";
 import { RequireOnboarding } from "./components/RequireOnboarding";
+import { RequirePartnerApplicant, RequireApprovedPartner } from "./components/RequirePartnerApplicant";
 import { RootRedirect } from "./components/RootRedirect";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
@@ -180,7 +185,21 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
       { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },
+      // Đăng ký đối tác tự phục vụ: công khai (chưa có tài khoản) → vùng ứng viên (đã đăng nhập, chưa được duyệt).
+      { path: "partner/apply", Component: PartnerApplyPage },
+      { path: "partner/apply/verify", Component: PartnerApplyVerifyPage },
+      {
+        path: "partner/application",
+        element: (
+          <RequireRole allow={["gym_owner"]}>
+            <RequirePartnerApplicant>
+              <PartnerApplicationPage />
+            </RequirePartnerApplicant>
+          </RequireRole>
+        ),
+      },
       { path: "dat-lai-mat-khau/:token", Component: PartnerPasswordResetPage },
+      { path: "quen-mat-khau", Component: ForgotPasswordPage },
       // Dev-only Gymini icon system review page (spec: docs/features/GYMINI_ICON_SYSTEM_
       // IMPLEMENTATION_REPORT.md §20). Deliberately not linked from Sidebar/BottomNav/Topbar —
       // reachable only by typing the URL — and the page component itself renders nothing
@@ -281,7 +300,9 @@ export const router = createBrowserRouter([
         path: "gym-owner",
         element: (
           <RequireRole allow={["gym_owner"]}>
-            <AppShell />
+            <RequireApprovedPartner>
+              <AppShell />
+            </RequireApprovedPartner>
           </RequireRole>
         ),
         children: [

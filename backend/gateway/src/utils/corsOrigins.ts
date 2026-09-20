@@ -58,3 +58,21 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
   if (DEV_TUNNEL_ORIGIN_RE.test(origin)) return true;
   return envOrigins().includes(origin);
 }
+
+/**
+ * The web origin that emailed links (password reset, partner invites) may point at — or null.
+ *
+ * Only a PRESENT Origin that passes the same trust policy as CORS qualifies. `isAllowedOrigin`
+ * deliberately lets a missing Origin through (native apps, curl); that must not qualify here,
+ * because there is no web page to send anyone back to — callers fall back to FRONTEND_URL.
+ *
+ * Why this and not x-public-base-url: that header's host comes from X-Forwarded-Host, which any
+ * caller can set, so a link built from it can be steered to an attacker's domain (password-reset
+ * poisoning). An Origin can be forged too, but it only passes here if it is an origin this stack
+ * already trusts — the worst a forger achieves is a link to a legitimate host. It still follows the
+ * machine's current LAN address or tunnel, which a static FRONTEND_URL cannot.
+ */
+export function trustedWebOrigin(origin: string | undefined): string | null {
+  if (!origin || origin === "null") return null;
+  return isAllowedOrigin(origin) ? origin.replace(/\/$/, "") : null;
+}

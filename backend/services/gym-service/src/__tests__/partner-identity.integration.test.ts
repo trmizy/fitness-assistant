@@ -256,12 +256,31 @@ integrationTest('phân giải danh tính: quản lý đi tiếp bằng principal
   }
 });
 
-integrationTest('phân giải danh tính: chủ gym có từ trước mô hình đối tác vẫn vào được', async () => {
+integrationTest('phân giải danh tính: chủ gym có từ trước mô hình đối tác vẫn vào được — khi CHỨNG MINH được sở hữu', async () => {
+  const legacyUserId = randomUUID();
+  // Bằng chứng duy nhất được chấp nhận: đang thực sự đứng tên một Gym (hoặc một Brand).
+  const gym = await prisma.gym.create({
+    data: { ownerId: legacyUserId, name: 'Legacy Gym ' + legacyUserId.slice(0, 6), address: 'x', status: 'APPROVED' },
+  });
+  try {
+    const ctx = await partnerService.resolveContextForUser(legacyUserId);
+    assert.equal(ctx.isLegacy, true);
+    assert.equal(ctx.role, 'OWNER');
+    assert.equal(ctx.principalUserId, legacyUserId, 'không có hồ sơ đối tác thì tự làm chủ chính mình, như trước phase này');
+  } finally {
+    await prisma.gym.delete({ where: { id: gym.id } });
+  }
+});
+
+integrationTest('phân giải danh tính: tài khoản GYM_OWNER MỒ CÔI (không account, không đứng tên gì) KHÔNG còn là legacy', async () => {
+  // Đúng kiểu 11 user GYM_OWNER ở DB dev: có vai trò trong auth-service nhưng không có hồ sơ đối tác
+  // và không sở hữu Gym/Brand nào. Trước đây nhận full quyền vận hành + bỏ qua cổng onboarding.
   const orphanUserId = randomUUID();
   const ctx = await partnerService.resolveContextForUser(orphanUserId);
-  assert.equal(ctx.isLegacy, true);
-  assert.equal(ctx.role, 'OWNER');
-  assert.equal(ctx.principalUserId, orphanUserId, 'không có hồ sơ đối tác thì tự làm chủ chính mình, như trước phase này');
+  assert.equal(ctx.isLegacy, false, '"không có GymPartnerAccount" tự nó không còn nghĩa là legacy');
+  assert.equal(ctx.accountId, null);
+  assert.equal(ctx.partnerStatus, null);
+  assert.equal(ctx.accountStatus, null);
 });
 
 test('ma trận quyền: MANAGER gọi route của chủ sở hữu (ví, rút tiền) → 403', () => {

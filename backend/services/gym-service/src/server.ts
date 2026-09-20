@@ -6,11 +6,13 @@ import { prisma } from './repositories/prisma';
 import { logger } from '@gym-coach/shared';
 import { startMembershipPayoutSweep } from './services/membershipPayout.sweep';
 import { startReferralSettlementSweepJob } from './services/referral-settlement-sweep.service';
+import { assertPartnerS3ProductionSafe } from './services/partner-s3.guard';
 
 const PORT = process.env.PORT || 3006;
 
 async function startServer() {
   try {
+    assertPartnerS3ProductionSafe();
     app.listen(PORT, () => {
       logger.info(`Gym Service running on port ${PORT}`);
       startMembershipPayoutSweep();

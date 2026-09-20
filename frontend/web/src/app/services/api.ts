@@ -318,6 +318,25 @@ export const authService = {
     return { success: false };
   },
 
+  /** New code for a sign-up still waiting on email verification (MOBILE_BACKEND_GAPS GAP-5). The
+   *  pending sign-up keeps the password and name already submitted; only the code changes. */
+  resendRegistrationOtp: async (email: string) => {
+    const { data } = await api.post("/auth/register/resend", { email });
+    return data as {
+      message: string;
+      email: string;
+      expiresInMinutes: number;
+      resendAfterSeconds: number;
+    };
+  },
+
+  /** Self-service password reset (GAP-4). Resolves with the same message whether or not the email
+   *  has an account — the server never reveals which. The emailed link opens /dat-lai-mat-khau/:token. */
+  requestPasswordReset: async (email: string) => {
+    const { data } = await api.post("/auth/password-reset/request", { email });
+    return data as { message: string };
+  },
+
   logout: async () => {
     // Revoke the refresh token server-side FIRST. Clearing local storage alone left the
     // refresh token valid in the database, so a copy of it kept working after "logging out".
@@ -3799,20 +3818,12 @@ export const adminService = {
 
   // Vòng 4 / Phase C — gym/brand moderation. There was no admin-facing gym/brand list at all
   // before this phase.
-  // No self-registration path for GYM_OWNER — an admin creates the account directly after
-  // arranging the partnership out of band (phone/email); returns the random temporary
-  // password ONCE, never retrievable again after this call.
-  createGymOwner: async (payload: { email: string; firstName: string; lastName?: string }) => {
-    const { data } = await api.post('/admin/gym-owners', payload);
-    return data?.data ?? data;
-  },
-  // "Quản lý gym & owner" — admin can only CREATE an owner account before this; these three
-  // fill the gap the user pointed out (suspend/reactivate + name fix, no email edit — see
-  // authService.updateUserNameAsAdmin's doc comment for why email is excluded).
-  listGymOwners: async () => {
-    const { data } = await api.get('/admin/gym-owners');
-    return data?.data ?? data;
-  },
+  /**
+   * @deprecated Không còn nơi gọi. Ngắt quyền một chủ gym giờ dùng đúng công cụ của mô hình
+   * đối tác: `revokePartnerAccountAsAdmin` (thu hồi tài khoản, kèm huỷ phiên) hoặc tạm
+   * khoá/chấm dứt ở cấp đối tác — thay vì bật/tắt cờ isActive ở tầng auth, vốn là một trục
+   * khác và từng gây ra hai nút "đình chỉ" mang hai nghĩa khác nhau.
+   */
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
     const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
@@ -4051,23 +4062,12 @@ export const adminService = {
     const { data } = await api.get(`/admin/partners/${id}`);
     return data?.data ?? data;
   },
-  createPartner: async (payload: {
-    legalName: string; partnerKind?: "BUSINESS" | "INDIVIDUAL"; taxCode?: string; businessLicenseNo?: string;
-    contactEmail: string; contactPhone?: string; commissionRateOverride?: number | null;
-  }) => {
-    const { data } = await api.post("/admin/partners", payload);
-    return data?.data ?? data;
-  },
   updatePartner: async (id: string, payload: Record<string, unknown>) => {
     const { data } = await api.patch(`/admin/partners/${id}`, payload);
     return data?.data ?? data;
   },
   getPartnerAuditLog: async (id: string) => {
     const { data } = await api.get(`/admin/partners/${id}/audit-log`);
-    return data?.data ?? data;
-  },
-  provisionPartnerOwner: async (id: string) => {
-    const { data } = await api.post(`/admin/partners/${id}/provision`, {});
     return data?.data ?? data;
   },
   resendPartnerInvitation: async (partnerId: string, invitationId: string) => {

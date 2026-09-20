@@ -7,6 +7,8 @@ import { sendPlainEmail } from "../services/email.service";
 import {
   registerStartSchema,
   registerVerifySchema,
+  registerResendSchema,
+  passwordResetRequestSchema,
   loginSchema,
   refreshSchema,
   updateMeSchema,
@@ -115,6 +117,69 @@ export const authController = {
         return;
       }
       logger.error(error, "Verify registration error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** GAP-5 — see authService.resendRegistrationOtp. */
+  async resendRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const body = registerResendSchema.parse(req.body);
+      const result = await authService.resendRegistrationOtp(body.email);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "Resend registration OTP error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /**
+   * GAP-4 — see authService.requestPasswordReset.
+   *
+   * Link host: `x-trusted-web-origin` when present, otherwise FRONTEND_URL — never the gateway's
+   * x-public-base-url. That header's host comes from X-Forwarded-Host, which the caller controls,
+   * and this endpoint needs no login: trusting it would let anyone request a reset for someone
+   * else's email with a forged host, so the victim receives a genuine email whose link hands their
+   * token to the attacker's domain (password-reset poisoning). The gateway sets
+   * x-trusted-web-origin only from a browser Origin that passes its CORS trust policy (stripping any
+   * client-sent copy), so web requests follow the machine's current LAN address or tunnel without
+   * that risk. Requests from the mobile app send no Origin and use FRONTEND_URL.
+   */
+  async requestPasswordReset(req: Request, res: Response): Promise<void> {
+    try {
+      const body = passwordResetRequestSchema.parse(req.body);
+      // Only honoured when the request provably came through the gateway: this service's port is
+      // published too, and a caller hitting it directly could otherwise set the header itself.
+      const gatewaySecret = req.headers["x-gateway-secret"];
+      const fromGateway =
+        (Array.isArray(gatewaySecret) ? gatewaySecret[0] : gatewaySecret) === INTERNAL_SERVICE_SECRET;
+      const trustedHeader = fromGateway ? req.headers["x-trusted-web-origin"] : undefined;
+      const trustedOrigin = Array.isArray(trustedHeader) ? trustedHeader[0] : trustedHeader;
+      const linkBaseUrl = trustedOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+      const result = await authService.requestPasswordReset(body.email, linkBaseUrl);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "Request password reset error");
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -482,43 +547,6 @@ export const authController = {
         return;
       }
       logger.error(error, "updateUserName error");
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-
-  // Admin-only: creates a gym-owner account directly (no self-registration path for this
-  // role — see authService.createGymOwnerAccount's own doc comment for why). Same manual
-  // Bearer-token + role check as setUserActive above; the gateway also gates this route with
-  // requireRoles("ADMIN") before it ever reaches here, so this is defense in depth, not the
-  // only check.
-  async createGymOwner(req: Request, res: Response): Promise<void> {
-    try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith("Bearer ")) {
-        res.status(401).json({ error: "No token provided" });
-        return;
-      }
-      const token = authHeader.substring(7);
-      const verified = await authService.verifyToken(token);
-      if (!verified || verified.role !== "ADMIN") {
-        res.status(403).json({ error: "Admin role required" });
-        return;
-      }
-      const email = String(req.body?.email ?? "").trim().toLowerCase();
-      const firstName = String(req.body?.firstName ?? "").trim();
-      const lastName = req.body?.lastName ? String(req.body.lastName).trim() : undefined;
-      if (!email || !firstName) {
-        res.status(400).json({ error: "email và firstName là bắt buộc" });
-        return;
-      }
-      const result = await authService.createGymOwnerAccount({ email, firstName, lastName });
-      res.status(201).json(result);
-    } catch (error: any) {
-      if (error.status) {
-        res.status(error.status).json({ error: error.message });
-        return;
-      }
-      logger.error(error, "createGymOwner error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

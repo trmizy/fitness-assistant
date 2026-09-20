@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { gymPhotoRepository } from '../repositories/gym-photo.repository';
+import { resolvePhotoUrl } from './gym-photo-url';
 import { gymService } from './gym.service';
 
 function err(message: string, status: number) {
@@ -16,17 +17,22 @@ const MAX_PHOTOS = 20;
  * are only about who may WRITE (upload/delete/reorder/set-cover) a given gym's gallery, not
  * about who may view a photo once it exists.
  */
+/** Thêm `url` cho từng ảnh (đĩa cũ / CDN công khai / presigned riêng tư) — client cũ vẫn dựng URL từ fileName được. */
+async function withUrls<T extends { fileName: string; s3Key: string | null; visibility: 'PRIVATE' | 'PUBLIC' }>(photos: T[]) {
+  return Promise.all(photos.map(async (p) => ({ ...p, url: await resolvePhotoUrl(p) })));
+}
+
 export const gymPhotoService = {
   async listForOwner(gymId: string, ownerId: string) {
     await gymService.getOwnedGym(gymId, ownerId);
-    return gymPhotoRepository.listByGym(gymId);
+    return withUrls(await gymPhotoRepository.listByGym(gymId));
   },
 
   /** GYM_BRANCH_FORM_SPEC.md, Phase 6 — admin review workspace. No ownership check (an admin
    * reviews any gym); these photos are public anyway, so there is nothing to gate here beyond
    * "is this caller actually an admin", already enforced by admin.routes.ts's own middleware. */
-  listForAdmin(gymId: string) {
-    return gymPhotoRepository.listByGym(gymId);
+  async listForAdmin(gymId: string) {
+    return withUrls(await gymPhotoRepository.listByGym(gymId));
   },
 
   async upload(gymId: string, ownerId: string, fileName: string) {

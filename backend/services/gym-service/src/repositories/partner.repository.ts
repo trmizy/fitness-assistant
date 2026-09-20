@@ -56,6 +56,19 @@ export const partnerRepository = {
     });
   },
 
+  /**
+   * Bằng chứng DUY NHẤT cho phép coi một tài khoản GYM_OWNER không có hồ sơ đối tác là "chủ gym có
+   * từ trước mô hình đối tác": đang thực sự đứng tên một Gym hoặc một Brand. Chỉ "có vai trò
+   * GYM_OWNER" thì KHÔNG đủ — 11 user GYM_OWNER mồ côi ở DB dev không sở hữu gì cả.
+   */
+  async userHasLegacyOwnership(userId: string): Promise<boolean> {
+    const [gym, brand] = await Promise.all([
+      prisma.gym.findFirst({ where: { ownerId: userId }, select: { id: true } }),
+      prisma.gymBrand.findFirst({ where: { ownerId: userId }, select: { id: true } }),
+    ]);
+    return Boolean(gym || brand);
+  },
+
   findAccountById(id: string) {
     return prisma.gymPartnerAccount.findUnique({ where: { id }, include: { partner: true } });
   },

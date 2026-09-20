@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Gymini",
+    "slug": "fitnessassistant-mobile",
+    "scheme": "fitnessassistant",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.fitnessassistant.app"
+    },
+    "android": {
+      "package": "vn.fitnessassistant.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-sharing",
+      "expo-image",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Gymini cần quyền camera để chụp ảnh InBody, giấy tờ xác minh và quét mã QR check-in."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#22c55e"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gymini cần quyền truy cập thư viện ảnh để chọn ảnh chi nhánh, ảnh minh chứng."
+        }
+      ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Gymini cần quyền camera để gọi video với PT.",
+          "microphonePermission": "Gymini cần quyền microphone để gọi thoại/video với PT."
+        }
+      ],
+      "./plugins/shortenPackagePaths.js",
+      "./plugins/withCmakeObjectPathMax.js",
+      "./plugins/withDevMenuOnboardingSkipped.js"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

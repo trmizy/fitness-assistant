@@ -13,7 +13,26 @@ import type {
   UpdateMeDto,
   UpdateUserRoleDto,
 } from "../models/auth.models";
-import { sendOtpEmail } from "./email.service";
+import { sendOtpEmail, sendPlainEmail } from "./email.service";
+
+// Self-service password reset (GAP-4). Shorter than the 24h an admin-issued partner link gets: a
+// link the user asked for themselves is used within minutes, and a compromised inbox should not
+// hold a live credential for a day.
+const SELF_RESET_TTL_HOURS = Number(process.env.SELF_RESET_TTL_HOURS || 1);
+const SELF_RESET_COOLDOWN_SECONDS = Number(
+  process.env.SELF_RESET_COOLDOWN_SECONDS || 60,
+);
+/** One answer for every email, registered or not — see authService.requestPasswordReset. */
+const PASSWORD_RESET_REQUEST_MESSAGE =
+  "Nếu email này có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu.";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 const ACCESS_TOKEN_SECRET =
   process.env.JWT_SECRET || "dev_jwt_secret_change_in_production";
@@ -47,6 +66,37 @@ function makeRefreshExpiry(): Date {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
   return expiresAt;
+}
+
+/**
+ * Đăng nhập ngay sau khi một tài khoản vừa được tạo (đăng ký OTP, đối tác tự đăng ký): cấp cặp
+ * token và ghi refresh token — cùng đúng những gì verifyRegistration vốn tự làm.
+ */
+export async function issueSessionFor(user: {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+}) {
+  const accessToken = generateAccessToken(user.id, user.role, user.email);
+  const refreshToken = generateRefreshToken(user.id);
+  await authRepository.createRefreshToken({
+    token: refreshToken,
+    userId: user.id,
+    expiresAt: makeRefreshExpiry(),
+  });
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    },
+    accessToken,
+    refreshToken,
+  };
 }
 
 function makeOtpExpiry(): Date {
@@ -188,6 +238,155 @@ export const authService = {
     };
   },
 
+  /**
+   * GAP-5 — re-issue the registration code for a sign-up still waiting on verification.
+   *
+   * Works only on an existing pending row. That row already holds the hashed password and name
+   * from the original POST /auth/register, so a resend can never change what account gets
+   * created — it only replaces the code. Calling register() again used to be the only way to get a
+   * new code, which meant retyping the password; the cooldown is the same one register() enforces.
+   * upsertEmailVerification resets `attempts`, so someone locked out by wrong guesses on the old
+   * code starts clean with the new one.
+   */
+  async resendRegistrationOtp(email: string) {
+    const existing = await authRepository.findUserByEmail(email);
+    if (existing) throw { status: 409, message: "Email đã đăng ký" };
+
+    const pending = await authRepository.findEmailVerificationByEmail(email);
+    if (!pending) {
+      throw {
+        status: 404,
+        message: "Không có đăng ký nào đang chờ xác minh cho email này",
+      };
+    }
+
+    const secondsSinceLastSend = (Date.now() - pending.sentAt.getTime()) / 1000;
+    if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
+      throw {
+        status: 429,
+        message: `Mã vừa được gửi. Vui lòng đợi ${Math.ceil(
+          OTP_RESEND_SECONDS - secondsSinceLastSend,
+        )}s`,
+      };
+    }
+
+    const otp = generateOtp();
+    await authRepository.upsertEmailVerification({
+      email: pending.email,
+      passwordHash: pending.passwordHash,
+      firstName: pending.firstName,
+      lastName: pending.lastName,
+      otpHash: hashOtp(otp),
+      expiresAt: makeOtpExpiry(),
+      sentAt: new Date(),
+    });
+
+    const emailResult = await sendOtpEmail(
+      pending.email,
+      otp,
+      pending.firstName ?? undefined,
+      OTP_EXPIRY_MINUTES,
+    );
+
+    const response: {
+      message: string;
+      email: string;
+      expiresInMinutes: number;
+      resendAfterSeconds: number;
+      devOtp?: string;
+    } = {
+      message: "OTP sent",
+      email: pending.email,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+      resendAfterSeconds: OTP_RESEND_SECONDS,
+    };
+
+    if (!emailResult.delivered && process.env.NODE_ENV !== "production") {
+      response.devOtp = otp;
+    }
+
+    return response;
+  },
+
+  /**
+   * GAP-4 — self-service "forgot password": email a reset LINK, never a password.
+   *
+   * Reuses issuePasswordResetToken (hashed, single-use, invalidates older links) and the web's
+   * existing /dat-lai-mat-khau/:token page, which already calls POST /auth/password-reset — so the
+   * step that actually changes a password is the same code path admin-issued partner links use.
+   *
+   * Answers identically whether the account is missing, disabled, or inside the cooldown: any
+   * difference would let anyone probe which emails are registered. The one exception is
+   * `devResetLink`, returned only outside production when SMTP is not configured — the same
+   * trade-off register() already makes with `devOtp`, so a dev stack without mail can be exercised.
+   *
+   * `linkBaseUrl` must come from server configuration, never from the request — see
+   * authController.requestPasswordReset for why.
+   */
+  async requestPasswordReset(email: string, linkBaseUrl: string) {
+    const result: { message: string; devResetLink?: string } = {
+      message: PASSWORD_RESET_REQUEST_MESSAGE,
+    };
+
+    const user = await authRepository.findUserByEmail(email);
+    if (!user || !user.isActive) return result;
+
+    const latest = await authRepository.findLatestPasswordResetForUser(user.id);
+    if (
+      latest &&
+      (Date.now() - latest.createdAt.getTime()) / 1000 < SELF_RESET_COOLDOWN_SECONDS
+    ) {
+      return result;
+    }
+
+    const { rawToken, expiresAt } = await this.issuePasswordResetToken(
+      user.id,
+      undefined,
+      SELF_RESET_TTL_HOURS,
+    );
+
+    const link = `${linkBaseUrl.replace(/\/$/, "")}/dat-lai-mat-khau/${rawToken}`;
+    const minutes = Math.round(SELF_RESET_TTL_HOURS * 60);
+    const greeting = user.firstName ? `Xin chào ${user.firstName},` : "Xin chào,";
+
+    try {
+      const emailResult = await sendPlainEmail({
+        to: user.email,
+        subject: "Đặt lại mật khẩu Gymini",
+        text: [
+          greeting,
+          "",
+          "Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.",
+          `Mở liên kết sau để đặt mật khẩu mới (hiệu lực ${minutes} phút, chỉ dùng được một lần):`,
+          link,
+          "",
+          "Nếu bạn không yêu cầu, hãy bỏ qua email này — mật khẩu hiện tại vẫn giữ nguyên.",
+        ].join("\n"),
+        html: `
+          <div style="font-family:Arial,sans-serif;line-height:1.5;">
+            <p>${escapeHtml(greeting)}</p>
+            <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+            <p><a href="${link}">Đặt mật khẩu mới</a> — hiệu lực ${minutes} phút, chỉ dùng được một lần.</p>
+            <p>Nếu bạn không yêu cầu, hãy bỏ qua email này — mật khẩu hiện tại vẫn giữ nguyên.</p>
+          </div>
+        `,
+      });
+
+      logger.info({ userId: user.id, expiresAt }, "Self-service password reset link issued");
+
+      if (!emailResult.delivered && process.env.NODE_ENV !== "production") {
+        result.devResetLink = link;
+      }
+    } catch (error) {
+      // A mail failure must not change the response: a 500 here, returned only for emails that
+      // HAVE an account, would be exactly the enumeration signal the uniform answer avoids. The
+      // issued link is simply never delivered; the user can ask again after the cooldown.
+      logger.error({ err: error, userId: user.id }, "Self-service password reset email failed");
+    }
+
+    return result;
+  },
+
   async login(email: string, password: string) {
     const user = await authRepository.findUserByEmail(email);
     if (!user) throw { status: 401, message: "Invalid credentials" };
@@ -221,47 +420,6 @@ export const authService = {
       },
       accessToken,
       refreshToken,
-    };
-  },
-
-  /**
-   * Admin-only: a gym owner never self-registers (that would let a CUSTOMER pile on roles
-   * freely — becoming a gym owner is a real-world partnership the admin arranges directly,
-   * by phone/email, outside the app). This is the one place that account gets created: a
-   * random temporary password the admin relays out of band themselves, with
-   * mustChangePassword forcing a real one to be set before anything else happens.
-   *
-   * The temporary password is returned here ONCE, in plaintext — it is hashed before storage
-   * and never recoverable again after this call returns, same as any password anywhere else
-   * in this system.
-   */
-  async createGymOwnerAccount(data: { email: string; firstName: string; lastName?: string }) {
-    const existing = await authRepository.findUserByEmail(data.email);
-    if (existing) throw { status: 409, message: "Email đã được sử dụng" };
-
-    // URL-safe, no padding — 12 characters from a 9-byte source is plenty of entropy for a
-    // password that only has to survive until the very next login.
-    const temporaryPassword = crypto.randomBytes(9).toString("base64url");
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
-
-    const user = await authRepository.createUser({
-      email: data.email,
-      password: passwordHash,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      role: "GYM_OWNER" as any,
-      mustChangePassword: true,
-    });
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      },
-      temporaryPassword,
     };
   },
 

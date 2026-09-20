@@ -282,3 +282,5 @@ tự tạo, giữ nguyên dữ liệu thật (jane.smith, admin, seed accounts).
   liệu cụ thể cho hành động không đảo ngược được, empty-state không phải lỗi), nhưng dùng
   lại đúng ngôn ngữ thiết kế đã có sẵn của ứng dụng (Tailwind, phosphor-icons) thay vì tự
   chế theo khung ASCII.
+
+> **Cập nhật (Gym Partner self-service onboarding):** luồng admin "Cấp tài khoản"/link mời OWNER **không còn được dùng cho đối tác mới**; chủ gym tự đăng ký và admin duyệt hồ sơ (xem `GYM_PARTNER_SELF_ONBOARDING_SPEC.md`, `GYM_PARTNER_STATE_MACHINE.md`). `provisionOwnerAccount` chỉ còn phục vụ hồ sơ cũ (ADMIN_CREATED); hạ tầng mời MANAGER giữ nguyên.

@@ -171,6 +171,13 @@ export const authRepository = {
       data: { usedAt: new Date() },
     }),
 
+  /** Link đặt lại gần nhất của một người — cho thời gian chờ của yêu cầu tự phục vụ (GAP-4). */
+  findLatestPasswordResetForUser: (userId: string) =>
+    prisma.passwordResetToken.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+
   createAuditLog: (data: {
     userId: string;
     action: string;

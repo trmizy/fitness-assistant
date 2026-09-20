@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, UserPlusIcon as UserPlus, CopyIcon as Copy, PencilSimpleIcon as Pencil, ProhibitIcon as Ban, ArrowCounterClockwiseIcon as RotateCcw, MagnifyingGlassIcon as Search, NotePencilIcon as NotePencil, EyeIcon as Eye } from "@phosphor-icons/react";
+import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, PencilSimpleIcon as Pencil, MagnifyingGlassIcon as Search, NotePencilIcon as NotePencil, EyeIcon as Eye } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
 import { ModerationStatusBadge } from "../../components/gym-management/ModerationStatusBadge";
@@ -20,27 +20,24 @@ import { BranchReviewDetail } from "../../components/gym-management/BranchReview
  * there is NOT done here, it reuses the existing exceptional-refund action on AdminDashboard
  * (reason GYM_CLOSED) — this tab only surfaces which gyms need that.
  *
- * Follow-up: admin could only CREATE an owner account and only SUSPEND a branch's status —
- * no edit/suspend for owners, no edit/create for branches, an asymmetry the owner of this app
- * pointed out directly. "Owners" tab now also lists every GYM_OWNER account with
- * suspend/reactivate (wired to the disable/enable endpoint that already existed but had no
- * caller anywhere in the frontend) and a name fix; "Tất cả chi nhánh" lets admin edit any
- * branch's own details directly. Creating a NEW branch is deliberately still owner-only —
- * unlike an owner account (which genuinely has no self-service creation path), a branch's
- * owner already has a working creation flow (MyGymsPage); admin creating one on their behalf
- * was the one option NOT chosen when this scope was confirmed.
+ * Follow-up: "Tất cả chi nhánh" lets admin edit any branch's own details directly. Creating a
+ * NEW branch is deliberately still owner-only — a branch's owner already has a working
+ * creation flow (MyGymsPage); admin creating one on their behalf was the one option NOT chosen
+ * when this scope was confirmed.
+ *
+ * This page used to carry an "Owners" tab too (create a gym-owner account, list every
+ * GYM_OWNER, suspend/reactivate, fix a name). It is gone: an account is a fact about a
+ * PARTNER, and every one of those actions now lives on that partner's own profile in
+ * AdminPartnersPage — provision, reset password, force logout, revoke, transfer ownership,
+ * rename, plus suspend/terminate at the partner level. Splitting them across two pages meant
+ * two different "đình chỉ" buttons with different meanings (auth-level disable vs the
+ * partner's own suspendedAt), which is exactly the confusion this removal ends. Checked
+ * against live data before removing: every ACTIVE GYM_OWNER has a gym_partner_accounts row,
+ * so nothing became unmanageable — the only accounts the old tab could still reach were
+ * already-disabled zzz-test-* leftovers.
  */
 
-type Tab = "owners" | "pending" | "gym-renames" | "brand-renames" | "closed" | "all-gyms";
-
-interface GymOwnerAccount {
-  id: string;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  isActive?: boolean;
-  createdAt: string;
-}
+type Tab = "pending" | "gym-renames" | "brand-renames" | "closed" | "all-gyms";
 
 function formatDateTime(iso?: string | null) {
   if (!iso) return "—";
@@ -51,58 +48,6 @@ function formatDateTime(iso?: string | null) {
 export function AdminGymModeration() {
   const [tab, setTab] = useState<Tab>("pending");
   const queryClient = useQueryClient();
-
-  // No self-registration path for GYM_OWNER (see authService.createGymOwnerAccount's doc
-  // comment) — this is the only place that account gets created. The random temporary
-  // password only ever comes back in THIS mutation's response, once; there is nowhere in the
-  // app to look it up again afterward, so it stays on screen (copyable) until the admin
-  // starts a new one.
-  const [ownerForm, setOwnerForm] = useState({ email: "", firstName: "", lastName: "" });
-  const [createdOwner, setCreatedOwner] = useState<{ email: string; temporaryPassword: string } | null>(null);
-  const createOwnerMutation = useMutation({
-    mutationFn: () =>
-      adminService.createGymOwner({
-        email: ownerForm.email.trim(),
-        firstName: ownerForm.firstName.trim(),
-        lastName: ownerForm.lastName.trim() || undefined,
-      }),
-    onSuccess: (data: any) => {
-      toast.success("Đã tạo tài khoản chủ gym");
-      setCreatedOwner({ email: data.user.email, temporaryPassword: data.temporaryPassword });
-      setOwnerForm({ email: "", firstName: "", lastName: "" });
-      // Bug found live-testing this: the new account didn't appear in "Danh sách tài khoản
-      // Owner" below until a manual page refresh — this mutation never invalidated that list.
-      queryClient.invalidateQueries({ queryKey: ["admin-gym-owners"] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tạo tài khoản"),
-  });
-
-  const { data: owners = [], isLoading: ownersLoading } = useQuery<GymOwnerAccount[]>({
-    queryKey: ["admin-gym-owners"],
-    queryFn: () => adminService.listGymOwners(),
-  });
-  const invalidateOwners = () => queryClient.invalidateQueries({ queryKey: ["admin-gym-owners"] });
-
-  const [editingOwnerId, setEditingOwnerId] = useState<string | null>(null);
-  const [ownerEditForm, setOwnerEditForm] = useState({ firstName: "", lastName: "" });
-  const updateOwnerNameMutation = useMutation({
-    mutationFn: ({ id, firstName, lastName }: { id: string; firstName: string; lastName?: string }) =>
-      adminService.updateGymOwnerName(id, { firstName, lastName }),
-    onSuccess: () => {
-      toast.success("Đã cập nhật tên chủ gym");
-      setEditingOwnerId(null);
-      invalidateOwners();
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể cập nhật"),
-  });
-  const setOwnerActiveMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => adminService.setGymOwnerActive(id, isActive),
-    onSuccess: (_data, vars) => {
-      toast.success(vars.isActive ? "Đã kích hoạt lại tài khoản" : "Đã đình chỉ tài khoản");
-      invalidateOwners();
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể cập nhật"),
-  });
 
   const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
     queryKey: ["admin-gyms"],
@@ -209,7 +154,6 @@ export function AdminGymModeration() {
   });
 
   const TABS: { key: Tab; label: string; count: number }[] = [
-    { key: "owners", label: "Owners", count: 0 },
     { key: "pending", label: "Chờ duyệt lần đầu", count: pendingGyms.length },
     { key: "gym-renames", label: "Đổi tên/địa chỉ gym", count: gymsWithPendingRename.length },
     { key: "brand-renames", label: "Đổi tên thương hiệu", count: brandsWithPendingRename.length },
@@ -221,14 +165,13 @@ export function AdminGymModeration() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Building2 className="w-5 h-5 text-green-400" /> Quản lý gym & owner
+          <Building2 className="w-5 h-5 text-green-400" /> Quản lý Gym
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Tạo, đổi tên, đình chỉ/kích hoạt lại tài khoản đối tác chủ gym (không có đăng ký tự
-          do — liên hệ ngoài ứng dụng trước, admin tạo tài khoản ở đây); duyệt phòng gym mới,
-          duyệt đổi tên/địa chỉ, duyệt đổi tên thương hiệu, sửa trực tiếp thông tin bất kỳ chi
-          nhánh nào, và theo dõi các phòng gym đã đóng cửa vĩnh viễn còn hội viên đang hoạt
-          động cần hoàn tiền.
+          Duyệt phòng gym mới, duyệt đổi tên/địa chỉ, duyệt đổi tên thương hiệu, sửa trực tiếp
+          thông tin bất kỳ chi nhánh nào, và theo dõi các phòng gym đã đóng cửa vĩnh viễn còn
+          hội viên đang hoạt động cần hoàn tiền. Mọi việc liên quan tới tài khoản chủ gym —
+          tạo, đặt lại mật khẩu, thu hồi, chuyển quyền sở hữu — nằm ở trang Đối tác.
         </p>
       </div>
 
@@ -249,196 +192,6 @@ export function AdminGymModeration() {
           </button>
         ))}
       </div>
-
-      {tab === "owners" && (
-        <div className="space-y-8">
-        <div className="max-w-md space-y-4">
-          <p className="text-xs text-zinc-500 leading-relaxed">
-            Không có luồng tự đăng ký làm chủ gym — đối tác liên hệ trực tiếp (email/điện
-            thoại) ngoài ứng dụng, admin tạo tài khoản ở đây với mật khẩu ngẫu nhiên, rồi tự
-            gửi lại cho họ qua đúng kênh đã liên hệ. Đăng nhập lần đầu sẽ bị buộc đổi mật khẩu
-            trước khi dùng được gì khác.
-          </p>
-
-          {createdOwner ? (
-            <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-green-400">
-                <Check className="w-4 h-4" /> Đã tạo tài khoản cho {createdOwner.email}
-              </div>
-              <div>
-                <label className="text-[11px] text-zinc-500 uppercase tracking-wider block mb-1">
-                  Mật khẩu tạm thời — chỉ hiện đúng 1 lần, hãy gửi ngay
-                </label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono">
-                    {createdOwner.temporaryPassword}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdOwner.temporaryPassword).catch(() => {});
-                      toast.success("Đã sao chép");
-                    }}
-                    className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors shrink-0"
-                    title="Sao chép"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCreatedOwner(null)}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                Tạo tài khoản khác
-              </button>
-            </div>
-          ) : (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
-              <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Email *</label>
-                <input
-                  value={ownerForm.email}
-                  onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })}
-                  placeholder="chusohuu@example.com"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Họ *</label>
-                <input
-                  value={ownerForm.firstName}
-                  onChange={(e) => setOwnerForm({ ...ownerForm, firstName: e.target.value })}
-                  placeholder="Nguyễn Văn"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Tên (tuỳ chọn)</label>
-                <input
-                  value={ownerForm.lastName}
-                  onChange={(e) => setOwnerForm({ ...ownerForm, lastName: e.target.value })}
-                  placeholder="A"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => createOwnerMutation.mutate()}
-                disabled={!ownerForm.email.trim() || !ownerForm.firstName.trim() || createOwnerMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-4 py-2.5 rounded-lg text-sm font-bold transition-all"
-              >
-                {createOwnerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                Tạo tài khoản
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-zinc-200 mb-3">Danh sách tài khoản Owner</h3>
-          {ownersLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-          ) : owners.length === 0 ? (
-            <EmptyState text="Chưa có tài khoản chủ gym nào." icon={UserPlus} />
-          ) : (
-            <div className="space-y-3">
-              {owners.map((o) => {
-                const name = [o.firstName, o.lastName].filter(Boolean).join(" ") || o.email;
-                const isEditingOwner = editingOwnerId === o.id;
-                const isSuspended = o.isActive === false;
-                return (
-                  <div key={o.id} data-testid="admin-owner-card" data-owner-id={o.id} data-active={String(!isSuspended)} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        {isEditingOwner ? (
-                          <div className="flex gap-2 mb-1.5">
-                            <input
-                              value={ownerEditForm.firstName}
-                              onChange={(e) => setOwnerEditForm({ ...ownerEditForm, firstName: e.target.value })}
-                              placeholder="Họ"
-                              className="w-1/2 px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                            />
-                            <input
-                              value={ownerEditForm.lastName}
-                              onChange={(e) => setOwnerEditForm({ ...ownerEditForm, lastName: e.target.value })}
-                              placeholder="Tên"
-                              className="w-1/2 px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                            />
-                          </div>
-                        ) : (
-                          <p className="text-sm font-semibold text-zinc-200 truncate">{name}</p>
-                        )}
-                        <p className="text-xs text-zinc-500 truncate">{o.email}</p>
-                        <p className="text-[11px] text-zinc-600 mt-0.5">Tạo lúc {formatDateTime(o.createdAt)}</p>
-                      </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                          isSuspended ? "bg-zinc-700/50 border-zinc-700 text-zinc-400" : "bg-green-500/10 border-green-500/20 text-green-400"
-                        }`}
-                      >
-                        {isSuspended ? "Đã đình chỉ" : "Đang hoạt động"}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      {isEditingOwner ? (
-                        <>
-                          <button
-                            data-testid="admin-owner-save-name-button"
-                            onClick={() =>
-                              updateOwnerNameMutation.mutate({
-                                id: o.id,
-                                firstName: ownerEditForm.firstName.trim(),
-                                lastName: ownerEditForm.lastName.trim() || undefined,
-                              })
-                            }
-                            disabled={!ownerEditForm.firstName.trim() || updateOwnerNameMutation.isPending}
-                            className="flex items-center gap-1 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                          >
-                            <Check className="w-3.5 h-3.5" /> Lưu
-                          </button>
-                          <button
-                            onClick={() => setEditingOwnerId(null)}
-                            className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
-                          >
-                            Huỷ
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          data-testid="admin-owner-edit-name-button"
-                          onClick={() => {
-                            setEditingOwnerId(o.id);
-                            setOwnerEditForm({ firstName: o.firstName ?? "", lastName: o.lastName ?? "" });
-                          }}
-                          className="flex items-center gap-1 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Sửa tên
-                        </button>
-                      )}
-                      <button
-                        data-testid={isSuspended ? "admin-owner-reactivate-button" : "admin-owner-suspend-button"}
-                        onClick={() => setOwnerActiveMutation.mutate({ id: o.id, isActive: isSuspended })}
-                        disabled={setOwnerActiveMutation.isPending}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          isSuspended
-                            ? "border border-green-500/30 text-green-400 hover:bg-green-500/10"
-                            : "border border-red-500/30 text-red-400 hover:bg-red-500/10"
-                        }`}
-                      >
-                        {isSuspended ? <RotateCcw className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
-                        {isSuspended ? "Kích hoạt lại" : "Đình chỉ"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        </div>
-      )}
 
       {tab === "pending" && (
         <div className="space-y-3">

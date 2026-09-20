@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 import { logger } from '@gym-coach/shared';
 import { prisma } from '../repositories/prisma';
-import type { PartnerAuditAction } from '../generated/prisma';
+import type { Prisma, PartnerAuditAction } from '../generated/prisma';
 
 /**
  * Phase 2 mục 2.4 — nhật ký kiểm toán bắt buộc.
@@ -48,6 +48,36 @@ export const partnerAuditService = {
       );
       return null;
     }
+  },
+
+  /**
+   * Ghi nhật ký TRONG CÙNG transaction với thay đổi trạng thái (hồ sơ tự đăng ký — yêu cầu "mọi
+   * chuyển trạng thái đều có dấu vết thật"). Khác record() ở chỗ KHÔNG nuốt lỗi: nếu dòng nhật ký
+   * không ghi được thì cả thay đổi trạng thái phải rollback, chứ không được có một trạng thái đổi
+   * mà không ai biết vì sao.
+   */
+  recordInTx(
+    tx: Prisma.TransactionClient,
+    params: {
+      partnerId: string;
+      actorUserId: string;
+      action: PartnerAuditAction;
+      reason?: string | null;
+      req?: Request;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    return tx.partnerAuditLog.create({
+      data: {
+        partnerId: params.partnerId,
+        actorUserId: params.actorUserId,
+        action: params.action,
+        reason: params.reason ?? null,
+        ipAddress: params.req ? clientIp(params.req) : null,
+        userAgent: params.req?.get('user-agent') ?? null,
+        metadata: (params.metadata ?? undefined) as any,
+      },
+    });
   },
 
   listForPartner(partnerId: string, limit = 200) {

@@ -1,0 +1,36 @@
+diff --git a/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerModule.kt b/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerModule.kt
+index 6c4c086905a1f3fd9d7b16fbf795d7cbd9914c07..08842004332ce8e2ccf63715608d32f0fc5e6032 100644
+--- a/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerModule.kt
++++ b/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerModule.kt
+@@ -116,16 +116,23 @@ class RNGestureHandlerModule(reactContext: ReactApplicationContext?) :
+     }
+   }
+ 
++  // NOTE: this is not the fix for the known GestureHandlerRootView blank-screen issue (see
++  // MOBILE_PLATFORM_ADAPTERS.md §16) — that was proven to happen before React ever calls the
++  // component's render function, so it never reaches this method at all. Kept anyway as a real,
++  // separate improvement: the original body wrapped this in
++  // reactApplicationContext.runOnJSQueueThread { ... }, which self-deadlocks under Bridgeless
++  // (install() is itself an isBlockingSynchronousMethod call FROM the JS thread — posting back
++  // onto "the JS queue" from inside a call already blocking that thread's event loop has no
++  // separate legacy CatalystInstance JS queue to hop to). Doing the JSI decoration inline instead
++  // matches upstream's own 3.x rewrite (installUIRuntimeBindings()), which drops the thread-hop.
+   @ReactMethod(isBlockingSynchronousMethod = true)
+   override fun install(): Boolean {
+-    reactApplicationContext.runOnJSQueueThread {
+-      try {
+-        SoLoader.loadLibrary("gesturehandler")
+-        val jsContext = reactApplicationContext.javaScriptContextHolder!!
+-        decorateRuntime(jsContext.get())
+-      } catch (exception: Exception) {
+-        Log.w("[RNGestureHandler]", "Could not install JSI bindings.")
+-      }
++    try {
++      SoLoader.loadLibrary("gesturehandler")
++      val jsContext = reactApplicationContext.javaScriptContextHolder!!
++      decorateRuntime(jsContext.get())
++    } catch (exception: Exception) {
++      Log.w("[RNGestureHandler]", "Could not install JSI bindings.")
+     }
+ 
+     return true

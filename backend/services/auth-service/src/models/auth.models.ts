@@ -25,6 +25,19 @@ export const registerVerifySchema = z.object({
   otp: z.string().min(6).max(6),
 });
 
+// GAP-5 (MOBILE_BACKEND_GAPS.md) — re-issue the code for a sign-up still waiting on email
+// verification. Only the email: the pending row already holds the hashed password and name from
+// the original POST /auth/register, so a resend can never change what account gets created.
+export const registerResendSchema = z.object({
+  email: z.string().email(),
+});
+
+// GAP-4 — self-service "forgot password". Deliberately email-only: nothing the caller sends may
+// influence where the emailed link points (see authController.requestPasswordReset).
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email(),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),

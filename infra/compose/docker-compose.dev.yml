@@ -63,6 +63,11 @@ services:
       # *.devtunnels.ms (always allowed, see vite.config.ts) — comma
       # separated, for other tunnel providers. Empty by default.
       VITE_EXTRA_ALLOWED_HOSTS: ${VITE_EXTRA_ALLOWED_HOSTS:-}
+      # Địa chỉ hỗ trợ hiện trên trang "Hồ sơ chưa được chấp thuận" của đối tác. Không phải bí
+      # mật — nó nằm trong bundle và hiện cho mọi ứng viên bị từ chối. Cùng hộp thư gửi mail hệ
+      # thống (SMTP_FROM) nên thư trả lời về đúng một chỗ. Service `web` không có env_file nên
+      # giá trị phải nằm ở đây, ghi đè được bằng biến môi trường khi cần.
+      VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-huytronh5@gmail.com}
       CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
@@ -118,6 +123,12 @@ services:
       # decide whether to register its own /webhooks/dropbox-sign route — the gateway must not
       # proxy to a route the target service no longer registers while e-signing is paused.
       REQUIRE_CONTRACT_ESIGN: "false"
+      # Shared store for the partner-application rate limiter (GYM_PARTNER_SECURITY_MODEL.md §5).
+      # Unset/unreachable Redis falls back to a per-process store, which is only acceptable locally.
+      REDIS_URL: redis://redis:6379
+      # Dev/E2E: generous per-IP ceilings for the partner-application endpoints (code defaults are 10 and 60).
+      PARTNER_APPLICATION_START_RATE_MAX: ${PARTNER_APPLICATION_START_RATE_MAX:-200}
+      PARTNER_APPLICATION_RATE_MAX: ${PARTNER_APPLICATION_RATE_MAX:-600}
     env_file:
       - ../../.env
     volumes:
@@ -172,6 +183,10 @@ services:
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_SECURE: ${SMTP_SECURE:-true}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      # E2E only: makes POST /auth/partner-applications/start return the magic link in its response
+      # (and skip mailing it). Off by default — a real inbox is the normal path. Ignored when
+      # NODE_ENV=production. Enable per run: PARTNER_APPLICATION_DEV_ECHO=true docker compose up -d auth-service
+      PARTNER_APPLICATION_DEV_ECHO: ${PARTNER_APPLICATION_DEV_ECHO:-false}
       # Money-flow plan 2.6: locking a PT's account relays to user-service's
       # ptDeactivationService (unwind live contracts + hide from discovery). Without this the
       # client falls back to localhost:3004 → ECONNREFUSED inside Docker on every PT lock/unlock.
@@ -910,6 +925,21 @@ services:
       # back to localhost:3004 → ECONNREFUSED inside Docker on every referral-code purchase.
       USER_SERVICE_URL: http://user-service:3004
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      # Partner-application uploads (GYM_PARTNER_SECURITY_MODEL.md §6) against the local MinIO below.
+      # Deliberately PARTNER_S3_* and not AWS_*: .env may carry real AWS credentials for other
+      # services, and these must never reach a dev bucket by accident.
+      PARTNER_S3_ENDPOINT: http://minio:9000
+      # Presigned URLs are signed for the host the BROWSER will call, so they use this one.
+      PARTNER_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      PARTNER_S3_REGION: us-east-1
+      PARTNER_S3_FORCE_PATH_STYLE: "true"
+      PARTNER_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}
+      PARTNER_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-gymini_minio_secret}
+      PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      PARTNER_S3_PUBLIC_BUCKET: gymini-partner-photos
+      PARTNER_S3_PUBLIC_BASE_URL: http://localhost:9000/gymini-partner-photos
+      # E2E only (same flag as auth-service): applicant emails are logged instead of really sent.
+      PARTNER_APPLICATION_DEV_ECHO: ${PARTNER_APPLICATION_DEV_ECHO:-false}
     env_file:
       - ../../.env
     volumes:
@@ -929,6 +959,49 @@ services:
     dns:
       - 8.8.8.8
 
+  # ── MinIO (dev S3) ───────────────────────────────────────────────────────────
+  # S3-compatible target for the partner-application uploads. Production uses the Terraform
+  # buckets in infra/terraform/environments/dev/partner-uploads.tf; this only exists so the
+  # presign -> browser upload -> confirm path can be exercised without touching real AWS.
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: gymcoach-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-gymini_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-gymini_minio_secret}
+      # Browser CORS for direct uploads from the web app (dev origins only).
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:5173,http://127.0.0.1:5173"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # Creates the two buckets and sets their (different) exposure. The private bucket gets NO
+  # anonymous policy; only gym-photos/ in the public-photos bucket is readable anonymously,
+  # mirroring "CloudFront OAC reads the public prefix only" in production.
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: gymcoach-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-gymini_minio} ${MINIO_ROOT_PASSWORD:-gymini_minio_secret} &&
+      mc mb --ignore-existing local/gymini-partner-private &&
+      mc mb --ignore-existing local/gymini-partner-photos &&
+      mc anonymous set none local/gymini-partner-private &&
+      mc anonymous set download local/gymini-partner-photos/gym-photos &&
+      echo 'minio buckets ready'"
+
 volumes:
   user_uploads:
   postgres_data:
@@ -939,6 +1012,7 @@ volumes:
   prometheus_data:
   grafana_data:
   seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)
+  minio_data:
 
 networks:
   default:

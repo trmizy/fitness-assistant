@@ -1,11 +1,22 @@
 import { Router } from "express";
 import { authController } from "../controllers/auth.controller";
 import { loginRateLimit } from "../middleware/loginRateLimit.middleware";
+import { createEmailActionRateLimit } from "../middleware/emailActionRateLimit.middleware";
+import partnerApplicationRoutes from "./partner-application.routes";
 
 const router = Router();
 
+// Đối tác Gym tự đăng ký: email → link → mật khẩu (công khai). Xem GYM_PARTNER_SELF_ONBOARDING_SPEC.md.
+router.use("/partner-applications", partnerApplicationRoutes);
+
 router.post("/register", authController.register);
 router.post("/register/verify", authController.verifyRegistration);
+// GAP-5: re-issue the code for a sign-up still waiting on verification.
+router.post(
+  "/register/resend",
+  createEmailActionRateLimit("register-resend"),
+  authController.resendRegistration,
+);
 // BUG-021 / TC-SEC-01: throttle repeated failed logins from the same (ip, email).
 router.post("/login", loginRateLimit, authController.login);
 router.post("/refresh", authController.refresh);
@@ -20,10 +31,15 @@ router.patch("/users/:userId/disable", authController.setUserActive);
 router.patch("/users/:userId/enable", authController.setUserActive);
 // "Quản lý gym & owner" — admin correcting another user's display name.
 router.patch("/users/:userId/name", authController.updateUserName);
-// Admin-only: create a gym-owner account directly — see authController.createGymOwner.
-router.post("/admin/gym-owners", authController.createGymOwner);
 // Phase 2 (quản trị đối tác) — người nhận link tự đặt mật khẩu mới, không cần đăng nhập.
 router.post("/password-reset", authController.resetPassword);
+// GAP-4: người dùng tự yêu cầu link đặt lại cho email của mình — link dẫn tới đúng trang +
+// endpoint ở dòng trên.
+router.post(
+  "/password-reset/request",
+  createEmailActionRateLimit("password-reset-request"),
+  authController.requestPasswordReset,
+);
 // Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
 router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);

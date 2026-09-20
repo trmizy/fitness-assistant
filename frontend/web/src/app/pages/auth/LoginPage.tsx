@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
-import { EyeIcon as Eye, EyeSlashIcon as EyeOff, UserIcon as User, LightningIcon as Zap, ShieldIcon as Shield, ArrowRightIcon as ArrowRight, PulseIcon as Activity, BrainIcon as Brain, DatabaseIcon as ServerCog } from "@phosphor-icons/react";
+import { EyeIcon as Eye, EyeSlashIcon as EyeOff, UserIcon as User, LightningIcon as Zap, ShieldIcon as Shield, ArrowRightIcon as ArrowRight, PulseIcon as Activity, BrainIcon as Brain, DatabaseIcon as ServerCog, BuildingsIcon as Buildings } from "@phosphor-icons/react";
 
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
 import { ROLE_HOME, landingPathFor, isSafeReturnPath, isReturnPathForRole, roleOf } from "../../config/landing";
@@ -99,6 +99,16 @@ export function LoginPage() {
           typeof serverMessage === "string" && serverMessage.length > 0
             ? serverMessage
             : "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.",
+        );
+      } else if (status === 403) {
+        // Tài khoản bị vô hiệu — đối tác bị tạm khoá hoặc chấm dứt thì auth-service khoá luôn
+        // tài khoản chủ sở hữu. Câu chung "Đã xảy ra lỗi, vui lòng thử lại" mời họ thử mãi mà
+        // không bao giờ vào được; server đã nói rõ lý do nên hiện đúng câu đó.
+        const serverMessage = err.response?.data?.error;
+        setError(
+          typeof serverMessage === "string" && serverMessage.length > 0
+            ? serverMessage
+            : "Tài khoản này hiện không đăng nhập được. Hãy liên hệ Gymini để biết thêm.",
         );
       } else {
         setError("Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -204,7 +214,7 @@ export function LoginPage() {
                   Mật khẩu
                 </label>
                 <Link
-                  to="/login"
+                  to="/quen-mat-khau"
                   className="text-xs text-green-400 hover:text-green-300 transition-colors"
                 >
                   Quên mật khẩu?
@@ -309,6 +319,13 @@ export function LoginPage() {
                 </button>
               </div>
             )}
+
+            <Link
+              to="/partner/apply"
+              className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-green-400 transition-colors hover:border-green-500/40 hover:bg-zinc-900"
+            >
+              <Buildings className="w-4 h-4" /> Đăng ký làm đối tác phòng tập
+            </Link>
           </div>
         </div>
       </div>

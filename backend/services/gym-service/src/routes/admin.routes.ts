@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { gymController } from '../controllers/gym.controller';
 import { brandController } from '../controllers/brand.controller';
@@ -16,6 +16,9 @@ import { gymBranchReviewController } from '../controllers/gym-branch-review.cont
 import { gymHoursController } from '../controllers/gym-hours.controller';
 import { gymPhotoController } from '../controllers/gym-photo.controller';
 import { gymBranchDocumentController } from '../controllers/gym-branch-document.controller';
+
+import { applicationReviewController, blockSelfServicePartner } from '../controllers/application-review.controller';
+import { rejectApplicationSchema, reopenIssueSchema, requestChangesSchema } from '../schemas/application.schemas';
 
 const router = Router();
 router.use(extractUser, requireAuth, requireRoles('ADMIN'));
@@ -73,14 +76,38 @@ router.post('/gym-memberships/:id/resolve-pending-issue', asyncHandler(membershi
 router.get('/partners/queue', asyncHandler(partnerDiligenceController.queue));
 // GYM_MANAGEMENT master spec §61 — Admin Gym Management overview dashboard KPI row.
 router.get('/partners/overview-stats', asyncHandler(partnerDiligenceController.overviewStats));
+// Hồ sơ đối tác TỰ ĐĂNG KÝ — hàng đợi duyệt. Phải đứng trước /partners/:id.
+router.get('/partners/applications', applicationReviewController.list);
 router.get('/partners', asyncHandler(partnerController.list));
-router.post('/partners', asyncHandler(partnerController.create));
+// Đã ngừng: chủ phòng gym tự đăng ký (/auth/partner-applications) rồi admin duyệt hồ sơ.
+// Không còn đường admin tạo/cấp tài khoản chủ gym — xem GYM_PARTNER_SELF_ONBOARDING_SPEC.md.
+const retiredOwnerProvisioning = (_req: Request, res: Response) =>
+  res.status(410).json({
+    success: false,
+    error: {
+      code: 'ENDPOINT_RETIRED',
+      message: 'Admin không còn tạo hồ sơ hay cấp tài khoản chủ phòng gym. Chủ gym tự đăng ký, admin duyệt tại "Hồ sơ đăng ký".',
+    },
+  });
+router.post('/partners', retiredOwnerProvisioning);
 router.get('/partners/:id', asyncHandler(partnerController.detail));
-router.patch('/partners/:id', asyncHandler(partnerController.update));
+router.patch('/partners/:id', blockSelfServicePartner, asyncHandler(partnerController.update));
 router.get('/partners/:id/audit-log', asyncHandler(partnerController.auditLog));
 
+// ── Duyệt hồ sơ đối tác tự đăng ký — MỘT vòng đời, mọi bước có dấu vết PartnerAuditLog ──────────────
+router.get('/partners/:id/application', applicationReviewController.get);
+router.get('/partners/:id/application/documents/:docType/file', applicationReviewController.documentFile);
+router.post('/partners/:id/application/documents/:docType/accept', applicationReviewController.acceptDocument);
+router.post('/partners/:id/application/request-changes', validateBody(requestChangesSchema), applicationReviewController.requestChanges);
+router.post('/partners/:id/application/issues/:issueId/resolve', applicationReviewController.resolveIssue);
+router.post('/partners/:id/application/issues/:issueId/reopen', validateBody(reopenIssueSchema), applicationReviewController.reopenIssue);
+router.post('/partners/:id/application/approve', applicationReviewController.approve);
+router.post('/partners/:id/application/reject', validateBody(rejectApplicationSchema), applicationReviewController.reject);
+router.post('/partners/:id/application/reopen', applicationReviewController.reopen);
+router.post('/partners/:id/application/publish-photos', applicationReviewController.publishPhotos);
+
 // 2.1/2.3 — cấp tài khoản (PROSPECT -> INVITED, gửi thư mời OWNER).
-router.post('/partners/:id/provision', asyncHandler(partnerController.provision));
+router.post('/partners/:id/provision', retiredOwnerProvisioning);
 router.post('/partners/:id/invitations/:invitationId/resend', asyncHandler(partnerController.resendInvitation));
 router.post('/partners/:id/invitations/:invitationId/revoke', asyncHandler(partnerController.revokeInvitation));
 
@@ -95,15 +122,15 @@ router.get('/partners/:id/view-as', asyncHandler(partnerController.viewAsPartner
 
 // Phase 4 — thẩm định: giấy tờ, nhật ký trao đổi, điều khoản đã chốt, từ chối/mở lại.
 router.get('/partners/:id/documents', asyncHandler(partnerDiligenceController.listDocuments));
-router.put('/partners/:id/documents/:docType', asyncHandler(partnerDiligenceController.upsertDocument));
-router.post('/partners/:id/documents/:docType/verify', asyncHandler(partnerDiligenceController.verifyDocument));
+router.put('/partners/:id/documents/:docType', blockSelfServicePartner, asyncHandler(partnerDiligenceController.upsertDocument));
+router.post('/partners/:id/documents/:docType/verify', blockSelfServicePartner, asyncHandler(partnerDiligenceController.verifyDocument));
 router.get('/partners/:id/contact-log', asyncHandler(partnerDiligenceController.listContactLog));
 router.post('/partners/:id/contact-log', asyncHandler(partnerDiligenceController.addContactLog));
-router.post('/partners/:id/reject', asyncHandler(partnerDiligenceController.reject));
-router.post('/partners/:id/reopen', asyncHandler(partnerDiligenceController.reopen));
+router.post('/partners/:id/reject', blockSelfServicePartner, asyncHandler(partnerDiligenceController.reject));
+router.post('/partners/:id/reopen', blockSelfServicePartner, asyncHandler(partnerDiligenceController.reopen));
 // GYM_MANAGEMENT master spec §60 — trục thẩm định riêng (không dùng cho REJECTED, dùng
 // /reject ở trên để rejectedAt/rejectionReason và verificationStatus không lệch nhau).
-router.patch('/partners/:id/verification-status', asyncHandler(partnerDiligenceController.setVerificationStatus));
+router.patch('/partners/:id/verification-status', blockSelfServicePartner, asyncHandler(partnerDiligenceController.setVerificationStatus));
 router.patch('/partners/:id/assigned-admin', asyncHandler(partnerDiligenceController.assignAdmin));
 // §65 — "INTERNAL NOTES (Owner-invisible)". Cố ý CHỈ mount ở đây, không bao giờ ở
 // owner.routes.ts — đó chính là điều làm nó "owner-invisible".
