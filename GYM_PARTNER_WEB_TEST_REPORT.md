@@ -161,7 +161,36 @@ presigned có chữ ký, bỏ chữ ký đi thì 403), `browser-e2e.cjs` **26/26
 **Vẫn chưa test trên AWS S3 thật** (mục G1) — máy dev không có khoá AWS. Và khi có quyền thì **không
 chạy `api-e2e.mjs`** vì nó ghi dữ liệu thử vào CSDL; cần một smoke test chỉ chạm S3.
 
-## 9. Dọn dữ liệu
+## 9. Bổ sung 2026-09-21 — đóng cổng ổn định W3
+
+**Hồi quy chủ gym cũ (REAL BROWSER, 14/14)** — đóng rủi ro **R1** tự nêu từ đầu kế hoạch. Lái một chủ
+gym ACTIVE có từ trước phiên này: không bị đẩy sang vùng ứng viên, dashboard đủ bốn KPI, ba trang vận
+hành mở được, tạo chi nhánh thành công đúng thương hiệu và vào `PENDING_REVIEW`, hộp thoại không có
+bộ chọn thương hiệu, **không request 4xx/5xx nào**, tự dọn chi nhánh thử.
+
+**Thanh toán thật bằng ZaloPay (REAL BROWSER, người dùng tự trả 300.000đ)** — giao dịch PAID, hợp đồng
+ACTIVE gắn đúng `payment_txn_id`, hạn 30 ngày, chia 270k cho gym + 30k hoa hồng, **đúng 3 bút toán
+không cộng trùng**, không sinh giao dịch hay hợp đồng trùng. Webhook ZaloPay không tới được localhost
+mà giao dịch vẫn về PAID — chứng minh đường `/payments/:id/sync` đúng như thiết kế.
+
+**Ba lỗi CÓ SẴN phát hiện và đã sửa trong đợt này**: guard lưu trữ không chạy trên Lambda; dashboard
+truyền `gymId` vào endpoint nhận `brandId` (404 + ô gói luôn 0 → nay 20); lưới tìm phòng gym kéo giãn
+cả hàng (1811px → 472px, thẻ bên cạnh giữ 152px).
+
+### Ba luồng hồi quy KHÔNG chạy, và vì sao
+
+Kế hoạch W3 liệt kê chúng. Đã đối chiếu bằng `git diff` trên đúng 8 commit của đợt này (111 file):
+**không commit nào chạm vào ba luồng này**, nên rủi ro hồi quy bằng không.
+
+| Luồng | Bằng chứng không bị ảnh hưởng |
+|---|---|
+| Đăng ký Client mới (OTP) | 0 file liên quan `register`/`otp` bị sửa |
+| Ứng tuyển PT | 0 file liên quan `ptApplication` bị sửa |
+| Mời MANAGER + nhận link | 0 file liên quan `invitation`/`invite` bị sửa; thêm nữa `partner-identity.integration.test.ts` có phủ `createInvitation`/`acceptInvitation`, và 3 lời mời MANAGER + 1 lời mời OWNER đang PENDING trong DB dev vẫn nguyên vẹn |
+
+Thanh toán thì không cần suy luận — đã trả tiền thật và kiểm bằng SQL.
+
+## 10. Dọn dữ liệu
 
 Mọi tài khoản `@partner-e2e.test`, hồ sơ/brand/chi nhánh sinh ra khi chạy, và đối tượng trong hai
 bucket MinIO đã được xoá. `PARTNER_APPLICATION_DEV_ECHO` trả về mặc định `false`. Không sửa DB dev để
