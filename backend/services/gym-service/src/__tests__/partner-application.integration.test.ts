@@ -22,8 +22,6 @@ process.env.PARTNER_S3_FORCE_PATH_STYLE = 'true';
 process.env.PARTNER_S3_ACCESS_KEY_ID = process.env.PARTNER_S3_ACCESS_KEY_ID || 'gymini_minio';
 process.env.PARTNER_S3_SECRET_ACCESS_KEY = process.env.PARTNER_S3_SECRET_ACCESS_KEY || 'gymini_minio_secret';
 process.env.PARTNER_S3_PRIVATE_BUCKET = process.env.PARTNER_S3_PRIVATE_BUCKET || 'gymini-partner-private';
-process.env.PARTNER_S3_PUBLIC_BUCKET = process.env.PARTNER_S3_PUBLIC_BUCKET || 'gymini-partner-photos';
-process.env.PARTNER_S3_PUBLIC_BASE_URL = process.env.PARTNER_S3_PUBLIC_BASE_URL || 'http://localhost:9000/gymini-partner-photos';
 
 const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 
@@ -319,10 +317,10 @@ s3Test('vòng đời: điền → nộp → yêu cầu sửa → thay giấy t�
   const brand = await m.prisma.gymBrand.findUniqueOrThrow({ where: { ownerId: a.userId } });
   assert.equal(brand.approvedName, 'ABC Fitness', 'chi nhánh đầu được duyệt kéo theo tên thương hiệu như setStatus');
 
-  // Ảnh được sao chép sang vùng công khai; giấy tờ thì KHÔNG.
+  // Duyệt xong ảnh VẪN riêng tư: không có bản sao công khai nào, khoá không đổi.
   const photo = await m.prisma.gymPhoto.findFirstOrThrow({ where: { gymId: gym.id } });
-  assert.equal(photo.visibility, 'PUBLIC');
-  assert.ok(photo.s3Key!.startsWith(`gym-photos/${gym.id}/`));
+  assert.equal(photo.visibility, 'PRIVATE');
+  assert.ok(photo.s3Key!.startsWith('partner-applications/'), `ảnh phải ở nguyên chỗ cũ: ${photo.s3Key}`);
   const docs = await m.prisma.gymPartnerDocument.findMany({ where: { partnerId: a.partnerId } });
   assert.ok(docs.every((d) => d.fileKey!.startsWith('partner-applications/')), 'giấy tờ vẫn ở bucket riêng tư');
 

@@ -1,5 +1,4 @@
 import {
-  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -12,11 +11,12 @@ import { assertPartnerS3ProductionSafe } from './partner-s3.guard';
 /**
  * S3 cho hồ sơ đối tác tự đăng ký — GYM_PARTNER_SECURITY_MODEL.md §6.
  *
- * Hai bucket có mức phơi nhiễm KHÁC nhau:
- *   PRIVATE  giấy tờ pháp lý + ảnh của hồ sơ đang chờ duyệt. Không có quyền công khai nào; chỉ đọc
- *            qua presigned GET ngắn hạn.
- *   PUBLIC   ảnh chi nhánh SAU khi duyệt (sao chép phía server từ bucket riêng tư), phục vụ qua CDN.
- *            Giấy tờ KHÔNG BAO GIỜ được sao chép sang đây.
+ * MỘT bucket, mọi tệp riêng tư: giấy tờ pháp lý, ảnh cơ sở và logo thương hiệu đều nằm dưới
+ * `partner-applications/`, không có quyền công khai nào, và chỉ đọc được qua presigned GET ngắn hạn.
+ * Không có bản sao công khai nào cả — hiện không bề mặt ẩn danh nào của sản phẩm hiển thị ảnh phòng
+ * gym (route công khai `/gyms`, `/gyms/:id` không trả ảnh), nên một bucket công khai + CDN sẽ là hạ
+ * tầng không ai dùng. Khi nào có trang tìm phòng gym cho khách thì mới dựng, và lúc đó thêm một
+ * nhánh phục vụ qua CDN chứ không phải sửa lại chỗ này.
  *
  * Cấu hình dùng PARTNER_S3_* (không dùng AWS_*): .env có thể mang khoá AWS thật cho service khác và
  * không được lọt nhầm vào bucket dev. Presigned URL ký cho host mà TRÌNH DUYỆT sẽ gọi
@@ -34,8 +34,6 @@ interface S3Config {
   forcePathStyle: boolean;
   credentials?: { accessKeyId: string; secretAccessKey: string };
   privateBucket: string;
-  publicBucket: string;
-  publicBaseUrl: string;
 }
 
 function readConfig(): S3Config {
@@ -50,8 +48,6 @@ function readConfig(): S3Config {
     forcePathStyle: process.env.PARTNER_S3_FORCE_PATH_STYLE === 'true',
     credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
     privateBucket: process.env.PARTNER_S3_PRIVATE_BUCKET || '',
-    publicBucket: process.env.PARTNER_S3_PUBLIC_BUCKET || '',
-    publicBaseUrl: (process.env.PARTNER_S3_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
   };
 }
 
@@ -154,21 +150,4 @@ export const partnerS3 = {
     await clients(cfg).internal.send(new DeleteObjectCommand({ Bucket: cfg.privateBucket, Key: key }));
   },
 
-  /** Sau khi duyệt: sao chép ảnh từ bucket riêng tư sang bucket công khai. Idempotent (ghi đè cùng khoá). */
-  async copyToPublic(fromKey: string, toKey: string): Promise<void> {
-    const cfg = readConfig();
-    if (!cfg.privateBucket || !cfg.publicBucket) throw unavailable();
-    await clients(cfg).internal.send(
-      new CopyObjectCommand({
-        Bucket: cfg.publicBucket,
-        Key: toKey,
-        CopySource: `${cfg.privateBucket}/${fromKey}`,
-      }),
-    );
-  },
-
-  publicUrl(key: string): string {
-    const cfg = readConfig();
-    return cfg.publicBaseUrl ? `${cfg.publicBaseUrl}/${key}` : '';
-  },
 };

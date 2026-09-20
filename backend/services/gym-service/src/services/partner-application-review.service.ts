@@ -1,5 +1,4 @@
 import type { Request } from 'express';
-import { logger } from '@gym-coach/shared';
 import { prisma } from '../repositories/prisma';
 import type { Prisma, PartnerDocumentType, PartnerReviewCategory } from '../generated/prisma';
 import { partnerAuditService } from './partner-audit.service';
@@ -427,29 +426,8 @@ export const partnerApplicationReviewService = {
       return { gymId: gym.id, email: partner.contactEmail };
     });
 
-    await partnerApplicationReviewService.publishPhotos(result.gymId).catch((e) =>
-      logger.error({ err: (e as Error).message, gymId: result.gymId }, 'Sao chép ảnh sang vùng công khai thất bại — chạy lại được'),
-    );
     void sendApplicantMail(result.email, applicantEmails.approved());
     return { ok: true, gymId: result.gymId };
-  },
-
-  /**
-   * Sau duyệt: ảnh chi nhánh riêng tư → vùng công khai (CopyObject phía server). Giấy tờ KHÔNG bao giờ
-   * được sao chép. Idempotent: ảnh đã PUBLIC bị bỏ qua; ảnh lỗi ở PRIVATE cho tới lần chạy lại.
-   */
-  async publishPhotos(gymId: string) {
-    if (!partnerS3.isConfigured()) return { published: 0, skipped: true };
-    const photos = await prisma.gymPhoto.findMany({ where: { gymId, visibility: 'PRIVATE', s3Key: { not: null } } });
-    let published = 0;
-    for (const photo of photos) {
-      const from = photo.s3Key as string;
-      const to = `gym-photos/${gymId}/${from.split('/').pop()}`;
-      await partnerS3.copyToPublic(from, to);
-      await prisma.gymPhoto.update({ where: { id: photo.id }, data: { s3Key: to, visibility: 'PUBLIC' } });
-      published += 1;
-    }
-    return { published, skipped: false };
   },
 
   async reject(partnerId: string, adminId: string, reason: string, adminNote?: string, req?: Request) {

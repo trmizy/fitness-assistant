@@ -6,7 +6,8 @@ import {
 
 export type GymServiceJobName =
   | "membership-payout-sweep"
-  | "referral-settlement-sweep";
+  | "referral-settlement-sweep"
+  | "partner-upload-sweep";
 
 export interface GymServiceJobEvent {
   job?: GymServiceJobName | string;
@@ -21,6 +22,10 @@ export async function runGymServiceJob(event: GymServiceJobEvent) {
     case "referral-settlement-sweep": {
       const { runReferralSettlementSweep } = await import("./services/referral-settlement-sweep.service");
       return runReferralSettlementSweep();
+    }
+    case "partner-upload-sweep": {
+      const { runPartnerUploadSweep } = await import("./services/partner-upload-sweep.service");
+      return runPartnerUploadSweep();
     }
     default:
       throw Object.assign(new Error(`Unknown gym-service job: ${event.job ?? ""}`), {

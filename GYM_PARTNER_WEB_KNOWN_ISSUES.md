@@ -7,10 +7,10 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 
 | # | Vấn đề | Vì sao chặn | Việc cần làm |
 |---|---|---|---|
-| G1 | **Chưa từng test trên AWS S3 thật** | Toàn bộ upload mới chỉ chạy trên MinIO cục bộ; hành vi riêng của S3 (CORS, điều kiện presigned POST, mã hoá mặc định, quyền IAM) chưa được xác nhận | Tạo bucket dev thật theo `partner-uploads.tf`, chạy `scripts/partner-application-e2e/api-e2e.mjs` với `PARTNER_S3_*` trỏ vào đó |
-| G2 | **Terraform chưa apply và chưa nối vào runtime** | `infra/terraform/environments/dev/partner-uploads.tf` mới chỉ tạo bucket + output; không tệp deploy nào truyền `PARTNER_S3_*` cho gym-service. Deploy lúc này → mọi upload trả **503 `UPLOADS_UNAVAILABLE`** | `terraform validate`/`apply` (do ops chạy) rồi nối output vào biến môi trường của gym-service |
+| G1 | **Chưa từng test trên AWS S3 thật** | Toàn bộ upload mới chỉ chạy trên MinIO cục bộ; hành vi riêng của S3 (điều kiện presigned POST, CORS, mã hoá mặc định, quyền IAM theo prefix) chưa được xác nhận | Cần quyền truy cập bucket từ máy dev (IAM user tạm hoặc role assume được), rồi chạy một smoke test **chỉ chạm S3** — không chạy `api-e2e.mjs` vì nó ghi dữ liệu thử vào DB |
+| G2 | **Biến môi trường trên Lambda** | Hàm `fitness-assistant-dev-gym` cần `PARTNER_S3_PRIVATE_BUCKET` và `PARTNER_S3_REGION`; thiếu thì mọi upload trả **503 `UPLOADS_UNAVAILABLE`** | Người vận hành AWS đặt hai biến đó (đã yêu cầu). Không còn Terraform nào phải apply — `partner-uploads.tf` **đã xoá** |
 | G3 | **Redis chia sẻ cho rate limit** | Limiter theo tiến trình không an toàn khi scale ngang. Production phải đặt `RATE_LIMIT_REQUIRE_SHARED=true`, và khi đó gateway **từ chối khởi động** nếu không có Redis | Cấp Redis (ElastiCache hoặc container) cho môi trường production |
-| G4 | **CloudFront/OAC cho bucket ảnh công khai** | Ảnh sau duyệt phục vụ qua `PARTNER_S3_PUBLIC_BASE_URL`; chưa có CDN thật nên chưa xác nhận đường phục vụ | Dựng phân phối + đặt `PARTNER_S3_PUBLIC_BASE_URL` |
+| ~~G4~~ | ~~CloudFront/OAC cho ảnh công khai~~ | **Không còn cần (2026-09-20)** — đã bỏ bucket công khai; ảnh luôn riêng tư, phục vụ bằng presigned GET. Không bề mặt ẩn danh nào hiển thị ảnh phòng gym. | — |
 | ~~G5~~ | ~~Chưa có địa chỉ hỗ trợ~~ | **Đã xong 2026-09-20** — `VITE_SUPPORT_EMAIL` mặc định `huytronh5@gmail.com` (trùng `SMTP_FROM`, thư trả lời về đúng hộp gửi) trong `docker-compose.dev.yml`; service `web` không có `env_file` nên giá trị phải nằm ở compose. Không phải bí mật: nó hiện trong bundle. | — |
 
 ## 2. Rủi ro đã biết, chấp nhận có điều kiện
@@ -27,6 +27,9 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 - **R5 — Ảnh chi nhánh cũ vẫn nằm trên đĩa container.** Luồng ảnh cũ (`/uploads/gym-photos`, multer) không
   bị đụng tới và **không** có volume trong compose dev cho gym-service; trên Lambda thì các đường ghi đĩa
   này bị khoá 503. Di trú ảnh cũ sang S3 là **hạng mục riêng, chưa nằm trong kế hoạch**.
+- **R7 — Job dọn tệp mồ côi cần lịch chạy.** `partner-upload-sweep` đã có trong `jobs-lambda.ts` nhưng
+  chỉ chạy khi có EventBridge Scheduler gọi tới (giống hai sweep sẵn có). Chưa có lịch thì tệp bỏ dở
+  vẫn tích tụ.
 - **R6 — Hai module S3 song song.** `user-service/s3-upload.service.ts` (presigned PUT, `USER_UPLOAD_BUCKET`)
   và `gym-service/partner-s3.service.ts` (presigned POST, hai bucket) không dùng chung code. Gộp lại là việc
   dọn dẹp về sau, không cần cho luồng này.
@@ -50,6 +53,13 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 - Các script E2E tạo dữ liệu `@partner-e2e.test` và **không tự dọn**; phải xoá thủ công (README có ghi).
 
 ## 5. Đã đóng trong đợt này
+
+- **Một bucket riêng tư (2026-09-20)**: bỏ bucket công khai, bỏ `CopyObject` sau duyệt, bỏ endpoint
+  `publish-photos`, bỏ `PARTNER_S3_PUBLIC_BUCKET`/`_PUBLIC_BASE_URL`, **xoá `partner-uploads.tf`**.
+  Ảnh sau duyệt vẫn PRIVATE, phục vụ bằng presigned GET. Cột `GymPhoto.visibility` **giữ nguyên**
+  (không migration phá huỷ), chỉ ngừng ghi `PUBLIC`.
+- **Dọn tệp mồ côi (2026-09-20)**: `partner-upload-sweep.service.ts` + job cùng tên trong
+  `jobs-lambda.ts`. Xoá S3 trước, xoá dòng DB sau, để lần chạy sau thử lại được nếu S3 lỗi.
 
 - **Logo thương hiệu (2026-09-20)**: tuỳ chọn, chủ gym tự thêm ở bước Thương hiệu, thay lúc nào cũng được;
   không nằm trong danh sách "còn thiếu" nên không chặn nộp hồ sơ. Lưu ở bucket riêng tư cùng chỗ với hồ sơ,

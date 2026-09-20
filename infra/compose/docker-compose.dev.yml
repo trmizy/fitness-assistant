@@ -936,8 +936,6 @@ services:
       PARTNER_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}
       PARTNER_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-gymini_minio_secret}
       PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
-      PARTNER_S3_PUBLIC_BUCKET: gymini-partner-photos
-      PARTNER_S3_PUBLIC_BASE_URL: http://localhost:9000/gymini-partner-photos
       # E2E only (same flag as auth-service): applicant emails are logged instead of really sent.
       PARTNER_APPLICATION_DEV_ECHO: ${PARTNER_APPLICATION_DEV_ECHO:-false}
     env_file:
@@ -960,9 +958,10 @@ services:
       - 8.8.8.8
 
   # ── MinIO (dev S3) ───────────────────────────────────────────────────────────
-  # S3-compatible target for the partner-application uploads. Production uses the Terraform
-  # buckets in infra/terraform/environments/dev/partner-uploads.tf; this only exists so the
-  # presign -> browser upload -> confirm path can be exercised without touching real AWS.
+  # S3-compatible target for the partner-application uploads, DEV ONLY — never deployed to AWS
+  # (see GYM_PARTNER_SECURITY_MODEL.md §6b). Production uses the real S3 bucket the deployment
+  # owner already operates; this only exists so presign -> browser upload -> confirm can be
+  # exercised without touching AWS.
   minio:
     image: quay.io/minio/minio:latest
     container_name: gymcoach-minio
@@ -983,9 +982,8 @@ services:
       timeout: 5s
       retries: 6
 
-  # Creates the two buckets and sets their (different) exposure. The private bucket gets NO
-  # anonymous policy; only gym-photos/ in the public-photos bucket is readable anonymously,
-  # mirroring "CloudFront OAC reads the public prefix only" in production.
+  # MỘT bucket, không có chính sách ẩn danh nào — giống hệt production: mọi tệp của hồ sơ đối tác
+  # đều riêng tư và chỉ đọc được qua presigned GET.
   minio-init:
     image: quay.io/minio/mc:latest
     container_name: gymcoach-minio-init
@@ -997,10 +995,8 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-gymini_minio} ${MINIO_ROOT_PASSWORD:-gymini_minio_secret} &&
       mc mb --ignore-existing local/gymini-partner-private &&
-      mc mb --ignore-existing local/gymini-partner-photos &&
       mc anonymous set none local/gymini-partner-private &&
-      mc anonymous set download local/gymini-partner-photos/gym-photos &&
-      echo 'minio buckets ready'"
+      echo 'minio bucket ready'"
 
 volumes:
   user_uploads:

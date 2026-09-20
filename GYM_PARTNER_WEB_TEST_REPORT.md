@@ -144,7 +144,24 @@ Chạy lại sau các thay đổi trên: gym-service **242/242**, auth-service *
 `api-e2e.mjs` **90/90**, `browser-e2e.cjs` **26/26**, `browser-e2e-mobile.cjs` **30/30** ở 360 và 412px,
 `admin-regression.cjs` **4/4**, `vite build` sạch.
 
-## 8. Dọn dữ liệu
+## 8. Bổ sung 2026-09-20 (chuyển sang một bucket riêng tư)
+
+Sau khi người vận hành AWS xác nhận hạ tầng thật (Lambda theo từng service, role riêng cho gym, chỉ có
+môi trường dev, không có CloudFront), kiến trúc lưu trữ được rút gọn: **một bucket, mọi tệp riêng tư**.
+
+Đã gỡ: bucket công khai, bước `CopyObject` sau duyệt, endpoint `publish-photos`, biến
+`PARTNER_S3_PUBLIC_BUCKET`/`_PUBLIC_BASE_URL`, và file `infra/terraform/environments/dev/partner-uploads.tf`.
+Đã thêm: job `partner-upload-sweep` dọn tệp của những lượt tải lên không bao giờ được xác nhận.
+
+Chạy lại toàn bộ sau thay đổi: gym-service **240/240**, auth-service **59/59**, gateway **29/29**,
+`api-e2e.mjs` **92/92** (thêm 3 kiểm tra mới: ảnh sau duyệt vẫn PRIVATE và giữ nguyên khoá, URL ảnh là
+presigned có chữ ký, bỏ chữ ký đi thì 403), `browser-e2e.cjs` **26/26**, `browser-e2e-mobile.cjs`
+**30/30** ở 390px, `admin-regression.cjs` **4/4**, `vite build` sạch.
+
+**Vẫn chưa test trên AWS S3 thật** (mục G1) — máy dev không có khoá AWS. Và khi có quyền thì **không
+chạy `api-e2e.mjs`** vì nó ghi dữ liệu thử vào CSDL; cần một smoke test chỉ chạm S3.
+
+## 9. Dọn dữ liệu
 
 Mọi tài khoản `@partner-e2e.test`, hồ sơ/brand/chi nhánh sinh ra khi chạy, và đối tượng trong hai
 bucket MinIO đã được xoá. `PARTNER_APPLICATION_DEV_ECHO` trả về mặc định `false`. Không sửa DB dev để

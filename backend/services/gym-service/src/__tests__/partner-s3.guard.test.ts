@@ -10,7 +10,7 @@ test('ngoài production: cấu hình MinIO dev luôn hợp lệ', () => {
 });
 
 test('production sạch (chỉ tên bucket, CDN https) hợp lệ', () => {
-  const env = { ...prod, PARTNER_S3_PRIVATE_BUCKET: 'a', PARTNER_S3_PUBLIC_BUCKET: 'b', PARTNER_S3_PUBLIC_BASE_URL: 'https://cdn.example.com/photos' };
+  const env = { ...prod, PARTNER_S3_PRIVATE_BUCKET: 'a' };
   assert.deepEqual(partnerS3ProductionViolations(env), []);
   assert.doesNotThrow(() => assertPartnerS3ProductionSafe(env));
 });
@@ -21,11 +21,9 @@ for (const [name, extra] of Object.entries({
   pathStyle: { PARTNER_S3_FORCE_PATH_STYLE: 'true' },
   staticKey: { PARTNER_S3_ACCESS_KEY_ID: 'gymini_minio' },
   staticSecret: { PARTNER_S3_SECRET_ACCESS_KEY: 'x' },
-  httpBase: { PARTNER_S3_PUBLIC_BASE_URL: 'http://cdn.example.com/p' },
-  localhostBase: { PARTNER_S3_PUBLIC_BASE_URL: 'https://localhost:9000/p' },
-  minioBase: { PARTNER_S3_PUBLIC_BASE_URL: 'https://minio/p' },
-  privateIpBase: { PARTNER_S3_PUBLIC_BASE_URL: 'https://192.168.1.5/p' },
-  badBase: { PARTNER_S3_PUBLIC_BASE_URL: 'not a url' },
+  // Bucket công khai đã bị gỡ: còn sót biến nào của nó cũng là cấu hình cũ, phải chặn.
+  publicBucketLeftover: { PARTNER_S3_PUBLIC_BUCKET: 'b' },
+  publicBaseUrlLeftover: { PARTNER_S3_PUBLIC_BASE_URL: 'https://cdn.example.com/p' },
 })) {
   test(`production từ chối: ${name}`, () => {
     const env = { ...prod, ...extra };

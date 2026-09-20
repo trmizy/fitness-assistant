@@ -5,8 +5,8 @@ import { partnerS3 } from './partner-s3.service';
  * ngoài (danh sách của chủ, của admin, màn duyệt hồ sơ):
  *
  *   ảnh đĩa cũ (s3Key null)     → `/uploads/gym-photos/<fileName>`, đúng như trước đây (phục vụ tĩnh)
- *   ảnh S3, visibility PUBLIC    → URL công khai qua CDN (PARTNER_S3_PUBLIC_BASE_URL)
- *   ảnh S3, visibility PRIVATE   → presigned GET hạn ngắn (ảnh của hồ sơ đang chờ duyệt)
+ *   ảnh S3                       → presigned GET hạn ngắn. Mọi ảnh đều riêng tư, kể cả sau khi
+ *                                  duyệt: hiện không bề mặt ẩn danh nào hiển thị ảnh phòng gym.
  *
  * Trả null (không ném lỗi) khi không dựng được URL — một ảnh hỏng không được làm hỏng cả danh sách.
  */
@@ -16,7 +16,6 @@ export async function resolvePhotoUrl(photo: {
   visibility: 'PRIVATE' | 'PUBLIC';
 }): Promise<string | null> {
   if (!photo.s3Key) return `/uploads/gym-photos/${photo.fileName}`;
-  if (photo.visibility === 'PUBLIC') return partnerS3.publicUrl(photo.s3Key) || null;
   try {
     return await partnerS3.presignGet({ key: photo.s3Key, attachment: false, expiresSec: 300 });
   } catch {

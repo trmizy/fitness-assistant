@@ -83,21 +83,37 @@ Giảm nhẹ: giới hạn tần suất theo email (DB) + theo IP (gateway), th�
 - Mã hoá: dựa default-encryption của bucket (chuẩn dự án). **Không gửi header SSE tới MinIO** (MinIO từ chối nếu chưa cấu hình KMS).
 - MinIO dev: endpoint override, `forcePathStyle: true`, bootstrap bucket, CORS cho origin web, anonymous-read **chỉ** prefix công khai; bucket riêng tư không có chính sách công khai. Không dùng đĩa cục bộ → chạy được trên Lambda.
 
-### 6b. Ranh giới môi trường — MinIO KHÔNG BAO GIỜ được triển khai lên AWS
+### 6b. Một bucket, mọi tệp riêng tư — và MinIO KHÔNG BAO GIỜ lên AWS
 
-Quyết định (đã chốt): MinIO chỉ là kho S3-tương-thích cho **dev/local và test tích hợp backend**. Production dùng S3 gốc của AWS.
+Quyết định (2026-09-20, sau khi kiểm hạ tầng AWS thật): **dùng lại bucket sẵn có của user-service**,
+không tạo bucket mới, **không có bucket công khai, không CloudFront**.
+
+Vì sao bỏ bucket công khai: hiện **không bề mặt ẩn danh nào của sản phẩm hiển thị ảnh phòng gym** —
+route công khai `/gyms`, `/gyms/:id` không trả ảnh, và `gymPhotoUrl` ở web/mobile chỉ được gọi trong
+wizard của chủ gym và màn duyệt của admin (đều đã đăng nhập). Một bucket công khai + CDN sẽ là hạ tầng
+không ai dùng. Khi nào có trang tìm phòng gym cho khách thì mới dựng.
+
+Hệ quả: ảnh chi nhánh **vẫn PRIVATE sau khi duyệt**, phục vụ bằng presigned GET như giấy tờ. Không có
+bước `CopyObject`, không có endpoint `publish-photos`, không có `PARTNER_S3_PUBLIC_*`.
 
 | | Dev / test | AWS production |
 |---|---|---|
-| Kho | MinIO (`infra/compose/docker-compose.dev.yml`, duy nhất) | S3 gốc (Terraform `partner-uploads.tf`) |
+| Kho | MinIO (`infra/compose/docker-compose.dev.yml`, một bucket, không chính sách ẩn danh) | bucket S3 sẵn có `fitness-assistant-uploads-dev-…`, prefix `partner-applications/` |
 | `PARTNER_S3_ENDPOINT` / `_PUBLIC_ENDPOINT` | `http://minio:9000` / `http://localhost:9000` | **để trống** |
 | `PARTNER_S3_FORCE_PATH_STYLE` | `true` | **để trống hoặc `false`** |
-| Thông tin xác thực | khoá dev `PARTNER_S3_ACCESS_KEY_ID/SECRET` | **IAM role / default credential chain** (không đặt khoá tĩnh) |
-| `PARTNER_S3_PUBLIC_BASE_URL` | `http://localhost:9000/...` | `https://` CDN, không phải host cục bộ |
+| Thông tin xác thực | khoá dev | **IAM role của Lambda** (`…-gym-lambda-role`), giới hạn `partner-applications/*` |
+| `PARTNER_S3_PUBLIC_BUCKET` / `_PUBLIC_BASE_URL` | **không đặt** | **không đặt** — guard sẽ chặn khởi động nếu thấy |
+| `PARTNER_S3_REQUIRE_SSE` | không cần | `true` (bucket mã hoá mặc định AES256) |
 
-Cưỡng chế bằng code (`gym-service/src/services/partner-s3.guard.ts`): khi `NODE_ENV=production`, gym-service **từ chối khởi động** và mọi thao tác S3 đều ném lỗi nếu có endpoint tuỳ chỉnh, path-style, khoá tĩnh, hoặc `PUBLIC_BASE_URL` không phải https / trỏ về localhost, `minio`, IP nội bộ. Có test `partner-s3.guard.test.ts`. Không tệp triển khai production nào (`docker-compose.prod.yml`, Dockerfile, Terraform, CI) được phép chứa MinIO; `.env` dev hiện không mang biến `PARTNER_S3_*`/`MINIO_*`.
+Cưỡng chế bằng code (`gym-service/src/services/partner-s3.guard.ts`): khi `NODE_ENV=production`,
+gym-service **từ chối khởi động** nếu có endpoint tuỳ chỉnh, path-style, khoá tĩnh, hoặc biến của
+bucket công khai đã bị gỡ. Không tệp triển khai production nào được chứa MinIO.
 
-Smoke test trên **S3 thật** là yêu cầu trước-deploy / W3, không chặn W2. Chưa có tài nguyên AWS nào được tạo.
+Dọn rác: `partner-upload-sweep` (job trong `jobs-lambda.ts`) xoá tệp của những lượt tải lên đã hết hạn
+mà người dùng không bao giờ bấm xác nhận — nếu không thì chúng nằm lại vĩnh viễn và vẫn tính tiền.
+
+Smoke test trên **S3 thật** là yêu cầu trước-deploy (mục G1 trong Known Issues); chưa có tài nguyên AWS
+nào do repo này tạo ra.
 
 ## 7. Phân quyền theo dữ liệu (chống truy cập chéo)
 
