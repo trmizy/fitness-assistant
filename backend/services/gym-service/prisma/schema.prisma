@@ -138,6 +138,11 @@ model GymPhoto {
   /// Đúng một ảnh có isCover=true tại một thời điểm cho mỗi gym — ràng buộc này do
   /// gymPhotoService tự đảm bảo (bỏ cờ ảnh cũ trước khi đặt cờ ảnh mới), không phải ở CSDL.
   isCover   Boolean  @default(false) @map("is_cover")
+  /// Ảnh lưu ở S3 (hồ sơ tự đăng ký): khoá đối tượng do SERVER sinh. Null = ảnh đĩa cũ.
+  s3Key     String?  @map("s3_key")
+  category  GymPhotoCategory?
+  /// PRIVATE cho tới khi hồ sơ được duyệt; sau đó ảnh được sao chép sang vùng công khai.
+  visibility GymPhotoVisibility @default(PUBLIC)
   createdAt DateTime @default(now()) @map("created_at")
 
   gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
@@ -405,6 +410,70 @@ enum PartnerContactChannel {
   OTHER
 }
 
+// ── Self-service partner application (GYM_PARTNER_SELF_ONBOARDING_SPEC.md) ────────────────
+
+/// Đối tác vào hệ thống bằng đường nào. ADMIN_CREATED = hồ sơ do admin nhập tay theo luồng cũ
+/// (đã gỡ khỏi quy trình bình thường, chỉ còn dữ liệu cũ); SELF_SERVICE = chủ gym tự đăng ký.
+enum GymPartnerSource {
+  ADMIN_CREATED
+  SELF_SERVICE
+}
+
+enum PartnerRepresentativeRole {
+  GYM_OWNER
+  CO_FOUNDER
+  LEGAL_REPRESENTATIVE
+  AUTHORIZED_MANAGER
+}
+
+/// Thông tin onboarding thuần — KHÔNG đổi mô hình dữ liệu: cả hai lựa chọn đều là 1 Owner
+/// → 1 Brand → N Branch. Chọn MULTIPLE_BRANCHES vẫn chỉ hoàn tất chi nhánh đầu trong hồ sơ.
+enum PartnerBusinessScale {
+  ONE_BRANCH
+  MULTIPLE_BRANCHES
+}
+
+enum PartnerReviewCategory {
+  REPRESENTATIVE
+  BRAND
+  BRANCH
+  LOCATION
+  PHOTOS
+  LEGAL
+  OTHER
+}
+
+/// Khác GymBranchReviewIssue (tự đóng khi chủ gym nộp lại): nộp lại KHÔNG chứng minh vấn đề
+/// đã được sửa đúng ý, nên chỉ ADMIN mới chuyển sang RESOLVED.
+enum PartnerReviewIssueStatus {
+  OPEN
+  RESUBMITTED
+  RESOLVED
+}
+
+enum GymPhotoCategory {
+  EXTERIOR
+  MAIN_TRAINING_AREA
+  EQUIPMENT
+  CARDIO
+  CHANGING_ROOM
+  AMENITIES
+  OTHER
+}
+
+/// PRIVATE = ảnh của hồ sơ đang chờ duyệt (chỉ chủ + admin thấy); PUBLIC = ảnh đã công khai.
+/// Ảnh cũ (đĩa) mặc định PUBLIC — đúng như trước đây.
+enum GymPhotoVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum PartnerUploadKind {
+  DOCUMENT
+  PHOTO
+  LOGO
+}
+
 // ── Phase 5 ───────────────────────────────────────────────────────────────────
 
 enum TerminationMemberPolicy {
@@ -436,12 +505,27 @@ enum PartnerAuditAction {
   PARTNER_TERMINATED
   /// Bắt buộc ghi. Không ghi nhật ký thì đây là một cửa hậu.
   VIEWED_AS_PARTNER
+  // ── Hồ sơ đối tác tự đăng ký — người thực hiện có thể là admin HOẶC chính ứng viên ──
+  APPLICATION_SUBMITTED
+  CHANGES_REQUESTED
+  ISSUE_MARKED_UPDATED
+  APPLICATION_RESUBMITTED
+  ISSUE_RESOLVED
+  DOCUMENT_UPLOADED
+  DOCUMENT_REPLACED
+  DOCUMENT_ACCEPTED
+  DOCUMENT_UPDATE_REQUESTED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  APPLICATION_REOPENED
+  DOCUMENT_VIEWED
 }
 
 model PartnerAuditLog {
   id        String             @id @default(uuid())
   partnerId String             @map("partner_id")
-  /// Quản trị viên thực hiện — KHÔNG phải người bị tác động.
+  /// Người thực hiện — quản trị viên, hoặc (với các sự kiện hồ sơ tự đăng ký như nộp/nộp lại/
+  /// thay tệp) chính ứng viên. KHÔNG phải đối tượng bị tác động.
   actorUserId String           @map("actor_user_id")
   action    PartnerAuditAction
   /// Tài khoản cụ thể bị tác động, nếu hành động nhắm vào một tài khoản.
@@ -552,6 +636,14 @@ model GymPartner {
   expectedBranchCount    Int?             @map("expected_branch_count")
   negotiationNotes       String?          @map("negotiation_notes")
   // ── Phase 3: bước 3-4-5 của trình thiết lập lần đầu (chỉ OWNER phải hoàn tất) ──────
+  // ── Hồ sơ tự đăng ký ──────────────────────────────────────────────────────────────
+  /// Mọi dòng có từ trước là ADMIN_CREATED. SELF_SERVICE được đặt lúc bootstrap.
+  source                 GymPartnerSource @default(ADMIN_CREATED)
+  /// Lúc ứng viên nộp hồ sơ (UNDER_REVIEW). Null khi đang ONBOARDING.
+  submittedAt            DateTime?        @map("submitted_at")
+  representativeName     String?          @map("representative_name")
+  representativeRole     PartnerRepresentativeRole? @map("representative_role")
+  businessScale          PartnerBusinessScale? @map("business_scale")
   payoutBankName          String?         @map("payout_bank_name")
   payoutBankAccountNumber String?         @map("payout_bank_account_number")
   payoutBankAccountHolder String?         @map("payout_bank_account_holder")
@@ -567,6 +659,8 @@ model GymPartner {
   documents    GymPartnerDocument[]
   contactLogs  GymPartnerContactLog[]
   internalNotes PartnerInternalNote[]
+  reviewIssues GymPartnerReviewIssue[]
+  uploadIntents PartnerUploadIntent[]
 
   @@index([status])
   @@index([verificationStatus])
@@ -645,7 +739,18 @@ model GymPartnerDocument {
   docType    PartnerDocumentType   @map("doc_type")
   required   Boolean               @default(true)
   fileUrl    String?               @map("file_url")
+  /// Tệp do ứng viên tự tải lên S3 (khoá do SERVER sinh, bucket riêng tư). Dòng cũ do admin gõ
+  /// URL chỉ có fileUrl. Không bao giờ là URL công khai.
+  fileKey    String?               @map("file_key")
+  mimeType   String?               @map("mime_type")
+  sizeBytes  Int?                  @map("size_bytes")
+  uploadedBy String?               @map("uploaded_by")
+  /// Tăng mỗi lần ứng viên thay tệp (khoá cũ được giữ trong PartnerAuditLog.metadata).
+  version    Int                   @default(1)
+  /// Lý do admin yêu cầu cập nhật (status = REJECTED, nhãn UI "Cần cập nhật").
+  reviewNote String?               @map("review_note")
   status     PartnerDocumentStatus @default(PENDING)
+  /// Người/lúc DUYỆT (chấp nhận hoặc yêu cầu cập nhật) — không đổi nghĩa so với trước.
   verifiedBy String?               @map("verified_by")
   verifiedAt DateTime?             @map("verified_at")
   /// Cho giấy phép kinh doanh/PCCC — nguồn cho mục "giấy phép sắp hết hạn" ở hàng đợi
@@ -660,6 +765,53 @@ model GymPartnerDocument {
   @@index([partnerId])
   @@index([expiresAt])
   @@map("gym_partner_documents")
+}
+
+/// Vấn đề admin nêu trên hồ sơ tự đăng ký, theo mục. Vòng đời OPEN → RESUBMITTED (ứng viên
+/// đánh dấu "đã cập nhật") → RESOLVED (chỉ ADMIN đóng). Nộp lại hồ sơ KHÔNG đóng vấn đề nào.
+model GymPartnerReviewIssue {
+  id            String                   @id @default(uuid())
+  partnerId     String                   @map("partner_id")
+  category      PartnerReviewCategory
+  message       String
+  status        PartnerReviewIssueStatus @default(OPEN)
+  createdBy     String                   @map("created_by")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  resubmitNote  String?                  @map("resubmit_note")
+  resubmittedAt DateTime?                @map("resubmitted_at")
+  /// Lời nhắn của admin khi mở lại một vấn đề chưa được sửa đúng (status quay về OPEN).
+  adminFollowUp String?                  @map("admin_follow_up")
+  resolvedBy    String?                  @map("resolved_by")
+  resolvedAt    DateTime?                @map("resolved_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, status])
+  @@map("gym_partner_review_issues")
+}
+
+/// Một lần xin phép tải lên. Khoá đối tượng do SERVER sinh và gắn với partner; client chỉ
+/// nhận uploadId và chỉ xác nhận (confirm) được intent của CHÍNH partner đó — không có
+/// đường nào gắn một khoá S3 tuỳ ý hay của partner khác vào hồ sơ.
+model PartnerUploadIntent {
+  id            String               @id @default(uuid())
+  partnerId     String               @map("partner_id")
+  kind          PartnerUploadKind
+  docType       PartnerDocumentType? @map("doc_type")
+  gymId         String?              @map("gym_id")
+  photoCategory GymPhotoCategory?    @map("photo_category")
+  objectKey     String               @unique @map("object_key")
+  contentType   String               @map("content_type")
+  maxBytes      Int                  @map("max_bytes")
+  createdBy     String               @map("created_by")
+  expiresAt     DateTime             @map("expires_at")
+  confirmedAt   DateTime?            @map("confirmed_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, kind])
+  @@map("partner_upload_intents")
 }
 
 /// Phase 4 — nhật ký trao đổi: mỗi email, cuộc gọi, cam kết đều ghi lại kèm ngày và người
@@ -700,13 +852,16 @@ model GymBrand {
   approvedName  String?  @map("approved_name")
   pendingName   String?  @map("pending_name")
   description String?
+  /// Khoá đối tượng S3 của logo (hồ sơ tự đăng ký). Chưa có luồng tải logo thì để null.
+  logoKey     String?  @map("logo_key")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   branches Gym[]
   plans    GymMembershipPlan[]
 
-  @@index([ownerId])
+  /// Bất biến "1 Owner = đúng 1 Brand" ở cấp DB (trước đây chỉ GymPartner.brandId là unique).
+  @@unique([ownerId])
   @@map("gym_brands")
 }
 

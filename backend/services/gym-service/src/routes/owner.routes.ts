@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { resolvePartnerContext, requirePartnerOwner, requireGymScope, principalId } from '../middleware/partner-context.middleware';
-import { requireOnboardingComplete } from '../middleware/onboarding-gate.middleware';
+import { requireOperationalAccess, requirePartnerAccountOrLegacy } from '../middleware/operational-access.middleware';
+import applicationRoutes from './application.routes';
 import { partnerGuard } from '../services/partner-guard.service';
 import { gymController } from '../controllers/gym.controller';
 import { gymDraftController } from '../controllers/gym-draft.controller';
@@ -32,18 +33,27 @@ const router = Router();
 // phân biệt hai cấp quyền BÊN TRONG một đối tác.
 router.use(extractUser, requireAuth, requireRoles('GYM_OWNER'), resolvePartnerContext);
 
-// ── Phase 3: trình thiết lập lần đầu ─────────────────────────────────────────
-// PHẢI mount TRƯỚC requireOnboardingComplete bên dưới — đây chính là các route hoàn tất
-// từng bước, tự chặn chính mình thì không ai thoát được trình thiết lập.
-router.get('/onboarding/status', asyncHandler(onboardingController.status));
-router.patch('/onboarding/contact', asyncHandler(onboardingController.submitContact));
-router.post('/onboarding/brand', asyncHandler(onboardingController.submitBrand));
-router.patch('/onboarding/payout', asyncHandler(onboardingController.submitPayout));
-router.post('/onboarding/terms', asyncHandler(onboardingController.submitTerms));
+// ── VÙNG ỨNG VIÊN — mount TRƯỚC cổng vận hành bên dưới ─────────────────────────
+// Hai vùng này là thứ DUY NHẤT một tài khoản chưa được duyệt dùng được. Tự chặn chính mình thì
+// không ai hoàn tất được hồ sơ / trình thiết lập.
+//
+// Hồ sơ đối tác tự đăng ký (GYM_PARTNER_SELF_ONBOARDING_SPEC.md): status + bootstrap dùng được cả
+// khi chưa có tài khoản đối tác; phần còn lại tự đòi tài khoản OWNER (xem application.routes.ts).
+router.use('/application', applicationRoutes);
 
-// "Không vào được màn hình nào khi chưa xong 5 bước" (MANAGER: 2 bước) — mọi route /owner
-// khác nằm SAU điểm này.
-router.use(requireOnboardingComplete);
+// ── Phase 3: trình thiết lập lần đầu ─────────────────────────────────────────
+// Đọc/ghi CHÍNH tài khoản đối tác của người gọi → cần có tài khoản (hoặc là chủ gym cũ chứng
+// minh được). Trước đây ngữ cảnh không-account được coi như "đã xong hết".
+router.get('/onboarding/status', requirePartnerAccountOrLegacy, asyncHandler(onboardingController.status));
+router.patch('/onboarding/contact', requirePartnerAccountOrLegacy, asyncHandler(onboardingController.submitContact));
+router.post('/onboarding/brand', requirePartnerAccountOrLegacy, asyncHandler(onboardingController.submitBrand));
+router.patch('/onboarding/payout', requirePartnerAccountOrLegacy, asyncHandler(onboardingController.submitPayout));
+router.post('/onboarding/terms', requirePartnerAccountOrLegacy, asyncHandler(onboardingController.submitTerms));
+
+// ── CỔNG VẬN HÀNH — cho phép dương tính, mặc định từ chối ──────────────────────
+// Mọi route /owner khác nằm SAU điểm này: chỉ qua được khi partner ACTIVE + VERIFIED + account
+// ACTIVE + onboarding xong (hoặc chủ gym cũ chứng minh được). Xem partner-access.policy.ts.
+router.use(requireOperationalAccess);
 
 // Phase 3 mục 3.2 — chủ sở hữu tự mời/thu hồi quản lý chi nhánh, không cần admin.
 router.get('/partner-accounts', requirePartnerOwner, asyncHandler(ownerPartnerController.listAccounts));

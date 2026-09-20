@@ -84,23 +84,6 @@ export const partnerController = {
     }
   },
 
-  async create(req: Request, res: Response) {
-    try {
-      const adminId = req.user!.userId;
-      const partner = await partnerService.createPartner(req.body, adminId);
-      await partnerAuditService.record({
-        partnerId: partner.id,
-        actorUserId: adminId,
-        action: 'PARTNER_CREATED',
-        req,
-        metadata: { legalName: partner.legalName, contactEmail: partner.contactEmail },
-      });
-      res.status(201).json({ success: true, data: partner });
-    } catch (e: any) {
-      fail(res, e);
-    }
-  },
-
   async update(req: Request, res: Response) {
     try {
       const adminId = req.user!.userId;
@@ -113,45 +96,6 @@ export const partnerController = {
         metadata: { fields: Object.keys(req.body ?? {}) },
       });
       res.json({ success: true, data: partner });
-    } catch (e: any) {
-      fail(res, e);
-    }
-  },
-
-  // ── Cấp tài khoản + thư mời ───────────────────────────────────────────────
-  async provision(req: Request, res: Response) {
-    try {
-      const adminId = req.user!.userId;
-      const { partner, invitation, rawToken } = await partnerService.provisionOwnerAccount(req.params.id, adminId);
-
-      const link = `${appBaseUrl(req)}/partner/invite/${rawToken}`;
-      const emailed = await authClient.sendEmail({
-        to: partner.contactEmail!,
-        subject: 'Lời mời trở thành đối tác phòng tập',
-        text: [
-          `Xin chào,`,
-          ``,
-          `Bạn được mời thiết lập tài khoản đối tác cho "${partner.legalName}".`,
-          `Mở liên kết dưới đây để tự đặt mật khẩu và hoàn tất thiết lập:`,
-          ``,
-          link,
-          ``,
-          `Liên kết có hiệu lực đến ${invitation.expiresAt.toLocaleString('vi-VN')}.`,
-          `Nếu bạn không mong đợi email này, hãy bỏ qua.`,
-        ].join('\n'),
-      });
-
-      await partnerAuditService.record({
-        partnerId: partner.id,
-        actorUserId: adminId,
-        action: 'ACCOUNT_PROVISIONED',
-        req,
-        metadata: { email: partner.contactEmail, invitationId: invitation.id, emailSent: emailed },
-      });
-
-      // rawToken trả về cho quản trị viên: nếu SMTP chưa cấu hình (môi trường dev) thì vẫn
-      // có đường đưa link cho đối tác qua đúng kênh đã liên hệ.
-      res.status(201).json({ success: true, data: { partner, invitation, inviteLink: link, emailSent: emailed } });
     } catch (e: any) {
       fail(res, e);
     }

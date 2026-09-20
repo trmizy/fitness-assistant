@@ -4,12 +4,10 @@ import { toast } from "sonner";
 import {
   HandshakeIcon as Handshake,
   MagnifyingGlassIcon as Search,
-  PlusIcon as Plus,
   CircleNotchIcon as Loader2,
   CaretRightIcon as ChevronRight,
   ArrowLeftIcon as ArrowLeft,
   DotsThreeVerticalIcon as MoreVertical,
-  CopyIcon as Copy,
   CheckIcon as Check,
   XIcon as X,
   WarningIcon as AlertTriangle,
@@ -39,6 +37,7 @@ import { getPartnerStatusMeta } from "../../components/gym-management/statusConf
 import { EmptyState as SharedEmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
+import { AdminApplicationsPanel } from "./AdminApplicationsPanel";
 import { ISSUE_TYPE_LABEL, SOURCE_LABEL, statusMeta, ComplaintDetailDialog } from "./AdminComplaintsPage";
 
 const DOC_TYPE_LABEL: Record<string, { label: string; required: boolean }> = {
@@ -83,17 +82,46 @@ function EmptyState({ text }: { text: string }) {
 
 export function AdminPartnersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"applications" | "partners">("applications");
+  const [appId, setAppId] = useState<string | null>(null);
 
   if (selectedId) return <PartnerDetail id={selectedId} onBack={() => setSelectedId(null)} />;
-  return <PartnerList onSelect={setSelectedId} />;
+  return (
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
+      <div>
+        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
+          <Handshake className="w-5 h-5 text-green-400" /> Duyệt hồ sơ đối tác
+        </h1>
+        <p className="text-zinc-500 text-sm mt-0.5">
+          Chủ phòng tập tự đăng ký; bạn xem hồ sơ, yêu cầu chỉnh sửa, phê duyệt hoặc từ chối. Sau khi duyệt họ trở thành đối tác đang hoạt động.
+        </p>
+      </div>
+      <div className="flex gap-1.5">
+        {([["applications", "Hồ sơ đăng ký"], ["partners", "Đối tác"]] as const).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => { setView(k); setAppId(null); }}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${view === k ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800/60 border border-zinc-800/60"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === "applications" ? (
+        <AdminApplicationsPanel key={appId ?? "list"} initialId={appId} onOpenPartner={setSelectedId} />
+      ) : (
+        <PartnerList
+          onSelect={setSelectedId}
+          onOpenApplication={(id) => { setAppId(id); setView("applications"); }}
+        />
+      )}
+    </div>
+  );
 }
 
-function PartnerList({ onSelect }: { onSelect: (id: string) => void }) {
+function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) => void; onOpenApplication: (id: string) => void }) {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [search, setSearch] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const queryClient = useQueryClient();
-
   const queueQuery = useQuery({ queryKey: ["admin-partner-queue"], queryFn: () => adminService.getPartnerQueue() });
   const partnersQuery = useQuery({
     queryKey: ["admin-partners", statusFilter],
@@ -112,31 +140,12 @@ function PartnerList({ onSelect }: { onSelect: (id: string) => void }) {
         { count: q.pendingProspects, label: "Hồ sơ chờ thẩm định", filter: "PROSPECT" },
         { count: q.pendingGyms, label: "Chi nhánh chờ duyệt", filter: null },
         { count: q.pendingBrandRenames, label: "Tên thương hiệu chờ duyệt", filter: null },
-        { count: q.invitedTooLong, label: "Đã mời > 7 ngày chưa đăng nhập", filter: "INVITED" },
         { count: q.expiringDocs, label: "Giấy phép sắp hết hạn", filter: null },
       ].filter((item) => item.count > 0)
     : [];
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Handshake className="w-5 h-5 text-green-400" /> Đối tác phòng tập
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Hồ sơ pháp nhân, tài khoản đăng nhập, thẩm định, tạm khoá/chấm dứt hợp tác — tách
-            biệt khỏi "Quản lý gym & owner" (nơi đó chỉ còn duyệt chi nhánh/tên thương hiệu).
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all"
-        >
-          <Plus className="w-4 h-4" /> Hồ sơ mới
-        </button>
-      </div>
-
+    <div className="space-y-6">
       {/* Hàng đợi việc cần làm */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4">
         <h3 className="text-sm font-bold text-zinc-200 mb-3">Cần bạn xử lý</h3>
@@ -202,7 +211,7 @@ function PartnerList({ onSelect }: { onSelect: (id: string) => void }) {
             return (
               <button
                 key={p.id}
-                onClick={() => onSelect(p.id)}
+                onClick={() => (p.source === "SELF_SERVICE" && p.status === "PROSPECT" ? onOpenApplication(p.id) : onSelect(p.id))}
                 data-testid="admin-partner-card"
                 className="w-full text-left bg-zinc-900 rounded-xl border border-zinc-800/60 hover:border-zinc-700 p-4 transition-colors"
               >
@@ -229,86 +238,14 @@ function PartnerList({ onSelect }: { onSelect: (id: string) => void }) {
         </div>
       )}
 
-      {showCreate && <CreatePartnerModal onClose={() => setShowCreate(false)} onCreated={() => queryClient.invalidateQueries({ queryKey: ["admin-partners"] })} />}
     </div>
   );
 }
-
-function CreatePartnerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  // `partnerKind` is no longer asked for: the two kinds collected exactly the same fields and
-  // nothing downstream ever branched on the value (no different required-document set, no
-  // different commission treatment — grep partnerKind in gym-service: it is stored and echoed
-  // back, nothing more). The column keeps its BUSINESS default rather than being dropped, so
-  // existing INDIVIDUAL rows still read back correctly.
-  const [form, setForm] = useState({
-    legalName: "", taxCode: "", businessLicenseNo: "",
-    contactEmail: "", contactPhone: "", commissionRateOverride: "",
-  });
-  const createMutation = useMutation({
-    mutationFn: () =>
-      adminService.createPartner({
-        legalName: form.legalName.trim(),
-        taxCode: form.taxCode.trim() || undefined,
-        businessLicenseNo: form.businessLicenseNo.trim() || undefined,
-        contactEmail: form.contactEmail.trim(),
-        contactPhone: form.contactPhone.trim() || undefined,
-        commissionRateOverride: form.commissionRateOverride ? Number(form.commissionRateOverride) : null,
-      }),
-    onSuccess: () => {
-      toast.success("Đã tạo hồ sơ đối tác (PROSPECT)");
-      onCreated();
-      onClose();
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tạo hồ sơ"),
-  });
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-200">Hồ sơ đối tác mới</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
-        </div>
-        <p className="text-xs text-zinc-500">Tạo ngay khi nhận được email/liên hệ đầu tiên — chưa cấp tài khoản đăng nhập ở bước này.</p>
-
-        <div className="space-y-2.5">
-          <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="Tên pháp lý *" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
-          <input value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} placeholder="Email liên hệ *" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
-          <input value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} placeholder="Số điện thoại" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
-          <div className="grid grid-cols-2 gap-2">
-            <input value={form.taxCode} onChange={(e) => setForm({ ...form, taxCode: e.target.value })} placeholder="Mã số thuế" className="px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
-            <input value={form.businessLicenseNo} onChange={(e) => setForm({ ...form, businessLicenseNo: e.target.value })} placeholder="Số giấy phép KD" className="px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
-          </div>
-          <input
-            value={form.commissionRateOverride}
-            onChange={(e) => setForm({ ...form, commissionRateOverride: e.target.value })}
-            placeholder="Chiết khấu riêng (0-1, để trống = dùng mức chung)"
-            className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600"
-          />
-        </div>
-
-        <button
-          onClick={() => createMutation.mutate()}
-          disabled={!form.legalName.trim() || !form.contactEmail.trim() || createMutation.isPending}
-          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-4 py-2.5 rounded-lg text-sm font-bold transition-all"
-        >
-          {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          Tạo hồ sơ
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Màn hình 360° ─────────────────────────────────────────────────────────────
-
-type DetailTab = "overview" | "accounts" | "gyms" | "documents" | "money" | "audit" | "notes" | "complaints";
 
 function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [tab, setTab] = useState<DetailTab>("overview");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dialog, setDialog] = useState<"suspend" | "unsuspend" | "terminate" | "provisioned" | "viewAs" | null>(null);
-  const [provisionResult, setProvisionResult] = useState<{ inviteLink: string; emailSent: boolean } | null>(null);
+  const [dialog, setDialog] = useState<"suspend" | "unsuspend" | "terminate" | "viewAs" | null>(null);
   const queryClient = useQueryClient();
 
   const detailQuery = useQuery({ queryKey: ["admin-partner-detail", id], queryFn: () => adminService.getPartner(id) });
@@ -317,17 +254,6 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
     queryClient.invalidateQueries({ queryKey: ["admin-partners"] });
     queryClient.invalidateQueries({ queryKey: ["admin-partner-queue"] });
   };
-
-  const provisionMutation = useMutation({
-    mutationFn: () => adminService.provisionPartnerOwner(id),
-    onSuccess: (data: any) => {
-      toast.success("Đã cấp tài khoản — thư mời đã gửi");
-      setProvisionResult({ inviteLink: data.inviteLink, emailSent: data.emailSent });
-      setDialog("provisioned");
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể cấp tài khoản"),
-  });
 
   if (detailQuery.isLoading || !detailQuery.data) {
     return (
@@ -384,15 +310,6 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
           </button>
           {menuOpen && (
             <div className="absolute right-0 mt-1 w-56 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-10 overflow-hidden" onMouseLeave={() => setMenuOpen(false)}>
-              {partner.status === "PROSPECT" && (
-                <button
-                  onClick={() => { provisionMutation.mutate(); setMenuOpen(false); }}
-                  disabled={provisionMutation.isPending}
-                  className="w-full text-left px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 flex items-center gap-2"
-                >
-                  <Check className="w-3.5 h-3.5 text-green-400" /> Cấp tài khoản
-                </button>
-              )}
               {(partner.status === "ACTIVE" || partner.status === "SUSPENDED") && (
                 <button
                   onClick={() => { setDialog("viewAs"); setMenuOpen(false); }}
@@ -479,9 +396,6 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
       {tab === "notes" && <InternalNotesTab partnerId={id} />}
       {tab === "complaints" && <PartnerComplaintsTab partnerId={id} />}
 
-      {dialog === "provisioned" && provisionResult && (
-        <ProvisionResultModal inviteLink={provisionResult.inviteLink} emailSent={provisionResult.emailSent} onClose={() => setDialog(null)} />
-      )}
       {dialog === "suspend" && <SuspendDialog partnerId={id} onClose={() => setDialog(null)} onDone={invalidate} />}
       {dialog === "unsuspend" && <UnsuspendDialog partnerId={id} onClose={() => setDialog(null)} onDone={invalidate} />}
       {dialog === "terminate" && <TerminateDialog partnerId={id} onClose={() => setDialog(null)} onDone={invalidate} />}
@@ -549,33 +463,6 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
     </div>
   );
 }
-
-function ProvisionResultModal({ inviteLink, emailSent, onClose }: { inviteLink: string; emailSent: boolean; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-green-500/20 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 text-sm font-bold text-green-400">
-          <Check className="w-4 h-4" /> Đã tạo thư mời
-        </div>
-        <p className="text-xs text-zinc-500">
-          {emailSent ? "Email đã được gửi tới người liên hệ." : "Không gửi được email tự động — hãy sao chép liên kết dưới đây và gửi thủ công."}
-        </p>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-amber-400 font-mono truncate">{inviteLink}</code>
-          <button
-            onClick={() => { navigator.clipboard.writeText(inviteLink).catch(() => {}); toast.success("Đã sao chép"); }}
-            className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 flex-shrink-0"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-        <button onClick={onClose} className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300">Đóng</button>
-      </div>
-    </div>
-  );
-}
-
-// ── Tab: Tài khoản ─────────────────────────────────────────────────────────
 
 function AccountsTab({ partner, identities, invitations, onChange }: { partner: any; identities: any[]; invitations: any[]; onChange: () => void }) {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);

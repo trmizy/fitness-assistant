@@ -10,6 +10,10 @@ import {
   INTERNAL_SERVICE_SECRET_DEFAULT,
 } from "../utils/internal-secret";
 import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
+import {
+  partnerApplicationLimiter,
+  partnerApplicationStartLimiter,
+} from "../middleware/partnerApplicationRateLimit.middleware";
 
 export { validateInternalSecret };
 
@@ -882,98 +886,6 @@ for (const action of ["disable", "enable"] as const) {
   );
 }
 
-// Admin-only: create a gym-owner account directly — no self-registration path for this role
-// (see auth.service.ts's createGymOwnerAccount doc comment for why). Returns the randomly
-// generated temporary password ONCE, in the response body — never stored in plaintext, never
-// retrievable again after this call.
-router.post(
-  "/admin/gym-owners",
-  authMiddleware,
-  requireRoles("ADMIN"),
-  json(),
-  async (req, res) => {
-    try {
-      const authHeader = req.headers.authorization;
-      const response = await axios.post(
-        `${AUTH_SERVICE_URL}/auth/admin/gym-owners`,
-        req.body,
-        {
-          headers: authHeader ? { Authorization: authHeader } : undefined,
-          timeout: 5000,
-        },
-      );
-      res.status(response.status).json({ success: true, data: response.data });
-    } catch (error: any) {
-      logger.error({ error: error?.message }, "Create gym owner failed");
-      const status = error?.response?.status || 500;
-      res.status(status).json({
-        success: false,
-        error: {
-          code: "CREATE_GYM_OWNER_FAILED",
-          message: error?.response?.data?.error || "Failed to create gym owner account",
-        },
-      });
-    }
-  },
-);
-
-// "Quản lý gym & owner" — admin correcting another user's display name. Not role-restricted
-// server-side (nothing role-specific about a display name), but only exposed on the frontend
-// for GYM_OWNER accounts today. Email is deliberately not accepted here — see
-// authService.updateUserNameAsAdmin's doc comment.
-router.patch(
-  "/admin/users/:userId/name",
-  authMiddleware,
-  requireRoles("ADMIN"),
-  json(),
-  async (req, res) => {
-    try {
-      const authHeader = req.headers.authorization;
-      const { userId } = req.params;
-      const response = await axios.patch(
-        `${AUTH_SERVICE_URL}/auth/users/${userId}/name`,
-        req.body,
-        { headers: authHeader ? { Authorization: authHeader } : undefined, timeout: 5000 },
-      );
-      res.json({ success: true, data: response.data });
-    } catch (error: any) {
-      logger.error({ error: error?.message }, "Admin update user name failed");
-      const status = error?.response?.status || 500;
-      res.status(status).json({
-        success: false,
-        error: { code: "UPDATE_USER_NAME_FAILED", message: error?.response?.data?.error || "Failed to update user name" },
-      });
-    }
-  },
-);
-
-// "Quản lý gym & owner" — list every GYM_OWNER account (the generic /admin/users above is a
-// separate aggregation built for UserManagement.tsx's Client/PT/Admin view and does not
-// surface GYM_OWNER correctly). Raw pass-through of auth-service's own listUsers?role= filter
-// — no cross-service aggregation needed here.
-router.get(
-  "/admin/gym-owners",
-  authMiddleware,
-  requireRoles("ADMIN"),
-  async (req, res) => {
-    try {
-      const authHeader = req.headers.authorization;
-      const response = await axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
-        params: { role: "GYM_OWNER" },
-        headers: authHeader ? { Authorization: authHeader } : undefined,
-        timeout: 5000,
-      });
-      res.json({ success: true, data: response.data?.users ?? [] });
-    } catch (error: any) {
-      logger.error({ error: error?.message }, "List gym owners failed");
-      res.status(error?.response?.status || 500).json({
-        success: false,
-        error: { code: "LIST_GYM_OWNERS_FAILED", message: "Failed to list gym owner accounts" },
-      });
-    }
-  },
-);
-
 router.get(
   "/admin/workflows/meta",
   authMiddleware,
@@ -1701,6 +1613,12 @@ router.use(
     onError: serviceUnavailable("Auth service"),
   }),
 );
+
+// Đối tác Gym tự đăng ký (công khai): giới hạn tần suất THEO IP, store Redis khi có — xem
+// partnerApplicationRateLimit.middleware.ts. Đặt TRƯỚC proxy /auth bên dưới; trần theo EMAIL
+// nằm ở auth-service. `start` gửi email nên chặt hơn hẳn.
+router.post("/auth/partner-applications/start", partnerApplicationStartLimiter);
+router.use("/auth/partner-applications", partnerApplicationLimiter);
 
 // Public — Auth Service
 router.use(
@@ -2689,6 +2607,16 @@ router.use(
 // path outside that prefix and needs its own declaration (money-flow plan §1.3/F3).
 router.use(
   '/owner/collaborations',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Hồ sơ đối tác TỰ ĐĂNG KÝ (GYM_PARTNER_SELF_ONBOARDING_SPEC.md) — vùng ứng viên: status/bootstrap,
+// điền hồ sơ, tải lên, nộp. Phải khai báo riêng như /owner/onboarding: gateway chỉ proxy các prefix
+// /owner/* được liệt kê tường minh, prefix mới không có ở đây sẽ 404 dù gym-service có route. Gateway
+// chỉ chặn theo role; ai được làm gì trong vùng này do gym-service quyết định.
+router.use(
+  '/owner/application',
   authMiddleware,
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),

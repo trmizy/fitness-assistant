@@ -1,6 +1,12 @@
 import { logger } from '@gym-coach/shared';
 import { partnerRepository } from '../repositories/partner.repository';
-import type { GymPartnerKind, GymPartnerStatus, PartnerAccountRole } from '../generated/prisma';
+import type {
+  GymPartnerKind,
+  GymPartnerStatus,
+  PartnerAccountRole,
+  PartnerAccountStatus,
+  PartnerVerificationStatus,
+} from '../generated/prisma';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -23,7 +29,15 @@ export interface PartnerContext {
   /** Rỗng với OWNER = toàn bộ chi nhánh. */
   scopedGymIds: string[];
   partnerStatus: GymPartnerStatus | null;
-  /** Chủ gym có từ trước mô hình đối tác, chưa có hồ sơ — xem doc của resolveContextForUser. */
+  /** Trục thẩm định giấy tờ — cổng vận hành đòi VERIFIED (partner-access.policy.ts). */
+  verificationStatus: PartnerVerificationStatus | null;
+  accountStatus: PartnerAccountStatus | null;
+  onboardingCompletedAt: Date | null;
+  /**
+   * Chủ gym có từ trước mô hình đối tác, chưa có hồ sơ — CHỈ khi chứng minh được sở hữu (đang đứng
+   * tên một Gym/Brand). "Không có GymPartnerAccount" tự nó KHÔNG còn nghĩa là legacy: xem doc của
+   * resolveContextForUser.
+   */
   isLegacy: boolean;
 }
 
@@ -31,12 +45,15 @@ export const partnerService = {
   /**
    * Phân giải userId đang đăng nhập thành ngữ cảnh đối tác.
    *
-   * Nhánh dự phòng (`isLegacy`): một tài khoản GYM_OWNER không có hồ sơ đối tác nào vẫn
-   * hoạt động đúng như trước — tự làm chủ sở hữu của chính mình, không giới hạn chi
-   * nhánh. Migration đã backfill toàn bộ chủ gym đang có, nên nhánh này chỉ còn dành cho
-   * CSDL mới seed thẳng vào bảng gyms (môi trường demo/test). Không có nhánh này thì mọi
-   * chủ gym hiện hữu ở các môi trường đó sẽ mất quyền vào hệ thống ngay khi phase này
-   * lên — một cách hỏng rất im lặng.
+   * Nhánh dự phòng (`isLegacy`): một tài khoản GYM_OWNER không có hồ sơ đối tác nhưng ĐANG THỰC SỰ
+   * ĐỨNG TÊN một Gym hoặc một Brand (dữ liệu có thẩm quyền: Gym.ownerId / GymBrand.ownerId) vẫn
+   * hoạt động đúng như trước — tự làm chủ sở hữu của chính mình, không giới hạn chi nhánh.
+   *
+   * ⚠️ Trước đây nhánh này đúng cho MỌI tài khoản GYM_OWNER không có hồ sơ, kể cả khi họ không sở
+   * hữu gì: đó là một lỗ hổng phân quyền (11 user GYM_OWNER mồ côi ở DB dev có full quyền vận
+   * hành + bỏ qua cổng onboarding). Nay "không có GymPartnerAccount" KHÔNG còn tự nó nghĩa là
+   * legacy. Tài khoản mồ côi nhận ngữ cảnh với isLegacy=false, không account — cổng vận hành từ
+   * chối, và chỉ hai route `application/status` + `application/bootstrap` dùng được.
    */
   async resolveContextForUser(userId: string): Promise<PartnerContext> {
     const account = await partnerRepository.findAccountByUserId(userId);
@@ -49,7 +66,10 @@ export const partnerService = {
         role: 'OWNER',
         scopedGymIds: [],
         partnerStatus: null,
-        isLegacy: true,
+        verificationStatus: null,
+        accountStatus: null,
+        onboardingCompletedAt: null,
+        isLegacy: await partnerRepository.userHasLegacyOwnership(userId),
       };
     }
 
@@ -79,6 +99,9 @@ export const partnerService = {
       role: account.role,
       scopedGymIds: account.scopedGymIds,
       partnerStatus: account.partner.status,
+      verificationStatus: account.partner.verificationStatus,
+      accountStatus: account.status,
+      onboardingCompletedAt: account.onboardingCompletedAt,
       isLegacy: false,
     };
   },

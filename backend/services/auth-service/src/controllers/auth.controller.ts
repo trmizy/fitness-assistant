@@ -551,43 +551,6 @@ export const authController = {
     }
   },
 
-  // Admin-only: creates a gym-owner account directly (no self-registration path for this
-  // role — see authService.createGymOwnerAccount's own doc comment for why). Same manual
-  // Bearer-token + role check as setUserActive above; the gateway also gates this route with
-  // requireRoles("ADMIN") before it ever reaches here, so this is defense in depth, not the
-  // only check.
-  async createGymOwner(req: Request, res: Response): Promise<void> {
-    try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith("Bearer ")) {
-        res.status(401).json({ error: "No token provided" });
-        return;
-      }
-      const token = authHeader.substring(7);
-      const verified = await authService.verifyToken(token);
-      if (!verified || verified.role !== "ADMIN") {
-        res.status(403).json({ error: "Admin role required" });
-        return;
-      }
-      const email = String(req.body?.email ?? "").trim().toLowerCase();
-      const firstName = String(req.body?.firstName ?? "").trim();
-      const lastName = req.body?.lastName ? String(req.body.lastName).trim() : undefined;
-      if (!email || !firstName) {
-        res.status(400).json({ error: "email và firstName là bắt buộc" });
-        return;
-      }
-      const result = await authService.createGymOwnerAccount({ email, firstName, lastName });
-      res.status(201).json(result);
-    } catch (error: any) {
-      if (error.status) {
-        res.status(error.status).json({ error: error.message });
-        return;
-      }
-      logger.error(error, "createGymOwner error");
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-
   // ── Phase 2 (đối tác) — kênh nội bộ, chỉ gym-service gọi bằng x-service-secret ─────
   //
   // Gộp ba việc auth-service phải làm hộ luồng quản trị đối tác: phát hành link đặt lại

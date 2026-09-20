@@ -1,6 +1,8 @@
 import { Navigate } from "react-router";
 import { useApp } from "../context/AppContext";
 import { ROLE_HOME } from "../config/landing";
+import { useGymOwnerAccessState } from "../hooks/useGymOwnerAccessState";
+import { APPLICANT_STATES } from "../services/partnerApplication";
 
 /**
  * Decides where "/" goes, based on whether a session survived.
@@ -19,5 +21,13 @@ import { ROLE_HOME } from "../config/landing";
  */
 export function RootRedirect() {
   const { isAuthenticated, role } = useApp();
+  // Chủ phòng gym: đích phụ thuộc trạng thái hồ sơ (ứng viên chưa duyệt không có dashboard vận hành).
+  const access = useGymOwnerAccessState();
+  if (isAuthenticated && role === "gym_owner") {
+    if (access.isLoading) return null;
+    if (access.data && APPLICANT_STATES.includes(access.data.accessState)) {
+      return <Navigate to="/partner/application" replace />;
+    }
+  }
   return <Navigate to={isAuthenticated ? ROLE_HOME[role] : "/login"} replace />;
 }

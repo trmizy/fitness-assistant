@@ -9,6 +9,7 @@ WORKDIR /app
 
 # ── Install Node dependencies (cached layer) ──────────────────────────────────
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY patches                                            ./patches
 COPY backend/shared/package.json                      ./backend/shared/
 COPY backend/services/user-service/package.json       ./backend/services/user-service/
 RUN pnpm install --filter @gym-coach/user-service

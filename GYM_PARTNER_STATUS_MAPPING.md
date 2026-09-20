@@ -84,3 +84,5 @@ left APPROVED during the pending period").
 | `PERMANENTLY_CLOSED` | "Đã đóng cửa vĩnh viễn" |
 
 Every status pill must pair icon + text + color (§56) — color alone is never sufficient.
+
+> **Cập nhật (Gym Partner self-service onboarding):** luồng admin "Cấp tài khoản"/link mời OWNER **không còn được dùng cho đối tác mới**; chủ gym tự đăng ký và admin duyệt hồ sơ (xem `GYM_PARTNER_SELF_ONBOARDING_SPEC.md`, `GYM_PARTNER_STATE_MACHINE.md`). `provisionOwnerAccount` chỉ còn phục vụ hồ sơ cũ (ADMIN_CREATED); hạ tầng mời MANAGER giữ nguyên.

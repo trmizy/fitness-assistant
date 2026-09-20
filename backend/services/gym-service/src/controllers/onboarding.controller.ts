@@ -13,17 +13,29 @@ export const onboardingController = {
   async status(req: Request, res: Response) {
     // Chủ gym có từ trước Phase 3 (không có hồ sơ đối tác — `accountId` null) không có
     // trình thiết lập nào để hoàn tất. Không có guard này thì tra cứu accountId=null rơi
-    // xuống Prisma và ném lỗi 500 thô, thay vì "đã xong" — đúng những gì đã fix ở
-    // requireOnboardingComplete cho họ, phải nhất quán ở route họ tự gọi để lấy tiến độ.
-    if (req.partner!.isLegacy || !req.partner!.accountId) {
+    // xuống Prisma và ném lỗi 500 thô, thay vì "đã xong".
+    //
+    // CHỈ dành cho chủ gym cũ CHỨNG MINH ĐƯỢC (isLegacy). Một ngữ cảnh không-account mà không
+    // phải legacy (tài khoản GYM_OWNER mồ côi) không bao giờ tới được đây — route đứng sau
+    // requirePartnerAccountOrLegacy — và tuyệt đối không được nhận "đã xong hết".
+    if (req.partner!.isLegacy) {
       res.json({
         success: true,
         data: { role: 'OWNER', steps: { password: true, contact: true, brand: true, payout: true, terms: true }, completed: true, currentStep: 5, partnerId: null },
       });
       return;
     }
+    // Phòng thủ: route đứng sau requirePartnerAccountOrLegacy nên tới được đây là phải có account.
+    const accountId = req.partner!.accountId;
+    if (!accountId) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'NO_PARTNER_ACCOUNT', message: 'Tài khoản này chưa có hồ sơ đối tác' },
+      });
+      return;
+    }
     try {
-      const progress = await onboardingService.getProgress(req.partner!.accountId);
+      const progress = await onboardingService.getProgress(accountId);
       res.json({ success: true, data: progress });
     } catch (e: any) {
       fail(res, e);

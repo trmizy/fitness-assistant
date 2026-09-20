@@ -187,3 +187,5 @@ pages onto it rather than leave the old inline maps in place once it touches the
 **Flagged for explicit confirmation before touching anything (business-rule / money-semantics change per the spec's own escalation rule):** membership plan access scope (SINGLE_BRANCH vs ALL_BRAND_BRANCHES) + purchase-time snapshot — this changes what a purchased membership entitles a holder to and touches check-in authorization.
 
 **Pure frontend, no backend risk, largest raw volume:** the entire design system/component library, the admin dashboard/IA restructuring, the 11-tab partner detail page, the manager-role-aware nav filtering, and all responsive/mobile work (bottom sheets, impact dialogs, empty/loading/error states).
+
+> **Cập nhật (Gym Partner self-service onboarding):** luồng admin "Cấp tài khoản"/link mời OWNER **không còn được dùng cho đối tác mới**; chủ gym tự đăng ký và admin duyệt hồ sơ (xem `GYM_PARTNER_SELF_ONBOARDING_SPEC.md`, `GYM_PARTNER_STATE_MACHINE.md`). `provisionOwnerAccount` chỉ còn phục vụ hồ sơ cũ (ADMIN_CREATED); hạ tầng mời MANAGER giữ nguyên.

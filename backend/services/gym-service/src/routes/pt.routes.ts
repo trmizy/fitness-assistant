@@ -3,6 +3,7 @@ import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middl
 import { affiliationController } from '../controllers/affiliation.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireOperationalAccessForOwners } from '../middleware/operational-access.middleware';
 
 const router = Router();
 
@@ -27,6 +28,10 @@ router.get(
   extractUser,
   requireAuth,
   requireRoles('PT', 'GYM_OWNER'),
+  // Nhánh GYM_OWNER của route dùng chung này nằm NGOÀI /owner nên không đi qua cổng vận hành ở
+  // owner.routes.ts — phải tự đi qua nó, nếu không một ứng viên (JWT role GYM_OWNER) đọc được
+  // danh sách đề xuất cộng tác PT. PT đi tiếp như cũ.
+  asyncHandler(requireOperationalAccessForOwners),
   asyncHandler(collaborationController.listMine),
 );
 

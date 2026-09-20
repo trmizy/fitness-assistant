@@ -30,6 +30,16 @@ export type User = $Result.DefaultSelection<Prisma.$UserPayload>
  */
 export type PasswordResetToken = $Result.DefaultSelection<Prisma.$PasswordResetTokenPayload>
 /**
+ * Model PartnerApplicationToken
+ * Đối tác Gym tự đăng ký (GYM_PARTNER_SELF_ONBOARDING_SPEC.md): email → link → đặt mật khẩu.
+ * Chưa có User nào cả — dòng này sống TRƯỚC khi tài khoản tồn tại, nên không có FK tới users.
+ * 
+ * ⚠️ Cả token email lẫn setupToken đều LƯU BĂM (sha256), KHÔNG lưu bản gốc; bản gốc chỉ tồn
+ * tại trong email / trong phản hồi của lần verify. Cooldown và trần số email/ngày theo email
+ * đọc thẳng từ bảng này (đếm các dòng gần đây) nên đúng cả khi chạy nhiều instance.
+ */
+export type PartnerApplicationToken = $Result.DefaultSelection<Prisma.$PartnerApplicationTokenPayload>
+/**
  * Model RefreshToken
  * 
  */
@@ -236,6 +246,16 @@ export class PrismaClient<
     * ```
     */
   get passwordResetToken(): Prisma.PasswordResetTokenDelegate<ExtArgs>;
+
+  /**
+   * `prisma.partnerApplicationToken`: Exposes CRUD operations for the **PartnerApplicationToken** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PartnerApplicationTokens
+    * const partnerApplicationTokens = await prisma.partnerApplicationToken.findMany()
+    * ```
+    */
+  get partnerApplicationToken(): Prisma.PartnerApplicationTokenDelegate<ExtArgs>;
 
   /**
    * `prisma.refreshToken`: Exposes CRUD operations for the **RefreshToken** model.
@@ -719,6 +739,7 @@ export namespace Prisma {
   export const ModelName: {
     User: 'User',
     PasswordResetToken: 'PasswordResetToken',
+    PartnerApplicationToken: 'PartnerApplicationToken',
     RefreshToken: 'RefreshToken',
     EmailVerification: 'EmailVerification',
     AuditLog: 'AuditLog',
@@ -738,7 +759,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "passwordResetToken" | "refreshToken" | "emailVerification" | "auditLog" | "ptDeactivationCall"
+      modelProps: "user" | "passwordResetToken" | "partnerApplicationToken" | "refreshToken" | "emailVerification" | "auditLog" | "ptDeactivationCall"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -879,6 +900,76 @@ export namespace Prisma {
           count: {
             args: Prisma.PasswordResetTokenCountArgs<ExtArgs>
             result: $Utils.Optional<PasswordResetTokenCountAggregateOutputType> | number
+          }
+        }
+      }
+      PartnerApplicationToken: {
+        payload: Prisma.$PartnerApplicationTokenPayload<ExtArgs>
+        fields: Prisma.PartnerApplicationTokenFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PartnerApplicationTokenFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PartnerApplicationTokenFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          findFirst: {
+            args: Prisma.PartnerApplicationTokenFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PartnerApplicationTokenFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          findMany: {
+            args: Prisma.PartnerApplicationTokenFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>[]
+          }
+          create: {
+            args: Prisma.PartnerApplicationTokenCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          createMany: {
+            args: Prisma.PartnerApplicationTokenCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PartnerApplicationTokenCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>[]
+          }
+          delete: {
+            args: Prisma.PartnerApplicationTokenDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          update: {
+            args: Prisma.PartnerApplicationTokenUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          deleteMany: {
+            args: Prisma.PartnerApplicationTokenDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PartnerApplicationTokenUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PartnerApplicationTokenUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartnerApplicationTokenPayload>
+          }
+          aggregate: {
+            args: Prisma.PartnerApplicationTokenAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePartnerApplicationToken>
+          }
+          groupBy: {
+            args: Prisma.PartnerApplicationTokenGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PartnerApplicationTokenGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PartnerApplicationTokenCountArgs<ExtArgs>
+            result: $Utils.Optional<PartnerApplicationTokenCountAggregateOutputType> | number
           }
         }
       }
@@ -3391,6 +3482,974 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PasswordResetTokenInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PartnerApplicationToken
+   */
+
+  export type AggregatePartnerApplicationToken = {
+    _count: PartnerApplicationTokenCountAggregateOutputType | null
+    _min: PartnerApplicationTokenMinAggregateOutputType | null
+    _max: PartnerApplicationTokenMaxAggregateOutputType | null
+  }
+
+  export type PartnerApplicationTokenMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    tokenHash: string | null
+    expiresAt: Date | null
+    verifiedAt: Date | null
+    usedAt: Date | null
+    supersededAt: Date | null
+    setupTokenHash: string | null
+    setupExpiresAt: Date | null
+    createdUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type PartnerApplicationTokenMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    tokenHash: string | null
+    expiresAt: Date | null
+    verifiedAt: Date | null
+    usedAt: Date | null
+    supersededAt: Date | null
+    setupTokenHash: string | null
+    setupExpiresAt: Date | null
+    createdUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type PartnerApplicationTokenCountAggregateOutputType = {
+    id: number
+    email: number
+    tokenHash: number
+    expiresAt: number
+    verifiedAt: number
+    usedAt: number
+    supersededAt: number
+    setupTokenHash: number
+    setupExpiresAt: number
+    createdUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PartnerApplicationTokenMinAggregateInputType = {
+    id?: true
+    email?: true
+    tokenHash?: true
+    expiresAt?: true
+    verifiedAt?: true
+    usedAt?: true
+    supersededAt?: true
+    setupTokenHash?: true
+    setupExpiresAt?: true
+    createdUserId?: true
+    createdAt?: true
+  }
+
+  export type PartnerApplicationTokenMaxAggregateInputType = {
+    id?: true
+    email?: true
+    tokenHash?: true
+    expiresAt?: true
+    verifiedAt?: true
+    usedAt?: true
+    supersededAt?: true
+    setupTokenHash?: true
+    setupExpiresAt?: true
+    createdUserId?: true
+    createdAt?: true
+  }
+
+  export type PartnerApplicationTokenCountAggregateInputType = {
+    id?: true
+    email?: true
+    tokenHash?: true
+    expiresAt?: true
+    verifiedAt?: true
+    usedAt?: true
+    supersededAt?: true
+    setupTokenHash?: true
+    setupExpiresAt?: true
+    createdUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PartnerApplicationTokenAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerApplicationToken to aggregate.
+     */
+    where?: PartnerApplicationTokenWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerApplicationTokens to fetch.
+     */
+    orderBy?: PartnerApplicationTokenOrderByWithRelationInput | PartnerApplicationTokenOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PartnerApplicationTokenWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerApplicationTokens from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerApplicationTokens.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PartnerApplicationTokens
+    **/
+    _count?: true | PartnerApplicationTokenCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PartnerApplicationTokenMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PartnerApplicationTokenMaxAggregateInputType
+  }
+
+  export type GetPartnerApplicationTokenAggregateType<T extends PartnerApplicationTokenAggregateArgs> = {
+        [P in keyof T & keyof AggregatePartnerApplicationToken]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePartnerApplicationToken[P]>
+      : GetScalarType<T[P], AggregatePartnerApplicationToken[P]>
+  }
+
+
+
+
+  export type PartnerApplicationTokenGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartnerApplicationTokenWhereInput
+    orderBy?: PartnerApplicationTokenOrderByWithAggregationInput | PartnerApplicationTokenOrderByWithAggregationInput[]
+    by: PartnerApplicationTokenScalarFieldEnum[] | PartnerApplicationTokenScalarFieldEnum
+    having?: PartnerApplicationTokenScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PartnerApplicationTokenCountAggregateInputType | true
+    _min?: PartnerApplicationTokenMinAggregateInputType
+    _max?: PartnerApplicationTokenMaxAggregateInputType
+  }
+
+  export type PartnerApplicationTokenGroupByOutputType = {
+    id: string
+    email: string
+    tokenHash: string
+    expiresAt: Date
+    verifiedAt: Date | null
+    usedAt: Date | null
+    supersededAt: Date | null
+    setupTokenHash: string | null
+    setupExpiresAt: Date | null
+    createdUserId: string | null
+    createdAt: Date
+    _count: PartnerApplicationTokenCountAggregateOutputType | null
+    _min: PartnerApplicationTokenMinAggregateOutputType | null
+    _max: PartnerApplicationTokenMaxAggregateOutputType | null
+  }
+
+  type GetPartnerApplicationTokenGroupByPayload<T extends PartnerApplicationTokenGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PartnerApplicationTokenGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PartnerApplicationTokenGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PartnerApplicationTokenGroupByOutputType[P]>
+            : GetScalarType<T[P], PartnerApplicationTokenGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PartnerApplicationTokenSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    verifiedAt?: boolean
+    usedAt?: boolean
+    supersededAt?: boolean
+    setupTokenHash?: boolean
+    setupExpiresAt?: boolean
+    createdUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["partnerApplicationToken"]>
+
+  export type PartnerApplicationTokenSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    verifiedAt?: boolean
+    usedAt?: boolean
+    supersededAt?: boolean
+    setupTokenHash?: boolean
+    setupExpiresAt?: boolean
+    createdUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["partnerApplicationToken"]>
+
+  export type PartnerApplicationTokenSelectScalar = {
+    id?: boolean
+    email?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    verifiedAt?: boolean
+    usedAt?: boolean
+    supersededAt?: boolean
+    setupTokenHash?: boolean
+    setupExpiresAt?: boolean
+    createdUserId?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $PartnerApplicationTokenPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PartnerApplicationToken"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * Đã chuẩn hoá (chữ thường, cắt khoảng trắng).
+       */
+      email: string
+      tokenHash: string
+      expiresAt: Date
+      /**
+       * Đặt khi người dùng mở link (POST verify). KHÔNG tiêu token: refresh/mở lại link vẫn được.
+       */
+      verifiedAt: Date | null
+      /**
+       * Chỉ đặt khi đặt mật khẩu xong — đây mới là lúc token bị tiêu.
+       */
+      usedAt: Date | null
+      /**
+       * Bị thay bằng link mới do "Gửi lại" — link cũ chết ngay, không kéo dài hạn.
+       */
+      supersededAt: Date | null
+      /**
+       * Phiên đặt mật khẩu ngắn hạn cấp sau verify, để token email không phải đi tiếp trong URL.
+       */
+      setupTokenHash: string | null
+      setupExpiresAt: Date | null
+      /**
+       * User được tạo từ token này (để dấu vết/kiểm toán; token chỉ tiêu được một lần).
+       */
+      createdUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["partnerApplicationToken"]>
+    composites: {}
+  }
+
+  type PartnerApplicationTokenGetPayload<S extends boolean | null | undefined | PartnerApplicationTokenDefaultArgs> = $Result.GetResult<Prisma.$PartnerApplicationTokenPayload, S>
+
+  type PartnerApplicationTokenCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PartnerApplicationTokenFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PartnerApplicationTokenCountAggregateInputType | true
+    }
+
+  export interface PartnerApplicationTokenDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PartnerApplicationToken'], meta: { name: 'PartnerApplicationToken' } }
+    /**
+     * Find zero or one PartnerApplicationToken that matches the filter.
+     * @param {PartnerApplicationTokenFindUniqueArgs} args - Arguments to find a PartnerApplicationToken
+     * @example
+     * // Get one PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PartnerApplicationTokenFindUniqueArgs>(args: SelectSubset<T, PartnerApplicationTokenFindUniqueArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PartnerApplicationToken that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PartnerApplicationTokenFindUniqueOrThrowArgs} args - Arguments to find a PartnerApplicationToken
+     * @example
+     * // Get one PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PartnerApplicationTokenFindUniqueOrThrowArgs>(args: SelectSubset<T, PartnerApplicationTokenFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PartnerApplicationToken that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenFindFirstArgs} args - Arguments to find a PartnerApplicationToken
+     * @example
+     * // Get one PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PartnerApplicationTokenFindFirstArgs>(args?: SelectSubset<T, PartnerApplicationTokenFindFirstArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PartnerApplicationToken that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenFindFirstOrThrowArgs} args - Arguments to find a PartnerApplicationToken
+     * @example
+     * // Get one PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PartnerApplicationTokenFindFirstOrThrowArgs>(args?: SelectSubset<T, PartnerApplicationTokenFindFirstOrThrowArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PartnerApplicationTokens that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PartnerApplicationTokens
+     * const partnerApplicationTokens = await prisma.partnerApplicationToken.findMany()
+     * 
+     * // Get first 10 PartnerApplicationTokens
+     * const partnerApplicationTokens = await prisma.partnerApplicationToken.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const partnerApplicationTokenWithIdOnly = await prisma.partnerApplicationToken.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PartnerApplicationTokenFindManyArgs>(args?: SelectSubset<T, PartnerApplicationTokenFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PartnerApplicationToken.
+     * @param {PartnerApplicationTokenCreateArgs} args - Arguments to create a PartnerApplicationToken.
+     * @example
+     * // Create one PartnerApplicationToken
+     * const PartnerApplicationToken = await prisma.partnerApplicationToken.create({
+     *   data: {
+     *     // ... data to create a PartnerApplicationToken
+     *   }
+     * })
+     * 
+     */
+    create<T extends PartnerApplicationTokenCreateArgs>(args: SelectSubset<T, PartnerApplicationTokenCreateArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PartnerApplicationTokens.
+     * @param {PartnerApplicationTokenCreateManyArgs} args - Arguments to create many PartnerApplicationTokens.
+     * @example
+     * // Create many PartnerApplicationTokens
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PartnerApplicationTokenCreateManyArgs>(args?: SelectSubset<T, PartnerApplicationTokenCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PartnerApplicationTokens and returns the data saved in the database.
+     * @param {PartnerApplicationTokenCreateManyAndReturnArgs} args - Arguments to create many PartnerApplicationTokens.
+     * @example
+     * // Create many PartnerApplicationTokens
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PartnerApplicationTokens and only return the `id`
+     * const partnerApplicationTokenWithIdOnly = await prisma.partnerApplicationToken.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PartnerApplicationTokenCreateManyAndReturnArgs>(args?: SelectSubset<T, PartnerApplicationTokenCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PartnerApplicationToken.
+     * @param {PartnerApplicationTokenDeleteArgs} args - Arguments to delete one PartnerApplicationToken.
+     * @example
+     * // Delete one PartnerApplicationToken
+     * const PartnerApplicationToken = await prisma.partnerApplicationToken.delete({
+     *   where: {
+     *     // ... filter to delete one PartnerApplicationToken
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PartnerApplicationTokenDeleteArgs>(args: SelectSubset<T, PartnerApplicationTokenDeleteArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PartnerApplicationToken.
+     * @param {PartnerApplicationTokenUpdateArgs} args - Arguments to update one PartnerApplicationToken.
+     * @example
+     * // Update one PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PartnerApplicationTokenUpdateArgs>(args: SelectSubset<T, PartnerApplicationTokenUpdateArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PartnerApplicationTokens.
+     * @param {PartnerApplicationTokenDeleteManyArgs} args - Arguments to filter PartnerApplicationTokens to delete.
+     * @example
+     * // Delete a few PartnerApplicationTokens
+     * const { count } = await prisma.partnerApplicationToken.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PartnerApplicationTokenDeleteManyArgs>(args?: SelectSubset<T, PartnerApplicationTokenDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PartnerApplicationTokens.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PartnerApplicationTokens
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PartnerApplicationTokenUpdateManyArgs>(args: SelectSubset<T, PartnerApplicationTokenUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PartnerApplicationToken.
+     * @param {PartnerApplicationTokenUpsertArgs} args - Arguments to update or create a PartnerApplicationToken.
+     * @example
+     * // Update or create a PartnerApplicationToken
+     * const partnerApplicationToken = await prisma.partnerApplicationToken.upsert({
+     *   create: {
+     *     // ... data to create a PartnerApplicationToken
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PartnerApplicationToken we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PartnerApplicationTokenUpsertArgs>(args: SelectSubset<T, PartnerApplicationTokenUpsertArgs<ExtArgs>>): Prisma__PartnerApplicationTokenClient<$Result.GetResult<Prisma.$PartnerApplicationTokenPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PartnerApplicationTokens.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenCountArgs} args - Arguments to filter PartnerApplicationTokens to count.
+     * @example
+     * // Count the number of PartnerApplicationTokens
+     * const count = await prisma.partnerApplicationToken.count({
+     *   where: {
+     *     // ... the filter for the PartnerApplicationTokens we want to count
+     *   }
+     * })
+    **/
+    count<T extends PartnerApplicationTokenCountArgs>(
+      args?: Subset<T, PartnerApplicationTokenCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PartnerApplicationTokenCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PartnerApplicationToken.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PartnerApplicationTokenAggregateArgs>(args: Subset<T, PartnerApplicationTokenAggregateArgs>): Prisma.PrismaPromise<GetPartnerApplicationTokenAggregateType<T>>
+
+    /**
+     * Group by PartnerApplicationToken.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartnerApplicationTokenGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PartnerApplicationTokenGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PartnerApplicationTokenGroupByArgs['orderBy'] }
+        : { orderBy?: PartnerApplicationTokenGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PartnerApplicationTokenGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPartnerApplicationTokenGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PartnerApplicationToken model
+   */
+  readonly fields: PartnerApplicationTokenFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PartnerApplicationToken.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PartnerApplicationTokenClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PartnerApplicationToken model
+   */ 
+  interface PartnerApplicationTokenFieldRefs {
+    readonly id: FieldRef<"PartnerApplicationToken", 'String'>
+    readonly email: FieldRef<"PartnerApplicationToken", 'String'>
+    readonly tokenHash: FieldRef<"PartnerApplicationToken", 'String'>
+    readonly expiresAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+    readonly verifiedAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+    readonly usedAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+    readonly supersededAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+    readonly setupTokenHash: FieldRef<"PartnerApplicationToken", 'String'>
+    readonly setupExpiresAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+    readonly createdUserId: FieldRef<"PartnerApplicationToken", 'String'>
+    readonly createdAt: FieldRef<"PartnerApplicationToken", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PartnerApplicationToken findUnique
+   */
+  export type PartnerApplicationTokenFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerApplicationToken to fetch.
+     */
+    where: PartnerApplicationTokenWhereUniqueInput
+  }
+
+  /**
+   * PartnerApplicationToken findUniqueOrThrow
+   */
+  export type PartnerApplicationTokenFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerApplicationToken to fetch.
+     */
+    where: PartnerApplicationTokenWhereUniqueInput
+  }
+
+  /**
+   * PartnerApplicationToken findFirst
+   */
+  export type PartnerApplicationTokenFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerApplicationToken to fetch.
+     */
+    where?: PartnerApplicationTokenWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerApplicationTokens to fetch.
+     */
+    orderBy?: PartnerApplicationTokenOrderByWithRelationInput | PartnerApplicationTokenOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerApplicationTokens.
+     */
+    cursor?: PartnerApplicationTokenWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerApplicationTokens from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerApplicationTokens.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerApplicationTokens.
+     */
+    distinct?: PartnerApplicationTokenScalarFieldEnum | PartnerApplicationTokenScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerApplicationToken findFirstOrThrow
+   */
+  export type PartnerApplicationTokenFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerApplicationToken to fetch.
+     */
+    where?: PartnerApplicationTokenWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerApplicationTokens to fetch.
+     */
+    orderBy?: PartnerApplicationTokenOrderByWithRelationInput | PartnerApplicationTokenOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartnerApplicationTokens.
+     */
+    cursor?: PartnerApplicationTokenWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerApplicationTokens from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerApplicationTokens.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartnerApplicationTokens.
+     */
+    distinct?: PartnerApplicationTokenScalarFieldEnum | PartnerApplicationTokenScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerApplicationToken findMany
+   */
+  export type PartnerApplicationTokenFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter, which PartnerApplicationTokens to fetch.
+     */
+    where?: PartnerApplicationTokenWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartnerApplicationTokens to fetch.
+     */
+    orderBy?: PartnerApplicationTokenOrderByWithRelationInput | PartnerApplicationTokenOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PartnerApplicationTokens.
+     */
+    cursor?: PartnerApplicationTokenWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartnerApplicationTokens from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartnerApplicationTokens.
+     */
+    skip?: number
+    distinct?: PartnerApplicationTokenScalarFieldEnum | PartnerApplicationTokenScalarFieldEnum[]
+  }
+
+  /**
+   * PartnerApplicationToken create
+   */
+  export type PartnerApplicationTokenCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PartnerApplicationToken.
+     */
+    data: XOR<PartnerApplicationTokenCreateInput, PartnerApplicationTokenUncheckedCreateInput>
+  }
+
+  /**
+   * PartnerApplicationToken createMany
+   */
+  export type PartnerApplicationTokenCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PartnerApplicationTokens.
+     */
+    data: PartnerApplicationTokenCreateManyInput | PartnerApplicationTokenCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartnerApplicationToken createManyAndReturn
+   */
+  export type PartnerApplicationTokenCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PartnerApplicationTokens.
+     */
+    data: PartnerApplicationTokenCreateManyInput | PartnerApplicationTokenCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartnerApplicationToken update
+   */
+  export type PartnerApplicationTokenUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PartnerApplicationToken.
+     */
+    data: XOR<PartnerApplicationTokenUpdateInput, PartnerApplicationTokenUncheckedUpdateInput>
+    /**
+     * Choose, which PartnerApplicationToken to update.
+     */
+    where: PartnerApplicationTokenWhereUniqueInput
+  }
+
+  /**
+   * PartnerApplicationToken updateMany
+   */
+  export type PartnerApplicationTokenUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PartnerApplicationTokens.
+     */
+    data: XOR<PartnerApplicationTokenUpdateManyMutationInput, PartnerApplicationTokenUncheckedUpdateManyInput>
+    /**
+     * Filter which PartnerApplicationTokens to update
+     */
+    where?: PartnerApplicationTokenWhereInput
+  }
+
+  /**
+   * PartnerApplicationToken upsert
+   */
+  export type PartnerApplicationTokenUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PartnerApplicationToken to update in case it exists.
+     */
+    where: PartnerApplicationTokenWhereUniqueInput
+    /**
+     * In case the PartnerApplicationToken found by the `where` argument doesn't exist, create a new PartnerApplicationToken with this data.
+     */
+    create: XOR<PartnerApplicationTokenCreateInput, PartnerApplicationTokenUncheckedCreateInput>
+    /**
+     * In case the PartnerApplicationToken was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PartnerApplicationTokenUpdateInput, PartnerApplicationTokenUncheckedUpdateInput>
+  }
+
+  /**
+   * PartnerApplicationToken delete
+   */
+  export type PartnerApplicationTokenDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
+    /**
+     * Filter which PartnerApplicationToken to delete.
+     */
+    where: PartnerApplicationTokenWhereUniqueInput
+  }
+
+  /**
+   * PartnerApplicationToken deleteMany
+   */
+  export type PartnerApplicationTokenDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartnerApplicationTokens to delete
+     */
+    where?: PartnerApplicationTokenWhereInput
+  }
+
+  /**
+   * PartnerApplicationToken without action
+   */
+  export type PartnerApplicationTokenDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartnerApplicationToken
+     */
+    select?: PartnerApplicationTokenSelect<ExtArgs> | null
   }
 
 
@@ -7279,6 +8338,23 @@ export namespace Prisma {
   export type PasswordResetTokenScalarFieldEnum = (typeof PasswordResetTokenScalarFieldEnum)[keyof typeof PasswordResetTokenScalarFieldEnum]
 
 
+  export const PartnerApplicationTokenScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    tokenHash: 'tokenHash',
+    expiresAt: 'expiresAt',
+    verifiedAt: 'verifiedAt',
+    usedAt: 'usedAt',
+    supersededAt: 'supersededAt',
+    setupTokenHash: 'setupTokenHash',
+    setupExpiresAt: 'setupExpiresAt',
+    createdUserId: 'createdUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type PartnerApplicationTokenScalarFieldEnum = (typeof PartnerApplicationTokenScalarFieldEnum)[keyof typeof PartnerApplicationTokenScalarFieldEnum]
+
+
   export const RefreshTokenScalarFieldEnum: {
     id: 'id',
     token: 'token',
@@ -7646,6 +8722,88 @@ export namespace Prisma {
     usedAt?: DateTimeNullableWithAggregatesFilter<"PasswordResetToken"> | Date | string | null
     requestedBy?: StringNullableWithAggregatesFilter<"PasswordResetToken"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PasswordResetToken"> | Date | string
+  }
+
+  export type PartnerApplicationTokenWhereInput = {
+    AND?: PartnerApplicationTokenWhereInput | PartnerApplicationTokenWhereInput[]
+    OR?: PartnerApplicationTokenWhereInput[]
+    NOT?: PartnerApplicationTokenWhereInput | PartnerApplicationTokenWhereInput[]
+    id?: StringFilter<"PartnerApplicationToken"> | string
+    email?: StringFilter<"PartnerApplicationToken"> | string
+    tokenHash?: StringFilter<"PartnerApplicationToken"> | string
+    expiresAt?: DateTimeFilter<"PartnerApplicationToken"> | Date | string
+    verifiedAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    usedAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    supersededAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    setupTokenHash?: StringNullableFilter<"PartnerApplicationToken"> | string | null
+    setupExpiresAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    createdUserId?: StringNullableFilter<"PartnerApplicationToken"> | string | null
+    createdAt?: DateTimeFilter<"PartnerApplicationToken"> | Date | string
+  }
+
+  export type PartnerApplicationTokenOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    usedAt?: SortOrderInput | SortOrder
+    supersededAt?: SortOrderInput | SortOrder
+    setupTokenHash?: SortOrderInput | SortOrder
+    setupExpiresAt?: SortOrderInput | SortOrder
+    createdUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerApplicationTokenWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    tokenHash?: string
+    setupTokenHash?: string
+    AND?: PartnerApplicationTokenWhereInput | PartnerApplicationTokenWhereInput[]
+    OR?: PartnerApplicationTokenWhereInput[]
+    NOT?: PartnerApplicationTokenWhereInput | PartnerApplicationTokenWhereInput[]
+    email?: StringFilter<"PartnerApplicationToken"> | string
+    expiresAt?: DateTimeFilter<"PartnerApplicationToken"> | Date | string
+    verifiedAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    usedAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    supersededAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    setupExpiresAt?: DateTimeNullableFilter<"PartnerApplicationToken"> | Date | string | null
+    createdUserId?: StringNullableFilter<"PartnerApplicationToken"> | string | null
+    createdAt?: DateTimeFilter<"PartnerApplicationToken"> | Date | string
+  }, "id" | "tokenHash" | "setupTokenHash">
+
+  export type PartnerApplicationTokenOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    usedAt?: SortOrderInput | SortOrder
+    supersededAt?: SortOrderInput | SortOrder
+    setupTokenHash?: SortOrderInput | SortOrder
+    setupExpiresAt?: SortOrderInput | SortOrder
+    createdUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PartnerApplicationTokenCountOrderByAggregateInput
+    _max?: PartnerApplicationTokenMaxOrderByAggregateInput
+    _min?: PartnerApplicationTokenMinOrderByAggregateInput
+  }
+
+  export type PartnerApplicationTokenScalarWhereWithAggregatesInput = {
+    AND?: PartnerApplicationTokenScalarWhereWithAggregatesInput | PartnerApplicationTokenScalarWhereWithAggregatesInput[]
+    OR?: PartnerApplicationTokenScalarWhereWithAggregatesInput[]
+    NOT?: PartnerApplicationTokenScalarWhereWithAggregatesInput | PartnerApplicationTokenScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PartnerApplicationToken"> | string
+    email?: StringWithAggregatesFilter<"PartnerApplicationToken"> | string
+    tokenHash?: StringWithAggregatesFilter<"PartnerApplicationToken"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"PartnerApplicationToken"> | Date | string
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"PartnerApplicationToken"> | Date | string | null
+    usedAt?: DateTimeNullableWithAggregatesFilter<"PartnerApplicationToken"> | Date | string | null
+    supersededAt?: DateTimeNullableWithAggregatesFilter<"PartnerApplicationToken"> | Date | string | null
+    setupTokenHash?: StringNullableWithAggregatesFilter<"PartnerApplicationToken"> | string | null
+    setupExpiresAt?: DateTimeNullableWithAggregatesFilter<"PartnerApplicationToken"> | Date | string | null
+    createdUserId?: StringNullableWithAggregatesFilter<"PartnerApplicationToken"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PartnerApplicationToken"> | Date | string
   }
 
   export type RefreshTokenWhereInput = {
@@ -8100,6 +9258,104 @@ export namespace Prisma {
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     requestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerApplicationTokenCreateInput = {
+    id?: string
+    email: string
+    tokenHash: string
+    expiresAt: Date | string
+    verifiedAt?: Date | string | null
+    usedAt?: Date | string | null
+    supersededAt?: Date | string | null
+    setupTokenHash?: string | null
+    setupExpiresAt?: Date | string | null
+    createdUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerApplicationTokenUncheckedCreateInput = {
+    id?: string
+    email: string
+    tokenHash: string
+    expiresAt: Date | string
+    verifiedAt?: Date | string | null
+    usedAt?: Date | string | null
+    supersededAt?: Date | string | null
+    setupTokenHash?: string | null
+    setupExpiresAt?: Date | string | null
+    createdUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerApplicationTokenUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    setupTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    setupExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerApplicationTokenUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    setupTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    setupExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerApplicationTokenCreateManyInput = {
+    id?: string
+    email: string
+    tokenHash: string
+    expiresAt: Date | string
+    verifiedAt?: Date | string | null
+    usedAt?: Date | string | null
+    supersededAt?: Date | string | null
+    setupTokenHash?: string | null
+    setupExpiresAt?: Date | string | null
+    createdUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartnerApplicationTokenUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    setupTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    setupExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartnerApplicationTokenUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    setupTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    setupExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -8669,6 +9925,48 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type PartnerApplicationTokenCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    verifiedAt?: SortOrder
+    usedAt?: SortOrder
+    supersededAt?: SortOrder
+    setupTokenHash?: SortOrder
+    setupExpiresAt?: SortOrder
+    createdUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerApplicationTokenMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    verifiedAt?: SortOrder
+    usedAt?: SortOrder
+    supersededAt?: SortOrder
+    setupTokenHash?: SortOrder
+    setupExpiresAt?: SortOrder
+    createdUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartnerApplicationTokenMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    verifiedAt?: SortOrder
+    usedAt?: SortOrder
+    supersededAt?: SortOrder
+    setupTokenHash?: SortOrder
+    setupExpiresAt?: SortOrder
+    createdUserId?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type RefreshTokenCountOrderByAggregateInput = {
@@ -9893,6 +11191,10 @@ export namespace Prisma {
      * @deprecated Use PasswordResetTokenDefaultArgs instead
      */
     export type PasswordResetTokenArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PasswordResetTokenDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PartnerApplicationTokenDefaultArgs instead
+     */
+    export type PartnerApplicationTokenArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PartnerApplicationTokenDefaultArgs<ExtArgs>
     /**
      * @deprecated Use RefreshTokenDefaultArgs instead
      */

@@ -69,6 +69,35 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+/// Đối tác Gym tự đăng ký (GYM_PARTNER_SELF_ONBOARDING_SPEC.md): email → link → đặt mật khẩu.
+/// Chưa có User nào cả — dòng này sống TRƯỚC khi tài khoản tồn tại, nên không có FK tới users.
+///
+/// ⚠️ Cả token email lẫn setupToken đều LƯU BĂM (sha256), KHÔNG lưu bản gốc; bản gốc chỉ tồn
+/// tại trong email / trong phản hồi của lần verify. Cooldown và trần số email/ngày theo email
+/// đọc thẳng từ bảng này (đếm các dòng gần đây) nên đúng cả khi chạy nhiều instance.
+model PartnerApplicationToken {
+  id             String    @id @default(uuid())
+  /// Đã chuẩn hoá (chữ thường, cắt khoảng trắng).
+  email          String
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at")
+  /// Đặt khi người dùng mở link (POST verify). KHÔNG tiêu token: refresh/mở lại link vẫn được.
+  verifiedAt     DateTime? @map("verified_at")
+  /// Chỉ đặt khi đặt mật khẩu xong — đây mới là lúc token bị tiêu.
+  usedAt         DateTime? @map("used_at")
+  /// Bị thay bằng link mới do "Gửi lại" — link cũ chết ngay, không kéo dài hạn.
+  supersededAt   DateTime? @map("superseded_at")
+  /// Phiên đặt mật khẩu ngắn hạn cấp sau verify, để token email không phải đi tiếp trong URL.
+  setupTokenHash String?   @unique @map("setup_token_hash")
+  setupExpiresAt DateTime? @map("setup_expires_at")
+  /// User được tạo từ token này (để dấu vết/kiểm toán; token chỉ tiêu được một lần).
+  createdUserId  String?   @map("created_user_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([email, createdAt])
+  @@map("partner_application_tokens")
+}
+
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique

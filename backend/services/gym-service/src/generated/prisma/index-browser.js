@@ -128,6 +128,9 @@ exports.Prisma.GymPhotoScalarFieldEnum = {
   fileName: 'fileName',
   sortOrder: 'sortOrder',
   isCover: 'isCover',
+  s3Key: 's3Key',
+  category: 'category',
+  visibility: 'visibility',
   createdAt: 'createdAt'
 };
 
@@ -238,6 +241,11 @@ exports.Prisma.GymPartnerScalarFieldEnum = {
   rejectionReason: 'rejectionReason',
   expectedBranchCount: 'expectedBranchCount',
   negotiationNotes: 'negotiationNotes',
+  source: 'source',
+  submittedAt: 'submittedAt',
+  representativeName: 'representativeName',
+  representativeRole: 'representativeRole',
+  businessScale: 'businessScale',
   payoutBankName: 'payoutBankName',
   payoutBankAccountNumber: 'payoutBankAccountNumber',
   payoutBankAccountHolder: 'payoutBankAccountHolder',
@@ -287,12 +295,49 @@ exports.Prisma.GymPartnerDocumentScalarFieldEnum = {
   docType: 'docType',
   required: 'required',
   fileUrl: 'fileUrl',
+  fileKey: 'fileKey',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  uploadedBy: 'uploadedBy',
+  version: 'version',
+  reviewNote: 'reviewNote',
   status: 'status',
   verifiedBy: 'verifiedBy',
   verifiedAt: 'verifiedAt',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPartnerReviewIssueScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  category: 'category',
+  message: 'message',
+  status: 'status',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  resubmitNote: 'resubmitNote',
+  resubmittedAt: 'resubmittedAt',
+  adminFollowUp: 'adminFollowUp',
+  resolvedBy: 'resolvedBy',
+  resolvedAt: 'resolvedAt'
+};
+
+exports.Prisma.PartnerUploadIntentScalarFieldEnum = {
+  id: 'id',
+  partnerId: 'partnerId',
+  kind: 'kind',
+  docType: 'docType',
+  gymId: 'gymId',
+  photoCategory: 'photoCategory',
+  objectKey: 'objectKey',
+  contentType: 'contentType',
+  maxBytes: 'maxBytes',
+  createdBy: 'createdBy',
+  expiresAt: 'expiresAt',
+  confirmedAt: 'confirmedAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.GymPartnerContactLogScalarFieldEnum = {
@@ -312,6 +357,7 @@ exports.Prisma.GymBrandScalarFieldEnum = {
   approvedName: 'approvedName',
   pendingName: 'pendingName',
   description: 'description',
+  logoKey: 'logoKey',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -478,6 +524,21 @@ exports.Prisma.JsonNullValueFilter = {
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
+exports.GymPhotoCategory = exports.$Enums.GymPhotoCategory = {
+  EXTERIOR: 'EXTERIOR',
+  MAIN_TRAINING_AREA: 'MAIN_TRAINING_AREA',
+  EQUIPMENT: 'EQUIPMENT',
+  CARDIO: 'CARDIO',
+  CHANGING_ROOM: 'CHANGING_ROOM',
+  AMENITIES: 'AMENITIES',
+  OTHER: 'OTHER'
+};
+
+exports.GymPhotoVisibility = exports.$Enums.GymPhotoVisibility = {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC'
+};
+
 exports.BranchDocumentType = exports.$Enums.BranchDocumentType = {
   LEASE_OR_PROPERTY_DOC: 'LEASE_OR_PROPERTY_DOC',
   FIRE_SAFETY_CERTIFICATE: 'FIRE_SAFETY_CERTIFICATE',
@@ -553,7 +614,20 @@ exports.PartnerAuditAction = exports.$Enums.PartnerAuditAction = {
   PARTNER_SUSPENDED: 'PARTNER_SUSPENDED',
   PARTNER_UNSUSPENDED: 'PARTNER_UNSUSPENDED',
   PARTNER_TERMINATED: 'PARTNER_TERMINATED',
-  VIEWED_AS_PARTNER: 'VIEWED_AS_PARTNER'
+  VIEWED_AS_PARTNER: 'VIEWED_AS_PARTNER',
+  APPLICATION_SUBMITTED: 'APPLICATION_SUBMITTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  ISSUE_MARKED_UPDATED: 'ISSUE_MARKED_UPDATED',
+  APPLICATION_RESUBMITTED: 'APPLICATION_RESUBMITTED',
+  ISSUE_RESOLVED: 'ISSUE_RESOLVED',
+  DOCUMENT_UPLOADED: 'DOCUMENT_UPLOADED',
+  DOCUMENT_REPLACED: 'DOCUMENT_REPLACED',
+  DOCUMENT_ACCEPTED: 'DOCUMENT_ACCEPTED',
+  DOCUMENT_UPDATE_REQUESTED: 'DOCUMENT_UPDATE_REQUESTED',
+  APPLICATION_APPROVED: 'APPLICATION_APPROVED',
+  APPLICATION_REJECTED: 'APPLICATION_REJECTED',
+  APPLICATION_REOPENED: 'APPLICATION_REOPENED',
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED'
 };
 
 exports.GymPartnerKind = exports.$Enums.GymPartnerKind = {
@@ -582,6 +656,23 @@ exports.TerminationMemberPolicy = exports.$Enums.TerminationMemberPolicy = {
   PRORATED_REFUND: 'PRORATED_REFUND'
 };
 
+exports.GymPartnerSource = exports.$Enums.GymPartnerSource = {
+  ADMIN_CREATED: 'ADMIN_CREATED',
+  SELF_SERVICE: 'SELF_SERVICE'
+};
+
+exports.PartnerRepresentativeRole = exports.$Enums.PartnerRepresentativeRole = {
+  GYM_OWNER: 'GYM_OWNER',
+  CO_FOUNDER: 'CO_FOUNDER',
+  LEGAL_REPRESENTATIVE: 'LEGAL_REPRESENTATIVE',
+  AUTHORIZED_MANAGER: 'AUTHORIZED_MANAGER'
+};
+
+exports.PartnerBusinessScale = exports.$Enums.PartnerBusinessScale = {
+  ONE_BRANCH: 'ONE_BRANCH',
+  MULTIPLE_BRANCHES: 'MULTIPLE_BRANCHES'
+};
+
 exports.PartnerAccountRole = exports.$Enums.PartnerAccountRole = {
   OWNER: 'OWNER',
   MANAGER: 'MANAGER'
@@ -607,6 +698,28 @@ exports.PartnerDocumentType = exports.$Enums.PartnerDocumentType = {
   TAX_CODE_CERTIFICATE: 'TAX_CODE_CERTIFICATE',
   SITE_PHOTOS: 'SITE_PHOTOS',
   FIRE_SAFETY_CERTIFICATE: 'FIRE_SAFETY_CERTIFICATE'
+};
+
+exports.PartnerReviewCategory = exports.$Enums.PartnerReviewCategory = {
+  REPRESENTATIVE: 'REPRESENTATIVE',
+  BRAND: 'BRAND',
+  BRANCH: 'BRANCH',
+  LOCATION: 'LOCATION',
+  PHOTOS: 'PHOTOS',
+  LEGAL: 'LEGAL',
+  OTHER: 'OTHER'
+};
+
+exports.PartnerReviewIssueStatus = exports.$Enums.PartnerReviewIssueStatus = {
+  OPEN: 'OPEN',
+  RESUBMITTED: 'RESUBMITTED',
+  RESOLVED: 'RESOLVED'
+};
+
+exports.PartnerUploadKind = exports.$Enums.PartnerUploadKind = {
+  DOCUMENT: 'DOCUMENT',
+  PHOTO: 'PHOTO',
+  LOGO: 'LOGO'
 };
 
 exports.PartnerContactChannel = exports.$Enums.PartnerContactChannel = {
@@ -709,6 +822,8 @@ exports.Prisma.ModelName = {
   GymPartnerAccount: 'GymPartnerAccount',
   PartnerInvitation: 'PartnerInvitation',
   GymPartnerDocument: 'GymPartnerDocument',
+  GymPartnerReviewIssue: 'GymPartnerReviewIssue',
+  PartnerUploadIntent: 'PartnerUploadIntent',
   GymPartnerContactLog: 'GymPartnerContactLog',
   GymBrand: 'GymBrand',
   Gym: 'Gym',
