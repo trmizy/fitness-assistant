@@ -27,7 +27,7 @@ export const businessScaleSchema = z.object({
 
 export const applicationBrandSchema = z.object({
   name: z.string({ required_error: 'Tên thương hiệu là bắt buộc' }).trim().min(2, 'Tên thương hiệu quá ngắn').max(120),
-  description: z.string().trim().max(1000).optional(),
+  description: z.string().trim().max(300, 'Giới thiệu thương hiệu tối đa 300 ký tự').optional(),
 });
 
 /**

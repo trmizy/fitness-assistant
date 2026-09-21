@@ -19,6 +19,7 @@ import { authService, gymService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
 import { SectionCard } from "../client/settings/components/SectionCard";
 import { SOCIALS, type SocialKey } from "../../components/gym/SocialLinks";
+import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 
 const inputCls =
   "w-full px-3 py-2.5 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 disabled:opacity-60 transition-all";
@@ -184,7 +185,8 @@ export function GymOwnerProfilePage() {
             </label>
             <label className="block">
               <Label>Giới thiệu thương hiệu</Label>
-              <textarea aria-label="Giới thiệu thương hiệu" value={brandForm.description} onChange={(e) => setBrandForm((f) => ({ ...f, description: e.target.value }))} disabled={!isOwner} rows={3} maxLength={2000} className={inputCls} />
+              <textarea aria-label="Giới thiệu thương hiệu" value={brandForm.description} onChange={(e) => setBrandForm((f) => ({ ...f, description: e.target.value }))} disabled={!isOwner} rows={3} maxLength={Math.max(ABOUT_MAX, brandForm.description.length)} className={inputCls} />
+              <AboutCounter value={brandForm.description} />
             </label>
             <div>
               <Label>Mạng xã hội</Label>
@@ -209,7 +211,7 @@ export function GymOwnerProfilePage() {
           </div>
           {isOwner && (
             <div className="mt-4 flex justify-end">
-              <button type="button" data-testid="profile-brand-save" onClick={() => brandMutation.mutate()} disabled={brandMutation.isPending || !brandForm.name.trim()} className={btnCls}>
+              <button type="button" data-testid="profile-brand-save" onClick={() => brandMutation.mutate()} disabled={brandMutation.isPending || !brandForm.name.trim() || brandForm.description.trim().length > ABOUT_MAX} className={btnCls}>
                 {brandMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Lưu thương hiệu
               </button>
             </div>

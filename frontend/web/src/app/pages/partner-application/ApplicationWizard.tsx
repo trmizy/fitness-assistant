@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { GymLocationFields } from "../../components/gym/GymLocationFields";
 import { SOCIALS, SocialLinks, type SocialKey } from "../../components/gym/SocialLinks";
+import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { MapLocationPicker } from "../../components/gym/MapLocationPicker";
 import { AutoPinStatus, useAutoPin, useLocationNames } from "../../components/gym/addressAutoPin";
 import {
@@ -238,7 +239,8 @@ function StepBrand({ view, editable, onChanged, onBack, onDone }: StepProps) {
           <input value={name} onChange={(e) => setName(e.target.value)} disabled={!editable} maxLength={120} className={inputCls} />
         </Field>
         <Field label="Giới thiệu ngắn">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable} rows={3} maxLength={1000} className={inputCls} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable} rows={3} maxLength={ABOUT_MAX} className={inputCls} />
+          <AboutCounter value={description} />
         </Field>
         {view.brand ? (
           <BrandLogoUpload logoUrl={view.brand.logoUrl} disabled={!editable} onChanged={onChanged} />
@@ -368,7 +370,8 @@ function StepBranch({ view, editable, onChanged, onBack, onDone }: StepProps) {
           </Field>
         </div>
         <Field label="Giới thiệu chi nhánh">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable} rows={3} maxLength={2000} className={inputCls} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable} rows={3} maxLength={ABOUT_MAX} className={inputCls} />
+          <AboutCounter value={description} />
         </Field>
       </div>
       <ErrorLine error={error} />

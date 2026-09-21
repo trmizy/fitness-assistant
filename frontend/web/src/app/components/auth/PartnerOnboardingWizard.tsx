@@ -151,6 +151,7 @@ export function PartnerOnboardingWizard({ onComplete }: { onComplete: () => void
                 value={brandDescription}
                 onChange={(e) => setBrandDescription(e.target.value)}
                 rows={2}
+                maxLength={300}
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50 resize-none"
               />
             </div>

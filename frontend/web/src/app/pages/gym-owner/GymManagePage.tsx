@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
+import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, WalletIcon, UsersIcon as Users, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle, CaretDownIcon as ChevronDown } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -304,10 +305,11 @@ export function GymManagePage() {
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
               rows={4}
-              maxLength={2000}
+              maxLength={Math.max(ABOUT_MAX, editDescription.length)}
               placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
+            <AboutCounter value={editDescription} />
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 data-testid="gym-edit-phone-input"
@@ -334,7 +336,7 @@ export function GymManagePage() {
               type="button"
               data-testid="gym-save-about-button"
               onClick={() => updateGymMutation.mutate({ description: editDescription.trim(), phone: editPhone.trim(), email: editEmail.trim() })}
-              disabled={updateGymMutation.isPending}
+              disabled={updateGymMutation.isPending || editDescription.trim().length > ABOUT_MAX}
               className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
             >
               Lưu giới thiệu & liên hệ
