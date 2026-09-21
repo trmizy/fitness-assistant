@@ -76,6 +76,13 @@ export function isEditableState(state: AccessState): boolean {
 
 /** Giấy tờ bắt buộc — chính sách sẵn có của `partner-diligence.service.ts`, dùng lại nguyên. */
 export const REQUIRED_APPLICATION_DOCS = ['BUSINESS_LICENSE', 'REPRESENTATIVE_ID', 'PREMISES_PROOF'] as const;
+/**
+ * Giấy tờ bổ sung ứng viên TỰ tải được, không chặn nộp hồ sơ. SITE_PHOTOS cố ý không có ở đây: nó trùng
+ * bước "Ảnh cơ sở" (GymPhoto) — enum giữ lại cho luồng đối tác nhập tay cũ (partner-diligence).
+ * Một danh sách duy nhất cho: tải lên, hồ sơ phía ứng viên và màn duyệt của admin — hai bên luôn thấy như nhau.
+ */
+export const OPTIONAL_APPLICATION_DOCS = ['TAX_CODE_CERTIFICATE', 'FIRE_SAFETY_CERTIFICATE'] as const;
+export const APPLICATION_DOC_TYPES = [...REQUIRED_APPLICATION_DOCS, ...OPTIONAL_APPLICATION_DOCS] as const;
 
 /**
  * Số ảnh tối thiểu của chi nhánh đầu. Code hiện tại KHÔNG có ngưỡng nào (GymPhoto chỉ có trần 20)

@@ -10,6 +10,8 @@ import {
   XIcon as X,
   PhoneIcon as Phone,
   EnvelopeSimpleIcon as Mail,
+  NavigationArrowIcon as Directions,
+  SignpostIcon as Signpost,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -19,6 +21,10 @@ import type { Gym, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "./Stars";
 import { GymReviewsSection } from "./GymReviewsSection";
+import { GymPhotoGallery } from "./GymPhotoGallery";
+import { BranchMap } from "./BranchMap";
+import { SocialLinks } from "./SocialLinks";
+import { useLocationNames } from "./addressAutoPin";
 import { PaymentMethodDialog } from "../payment/PaymentMethodDialog";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
@@ -63,6 +69,17 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
     queryKey: ["membership-warnings", gymId],
     queryFn: () => gymService.getMembershipWarnings(gymId),
   });
+
+  // Địa chỉ đầy đủ: số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã — gym chỉ lưu mã).
+  const names = useLocationNames(gym?.provinceCode ?? null, gym?.wardCode ?? null);
+  const fullAddress = gym ? [gym.address, names.ward, names.province ?? gym.city].filter(Boolean).join(", ") : "";
+  const hasPos = gym?.latitude != null && gym?.longitude != null;
+  const branches = gym?.brandBranches?.length
+    ? gym.brandBranches
+    : gym
+      ? [{ id: gym.id, name: gym.name, address: gym.address, latitude: gym.latitude ?? null, longitude: gym.longitude ?? null }]
+      : [];
+  const otherBranches = branches.filter((b) => b.id !== gymId);
 
   const startBuy = (plan: GymMembershipPlan) => {
     if (multiGymWarnings.length > 0) setWarningTarget(plan);
@@ -122,13 +139,17 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
       <div className="p-5 border-b border-zinc-800/60">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
-              <Dumbbell className="w-6 h-6 text-green-400" />
-            </div>
+            {gym.brand?.logoUrl ? (
+              <img src={gym.brand.logoUrl} alt={`Logo ${gym.brand.name}`} className="w-12 h-12 rounded-xl object-contain bg-zinc-950 border border-zinc-800 flex-shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                <Dumbbell className="w-6 h-6 text-green-400" />
+              </div>
+            )}
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-zinc-100 truncate">{gym.name}</h2>
               <div className="flex items-center gap-1 text-xs text-zinc-500 mt-0.5">
-                <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{gym.address}{gym.city ? `, ${gym.city}` : ""}</span>
+                <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{fullAddress}</span>
               </div>
               {typeof gym.reviewCount === "number" && gym.reviewCount > 0 ? (
                 <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
@@ -171,25 +192,65 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
       <div className="p-5 space-y-5">
         {tab === "detail" && (
           <>
-            {gym.description && <p className="text-sm text-zinc-400 leading-relaxed">{gym.description}</p>}
+            <GymPhotoGallery photos={gym.photos ?? []} title={gym.name} />
+            {(gym.description || gym.brand?.description) && (
+              <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{gym.description || gym.brand?.description}</p>
+            )}
+
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <MapPin className="w-4 h-4 text-zinc-600 flex-shrink-0" /> {gym.address}{gym.city ? `, ${gym.city}` : ""}
+              <div className="flex items-start gap-2 text-zinc-300">
+                <MapPin className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" /> <span>{fullAddress}</span>
               </div>
-              {gym.phone && (
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Phone className="w-4 h-4 text-zinc-600 flex-shrink-0" /> {gym.phone}
+              {gym.locationNote && (
+                <div className="flex items-start gap-2 text-zinc-400">
+                  <Signpost className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" /> <span>{gym.locationNote}</span>
                 </div>
+              )}
+              {gym.phone && (
+                <a href={`tel:${gym.phone.replace(/\s+/g, "")}`} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200">
+                  <Phone className="w-4 h-4 text-zinc-500 flex-shrink-0" /> {gym.phone}
+                </a>
               )}
               {gym.email && (
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Mail className="w-4 h-4 text-zinc-600 flex-shrink-0" /> {gym.email}
-                </div>
+                <a href={`mailto:${gym.email}`} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 break-all">
+                  <Mail className="w-4 h-4 text-zinc-500 flex-shrink-0" /> {gym.email}
+                </a>
               )}
             </div>
-            {!gym.description && !gym.phone && !gym.email && (
-              <p className="text-sm text-zinc-600">Phòng gym chưa cập nhật thêm thông tin mô tả.</p>
-            )}
+
+            <SocialLinks value={gym.brand} />
+
+            <section className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold text-zinc-200">
+                  {otherBranches.length > 0 ? `Bản đồ ${branches.length} chi nhánh${gym.brand?.name ? ` ${gym.brand.name}` : ""}` : "Vị trí trên bản đồ"}
+                </h3>
+                {hasPos && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${gym.latitude},${gym.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 px-2.5 py-1 text-xs font-semibold text-zinc-200 hover:border-zinc-500"
+                  >
+                    <Directions className="w-3.5 h-3.5" /> Chỉ đường
+                  </a>
+                )}
+              </div>
+              <BranchMap branches={branches} currentId={gymId} />
+              {otherBranches.length > 0 && (
+                <ul className="space-y-1.5">
+                  {otherBranches.map((b) => (
+                    <li key={b.id} className="flex items-start gap-2 rounded-lg bg-zinc-800/40 px-3 py-2 text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0 mt-px" />
+                      <span className="min-w-0">
+                        <span className="font-semibold text-zinc-200">{b.name}</span>
+                        <span className="block text-zinc-500 truncate">{b.address}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         )}
 

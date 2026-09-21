@@ -7,6 +7,8 @@ import { planRepository } from '../repositories/plan.repository';
 import { brandService } from './brand.service';
 import { partnerGuard } from './partner-guard.service';
 import type { GymOperationalStatus } from '../generated/prisma';
+import { prisma } from '../repositories/prisma';
+import { brandLogoUrl, resolvePhotoUrl } from './gym-photo-url';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -79,8 +81,37 @@ export const gymService = {
     if (!gym) throw err('Gym not found', 404);
     const hiddenOwnerIds = await partnerGuard.hiddenFromPublicOwnerUserIds();
     if (hiddenOwnerIds.includes(gym.ownerId)) throw err('Gym not found', 404);
-    const r = await reviewRepository.aggregateForGym(id);
-    return { ...toPublicGym(gym), averageRating: round2(r.averageRating), reviewCount: r.count };
+    const [r, photos, siblings] = await Promise.all([
+      reviewRepository.aggregateForGym(id),
+      prisma.gymPhoto.findMany({ where: { gymId: id }, orderBy: [{ isCover: 'desc' }, { sortOrder: 'asc' }] }),
+      gym.brandId
+        ? prisma.gym.findMany({
+            where: { brandId: gym.brandId, status: 'APPROVED', operationalStatus: 'OPEN' },
+            select: { id: true, name: true, approvedName: true, address: true, approvedAddress: true, latitude: true, longitude: true },
+            orderBy: { createdAt: 'asc' },
+          })
+        : Promise.resolve([]),
+    ]);
+    const pub = toPublicGym(gym);
+    return {
+      ...pub,
+      averageRating: round2(r.averageRating),
+      reviewCount: r.count,
+      // Chỉ tới được đây khi chi nhánh ĐÃ DUYỆT (findApprovedById) — ảnh nộp lúc xin duyệt giờ mới
+      // hiện cho khách. Bucket vẫn riêng tư: mỗi ảnh là link ký tạm (resolvePhotoUrl).
+      photos: (
+        await Promise.all(photos.map(async (p) => ({ id: p.id, category: p.category, isCover: p.isCover, url: await resolvePhotoUrl(p) })))
+      ).filter((p) => p.url),
+      brand: pub.brand ? { ...pub.brand, logoUrl: await brandLogoUrl(gym.brand?.logoKey) } : pub.brand,
+      // Mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ chi nhánh.
+      brandBranches: siblings.map((b) => ({
+        id: b.id,
+        name: b.approvedName ?? b.name,
+        address: b.approvedAddress ?? b.address,
+        latitude: b.latitude,
+        longitude: b.longitude,
+      })),
+    };
   },
 
   /**

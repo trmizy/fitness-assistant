@@ -78,6 +78,8 @@ Payout (ngân hàng) **không** thu ở hồ sơ — thu sau khi duyệt bằng 
 tuỳ chọn: TAX_CODE_CERTIFICATE, SITE_PHOTOS, FIRE_SAFETY_CERTIFICATE. Trạng thái giấy tờ dùng `PartnerDocumentStatus` sẵn có:
 `PENDING` (chưa có tệp) · `RECEIVED` (= chờ duyệt) · `VERIFIED` · `REJECTED` (= "Cần cập nhật"). Thay tệp → `RECEIVED`, `version+1`.
 
+**Cập nhật 2026-09-21 — một giấy tờ nhiều tệp.** Mỗi giấy tờ nhận 1..4 tệp (`GymPartnerDocumentFile`) — CCCD hai mặt, giấy phép nhiều trang. Admin vẫn duyệt theo *giấy tờ*, không theo từng tệp. Thêm/xoá tệp khi admin đã có quyết định (VERIFIED/REJECTED) = vòng mới: `RECEIVED`, `version+1`; còn đang chờ duyệt thì chỉ bổ sung, không tăng version. Xoá hết tệp → `PENDING`. Giấy tờ `VERIFIED` bị khoá cả thêm lẫn xoá ở server. Ứng viên xem được tệp của mình (ảnh có thumbnail).
+
 Giấy tờ pháp lý **không bao giờ công khai**: bucket riêng tư, presigned GET ngắn hạn, chỉ owner của partner đó + ADMIN (chi tiết ở `GYM_PARTNER_SECURITY_MODEL.md`).
 
 ## 6. Giả định mặc định (đã nằm trong kế hoạch được duyệt; Ngài có thể đổi)

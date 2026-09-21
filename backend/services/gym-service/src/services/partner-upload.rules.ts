@@ -24,6 +24,8 @@ const EXTENSION: Record<string, string> = {
 export const MAX_UPLOAD_BYTES = Number(process.env.PARTNER_UPLOAD_MAX_BYTES || 10 * 1024 * 1024);
 /** Trần ảnh mỗi chi nhánh — cùng con số gymPhotoService đang dùng. */
 export const MAX_APPLICATION_PHOTOS = 20;
+/** Tệp tối đa cho MỘT giấy tờ — đủ cho CCCD hai mặt hay giấy phép vài trang, không thành kho ảnh. */
+export const MAX_FILES_PER_DOCUMENT = 4;
 
 export function isAllowedContentType(kind: UploadKind, contentType: string): boolean {
   return ALLOWED[kind].includes(contentType);

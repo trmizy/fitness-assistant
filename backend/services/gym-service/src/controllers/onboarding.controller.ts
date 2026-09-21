@@ -21,7 +21,7 @@ export const onboardingController = {
     if (req.partner!.isLegacy) {
       res.json({
         success: true,
-        data: { role: 'OWNER', steps: { password: true, contact: true, brand: true, payout: true, terms: true }, completed: true, currentStep: 5, partnerId: null },
+        data: { role: 'OWNER', steps: { password: true, contact: true, brand: true, payout: true, terms: true }, completed: true, currentStep: 5, partnerId: null, hasPartnerAccount: false, contactPhone: null },
       });
       return;
     }
@@ -69,7 +69,11 @@ export const onboardingController = {
   async submitPayout(req: Request, res: Response) {
     try {
       if (req.partner!.role !== 'OWNER') throw Object.assign(new Error('Chỉ chủ sở hữu nhập thông tin nhận tiền'), { status: 403 });
-      const progress = await onboardingService.submitPayout(req.partner!.accountId!, req.partner!.partnerId!, req.body ?? {});
+      const progress = await onboardingService.submitPayout(req.partner!.accountId!, req.partner!.partnerId!, req.body ?? {}, {
+        userId: req.user!.userId,
+        email: req.user!.email,
+        req,
+      });
       res.json({ success: true, data: progress });
     } catch (e: any) {
       fail(res, e);

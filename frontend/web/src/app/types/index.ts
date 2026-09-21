@@ -450,6 +450,8 @@ export interface GymPhoto {
   sortOrder: number;
   isCover: boolean;
   createdAt: string;
+  /** Do server dựng (resolvePhotoUrl): link ký tạm cho ảnh S3, /uploads/… cho ảnh đĩa cũ. */
+  url?: string | null;
 }
 
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification" (branch-level only, §95.4 — NOT
@@ -542,6 +544,11 @@ export interface GymBrand {
   approvedName?: string | null;
   pendingName?: string | null;
   description?: string;
+  /** Trang mạng xã hội của thương hiệu — hiện ở "Chi tiết" khi khách xem phòng gym. */
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  tiktokUrl?: string | null;
+  youtubeUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   /** Present only on GET /owner/brands/:id — the branch-management view. */
@@ -606,7 +613,23 @@ export interface Gym {
   fromPrice?: string | null;
   activeMemberCount?: number; // owner listing only (GET /owner/gyms)
   /** Included on public/owner listings so the client can group branches without a second call. */
-  brand?: { id: string; name: string; approvedName?: string | null; pendingName?: string | null } | null;
+  brand?: {
+    id: string;
+    name: string;
+    approvedName?: string | null;
+    pendingName?: string | null;
+    description?: string | null;
+    /** Chỉ có ở chi tiết công khai (GET /gyms/:id): logo (link ký tạm) + trang mạng xã hội của thương hiệu. */
+    logoUrl?: string | null;
+    facebookUrl?: string | null;
+    instagramUrl?: string | null;
+    tiktokUrl?: string | null;
+    youtubeUrl?: string | null;
+  } | null;
+  /** Chi tiết công khai: ảnh cơ sở đã duyệt (link ký tạm), bìa trước. */
+  photos?: { id: string; url: string | null; category?: string | null; isCover?: boolean }[];
+  /** Chi tiết công khai: mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ. */
+  brandBranches?: { id: string; name: string; address: string; latitude: number | null; longitude: number | null }[];
 }
 
 export interface GymMembershipPlan {

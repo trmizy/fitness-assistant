@@ -30,6 +30,46 @@ export const applicationBrandSchema = z.object({
   description: z.string().trim().max(1000).optional(),
 });
 
+/**
+ * Link mạng xã hội của thương hiệu. Link này hiện công khai cho khách, nên chỉ nhận https và đúng tên
+ * miền của từng mạng — không để một ô "Facebook" trỏ sang trang lừa đảo bất kỳ. Ô trống = xoá link.
+ */
+const SOCIAL_HOSTS = {
+  facebookUrl: ['facebook.com', 'fb.com', 'fb.me'],
+  instagramUrl: ['instagram.com'],
+  tiktokUrl: ['tiktok.com'],
+  youtubeUrl: ['youtube.com', 'youtu.be'],
+} as const;
+
+const socialUrl = (field: keyof typeof SOCIAL_HOSTS, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(300, 'Link quá dài')
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional()
+    .refine(
+      (v) => {
+        if (v == null) return true;
+        try {
+          const u = new URL(v);
+          const host = u.hostname.toLowerCase().replace(/^(www|m|vm|vt)\./, '');
+          return u.protocol === 'https:' && SOCIAL_HOSTS[field].some((h) => host === h || host.endsWith(`.${h}`));
+        } catch {
+          return false;
+        }
+      },
+      { message: `Link ${label} không hợp lệ — dán đường dẫn https://… tới trang ${label} của bạn` },
+    );
+
+export const socialLinksSchema = z.object({
+  facebookUrl: socialUrl('facebookUrl', 'Facebook'),
+  instagramUrl: socialUrl('instagramUrl', 'Instagram'),
+  tiktokUrl: socialUrl('tiktokUrl', 'TikTok'),
+  youtubeUrl: socialUrl('youtubeUrl', 'YouTube'),
+});
+
 export const applicationBranchSchema = gymCreateSchema.omit({ facilities: true }).partial();
 
 export const legalSchema = z.object({

@@ -66,7 +66,7 @@ Vùng ứng viên nằm TRƯỚC cổng vận hành. Chỉ `status` và `bootstr
 |---|---|
 | `GET /applications?verificationStatus=` | hàng đợi + số đếm theo trạng thái (đứng trước `/:id`) |
 | `GET /:id/application` | hồ sơ đầy đủ + từng giấy tờ + issue + `approve: {canApprove, blockers[]}` + lịch sử audit |
-| `GET /:id/application/documents/:docType/file` | presigned GET 120 s, PDF ép tải xuống; **mỗi lần xem ghi `DOCUMENT_VIEWED`** |
+| `GET /:id/application/documents/:docType/file?fileId=` | presigned GET 120 s cho MỘT tệp (thiếu `fileId` = tệp đầu), PDF ép tải xuống; **mỗi lần xem ghi `DOCUMENT_VIEWED`** kèm `fileId` |
 | `POST /:id/application/documents/:docType/accept` | RECEIVED → VERIFIED (`DOCUMENT_ACCEPTED`); approve KHÔNG tự làm việc này |
 | `POST /:id/application/request-changes` | `{issues[], documents[]}` trong 1 transaction → NEEDS_INFO |
 | `POST /:id/application/issues/:issueId/resolve` · `/reopen` | chỉ admin đóng / mở lại (RESUBMITTED|RESOLVED → OPEN kèm lời nhắn) |
@@ -80,6 +80,7 @@ Các thao tác admin cũ trên hồ sơ SELF_SERVICE (`PATCH /:id`, `PUT/POST do
 - `GymPartner`: `submittedAt`, `representativeName`, `representativeRole` (enum `PartnerRepresentativeRole`), `businessScale` (enum `PartnerBusinessScale`).
 - `GymBrand`: `logoKey`; `@@unique([ownerId])`.
 - `GymPartnerDocument`: `fileKey`, `mimeType`, `sizeBytes`, `uploadedBy`, `version`, `reviewNote` (giữ `fileUrl`; **người/lúc duyệt dùng lại `verifiedBy`/`verifiedAt` sẵn có**, không thêm cột mới).
+- **2026-09-21:** bảng con `gym_partner_document_files` (migration `20260921000000_partner_document_files`) — một giấy tờ 1..4 tệp. Migration chép `file_key` cũ sang bảng mới rồi đặt `file_key/mime_type/size_bytes` của giấy tờ về NULL (cột giữ lại, không còn ghi). Endpoint ứng viên mới: `GET` và `DELETE /owner/application/documents/:docType/files/:fileId` (xem = presigned 120 s của chính mình; xoá tệp chưa được duyệt thì xoá hẳn khỏi S3, tệp thuộc bộ admin đã quyết định thì chỉ gỡ khỏi hồ sơ, khoá giữ trong audit).
 - `GymPhoto`: `s3Key`, `category`, `visibility` (PRIVATE|PUBLIC).
 - Bảng mới: `PartnerUploadIntent`, `GymPartnerReviewIssue` (+ enum `PartnerReviewIssueStatus`, `PartnerReviewCategory`).
 - `PartnerAuditAction`: thêm 13 giá trị (`ALTER TYPE … ADD VALUE`): 12 ở migration đầu + `DOCUMENT_VIEWED` ở migration `20260919020000_partner_document_viewed_audit`.

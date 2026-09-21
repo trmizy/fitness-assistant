@@ -94,6 +94,7 @@ const PTServiceOrderPage = lazy(() => import("./pages/pt/PTServiceOrderPage").th
 // Gym owner pages
 const GymOwnerDashboard = lazy(() => import("./pages/gym-owner/GymOwnerDashboard").then((m) => ({ default: m.GymOwnerDashboard })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
+const GymOwnerProfilePage = lazy(() => import("./pages/gym-owner/GymOwnerProfilePage").then((m) => ({ default: m.GymOwnerProfilePage })));
 const GymManagePage = lazy(() => import("./pages/gym-owner/GymManagePage").then((m) => ({ default: m.GymManagePage })));
 // GYM_BRANCH_FORM_SPEC.md, Phase 1 — new "Add Branch" wizard shell, not yet the primary
 // creation path (see AddBranchWizardPage.tsx's own doc comment for why).
@@ -314,6 +315,7 @@ export const router = createBrowserRouter([
           { path: "plans", Component: GymPlansPage },
           { path: "collaborations", Component: GymCollaborationsPage },
           { path: "managers", Component: ManageManagersPage },
+          { path: "profile", Component: GymOwnerProfilePage },
         ],
       },
 

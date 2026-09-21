@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { partnerApplicationService } from '../services/partner-application.service';
 import { partnerUploadService } from '../services/partner-upload.service';
+import { PartnerDocumentType } from '../generated/prisma';
 
 export function failApplication(res: Response, e: any) {
   res.status(e.status || 500).json({
@@ -29,6 +30,15 @@ function handler(fn: (req: Request, res: Response) => Promise<unknown> | unknown
 const ctxOf = (req: Request) => req.partner!;
 const userIdOf = (req: Request) => req.user!.userId;
 
+/** Loại giấy tờ trên URL — sai thì 400 rõ ràng thay vì để Prisma ném lỗi enum thành 500. */
+function docTypeParam(req: Request): PartnerDocumentType {
+  const v = req.params.docType;
+  if (!(Object.values(PartnerDocumentType) as string[]).includes(v)) {
+    throw Object.assign(new Error('Loại giấy tờ không hợp lệ'), { status: 400, code: 'INVALID_DOC_TYPE' });
+  }
+  return v as PartnerDocumentType;
+}
+
 /** Hồ sơ đối tác tự đăng ký — phía ứng viên (`/owner/application/*`). */
 export const applicationController = {
   status: handler((req, res) => ok(res, partnerApplicationService.getStatus(ctxOf(req)))),
@@ -54,6 +64,8 @@ export const applicationController = {
 
   branch: handler(async (req, res) => ok(res, await partnerApplicationService.upsertBranch(ctxOf(req), req.body))),
 
+  social: handler(async (req, res) => ok(res, await partnerApplicationService.updateSocialLinks(ctxOf(req), req.body))),
+
   legal: handler(async (req, res) => ok(res, await partnerApplicationService.updateLegal(ctxOf(req), req.body))),
 
   presign: handler(async (req, res) =>
@@ -62,6 +74,17 @@ export const applicationController = {
 
   confirm: handler(async (req, res) =>
     ok(res, await partnerUploadService.confirm(ctxOf(req), userIdOf(req), req.body.uploadId, req)),
+  ),
+
+  removeDocumentFile: handler(async (req, res) =>
+    ok(
+      res,
+      await partnerUploadService.removeDocumentFile(ctxOf(req), userIdOf(req), docTypeParam(req), req.params.fileId, req),
+    ),
+  ),
+
+  documentFile: handler(async (req, res) =>
+    ok(res, await partnerUploadService.getOwnDocumentFile(ctxOf(req), docTypeParam(req), req.params.fileId)),
   ),
 
   deletePhoto: handler(async (req, res) => ok(res, await partnerUploadService.deletePhoto(ctxOf(req), req.params.photoId))),

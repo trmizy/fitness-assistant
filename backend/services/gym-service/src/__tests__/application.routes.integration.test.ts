@@ -173,7 +173,8 @@ integrationTest('admin: chỉ ADMIN vào được; APPROVE bị chặn kèm bloc
   assert.equal(detail.body.data.partner.contactEmail, USERS['tok-owner'].email);
   assert.equal(detail.body.data.approve.canApprove, false);
   assert.ok(detail.body.data.approve.blockers.length > 0);
-  assert.equal(detail.body.data.documents.length, 6);
+  // 3 bắt buộc + 2 bổ sung (mã số thuế, PCCC) — đúng danh sách ứng viên thấy; SITE_PHOTOS trùng bước Ảnh nên không có.
+  assert.deepEqual(detail.body.data.documents.map((d: any) => d.docType), ['BUSINESS_LICENSE', 'REPRESENTATIVE_ID', 'PREMISES_PROOF', 'TAX_CODE_CERTIFICATE', 'FIRE_SAFETY_CERTIFICATE']);
 
   const approve = await call('tok-admin', 'POST', `/admin/partners/${partnerId}/application/approve`);
   assert.equal(approve.status, 409);

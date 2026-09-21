@@ -739,8 +739,8 @@ model GymPartnerDocument {
   docType    PartnerDocumentType   @map("doc_type")
   required   Boolean               @default(true)
   fileUrl    String?               @map("file_url")
-  /// Tệp do ứng viên tự tải lên S3 (khoá do SERVER sinh, bucket riêng tư). Dòng cũ do admin gõ
-  /// URL chỉ có fileUrl. Không bao giờ là URL công khai.
+  /// KHÔNG CÒN GHI. Từ 20260921 tệp nằm ở `files` (một giấy tờ có thể nhiều tệp: CCCD hai mặt, giấy
+  /// phép nhiều trang); migration đã chép khoá cũ sang đó và đặt cột này về NULL. Giữ cột, không xoá.
   fileKey    String?               @map("file_key")
   mimeType   String?               @map("mime_type")
   sizeBytes  Int?                  @map("size_bytes")
@@ -759,12 +759,30 @@ model GymPartnerDocument {
   createdAt  DateTime              @default(now()) @map("created_at")
   updatedAt  DateTime              @updatedAt @map("updated_at")
 
-  partner GymPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner GymPartner               @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  files   GymPartnerDocumentFile[]
 
   @@unique([partnerId, docType])
   @@index([partnerId])
   @@index([expiresAt])
   @@map("gym_partner_documents")
+}
+
+/// Một tệp của một giấy tờ đối tác (ảnh mặt trước/mặt sau, từng trang). Admin vẫn duyệt theo GIẤY TỜ
+/// (GymPartnerDocument.status), không theo từng tệp. Khoá do server sinh, bucket riêng tư.
+model GymPartnerDocumentFile {
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  fileKey    String   @map("file_key")
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int?     @map("size_bytes")
+  uploadedBy String?  @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  document GymPartnerDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("gym_partner_document_files")
 }
 
 /// Vấn đề admin nêu trên hồ sơ tự đăng ký, theo mục. Vòng đời OPEN → RESUBMITTED (ứng viên
@@ -854,6 +872,12 @@ model GymBrand {
   description  String?
   /// Khoá đối tượng S3 của logo (hồ sơ tự đăng ký). Chưa có luồng tải logo thì để null.
   logoKey      String?  @map("logo_key")
+  /// Trang mạng xã hội của THƯƠNG HIỆU (không phải từng chi nhánh) — hiện ở "Chi tiết" khi khách xem
+  /// phòng gym. Chỉ nhận https + đúng tên miền của từng mạng (application.schemas.ts socialLinksSchema).
+  facebookUrl  String?  @map("facebook_url")
+  instagramUrl String?  @map("instagram_url")
+  tiktokUrl    String?  @map("tiktok_url")
+  youtubeUrl   String?  @map("youtube_url")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

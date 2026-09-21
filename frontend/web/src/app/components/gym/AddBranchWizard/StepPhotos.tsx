@@ -106,7 +106,7 @@ export function StepPhotos({ gymId }: { gymId: string }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {photos.map((photo, index) => (
             <div key={photo.id} className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 group">
-              <img src={gymPhotoUrl(photo.fileName)} alt="" className="w-full aspect-square object-cover" />
+              <img src={gymPhotoUrl(photo.fileName, photo.url)} alt="" className="w-full aspect-square object-cover" />
               {photo.isCover && (
                 <span className="absolute top-1.5 left-1.5 flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-black">
                   <StarIcon className="size-3" weight="fill" /> Ảnh bìa

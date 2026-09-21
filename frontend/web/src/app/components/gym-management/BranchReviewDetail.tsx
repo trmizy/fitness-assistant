@@ -96,7 +96,7 @@ export function BranchReviewDetail({ gym }: { gym: Gym }) {
         ) : (
           <div className="grid grid-cols-4 gap-2">
             {(photosQuery.data ?? []).map((p) => (
-              <img key={p.id} src={gymPhotoUrl(p.fileName)} alt="" className="w-full aspect-square object-cover rounded-lg border border-zinc-800" />
+              <img key={p.id} src={gymPhotoUrl(p.fileName, p.url)} alt="" className="w-full aspect-square object-cover rounded-lg border border-zinc-800" />
             ))}
           </div>
         )}

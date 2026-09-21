@@ -11,6 +11,9 @@ import {
   BuildingsIcon as Buildings,
 } from "@phosphor-icons/react";
 import { GymLocationFields } from "../../components/gym/GymLocationFields";
+import { SOCIALS, SocialLinks, type SocialKey } from "../../components/gym/SocialLinks";
+import { MapLocationPicker } from "../../components/gym/MapLocationPicker";
+import { AutoPinStatus, useAutoPin, useLocationNames } from "../../components/gym/addressAutoPin";
 import {
   DOC_LABEL,
   ROLE_LABEL,
@@ -23,15 +26,16 @@ import {
   type RepresentativeRole,
 } from "../../services/partnerApplication";
 import { ChangeRequestCards } from "./ChangeRequests";
-import { MapLocationPicker } from "./MapLocationPicker";
 import { BrandLogoUpload, DocumentUpload, PhotoUploader, PrivateNotice } from "./uploaders";
 import { Card, Field, GhostButton, PrimaryButton, inputCls } from "./ui";
 
-type StepId = "representative" | "brand" | "scale" | "branch" | "location" | "photos" | "legal" | "review";
+type StepId = "representative" | "brand" | "social" | "scale" | "branch" | "location" | "photos" | "legal" | "review";
 
 const STEPS: { id: StepId; title: string; sections: MissingItem["section"][] }[] = [
   { id: "representative", title: "Người đại diện", sections: ["REPRESENTATIVE"] },
   { id: "brand", title: "Thương hiệu", sections: ["BRAND"] },
+  // Không bắt buộc, không có mục "còn thiếu" nào — bỏ trống vẫn nộp được.
+  { id: "social", title: "Mạng xã hội", sections: [] },
   { id: "scale", title: "Quy mô", sections: ["SCALE"] },
   { id: "branch", title: "Chi nhánh đầu tiên", sections: ["BRANCH"] },
   { id: "location", title: "Vị trí", sections: ["LOCATION"] },
@@ -124,6 +128,7 @@ export function ApplicationWizard({ view, onChanged }: { view: ApplicationView; 
           <h1 className="text-lg font-bold text-zinc-100 mb-4">{step.title}</h1>
           {step.id === "representative" && <StepRepresentative view={view} editable={editable} onChanged={onChanged} onDone={() => setIdx(idx + 1)} />}
           {step.id === "brand" && <StepBrand view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
+          {step.id === "social" && <StepSocial view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "scale" && <StepScale view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "branch" && <StepBranch view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "location" && <StepLocation view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
@@ -247,6 +252,59 @@ function StepBrand({ view, editable, onChanged, onBack, onDone }: StepProps) {
   );
 }
 
+function StepSocial({ view, editable, onChanged, onBack, onDone }: StepProps) {
+  const [links, setLinks] = useState<Record<SocialKey, string>>({
+    facebookUrl: view.brand?.facebookUrl ?? "",
+    instagramUrl: view.brand?.instagramUrl ?? "",
+    tiktokUrl: view.brand?.tiktokUrl ?? "",
+    youtubeUrl: view.brand?.youtubeUrl ?? "",
+  });
+  const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
+  return (
+    <>
+      <div className="space-y-3.5">
+        <p className="text-sm text-zinc-400">
+          Không bắt buộc. Các trang này hiện ở mục "Chi tiết" khi khách xem phòng gym của bạn, giúp họ tin tưởng và theo dõi thương hiệu.
+        </p>
+        {!view.brand && <p className="text-sm text-amber-300">Hãy lưu tên thương hiệu ở bước trước.</p>}
+        {SOCIALS.map((so) => (
+          <Field key={so.key} label={so.label}>
+            <div className="relative">
+              <so.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" weight="fill" />
+              <input
+                aria-label={so.label}
+                value={links[so.key]}
+                onChange={(e) => setLinks((l) => ({ ...l, [so.key]: e.target.value }))}
+                disabled={!editable || !view.brand}
+                inputMode="url"
+                placeholder={so.placeholder}
+                maxLength={300}
+                className={`${inputCls} pl-9`}
+              />
+            </div>
+          </Field>
+        ))}
+      </div>
+      <ErrorLine error={error} />
+      <Nav
+        onBack={onBack}
+        next={() =>
+          save(() =>
+            partnerApplication.saveSocial({
+              facebookUrl: links.facebookUrl.trim(),
+              instagramUrl: links.instagramUrl.trim(),
+              tiktokUrl: links.tiktokUrl.trim(),
+              youtubeUrl: links.youtubeUrl.trim(),
+            }),
+          )
+        }
+        loading={saving}
+        disabled={editable && !view.brand}
+      />
+    </>
+  );
+}
+
 function StepScale({ view, editable, onChanged, onBack, onDone }: StepProps) {
   const [scale, setScale] = useState<BusinessScale | "">(view.partner.businessScale ?? "");
   const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
@@ -289,10 +347,9 @@ function StepBranch({ view, editable, onChanged, onBack, onDone }: StepProps) {
   const [name, setName] = useState(b?.name ?? "");
   const [phone, setPhone] = useState(b?.phone ?? "");
   const [email, setEmail] = useState(b?.email ?? "");
-  const [address, setAddress] = useState(b?.address ?? "");
   const [description, setDescription] = useState(b?.description ?? "");
   const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
-  const valid = name.trim().length >= 2 && phone.trim().length >= 8 && address.trim().length >= 5;
+  const valid = name.trim().length >= 2 && phone.trim().length >= 8;
   return (
     <>
       <div className="space-y-3.5">
@@ -310,9 +367,6 @@ function StepBranch({ view, editable, onChanged, onBack, onDone }: StepProps) {
             <input value={email} onChange={(e) => setEmail(e.target.value)} disabled={!editable} inputMode="email" className={inputCls} />
           </Field>
         </div>
-        <Field label="Địa chỉ *" hint="Số nhà, tên đường. Tỉnh/thành và phường/xã chọn ở bước Vị trí.">
-          <input value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editable} className={inputCls} />
-        </Field>
         <Field label="Giới thiệu chi nhánh">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable} rows={3} maxLength={2000} className={inputCls} />
         </Field>
@@ -322,7 +376,7 @@ function StepBranch({ view, editable, onChanged, onBack, onDone }: StepProps) {
         onBack={onBack}
         next={() =>
           save(() =>
-            partnerApplication.saveBranch({ name: name.trim(), phone: phone.trim(), email: opt(email), address: address.trim(), description: opt(description) }),
+            partnerApplication.saveBranch({ name: name.trim(), phone: phone.trim(), email: opt(email), description: opt(description) }),
           )
         }
         loading={saving}
@@ -334,6 +388,7 @@ function StepBranch({ view, editable, onChanged, onBack, onDone }: StepProps) {
 
 function StepLocation({ view, editable, onChanged, onBack, onDone }: StepProps) {
   const b = view.branch;
+  const [address, setAddress] = useState(b?.address ?? "");
   const [loc, setLoc] = useState({
     provinceCode: b?.provinceCode ?? null,
     wardCode: b?.wardCode ?? null,
@@ -342,14 +397,45 @@ function StepLocation({ view, editable, onChanged, onBack, onDone }: StepProps) 
   });
   const [note, setNote] = useState(b?.locationNote ?? "");
   const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
-  const valid = loc.provinceCode != null && loc.wardCode != null && loc.latitude != null && loc.longitude != null;
+  const names = useLocationNames(loc.provinceCode, loc.wardCode);
+  const pin = useAutoPin({
+    enabled: editable,
+    hadSavedPin: b?.latitude != null && b?.longitude != null,
+    street: address.trim(),
+    ward: names.ward,
+    province: names.province,
+    onPin: (latitude, longitude) => setLoc((l) => ({ ...l, latitude, longitude })),
+  });
+  const valid =
+    address.trim().length >= 5 && loc.provinceCode != null && loc.wardCode != null && loc.latitude != null && loc.longitude != null;
   return (
     <>
       <div className="space-y-3.5">
         {!b && <p className="text-sm text-amber-300">Hãy hoàn thành bước Chi nhánh trước.</p>}
-        <GymLocationFields value={loc} onChange={editable ? setLoc : () => {}} />
+        <Field label="Số nhà, tên đường *" hint="Ví dụ: 123 Lê Lợi. Chọn thêm tỉnh/thành và phường/xã, bản đồ sẽ tự ghim theo địa chỉ.">
+          <input value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editable} maxLength={255} className={inputCls} />
+        </Field>
+        <GymLocationFields
+          value={loc}
+          onChange={(next) => {
+            if (!editable) return;
+            // "Dùng vị trí hiện tại" cũng là ghim tay → bỏ thông báo ghim-theo-địa-chỉ cũ.
+            if (next.latitude !== loc.latitude || next.longitude !== loc.longitude) pin.markManual();
+            setLoc(next);
+          }}
+        />
         {editable && (
-          <MapLocationPicker latitude={loc.latitude} longitude={loc.longitude} onChange={(p) => setLoc((l) => ({ ...l, ...p }))} />
+          <>
+            <AutoPinStatus status={pin.status} />
+            <MapLocationPicker
+              latitude={loc.latitude}
+              longitude={loc.longitude}
+              onChange={(p) => {
+                pin.markManual();
+                setLoc((l) => ({ ...l, ...p }));
+              }}
+            />
+          </>
         )}
         <Field label="Chỉ dẫn đường đi" hint="Ví dụ: cổng sau toà nhà, tầng 2.">
           <input value={note} onChange={(e) => setNote(e.target.value)} disabled={!editable} maxLength={300} className={inputCls} />
@@ -358,7 +444,7 @@ function StepLocation({ view, editable, onChanged, onBack, onDone }: StepProps) 
       <ErrorLine error={error} />
       <Nav
         onBack={onBack}
-        next={() => save(() => partnerApplication.saveBranch({ ...loc, locationNote: opt(note) }))}
+        next={() => save(() => partnerApplication.saveBranch({ address: address.trim(), ...loc, locationNote: opt(note) }))}
         loading={saving}
         disabled={editable && (!valid || !b)}
       />
@@ -383,6 +469,7 @@ function StepLegal({ view, editable, onChanged, onBack, onDone }: StepProps) {
   const [licenseNo, setLicenseNo] = useState(view.partner.businessLicenseNo ?? "");
   const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
   const docs = view.documents.filter((d) => d.required);
+  const extras = view.documents.filter((d) => !d.required);
   return (
     <>
       <div className="space-y-3.5">
@@ -402,6 +489,17 @@ function StepLegal({ view, editable, onChanged, onBack, onDone }: StepProps) {
           {docs.map((d) => (
             <DocumentUpload key={d.docType} doc={d} disabled={!editable} onChanged={onChanged} />
           ))}
+          {extras.length > 0 && (
+            <>
+              <h2 className="text-sm font-semibold text-zinc-200 pt-2">
+                Giấy tờ bổ sung <span className="font-normal text-zinc-500">(không bắt buộc)</span>
+              </h2>
+              <p className="text-[11px] text-zinc-500 -mt-1">Có thì tải lên để hồ sơ được duyệt nhanh hơn — không có cũng gửi được.</p>
+              {extras.map((d) => (
+                <DocumentUpload key={d.docType} doc={d} disabled={!editable} onChanged={onChanged} />
+              ))}
+            </>
+          )}
           <PrivateNotice />
         </div>
       </div>
@@ -479,6 +577,12 @@ function StepReview({ view, editable, onChanged, onBack, onGoTo }: StepProps & {
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <Summary label="Người đại diện" value={[view.partner.representativeName, view.partner.representativeRole ? ROLE_LABEL[view.partner.representativeRole] : null].filter(Boolean).join(" · ")} />
           <Summary label="Thương hiệu" value={view.brand?.name} />
+          <div>
+            <dt className="text-xs text-zinc-500">Mạng xã hội</dt>
+            <dd className="mt-1">
+              {SOCIALS.some((so) => view.brand?.[so.key]) ? <SocialLinks value={view.brand} compact /> : <span className="text-sm text-zinc-500">Chưa thêm</span>}
+            </dd>
+          </div>
           <Summary label="Chi nhánh đầu tiên" value={view.branch?.name} />
           <Summary label="Địa chỉ" value={view.branch?.address} />
           <Summary label="Tên pháp lý" value={view.partner.legalName} />

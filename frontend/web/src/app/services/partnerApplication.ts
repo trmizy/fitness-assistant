@@ -57,16 +57,27 @@ export interface ApplicationIssue {
   createdAt: string;
 }
 
+/** Một tệp của giấy tờ (mặt trước/mặt sau CCCD, từng trang giấy phép). */
+export interface ApplicationDocumentFile {
+  id: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  /** Chỉ có ở hồ sơ của chính ứng viên, chỉ với ảnh; link ký tạm ~2 phút. Admin xem qua documentFile (có ghi nhật ký). */
+  previewUrl?: string | null;
+}
+
 export interface ApplicationDocument {
   docType: DocType;
   required: boolean;
   status: DocStatus;
   reviewNote: string | null;
   hasFile: boolean;
-  mimeType: string | null;
-  sizeBytes: number | null;
+  files: ApplicationDocumentFile[];
   version: number;
 }
+
+/** Trùng MAX_FILES_PER_DOCUMENT của gym-service (server vẫn là nơi chặn thật). */
+export const MAX_FILES_PER_DOCUMENT = 4;
 
 export interface ApplicationPhoto {
   id: string;
@@ -112,7 +123,16 @@ export interface ApplicationView {
     adminNote: string | null;
   };
   representativePhone: string | null;
-  brand: { id: string; name: string; description: string | null; logoUrl: string | null } | null;
+  brand: {
+    id: string;
+    name: string;
+    description: string | null;
+    logoUrl: string | null;
+    facebookUrl: string | null;
+    instagramUrl: string | null;
+    tiktokUrl: string | null;
+    youtubeUrl: string | null;
+  } | null;
   branch: ApplicationBranch | null;
   photos: ApplicationPhoto[];
   documents: ApplicationDocument[];
@@ -203,6 +223,8 @@ export const partnerApplication = {
   saveBusinessScale: async (scale: BusinessScale) => unwrap(await api.put("/owner/application/business-scale", { scale })),
   saveBrand: async (v: { name: string; description?: string }) => unwrap(await api.put("/owner/application/brand", v)),
   saveBranch: async (v: Record<string, unknown>) => unwrap(await api.put("/owner/application/branch", v)),
+  saveSocial: async (v: { facebookUrl: string; instagramUrl: string; tiktokUrl: string; youtubeUrl: string }) =>
+    unwrap(await api.put("/owner/application/social", v)),
   saveLegal: async (v: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null }) =>
     unwrap(await api.put("/owner/application/legal", v)),
 
@@ -212,6 +234,12 @@ export const partnerApplication = {
   reorderPhotos: async (ids: string[]) => unwrap(await api.put("/owner/application/photos/reorder", { ids })),
   setCover: async (photoId: string) => unwrap(await api.patch(`/owner/application/photos/${photoId}/cover`)),
   deletePhoto: async (photoId: string) => unwrap(await api.delete(`/owner/application/photos/${photoId}`)),
+  documentFile: async (docType: DocType, fileId: string) =>
+    unwrap<{ url: string; mimeType: string; expiresInSec: number }>(
+      await api.get(`/owner/application/documents/${docType}/files/${fileId}`),
+    ),
+  removeDocumentFile: async (docType: DocType, fileId: string) =>
+    unwrap(await api.delete(`/owner/application/documents/${docType}/files/${fileId}`)),
 
   submit: async (acceptTerms: boolean) => unwrap(await api.post("/owner/application/submit", { acceptTerms })),
   resubmit: async () => unwrap(await api.post("/owner/application/resubmit")),
@@ -286,9 +314,9 @@ export const adminPartnerApplications = {
       await api.get("/admin/partners/applications", { params: verificationStatus ? { verificationStatus } : undefined }),
     ),
   get: async (id: string) => unwrap<AdminApplicationDetail>(await api.get(`/admin/partners/${id}/application`)),
-  documentFile: async (id: string, docType: DocType) =>
+  documentFile: async (id: string, docType: DocType, fileId?: string) =>
     unwrap<{ url: string; expiresInSec: number | null; mimeType: string | null }>(
-      await api.get(`/admin/partners/${id}/application/documents/${docType}/file`),
+      await api.get(`/admin/partners/${id}/application/documents/${docType}/file`, { params: fileId ? { fileId } : undefined }),
     ),
   acceptDocument: async (id: string, docType: DocType) => unwrap(await api.post(`/admin/partners/${id}/application/documents/${docType}/accept`)),
   requestChanges: async (

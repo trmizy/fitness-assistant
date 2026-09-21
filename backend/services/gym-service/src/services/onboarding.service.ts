@@ -1,3 +1,6 @@
+import { partnerAuditService } from './partner-audit.service';
+import { authClient } from '../clients/auth.client';
+import type { Request } from 'express';
 import { partnerRepository } from '../repositories/partner.repository';
 import { brandService } from './brand.service';
 import { partnerService } from './partner.service';
@@ -47,7 +50,24 @@ export const onboardingService = {
     else if (isOwner && !steps.terms) currentStep = 5;
     else currentStep = completed ? 5 : 2;
 
-    return { role: account.role, steps, completed, currentStep, partnerId: partner.id };
+    // contactPhone: trang hồ sơ cá nhân của chủ gym/quản lý đọc số hiện tại từ đây (không có endpoint đọc riêng).
+    return {
+      role: account.role,
+      steps,
+      completed,
+      currentStep,
+      partnerId: partner.id,
+      hasPartnerAccount: true,
+      contactPhone: account.contactPhone ?? null,
+      // Tài khoản nhận tiền chỉ trả cho CHỦ SỞ HỮU (quản lý chi nhánh không thấy).
+      payout: isOwner
+        ? {
+            bankName: partner.payoutBankName ?? null,
+            accountNumber: partner.payoutBankAccountNumber ?? null,
+            accountHolder: partner.payoutBankAccountHolder ?? null,
+          }
+        : null,
+    };
   },
 
   async maybeCompleteOnboarding(accountId: string) {
@@ -91,15 +111,41 @@ export const onboardingService = {
     accountId: string,
     partnerId: string,
     data: { bankName: string; accountNumber: string; accountHolder: string },
+    actor?: { userId: string; email?: string; req?: Request },
   ) {
     if (!data.bankName?.trim() || !data.accountNumber?.trim() || !data.accountHolder?.trim()) {
       throw err('Cần đủ tên ngân hàng, số tài khoản và tên chủ tài khoản', 400);
     }
+    const accountNumber = data.accountNumber.trim();
+    const before = await partnerRepository.findPartnerById(partnerId);
     await partnerRepository.updatePartner(partnerId, {
       payoutBankName: data.bankName.trim(),
-      payoutBankAccountNumber: data.accountNumber.trim(),
+      payoutBankAccountNumber: accountNumber,
       payoutBankAccountHolder: data.accountHolder.trim(),
     });
+    // Đổi tài khoản nhận tiền SAU khi đã có (không phải lần nhập đầu ở trình thiết lập) là thao tác nhạy
+    // cảm: ghi nhật ký (chỉ 4 số cuối) và email báo chủ sở hữu, để ai chiếm phiên đổi số cũng bị phát hiện.
+    const changed = !!before?.payoutBankAccountNumber && before.payoutBankAccountNumber !== accountNumber;
+    if (changed && actor) {
+      await partnerAuditService.record({
+        partnerId,
+        actorUserId: actor.userId,
+        action: 'PARTNER_UPDATED',
+        req: actor.req,
+        metadata: { field: 'payoutBank', bankName: data.bankName.trim(), last4: accountNumber.slice(-4), previousLast4: before!.payoutBankAccountNumber!.slice(-4) },
+      });
+      if (actor.email) {
+        await authClient
+          .sendEmail({
+            to: actor.email,
+            subject: 'Gymini — Tài khoản nhận tiền của bạn vừa được thay đổi',
+            text:
+              `Tài khoản nhận tiền của đối tác vừa được đổi sang ${data.bankName.trim()} — số tài khoản kết thúc bằng ${accountNumber.slice(-4)}. ` +
+              'Nếu không phải bạn thực hiện, hãy đổi mật khẩu ngay và liên hệ Gymini.',
+          })
+          .catch(() => false);
+      }
+    }
     return this.maybeCompleteOnboarding(accountId);
   },
 

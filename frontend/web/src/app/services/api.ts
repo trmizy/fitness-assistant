@@ -29,8 +29,10 @@ export const API_URL = apiBaseUrl();
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — a plain relative path
 // (not through the `api` axios instance, no /api prefix, no auth) works same-origin in both
 // dev (vite.config.ts's "/uploads" proxy) and prod (nginx.prod.conf's "location /uploads/").
-export function gymPhotoUrl(fileName: string): string {
-  return `/uploads/gym-photos/${fileName}`;
+export function gymPhotoUrl(fileName: string, url?: string | null): string {
+  // Server đã trả sẵn `url` (resolvePhotoUrl): ảnh trên S3 là link ký tạm, ảnh đĩa cũ là /uploads/….
+  // Chỉ tự ghép đường dẫn đĩa khi không có `url` (dữ liệu cũ).
+  return url || `/uploads/gym-photos/${fileName}`;
 }
 
 // Exported so a page can make an ad-hoc call without a dedicated service method — but always
@@ -5696,7 +5698,17 @@ export const gymService = {
     const { data } = await api.get(`/owner/brands/${brandId}`);
     return data?.data ?? data;
   },
-  updateBrand: async (brandId: string, payload: Partial<{ name: string; description: string }>) => {
+  updateBrand: async (
+    brandId: string,
+    payload: Partial<{
+      name: string;
+      description: string;
+      facebookUrl: string;
+      instagramUrl: string;
+      tiktokUrl: string;
+      youtubeUrl: string;
+    }>,
+  ) => {
     const { data } = await api.patch(`/owner/brands/${brandId}`, payload);
     return data?.data ?? data;
   },

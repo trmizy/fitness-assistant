@@ -44,6 +44,7 @@ export const applicationReviewController = {
         req.params.docType as PartnerDocumentType,
         adminId(req),
         req,
+        typeof req.query.fileId === 'string' ? req.query.fileId : undefined,
       ),
     ),
   ),
