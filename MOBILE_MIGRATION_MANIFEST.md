@@ -1,6 +1,13 @@
 # Mobile Migration Manifest — 67 màn thiết kế + 14 màn chỉ có ở web (4 chốt phase, 6 chờ quyết
 định phạm vi, 4 chờ quyết định phase/xung đột)
 
+> **Cập nhật 2026-09-21:** web đổi hẳn đường vào của chủ phòng gym — **chủ gym TỰ ĐĂNG KÝ, admin
+> duyệt hồ sơ**; luồng admin cấp tài khoản (WB-03) đã bị gỡ (`POST /admin/partners` và
+> `/admin/partners/:id/provision` trả **410 `ENDPOINT_RETIRED`**). Thêm WB-15..WB-18, đánh dấu WB-03 **đã
+> bị thay thế**, thu hẹp WB-02 còn lời mời QUẢN LÝ, và ghi **hồi quy trên CL-09 (Phase 7 đã đóng)** vì
+> trang chi tiết phòng gym của web vừa được làm lại. Chỉ cập nhật tài liệu — `frontend/mobile` không
+> đổi, mobile vẫn dừng ở Phase 7/15. Chi tiết: mục "Bổ sung 2026-09-21" ở cuối bảng WEB-ONLY.
+>
 > **Cập nhật 2026-09-18:** thêm WB-11..WB-14 (FitnessRoadmap, AI Coach nút nổi + khối hành động, PT
 > xem roadmap học viên, "Smart Substitute" dinh dưỡng) sau khi merge `origin/aws-deploy`. WB-12 đang
 > **xung đột trực tiếp** với quyết định điều hướng Phase 4/9 đã chốt — chưa tự chọn bên nào, xem ghi
@@ -152,8 +159,8 @@
 | ID | Nguồn thị giác | Nguồn web hiện hành | Route Expo (đề xuất) | Backend + API chính | Vai trò/quyền | Spec | Trạng thái quan trọng | Modal/Sheet | Deep link | Năng lực native | Phase | Impl/Verify |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | WB-01 | **không có** (Figma không vẽ) | `components/auth/ForceChangePasswordScreen.tsx` — chặn toàn bộ shell khi `user.mustChangePassword`, đặt TRƯỚC cả wizard thiết lập đối tác | `(auth)/doi-mat-khau-bat-buoc.tsx` (chặn shell, giống `RequireOnboarding`) | auth: đổi mật khẩu; **mọi lần đổi mật khẩu thành công đều tự xoá cờ** (`auth.repository.ts`) | mọi vai trò có cờ `mustChangePassword` | — | không có đường thoát: không đóng, không điều hướng vòng | không | không | không | 12 | chưa làm/chưa kiểm |
-| WB-02 | **không có** (Figma không vẽ) | `pages/auth/PartnerInviteAcceptPage.tsx`, route công khai `/partner/invite/:token` | `(auth)/partner-invite/[token].tsx` | gym: `/partner-invitations*` | **công khai** (chưa đăng nhập, xác thực bằng token trong link) | 05 | token hợp lệ/hết hạn/đã dùng → đặt mật khẩu | không | **có** — link mời gửi qua email, phải mở được bằng App Link | không | 12 | chưa làm/chưa kiểm |
-| WB-03 | **không có** (Figma không vẽ) | Luồng cấp tài khoản trong `pages/admin/AdminPartnersPage.tsx` (thêm ở `cc651e8`, kèm `adminService.createGymOwner`) | nested trong `(admin)/partners.tsx` | gym: `/admin/partners*`; trả về `{ inviteLink, emailSent }` | admin only | 05 | PROSPECT → INVITED → ACTIVE → SUSPENDED/TERMINATED; gửi lại / thu hồi lời mời; đếm "đã mời >7 ngày chưa đăng nhập" | provision + kết quả (hiện link để copy khi email không gửi được) | không | clipboard (copy link mời) | 13 | chưa làm/chưa kiểm |
+| WB-02 | **không có** (Figma không vẽ) — **21/9: THU HẸP**, route vẫn còn nhưng giờ chỉ dùng cho lời mời **QUẢN LÝ chi nhánh** (chủ gym không còn vào bằng link mời, xem WB-15) | `pages/auth/PartnerInviteAcceptPage.tsx`, route công khai `/partner/invite/:token` | `(auth)/partner-invite/[token].tsx` | gym: `/partner-invitations*` | **công khai** (chưa đăng nhập, xác thực bằng token trong link) | 05 | token hợp lệ/hết hạn/đã dùng → đặt mật khẩu | không | **có** — link mời gửi qua email, phải mở được bằng App Link | không | 12 | chưa làm/chưa kiểm |
+| WB-03 | ~~**không có** (Figma không vẽ)~~ **21/9: ĐÃ BỊ THAY THẾ — KHÔNG LÀM.** Backend trả 410 `ENDPOINT_RETIRED`; thay bằng WB-15 (tự đăng ký) + WB-17 (admin duyệt hồ sơ) | ~~Luồng cấp tài khoản trong `pages/admin/AdminPartnersPage.tsx`~~ (thêm ở `cc651e8`, kèm `adminService.createGymOwner`) | nested trong `(admin)/partners.tsx` | gym: `/admin/partners*`; trả về `{ inviteLink, emailSent }` | admin only | 05 | PROSPECT → INVITED → ACTIVE → SUSPENDED/TERMINATED; gửi lại / thu hồi lời mời; đếm "đã mời >7 ngày chưa đăng nhập" | provision + kết quả (hiện link để copy khi email không gửi được) | không | clipboard (copy link mời) | 13 | chưa làm/chưa kiểm |
 | WB-04 | **không có** (Figma không vẽ) | `pages/gym-owner/GymPlansPage.tsx`, route `/gym-owner/plans` (gói hội viên theo THƯƠNG HIỆU — `dde6a59`) | `(gym-owner)/plans.tsx` | gym: gói hội viên theo brand | gym_owner | 02,05 | CRUD gói; gói thuộc thương hiệu, không thuộc riêng chi nhánh | tạo/sửa gói | không | không | 12 | chưa làm/chưa kiểm — **bắt buộc**: không có gói thì luồng mua hội viên của client (CL-09) không có gì để mua |
 
 **Sáu route admin dưới đây có thật trên web nhưng CHƯA có quyết định có đưa lên mobile hay không.**
@@ -208,6 +215,62 @@ khoản → hệ thống gửi link (hoặc admin copy link khi email lỗi) →
 → nếu tài khoản bị gắn cờ `mustChangePassword` thì qua WB-01 → rồi mới tới wizard thiết lập đối tác
 (GY-08). Kiểm Phase 12 phải đi theo thứ tự này, không phải theo câu chữ cũ.
 
+> **21/9 — đoạn trên ĐÃ LỖI THỜI.** Luồng link mời cho CHỦ gym đã bị gỡ. Kịch bản E2E Phase 12 mới:
+> khách vãng lai bấm "Trở thành đối tác" ở màn đăng nhập → nhập email (WB-15) → mở magic link trong email
+> (App Link, token nằm ở `#fragment`) → đặt mật khẩu → wizard hồ sơ 9 bước (WB-16) → nộp → **bị chặn khỏi
+> mọi màn vận hành** khi đang xét → admin yêu cầu sửa (WB-17) → ứng viên sửa, đánh dấu đã cập nhật, nộp
+> lại → admin chấp nhận từng giấy tờ + đóng issue → duyệt → chủ gym vào dashboard, qua bước nhận tiền
+> (GY-08) → thêm chi nhánh #2 **không có bộ chọn thương hiệu** → sửa hồ sơ (WB-18). WB-01 chỉ còn cho
+> tài khoản cũ mang cờ `mustChangePassword`; WB-02 chỉ còn cho lời mời quản lý chi nhánh.
+
+## Bổ sung 2026-09-21 — chủ gym tự đăng ký + hồ sơ phòng gym đầy đủ
+
+> Nguồn: các commit web/backend `1306459`..`e1986e2` trên `feature/payment-gateways` (W0–W3 "Gym Partner
+> Self-Service Onboarding" + các chỉnh sửa sau đó theo yêu cầu của Ngài). Đối chiếu trực tiếp
+> `routes.tsx`, `services/partnerApplication.ts`, `services/api.ts` và route gym-service/auth-service —
+> không suy từ tên file. Luật áp dụng như cũ: web là **sàn tối thiểu**, nên đây là việc bắt buộc, không
+> phải tuỳ chọn.
+
+| ID | Nguồn thị giác | Nguồn web hiện hành | Route Expo (đề xuất) | Backend + API chính | Vai trò/quyền | Spec | Trạng thái quan trọng | Modal/Sheet | Deep link | Năng lực native | Phase | Impl/Verify |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| WB-15 | **không có** | CTA "Trở thành đối tác" dưới khối cấu hình máy chủ ở `LoginPage.tsx`; `pages/partner-application/PartnerApplyPage.tsx` (`/partner/apply`, nhập email + màn "kiểm tra email"), `PartnerApplyVerifyPage.tsx` (`/partner/apply/verify`, đọc token ở `#fragment`, xoá khỏi URL rồi mới gọi API, 4 trạng thái VALID/EXPIRED/USED/INVALID, đặt mật khẩu ≥8) | `(auth)/partner-apply/index.tsx` + `(auth)/partner-apply/verify.tsx` | **auth-service**: `POST /auth/partner-applications/start`, `/verify` (trả `setupToken` 15 phút), `/set-password` (saga tạo User + gọi gym-service bootstrap); cooldown 60 s/email ở DB + rate limit IP ở gateway | **công khai** (chưa đăng nhập) | `GYM_PARTNER_SELF_ONBOARDING_SPEC.md`, `GYM_PARTNER_SECURITY_MODEL.md` | email trùng tài khoản Khách/PT/Admin bị chặn ở bước nhập email; link 24 h, gửi lại vô hiệu link cũ; `setupToken` chỉ giữ trong bộ nhớ | không | **có** — magic link trong email phải mở được bằng App Link; token nằm ở `#fragment` (không lên server/log) — adapter deep link phải đọc được fragment | không | 12 | chưa làm/chưa kiểm |
+| WB-16 | **không có** | `pages/partner-application/PartnerApplicationPage.tsx` + `ApplicationWizard.tsx` (9 bước: Người đại diện → Thương hiệu (+logo tuỳ chọn) → Mạng xã hội (tuỳ chọn, chỉ https + đúng tên miền) → Quy mô → Chi nhánh đầu tiên → **Vị trí** (số nhà/đường + tỉnh/phường, bản đồ **tự ghim theo địa chỉ** qua Nominatim/OSM, kéo ghim để sửa) → Ảnh cơ sở → Xác minh doanh nghiệp (3 giấy tờ bắt buộc + 2 bổ sung MST/PCCC, **mỗi giấy tờ 1..4 tệp**, thumbnail + xem trước) → Xem lại & gửi) + `StatusViews.tsx` (đang xét / cần sửa theo thẻ issue / bị từ chối / đã duyệt) + `ChangeRequests.tsx`; guard `RequirePartnerApplicant`, `RootRedirect` điều hướng theo **trạng thái hồ sơ**, không chỉ theo role | `(partner-application)/_layout.tsx` (guard) + `index.tsx` (wizard) + `status.tsx` | **gym-service** `/owner/application/*`: `status`, `GET /`, `timeline`, `PUT representative/business-scale/brand/social/branch/legal`, `uploads/presign` + `uploads/confirm` (S3 presigned **POST**, server sinh khoá, confirm kiểm HEAD + magic bytes), `photos/*`, `GET`/`DELETE documents/:docType/files/:fileId`, `submit`, `resubmit`, `issues/:id/mark-updated` | gym_owner **chưa được duyệt**; mọi route vận hành `/owner/*` trả 403/409 cho tới khi APPROVED (cổng dương ở server) | như WB-15 + `GYM_PARTNER_STATE_MACHINE.md` | ONBOARDING → UNDER_REVIEW → CHANGES_REQUESTED ⇄ UNDER_REVIEW → APPROVED / REJECTED; khoá sửa khi đang xét / bị từ chối; giấy tờ PENDING/RECEIVED/VERIFIED/REJECTED ("Cần cập nhật"); issue OPEN → RESUBMITTED → RESOLVED (chỉ admin đóng) | xem ảnh/giấy tờ phóng to, thẻ yêu cầu sửa | không | **camera + thư viện ảnh + document picker (PDF)**; **upload multipart thẳng lên S3** bằng URL ký sẵn (adapter mới — không qua API của mình); **bản đồ** kéo-thả ghim (cần chọn thư viện bản đồ RN); gọi Nominatim (≤1 req/s, gửi được User-Agent riêng từ RN) | 12 | chưa làm/chưa kiểm |
+| WB-17 | **không có** (thay WB-03) | `pages/admin/AdminPartnersPage.tsx` giờ là **"Duyệt hồ sơ đối tác"** (tab Hồ sơ đăng ký / Đối tác) + `AdminApplicationsPanel.tsx`: hàng chờ theo trạng thái, chi tiết 2 cột, chấp nhận / yêu cầu cập nhật **từng giấy tờ** (xem từng tệp, mỗi lần xem ghi nhật ký), issue theo mục (đóng / yêu cầu lại), duyệt (bị khoá kèm lý do khi còn issue hoặc giấy tờ chưa chấp nhận) / từ chối (bắt buộc lý do) / mở lại, lịch sử từ `PartnerAuditLog`; hiện nguyên văn link mạng xã hội để kiểm | nested trong `(admin)/partners.tsx` | gym-service `/admin/partners/applications`, `/admin/partners/:id/application` (+ `documents/:docType/file?fileId=`, `documents/:docType/accept`, `request-changes`, `issues/:id/resolve|reopen`, `approve`, `reject`, `reopen`) | admin only | như WB-16 | approve là **một transaction**: đối tác VERIFIED+ACTIVE + chi nhánh đầu APPROVED; bấm đúp/2 admin → 409 | yêu cầu sửa nhiều dòng, xác nhận duyệt/từ chối | không | xem ảnh tại chỗ, PDF tải xuống | 13 | chưa làm/chưa kiểm |
+| WB-18 | **không có** | `pages/gym-owner/GymOwnerProfilePage.tsx`, route `/gym-owner/profile`, mở từ "Hồ sơ cá nhân" ở menu tài khoản: danh tính là **thương hiệu** (không có họ/tên); Thương hiệu (đổi tên chờ duyệt, giới thiệu **≤300 ký tự**, 4 link mạng xã hội — chỉ OWNER); lối tắt tới cài đặt từng chi nhánh (`/gym-owner/gyms/:id?settings=1`); số điện thoại liên hệ; **tài khoản nhận tiền** (chỉ OWNER); đổi mật khẩu | `(gym-owner)/profile.tsx` | gym-service `PATCH /owner/brands/:id` (tên → `pendingName`; giới thiệu; `facebookUrl/instagramUrl/tiktokUrl/youtubeUrl`), `GET /owner/onboarding/status` (trả `contactPhone`, `payout` cho OWNER), `PATCH /owner/onboarding/contact`, `PATCH /owner/onboarding/payout` (đổi sau lần đầu → nhật ký chỉ 4 số cuối + **email báo chủ gym**); auth-service `PATCH /auth/me/password` | gym_owner — MANAGER chỉ xem thương hiệu, không thấy tài khoản nhận tiền | — | pháp lý (tên pháp lý/MST/giấy phép) và người đại diện **không** tự sửa (đã được Gymini xác minh); email đăng nhập chưa đổi được ở mọi vai trò | không | không | không | 12 | chưa làm/chưa kiểm |
+
+**Dòng CŨ bị ảnh hưởng (không thêm ID mới):**
+
+- **CL-09 — HỒI QUY TRÊN PHASE 7 ĐÃ ĐÓNG** (cùng dạng WB-14 với Phase 6). `GymDetailModal.tsx` tab "Chi tiết"
+  giờ có: **"Thông tin giới thiệu"** đứng đầu (giới thiệu chi nhánh, chưa có thì dùng của thương hiệu, tối đa
+  300 ký tự — dữ liệu cũ dài hơn được cắt ở khoảng trắng + "…"); **thư viện ảnh** (ảnh lớn hiện trọn không cắt,
+  nút ‹ › cạnh ảnh lớn, dải ảnh nhỏ để chọn, xem toàn màn hình); **địa chỉ đủ** số nhà + phường/xã + tỉnh/thành
+  (tên tra từ mã qua `/locations/*`) + chỉ dẫn đường đi; điện thoại/email bấm được; **bản đồ các chi nhánh cùng
+  thương hiệu** + nút "Chỉ đường" (Google Maps theo toạ độ); **link mạng xã hội**; logo thương hiệu ở header.
+  Backend `GET /gyms/:id` thêm `photos[]` (link ký tạm, chỉ khi chi nhánh đã duyệt), `brand.logoUrl`,
+  `brand.facebookUrl|instagramUrl|tiktokUrl|youtubeUrl`, `brand.description`, `brandBranches[]` (id, tên, địa
+  chỉ, toạ độ). **21/9 Ngài chọn: VÁ VÀO PHASE 7** (như WB-14 với Phase 6) — nhưng **tạm chưa làm**, chờ lệnh bắt đầu.
+- **GY-02** (`MyGymsPage` — hộp "Thêm chi nhánh"): ô địa chỉ nằm cạnh tỉnh/phường, **bản đồ tự ghim theo địa
+  chỉ** giống bước Vị trí của WB-16 (dùng chung `components/gym/addressAutoPin.tsx`, `geocode.ts`,
+  `MapLocationPicker.tsx`); giới thiệu ≤300.
+- **GY-03** (`GymManagePage` → "Cài đặt"): thêm **Giới thiệu & liên hệ** (giới thiệu ≤300, điện thoại, email —
+  có hiệu lực ngay); ảnh dùng `url` do server trả (ảnh S3 là link ký tạm — **không** tự ghép `/uploads/...`);
+  xoá ảnh S3 xoá luôn tệp; form rút tiền **điền sẵn tài khoản nhận tiền đã lưu**; `?settings=1` mở sẵn phần cài đặt.
+- **GY-07** (wizard 7 bước thêm chi nhánh): giới thiệu tối đa 300 (khớp gợi ý 150–300 sẵn có).
+- **GY-08** (trình thiết lập — bước nhận tiền): tài khoản nhập ở đây giờ **sửa lại được** ở WB-18 và được dùng
+  để điền sẵn khi rút tiền (trước 21/9 nó được lưu nhưng không dùng ở đâu).
+- **AD-02**: `AdminPartnersPage` không còn tạo/cấp tài khoản chủ gym — xem WB-17. Tab Tổng quan của đối tác tự
+  đăng ký đọc SĐT từ tài khoản OWNER và tên từ người đại diện.
+- **Thanh trên cùng**: web đã **gỡ ô tìm kiếm tổng** ở mọi vai trò (trang tìm kiếm vẫn vào từ Thư viện). Khi
+  làm khung điều hướng mobile đừng port ô này lên header.
+- **Mọi vai trò**: "Hồ sơ cá nhân" ở menu tài khoản dẫn theo vai trò — client `/client/profile`, PT
+  `/pt/profile`, chủ gym `/gym-owner/profile` (WB-18); **admin chưa có trang hồ sơ**, nút bị ẩn.
+
+**Adapter cần bổ sung vào `MOBILE_PLATFORM_ADAPTERS.md` khi mở Phase 12** (chưa ghi vào đó để không đụng
+tài liệu đang đóng băng ngoài phạm vi được duyệt): (1) upload multipart thẳng lên S3 bằng presigned POST từ
+URI camera/document picker, rồi `confirm` theo `uploadId`; (2) deep link đọc token ở `#fragment` và xoá nó
+khỏi lịch sử điều hướng; (3) thư viện bản đồ RN cho ghim kéo-thả + bản đồ nhiều ghim chỉ xem (web dùng
+Leaflet + tile OSM); (4) mở Google Maps chỉ đường bằng link ngoài.
+
 ---
 
 ## Điều kiện qua cổng (Phase 0.2)
@@ -219,6 +282,8 @@ MAPPED         = 67   (mọi ID đều có dòng, kể cả các dòng "không c
 WEB_ONLY_EXTRA = 10   (thêm 16/9, không thuộc 67 màn thiết kế. WB-01..04 là BẮT BUỘC vì web là sàn
                         tối thiểu và chúng chặn đường vào của chủ phòng gym / nguồn gói hội viên.
                         WB-05..10 là sáu công cụ quản trị — CHỜ NGÀI QUYẾT có đưa lên mobile không.)
+WEB_ONLY_ADD   = +4   (21/9: WB-15..18 thêm; WB-03 đã bị thay thế nên KHÔNG làm; WB-02 thu hẹp còn
+                        lời mời quản lý. Cổng Phase 0 vẫn tính trên 67 màn thiết kế — không mở lại.)
 UNMAPPED       = 0
 UNKNOWN_API    = 0    (AD-03/AD-04's "Gói lỗi"/AD-05 là gap ĐÃ XÁC ĐỊNH — ghi ở
                         MOBILE_BACKEND_GAPS.md — không phải "chưa biết gọi gì")
