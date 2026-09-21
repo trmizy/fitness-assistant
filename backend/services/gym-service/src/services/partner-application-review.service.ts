@@ -1,10 +1,10 @@
 import type { Request } from 'express';
-import { logger } from '@gym-coach/shared';
 import { prisma } from '../repositories/prisma';
 import type { Prisma, PartnerDocumentType, PartnerReviewCategory } from '../generated/prisma';
 import { partnerAuditService } from './partner-audit.service';
 import { partnerS3 } from './partner-s3.service';
 import { brandLogoUrl, resolvePhotoUrl } from './gym-photo-url';
+import { socialOf } from './partner-application.service';
 import { applyGymApprovalTx } from './gym-approval.tx';
 import { appError } from './partner-application.service';
 import { applicantEmails, sendApplicantMail } from './partner-application.emails';
@@ -13,6 +13,7 @@ import {
   computeMissing,
   deriveAccessState,
   REQUIRED_APPLICATION_DOCS,
+  APPLICATION_DOC_TYPES,
   type ApproveInput,
   type CompletenessInput,
 } from './partner-application.state';
@@ -50,7 +51,10 @@ async function gatherApproveInput(db: Tx | typeof prisma, partnerId: string, own
   const partner = await db.gymPartner.findUniqueOrThrow({ where: { id: partnerId } });
   const [issues, docs, draftCount, nonDraftCount] = await Promise.all([
     db.gymPartnerReviewIssue.count({ where: { partnerId, status: { in: ['OPEN', 'RESUBMITTED'] } } }),
-    db.gymPartnerDocument.findMany({ where: { partnerId, docType: { in: [...REQUIRED_APPLICATION_DOCS] } } }),
+    db.gymPartnerDocument.findMany({
+      where: { partnerId, docType: { in: [...REQUIRED_APPLICATION_DOCS] } },
+      include: { _count: { select: { files: true } } },
+    }),
     ownerUserId ? db.gym.count({ where: { ownerId: ownerUserId, status: 'DRAFT' } }) : Promise.resolve(0),
     ownerUserId ? db.gym.count({ where: { ownerId: ownerUserId, status: { not: 'DRAFT' } } }) : Promise.resolve(0),
   ]);
@@ -58,7 +62,7 @@ async function gatherApproveInput(db: Tx | typeof prisma, partnerId: string, own
   for (const d of docs) {
     (docStatuses as Record<string, { status: string | null; hasFile: boolean }>)[d.docType] = {
       status: d.status,
-      hasFile: Boolean(d.fileKey || d.fileUrl),
+      hasFile: d._count.files > 0 || Boolean(d.fileUrl),
     };
   }
   return {
@@ -86,7 +90,7 @@ export const partnerApplicationReviewService = {
     const [brand, gyms, docs, issues, audit, approveInput] = await Promise.all([
       partner.brandId ? prisma.gymBrand.findUnique({ where: { id: partner.brandId } }) : null,
       ownerUserId ? prisma.gym.findMany({ where: { ownerId: ownerUserId }, orderBy: { createdAt: 'asc' } }) : [],
-      prisma.gymPartnerDocument.findMany({ where: { partnerId } }),
+      prisma.gymPartnerDocument.findMany({ where: { partnerId }, include: { files: { orderBy: { createdAt: 'asc' } } } }),
       prisma.gymPartnerReviewIssue.findMany({ where: { partnerId }, orderBy: { createdAt: 'asc' } }),
       partnerAuditService.listForPartner(partnerId, 300),
       gatherApproveInput(prisma, partnerId, ownerUserId),
@@ -96,16 +100,16 @@ export const partnerApplicationReviewService = {
     const photos = gym ? await prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: { sortOrder: 'asc' } }) : [];
 
     const byType = new Map(docs.map((d) => [d.docType, d]));
-    const allTypes = [...REQUIRED_APPLICATION_DOCS, 'TAX_CODE_CERTIFICATE', 'SITE_PHOTOS', 'FIRE_SAFETY_CERTIFICATE'] as const;
-    const documents = allTypes.map((docType) => {
+    // Đúng danh sách ứng viên thấy — admin không thấy ô nào mà ứng viên không có chỗ để tải.
+    const documents = APPLICATION_DOC_TYPES.map((docType) => {
       const d = byType.get(docType);
       return {
         docType,
         required: (REQUIRED_APPLICATION_DOCS as readonly string[]).includes(docType),
         status: d?.status ?? 'PENDING',
-        hasFile: Boolean(d?.fileKey || d?.fileUrl),
-        mimeType: d?.mimeType ?? null,
-        sizeBytes: d?.sizeBytes ?? null,
+        hasFile: (d?.files.length ?? 0) > 0 || Boolean(d?.fileUrl),
+        // Admin KHÔNG nhận link ở đây: mỗi lần xem phải đi qua getDocumentFile để được ghi nhật ký.
+        files: (d?.files ?? []).map((f) => ({ id: f.id, mimeType: f.mimeType, sizeBytes: f.sizeBytes, createdAt: f.createdAt })),
         version: d?.version ?? 1,
         reviewNote: d?.reviewNote ?? null,
         verifiedBy: d?.verifiedBy ?? null,
@@ -170,7 +174,9 @@ export const partnerApplicationReviewService = {
         termsAcceptedAt: partner.termsAcceptedAt,
       },
       representativePhone: ownerAccount?.contactPhone ?? null,
-      brand: brand ? { id: brand.id, name: brand.name, description: brand.description, logoUrl: await brandLogoUrl(brand.logoKey) } : null,
+      brand: brand
+        ? { id: brand.id, name: brand.name, description: brand.description, logoUrl: await brandLogoUrl(brand.logoKey), ...socialOf(brand) }
+        : null,
       branch: gym
         ? {
             id: gym.id,
@@ -213,31 +219,37 @@ export const partnerApplicationReviewService = {
     };
   },
 
-  /** Link xem giấy tờ: presigned GET hạn ngắn, giấy tờ ép tải xuống; MỖI lần xem đều ghi nhật ký. */
-  async getDocumentFile(partnerId: string, docType: PartnerDocumentType, adminId: string, req?: Request) {
+  /**
+   * Link xem MỘT tệp giấy tờ: presigned GET hạn ngắn, PDF ép tải xuống; MỖI lần xem đều ghi nhật ký.
+   * Không truyền fileId thì lấy tệp đầu tiên (tương thích client cũ); dòng cũ do admin gõ URL chỉ có fileUrl.
+   */
+  async getDocumentFile(partnerId: string, docType: PartnerDocumentType, adminId: string, req?: Request, fileId?: string) {
     await loadSelfServicePartner(prisma, partnerId);
-    const doc = await prisma.gymPartnerDocument.findUnique({ where: { partnerId_docType: { partnerId, docType } } });
-    if (!doc || !(doc.fileKey || doc.fileUrl)) throw appError('Chưa có tệp nào cho mục này', 404, 'NOT_FOUND');
+    const doc = await prisma.gymPartnerDocument.findUnique({
+      where: { partnerId_docType: { partnerId, docType } },
+      include: { files: { orderBy: { createdAt: 'asc' } } },
+    });
+    const file = doc ? (fileId ? doc.files.find((f) => f.id === fileId) : doc.files[0]) : undefined;
+    if (!doc || (!file && (fileId || !doc.fileUrl))) throw appError('Chưa có tệp nào cho mục này', 404, 'NOT_FOUND');
 
     await partnerAuditService.record({
       partnerId,
       actorUserId: adminId,
       action: 'DOCUMENT_VIEWED',
       req,
-      metadata: { docType, version: doc.version },
+      metadata: { docType, version: doc.version, fileId: file?.id ?? null },
     });
 
-    if (!doc.fileKey) return { url: doc.fileUrl as string, expiresInSec: null, mimeType: doc.mimeType };
+    if (!file) return { url: doc.fileUrl as string, expiresInSec: null, mimeType: null };
     const expiresSec = 120;
     // Ảnh mở tại chỗ được; PDF ép tải xuống để trình duyệt không render nội dung không tin cậy.
-    const attachment = doc.mimeType === 'application/pdf';
     const url = await partnerS3.presignGet({
-      key: doc.fileKey,
-      contentType: doc.mimeType ?? undefined,
-      attachment,
+      key: file.fileKey,
+      contentType: file.mimeType,
+      attachment: file.mimeType === 'application/pdf',
       expiresSec,
     });
-    return { url, expiresInSec: expiresSec, mimeType: doc.mimeType };
+    return { url, expiresInSec: expiresSec, mimeType: file.mimeType };
   },
 
   /** Chấp nhận MỘT giấy tờ — hành động có dấu vết, không bao giờ xảy ra ngầm trong approve. */
@@ -249,7 +261,7 @@ export const partnerApplicationReviewService = {
         throw appError('Chỉ duyệt giấy tờ khi hồ sơ đang được xét duyệt', 409, 'NOT_UNDER_REVIEW');
       }
       const res = await tx.gymPartnerDocument.updateMany({
-        where: { partnerId, docType, status: 'RECEIVED', OR: [{ fileKey: { not: null } }, { fileUrl: { not: null } }] },
+        where: { partnerId, docType, status: 'RECEIVED', OR: [{ files: { some: {} } }, { fileUrl: { not: null } }] },
         data: { status: 'VERIFIED', reviewNote: null, verifiedBy: adminId, verifiedAt: new Date() },
       });
       if (res.count !== 1) {
@@ -287,7 +299,7 @@ export const partnerApplicationReviewService = {
 
       for (const doc of input.documents) {
         const res = await tx.gymPartnerDocument.updateMany({
-          where: { partnerId, docType: doc.docType, OR: [{ fileKey: { not: null } }, { fileUrl: { not: null } }] },
+          where: { partnerId, docType: doc.docType, OR: [{ files: { some: {} } }, { fileUrl: { not: null } }] },
           data: { status: 'REJECTED', reviewNote: doc.note, verifiedBy: adminId, verifiedAt: new Date() },
         });
         if (res.count !== 1) {
@@ -427,29 +439,8 @@ export const partnerApplicationReviewService = {
       return { gymId: gym.id, email: partner.contactEmail };
     });
 
-    await partnerApplicationReviewService.publishPhotos(result.gymId).catch((e) =>
-      logger.error({ err: (e as Error).message, gymId: result.gymId }, 'Sao chép ảnh sang vùng công khai thất bại — chạy lại được'),
-    );
     void sendApplicantMail(result.email, applicantEmails.approved());
     return { ok: true, gymId: result.gymId };
-  },
-
-  /**
-   * Sau duyệt: ảnh chi nhánh riêng tư → vùng công khai (CopyObject phía server). Giấy tờ KHÔNG bao giờ
-   * được sao chép. Idempotent: ảnh đã PUBLIC bị bỏ qua; ảnh lỗi ở PRIVATE cho tới lần chạy lại.
-   */
-  async publishPhotos(gymId: string) {
-    if (!partnerS3.isConfigured()) return { published: 0, skipped: true };
-    const photos = await prisma.gymPhoto.findMany({ where: { gymId, visibility: 'PRIVATE', s3Key: { not: null } } });
-    let published = 0;
-    for (const photo of photos) {
-      const from = photo.s3Key as string;
-      const to = `gym-photos/${gymId}/${from.split('/').pop()}`;
-      await partnerS3.copyToPublic(from, to);
-      await prisma.gymPhoto.update({ where: { id: photo.id }, data: { s3Key: to, visibility: 'PUBLIC' } });
-      published += 1;
-    }
-    return { published, skipped: false };
   },
 
   async reject(partnerId: string, adminId: string, reason: string, adminNote?: string, req?: Request) {

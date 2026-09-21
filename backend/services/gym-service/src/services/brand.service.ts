@@ -56,7 +56,18 @@ export const brandService = {
    * publicly shown keeps showing until an admin explicitly approves the new name via
    * approveRename below.
    */
-  async updateBrand(brandId: string, ownerId: string, data: Partial<{ name: string; description: string }>) {
+  async updateBrand(
+    brandId: string,
+    ownerId: string,
+    data: Partial<{
+      name: string;
+      description: string;
+      facebookUrl: string | null;
+      instagramUrl: string | null;
+      tiktokUrl: string | null;
+      youtubeUrl: string | null;
+    }>,
+  ) {
     await this.getOwnedBrand(brandId, ownerId);
     const patch: Record<string, unknown> = {};
     if (data.name !== undefined) {
@@ -64,6 +75,9 @@ export const brandService = {
       patch.pendingName = data.name;
     }
     if (data.description !== undefined) patch.description = data.description;
+    for (const key of ['facebookUrl', 'instagramUrl', 'tiktokUrl', 'youtubeUrl'] as const) {
+      if (data[key] !== undefined) patch[key] = data[key];
+    }
     return brandRepository.update(brandId, patch);
   },
 

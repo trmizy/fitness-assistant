@@ -362,8 +362,10 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
           </div>
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-zinc-500">Email liên hệ</span><span className="text-zinc-300">{partner.contactEmail ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-500">Điện thoại</span><span className="text-zinc-300">{partner.contactPhone ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-500">Chủ sở hữu</span><span className="text-zinc-300">{ownerIdentity ? `${ownerIdentity.firstName ?? ""} ${ownerIdentity.lastName ?? ""} (${ownerIdentity.email})` : "Chưa có"}</span></div>
+            {/* Hồ sơ tự đăng ký không có số chung của pháp nhân: số người đại diện nằm ở tài khoản OWNER
+                (GymPartnerAccount.contactPhone), tên nằm ở GymPartner.representativeName — đọc thẳng từ đó, không chép sang cột khác. */}
+            <div className="flex justify-between gap-3"><span className="text-zinc-500">Điện thoại</span><span className="text-zinc-300 text-right">{partner.contactPhone ?? (ownerAccount?.contactPhone ? `${ownerAccount.contactPhone} (người đại diện)` : "—")}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-zinc-500">Chủ sở hữu</span><span className="text-zinc-300 text-right break-all">{ownerIdentity ? `${`${ownerIdentity.firstName ?? ""} ${ownerIdentity.lastName ?? ""}`.trim() || partner.representativeName || ""} (${ownerIdentity.email})`.trim() : "Chưa có"}</span></div>
             {partner.expectedBranchCount != null && <div className="flex justify-between"><span className="text-zinc-500">Số chi nhánh dự kiến</span><span className="text-zinc-300">{partner.expectedBranchCount}</span></div>}
             {partner.negotiationNotes && <div className="pt-2 border-t border-zinc-800/60"><span className="text-zinc-500 text-xs">Ghi chú đàm phán:</span><p className="text-zinc-300 text-xs mt-1">{partner.negotiationNotes}</p></div>}
           </div>

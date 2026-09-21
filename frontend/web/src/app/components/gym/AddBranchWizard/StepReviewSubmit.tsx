@@ -160,7 +160,7 @@ export function StepReviewSubmit({
           <p className="text-xs text-zinc-600">Chưa có ảnh nào.</p>
         ) : (
           <div className="flex items-center gap-2">
-            {cover && <img src={gymPhotoUrl(cover.fileName)} alt="" className="size-12 rounded-lg object-cover border border-zinc-800" />}
+            {cover && <img src={gymPhotoUrl(cover.fileName, cover.url)} alt="" className="size-12 rounded-lg object-cover border border-zinc-800" />}
             <p className="text-xs text-zinc-400">{photos.length} ảnh</p>
           </div>
         )}

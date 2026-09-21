@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   CameraIcon as Camera,
@@ -11,18 +11,22 @@ import {
   UploadSimpleIcon as Upload,
   LockKeyIcon as Lock,
   ImageSquareIcon as ImageSquare,
+  PlusIcon as Plus,
+  XIcon as X,
 } from "@phosphor-icons/react";
 import {
   ACCEPTED_DOC_TYPES,
   ACCEPTED_PHOTO_TYPES,
   DOC_LABEL,
   DOC_STATUS_LABEL,
+  MAX_FILES_PER_DOCUMENT,
   MAX_UPLOAD_BYTES,
   PHOTO_CATEGORY_LABEL,
   friendlyError,
   partnerApplication,
   uploadApplicationFile,
   type ApplicationDocument,
+  type ApplicationDocumentFile,
   type ApplicationPhoto,
   type DocType,
   type DocStatus,
@@ -212,6 +216,18 @@ const DOC_BADGE: Record<DocStatus, string> = {
   REJECTED: "bg-amber-500/10 text-amber-300",
 };
 
+/** Gợi ý theo loại giấy tờ — người dùng thường không biết cần tải những gì. */
+const DOC_HINT: Partial<Record<DocType, string>> = {
+  REPRESENTATIVE_ID: "Tải cả mặt trước và mặt sau (CCCD, CMND hoặc hộ chiếu).",
+  BUSINESS_LICENSE: "Giấy phép nhiều trang thì tải từng trang, hoặc một tệp PDF.",
+};
+
+const mb = (bytes: number | null) => (bytes ? `${(bytes / 1024 / 1024).toFixed(2)} MB` : "");
+
+/**
+ * Một giấy tờ gồm 1..MAX_FILES_PER_DOCUMENT tệp. Ảnh hiện thumbnail, bấm để phóng to; PDF bấm để tải về
+ * (giấy tờ PDF luôn ép tải xuống — chính sách bảo mật). Mỗi lần mở đều xin link ký mới từ server.
+ */
 export function DocumentUpload({
   doc,
   disabled,
@@ -224,25 +240,70 @@ export function DocumentUpload({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [percent, setPercent] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; index: number } | null>(null);
   const locked = disabled || doc.status === "VERIFIED";
+  const docType = doc.docType as DocType;
+  const room = MAX_FILES_PER_DOCUMENT - doc.files.length;
 
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
+  const pick = async (list: FileList | null) => {
+    const files = Array.from(list ?? []);
     if (inputRef.current) inputRef.current.value = "";
-    const problem = checkFile(file, ACCEPTED_DOC_TYPES);
+    if (!files.length) return;
+    if (files.length > room) {
+      setError(`Mỗi giấy tờ tối đa ${MAX_FILES_PER_DOCUMENT} tệp — còn thêm được ${room} tệp.`);
+      return;
+    }
+    const problem = files.map((f) => checkFile(f, ACCEPTED_DOC_TYPES)).find(Boolean);
     if (problem) {
       setError(problem);
       return;
     }
     setError(null);
-    setPercent(0);
     try {
-      await uploadApplicationFile(file, { kind: "DOCUMENT", docType: doc.docType as DocType }, setPercent);
-      onChanged();
+      // Tuần tự: server đếm số tệp trong khoá, và thanh tiến độ dễ hiểu hơn.
+      for (const file of files) {
+        setPercent(0);
+        await uploadApplicationFile(file, { kind: "DOCUMENT", docType }, setPercent);
+        onChanged();
+      }
     } catch (e) {
       setError(friendlyError(e, "Tải tệp thất bại.").message);
+      onChanged();
     } finally {
       setPercent(null);
+    }
+  };
+
+  const open = async (file: ApplicationDocumentFile, index: number) => {
+    setBusyId(file.id);
+    // PDF: mở tab trước khi chờ mạng để trình duyệt không chặn popup.
+    const tab = file.mimeType === "application/pdf" ? window.open("", "_blank") : null;
+    try {
+      const r = await partnerApplication.documentFile(docType, file.id);
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = r.url;
+      } else {
+        setPreview({ url: r.url, index });
+      }
+    } catch (e) {
+      tab?.close();
+      toast.error(friendlyError(e, "Không mở được tệp.").message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remove = async (file: ApplicationDocumentFile) => {
+    setBusyId(file.id);
+    try {
+      await partnerApplication.removeDocumentFile(docType, file.id);
+      onChanged();
+    } catch (e) {
+      toast.error(friendlyError(e, "Không xoá được tệp.").message);
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -252,15 +313,11 @@ export function DocumentUpload({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-zinc-200 flex items-center gap-1.5">
             <FileText className="w-4 h-4 text-zinc-500 shrink-0" />
-            {DOC_LABEL[doc.docType as DocType] ?? doc.docType}
+            {DOC_LABEL[docType] ?? doc.docType}
             {doc.required && <span className="text-red-400">*</span>}
           </p>
-          {doc.hasFile && doc.mimeType && (
-            <p className="text-[11px] text-zinc-600 mt-0.5">
-              Phiên bản {doc.version}
-              {doc.sizeBytes ? ` · ${(doc.sizeBytes / 1024 / 1024).toFixed(2)} MB` : ""}
-            </p>
-          )}
+          {DOC_HINT[docType] && !locked && <p className="text-[11px] text-zinc-500 mt-0.5">{DOC_HINT[docType]}</p>}
+          {doc.version > 1 && doc.hasFile && <p className="text-[11px] text-zinc-600 mt-0.5">Lần nộp thứ {doc.version}</p>}
         </div>
         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${DOC_BADGE[doc.status]}`}>{DOC_STATUS_LABEL[doc.status]}</span>
       </div>
@@ -271,6 +328,51 @@ export function DocumentUpload({
         </p>
       )}
 
+      {doc.files.length > 0 && (
+        <ul className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {doc.files.map((f, i) => (
+            <li key={f.id} className="relative">
+              <button
+                type="button"
+                onClick={() => open(f, i)}
+                disabled={busyId === f.id}
+                aria-label={`Xem tệp ${i + 1}`}
+                className="block w-full aspect-[4/3] overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 hover:border-zinc-600 disabled:opacity-60"
+              >
+                {f.previewUrl ? (
+                  <img src={f.previewUrl} alt={`Tệp ${i + 1}`} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-zinc-400">
+                    <FileText className="w-7 h-7" />
+                    <span className="text-[11px] font-semibold">{f.mimeType === "application/pdf" ? "PDF" : "Tệp"}</span>
+                  </span>
+                )}
+                {busyId === f.id && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <Loader2 className="w-5 h-5 animate-spin text-zinc-200" />
+                  </span>
+                )}
+              </button>
+              <p className="mt-1 text-[10px] text-zinc-500 truncate">
+                Tệp {i + 1}
+                {f.sizeBytes ? ` · ${mb(f.sizeBytes)}` : ""}
+              </p>
+              {!locked && (
+                <button
+                  type="button"
+                  onClick={() => remove(f)}
+                  disabled={busyId === f.id}
+                  aria-label={`Xoá tệp ${i + 1}`}
+                  className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-zinc-200 hover:bg-red-500/80 disabled:opacity-50"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {percent !== null && (
         <div className="mt-2.5 h-1 rounded-full bg-zinc-800">
           <div className="h-1 rounded-full bg-green-500 transition-all" style={{ width: `${percent}%` }} />
@@ -279,20 +381,49 @@ export function DocumentUpload({
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
       {!locked && (
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            disabled={percent !== null}
+            disabled={percent !== null || room <= 0}
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 hover:border-zinc-500 disabled:opacity-50 px-3 py-2 text-xs font-semibold text-zinc-200"
           >
-            {percent !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {doc.hasFile ? "Thay tệp" : "Tải tệp lên"}
+            {percent !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : doc.files.length ? <Plus className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
+            {doc.files.length ? "Thêm tệp" : "Tải tệp lên"}
           </button>
-          <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png" hidden onChange={(e) => pick(e.target.files?.[0])} />
+          <span className="text-[11px] text-zinc-600">
+            {room <= 0 ? `Đã đủ ${MAX_FILES_PER_DOCUMENT} tệp — xoá bớt để thêm` : `PDF, JPG, PNG · tối đa ${MAX_FILES_PER_DOCUMENT} tệp`}
+          </span>
+          <input ref={inputRef} type="file" multiple accept="application/pdf,image/jpeg,image/png" hidden onChange={(e) => pick(e.target.files)} />
         </div>
       )}
       {doc.status === "VERIFIED" && <p className="mt-2 text-[11px] text-zinc-600">Giấy tờ đã được xác minh, không thể thay đổi.</p>}
+
+      {preview && (
+        <ImagePreview title={`${DOC_LABEL[docType]} — tệp ${preview.index + 1}`} url={preview.url} onClose={() => setPreview(null)} />
+      )}
+    </div>
+  );
+}
+
+/** Lớp phủ phóng to ảnh giấy tờ: bấm nền, nút đóng hoặc phím Esc để thoát. */
+function ImagePreview({ title, url, onClose }: { title: string; url: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div role="dialog" aria-modal="true" aria-label={title} onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-zinc-200 truncate">{title}</p>
+          <button type="button" onClick={onClose} aria-label="Đóng" className="rounded-full bg-zinc-800 p-1.5 text-zinc-200 hover:bg-zinc-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <img src={url} alt={title} className="max-h-[80vh] w-full rounded-lg bg-black object-contain" />
+      </div>
     </div>
   );
 }

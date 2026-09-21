@@ -16,6 +16,7 @@ import {
   deriveAccessState,
   isEditableState,
   REQUIRED_APPLICATION_DOCS,
+  APPLICATION_DOC_TYPES,
   type AccessState,
   type CompletenessInput,
 } from './partner-application.state';
@@ -95,36 +96,41 @@ function assertEditable(ctx: PartnerContext) {
 }
 
 /** Khoá dòng partner để tuần tự hoá các thao tác cùng hồ sơ (2 tab, bấm đúp). */
-async function lockPartner(tx: Tx, partnerId: string) {
+/** Bốn link mạng xã hội của thương hiệu, cùng một hình dạng cho mọi nơi trả ra. */
+export function socialOf(brand: { facebookUrl: string | null; instagramUrl: string | null; tiktokUrl: string | null; youtubeUrl: string | null }) {
+  return {
+    facebookUrl: brand.facebookUrl,
+    instagramUrl: brand.instagramUrl,
+    tiktokUrl: brand.tiktokUrl,
+    youtubeUrl: brand.youtubeUrl,
+  };
+}
+
+export async function lockPartner(tx: Tx, partnerId: string) {
   await tx.$queryRaw`SELECT id FROM gym_partners WHERE id = ${partnerId} FOR UPDATE`;
 }
 
 /**
- * Luôn đủ 6 loại giấy tờ (kể cả chưa từng đụng tới), kèm các cột mới của hồ sơ tự đăng ký.
+ * Luôn đủ các loại giấy tờ của hồ sơ tự đăng ký (APPLICATION_DOC_TYPES, kể cả chưa từng đụng tới), kèm các cột mới của hồ sơ tự đăng ký.
  * `partnerDiligenceService.listDocuments` cố ý không dùng ở đây: nó trả dòng "ảo" không có các cột
- * fileKey/version/reviewNote nên không cho ta kiểu chung.
+ * files/version/reviewNote nên không cho ta kiểu chung.
  */
 async function listApplicationDocuments(partnerId: string) {
-  const rows = await prisma.gymPartnerDocument.findMany({ where: { partnerId } });
+  const rows = await prisma.gymPartnerDocument.findMany({
+    where: { partnerId },
+    include: { files: { orderBy: { createdAt: 'asc' } } },
+  });
   const byType = new Map(rows.map((r) => [r.docType, r]));
   const required = REQUIRED_APPLICATION_DOCS as readonly string[];
-  const all = [
-    ...REQUIRED_APPLICATION_DOCS,
-    'TAX_CODE_CERTIFICATE',
-    'SITE_PHOTOS',
-    'FIRE_SAFETY_CERTIFICATE',
-  ] as const;
-  return all.map((docType) => {
+  return APPLICATION_DOC_TYPES.map((docType) => {
     const row = byType.get(docType);
     return {
       docType,
       required: required.includes(docType),
       status: row?.status ?? ('PENDING' as const),
       reviewNote: row?.reviewNote ?? null,
-      fileKey: row?.fileKey ?? null,
       fileUrl: row?.fileUrl ?? null,
-      mimeType: row?.mimeType ?? null,
-      sizeBytes: row?.sizeBytes ?? null,
+      files: row?.files ?? [],
       version: row?.version ?? 1,
     };
   });
@@ -279,7 +285,9 @@ export const partnerApplicationService = {
         adminNote: state === 'REJECTED' || state === 'CHANGES_REQUESTED' ? partner.verificationNotes : null,
       },
       representativePhone: account.contactPhone,
-      brand: brand ? { id: brand.id, name: brand.name, description: brand.description, logoUrl: await brandLogoUrl(brand.logoKey) } : null,
+      brand: brand
+        ? { id: brand.id, name: brand.name, description: brand.description, logoUrl: await brandLogoUrl(brand.logoKey), ...socialOf(brand) }
+        : null,
       branch: gym
         ? {
             id: gym.id,
@@ -305,16 +313,29 @@ export const partnerApplicationService = {
           url: p.s3Key ? await partnerS3.presignGet({ key: p.s3Key, contentType: undefined, attachment: false, expiresSec: 300 }).catch(() => null) : null,
         })),
       ),
-      documents: docs.map((d) => ({
-        docType: d.docType,
-        required: d.required,
-        status: d.status,
-        reviewNote: d.status === 'REJECTED' ? d.reviewNote : null,
-        hasFile: Boolean(d.fileKey || d.fileUrl),
-        mimeType: d.mimeType,
-        sizeBytes: d.sizeBytes,
-        version: d.version,
-      })),
+      documents: await Promise.all(
+        docs.map(async (d) => ({
+          docType: d.docType,
+          required: d.required,
+          status: d.status,
+          reviewNote: d.status === 'REJECTED' ? d.reviewNote : null,
+          hasFile: d.files.length > 0 || Boolean(d.fileUrl),
+          version: d.version,
+          files: await Promise.all(
+            d.files.map(async (f) => ({
+              id: f.id,
+              mimeType: f.mimeType,
+              sizeBytes: f.sizeBytes,
+              // Thumbnail chỉ cho ảnh, link ký tạm ngắn như mọi link giấy tờ; bấm xem thì xin link mới.
+              previewUrl: f.mimeType.startsWith('image/')
+                ? await partnerS3
+                    .presignGet({ key: f.fileKey, contentType: f.mimeType, attachment: false, expiresSec: 120 })
+                    .catch(() => null)
+                : null,
+            })),
+          ),
+        })),
+      ),
       issues: issues.map((i) => ({
         id: i.id,
         category: i.category,
@@ -413,6 +434,27 @@ export const partnerApplicationService = {
       }
       throw e;
     }
+  },
+
+  /** Link mạng xã hội của thương hiệu — bước tuỳ chọn, không chặn nộp hồ sơ. Cần có thương hiệu trước. */
+  async updateSocialLinks(
+    ctx: PartnerContext,
+    data: { facebookUrl?: string | null; instagramUrl?: string | null; tiktokUrl?: string | null; youtubeUrl?: string | null },
+  ) {
+    const { partnerId } = requireApplicantOwner(ctx);
+    assertEditable(ctx);
+    const partner = await partnerRepository.findPartnerById(partnerId);
+    if (!partner?.brandId) throw appError('Hãy đặt tên thương hiệu trước', 409, 'BRAND_REQUIRED');
+    const brand = await prisma.gymBrand.update({
+      where: { id: partner.brandId },
+      data: {
+        facebookUrl: data.facebookUrl ?? null,
+        instagramUrl: data.instagramUrl ?? null,
+        tiktokUrl: data.tiktokUrl ?? null,
+        youtubeUrl: data.youtubeUrl ?? null,
+      },
+    });
+    return socialOf(brand);
   },
 
   /**

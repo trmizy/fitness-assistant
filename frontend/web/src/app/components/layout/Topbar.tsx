@@ -1,7 +1,6 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { ListIcon as Menu, BellIcon as Bell, MagnifyingGlassIcon as Search, CaretDownIcon as ChevronDown, UserIcon as User, GearSixIcon as Settings, SignOutIcon as LogOut, LightningIcon as Zap, ShieldIcon as Shield, ArrowsLeftRightIcon as ArrowLeftRight, ChecksIcon as CheckCheck } from "@phosphor-icons/react";
+import { ListIcon as Menu, BellIcon as Bell, CaretDownIcon as ChevronDown, UserIcon as User, GearSixIcon as Settings, SignOutIcon as LogOut, LightningIcon as Zap, ShieldIcon as Shield, ArrowsLeftRightIcon as ArrowLeftRight, ChecksIcon as CheckCheck } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
 import { notificationService } from "../../services/api";
@@ -56,7 +55,6 @@ export function Topbar() {
   useBackDismissible(notifOpen, () => setNotifOpen(false));
   useBackDismissible(aiTasksOpen, () => setAiTasksOpen(false));
   useBackDismissible(userOpen, () => setUserOpen(false));
-  const [globalSearchInput, setGlobalSearchInput] = useState("");
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications"],
@@ -94,13 +92,6 @@ export function Topbar() {
   const handleLogout = () => {
     logout();
     navigate("/login");
-  };
-
-  const handleGlobalSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const q = globalSearchInput.trim();
-    if (!q) return;
-    navigate(`/client/search?q=${encodeURIComponent(q)}`);
   };
 
   const switchToView = (view: "client" | "pt") => {
@@ -157,21 +148,8 @@ export function Topbar() {
         >
           <Menu className="w-5 h-5" />
         </button>
-        {activeView === "client" && (
-          <form
-            onSubmit={handleGlobalSearchSubmit}
-            className="relative hidden sm:block"
-          >
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              data-testid="topbar-global-search"
-              value={globalSearchInput}
-              onChange={(event) => setGlobalSearchInput(event.target.value)}
-              placeholder="Tim kiem..."
-              className="w-48 md:w-64 pl-9 pr-3 py-2 rounded-lg border border-zinc-800/80 bg-zinc-900/80 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40"
-            />
-          </form>
-        )}
+        {/* Ô tìm kiếm tổng đã gỡ khỏi thanh trên cùng ở mọi vai trò. Trang /client/search vẫn còn,
+            vào từ Thư viện (LibraryPage). */}
       </div>
 
       {/* Right: workspace switcher + notifications + user */}
@@ -462,15 +440,19 @@ export function Topbar() {
                   <ThemeToggle />
                 </div>
 
-                <button
-                  onClick={() => {
-                    setUserOpen(false);
-                    navigate(role === "pt" ? "/pt/profile" : "/client/profile");
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-                >
-                  <User className="w-4 h-4" /> <AutoText>Hồ sơ cá nhân</AutoText>
-                </button>
+                {/* Mỗi vai trò có trang hồ sơ của riêng mình. Admin chưa có — trước đây admin và chủ gym
+                    đều bị đưa sang /client/profile và dính 403 (RequireRole client). */}
+                {!isAdmin && (
+                  <button
+                    onClick={() => {
+                      setUserOpen(false);
+                      navigate(role === "pt" ? "/pt/profile" : role === "gym_owner" ? "/gym-owner/profile" : "/client/profile");
+                    }}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+                  >
+                    <User className="w-4 h-4" /> <AutoText>Hồ sơ cá nhân</AutoText>
+                  </button>
+                )}
                 {/* Settings Center is a client-workspace surface for now
                     (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
                     §12) — admin/gym_owner accounts have no client fitness

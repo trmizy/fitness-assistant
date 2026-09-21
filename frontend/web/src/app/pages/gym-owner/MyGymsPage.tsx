@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import type { Gym, GymBrand, GymStatus } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
+import { MapLocationPicker } from "../../components/gym/MapLocationPicker";
+import { AutoPinStatus, useAutoPin, useLocationNames } from "../../components/gym/addressAutoPin";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   // GYM_BRANCH_FORM_SPEC.md Phase 1 — never actually rendered through GymCard (drafts get
@@ -259,6 +261,18 @@ export function MyGymsPage() {
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể đổi tên"),
   });
 
+  // Giống bước "Vị trí" của hồ sơ đối tác: đủ số nhà/đường + phường + tỉnh thì bản đồ tự ghim;
+  // kéo ghim tay xong thì không bị ghi đè. Hộp đóng thì tắt hẳn (không tra khi không ai nhìn).
+  const locationNames = useLocationNames(gymLocation.provinceCode, gymLocation.wardCode);
+  const autoPin = useAutoPin({
+    enabled: showCreateGym,
+    hadSavedPin: false,
+    street: gymForm.address.trim(),
+    ward: locationNames.ward,
+    province: locationNames.province,
+    onPin: (latitude, longitude) => setGymLocation((l) => ({ ...l, latitude, longitude })),
+  });
+
   const openAddBranch = () => {
     setGymForm({ name: "", address: "", city: "", description: "" });
     setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
@@ -447,26 +461,19 @@ export function MyGymsPage() {
       {/* Create gym / branch dialog */}
       {showCreateGym && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-[92vh] flex flex-col">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
               <h3 className="text-zinc-100 font-bold">{brands.length > 0 ? "Thêm chi nhánh" : "Create Gym"}</h3>
               <button type="button" aria-label="Đóng" onClick={() => setShowCreateGym(false)} className="text-zinc-500 hover:text-zinc-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 overflow-y-auto">
               <input
                 aria-label="Gym name"
                 value={gymForm.name}
                 onChange={(e) => setGymForm({ ...gymForm, name: e.target.value })}
                 placeholder="Gym name"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="Address"
-                value={gymForm.address}
-                onChange={(e) => setGymForm({ ...gymForm, address: e.target.value })}
-                placeholder="Address"
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <input
@@ -484,8 +491,31 @@ export function MyGymsPage() {
                 placeholder="Description (optional)"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
               />
-              <div className="pt-2 border-t border-zinc-800/60">
-                <GymLocationFields value={gymLocation} onChange={setGymLocation} />
+              <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
+                <input
+                  aria-label="Address"
+                  value={gymForm.address}
+                  onChange={(e) => setGymForm({ ...gymForm, address: e.target.value })}
+                  placeholder="Số nhà, tên đường"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
+                />
+                <GymLocationFields
+                  value={gymLocation}
+                  onChange={(next) => {
+                    // "Dùng vị trí hiện tại" cũng là ghim tay → bỏ thông báo ghim-theo-địa-chỉ cũ.
+                    if (next.latitude !== gymLocation.latitude || next.longitude !== gymLocation.longitude) autoPin.markManual();
+                    setGymLocation(next);
+                  }}
+                />
+                <AutoPinStatus status={autoPin.status} />
+                <MapLocationPicker
+                  latitude={gymLocation.latitude}
+                  longitude={gymLocation.longitude}
+                  onChange={(p) => {
+                    autoPin.markManual();
+                    setGymLocation((l) => ({ ...l, ...p }));
+                  }}
+                />
               </div>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">

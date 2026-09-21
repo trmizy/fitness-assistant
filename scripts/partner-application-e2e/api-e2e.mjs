@@ -315,8 +315,15 @@ async function fillAll(tok, brand) {
   check("exactly one APPLICATION_APPROVED audit row", auditAfter - auditBefore === 1, `rows=${auditAfter - auditBefore}`);
   const final = sql("gymcoach_gym", `select p.status||'/'||p.verification_status||'/'||g.status from gym_partners p join gym_partner_accounts a on a.partner_id=p.id and a.role='OWNER' join gyms g on g.owner_id=a.user_id where p.id='${pid}'`);
   check("approve atomic result: partner ACTIVE/VERIFIED and first branch APPROVED", final === "ACTIVE/VERIFIED/APPROVED", final);
-  const photoVis = sql("gymcoach_gym", `select string_agg(distinct visibility::text, ',') from gym_photos where gym_id = (select g.id from gyms g join gym_partner_accounts a on a.user_id=g.owner_id and a.role='OWNER' where a.partner_id='${pid}')`);
-  check("photos become PUBLIC only after approval", photoVis === "PUBLIC", `visibility=${photoVis}`);
+  // Một bucket, mọi tệp riêng tư: duyệt xong ảnh KHÔNG được sao chép đi đâu cả.
+  const photoRow = sql("gymcoach_gym", `select visibility::text||' '||s3_key from gym_photos where gym_id = (select g.id from gyms g join gym_partner_accounts a on a.user_id=g.owner_id and a.role='OWNER' where a.partner_id='${pid}') limit 1`);
+  check("after approval photos stay PRIVATE, no public copy is made", photoRow.startsWith("PRIVATE partner-applications/"), photoRow);
+  const detailAfter = data(await call("GET", `/admin/partners/${pid}/application`, { token: admin }));
+  const photoUrl = detailAfter.photos?.[0]?.url ?? "";
+  check("approved photos are served by short-lived signed URL, not a permanent public URL",
+    /X-Amz-Signature=/i.test(photoUrl), photoUrl.slice(0, 80));
+  const anonPhoto = await fetch(photoUrl.split("?")[0]);
+  check("stripping the signature from a photo URL is denied", anonPhoto.status === 403 || anonPhoto.status === 401, `status=${anonPhoto.status}`);
 
   // post-approval owner
   const stA = data(await call("GET", "/owner/application/status", { token: A.token }));

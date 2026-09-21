@@ -44,6 +44,7 @@ export const applicationReviewController = {
         req.params.docType as PartnerDocumentType,
         adminId(req),
         req,
+        typeof req.query.fileId === 'string' ? req.query.fileId : undefined,
       ),
     ),
   ),
@@ -85,11 +86,6 @@ export const applicationReviewController = {
 
   reopen: handler(async (req, res) => ok(res, await partnerApplicationReviewService.reopen(req.params.id, adminId(req), req))),
 
-  publishPhotos: handler(async (req, res) => {
-    const branch = req.body?.gymId as string | undefined;
-    if (!branch) throw Object.assign(new Error('Thiếu gymId'), { status: 400 });
-    ok(res, await partnerApplicationReviewService.publishPhotos(branch));
-  }),
 };
 
 /**

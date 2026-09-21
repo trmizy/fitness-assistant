@@ -6,10 +6,11 @@ import type { GymPhotoCategory, PartnerDocumentType } from '../generated/prisma'
 import type { PartnerContext } from './partner.service';
 import { partnerS3 } from './partner-s3.service';
 import { partnerAuditService } from './partner-audit.service';
-import { appError } from './partner-application.service';
-import { deriveAccessState, isEditableState, REQUIRED_APPLICATION_DOCS } from './partner-application.state';
+import { appError, lockPartner } from './partner-application.service';
+import { APPLICATION_DOC_TYPES, deriveAccessState, isEditableState, REQUIRED_APPLICATION_DOCS } from './partner-application.state';
 import {
   MAX_APPLICATION_PHOTOS,
+  MAX_FILES_PER_DOCUMENT,
   MAX_UPLOAD_BYTES,
   extensionFor,
   isAllowedContentType,
@@ -26,8 +27,7 @@ import {
  * vào hồ sơ. Sau khi tải lên, server tự HEAD + đọc chữ ký đầu tệp để chắc tệp đúng loại/cỡ đã khai.
  */
 
-const OPTIONAL_DOCS = ['TAX_CODE_CERTIFICATE', 'SITE_PHOTOS', 'FIRE_SAFETY_CERTIFICATE'] as const;
-const ALL_DOC_TYPES: readonly string[] = [...REQUIRED_APPLICATION_DOCS, ...OPTIONAL_DOCS];
+const ALL_DOC_TYPES: readonly string[] = APPLICATION_DOC_TYPES;
 const INTENT_TTL_MS = 10 * 60 * 1000;
 
 function requireOwnerIds(ctx: PartnerContext) {
@@ -54,6 +54,38 @@ function assertEditable(ctx: PartnerContext) {
 
 async function draftGym(ownerId: string) {
   return prisma.gym.findFirst({ where: { ownerId, status: 'DRAFT' }, orderBy: { createdAt: 'asc' } });
+}
+
+/**
+ * Kiểm một giấy tờ còn nhận thêm tệp không. Giấy tờ admin đã chấp nhận thì khoá (giao diện vốn đã khoá;
+ * đây là chốt phía server). Muốn đổi, admin phải "Yêu cầu cập nhật" trước.
+ */
+async function assertDocumentAcceptsFile(db: Pick<typeof prisma, 'gymPartnerDocument'>, partnerId: string, docType: PartnerDocumentType) {
+  const doc = await db.gymPartnerDocument.findUnique({
+    where: { partnerId_docType: { partnerId, docType } },
+    include: { _count: { select: { files: true } } },
+  });
+  if (doc?.status === 'VERIFIED') {
+    throw appError('Giấy tờ đã được xác minh, không thể thay đổi', 409, 'DOCUMENT_ALREADY_VERIFIED');
+  }
+  if ((doc?._count.files ?? 0) >= MAX_FILES_PER_DOCUMENT) {
+    throw appError(`Mỗi giấy tờ tối đa ${MAX_FILES_PER_DOCUMENT} tệp — hãy xoá bớt tệp cũ`, 400, 'TOO_MANY_DOCUMENT_FILES');
+  }
+  return doc;
+}
+
+/**
+ * Tệp của giấy tờ thay đổi (thêm hoặc bớt). Nếu admin đã có quyết định trên bộ tệp cũ (chấp nhận hay
+ * yêu cầu cập nhật) thì đây là một vòng mới: tăng version và quay lại "Chờ duyệt". Còn đang chờ duyệt
+ * thì chỉ là bổ sung trong cùng vòng (tải mặt trước rồi mặt sau không nhảy lên "phiên bản 2").
+ */
+function nextDocumentState(doc: { status: string; version: number } | null, fileCountAfter: number) {
+  const reviewed = doc?.status === 'VERIFIED' || doc?.status === 'REJECTED';
+  return {
+    status: fileCountAfter > 0 ? ('RECEIVED' as const) : ('PENDING' as const),
+    version: doc ? (reviewed ? doc.version + 1 : doc.version) : 1,
+    reviewed,
+  };
 }
 
 async function rejectAndCleanup(intentId: string, key: string, reason: string): Promise<never> {
@@ -100,6 +132,7 @@ export const partnerUploadService = {
       if (!input.docType || !ALL_DOC_TYPES.includes(input.docType)) {
         throw appError('Loại giấy tờ không hợp lệ', 400, 'INVALID_DOC_TYPE');
       }
+      await assertDocumentAcceptsFile(prisma, partnerId, input.docType);
       segment = `docs/${input.docType}`;
     } else if (input.kind === 'LOGO') {
       const partner = await prisma.gymPartner.findUnique({ where: { id: partnerId }, select: { brandId: true } });
@@ -222,50 +255,126 @@ export const partnerUploadService = {
       return { kind: 'PHOTO' as const, photoId: photo.id };
     }
 
-    // DOCUMENT — thay tệp cũ thì tăng version và quay lại hàng chờ duyệt.
+    // DOCUMENT — THÊM một tệp vào giấy tờ (không còn thay thế tệp cũ; muốn bỏ tệp nào thì xoá tệp đó).
     const docType = intent.docType as PartnerDocumentType;
+    let existing: Awaited<ReturnType<typeof assertDocumentAcceptsFile>>;
+    try {
+      existing = await assertDocumentAcceptsFile(prisma, partnerId, docType);
+    } catch (e) {
+      // Giấy tờ bị khoá/đầy trong lúc đang tải: tệp đã lên S3 nhưng không được dùng → dọn luôn.
+      await partnerS3.deleteObject(intent.objectKey).catch(() => undefined);
+      await prisma.partnerUploadIntent.delete({ where: { id: intent.id } }).catch(() => undefined);
+      throw e;
+    }
     const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.gymPartnerDocument.findUnique({
-        where: { partnerId_docType: { partnerId, docType } },
-      });
-      const replaced = Boolean(existing?.fileKey || existing?.fileUrl);
-      const data = {
-        fileKey: intent.objectKey,
-        fileUrl: null,
-        mimeType: intent.contentType,
-        sizeBytes: head.contentLength ?? null,
-        uploadedBy: actorUserId,
-        status: 'RECEIVED' as const,
-        reviewNote: null,
-        verifiedBy: null,
-        verifiedAt: null,
-      };
+      await lockPartner(tx, partnerId);
+      // Đọc lại trong khoá: hai tab tải cùng lúc không vượt được giới hạn số tệp.
+      existing = await assertDocumentAcceptsFile(tx, partnerId, docType);
+      const next = nextDocumentState(existing, (existing?._count.files ?? 0) + 1);
       const doc = existing
         ? await tx.gymPartnerDocument.update({
             where: { id: existing.id },
-            data: { ...data, version: replaced ? existing.version + 1 : existing.version },
+            data: {
+              status: next.status,
+              version: next.version,
+              uploadedBy: actorUserId,
+              reviewNote: null,
+              verifiedBy: null,
+              verifiedAt: null,
+            },
           })
         : await tx.gymPartnerDocument.create({
             data: {
               partnerId,
               docType,
               required: (REQUIRED_APPLICATION_DOCS as readonly string[]).includes(docType),
-              version: 1,
-              ...data,
+              status: next.status,
+              version: next.version,
+              uploadedBy: actorUserId,
             },
           });
+      const file = await tx.gymPartnerDocumentFile.create({
+        data: {
+          documentId: doc.id,
+          fileKey: intent.objectKey,
+          mimeType: intent.contentType,
+          sizeBytes: head.contentLength ?? null,
+          uploadedBy: actorUserId,
+        },
+      });
       await tx.partnerUploadIntent.update({ where: { id: intent.id }, data: { confirmedAt: new Date() } });
       await partnerAuditService.recordInTx(tx, {
         partnerId,
         actorUserId,
-        action: replaced ? 'DOCUMENT_REPLACED' : 'DOCUMENT_UPLOADED',
+        // Đổi tệp sau khi admin đã quyết định = nộp lại giấy tờ; còn lại chỉ là bổ sung tệp.
+        action: next.reviewed ? 'DOCUMENT_REPLACED' : 'DOCUMENT_UPLOADED',
         req,
-        // Khoá cũ được giữ trong audit (bucket bật versioning) để truy vết khi cần.
-        metadata: { docType, version: doc.version, previousKey: existing?.fileKey ?? null },
+        metadata: { docType, version: doc.version, op: 'ADD', fileId: file.id },
       });
-      return { docType, version: doc.version, replaced };
+      return { docType, version: doc.version, fileId: file.id, replaced: next.reviewed };
     });
     return { kind: 'DOCUMENT' as const, ...result };
+  },
+
+  /**
+   * Bỏ một tệp khỏi giấy tờ. Tệp admin CHƯA có quyết định trên nó thì xoá hẳn khỏi S3 (ứng viên tải
+   * nhầm có quyền rút lại). Tệp thuộc bộ admin đã quyết định thì chỉ gỡ khỏi hồ sơ — khoá được giữ
+   * trong nhật ký làm bằng chứng về thứ đã được duyệt.
+   */
+  async removeDocumentFile(ctx: PartnerContext, actorUserId: string, docType: PartnerDocumentType, fileId: string, req?: Request) {
+    const { partnerId } = requireOwnerIds(ctx);
+    assertEditable(ctx);
+    const removed = await prisma.$transaction(async (tx) => {
+      await lockPartner(tx, partnerId);
+      const doc = await tx.gymPartnerDocument.findUnique({
+        where: { partnerId_docType: { partnerId, docType } },
+        include: { files: true },
+      });
+      const file = doc?.files.find((f) => f.id === fileId);
+      // Cùng một thông báo cho "không có" và "của người khác".
+      if (!doc || !file) throw appError('Không tìm thấy tệp', 404, 'NOT_FOUND');
+      if (doc.status === 'VERIFIED') {
+        throw appError('Giấy tờ đã được xác minh, không thể thay đổi', 409, 'DOCUMENT_ALREADY_VERIFIED');
+      }
+      const seenInDecision = doc.verifiedAt != null && file.createdAt <= doc.verifiedAt;
+      const next = nextDocumentState(doc, doc.files.length - 1);
+      await tx.gymPartnerDocumentFile.delete({ where: { id: file.id } });
+      await tx.gymPartnerDocument.update({
+        where: { id: doc.id },
+        data: { status: next.status, version: next.version, reviewNote: null, verifiedBy: null, verifiedAt: null },
+      });
+      await partnerAuditService.recordInTx(tx, {
+        partnerId,
+        actorUserId,
+        action: 'DOCUMENT_REPLACED',
+        req,
+        metadata: { docType, version: next.version, op: 'REMOVE', fileId: file.id, removedKey: seenInDecision ? file.fileKey : null },
+      });
+      return { key: file.fileKey, keep: seenInDecision };
+    });
+    if (!removed.keep) {
+      await partnerS3.deleteObject(removed.key).catch((e) =>
+        logger.warn({ err: (e as Error).message }, 'Không xoá được tệp giấy tờ trên S3 (bản ghi đã gỡ)'),
+      );
+    }
+    return { ok: true };
+  },
+
+  /** Link xem tệp giấy tờ của CHÍNH ứng viên: ký tạm 120 giây; ảnh mở tại chỗ, PDF ép tải xuống. */
+  async getOwnDocumentFile(ctx: PartnerContext, docType: PartnerDocumentType, fileId: string) {
+    const { partnerId } = requireOwnerIds(ctx);
+    const file = await prisma.gymPartnerDocumentFile.findFirst({
+      where: { id: fileId, document: { partnerId, docType } },
+    });
+    if (!file) throw appError('Không tìm thấy tệp', 404, 'NOT_FOUND');
+    const expiresSec = 120;
+    const url = await partnerS3.presignGet({
+      key: file.fileKey,
+      contentType: file.mimeType,
+      attachment: file.mimeType === 'application/pdf',
+      expiresSec,
+    });
+    return { url, mimeType: file.mimeType, expiresInSec: expiresSec };
   },
 
   async deletePhoto(ctx: PartnerContext, photoId: string) {

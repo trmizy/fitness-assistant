@@ -11,6 +11,7 @@ import {
   presignSchema,
   reorderPhotosSchema,
   representativeSchema,
+  socialLinksSchema,
   submitApplicationSchema,
 } from '../schemas/application.schemas';
 
@@ -36,6 +37,7 @@ router.put('/representative', validateBody(representativeSchema), applicationCon
 router.put('/business-scale', validateBody(businessScaleSchema), applicationController.businessScale);
 router.put('/brand', validateBody(applicationBrandSchema), applicationController.brand);
 router.put('/branch', validateBody(applicationBranchSchema), applicationController.branch);
+router.put('/social', validateBody(socialLinksSchema), applicationController.social);
 router.put('/legal', validateBody(legalSchema), applicationController.legal);
 
 // Tải lên: presign → (trình duyệt POST thẳng lên S3) → confirm. Client không bao giờ gửi khoá S3.
@@ -44,6 +46,8 @@ router.post('/uploads/confirm', validateBody(confirmUploadSchema), applicationCo
 router.put('/photos/reorder', validateBody(reorderPhotosSchema), applicationController.reorderPhotos);
 router.patch('/photos/:photoId/cover', applicationController.setCover);
 router.delete('/photos/:photoId', applicationController.deletePhoto);
+router.get('/documents/:docType/files/:fileId', applicationController.documentFile);
+router.delete('/documents/:docType/files/:fileId', applicationController.removeDocumentFile);
 
 router.post('/submit', validateBody(submitApplicationSchema), applicationController.submit);
 router.post('/resubmit', applicationController.resubmit);

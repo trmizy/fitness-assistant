@@ -73,7 +73,17 @@ const check = (name, ok, extra = "") => {
   await page.getByText("Tên thương hiệu *").waitFor();
   await card.locator("input").first().fill(BRAND);
   await page.getByRole("button", { name: /Tiếp tục/ }).click();
+  // Bước Mạng xã hội (tuỳ chọn): link sai tên miền bị từ chối, link đúng lưu được.
+  await page.getByRole("heading", { name: "Mạng xã hội" }).waitFor();
+  await page.getByLabel("Facebook", { exact: true }).fill("https://facebook.com.evil.example/x");
+  await page.getByRole("button", { name: /Tiếp tục/ }).click();
+  await page.getByText(/Link Facebook không hợp lệ/).waitFor({ timeout: 10000 });
+  check("social step rejects a fake Facebook domain", true);
+  await page.getByLabel("Facebook", { exact: true }).fill("https://www.facebook.com/gymini.e2e");
+  await page.getByLabel("TikTok", { exact: true }).fill("https://www.tiktok.com/@gymini.e2e");
+  await page.getByRole("button", { name: /Tiếp tục/ }).click();
   await page.getByText("Bạn đang vận hành bao nhiêu chi nhánh?").waitFor();
+  check("social step saved valid links", true);
   await page.getByRole("button", { name: /Nhiều chi nhánh/ }).click();
   check("multi-branch note shown", await page.getByText("Bạn có thể thêm các chi nhánh khác").isVisible());
   await page.getByRole("button", { name: /Tiếp tục/ }).click();
@@ -81,16 +91,21 @@ const check = (name, ok, extra = "") => {
   check("branch step shows read-only brand (no brand selector)", (await card.locator("select").count()) === 0);
   await card.locator("input").nth(0).fill("Chi nhanh Quan 1");
   await card.locator("input").nth(1).fill("0281234567");
-  await card.locator("input").nth(3).fill("123 Nguyen Hue");
+  check("branch step no longer asks for the address (moved to Vị trí)", (await card.getByText("Địa chỉ", { exact: false }).count()) === 0);
   await page.getByRole("button", { name: /Tiếp tục/ }).click();
 
   // location
   await page.getByText("Tỉnh/Thành phố").waitFor();
+  await card.locator("input").first().fill("123 Lê Lợi");
   const selects = card.locator("select");
-  await selects.nth(0).selectOption({ index: 1 });
+  await selects.nth(0).selectOption({ label: "Thành phố Hồ Chí Minh" });
   await page.waitForFunction(() => document.querySelectorAll("main select")[1] && document.querySelectorAll("main select")[1].options.length > 1);
-  await selects.nth(1).selectOption({ index: 1 });
+  await selects.nth(1).selectOption({ label: "Phường Bến Thành" });
   await page.locator(".leaflet-container").waitFor({ timeout: 20000 });
+  // Đủ số nhà + đường + phường + tỉnh → bản đồ tự ghim (Nominatim thật, cần mạng).
+  await page.locator(".leaflet-marker-icon").waitFor({ timeout: 15000 });
+  const pinText = (await page.getByText(/Đã ghim theo địa chỉ|Chỉ tìm thấy|Không tìm thấy|Chưa tra được/).first().textContent()) || "";
+  check("map auto-pinned from typed address: " + pinText.trim(), /Đã ghim|Chỉ tìm thấy/.test(pinText));
   await page.locator(".leaflet-container").scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
   const box = await page.locator(".leaflet-container").boundingBox();
@@ -119,11 +134,30 @@ const check = (name, ok, extra = "") => {
   const fileInputs = page.locator('input[type=file]');
   const n = await fileInputs.count();
   for (let i = 0; i < n; i++) {
-    await fileInputs.nth(i).setInputFiles(path.join(OUT, i === 0 ? "t.pdf" : "t.png"));
-    await page.waitForTimeout(1200);
+    // Ô thứ 2 = CCCD: chọn MỘT lần hai tệp (mặt trước + mặt sau).
+    await fileInputs.nth(i).setInputFiles(i === 0 ? path.join(OUT, "t.pdf") : i === 1 ? [path.join(OUT, "t.png"), path.join(OUT, "t.png")] : path.join(OUT, "t.png"));
+    await page.waitForTimeout(i === 1 ? 2500 : 1200);
   }
   await page.waitForFunction(() => document.querySelectorAll("main").length && (document.body.innerText.match(/Chờ duyệt/g) || []).length >= 3, null, { timeout: 30000 });
   check("3 required documents uploaded (Chờ duyệt)", true);
+  check("legal step offers optional docs (mã số thuế + PCCC)", (await page.getByText("Giấy tờ bổ sung").count()) === 1 && (await page.getByText("Giấy chứng nhận PCCC").count()) === 1 && (await page.getByText("Ảnh hiện trạng cơ sở").count()) === 0);
+
+  // CCCD: hai thumbnail, bấm xem phóng to, xoá một tệp.
+  const idCard = page.locator("main div.rounded-xl", { hasText: "Giấy tờ tuỳ thân người đại diện" }).first();
+  await idCard.locator('img[alt^="Tệp"]').nth(1).waitFor({ timeout: 20000 });
+  check("ID card holds 2 files (front + back) with thumbnails", (await idCard.locator('img[alt^="Tệp"]').count()) === 2);
+  const thumbsLoaded = await idCard.locator('img[alt^="Tệp"]').evaluateAll((els) => els.every((e) => e.complete && e.naturalWidth > 0));
+  check("thumbnails actually load from private storage (signed URL)", thumbsLoaded);
+  await idCard.getByRole("button", { name: "Xem tệp 1" }).click();
+  const big = page.locator('[role="dialog"] img');
+  await big.waitFor({ timeout: 15000 });
+  await page.waitForFunction(() => { const i = document.querySelector('[role="dialog"] img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 15000 });
+  check("click thumbnail opens enlarged preview", true);
+  await page.screenshot({ path: path.join(OUT, "05-legal-preview.png") });
+  await page.keyboard.press("Escape");
+  await idCard.getByRole("button", { name: "Xoá tệp 2" }).click();
+  await page.waitForFunction(() => { const c = [...document.querySelectorAll("main div.rounded-xl")].find((d) => d.innerText.includes("Giấy tờ tuỳ thân người đại diện")); return c && c.querySelectorAll('img[alt^="Tệp"]').length === 1; }, null, { timeout: 15000 });
+  check("remove one file -> 1 left, still Chờ duyệt", (await idCard.innerText()).includes("Chờ duyệt"));
   await ovf("legal");
   await page.screenshot({ path: path.join(OUT, "05-legal.png") });
   await page.getByRole("button", { name: /Tiếp tục/ }).click();
@@ -159,6 +193,8 @@ const check = (name, ok, extra = "") => {
   await ap.getByText(BRAND).first().click();
   await ap.getByText("Giấy tờ").first().waitFor();
   check("admin sees application detail (docs, photos, history)", true);
+  await ap.getByText("Giấy chứng nhận PCCC").first().waitFor({ timeout: 10000 });
+  check("admin doc list = applicant doc list (no 'Ảnh hiện trạng cơ sở')", (await ap.getByText("Ảnh hiện trạng cơ sở").count()) === 0);
   const approveBtn = ap.getByRole("button", { name: /Phê duyệt hồ sơ/ });
   check("approve disabled while documents unverified", await approveBtn.isDisabled());
   await ap.screenshot({ path: path.join(OUT, "07-admin-detail.png"), fullPage: true });

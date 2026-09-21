@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { socialLinksSchema } from './application.schemas';
 
 /**
  * Vòng 4 / Phase B — brand.service.ts's updateBrand (and createBrand's minimal
@@ -24,7 +25,10 @@ export const brandCreateSchema = z.object({
   description: brandDescription,
 });
 
-export const brandUpdateSchema = z.object({
-  name: brandName.optional(),
-  description: brandDescription,
-});
+// Link mạng xã hội sửa tự do sau khi duyệt (như mô tả) — cùng một bộ kiểm https + tên miền với wizard.
+export const brandUpdateSchema = z
+  .object({
+    name: brandName.optional(),
+    description: brandDescription,
+  })
+  .merge(socialLinksSchema);

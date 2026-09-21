@@ -3,15 +3,37 @@
 Những điều còn thiếu, còn rủi ro, hoặc cố ý hoãn của luồng **Gym Partner Self-Service Onboarding**.
 Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PARTNER_WEB_TEST_REPORT.md`.
 
-## 1. Chặn go-live (phải xong trước khi deploy production)
+## 1. Việc của ngày DEPLOY — không chặn tính năng
+
+> **Đọc trước khi lo lắng.** Không mục nào dưới đây là lỗi của tính năng. Luồng đăng ký đối tác chạy
+> đầy đủ và đã được kiểm kỹ trên stack dev cục bộ (Docker + Postgres + MinIO); nó **không phụ thuộc
+> AWS** để hoạt động. Đây là danh sách việc cho **một phiên làm việc riêng về deploy**, do người vận
+> hành AWS chủ trì. Tới lúc đó mở file này ra là đủ, không cần dựng lại bối cảnh.
 
 | # | Vấn đề | Vì sao chặn | Việc cần làm |
 |---|---|---|---|
-| G1 | **Chưa từng test trên AWS S3 thật** | Toàn bộ upload mới chỉ chạy trên MinIO cục bộ; hành vi riêng của S3 (CORS, điều kiện presigned POST, mã hoá mặc định, quyền IAM) chưa được xác nhận | Tạo bucket dev thật theo `partner-uploads.tf`, chạy `scripts/partner-application-e2e/api-e2e.mjs` với `PARTNER_S3_*` trỏ vào đó |
-| G2 | **Terraform chưa apply và chưa nối vào runtime** | `infra/terraform/environments/dev/partner-uploads.tf` mới chỉ tạo bucket + output; không tệp deploy nào truyền `PARTNER_S3_*` cho gym-service. Deploy lúc này → mọi upload trả **503 `UPLOADS_UNAVAILABLE`** | `terraform validate`/`apply` (do ops chạy) rồi nối output vào biến môi trường của gym-service |
+| G1a | **Hành vi của S3 thật chưa nghiệm thu** | Điều kiện đã ký của presigned POST, mã hoá mặc định, presigned GET, CORS — MinIO có thể khác S3 | Chạy `scripts/partner-application-e2e/s3-smoke.ts` trên bucket thật (không chạm CSDL). Chạy bằng credential nào cũng được — phần này không phụ thuộc IAM của gym |
+| G1b | **Policy IAM hẹp của role gym chưa nghiệm thu** | `Put/Get/Delete` trên `partner-applications/*` đủ hay không thì **chỉ chạy chính hàm Lambda với role đó mới biết**; chạy script bằng credential khác không kiểm được điều này | Nghiệm thu ở bước deploy. Rà bằng CODE AUDIT: code chỉ gọi PutObject (qua presigned POST), GetObject (HeadObject, GET theo Range, presigned GET) và DeleteObject; **không bao giờ ListBucket** — nên policy hiện tại là đủ |
+| G2 | **Biến môi trường trên Lambda** | Hàm `fitness-assistant-dev-gym` cần `PARTNER_S3_PRIVATE_BUCKET` và `PARTNER_S3_REGION`; thiếu thì mọi upload trả **503 `UPLOADS_UNAVAILABLE`** | Người vận hành AWS đặt hai biến đó (đã yêu cầu). Không còn Terraform nào phải apply — `partner-uploads.tf` **đã xoá** |
 | G3 | **Redis chia sẻ cho rate limit** | Limiter theo tiến trình không an toàn khi scale ngang. Production phải đặt `RATE_LIMIT_REQUIRE_SHARED=true`, và khi đó gateway **từ chối khởi động** nếu không có Redis | Cấp Redis (ElastiCache hoặc container) cho môi trường production |
-| G4 | **CloudFront/OAC cho bucket ảnh công khai** | Ảnh sau duyệt phục vụ qua `PARTNER_S3_PUBLIC_BASE_URL`; chưa có CDN thật nên chưa xác nhận đường phục vụ | Dựng phân phối + đặt `PARTNER_S3_PUBLIC_BASE_URL` |
+| ~~G4~~ | ~~CloudFront/OAC cho ảnh công khai~~ | **Không còn cần (2026-09-20)** — đã bỏ bucket công khai; ảnh luôn riêng tư, phục vụ bằng presigned GET. Không bề mặt ẩn danh nào hiển thị ảnh phòng gym. | — |
 | ~~G5~~ | ~~Chưa có địa chỉ hỗ trợ~~ | **Đã xong 2026-09-20** — `VITE_SUPPORT_EMAIL` mặc định `huytronh5@gmail.com` (trùng `SMTP_FROM`, thư trả lời về đúng hộp gửi) trong `docker-compose.dev.yml`; service `web` không có `env_file` nên giá trị phải nằm ở compose. Không phải bí mật: nó hiện trong bundle. | — |
+
+| G6 | **Lambda gắn VPC có tới được S3 không** | Runbook ghi Lambda phải gắn VPC nếu Aurora private, và NAT Gateway nằm trong danh sách cần soi kỹ (khả năng cao là không có). VPC + không NAT + không **S3 Gateway Endpoint** = mọi lời gọi S3 **treo rồi timeout**: presign vẫn chạy (ký cục bộ), trình duyệt vẫn tải lên được, nhưng bước `confirm` (`HeadObject` + đọc magic bytes) chết → **không ai nộp được hồ sơ** | Kiểm `VpcConfig` của hàm gym; nếu có subnet thì xem route table có `com.amazonaws.ap-southeast-1.s3` không. Thiếu thì thêm **S3 Gateway Endpoint — miễn phí**, khác NAT. Dấu hiệu tốt: nếu hàm `user` đã gọi S3 thành công trên AWS thì đường mạng có sẵn |
+
+### Vì sao danh sách này không thể đóng bằng cách test kỹ hơn ở cục bộ
+
+Bốn lớp sau nằm ngoài tầm với của stack cục bộ **về nguyên lý**, không phải vì thiếu công sức:
+
+| Lớp | Vì sao cục bộ không thấy |
+|---|---|
+| VPC không tới được S3 (G6) | Không có VPC ở máy cục bộ |
+| Đường code chỉ chạy trên Lambda | `lambda.ts` / `jobs-lambda.ts` **chưa bao giờ** chạy cục bộ — đã có một lỗi thật lòi ra từ đây |
+| Policy IAM hẹp của role gym (G1b) | Cục bộ dùng khoá MinIO toàn quyền |
+| Nhiều instance (rate limit bộ nhớ) | Cục bộ chỉ một tiến trình |
+
+Cách đóng duy nhất: **deploy lên dev rồi chạy một vòng đăng ký thật ở đó**. Một vòng đó đi qua VPC,
+qua role thật, qua S3 thật, qua Lambda thật — thay thế được cả bốn lớp. Đừng cố suy đoán cho hết trước.
 
 ## 2. Rủi ro đã biết, chấp nhận có điều kiện
 
@@ -27,6 +49,12 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 - **R5 — Ảnh chi nhánh cũ vẫn nằm trên đĩa container.** Luồng ảnh cũ (`/uploads/gym-photos`, multer) không
   bị đụng tới và **không** có volume trong compose dev cho gym-service; trên Lambda thì các đường ghi đĩa
   này bị khoá 503. Di trú ảnh cũ sang S3 là **hạng mục riêng, chưa nằm trong kế hoạch**.
+- **R7 — Job dọn tệp mồ côi chưa được bật.** Schedule `fitness-assistant-dev-gym-partner-upload-sweep`
+  (`rate(1 day)`) đã tồn tại nhưng đang **DISABLED**, vì hàm `gym-jobs` đang chạy chưa có code của job
+  này. Bật sau khi deploy nhánh `feature/payment-gateways`, nếu không mỗi ngày sẽ có một lần gọi hỏng.
+- **R8 — Luồng đối tác chưa deploy.** Route `/owner/application/*`, ba migration mới và job dọn rác mới
+  chỉ nằm trên nhánh, chưa lên Lambda dev nào và chưa chạy trên Aurora dev. Mọi kiểm chứng tới giờ là
+  trên stack dev cục bộ.
 - **R6 — Hai module S3 song song.** `user-service/s3-upload.service.ts` (presigned PUT, `USER_UPLOAD_BUCKET`)
   và `gym-service/partner-s3.service.ts` (presigned POST, hai bucket) không dùng chung code. Gộp lại là việc
   dọn dẹp về sau, không cần cho luồng này.
@@ -51,6 +79,27 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
 
 ## 5. Đã đóng trong đợt này
 
+- **Hồi quy chủ gym cũ qua trình duyệt (2026-09-21)** — đóng rủi ro R1 tự nêu từ đầu kế hoạch (tách
+  `owner.routes.ts` + đổi nghĩa `isLegacy` nằm trên đường đi của chủ gym thật). 14/14:
+  không bị đẩy sang vùng ứng viên, dashboard và ba trang vận hành mở được, tạo chi nhánh đúng thương
+  hiệu và đi vòng duyệt bình thường. Kịch bản: `scripts/partner-application-e2e/legacy-owner-regression.cjs`.
+- **Thanh toán ZaloPay thật (2026-09-21)** — REAL BROWSER, người dùng tự trả 300.000đ: giao dịch PAID,
+  hợp đồng ACTIVE gắn đúng mã giao dịch, chia 270k cho gym + 30k hoa hồng, **không cộng trùng** (đúng 3
+  bút toán), không sinh giao dịch hay hợp đồng trùng. Webhook của ZaloPay không tới được localhost mà
+  giao dịch vẫn về PAID — chứng minh đường `/payments/:id/sync` hoạt động đúng.
+- **Hai lỗi giao diện CÓ SẴN, phát hiện khi hồi quy và đã sửa (2026-09-21)**:
+  - `GymOwnerDashboard` truyền `gymId` vào `listOwnedPlans(brandId)` → 404 mỗi lần mở dashboard và ô
+    "Gói hội viên đang bán" luôn bằng 0. Sau khi sửa: 20, hết 404.
+  - Lưới tìm phòng gym dùng `align-items: stretch`, một chuỗi 40 chi nhánh bung ra kéo hai thẻ cùng
+    hàng cao 1811px thành ô rỗng. Sau khi sửa: thẻ bung 472px, thẻ bên cạnh giữ 152px.
+
+- **Một bucket riêng tư (2026-09-20)**: bỏ bucket công khai, bỏ `CopyObject` sau duyệt, bỏ endpoint
+  `publish-photos`, bỏ `PARTNER_S3_PUBLIC_BUCKET`/`_PUBLIC_BASE_URL`, **xoá `partner-uploads.tf`**.
+  Ảnh sau duyệt vẫn PRIVATE, phục vụ bằng presigned GET. Cột `GymPhoto.visibility` **giữ nguyên**
+  (không migration phá huỷ), chỉ ngừng ghi `PUBLIC`.
+- **Dọn tệp mồ côi (2026-09-20)**: `partner-upload-sweep.service.ts` + job cùng tên trong
+  `jobs-lambda.ts`. Xoá S3 trước, xoá dòng DB sau, để lần chạy sau thử lại được nếu S3 lỗi.
+
 - **Logo thương hiệu (2026-09-20)**: tuỳ chọn, chủ gym tự thêm ở bước Thương hiệu, thay lúc nào cũng được;
   không nằm trong danh sách "còn thiếu" nên không chặn nộp hồ sơ. Lưu ở bucket riêng tư cùng chỗ với hồ sơ,
   đọc bằng presigned GET. Admin thấy logo trong màn duyệt. Migration `20260920000000_partner_brand_logo_upload`
@@ -60,5 +109,9 @@ Cập nhật 2026-09-20 (kết thúc W3). Bằng chứng kiểm thử: `GYM_PART
   "Đã xảy ra lỗi. Vui lòng thử lại." — mời họ thử mãi mà không bao giờ vào được. Nay hiện đúng lý do server nói.
 - Guard production cho lưu trữ: `gym-service/src/services/partner-s3.guard.ts` — production không thể trỏ
   nhầm vào MinIO/localhost; có 13 test.
+- **Sửa lỗi guard không chạy trên Lambda (2026-09-21, commit `8b1404e`)**: guard được gọi ở `server.ts`,
+  nhưng Lambda có entrypoint riêng và không đi qua đó — nên trên AWS, lời hứa "cấu hình sai thì từ chối
+  khởi động" là sai; lỗi chỉ lộ ra khi có người tải tệp. Nay gọi ở cả `lambda.ts` và `jobs-lambda.ts`.
+  Đây là lớp lỗi **chỉ môi trường AWS mới phơi bày**.
 - Gỡ luồng admin tạo/cấp tài khoản chủ gym: 410 cho hai endpoint, xoá code chết ở auth-service, gateway và
   web. Hạ tầng mời MANAGER giữ nguyên và đã hồi quy.

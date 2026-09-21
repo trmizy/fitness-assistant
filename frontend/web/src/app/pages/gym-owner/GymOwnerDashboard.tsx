@@ -200,10 +200,16 @@ export function GymOwnerDashboard() {
     enabled: !!activeGymId,
   });
 
+  // Gói hội viên thuộc THƯƠNG HIỆU, không thuộc từng chi nhánh (một chủ = một thương hiệu), nên
+  // listOwnedPlans nhận brandId chứ không phải gymId — truyền nhầm gymId thì mọi lần mở dashboard
+  // là một 404 và ô "Gói hội viên đang bán" luôn bằng 0. Brand suy từ chính chi nhánh đang chọn,
+  // không cần thêm request.
+  const activeBrandId = gyms.find((g) => g.id === activeGymId)?.brandId ?? null;
+
   const { data: plans = [], isLoading: plansLoading } = useQuery({
-    queryKey: ["owned-gym-plans", activeGymId],
-    queryFn: () => gymService.listOwnedPlans(activeGymId),
-    enabled: !!activeGymId,
+    queryKey: ["owned-brand-plans", activeBrandId],
+    queryFn: () => gymService.listOwnedPlans(activeBrandId!),
+    enabled: !!activeBrandId,
   });
 
   const {

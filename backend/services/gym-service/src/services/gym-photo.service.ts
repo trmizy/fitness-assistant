@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { gymPhotoRepository } from '../repositories/gym-photo.repository';
 import { resolvePhotoUrl } from './gym-photo-url';
+import { partnerS3 } from './partner-s3.service';
 import { gymService } from './gym.service';
 
 function err(message: string, status: number) {
@@ -52,7 +53,12 @@ export const gymPhotoService = {
     const photo = await gymPhotoRepository.findById(photoId);
     if (!photo || photo.gymId !== gymId) throw err('Không tìm thấy ảnh', 404);
     await gymPhotoRepository.delete(photoId);
-    try { fs.unlinkSync(path.join(process.cwd(), UPLOAD_DIR, photo.fileName)); } catch { /* best effort — DB row is the source of truth */ }
+    if (photo.s3Key) {
+      // Ảnh nộp qua hồ sơ đối tác nằm trên S3 (bucket riêng tư) — xoá luôn đối tượng, không để mồ côi.
+      await partnerS3.deleteObject(photo.s3Key).catch(() => undefined);
+    } else {
+      try { fs.unlinkSync(path.join(process.cwd(), UPLOAD_DIR, photo.fileName)); } catch { /* best effort — DB row is the source of truth */ }
+    }
 
     // Never leave a gallery with photos but no cover — promote the next one if the cover
     // itself was just deleted and others remain.

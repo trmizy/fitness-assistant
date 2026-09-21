@@ -64,7 +64,8 @@ Tại sao PROSPECT dùng được: sau khi bỏ luồng admin tạo hồ sơ tay
 PENDING (chưa có tệp) ──upload+confirm──▶ RECEIVED (= chờ duyệt)
 RECEIVED ──admin Chấp nhận──▶ VERIFIED            [audit DOCUMENT_ACCEPTED]
 RECEIVED ──admin Yêu cầu cập nhật (+lý do)──▶ REJECTED (= "Cần cập nhật")  [audit DOCUMENT_UPDATE_REQUESTED]
-REJECTED ──ứng viên thay tệp──▶ RECEIVED (version+1)   [audit DOCUMENT_REPLACED]
+REJECTED ──ứng viên thêm/xoá tệp──▶ RECEIVED (version+1)   [audit DOCUMENT_REPLACED]
+RECEIVED ──xoá hết tệp──▶ PENDING   (giấy tờ nhiều tệp, từ 2026-09-21)
 VERIFIED ──(không tự đổi)
 ```
 Approve **không bao giờ** tự đặt VERIFIED; đòi 3 giấy tờ bắt buộc (BUSINESS_LICENSE, REPRESENTATIVE_ID, PREMISES_PROOF) đang VERIFIED qua một lần duyệt có dấu vết.

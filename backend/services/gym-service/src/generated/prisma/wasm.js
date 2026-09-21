@@ -309,6 +309,16 @@ exports.Prisma.GymPartnerDocumentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.GymPartnerDocumentFileScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  fileKey: 'fileKey',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  uploadedBy: 'uploadedBy',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.GymPartnerReviewIssueScalarFieldEnum = {
   id: 'id',
   partnerId: 'partnerId',
@@ -358,6 +368,10 @@ exports.Prisma.GymBrandScalarFieldEnum = {
   pendingName: 'pendingName',
   description: 'description',
   logoKey: 'logoKey',
+  facebookUrl: 'facebookUrl',
+  instagramUrl: 'instagramUrl',
+  tiktokUrl: 'tiktokUrl',
+  youtubeUrl: 'youtubeUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -822,6 +836,7 @@ exports.Prisma.ModelName = {
   GymPartnerAccount: 'GymPartnerAccount',
   PartnerInvitation: 'PartnerInvitation',
   GymPartnerDocument: 'GymPartnerDocument',
+  GymPartnerDocumentFile: 'GymPartnerDocumentFile',
   GymPartnerReviewIssue: 'GymPartnerReviewIssue',
   PartnerUploadIntent: 'PartnerUploadIntent',
   GymPartnerContactLog: 'GymPartnerContactLog',

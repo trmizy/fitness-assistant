@@ -104,7 +104,6 @@ router.post('/partners/:id/application/issues/:issueId/reopen', validateBody(reo
 router.post('/partners/:id/application/approve', applicationReviewController.approve);
 router.post('/partners/:id/application/reject', validateBody(rejectApplicationSchema), applicationReviewController.reject);
 router.post('/partners/:id/application/reopen', applicationReviewController.reopen);
-router.post('/partners/:id/application/publish-photos', applicationReviewController.publishPhotos);
 
 // 2.1/2.3 — cấp tài khoản (PROSPECT -> INVITED, gửi thư mời OWNER).
 router.post('/partners/:id/provision', retiredOwnerProvisioning);

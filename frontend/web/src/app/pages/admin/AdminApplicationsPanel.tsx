@@ -9,6 +9,7 @@ import {
   PlusIcon as Plus,
   TrashIcon as Trash2,
 } from "@phosphor-icons/react";
+import { SOCIALS } from "../../components/gym/SocialLinks";
 import {
   CATEGORY_LABEL,
   DOC_LABEL,
@@ -218,6 +219,27 @@ function Content({ d }: { d: AdminApplicationDetail }) {
               )}
             </dd>
           </div>
+          <div className="sm:col-span-2">
+            <dt className="text-[11px] text-zinc-500">Mạng xã hội (hiện công khai sau khi duyệt)</dt>
+            <dd className="text-sm text-zinc-200">
+              {SOCIALS.some((so) => d.brand?.[so.key]) ? (
+                <ul className="mt-1 space-y-1">
+                  {SOCIALS.filter((so) => d.brand?.[so.key]).map((so) => (
+                    <li key={so.key} className="flex items-center gap-1.5 min-w-0">
+                      <so.icon className="w-3.5 h-3.5 shrink-0 text-zinc-400" weight="fill" />
+                      <span className="text-zinc-500 shrink-0">{so.label}:</span>
+                      {/* Nguyên văn đường dẫn để admin thấy link thật sự trỏ đi đâu trước khi duyệt. */}
+                      <a href={d.brand![so.key]!} target="_blank" rel="noopener noreferrer nofollow" className="truncate text-green-400 hover:underline">
+                        {d.brand![so.key]}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-zinc-600">Chưa có (không bắt buộc)</span>
+              )}
+            </dd>
+          </div>
           <Row label="Quy mô" value={d.partner.businessScale === "MULTIPLE_BRANCHES" ? "Nhiều chi nhánh" : d.partner.businessScale === "ONE_BRANCH" ? "Một chi nhánh" : null} />
           <Row label="Tên pháp lý" value={d.partner.legalName} />
           <Row label="Mã số thuế" value={d.partner.taxCode} />
@@ -278,10 +300,10 @@ function Content({ d }: { d: AdminApplicationDetail }) {
 function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminApplicationDetail; onChanged: () => void; canReview: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
 
-  const view = async (docType: DocType) => {
-    setBusy(docType);
+  const view = async (docType: DocType, fileId?: string) => {
+    setBusy(fileId ?? docType);
     try {
-      const r = await adminPartnerApplications.documentFile(id, docType);
+      const r = await adminPartnerApplications.documentFile(id, docType, fileId);
       window.open(r.url, "_blank", "noopener,noreferrer");
       onChanged();
     } catch (e) {
@@ -318,14 +340,18 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
                 <p className="text-[11px] text-zinc-500">
                   {DOC_STATUS_LABEL[doc.status]}
                   {doc.hasFile ? ` · v${doc.version}` : ""}
+                  {doc.files.length > 1 ? ` · ${doc.files.length} tệp` : ""}
                 </p>
                 {doc.status === "REJECTED" && doc.reviewNote && <p className="text-[11px] text-amber-300 mt-0.5">Đã yêu cầu cập nhật: {doc.reviewNote}</p>}
               </div>
               {doc.hasFile && (
                 <div className="flex gap-1.5 shrink-0">
-                  <button onClick={() => view(doc.docType as DocType)} disabled={busy === doc.docType} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-zinc-500 disabled:opacity-50">
-                    <Download className="w-3 h-3" /> Xem
-                  </button>
+                  {doc.files.length === 0 && (
+                    // Dòng cũ do admin gõ URL: không có tệp con, chỉ có một link.
+                    <button onClick={() => view(doc.docType as DocType)} disabled={busy === doc.docType} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-zinc-500 disabled:opacity-50">
+                      <Download className="w-3 h-3" /> Xem
+                    </button>
+                  )}
                   {canReview && doc.status === "RECEIVED" && (
                     <button onClick={() => accept(doc.docType as DocType)} disabled={busy === doc.docType} className="rounded-md bg-green-500 px-2 py-1 text-[11px] font-bold text-black hover:bg-green-400 disabled:opacity-50">
                       Chấp nhận
@@ -334,6 +360,21 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
                 </div>
               )}
             </div>
+            {doc.files.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {doc.files.map((f, i) => (
+                  <button
+                    key={f.id}
+                    onClick={() => view(doc.docType as DocType, f.id)}
+                    disabled={busy === f.id}
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-zinc-500 disabled:opacity-50"
+                  >
+                    <Download className="w-3 h-3" /> Tệp {i + 1}
+                    <span className="text-zinc-500">{f.mimeType === "application/pdf" ? "PDF" : "ảnh"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>

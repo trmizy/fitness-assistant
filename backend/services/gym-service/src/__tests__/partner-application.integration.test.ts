@@ -22,8 +22,6 @@ process.env.PARTNER_S3_FORCE_PATH_STYLE = 'true';
 process.env.PARTNER_S3_ACCESS_KEY_ID = process.env.PARTNER_S3_ACCESS_KEY_ID || 'gymini_minio';
 process.env.PARTNER_S3_SECRET_ACCESS_KEY = process.env.PARTNER_S3_SECRET_ACCESS_KEY || 'gymini_minio_secret';
 process.env.PARTNER_S3_PRIVATE_BUCKET = process.env.PARTNER_S3_PRIVATE_BUCKET || 'gymini-partner-private';
-process.env.PARTNER_S3_PUBLIC_BUCKET = process.env.PARTNER_S3_PUBLIC_BUCKET || 'gymini-partner-photos';
-process.env.PARTNER_S3_PUBLIC_BASE_URL = process.env.PARTNER_S3_PUBLIC_BASE_URL || 'http://localhost:9000/gymini-partner-photos';
 
 const integrationTest = process.env.DATABASE_URL ? test : test.skip;
 
@@ -319,12 +317,13 @@ s3Test('vòng đời: điền → nộp → yêu cầu sửa → thay giấy t�
   const brand = await m.prisma.gymBrand.findUniqueOrThrow({ where: { ownerId: a.userId } });
   assert.equal(brand.approvedName, 'ABC Fitness', 'chi nhánh đầu được duyệt kéo theo tên thương hiệu như setStatus');
 
-  // Ảnh được sao chép sang vùng công khai; giấy tờ thì KHÔNG.
+  // Duyệt xong ảnh VẪN riêng tư: không có bản sao công khai nào, khoá không đổi.
   const photo = await m.prisma.gymPhoto.findFirstOrThrow({ where: { gymId: gym.id } });
-  assert.equal(photo.visibility, 'PUBLIC');
-  assert.ok(photo.s3Key!.startsWith(`gym-photos/${gym.id}/`));
-  const docs = await m.prisma.gymPartnerDocument.findMany({ where: { partnerId: a.partnerId } });
-  assert.ok(docs.every((d) => d.fileKey!.startsWith('partner-applications/')), 'giấy tờ vẫn ở bucket riêng tư');
+  assert.equal(photo.visibility, 'PRIVATE');
+  assert.ok(photo.s3Key!.startsWith('partner-applications/'), `ảnh phải ở nguyên chỗ cũ: ${photo.s3Key}`);
+  const docFiles = await m.prisma.gymPartnerDocumentFile.findMany({ where: { document: { partnerId: a.partnerId } } });
+  assert.ok(docFiles.length >= 3);
+  assert.ok(docFiles.every((f) => f.fileKey.startsWith('partner-applications/')), 'giấy tờ vẫn ở bucket riêng tư');
 
   // Chuỗi audit đủ và đúng thứ tự các sự kiện quan trọng.
   const actions = await auditActions(a.partnerId);
@@ -361,6 +360,80 @@ async function readyForApproval() {
   }
   return { a, admin, partnerId };
 }
+
+s3Test('mạng xã hội: chỉ https + đúng tên miền; lưu vào thương hiệu; chi tiết công khai có ảnh + chi nhánh + link SAU khi duyệt', async () => {
+  const { socialLinksSchema } = await import('../schemas/application.schemas');
+  const ok = (v: Record<string, string>) => socialLinksSchema.safeParse(v).success;
+  assert.ok(ok({ facebookUrl: 'https://www.facebook.com/gymini.vn', tiktokUrl: 'https://www.tiktok.com/@gymini', youtubeUrl: 'https://youtu.be/abc' }));
+  assert.ok(ok({ instagramUrl: 'https://instagram.com/gymini' }));
+  assert.ok(ok({ facebookUrl: '' }), 'ô trống = xoá link');
+  assert.ok(!ok({ facebookUrl: 'http://facebook.com/gymini' }), 'không nhận http');
+  assert.ok(!ok({ facebookUrl: 'https://facebook.com.evil.example/gymini' }), 'tên miền giả');
+  assert.ok(!ok({ instagramUrl: 'https://tiktok.com/@x' }), 'sai mạng');
+  assert.ok(!ok({ youtubeUrl: 'javascript:alert(1)' }));
+
+  const { a, admin, partnerId } = await readyForApproval();
+  // Hồ sơ đang xét duyệt thì khoá sửa, như mọi mục khác.
+  await assert.rejects(m.app.updateSocialLinks(await ctxOf(a.userId), { facebookUrl: 'https://facebook.com/x' }), (e: any) => e.code === 'APPLICATION_LOCKED');
+  const partner = await m.prisma.gymPartner.findUniqueOrThrow({ where: { id: partnerId } });
+  await m.prisma.gymBrand.update({ where: { id: partner.brandId! }, data: { facebookUrl: 'https://facebook.com/abcfitness' } });
+
+  const gym = await m.prisma.gym.findFirstOrThrow({ where: { ownerId: a.userId } });
+  await assert.rejects(m.gymService.getApprovedById(gym.id), (e: any) => e.status === 404, 'chưa duyệt thì không có trang công khai');
+
+  await m.review.approve(partnerId, admin);
+  const detail: any = await m.gymService.getApprovedById(gym.id);
+  assert.equal(detail.photos.length, 1, 'ảnh nộp lúc xin duyệt hiện sau khi duyệt');
+  assert.equal((await fetch(detail.photos[0].url)).status, 200, 'link ảnh là link ký đọc được');
+  assert.equal(detail.brand.facebookUrl, 'https://facebook.com/abcfitness');
+  assert.deepEqual(detail.brandBranches.map((b: any) => b.id), [gym.id]);
+  assert.equal(detail.brandBranches[0].latitude, 10.7745);
+});
+
+s3Test('mạng xã hội: ứng viên lưu được khi hồ sơ còn sửa được; cần có thương hiệu trước', async () => {
+  const a = await newApplicant();
+  let ctx = await ctxOf(a.userId);
+  await assert.rejects(m.app.updateSocialLinks(ctx, { facebookUrl: 'https://facebook.com/x' }), (e: any) => e.code === 'BRAND_REQUIRED');
+  await m.app.upsertBrand(ctx, { name: 'XYZ Gym' });
+  ctx = await ctxOf(a.userId);
+  const saved = await m.app.updateSocialLinks(ctx, { facebookUrl: 'https://facebook.com/xyz', youtubeUrl: null });
+  assert.equal(saved.facebookUrl, 'https://facebook.com/xyz');
+  const view: any = await m.app.getApplication(ctx);
+  assert.equal(view.brand.facebookUrl, 'https://facebook.com/xyz');
+  assert.equal(view.brand.youtubeUrl, null);
+  assert.ok(!view.missing.some((x: any) => /xã hội|social/i.test(x.message)), 'mạng xã hội không bắt buộc');
+});
+
+s3Test('sau khi duyệt: chủ gym đổi tài khoản nhận tiền (có nhật ký, chỉ 4 số cuối) và xoá ảnh S3 thật sự', async () => {
+  const { onboardingService } = await import('../services/onboarding.service');
+  const { gymPhotoService } = await import('../services/gym-photo.service');
+  const { a, admin, partnerId } = await readyForApproval();
+  await m.review.approve(partnerId, admin);
+  const acc = await m.prisma.gymPartnerAccount.findFirstOrThrow({ where: { partnerId, role: 'OWNER' } });
+  const actor = { userId: a.userId, email: 'owner@example.invalid' };
+
+  // Lần nhập đầu (trình thiết lập): không phải "đổi", không ghi nhật ký payoutBank.
+  await onboardingService.submitPayout(acc.id, partnerId, { bankName: 'VCB', accountNumber: '0011223344', accountHolder: 'NGUYEN A' }, actor);
+  const payoutLogs = async () =>
+    (await m.prisma.partnerAuditLog.findMany({ where: { partnerId, action: 'PARTNER_UPDATED' } })).filter((r) => (r.metadata as any)?.field === 'payoutBank');
+  assert.equal((await payoutLogs()).length, 0);
+
+  // Chủ gym tự đổi sang tài khoản khác → nhật ký chỉ có 4 số cuối, không có số đầy đủ.
+  await onboardingService.submitPayout(acc.id, partnerId, { bankName: 'ACB', accountNumber: '9988776655', accountHolder: 'NGUYEN A' }, actor);
+  const logs = await payoutLogs();
+  assert.equal(logs.length, 1);
+  assert.deepEqual({ last4: (logs[0].metadata as any).last4, prev: (logs[0].metadata as any).previousLast4 }, { last4: '6655', prev: '3344' });
+  assert.ok(!JSON.stringify(logs[0].metadata).includes('9988776655'), 'không lưu số tài khoản đầy đủ vào nhật ký');
+  const progress: any = await onboardingService.getProgress(acc.id);
+  assert.deepEqual(progress.payout, { bankName: 'ACB', accountNumber: '9988776655', accountHolder: 'NGUYEN A' });
+
+  // Xoá ảnh nộp lúc đăng ký (nằm trên S3) từ trang quản lý chi nhánh → đối tượng S3 bị xoá luôn.
+  const gym = await m.prisma.gym.findFirstOrThrow({ where: { ownerId: a.userId } });
+  const photo = await m.prisma.gymPhoto.findFirstOrThrow({ where: { gymId: gym.id } });
+  assert.notEqual(await m.s3.headObject(photo.s3Key!), null);
+  await gymPhotoService.delete(gym.id, a.userId, photo.id);
+  assert.equal(await m.s3.headObject(photo.s3Key!), null, 'tệp S3 không được để mồ côi');
+});
 
 s3Test('approve KHÔNG nửa vời: ép lỗi ở bước ghi audit (sau khi đã đổi partner + chi nhánh) → rollback toàn bộ', async () => {
   const { a, admin, partnerId } = await readyForApproval();
@@ -646,11 +719,115 @@ s3Test('admin xem giấy tờ: presigned GET ngắn hạn, giấy tờ PDF ép t
   assert.equal((await fetch(tampered)).status, 403);
 });
 
+s3Test('giấy tờ nhiều tệp: CCCD hai mặt, tối đa 4 tệp, xoá tệp, xem trước chỉ của chính mình, khoá khi đã xác minh', async () => {
+  const a = await newApplicant();
+  const b = await newApplicant();
+  await fillApplication(a, { docs: false });
+  const docOf = () =>
+    m.prisma.gymPartnerDocument.findUniqueOrThrow({
+      where: { partnerId_docType: { partnerId: a.partnerId, docType: 'REPRESENTATIVE_ID' } },
+      include: { files: { orderBy: { createdAt: 'asc' } } },
+    });
+
+  // Mặt trước + mặt sau: cùng một vòng duyệt, KHÔNG nhảy lên phiên bản 2.
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/png', body: PNG });
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/jpeg', body: JPEG });
+  let doc = await docOf();
+  assert.equal(doc.files.length, 2);
+  assert.equal(doc.status, 'RECEIVED');
+  assert.equal(doc.version, 1);
+
+  // Hồ sơ trả về từng tệp; ảnh có thumbnail đọc được.
+  const view = await m.app.getApplication(await ctxOf(a.userId));
+  const vdoc = view.documents.find((d: any) => d.docType === 'REPRESENTATIVE_ID')!;
+  assert.equal(vdoc.files.length, 2);
+  assert.ok(vdoc.files.every((f: any) => typeof f.previewUrl === 'string'));
+  assert.equal((await fetch(vdoc.files[0].previewUrl!)).status, 200);
+
+  // Xem tệp: của chính mình được; người khác biết id vẫn 404.
+  const own = await m.upload.getOwnDocumentFile(await ctxOf(a.userId), 'REPRESENTATIVE_ID', doc.files[0].id);
+  assert.equal(own.expiresInSec, 120);
+  assert.equal((await fetch(own.url)).status, 200);
+  await assert.rejects(m.upload.getOwnDocumentFile(await ctxOf(b.userId), 'REPRESENTATIVE_ID', doc.files[0].id), (e: any) => e.status === 404);
+  await assert.rejects(
+    m.upload.removeDocumentFile(await ctxOf(b.userId), b.userId, 'REPRESENTATIVE_ID', doc.files[0].id),
+    (e: any) => e.status === 404,
+  );
+
+  // Tối đa 4 tệp: tệp thứ 5 bị chặn ngay từ presign.
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/png', body: PNG });
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'application/pdf', body: PDF });
+  await assert.rejects(
+    m.upload.presign(await ctxOf(a.userId), a.userId, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/png', sizeBytes: PNG.length }),
+    (e: any) => e.code === 'TOO_MANY_DOCUMENT_FILES',
+  );
+
+  // Xoá một tệp CHƯA được duyệt → gỡ khỏi hồ sơ VÀ xoá hẳn khỏi S3.
+  doc = await docOf();
+  const dropped = doc.files[3];
+  await m.upload.removeDocumentFile(await ctxOf(a.userId), a.userId, 'REPRESENTATIVE_ID', dropped.id);
+  assert.equal((await docOf()).files.length, 3);
+  assert.equal(await m.s3.headObject(dropped.fileKey), null, 'tệp chưa duyệt bị xoá hẳn');
+
+  // Xoá hết → giấy tờ quay về "chưa có tệp" và hồ sơ báo thiếu.
+  for (const f of (await docOf()).files) await m.upload.removeDocumentFile(await ctxOf(a.userId), a.userId, 'REPRESENTATIVE_ID', f.id);
+  doc = await docOf();
+  assert.equal(doc.status, 'PENDING');
+  const missing = await m.app.missingFor(await ctxOf(a.userId));
+  assert.ok(missing.some((x: any) => x.section === 'LEGAL'), 'thiếu CCCD phải hiện trong danh sách còn thiếu');
+
+  // Nộp đủ, admin yêu cầu cập nhật CCCD → thêm mặt sau = vòng mới (phiên bản 2, Chờ duyệt).
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/png', body: PNG });
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'BUSINESS_LICENSE', contentType: 'application/pdf', body: PDF });
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'PREMISES_PROOF', contentType: 'image/jpeg', body: JPEG });
+  await m.app.submit(await ctxOf(a.userId), a.userId, { acceptTerms: true });
+  const admin = randomUUID();
+  await m.review.requestChanges(a.partnerId, admin, { issues: [], documents: [{ docType: 'REPRESENTATIVE_ID', note: 'Thiếu mặt sau' }] });
+  const front = (await docOf()).files[0];
+  await uploadOk(a, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/jpeg', body: JPEG });
+  doc = await docOf();
+  assert.equal(doc.status, 'RECEIVED');
+  assert.equal(doc.version, 2);
+  assert.equal(doc.reviewNote, null);
+
+  // Admin xem được TỪNG tệp, mỗi lần xem ghi audit kèm fileId.
+  const second = await m.review.getDocumentFile(a.partnerId, 'REPRESENTATIVE_ID', admin, undefined, doc.files[1].id);
+  assert.equal((await fetch(second.url)).status, 200);
+  const viewed = await m.prisma.partnerAuditLog.findFirstOrThrow({
+    where: { partnerId: a.partnerId, action: 'DOCUMENT_VIEWED' },
+    orderBy: { createdAt: 'desc' },
+  });
+  assert.equal((viewed.metadata as any).fileId, doc.files[1].id);
+
+  // Xoá tệp admin ĐÃ thấy trong quyết định trước → gỡ khỏi hồ sơ nhưng giữ trên S3 làm bằng chứng.
+  await m.prisma.gymPartner.update({ where: { id: a.partnerId }, data: { verificationStatus: 'NEEDS_INFO' } });
+  await m.prisma.gymPartnerDocument.update({ where: { id: doc.id }, data: { status: 'REJECTED', verifiedAt: new Date() } });
+  await m.upload.removeDocumentFile(await ctxOf(a.userId), a.userId, 'REPRESENTATIVE_ID', front.id);
+  assert.notEqual(await m.s3.headObject(front.fileKey), null, 'tệp đã được duyệt vẫn còn trên S3');
+  const removedLog = await m.prisma.partnerAuditLog.findFirstOrThrow({
+    where: { partnerId: a.partnerId, action: 'DOCUMENT_REPLACED' },
+    orderBy: { createdAt: 'desc' },
+  });
+  assert.equal((removedLog.metadata as any).removedKey, front.fileKey);
+
+  // Giấy tờ đã xác minh bị khoá cả thêm lẫn xoá, ở phía server.
+  await m.prisma.gymPartnerDocument.update({ where: { id: doc.id }, data: { status: 'VERIFIED' } });
+  await assert.rejects(
+    m.upload.presign(await ctxOf(a.userId), a.userId, { kind: 'DOCUMENT', docType: 'REPRESENTATIVE_ID', contentType: 'image/png', sizeBytes: PNG.length }),
+    (e: any) => e.code === 'DOCUMENT_ALREADY_VERIFIED',
+  );
+  const remaining = (await docOf()).files[0];
+  await assert.rejects(
+    m.upload.removeDocumentFile(await ctxOf(a.userId), a.userId, 'REPRESENTATIVE_ID', remaining.id),
+    (e: any) => e.code === 'DOCUMENT_ALREADY_VERIFIED',
+  );
+});
+
 s3Test('khoá đối tượng nằm ở bucket RIÊNG TƯ: URL không chữ ký không đọc được; bucket công khai chỉ có ảnh sau duyệt', async () => {
   const a = await newApplicant();
   await submitted(a);
-  const doc = await m.prisma.gymPartnerDocument.findUniqueOrThrow({
-    where: { partnerId_docType: { partnerId: a.partnerId, docType: 'BUSINESS_LICENSE' } },
+  const doc = await m.prisma.gymPartnerDocumentFile.findFirstOrThrow({
+    where: { document: { partnerId: a.partnerId, docType: 'BUSINESS_LICENSE' } },
   });
   const anonymous = await fetch(`http://localhost:9000/gymini-partner-private/${doc.fileKey}`);
   assert.ok([403, 404].includes(anonymous.status), `bucket riêng tư không được đọc ẩn danh, nhưng trả ${anonymous.status}`);

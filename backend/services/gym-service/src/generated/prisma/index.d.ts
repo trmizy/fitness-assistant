@@ -98,10 +98,16 @@ export type GymPartnerAccount = $Result.DefaultSelection<Prisma.$GymPartnerAccou
 export type PartnerInvitation = $Result.DefaultSelection<Prisma.$PartnerInvitationPayload>
 /**
  * Model GymPartnerDocument
- * Phase 4 — giấy tờ thẩm định. Mỗi mục: tệp + trạng thái + ai kiểm + lúc n��o, đúng đặc
+ * Phase 4 — giấy tờ thẩm định. Mỗi mục: tệp + trạng thái + ai kiểm + lúc nào, đúng đặc
  * tả mục 4.1. `required=false` cho các mục 🟡 (mã số thuế, ảnh thực địa, PCCC).
  */
 export type GymPartnerDocument = $Result.DefaultSelection<Prisma.$GymPartnerDocumentPayload>
+/**
+ * Model GymPartnerDocumentFile
+ * Một tệp của một giấy tờ đối tác (ảnh mặt trước/mặt sau, từng trang). Admin vẫn duyệt theo GIẤY TỜ
+ * (GymPartnerDocument.status), không theo từng tệp. Khoá do server sinh, bucket riêng tư.
+ */
+export type GymPartnerDocumentFile = $Result.DefaultSelection<Prisma.$GymPartnerDocumentFilePayload>
 /**
  * Model GymPartnerReviewIssue
  * Vấn đề admin nêu trên hồ sơ tự đăng ký, theo mục. Vòng đời OPEN → RESUBMITTED (ứng viên
@@ -981,6 +987,16 @@ export class PrismaClient<
   get gymPartnerDocument(): Prisma.GymPartnerDocumentDelegate<ExtArgs>;
 
   /**
+   * `prisma.gymPartnerDocumentFile`: Exposes CRUD operations for the **GymPartnerDocumentFile** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymPartnerDocumentFiles
+    * const gymPartnerDocumentFiles = await prisma.gymPartnerDocumentFile.findMany()
+    * ```
+    */
+  get gymPartnerDocumentFile(): Prisma.GymPartnerDocumentFileDelegate<ExtArgs>;
+
+  /**
    * `prisma.gymPartnerReviewIssue`: Exposes CRUD operations for the **GymPartnerReviewIssue** model.
     * Example usage:
     * ```ts
@@ -1552,6 +1568,7 @@ export namespace Prisma {
     GymPartnerAccount: 'GymPartnerAccount',
     PartnerInvitation: 'PartnerInvitation',
     GymPartnerDocument: 'GymPartnerDocument',
+    GymPartnerDocumentFile: 'GymPartnerDocumentFile',
     GymPartnerReviewIssue: 'GymPartnerReviewIssue',
     PartnerUploadIntent: 'PartnerUploadIntent',
     GymPartnerContactLog: 'GymPartnerContactLog',
@@ -1579,7 +1596,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2420,6 +2437,76 @@ export namespace Prisma {
           count: {
             args: Prisma.GymPartnerDocumentCountArgs<ExtArgs>
             result: $Utils.Optional<GymPartnerDocumentCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymPartnerDocumentFile: {
+        payload: Prisma.$GymPartnerDocumentFilePayload<ExtArgs>
+        fields: Prisma.GymPartnerDocumentFileFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymPartnerDocumentFileFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymPartnerDocumentFileFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          findFirst: {
+            args: Prisma.GymPartnerDocumentFileFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymPartnerDocumentFileFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          findMany: {
+            args: Prisma.GymPartnerDocumentFileFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>[]
+          }
+          create: {
+            args: Prisma.GymPartnerDocumentFileCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          createMany: {
+            args: Prisma.GymPartnerDocumentFileCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymPartnerDocumentFileCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>[]
+          }
+          delete: {
+            args: Prisma.GymPartnerDocumentFileDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          update: {
+            args: Prisma.GymPartnerDocumentFileUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymPartnerDocumentFileDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymPartnerDocumentFileUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymPartnerDocumentFileUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPartnerDocumentFilePayload>
+          }
+          aggregate: {
+            args: Prisma.GymPartnerDocumentFileAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymPartnerDocumentFile>
+          }
+          groupBy: {
+            args: Prisma.GymPartnerDocumentFileGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymPartnerDocumentFileGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymPartnerDocumentFileCountArgs<ExtArgs>
+            result: $Utils.Optional<GymPartnerDocumentFileCountAggregateOutputType> | number
           }
         }
       }
@@ -3510,6 +3597,37 @@ export namespace Prisma {
    */
   export type GymPartnerCountOutputTypeCountUploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PartnerUploadIntentWhereInput
+  }
+
+
+  /**
+   * Count Type GymPartnerDocumentCountOutputType
+   */
+
+  export type GymPartnerDocumentCountOutputType = {
+    files: number
+  }
+
+  export type GymPartnerDocumentCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    files?: boolean | GymPartnerDocumentCountOutputTypeCountFilesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymPartnerDocumentCountOutputType without action
+   */
+  export type GymPartnerDocumentCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentCountOutputType
+     */
+    select?: GymPartnerDocumentCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymPartnerDocumentCountOutputType without action
+   */
+  export type GymPartnerDocumentCountOutputTypeCountFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPartnerDocumentFileWhereInput
   }
 
 
@@ -15650,6 +15768,8 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+    files?: boolean | GymPartnerDocument$filesArgs<ExtArgs>
+    _count?: boolean | GymPartnerDocumentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPartnerDocument"]>
 
   export type GymPartnerDocumentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -15695,6 +15815,8 @@ export namespace Prisma {
 
   export type GymPartnerDocumentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
+    files?: boolean | GymPartnerDocument$filesArgs<ExtArgs>
+    _count?: boolean | GymPartnerDocumentCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymPartnerDocumentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     partner?: boolean | GymPartnerDefaultArgs<ExtArgs>
@@ -15704,6 +15826,7 @@ export namespace Prisma {
     name: "GymPartnerDocument"
     objects: {
       partner: Prisma.$GymPartnerPayload<ExtArgs>
+      files: Prisma.$GymPartnerDocumentFilePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -15712,8 +15835,8 @@ export namespace Prisma {
       required: boolean
       fileUrl: string | null
       /**
-       * Tệp do ứng viên tự tải lên S3 (khoá do SERVER sinh, bucket riêng tư). Dòng cũ do admin gõ
-       * URL chỉ có fileUrl. Không bao giờ là URL công khai.
+       * KHÔNG CÒN GHI. Từ 20260921 tệp nằm ở `files` (một giấy tờ có thể nhiều tệp: CCCD hai mặt, giấy
+       * phép nhiều trang); migration đã chép khoá cũ sang đó và đặt cột này về NULL. Giữ cột, không xoá.
        */
       fileKey: string | null
       mimeType: string | null
@@ -16105,6 +16228,7 @@ export namespace Prisma {
   export interface Prisma__GymPartnerDocumentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     partner<T extends GymPartnerDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymPartnerDefaultArgs<ExtArgs>>): Prisma__GymPartnerClient<$Result.GetResult<Prisma.$GymPartnerPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    files<T extends GymPartnerDocument$filesArgs<ExtArgs> = {}>(args?: Subset<T, GymPartnerDocument$filesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -16469,6 +16593,26 @@ export namespace Prisma {
   }
 
   /**
+   * GymPartnerDocument.files
+   */
+  export type GymPartnerDocument$filesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    where?: GymPartnerDocumentFileWhereInput
+    orderBy?: GymPartnerDocumentFileOrderByWithRelationInput | GymPartnerDocumentFileOrderByWithRelationInput[]
+    cursor?: GymPartnerDocumentFileWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPartnerDocumentFileScalarFieldEnum | GymPartnerDocumentFileScalarFieldEnum[]
+  }
+
+  /**
    * GymPartnerDocument without action
    */
   export type GymPartnerDocumentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -16480,6 +16624,997 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: GymPartnerDocumentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymPartnerDocumentFile
+   */
+
+  export type AggregateGymPartnerDocumentFile = {
+    _count: GymPartnerDocumentFileCountAggregateOutputType | null
+    _avg: GymPartnerDocumentFileAvgAggregateOutputType | null
+    _sum: GymPartnerDocumentFileSumAggregateOutputType | null
+    _min: GymPartnerDocumentFileMinAggregateOutputType | null
+    _max: GymPartnerDocumentFileMaxAggregateOutputType | null
+  }
+
+  export type GymPartnerDocumentFileAvgAggregateOutputType = {
+    sizeBytes: number | null
+  }
+
+  export type GymPartnerDocumentFileSumAggregateOutputType = {
+    sizeBytes: number | null
+  }
+
+  export type GymPartnerDocumentFileMinAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    fileKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    uploadedBy: string | null
+    createdAt: Date | null
+  }
+
+  export type GymPartnerDocumentFileMaxAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    fileKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    uploadedBy: string | null
+    createdAt: Date | null
+  }
+
+  export type GymPartnerDocumentFileCountAggregateOutputType = {
+    id: number
+    documentId: number
+    fileKey: number
+    mimeType: number
+    sizeBytes: number
+    uploadedBy: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymPartnerDocumentFileAvgAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type GymPartnerDocumentFileSumAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type GymPartnerDocumentFileMinAggregateInputType = {
+    id?: true
+    documentId?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    createdAt?: true
+  }
+
+  export type GymPartnerDocumentFileMaxAggregateInputType = {
+    id?: true
+    documentId?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    createdAt?: true
+  }
+
+  export type GymPartnerDocumentFileCountAggregateInputType = {
+    id?: true
+    documentId?: true
+    fileKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    uploadedBy?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymPartnerDocumentFileAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPartnerDocumentFile to aggregate.
+     */
+    where?: GymPartnerDocumentFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerDocumentFiles to fetch.
+     */
+    orderBy?: GymPartnerDocumentFileOrderByWithRelationInput | GymPartnerDocumentFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymPartnerDocumentFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerDocumentFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerDocumentFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymPartnerDocumentFiles
+    **/
+    _count?: true | GymPartnerDocumentFileCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymPartnerDocumentFileAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymPartnerDocumentFileSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymPartnerDocumentFileMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymPartnerDocumentFileMaxAggregateInputType
+  }
+
+  export type GetGymPartnerDocumentFileAggregateType<T extends GymPartnerDocumentFileAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymPartnerDocumentFile]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymPartnerDocumentFile[P]>
+      : GetScalarType<T[P], AggregateGymPartnerDocumentFile[P]>
+  }
+
+
+
+
+  export type GymPartnerDocumentFileGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPartnerDocumentFileWhereInput
+    orderBy?: GymPartnerDocumentFileOrderByWithAggregationInput | GymPartnerDocumentFileOrderByWithAggregationInput[]
+    by: GymPartnerDocumentFileScalarFieldEnum[] | GymPartnerDocumentFileScalarFieldEnum
+    having?: GymPartnerDocumentFileScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymPartnerDocumentFileCountAggregateInputType | true
+    _avg?: GymPartnerDocumentFileAvgAggregateInputType
+    _sum?: GymPartnerDocumentFileSumAggregateInputType
+    _min?: GymPartnerDocumentFileMinAggregateInputType
+    _max?: GymPartnerDocumentFileMaxAggregateInputType
+  }
+
+  export type GymPartnerDocumentFileGroupByOutputType = {
+    id: string
+    documentId: string
+    fileKey: string
+    mimeType: string
+    sizeBytes: number | null
+    uploadedBy: string | null
+    createdAt: Date
+    _count: GymPartnerDocumentFileCountAggregateOutputType | null
+    _avg: GymPartnerDocumentFileAvgAggregateOutputType | null
+    _sum: GymPartnerDocumentFileSumAggregateOutputType | null
+    _min: GymPartnerDocumentFileMinAggregateOutputType | null
+    _max: GymPartnerDocumentFileMaxAggregateOutputType | null
+  }
+
+  type GetGymPartnerDocumentFileGroupByPayload<T extends GymPartnerDocumentFileGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymPartnerDocumentFileGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymPartnerDocumentFileGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymPartnerDocumentFileGroupByOutputType[P]>
+            : GetScalarType<T[P], GymPartnerDocumentFileGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymPartnerDocumentFileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    createdAt?: boolean
+    document?: boolean | GymPartnerDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPartnerDocumentFile"]>
+
+  export type GymPartnerDocumentFileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    createdAt?: boolean
+    document?: boolean | GymPartnerDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPartnerDocumentFile"]>
+
+  export type GymPartnerDocumentFileSelectScalar = {
+    id?: boolean
+    documentId?: boolean
+    fileKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    uploadedBy?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymPartnerDocumentFileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | GymPartnerDocumentDefaultArgs<ExtArgs>
+  }
+  export type GymPartnerDocumentFileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | GymPartnerDocumentDefaultArgs<ExtArgs>
+  }
+
+  export type $GymPartnerDocumentFilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymPartnerDocumentFile"
+    objects: {
+      document: Prisma.$GymPartnerDocumentPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      documentId: string
+      fileKey: string
+      mimeType: string
+      sizeBytes: number | null
+      uploadedBy: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymPartnerDocumentFile"]>
+    composites: {}
+  }
+
+  type GymPartnerDocumentFileGetPayload<S extends boolean | null | undefined | GymPartnerDocumentFileDefaultArgs> = $Result.GetResult<Prisma.$GymPartnerDocumentFilePayload, S>
+
+  type GymPartnerDocumentFileCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymPartnerDocumentFileFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymPartnerDocumentFileCountAggregateInputType | true
+    }
+
+  export interface GymPartnerDocumentFileDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymPartnerDocumentFile'], meta: { name: 'GymPartnerDocumentFile' } }
+    /**
+     * Find zero or one GymPartnerDocumentFile that matches the filter.
+     * @param {GymPartnerDocumentFileFindUniqueArgs} args - Arguments to find a GymPartnerDocumentFile
+     * @example
+     * // Get one GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymPartnerDocumentFileFindUniqueArgs>(args: SelectSubset<T, GymPartnerDocumentFileFindUniqueArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymPartnerDocumentFile that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymPartnerDocumentFileFindUniqueOrThrowArgs} args - Arguments to find a GymPartnerDocumentFile
+     * @example
+     * // Get one GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymPartnerDocumentFileFindUniqueOrThrowArgs>(args: SelectSubset<T, GymPartnerDocumentFileFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymPartnerDocumentFile that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileFindFirstArgs} args - Arguments to find a GymPartnerDocumentFile
+     * @example
+     * // Get one GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymPartnerDocumentFileFindFirstArgs>(args?: SelectSubset<T, GymPartnerDocumentFileFindFirstArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymPartnerDocumentFile that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileFindFirstOrThrowArgs} args - Arguments to find a GymPartnerDocumentFile
+     * @example
+     * // Get one GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymPartnerDocumentFileFindFirstOrThrowArgs>(args?: SelectSubset<T, GymPartnerDocumentFileFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymPartnerDocumentFiles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymPartnerDocumentFiles
+     * const gymPartnerDocumentFiles = await prisma.gymPartnerDocumentFile.findMany()
+     * 
+     * // Get first 10 GymPartnerDocumentFiles
+     * const gymPartnerDocumentFiles = await prisma.gymPartnerDocumentFile.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymPartnerDocumentFileWithIdOnly = await prisma.gymPartnerDocumentFile.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymPartnerDocumentFileFindManyArgs>(args?: SelectSubset<T, GymPartnerDocumentFileFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymPartnerDocumentFile.
+     * @param {GymPartnerDocumentFileCreateArgs} args - Arguments to create a GymPartnerDocumentFile.
+     * @example
+     * // Create one GymPartnerDocumentFile
+     * const GymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.create({
+     *   data: {
+     *     // ... data to create a GymPartnerDocumentFile
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymPartnerDocumentFileCreateArgs>(args: SelectSubset<T, GymPartnerDocumentFileCreateArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymPartnerDocumentFiles.
+     * @param {GymPartnerDocumentFileCreateManyArgs} args - Arguments to create many GymPartnerDocumentFiles.
+     * @example
+     * // Create many GymPartnerDocumentFiles
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymPartnerDocumentFileCreateManyArgs>(args?: SelectSubset<T, GymPartnerDocumentFileCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymPartnerDocumentFiles and returns the data saved in the database.
+     * @param {GymPartnerDocumentFileCreateManyAndReturnArgs} args - Arguments to create many GymPartnerDocumentFiles.
+     * @example
+     * // Create many GymPartnerDocumentFiles
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymPartnerDocumentFiles and only return the `id`
+     * const gymPartnerDocumentFileWithIdOnly = await prisma.gymPartnerDocumentFile.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymPartnerDocumentFileCreateManyAndReturnArgs>(args?: SelectSubset<T, GymPartnerDocumentFileCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymPartnerDocumentFile.
+     * @param {GymPartnerDocumentFileDeleteArgs} args - Arguments to delete one GymPartnerDocumentFile.
+     * @example
+     * // Delete one GymPartnerDocumentFile
+     * const GymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.delete({
+     *   where: {
+     *     // ... filter to delete one GymPartnerDocumentFile
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymPartnerDocumentFileDeleteArgs>(args: SelectSubset<T, GymPartnerDocumentFileDeleteArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymPartnerDocumentFile.
+     * @param {GymPartnerDocumentFileUpdateArgs} args - Arguments to update one GymPartnerDocumentFile.
+     * @example
+     * // Update one GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymPartnerDocumentFileUpdateArgs>(args: SelectSubset<T, GymPartnerDocumentFileUpdateArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymPartnerDocumentFiles.
+     * @param {GymPartnerDocumentFileDeleteManyArgs} args - Arguments to filter GymPartnerDocumentFiles to delete.
+     * @example
+     * // Delete a few GymPartnerDocumentFiles
+     * const { count } = await prisma.gymPartnerDocumentFile.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymPartnerDocumentFileDeleteManyArgs>(args?: SelectSubset<T, GymPartnerDocumentFileDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymPartnerDocumentFiles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymPartnerDocumentFiles
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymPartnerDocumentFileUpdateManyArgs>(args: SelectSubset<T, GymPartnerDocumentFileUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymPartnerDocumentFile.
+     * @param {GymPartnerDocumentFileUpsertArgs} args - Arguments to update or create a GymPartnerDocumentFile.
+     * @example
+     * // Update or create a GymPartnerDocumentFile
+     * const gymPartnerDocumentFile = await prisma.gymPartnerDocumentFile.upsert({
+     *   create: {
+     *     // ... data to create a GymPartnerDocumentFile
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymPartnerDocumentFile we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymPartnerDocumentFileUpsertArgs>(args: SelectSubset<T, GymPartnerDocumentFileUpsertArgs<ExtArgs>>): Prisma__GymPartnerDocumentFileClient<$Result.GetResult<Prisma.$GymPartnerDocumentFilePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymPartnerDocumentFiles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileCountArgs} args - Arguments to filter GymPartnerDocumentFiles to count.
+     * @example
+     * // Count the number of GymPartnerDocumentFiles
+     * const count = await prisma.gymPartnerDocumentFile.count({
+     *   where: {
+     *     // ... the filter for the GymPartnerDocumentFiles we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymPartnerDocumentFileCountArgs>(
+      args?: Subset<T, GymPartnerDocumentFileCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymPartnerDocumentFileCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymPartnerDocumentFile.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymPartnerDocumentFileAggregateArgs>(args: Subset<T, GymPartnerDocumentFileAggregateArgs>): Prisma.PrismaPromise<GetGymPartnerDocumentFileAggregateType<T>>
+
+    /**
+     * Group by GymPartnerDocumentFile.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPartnerDocumentFileGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymPartnerDocumentFileGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymPartnerDocumentFileGroupByArgs['orderBy'] }
+        : { orderBy?: GymPartnerDocumentFileGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymPartnerDocumentFileGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymPartnerDocumentFileGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymPartnerDocumentFile model
+   */
+  readonly fields: GymPartnerDocumentFileFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymPartnerDocumentFile.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymPartnerDocumentFileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    document<T extends GymPartnerDocumentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymPartnerDocumentDefaultArgs<ExtArgs>>): Prisma__GymPartnerDocumentClient<$Result.GetResult<Prisma.$GymPartnerDocumentPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymPartnerDocumentFile model
+   */ 
+  interface GymPartnerDocumentFileFieldRefs {
+    readonly id: FieldRef<"GymPartnerDocumentFile", 'String'>
+    readonly documentId: FieldRef<"GymPartnerDocumentFile", 'String'>
+    readonly fileKey: FieldRef<"GymPartnerDocumentFile", 'String'>
+    readonly mimeType: FieldRef<"GymPartnerDocumentFile", 'String'>
+    readonly sizeBytes: FieldRef<"GymPartnerDocumentFile", 'Int'>
+    readonly uploadedBy: FieldRef<"GymPartnerDocumentFile", 'String'>
+    readonly createdAt: FieldRef<"GymPartnerDocumentFile", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymPartnerDocumentFile findUnique
+   */
+  export type GymPartnerDocumentFileFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerDocumentFile to fetch.
+     */
+    where: GymPartnerDocumentFileWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerDocumentFile findUniqueOrThrow
+   */
+  export type GymPartnerDocumentFileFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerDocumentFile to fetch.
+     */
+    where: GymPartnerDocumentFileWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerDocumentFile findFirst
+   */
+  export type GymPartnerDocumentFileFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerDocumentFile to fetch.
+     */
+    where?: GymPartnerDocumentFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerDocumentFiles to fetch.
+     */
+    orderBy?: GymPartnerDocumentFileOrderByWithRelationInput | GymPartnerDocumentFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPartnerDocumentFiles.
+     */
+    cursor?: GymPartnerDocumentFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerDocumentFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerDocumentFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPartnerDocumentFiles.
+     */
+    distinct?: GymPartnerDocumentFileScalarFieldEnum | GymPartnerDocumentFileScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerDocumentFile findFirstOrThrow
+   */
+  export type GymPartnerDocumentFileFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerDocumentFile to fetch.
+     */
+    where?: GymPartnerDocumentFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerDocumentFiles to fetch.
+     */
+    orderBy?: GymPartnerDocumentFileOrderByWithRelationInput | GymPartnerDocumentFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPartnerDocumentFiles.
+     */
+    cursor?: GymPartnerDocumentFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerDocumentFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerDocumentFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPartnerDocumentFiles.
+     */
+    distinct?: GymPartnerDocumentFileScalarFieldEnum | GymPartnerDocumentFileScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerDocumentFile findMany
+   */
+  export type GymPartnerDocumentFileFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPartnerDocumentFiles to fetch.
+     */
+    where?: GymPartnerDocumentFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPartnerDocumentFiles to fetch.
+     */
+    orderBy?: GymPartnerDocumentFileOrderByWithRelationInput | GymPartnerDocumentFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymPartnerDocumentFiles.
+     */
+    cursor?: GymPartnerDocumentFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPartnerDocumentFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPartnerDocumentFiles.
+     */
+    skip?: number
+    distinct?: GymPartnerDocumentFileScalarFieldEnum | GymPartnerDocumentFileScalarFieldEnum[]
+  }
+
+  /**
+   * GymPartnerDocumentFile create
+   */
+  export type GymPartnerDocumentFileCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymPartnerDocumentFile.
+     */
+    data: XOR<GymPartnerDocumentFileCreateInput, GymPartnerDocumentFileUncheckedCreateInput>
+  }
+
+  /**
+   * GymPartnerDocumentFile createMany
+   */
+  export type GymPartnerDocumentFileCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymPartnerDocumentFiles.
+     */
+    data: GymPartnerDocumentFileCreateManyInput | GymPartnerDocumentFileCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPartnerDocumentFile createManyAndReturn
+   */
+  export type GymPartnerDocumentFileCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymPartnerDocumentFiles.
+     */
+    data: GymPartnerDocumentFileCreateManyInput | GymPartnerDocumentFileCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymPartnerDocumentFile update
+   */
+  export type GymPartnerDocumentFileUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymPartnerDocumentFile.
+     */
+    data: XOR<GymPartnerDocumentFileUpdateInput, GymPartnerDocumentFileUncheckedUpdateInput>
+    /**
+     * Choose, which GymPartnerDocumentFile to update.
+     */
+    where: GymPartnerDocumentFileWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerDocumentFile updateMany
+   */
+  export type GymPartnerDocumentFileUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymPartnerDocumentFiles.
+     */
+    data: XOR<GymPartnerDocumentFileUpdateManyMutationInput, GymPartnerDocumentFileUncheckedUpdateManyInput>
+    /**
+     * Filter which GymPartnerDocumentFiles to update
+     */
+    where?: GymPartnerDocumentFileWhereInput
+  }
+
+  /**
+   * GymPartnerDocumentFile upsert
+   */
+  export type GymPartnerDocumentFileUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymPartnerDocumentFile to update in case it exists.
+     */
+    where: GymPartnerDocumentFileWhereUniqueInput
+    /**
+     * In case the GymPartnerDocumentFile found by the `where` argument doesn't exist, create a new GymPartnerDocumentFile with this data.
+     */
+    create: XOR<GymPartnerDocumentFileCreateInput, GymPartnerDocumentFileUncheckedCreateInput>
+    /**
+     * In case the GymPartnerDocumentFile was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymPartnerDocumentFileUpdateInput, GymPartnerDocumentFileUncheckedUpdateInput>
+  }
+
+  /**
+   * GymPartnerDocumentFile delete
+   */
+  export type GymPartnerDocumentFileDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
+    /**
+     * Filter which GymPartnerDocumentFile to delete.
+     */
+    where: GymPartnerDocumentFileWhereUniqueInput
+  }
+
+  /**
+   * GymPartnerDocumentFile deleteMany
+   */
+  export type GymPartnerDocumentFileDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPartnerDocumentFiles to delete
+     */
+    where?: GymPartnerDocumentFileWhereInput
+  }
+
+  /**
+   * GymPartnerDocumentFile without action
+   */
+  export type GymPartnerDocumentFileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPartnerDocumentFile
+     */
+    select?: GymPartnerDocumentFileSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPartnerDocumentFileInclude<ExtArgs> | null
   }
 
 
@@ -19541,6 +20676,10 @@ export namespace Prisma {
     pendingName: string | null
     description: string | null
     logoKey: string | null
+    facebookUrl: string | null
+    instagramUrl: string | null
+    tiktokUrl: string | null
+    youtubeUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -19553,6 +20692,10 @@ export namespace Prisma {
     pendingName: string | null
     description: string | null
     logoKey: string | null
+    facebookUrl: string | null
+    instagramUrl: string | null
+    tiktokUrl: string | null
+    youtubeUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -19565,6 +20708,10 @@ export namespace Prisma {
     pendingName: number
     description: number
     logoKey: number
+    facebookUrl: number
+    instagramUrl: number
+    tiktokUrl: number
+    youtubeUrl: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -19579,6 +20726,10 @@ export namespace Prisma {
     pendingName?: true
     description?: true
     logoKey?: true
+    facebookUrl?: true
+    instagramUrl?: true
+    tiktokUrl?: true
+    youtubeUrl?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -19591,6 +20742,10 @@ export namespace Prisma {
     pendingName?: true
     description?: true
     logoKey?: true
+    facebookUrl?: true
+    instagramUrl?: true
+    tiktokUrl?: true
+    youtubeUrl?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -19603,6 +20758,10 @@ export namespace Prisma {
     pendingName?: true
     description?: true
     logoKey?: true
+    facebookUrl?: true
+    instagramUrl?: true
+    tiktokUrl?: true
+    youtubeUrl?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -19688,6 +20847,10 @@ export namespace Prisma {
     pendingName: string | null
     description: string | null
     logoKey: string | null
+    facebookUrl: string | null
+    instagramUrl: string | null
+    tiktokUrl: string | null
+    youtubeUrl: string | null
     createdAt: Date
     updatedAt: Date
     _count: GymBrandCountAggregateOutputType | null
@@ -19717,6 +20880,10 @@ export namespace Prisma {
     pendingName?: boolean
     description?: boolean
     logoKey?: boolean
+    facebookUrl?: boolean
+    instagramUrl?: boolean
+    tiktokUrl?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
@@ -19732,6 +20899,10 @@ export namespace Prisma {
     pendingName?: boolean
     description?: boolean
     logoKey?: boolean
+    facebookUrl?: boolean
+    instagramUrl?: boolean
+    tiktokUrl?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["gymBrand"]>
@@ -19744,6 +20915,10 @@ export namespace Prisma {
     pendingName?: boolean
     description?: boolean
     logoKey?: boolean
+    facebookUrl?: boolean
+    instagramUrl?: boolean
+    tiktokUrl?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -19782,6 +20957,14 @@ export namespace Prisma {
        * Khoá đối tượng S3 của logo (hồ sơ tự đăng ký). Chưa có luồng tải logo thì để null.
        */
       logoKey: string | null
+      /**
+       * Trang mạng xã hội của THƯƠNG HIỆU (không phải từng chi nhánh) — hiện ở "Chi tiết" khi khách xem
+       * phòng gym. Chỉ nhận https + đúng tên miền của từng mạng (application.schemas.ts socialLinksSchema).
+       */
+      facebookUrl: string | null
+      instagramUrl: string | null
+      tiktokUrl: string | null
+      youtubeUrl: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymBrand"]>
@@ -20186,6 +21369,10 @@ export namespace Prisma {
     readonly pendingName: FieldRef<"GymBrand", 'String'>
     readonly description: FieldRef<"GymBrand", 'String'>
     readonly logoKey: FieldRef<"GymBrand", 'String'>
+    readonly facebookUrl: FieldRef<"GymBrand", 'String'>
+    readonly instagramUrl: FieldRef<"GymBrand", 'String'>
+    readonly tiktokUrl: FieldRef<"GymBrand", 'String'>
+    readonly youtubeUrl: FieldRef<"GymBrand", 'String'>
     readonly createdAt: FieldRef<"GymBrand", 'DateTime'>
     readonly updatedAt: FieldRef<"GymBrand", 'DateTime'>
   }
@@ -29860,6 +31047,19 @@ export namespace Prisma {
   export type GymPartnerDocumentScalarFieldEnum = (typeof GymPartnerDocumentScalarFieldEnum)[keyof typeof GymPartnerDocumentScalarFieldEnum]
 
 
+  export const GymPartnerDocumentFileScalarFieldEnum: {
+    id: 'id',
+    documentId: 'documentId',
+    fileKey: 'fileKey',
+    mimeType: 'mimeType',
+    sizeBytes: 'sizeBytes',
+    uploadedBy: 'uploadedBy',
+    createdAt: 'createdAt'
+  };
+
+  export type GymPartnerDocumentFileScalarFieldEnum = (typeof GymPartnerDocumentFileScalarFieldEnum)[keyof typeof GymPartnerDocumentFileScalarFieldEnum]
+
+
   export const GymPartnerReviewIssueScalarFieldEnum: {
     id: 'id',
     partnerId: 'partnerId',
@@ -29918,6 +31118,10 @@ export namespace Prisma {
     pendingName: 'pendingName',
     description: 'description',
     logoKey: 'logoKey',
+    facebookUrl: 'facebookUrl',
+    instagramUrl: 'instagramUrl',
+    tiktokUrl: 'tiktokUrl',
+    youtubeUrl: 'youtubeUrl',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -31775,6 +32979,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymPartnerDocument"> | Date | string
     updatedAt?: DateTimeFilter<"GymPartnerDocument"> | Date | string
     partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+    files?: GymPartnerDocumentFileListRelationFilter
   }
 
   export type GymPartnerDocumentOrderByWithRelationInput = {
@@ -31796,6 +33001,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     partner?: GymPartnerOrderByWithRelationInput
+    files?: GymPartnerDocumentFileOrderByRelationAggregateInput
   }
 
   export type GymPartnerDocumentWhereUniqueInput = Prisma.AtLeast<{
@@ -31821,6 +33027,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymPartnerDocument"> | Date | string
     updatedAt?: DateTimeFilter<"GymPartnerDocument"> | Date | string
     partner?: XOR<GymPartnerRelationFilter, GymPartnerWhereInput>
+    files?: GymPartnerDocumentFileListRelationFilter
   }, "id" | "partnerId_docType">
 
   export type GymPartnerDocumentOrderByWithAggregationInput = {
@@ -31869,6 +33076,73 @@ export namespace Prisma {
     expiresAt?: DateTimeNullableWithAggregatesFilter<"GymPartnerDocument"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymPartnerDocument"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymPartnerDocument"> | Date | string
+  }
+
+  export type GymPartnerDocumentFileWhereInput = {
+    AND?: GymPartnerDocumentFileWhereInput | GymPartnerDocumentFileWhereInput[]
+    OR?: GymPartnerDocumentFileWhereInput[]
+    NOT?: GymPartnerDocumentFileWhereInput | GymPartnerDocumentFileWhereInput[]
+    id?: StringFilter<"GymPartnerDocumentFile"> | string
+    documentId?: StringFilter<"GymPartnerDocumentFile"> | string
+    fileKey?: StringFilter<"GymPartnerDocumentFile"> | string
+    mimeType?: StringFilter<"GymPartnerDocumentFile"> | string
+    sizeBytes?: IntNullableFilter<"GymPartnerDocumentFile"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocumentFile"> | string | null
+    createdAt?: DateTimeFilter<"GymPartnerDocumentFile"> | Date | string
+    document?: XOR<GymPartnerDocumentRelationFilter, GymPartnerDocumentWhereInput>
+  }
+
+  export type GymPartnerDocumentFileOrderByWithRelationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    document?: GymPartnerDocumentOrderByWithRelationInput
+  }
+
+  export type GymPartnerDocumentFileWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymPartnerDocumentFileWhereInput | GymPartnerDocumentFileWhereInput[]
+    OR?: GymPartnerDocumentFileWhereInput[]
+    NOT?: GymPartnerDocumentFileWhereInput | GymPartnerDocumentFileWhereInput[]
+    documentId?: StringFilter<"GymPartnerDocumentFile"> | string
+    fileKey?: StringFilter<"GymPartnerDocumentFile"> | string
+    mimeType?: StringFilter<"GymPartnerDocumentFile"> | string
+    sizeBytes?: IntNullableFilter<"GymPartnerDocumentFile"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocumentFile"> | string | null
+    createdAt?: DateTimeFilter<"GymPartnerDocumentFile"> | Date | string
+    document?: XOR<GymPartnerDocumentRelationFilter, GymPartnerDocumentWhereInput>
+  }, "id">
+
+  export type GymPartnerDocumentFileOrderByWithAggregationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymPartnerDocumentFileCountOrderByAggregateInput
+    _avg?: GymPartnerDocumentFileAvgOrderByAggregateInput
+    _max?: GymPartnerDocumentFileMaxOrderByAggregateInput
+    _min?: GymPartnerDocumentFileMinOrderByAggregateInput
+    _sum?: GymPartnerDocumentFileSumOrderByAggregateInput
+  }
+
+  export type GymPartnerDocumentFileScalarWhereWithAggregatesInput = {
+    AND?: GymPartnerDocumentFileScalarWhereWithAggregatesInput | GymPartnerDocumentFileScalarWhereWithAggregatesInput[]
+    OR?: GymPartnerDocumentFileScalarWhereWithAggregatesInput[]
+    NOT?: GymPartnerDocumentFileScalarWhereWithAggregatesInput | GymPartnerDocumentFileScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymPartnerDocumentFile"> | string
+    documentId?: StringWithAggregatesFilter<"GymPartnerDocumentFile"> | string
+    fileKey?: StringWithAggregatesFilter<"GymPartnerDocumentFile"> | string
+    mimeType?: StringWithAggregatesFilter<"GymPartnerDocumentFile"> | string
+    sizeBytes?: IntNullableWithAggregatesFilter<"GymPartnerDocumentFile"> | number | null
+    uploadedBy?: StringNullableWithAggregatesFilter<"GymPartnerDocumentFile"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymPartnerDocumentFile"> | Date | string
   }
 
   export type GymPartnerReviewIssueWhereInput = {
@@ -32134,6 +33408,10 @@ export namespace Prisma {
     pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
     logoKey?: StringNullableFilter<"GymBrand"> | string | null
+    facebookUrl?: StringNullableFilter<"GymBrand"> | string | null
+    instagramUrl?: StringNullableFilter<"GymBrand"> | string | null
+    tiktokUrl?: StringNullableFilter<"GymBrand"> | string | null
+    youtubeUrl?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
@@ -32148,6 +33426,10 @@ export namespace Prisma {
     pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     logoKey?: SortOrderInput | SortOrder
+    facebookUrl?: SortOrderInput | SortOrder
+    instagramUrl?: SortOrderInput | SortOrder
+    tiktokUrl?: SortOrderInput | SortOrder
+    youtubeUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     branches?: GymOrderByRelationAggregateInput
@@ -32165,6 +33447,10 @@ export namespace Prisma {
     pendingName?: StringNullableFilter<"GymBrand"> | string | null
     description?: StringNullableFilter<"GymBrand"> | string | null
     logoKey?: StringNullableFilter<"GymBrand"> | string | null
+    facebookUrl?: StringNullableFilter<"GymBrand"> | string | null
+    instagramUrl?: StringNullableFilter<"GymBrand"> | string | null
+    tiktokUrl?: StringNullableFilter<"GymBrand"> | string | null
+    youtubeUrl?: StringNullableFilter<"GymBrand"> | string | null
     createdAt?: DateTimeFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
@@ -32179,6 +33465,10 @@ export namespace Prisma {
     pendingName?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     logoKey?: SortOrderInput | SortOrder
+    facebookUrl?: SortOrderInput | SortOrder
+    instagramUrl?: SortOrderInput | SortOrder
+    tiktokUrl?: SortOrderInput | SortOrder
+    youtubeUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymBrandCountOrderByAggregateInput
@@ -32197,6 +33487,10 @@ export namespace Prisma {
     pendingName?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     description?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     logoKey?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    facebookUrl?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    instagramUrl?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    tiktokUrl?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    youtubeUrl?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
   }
@@ -34271,6 +35565,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     partner: GymPartnerCreateNestedOneWithoutDocumentsInput
+    files?: GymPartnerDocumentFileCreateNestedManyWithoutDocumentInput
   }
 
   export type GymPartnerDocumentUncheckedCreateInput = {
@@ -34291,6 +35586,7 @@ export namespace Prisma {
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    files?: GymPartnerDocumentFileUncheckedCreateNestedManyWithoutDocumentInput
   }
 
   export type GymPartnerDocumentUpdateInput = {
@@ -34311,6 +35607,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     partner?: GymPartnerUpdateOneRequiredWithoutDocumentsNestedInput
+    files?: GymPartnerDocumentFileUpdateManyWithoutDocumentNestedInput
   }
 
   export type GymPartnerDocumentUncheckedUpdateInput = {
@@ -34331,6 +35628,7 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    files?: GymPartnerDocumentFileUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
   export type GymPartnerDocumentCreateManyInput = {
@@ -34390,6 +35688,75 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileCreateInput = {
+    id?: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+    document: GymPartnerDocumentCreateNestedOneWithoutFilesInput
+  }
+
+  export type GymPartnerDocumentFileUncheckedCreateInput = {
+    id?: string
+    documentId: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerDocumentFileUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    document?: GymPartnerDocumentUpdateOneRequiredWithoutFilesNestedInput
+  }
+
+  export type GymPartnerDocumentFileUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileCreateManyInput = {
+    id?: string
+    documentId: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerDocumentFileUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymPartnerReviewIssueCreateInput = {
@@ -34684,6 +36051,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
@@ -34698,6 +36069,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
@@ -34712,6 +36087,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
@@ -34726,6 +36105,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
@@ -34740,6 +36123,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34752,6 +36139,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -34764,6 +36155,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -37064,6 +38459,16 @@ export namespace Prisma {
     not?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel> | $Enums.PartnerDocumentType
   }
 
+  export type GymPartnerDocumentFileListRelationFilter = {
+    every?: GymPartnerDocumentFileWhereInput
+    some?: GymPartnerDocumentFileWhereInput
+    none?: GymPartnerDocumentFileWhereInput
+  }
+
+  export type GymPartnerDocumentFileOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type GymPartnerDocumentPartnerIdDocTypeCompoundUniqueInput = {
     partnerId: string
     docType: $Enums.PartnerDocumentType
@@ -37147,6 +38552,49 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
     _max?: NestedEnumPartnerDocumentTypeFilter<$PrismaModel>
+  }
+
+  export type GymPartnerDocumentRelationFilter = {
+    is?: GymPartnerDocumentWhereInput
+    isNot?: GymPartnerDocumentWhereInput
+  }
+
+  export type GymPartnerDocumentFileCountOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPartnerDocumentFileAvgOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+  }
+
+  export type GymPartnerDocumentFileMaxOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPartnerDocumentFileMinOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    fileKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    uploadedBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPartnerDocumentFileSumOrderByAggregateInput = {
+    sizeBytes?: SortOrder
   }
 
   export type EnumPartnerReviewCategoryFilter<$PrismaModel = never> = {
@@ -37393,6 +38841,10 @@ export namespace Prisma {
     pendingName?: SortOrder
     description?: SortOrder
     logoKey?: SortOrder
+    facebookUrl?: SortOrder
+    instagramUrl?: SortOrder
+    tiktokUrl?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37405,6 +38857,10 @@ export namespace Prisma {
     pendingName?: SortOrder
     description?: SortOrder
     logoKey?: SortOrder
+    facebookUrl?: SortOrder
+    instagramUrl?: SortOrder
+    tiktokUrl?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37417,6 +38873,10 @@ export namespace Prisma {
     pendingName?: SortOrder
     description?: SortOrder
     logoKey?: SortOrder
+    facebookUrl?: SortOrder
+    instagramUrl?: SortOrder
+    tiktokUrl?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -38868,6 +40328,20 @@ export namespace Prisma {
     connect?: GymPartnerWhereUniqueInput
   }
 
+  export type GymPartnerDocumentFileCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput> | GymPartnerDocumentFileCreateWithoutDocumentInput[] | GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput | GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput[]
+    createMany?: GymPartnerDocumentFileCreateManyDocumentInputEnvelope
+    connect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+  }
+
+  export type GymPartnerDocumentFileUncheckedCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput> | GymPartnerDocumentFileCreateWithoutDocumentInput[] | GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput | GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput[]
+    createMany?: GymPartnerDocumentFileCreateManyDocumentInputEnvelope
+    connect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+  }
+
   export type EnumPartnerDocumentTypeFieldUpdateOperationsInput = {
     set?: $Enums.PartnerDocumentType
   }
@@ -38878,6 +40352,48 @@ export namespace Prisma {
     upsert?: GymPartnerUpsertWithoutDocumentsInput
     connect?: GymPartnerWhereUniqueInput
     update?: XOR<XOR<GymPartnerUpdateToOneWithWhereWithoutDocumentsInput, GymPartnerUpdateWithoutDocumentsInput>, GymPartnerUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type GymPartnerDocumentFileUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput> | GymPartnerDocumentFileCreateWithoutDocumentInput[] | GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput | GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput[]
+    upsert?: GymPartnerDocumentFileUpsertWithWhereUniqueWithoutDocumentInput | GymPartnerDocumentFileUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: GymPartnerDocumentFileCreateManyDocumentInputEnvelope
+    set?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    disconnect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    delete?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    connect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    update?: GymPartnerDocumentFileUpdateWithWhereUniqueWithoutDocumentInput | GymPartnerDocumentFileUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: GymPartnerDocumentFileUpdateManyWithWhereWithoutDocumentInput | GymPartnerDocumentFileUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: GymPartnerDocumentFileScalarWhereInput | GymPartnerDocumentFileScalarWhereInput[]
+  }
+
+  export type GymPartnerDocumentFileUncheckedUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput> | GymPartnerDocumentFileCreateWithoutDocumentInput[] | GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput | GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput[]
+    upsert?: GymPartnerDocumentFileUpsertWithWhereUniqueWithoutDocumentInput | GymPartnerDocumentFileUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: GymPartnerDocumentFileCreateManyDocumentInputEnvelope
+    set?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    disconnect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    delete?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    connect?: GymPartnerDocumentFileWhereUniqueInput | GymPartnerDocumentFileWhereUniqueInput[]
+    update?: GymPartnerDocumentFileUpdateWithWhereUniqueWithoutDocumentInput | GymPartnerDocumentFileUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: GymPartnerDocumentFileUpdateManyWithWhereWithoutDocumentInput | GymPartnerDocumentFileUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: GymPartnerDocumentFileScalarWhereInput | GymPartnerDocumentFileScalarWhereInput[]
+  }
+
+  export type GymPartnerDocumentCreateNestedOneWithoutFilesInput = {
+    create?: XOR<GymPartnerDocumentCreateWithoutFilesInput, GymPartnerDocumentUncheckedCreateWithoutFilesInput>
+    connectOrCreate?: GymPartnerDocumentCreateOrConnectWithoutFilesInput
+    connect?: GymPartnerDocumentWhereUniqueInput
+  }
+
+  export type GymPartnerDocumentUpdateOneRequiredWithoutFilesNestedInput = {
+    create?: XOR<GymPartnerDocumentCreateWithoutFilesInput, GymPartnerDocumentUncheckedCreateWithoutFilesInput>
+    connectOrCreate?: GymPartnerDocumentCreateOrConnectWithoutFilesInput
+    upsert?: GymPartnerDocumentUpsertWithoutFilesInput
+    connect?: GymPartnerDocumentWhereUniqueInput
+    update?: XOR<XOR<GymPartnerDocumentUpdateToOneWithWhereWithoutFilesInput, GymPartnerDocumentUpdateWithoutFilesInput>, GymPartnerDocumentUncheckedUpdateWithoutFilesInput>
   }
 
   export type GymPartnerCreateNestedOneWithoutReviewIssuesInput = {
@@ -42095,6 +43611,7 @@ export namespace Prisma {
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    files?: GymPartnerDocumentFileCreateNestedManyWithoutDocumentInput
   }
 
   export type GymPartnerDocumentUncheckedCreateWithoutPartnerInput = {
@@ -42114,6 +43631,7 @@ export namespace Prisma {
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    files?: GymPartnerDocumentFileUncheckedCreateNestedManyWithoutDocumentInput
   }
 
   export type GymPartnerDocumentCreateOrConnectWithoutPartnerInput = {
@@ -43040,6 +44558,34 @@ export namespace Prisma {
     create: XOR<GymPartnerCreateWithoutDocumentsInput, GymPartnerUncheckedCreateWithoutDocumentsInput>
   }
 
+  export type GymPartnerDocumentFileCreateWithoutDocumentInput = {
+    id?: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput = {
+    id?: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerDocumentFileCreateOrConnectWithoutDocumentInput = {
+    where: GymPartnerDocumentFileWhereUniqueInput
+    create: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type GymPartnerDocumentFileCreateManyDocumentInputEnvelope = {
+    data: GymPartnerDocumentFileCreateManyDocumentInput | GymPartnerDocumentFileCreateManyDocumentInput[]
+    skipDuplicates?: boolean
+  }
+
   export type GymPartnerUpsertWithoutDocumentsInput = {
     update: XOR<GymPartnerUpdateWithoutDocumentsInput, GymPartnerUncheckedUpdateWithoutDocumentsInput>
     create: XOR<GymPartnerCreateWithoutDocumentsInput, GymPartnerUncheckedCreateWithoutDocumentsInput>
@@ -43145,6 +44691,131 @@ export namespace Prisma {
     internalNotes?: PartnerInternalNoteUncheckedUpdateManyWithoutPartnerNestedInput
     reviewIssues?: GymPartnerReviewIssueUncheckedUpdateManyWithoutPartnerNestedInput
     uploadIntents?: PartnerUploadIntentUncheckedUpdateManyWithoutPartnerNestedInput
+  }
+
+  export type GymPartnerDocumentFileUpsertWithWhereUniqueWithoutDocumentInput = {
+    where: GymPartnerDocumentFileWhereUniqueInput
+    update: XOR<GymPartnerDocumentFileUpdateWithoutDocumentInput, GymPartnerDocumentFileUncheckedUpdateWithoutDocumentInput>
+    create: XOR<GymPartnerDocumentFileCreateWithoutDocumentInput, GymPartnerDocumentFileUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type GymPartnerDocumentFileUpdateWithWhereUniqueWithoutDocumentInput = {
+    where: GymPartnerDocumentFileWhereUniqueInput
+    data: XOR<GymPartnerDocumentFileUpdateWithoutDocumentInput, GymPartnerDocumentFileUncheckedUpdateWithoutDocumentInput>
+  }
+
+  export type GymPartnerDocumentFileUpdateManyWithWhereWithoutDocumentInput = {
+    where: GymPartnerDocumentFileScalarWhereInput
+    data: XOR<GymPartnerDocumentFileUpdateManyMutationInput, GymPartnerDocumentFileUncheckedUpdateManyWithoutDocumentInput>
+  }
+
+  export type GymPartnerDocumentFileScalarWhereInput = {
+    AND?: GymPartnerDocumentFileScalarWhereInput | GymPartnerDocumentFileScalarWhereInput[]
+    OR?: GymPartnerDocumentFileScalarWhereInput[]
+    NOT?: GymPartnerDocumentFileScalarWhereInput | GymPartnerDocumentFileScalarWhereInput[]
+    id?: StringFilter<"GymPartnerDocumentFile"> | string
+    documentId?: StringFilter<"GymPartnerDocumentFile"> | string
+    fileKey?: StringFilter<"GymPartnerDocumentFile"> | string
+    mimeType?: StringFilter<"GymPartnerDocumentFile"> | string
+    sizeBytes?: IntNullableFilter<"GymPartnerDocumentFile"> | number | null
+    uploadedBy?: StringNullableFilter<"GymPartnerDocumentFile"> | string | null
+    createdAt?: DateTimeFilter<"GymPartnerDocumentFile"> | Date | string
+  }
+
+  export type GymPartnerDocumentCreateWithoutFilesInput = {
+    id?: string
+    docType: $Enums.PartnerDocumentType
+    required?: boolean
+    fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
+    status?: $Enums.PartnerDocumentStatus
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    partner: GymPartnerCreateNestedOneWithoutDocumentsInput
+  }
+
+  export type GymPartnerDocumentUncheckedCreateWithoutFilesInput = {
+    id?: string
+    partnerId: string
+    docType: $Enums.PartnerDocumentType
+    required?: boolean
+    fileUrl?: string | null
+    fileKey?: string | null
+    mimeType?: string | null
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    version?: number
+    reviewNote?: string | null
+    status?: $Enums.PartnerDocumentStatus
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPartnerDocumentCreateOrConnectWithoutFilesInput = {
+    where: GymPartnerDocumentWhereUniqueInput
+    create: XOR<GymPartnerDocumentCreateWithoutFilesInput, GymPartnerDocumentUncheckedCreateWithoutFilesInput>
+  }
+
+  export type GymPartnerDocumentUpsertWithoutFilesInput = {
+    update: XOR<GymPartnerDocumentUpdateWithoutFilesInput, GymPartnerDocumentUncheckedUpdateWithoutFilesInput>
+    create: XOR<GymPartnerDocumentCreateWithoutFilesInput, GymPartnerDocumentUncheckedCreateWithoutFilesInput>
+    where?: GymPartnerDocumentWhereInput
+  }
+
+  export type GymPartnerDocumentUpdateToOneWithWhereWithoutFilesInput = {
+    where?: GymPartnerDocumentWhereInput
+    data: XOR<GymPartnerDocumentUpdateWithoutFilesInput, GymPartnerDocumentUncheckedUpdateWithoutFilesInput>
+  }
+
+  export type GymPartnerDocumentUpdateWithoutFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
+    required?: BoolFieldUpdateOperationsInput | boolean
+    fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    partner?: GymPartnerUpdateOneRequiredWithoutDocumentsNestedInput
+  }
+
+  export type GymPartnerDocumentUncheckedUpdateWithoutFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: StringFieldUpdateOperationsInput | string
+    docType?: EnumPartnerDocumentTypeFieldUpdateOperationsInput | $Enums.PartnerDocumentType
+    required?: BoolFieldUpdateOperationsInput | boolean
+    fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fileKey?: NullableStringFieldUpdateOperationsInput | string | null
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumPartnerDocumentStatusFieldUpdateOperationsInput | $Enums.PartnerDocumentStatus
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymPartnerCreateWithoutReviewIssuesInput = {
@@ -44003,6 +45674,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
@@ -44016,6 +45691,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
@@ -44377,6 +46056,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
@@ -44390,6 +46073,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
@@ -44702,6 +46389,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
@@ -44715,6 +46406,10 @@ export namespace Prisma {
     pendingName?: string | null
     description?: string | null
     logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
@@ -44796,6 +46491,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
@@ -44809,6 +46508,10 @@ export namespace Prisma {
     pendingName?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
@@ -46233,6 +47936,7 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    files?: GymPartnerDocumentFileUpdateManyWithoutDocumentNestedInput
   }
 
   export type GymPartnerDocumentUncheckedUpdateWithoutPartnerInput = {
@@ -46252,6 +47956,7 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    files?: GymPartnerDocumentFileUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
   export type GymPartnerDocumentUncheckedUpdateManyWithoutPartnerInput = {
@@ -46405,6 +48110,42 @@ export namespace Prisma {
     createdBy?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileCreateManyDocumentInput = {
+    id?: string
+    fileKey: string
+    mimeType: string
+    sizeBytes?: number | null
+    uploadedBy?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymPartnerDocumentFileUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileUncheckedUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPartnerDocumentFileUncheckedUpdateManyWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fileKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -47222,6 +48963,10 @@ export namespace Prisma {
      */
     export type GymPartnerCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use GymPartnerDocumentCountOutputTypeDefaultArgs instead
+     */
+    export type GymPartnerDocumentCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerDocumentCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use GymBrandCountOutputTypeDefaultArgs instead
      */
     export type GymBrandCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandCountOutputTypeDefaultArgs<ExtArgs>
@@ -47285,6 +49030,10 @@ export namespace Prisma {
      * @deprecated Use GymPartnerDocumentDefaultArgs instead
      */
     export type GymPartnerDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerDocumentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymPartnerDocumentFileDefaultArgs instead
+     */
+    export type GymPartnerDocumentFileArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPartnerDocumentFileDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymPartnerReviewIssueDefaultArgs instead
      */

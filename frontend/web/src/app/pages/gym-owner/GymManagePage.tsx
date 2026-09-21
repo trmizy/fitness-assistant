@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, WalletIcon, UsersIcon as Users, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle, CaretDownIcon as ChevronDown } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -49,7 +49,12 @@ export function GymManagePage() {
 
   // Vòng 4 / Phase C2/C3/C4 — settings section: name/address (pending-approval), operational
   // status, and brand reassignment.
-  const [showSettings, setShowSettings] = useState(false);
+  // Đi từ trang Hồ sơ ("Sửa ảnh, giới thiệu, giờ mở cửa") → ?settings=1 mở sẵn phần cài đặt.
+  const [searchParams] = useSearchParams();
+  const [showSettings, setShowSettings] = useState(searchParams.get("settings") === "1");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editLocation, setEditLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
@@ -79,8 +84,11 @@ export function GymManagePage() {
       });
       setEditLocationNote(gym.locationNote ?? "");
       setEditFacilities(gym.facilities ?? []);
+      setEditDescription(gym.description ?? "");
+      setEditPhone(gym.phone ?? "");
+      setEditEmail(gym.email ?? "");
     }
-  }, [gym?.id, gym?.name, gym?.address, gym?.provinceCode, gym?.wardCode, gym?.latitude, gym?.longitude, gym?.locationNote, gym?.facilities]);
+  }, [gym?.description, gym?.phone, gym?.email, gym?.id, gym?.name, gym?.address, gym?.provinceCode, gym?.wardCode, gym?.latitude, gym?.longitude, gym?.locationNote, gym?.facilities]);
 
   // GYM_BRANCH_FORM_SPEC.md, Phase 5 — same hours endpoints the wizard's Step 3 already
   // uses (§74: free edit regardless of DRAFT/APPROVED status).
@@ -158,6 +166,14 @@ export function GymManagePage() {
     queryFn: () => gymService.listGymWithdrawals(id!),
     enabled: !!id,
   });
+
+  const { data: onboarding } = useQuery<{ payout?: { bankName: string | null; accountNumber: string | null; accountHolder: string | null } | null }>({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const savedPayout = onboarding?.payout?.accountNumber
+    ? [onboarding.payout.bankName, onboarding.payout.accountNumber, onboarding.payout.accountHolder].filter(Boolean).join(" — ")
+    : "";
 
   const withdrawMutation = useMutation({
     mutationFn: () => gymService.requestGymWithdrawal(id!, withdrawAmount, withdrawPayoutInfo),
@@ -276,6 +292,52 @@ export function GymManagePage() {
               className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
             >
               Lưu
+            </button>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-zinc-800/60">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Giới thiệu & liên hệ</p>
+            <p className="text-[11px] text-zinc-600">Hiện ở mục "Chi tiết" khi khách xem chi nhánh. Có hiệu lực ngay, không cần admin duyệt.</p>
+            <textarea
+              data-testid="gym-edit-description-input"
+              aria-label="Giới thiệu chi nhánh"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={4}
+              maxLength={2000}
+              placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                data-testid="gym-edit-phone-input"
+                aria-label="Điện thoại chi nhánh"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                inputMode="tel"
+                maxLength={20}
+                placeholder="Điện thoại chi nhánh"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+              />
+              <input
+                data-testid="gym-edit-email-input"
+                aria-label="Email chi nhánh"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                inputMode="email"
+                maxLength={200}
+                placeholder="Email chi nhánh"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+              />
+            </div>
+            <button
+              type="button"
+              data-testid="gym-save-about-button"
+              onClick={() => updateGymMutation.mutate({ description: editDescription.trim(), phone: editPhone.trim(), email: editEmail.trim() })}
+              disabled={updateGymMutation.isPending}
+              className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
+            >
+              Lưu giới thiệu & liên hệ
             </button>
           </div>
 
@@ -475,7 +537,10 @@ export function GymManagePage() {
         </div>
         <button
           data-testid="gym-request-withdrawal-toggle"
-          onClick={() => setShowWithdrawForm((v) => !v)}
+          onClick={() => {
+            setShowWithdrawForm((v) => !v);
+            if (!withdrawPayoutInfo) setWithdrawPayoutInfo(savedPayout);
+          }}
           className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
         >
           <Banknote className="w-3.5 h-3.5" /> Yêu cầu rút tiền
