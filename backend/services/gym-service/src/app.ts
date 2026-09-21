@@ -1,3 +1,4 @@
+import { requestContextMiddleware } from './middleware/request-context.middleware';
 import path from 'path';
 import fs from 'fs';
 import express, { NextFunction, Request, Response } from 'express';
@@ -13,6 +14,8 @@ import internalRoutes from './routes/internal.routes';
 const app = express();
 
 app.use(express.json());
+// Địa chỉ công khai người gọi đang dùng — cho link tệp ký theo đúng cửa họ đi vào (partner-s3.service.ts).
+app.use(requestContextMiddleware);
 app.use(metricsMiddleware());
 
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Only gym-photos gets a static mount:

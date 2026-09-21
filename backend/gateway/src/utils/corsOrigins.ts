@@ -1,3 +1,5 @@
+import { publicWebOrigin } from "./publicWebOrigin";
+
 // Any http(s)://localhost:<port> or 127.0.0.1:<port> is allowed outright —
 // covers Vite (5173), n8n (5678), the gateway itself (3000), and Expo's web
 // dev server (8081 by default, but the port can change across SDK versions/
@@ -6,6 +8,7 @@
 // both call this with `origin === undefined` in that case, which must be
 // allowed too (mobile-app-friendly, not a bug to "fix").
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const CAPACITOR_ORIGIN_RE = /^(https?|capacitor|ionic):\/\/localhost\/?$/i;
 
 // A phone/tablet on the same WiFi, or a desktop browser opened via the LAN IP instead of
 // "localhost", reaches this stack at http://<private-ip>:5173 — and that IP is a DHCP
@@ -53,10 +56,22 @@ function envOrigins(): string[] {
 
 export function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true; // native mobile clients, curl, server-to-server
+  // Tunnel web công khai hiện tại (utils/publicWebOrigin.ts) — khớp CHÍNH XÁC, không mở cả *.trycloudflare.com.
+  const publicOrigin = publicWebOrigin();
+  if (publicOrigin && origin.replace(/\/$/, "") === publicOrigin) return true;
   if (LOCALHOST_ORIGIN_RE.test(origin)) return true;
   if (PRIVATE_LAN_ORIGIN_RE.test(origin)) return true;
   if (DEV_TUNNEL_ORIGIN_RE.test(origin)) return true;
   return envOrigins().includes(origin);
+}
+
+/**
+ * Host cho link trong email: địa chỉ web công khai (tunnel) nếu đang mở, nếu không thì Origin tin cậy
+ * của trình duyệt. Gateway đặt kết quả vào `x-trusted-web-origin`; auth-service/gym-service dựng link
+ * từ header đó, không có thì dùng FRONTEND_URL.
+ */
+export function emailLinkOrigin(origin: string | undefined): string | null {
+  return publicWebOrigin() ?? trustedWebOrigin(origin);
 }
 
 /**
@@ -74,5 +89,9 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
  */
 export function trustedWebOrigin(origin: string | undefined): string | null {
   if (!origin || origin === "null") return null;
+  // App Android (Capacitor WebView) chạy ở http(s)://localhost KHÔNG có cổng, hoặc capacitor://localhost.
+  // Đó không phải trang web nào mở được từ email — link sẽ trỏ vào chính chiếc điện thoại. Bỏ qua để
+  // rơi về địa chỉ web công khai / FRONTEND_URL. (Web dev thật luôn có cổng: localhost:5173.)
+  if (CAPACITOR_ORIGIN_RE.test(origin)) return null;
   return isAllowedOrigin(origin) ? origin.replace(/\/$/, "") : null;
 }

@@ -129,10 +129,18 @@ services:
       # Dev/E2E: generous per-IP ceilings for the partner-application endpoints (code defaults are 10 and 60).
       PARTNER_APPLICATION_START_RATE_MAX: ${PARTNER_APPLICATION_START_RATE_MAX:-200}
       PARTNER_APPLICATION_RATE_MAX: ${PARTNER_APPLICATION_RATE_MAX:-600}
+      # Tệp riêng tư của hồ sơ đối tác đi qua CÙNG cửa với API (localhost, IP LAN, tunnel Cloudflare):
+      # gateway chuyển /<bucket>/… sang MinIO (src/routes/storage.proxy.ts). Chỉ dev — production gọi S3.
+      MINIO_PROXY_TARGET: http://minio:9000
+      PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      # Địa chỉ web công khai hiện tại, do Khoi-dong-Tunnel-Web.bat ghi (src/utils/publicWebOrigin.ts):
+      # dùng làm host cho link trong email + được CORS tin. Không có tệp / tệp cũ >2 phút = bỏ qua.
+      PUBLIC_WEB_ORIGIN_FILE: /run/gymini/public-web-origin
     env_file:
       - ../../.env
     volumes:
       - ../../backend/gateway/src:/app/backend/gateway/src
+      - ./runtime:/run/gymini:ro
     depends_on:
       auth-service:
         condition: service_healthy
@@ -931,6 +939,9 @@ services:
       PARTNER_S3_ENDPOINT: http://minio:9000
       # Presigned URLs are signed for the host the BROWSER will call, so they use this one.
       PARTNER_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      # Ký link theo đúng địa chỉ người gọi đang dùng (qua gateway → MinIO) thay vì cố định localhost:9000,
+      # để điện thoại / app Android / tunnel xem và tải được tệp. Fallback ở trên cho job/test không có request.
+      PARTNER_S3_PUBLIC_VIA_REQUEST: "true"
       PARTNER_S3_REGION: us-east-1
       PARTNER_S3_FORCE_PATH_STYLE: "true"
       PARTNER_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}

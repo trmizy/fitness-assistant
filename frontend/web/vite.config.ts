@@ -73,7 +73,10 @@ export default defineConfig({
     // like <tunnel-id>-5173.<region>.devtunnels.ms — the tunnel id changes
     // per session, but the ".devtunnels.ms" suffix is the stable domain
     // Microsoft always uses, so match on that instead of any one hostname.
-    allowedHosts: [".devtunnels.ms", ...extraAllowedHosts],
+    // Cloudflare quick tunnel (Khoi-dong-Tunnel-Web.bat) phục vụ app ở https://<ngẫu-nhiên>.trycloudflare.com
+    // — hostname đổi mỗi lần mở, nên khớp theo hậu tố. Đây chỉ là kiểm tra Host của dev server (chống
+    // DNS rebinding); quyền gọi API vẫn do gateway quyết (CORS + tệp địa chỉ công khai của tunnel).
+    allowedHosts: [".devtunnels.ms", ".trycloudflare.com", ...extraAllowedHosts],
     proxy: {
       // Same-origin API access: the browser only ever talks to this Vite
       // origin (localhost:5173 OR the tunnel's https hostname); Vite
@@ -113,6 +116,15 @@ export default defineConfig({
       // gym-photos/...">, same-origin like every other request — the gateway's own route is
       // NOT under /api (see proxy.routes.ts), so no rewrite here either.
       "/uploads": {
+        target: GATEWAY_PROXY_TARGET,
+        changeOrigin: true,
+        configure: forwardRealHost,
+      },
+      // Tệp riêng tư của hồ sơ đối tác (ảnh cơ sở, giấy tờ, logo): gym-service ký link theo ĐÚNG địa chỉ
+      // trang đang dùng (localhost:5173, IP LAN, tunnel…) với đường dẫn /<bucket>/<key>; gateway chuyển
+      // tiếp sang MinIO (backend/gateway/src/routes/storage.proxy.ts). forwardRealHost giữ host thật để
+      // chữ ký SigV4 (có tính Host) khớp. Không rewrite — MinIO cần nguyên đường dẫn đã ký.
+      [`/${process.env.PARTNER_S3_PRIVATE_BUCKET || "gymini-partner-private"}`]: {
         target: GATEWAY_PROXY_TARGET,
         changeOrigin: true,
         configure: forwardRealHost,

@@ -5,7 +5,8 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
-import { isAllowedOrigin, trustedWebOrigin } from "./utils/corsOrigins";
+import { emailLinkOrigin, isAllowedOrigin } from "./utils/corsOrigins";
+import { storageProxy } from "./routes/storage.proxy";
 import { validateInternalSecret } from "./utils/internal-secret";
 
 const app = express();
@@ -19,6 +20,11 @@ const app = express();
 // single-hop topology both deployments actually use — not `true` (trust every hop, spoofable
 // by the client itself supplying its own X-Forwarded-For).
 app.set("trust proxy", 1);
+
+// Tệp riêng tư (MinIO, CHỈ môi trường dev) đi qua cùng cửa với API — xem routes/storage.proxy.ts. Đặt
+// TRƯỚC helmet/cors: MinIO tự trả header CORS của nó, cors ở đây sẽ nhân đôi Access-Control-Allow-Origin
+// và trình duyệt từ chối. Không cần đăng nhập — chữ ký trên URL chính là quyền truy cập.
+if (storageProxy) app.use(storageProxy.path, storageProxy.handler);
 
 app.use(
   helmet({
@@ -97,7 +103,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   // browser's Origin, set only when it passes the CORS trust policy (utils/corsOrigins.ts), with
   // any client-sent copy stripped first. Absent for native app requests (no Origin).
   delete req.headers["x-trusted-web-origin"];
-  const trustedOrigin = trustedWebOrigin(req.get("origin") || undefined);
+  const trustedOrigin = emailLinkOrigin(req.get("origin") || undefined);
   if (trustedOrigin) req.headers["x-trusted-web-origin"] = trustedOrigin;
   next();
 });

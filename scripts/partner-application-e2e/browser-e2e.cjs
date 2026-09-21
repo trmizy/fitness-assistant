@@ -2,7 +2,8 @@ const { chromium } = require("D:/fitnessassistant-playwright-e2e/node_modules/pl
 const fs = require("fs");
 const path = require("path");
 
-const BASE = "http://localhost:5173";
+// Chạy qua tunnel/IP khác: BASE_URL=https://....trycloudflare.com node ...
+const BASE = process.env.BASE_URL || "http://localhost:5173";
 const OUT = path.join(require("os").tmpdir(), "partner-e2e-shots");
 fs.mkdirSync(OUT, { recursive: true });
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -142,7 +143,14 @@ const check = (name, ok, extra = "") => {
   const idCard = page.locator("main div.rounded-xl", { hasText: "Giấy tờ tuỳ thân người đại diện" }).first();
   await idCard.locator('img[alt^="Tệp"]').nth(1).waitFor({ timeout: 20000 });
   check("ID card holds 2 files (front + back) with thumbnails", (await idCard.locator('img[alt^="Tệp"]').count()) === 2);
-  const thumbsLoaded = await idCard.locator('img[alt^="Tệp"]').evaluateAll((els) => els.every((e) => e.complete && e.naturalWidth > 0));
+  // Chờ ảnh tải xong (qua tunnel Internet chậm hơn local) thay vì kiểm ngay lúc thẻ <img> vừa xuất hiện.
+  const thumbsLoaded = await page
+    .waitForFunction(() => {
+      const card = [...document.querySelectorAll("main div.rounded-xl")].find((d) => d.innerText.includes("Giấy tờ tuỳ thân người đại diện"));
+      const imgs = card ? [...card.querySelectorAll('img[alt^="Tệp"]')] : [];
+      return imgs.length > 0 && imgs.every((e) => e.complete && e.naturalWidth > 0);
+    }, null, { timeout: 15000 })
+    .then(() => true, () => false);
   check("thumbnails actually load from private storage (signed URL)", thumbsLoaded);
   await idCard.getByRole("button", { name: "Xem tệp 1" }).click();
   const big = page.locator('[role="dialog"] img');

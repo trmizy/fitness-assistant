@@ -163,3 +163,7 @@ frontend/web/.env.capacitor
 
 # Standalone browser QA project may contain authentication state.
 fitnessassistant-playwright-e2e/
+
+# Địa chỉ tunnel web hiện tại (Khoi-dong-Tunnel-Web.bat ghi, gateway đọc) — chỉ có ý nghĩa trên máy này
+infra/compose/runtime/*
+!infra/compose/runtime/.gitkeep
