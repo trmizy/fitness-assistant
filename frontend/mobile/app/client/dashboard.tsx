@@ -288,7 +288,7 @@ export default function ClientDashboardScreen() {
         {/* Quick access */}
         <StaggerItem>
           <View className="flex-row gap-2.5">
-            <QuickAction icon={ClipboardList} label="Kế hoạch" onPress={() => router.push("/client/workout")} />
+            <QuickAction icon={ClipboardList} label="Kế hoạch" onPress={() => router.push("/client/plans")} />
             <QuickAction icon={BarChart3} label="Thống kê" onPress={() => router.push("/client/stats/activity")} />
             <QuickAction icon={ScanLine} label="InBody" onPress={() => router.push("/client/inbody")} />
             <QuickAction icon={MessageCircle} label="Tin nhắn" onPress={() => router.push("/client/messages")} />

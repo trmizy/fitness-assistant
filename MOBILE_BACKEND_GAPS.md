@@ -323,3 +323,38 @@
 - Tác dụng phụ trong lúc kiểm: tài khoản test john.doe nay có `region = NAM` (trước là rỗng) — không
   đưa về rỗng được qua API vì chính lỗi này; sửa DB trực tiếp cần Ngài cho phép.
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
+
+## GAP-13 — Khiếu nại / hoàn tiền đơn dịch vụ 1-1: luồng chưa hoàn chỉnh — ⏸ TẠM TẮT TRÊN MOBILE, CHỜ BÀN VỚI PARTNER
+
+- Phát hiện: Phase 8 (CL-12), 2026-09-22, đọc `ai-service/src/services/personalized-service.service.ts`
+  + `controllers/personalized-service.controller.ts` + web admin.
+- **Khiếu nại (`POST /marketplace/orders/:id/dispute`, `openDispute`)**:
+  - Không kiểm trạng thái đơn — chỉ kiểm người gọi là khách **hoặc PT** của đơn, rồi đặt `DISPUTED`.
+  - `DISPUTED` chỉ được GHI ở đúng một chỗ, **không chỗ nào đọc lại**: không màn admin, không API xử lý, không
+    bước nào đưa đơn ra khỏi trạng thái này (trang "Khiếu nại buổi tập" của admin web là cho buổi tập hợp
+    đồng PT, không phải đơn 1-1). Khiếu nại chính đáng cũng nằm im mãi.
+  - Hậu quả cụ thể khi gọi được:
+    1. Đơn `PENDING_PAYMENT` → `DISPUTED`: khách trả tiền xong, `activateAfterPayment` chỉ cập nhật đơn còn
+       `PENDING_PAYMENT` nên bỏ qua → tiền đã bị giữ, đơn không kích hoạt.
+    2. Đơn `CANCELLED` / `REFUNDED` / `COMPLETED` → `DISPUTED`: lịch sử đơn sai; với `COMPLETED` tiền đã chuyển
+       cho PT từ lúc khách chấp nhận, và khách mất quyền đánh giá (đánh giá chỉ khi `COMPLETED`).
+    3. PT cũng khiếu nại được → đẩy đơn đang chạy của khách sang `DISPUTED`, khách không check-in / kết thúc
+       dịch vụ được nữa (hai việc đó chỉ khi `ACCEPTED`/`ACTIVE`).
+- **Hoàn tiền (`POST /marketplace/orders/:id/refund-request`, `requestRefund`)**: có kiểm trạng thái (chặn
+  REFUNDED/CANCELLED/REFUND_REQUESTED) và admin có luồng duyệt (`/marketplace/orders/refund-requests`,
+  `refund-resolve`), nhưng vẫn gọi được từ `DISPUTED`, và chính sách "ai được hoàn bao nhiêu khi PT đã làm một
+  phần" chưa được chốt với partner.
+- Web: có hàm `openDispute` nhưng **không nút nào gọi**; nút "Yêu cầu hoàn tiền / Khiếu nại" của web chỉ gọi
+  hoàn tiền (web KHÔNG đổi trong đợt này).
+- **Mobile (22/9, lệnh Ngài)**: comment lại — KHÔNG xoá — hai nút "Yêu cầu hoàn tiền" + "Khiếu nại", hai sheet
+  và hai mutation trong `frontend/mobile/app/client/plans/orders/[id].tsx` (tìm "TẠM TẮT 22/9"). Helper
+  `canRequestRefund` / `canDispute` và unit test của chúng vẫn giữ. "Huỷ đơn" (trước khi PT làm) vẫn bật.
+  Banner "Đang yêu cầu hoàn tiền / Đang khiếu nại" vẫn hiện nếu đơn đã ở hai trạng thái đó.
+- **Việc cần làm sau (sau khi Ngài bàn với partner)**:
+  1. Chốt chính sách: ai được khiếu nại (khách, PT, cả hai), ở trạng thái nào; hoàn tiền bao nhiêu theo tiến độ.
+  2. Backend (ai-service): guard trạng thái cho `openDispute`; luồng admin xử lý `DISPUTED` (xem, phân xử,
+     đưa đơn về trạng thái trước / hoàn tiền / đóng); không cho `requestRefund` từ `DISPUTED` nếu chính sách
+     không muốn.
+  3. Web: màn admin cho khiếu nại đơn 1-1; tách nút hoàn tiền / khiếu nại cho khách nếu chính sách giữ cả hai.
+  4. Mobile: bỏ comment ở `orders/[id].tsx` (ba chỗ) + kiểm lại trên máy.
+- Trạng thái: ⏸ TẠM TẮT — chờ Ngài bàn với partner.

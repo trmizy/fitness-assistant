@@ -1622,3 +1622,130 @@ buổi seed (22:00) nằm ngoài khung rảnh của PT, nên sau khi dời đi t
 học phải trả giá bằng bốn buổi bị lệch giờ trước khi nhận ra. Kịch bản nay: đặt buổi mới ở khung rảnh
 → PT xác nhận → PT đề nghị đổi → khách từ chối → PT đề nghị lại → khách đồng ý → huỷ buổi của chính
 mình. Chạy lại hai lượt liên tiếp đều 5/5 và không để lại gì.
+
+### 23.9 — Vá CL-09 theo web (21/9): chi tiết phòng gym đầy đủ + quyết định thư viện bản đồ
+
+**Vì sao vá một phase đã đóng:** sau khi Phase 7 đóng, trang chi tiết phòng gym của web được làm lại
+(commit `304438a`, `e1986e2`). Theo luật "web là sàn tối thiểu" và quyết định của Ngài ngày 21/9
+("vá vào Phase 7", cùng dạng WB-14 với Phase 6) — xem `MOBILE_MIGRATION_MANIFEST.md` → "Bổ sung 2026-09-21".
+
+**Đã làm** (`app/client/services/gyms/[id].tsx`, `src/features/services/{gymDirectory.ts,GymPhotoGallery.tsx,BranchMap.tsx}`):
+- "Thông tin giới thiệu" đứng đầu, ≤300 ký tự (của chi nhánh, chưa có thì của thương hiệu; dữ liệu cũ
+  dài hơn cắt ở khoảng trắng + "…") — `aboutText()`, cùng quy tắc với web.
+- Thư viện ảnh: ảnh lớn `contentFit="contain"` (không cắt), nút ‹ › hai bên, dải ảnh nhỏ, chạm để xem
+  toàn màn hình (RN `Modal`). Ảnh là link ký tạm — gym-service ký theo đúng địa chỉ app đang gọi
+  (`10.0.2.2` của emulator, IP LAN, tunnel) và gateway chuyển tiếp sang kho tệp; không cần header.
+- Địa chỉ đủ phường/xã + tỉnh/thành (tên tra từ mã qua `locationService`, cache 24 h), chỉ dẫn đường
+  đi, điện thoại / email chạm được (`Linking` tel:/mailto:), logo thương hiệu ở đầu thẻ.
+- Mạng xã hội: chỉ mở link `https://` (server đã kiểm tên miền). lucide-react-native 1.45 **không có**
+  icon thương hiệu Facebook/Instagram/YouTube/TikTok → nút mang tên mạng + icon liên kết ngoài.
+- Chi nhánh cùng thương hiệu: bản đồ nhiều ghim + danh sách (chạm để mở chi nhánh đó) + "Chỉ đường"
+  (Google Maps theo toạ độ, mở app Maps nếu có).
+
+**Quyết định thư viện bản đồ (Ngài chọn 21/9): `react-native-webview` 13.16.1 + Leaflet 1.9.4 (cdnjs)
++ tile OpenStreetMap** — giống hệt web, miễn phí, không khoá API; dùng lại cho ghim kéo-thả ở Phase 12.
+Đã loại: `react-native-maps` (Android cần khoá Google Maps có thanh toán — trái quyết định "không dịch
+vụ trả phí"), bản đồ tĩnh ghép tile (không kéo/zoom, không làm được ghim kéo-thả).
+- Cài bằng `npx expo install react-native-webview` → đúng như §21 cảnh báo, pnpm nối lại mọi junction
+  về `.pnpm`; đã chạy lại `node scripts/shorten-package-paths.js` và kiểm lại các junction trỏ `D:/.rn*`.
+  Lockfile chỉ thêm webview + chuỗi peer của `expo` (không nâng gói nào khác); vẫn đúng một
+  `react-native-css-interop@0.2.6`, `nativewind@4.2.6`, `react-native@0.86.3`.
+- WebView nhận HTML nội tuyến (`baseUrl: https://gymini.app/`), dữ liệu ghim nhúng dạng JSON đã thoát
+  `<`; mọi điều hướng ra ngoài (vd link ghi công OSM) bị chặn trong WebView và mở bằng `Linking`.
+- **Bài học từ emulator — WebView nuốt cử chỉ vuốt.** Bản đồ tương tác đặt giữa `ScrollView` làm người dùng
+  "kẹt": vuốt bắt đầu trên bản đồ thì kéo bản đồ (bản đồ trôi tận Gò Vấp) thay vì cuộn trang; tắt
+  `dragging` của Leaflet vẫn không trả cử chỉ về trang (`nestedScrollEnabled` không đủ). Cách chốt:
+  **hai chế độ** — trong trang là ô xem trước `pointerEvents="none"` + lớp phủ "Chạm để mở bản đồ" (vuốt
+  qua thì trang cuộn), chạm thì mở `Modal` toàn màn hình với Leaflet tương tác đầy đủ. Phase 12 (ghim
+  kéo-thả) dùng đúng chế độ toàn màn hình này.
+- Tiện ích (`facilities`) trước đây hiện **mã nội bộ** (`DRINKING_WATER`, `AIR_CONDITIONING`) — lỗi có sẵn
+  từ khi đóng Phase 7, lộ ra lúc kiểm. Nay dùng `FACILITY_LABEL` chép từ web (`StepFacilities.tsx`); mã
+  chưa có tên thì bỏ qua thay vì lộ enum.
+- Native module mới ⇒ **phải build lại dev client** (`npx expo run:android`) — đã build 21/9, không lỗi MAX_PATH.
+
+**Kiểm chứng (21/9):**
+- Unit (tsx) 299/299 (thêm 6 cho CL-09 + tên tiện ích); typecheck/lint sạch ở các file đụng tới.
+- E2E với backend thật (`e2e/phase7-gym-detail.e2e.ts`) 2/2, chạy cả `localhost:3000` lẫn IP LAN
+  `192.168.2.101:3000`: ảnh ký đúng địa chỉ app gọi (không phải `:9000`) và tải được 200 `image/*`; giới
+  thiệu ≤300; địa chỉ có phường/tỉnh; chi nhánh nằm trong danh sách của thương hiệu.
+- Emulator Pixel_10_Pro_XL (dev client build mới, phòng "Gymini Phú Nhuận"): giới thiệu đứng đầu và cắt ở
+  khoảng trắng; ảnh lớn trọn khung, nút › sang ảnh 2/2 "Khu tập chính"; địa chỉ đủ phường/thành phố, chỉ
+  dẫn, điện thoại, email, 4 nút mạng xã hội, tên tiện ích tiếng Việt; bản đồ ghim đúng khu Nguyễn Tuân;
+  vuốt trên ô bản đồ cuộn được trang; chạm mở toàn màn hình và kéo được; "Chỉ đường" mở app Google Maps
+  (`com.google.android.maps.MapsActivity`).
+
+## 24. Client D (Kế hoạch AI + Chợ + Dịch vụ 1-1 + Lộ trình) — Phase 8 (22/9)
+
+Phạm vi: CL-18 (hub "Kế hoạch tập": Kế hoạch AI tập luyện + dinh dưỡng, Chợ kế hoạch), CL-23 (thuật sĩ
+giáo án AI), CL-12 (đơn dịch vụ 1-1), WB-11 (lộ trình dài hạn: hành trình + thuật sĩ + tạo nâng cao).
+Không sửa một dòng backend nào (quy tắc Phase 0.3). Route: `app/client/plans/{index,wizard,ai/[id],
+listing/[id],service/[id],orders/[id]}`, `app/client/roadmap/{index,wizard,create}`; logic thuần ở
+`src/features/plans/*.ts`, `src/features/roadmap/roadmap.ts` (có unit test).
+
+### 24.1 — Quyết định thích ứng nền tảng
+
+| Hành vi web | Mobile | Lý do |
+|---|---|---|
+| Theo dõi job AI bằng store bền `pendingAiTasks` (localStorage) | Không có store: **bản ghi plan là nguồn sự thật**, danh sách tự poll 4s khi còn plan QUEUED/PROCESSING; thuật sĩ poll `GET /plans/job/:id` 3s | Rời màn giữa chừng vẫn thấy tiến độ, không thêm một kho trạng thái thứ hai |
+| Giải thích kế hoạch qua SSE stream | `POST /plans/explain` (không stream) — đúng đường web tự rơi về khi stream lỗi | fetch của RN không đọc body dạng stream |
+| `<input type=date>` | Dải chip 21 ngày từ hôm nay (`startDateOptions`, YYYY-MM-DD giờ máy) | Không thêm native date picker; kế hoạch bắt đầu trong vài ngày |
+| `<input type=number>` | `Stepper` / chip có sẵn giới hạn đúng schema server | Không gõ được giá trị ngoài khoảng |
+| Vòng % của thuật sĩ (thiết kế: giả lập 3s) | Theo **trạng thái job thật**: QUEUED → PROCESSING → COMPLETED/FAILED; % tiệm cận 95%, chỉ 100% khi server báo COMPLETED | Server không trả phần trăm; không vẽ tiến độ giả |
+| Chips "thời lượng buổi / trình độ / chấn thương" của thiết kế | **Không dựng** | `/plans/workout/generate` không có trường nào nhận chúng (trình độ/chấn thương lấy từ hồ sơ phía server) — thu thập rồi bỏ đi là lừa người dùng |
+| Mua dịch vụ 1-1 → mở cổng | Tạo đơn (PENDING_PAYMENT) với cổng người dùng chọn từ `/me/payments/methods`, **không mở cổng** (Phase 14) — y như gói hội viên/hợp đồng Phase 7 | Đơn nói rõ "đang chờ thanh toán", huỷ được |
+| Web gộp "Yêu cầu hoàn tiền / Khiếu nại" thành 1 nút (chỉ gọi refund) | **Hai cửa riêng** như thiết kế và API | `openDispute` là endpoint riêng |
+| Nhắn PT | Tạo hội thoại thật (`POST /chat/conversations/direct`) rồi mở tab Trò chuyện kèm `conversationId` | Tab Trò chuyện là Phase 9 (PARTIAL tới lúc đó) |
+| Ảnh mục tiêu lộ trình (FileReader → base64) | `expo-image-picker` (camera/thư viện) `base64: true` → cùng `POST /ai/agent/goal-image` | Cùng giới hạn JPEG/PNG ≤ 4 MB |
+| "Lộ trình" là tab của trang Tập luyện web | Phân đoạn thứ 4 "Lộ trình" trong tab Tập luyện + màn riêng `/client/roadmap` | `?tab=` mở thẳng phân đoạn |
+| Tạo lộ trình thủ công 1 giai đoạn | Tối đa 4 giai đoạn nối tiếp (cùng `POST /fitness-roadmaps`), mỗi giai đoạn `objective.maxCycles = ceil(tuần/4)` (= plannedCycleCount server tự tính) | Không có objective thì giai đoạn thủ công không bao giờ tự hoàn thành |
+| Lỗi lộ trình tiếng Anh từ fitness-service | Dịch sang tiếng Việt ở `translateRoadmapError` (chỉ trình bày) | Người dùng thường |
+
+### 24.2 — Sửa chung phát hiện khi kiểm trên máy (ảnh hưởng cả Phase 7)
+
+- **BottomSheet cướp cử chỉ cuộn**: cử chỉ kéo-để-đóng gắn cho cả sheet nên ScrollView bên trong không
+  cuộn được (phiếu Intake, check-in, form tạo dinh dưỡng; và 2 sheet "Đặt buổi tập"/"Đổi lịch" của Phase 7
+  vốn cũng dính mà chưa lộ vì nội dung ngắn). Sửa: chỉ tay nắm + tiêu đề nhận kéo; sheet tối đa 92% màn
+  hình; ScrollView trong sheet dùng `flexShrink: 1` thay chiều cao cứng. Component test BottomSheet 5/5.
+- **Bàn phím che sheet**: Modal là cửa sổ riêng nên `adjustResize` không tới — bọc `KeyboardAvoidingView`.
+- **Header tab Tập luyện**: thêm nút "Kế hoạch" (vị trí theo thiết kế) → 7 nút không vừa 360dp; dãy nút
+  công cụ cuộn ngang, nút "+" giữ cố định. Trang chủ: lối tắt "Kế hoạch" giờ mở `/client/plans`.
+- **Typed routes**: Metro cập nhật `.expo/types/router.d.ts` tăng dần ghi sai `/client/plans/index`
+  cho route mới → `tsc` báo lỗi giả; khởi động lại Metro `--clear` là sinh lại đúng.
+
+### 24.3 — Bằng chứng kiểm (22/9)
+
+- **REAL emulator + DB** — đơn 1-1 `22dcfdaa…` (john.doe ↔ pt@example.com): INTAKE_PENDING →(UI: phiếu
+  Intake, tự điền từ hồ sơ, 4 nhóm đồng ý) INTAKE_SUBMITTED →(PT qua API) PT_REVIEWING → DRAFT_DELIVERED →(UI:
+  yêu cầu sửa, Độ khó) REVISION_REQUESTED →(PT) REVISION_IN_PROGRESS → DRAFT_DELIVERED v2 →(UI: Chấp nhận)
+  ACTIVE (v1 SUPERSEDED / v2 ACCEPTED) → check-in (UI; server gắn `requires_attention` khi đau 7/10) →(UI)
+  COMPLETED → đánh giá 4★ (UI). Mỗi bước đối chiếu bằng SELECT.
+- **REAL emulator + DB** — lộ trình: thuật sĩ 4 bước (tự điền 71.3 kg / 16.4% từ InBody; BMR 1.672 + các
+  dòng = TDEE 2.592 từ `/diagnosis`; bước 4 dùng bản nháp dự phòng của server vì LLM tắt; dự báo từng
+  giai đoạn từ `/projection`) → "Bắt đầu lộ trình": roadmap ACTIVE, giai đoạn 1 ACTIVE, TrainingCycle ACTIVE
+  gắn đúng giai đoạn.
+- **REAL HTTP/API (e2e)**: `e2e/phase8-plans.e2e.ts` 5/5 (danh sách AI, chợ, cổng thanh toán, mua →
+  PENDING_PAYMENT → huỷ, không để lại đơn treo); `e2e/phase8-roadmap.e2e.ts` 5/5 (diagnosis cộng đúng TDEE,
+  projection, advance khi chu kỳ đang chạy không đổi giai đoạn, archive bị chặn khi có giai đoạn ACTIVE,
+  bản nháp nâng cao 2 giai đoạn → activate bị từ chối vì đã có lộ trình chạy → lưu trữ); Phase 7 e2e 2/2.
+- **Tự động**: typecheck 0 lỗi; unit 348/348 (mới: `plans.test.ts` 39, `roadmap.test.ts` 10); jest 61/61;
+  lint 0 lỗi (19 cảnh báo có sẵn từ trước, 0 mới).
+
+### 24.4 — Chưa kiểm được (nói thẳng)
+
+- **Sinh kế hoạch AI thật (tập luyện/dinh dưỡng, điều chỉnh, giải thích bằng AI)**: máy dev không cài Ollama
+  (`llm-health` = unavailable) — màn hiện đúng cảnh báo "AI Coach chưa sẵn sàng" và khoá nút. Luồng đọc/lưu
+  vào lịch/ẩn trên kế hoạch có sẵn đã kiểm.
+- **Advance lộ trình sang giai đoạn kế**: server chỉ chuyển giai đoạn khi chu kỳ trong giai đoạn đã
+  COMPLETED và được đánh giá với đủ dữ liệu thật (số ngày tối thiểu, số buổi đã tập, tuân thủ, InBody so
+  sánh được). Lộ trình tạo hôm nay không thể đạt; dựng dữ liệu tập giả nhiều tuần vào DB dev chỉ để test
+  qua là trái quy tắc dự án → chỉ kiểm việc server giữ đúng giai đoạn. Logic chuyển giai đoạn có test
+  BACKEND INTEGRATION sẵn ở fitness-service (`fitness-roadmap.service.integration.test.ts`).
+- **Mở cổng thanh toán dịch vụ 1-1**: Phase 14.
+
+### 24.5 — ⏸ Tạm tắt Hoàn tiền + Khiếu nại (22/9, lệnh Ngài)
+
+Luồng khiếu nại đơn 1-1 ở backend chưa hoàn chỉnh (không chặn theo trạng thái, không có ai xử lý
+`DISPUTED`) — chi tiết + danh sách việc cần làm ở `MOBILE_BACKEND_GAPS.md` GAP-13. Hai nút, hai sheet, hai
+mutation trong `app/client/plans/orders/[id].tsx` được **comment lại, không xoá** (tìm "TẠM TẮT 22/9"); đã
+kiểm trên máy ảo: đơn INTAKE_PENDING chỉ còn "Điền phiếu Intake / Nhắn PT / Huỷ đơn". Chờ Ngài bàn với
+partner rồi mới bật lại.
