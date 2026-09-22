@@ -435,6 +435,26 @@ s3Test('sau khi duyệt: chủ gym đổi tài khoản nhận tiền (có nhật
   assert.equal(await m.s3.headObject(photo.s3Key!), null, 'tệp S3 không được để mồ côi');
 });
 
+s3Test('logo đổi được SAU khi duyệt (ảnh chi nhánh/giấy tờ thì không); đang xét thì logo cũng bị khoá', async () => {
+  const { a, admin, partnerId } = await readyForApproval();
+  // Đang xét duyệt: mọi tải lên bị khoá, kể cả logo.
+  await assert.rejects(
+    m.upload.presign(await ctxOf(a.userId), a.userId, { kind: 'LOGO', contentType: 'image/png', sizeBytes: PNG.length }),
+    (e: any) => e.code === 'APPLICATION_LOCKED',
+  );
+  await m.review.approve(partnerId, admin);
+  // Đã duyệt: logo tải lên được và ghi vào thương hiệu.
+  await uploadOk(a, { kind: 'LOGO', contentType: 'image/png', body: PNG });
+  const partner = await m.prisma.gymPartner.findUniqueOrThrow({ where: { id: partnerId } });
+  const brand = await m.prisma.gymBrand.findUniqueOrThrow({ where: { id: partner.brandId! } });
+  assert.ok(brand.logoKey?.startsWith(`partner-applications/${partnerId}/brand/`), 'logo mới được lưu');
+  // Nhưng ảnh chi nhánh / giấy tờ qua luồng hồ sơ vẫn bị khoá sau khi duyệt.
+  await assert.rejects(
+    m.upload.presign(await ctxOf(a.userId), a.userId, { kind: 'DOCUMENT', docType: 'BUSINESS_LICENSE', contentType: 'application/pdf', sizeBytes: PDF.length }),
+    (e: any) => e.code === 'APPLICATION_LOCKED',
+  );
+});
+
 s3Test('approve KHÔNG nửa vời: ép lỗi ở bước ghi audit (sau khi đã đổi partner + chi nhánh) → rollback toàn bộ', async () => {
   const { a, admin, partnerId } = await readyForApproval();
   const original = m.audit.recordInTx;

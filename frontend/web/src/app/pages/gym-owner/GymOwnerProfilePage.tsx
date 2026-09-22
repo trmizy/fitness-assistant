@@ -20,6 +20,7 @@ import type { Gym, GymBrand } from "../../types";
 import { SectionCard } from "../client/settings/components/SectionCard";
 import { SOCIALS, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
+import { BrandLogoUpload } from "../partner-application/uploaders";
 
 const inputCls =
   "w-full px-3 py-2.5 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 disabled:opacity-60 transition-all";
@@ -159,9 +160,13 @@ export function GymOwnerProfilePage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4">
       <div className="flex items-center gap-3.5 rounded-xl border border-zinc-800/60 bg-zinc-900 p-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-500 text-lg font-bold text-black">
-          {(brandName?.[0] || user?.email?.[0] || "G").toUpperCase()}
-        </div>
+        {brand?.logoUrl ? (
+          <img src={brand.logoUrl} alt={`Logo ${brandName ?? ""}`} className="h-12 w-12 shrink-0 rounded-full border border-zinc-800 bg-zinc-950 object-contain" />
+        ) : (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-500 text-lg font-bold text-black">
+            {(brandName?.[0] || user?.email?.[0] || "G").toUpperCase()}
+          </div>
+        )}
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-zinc-100">{brandName ?? "Chưa đặt tên thương hiệu"}</h1>
           <p className="truncate text-sm text-zinc-400">{user?.email}</p>
@@ -183,6 +188,10 @@ export function GymOwnerProfilePage() {
                 <span className="mt-1 block text-[11px] text-zinc-500">Đổi tên cần Gymini duyệt trước khi hiển thị cho khách.</span>
               )}
             </label>
+            {isOwner && (
+              // Đổi logo có hiệu lực ngay (như giới thiệu / mạng xã hội), không cần duyệt lại.
+              <BrandLogoUpload logoUrl={brand.logoUrl ?? null} onChanged={() => queryClient.invalidateQueries({ queryKey: ["owned-brands"] })} />
+            )}
             <label className="block">
               <Label>Giới thiệu thương hiệu</Label>
               <textarea aria-label="Giới thiệu thương hiệu" value={brandForm.description} onChange={(e) => setBrandForm((f) => ({ ...f, description: e.target.value }))} disabled={!isOwner} rows={3} maxLength={Math.max(ABOUT_MAX, brandForm.description.length)} className={inputCls} />

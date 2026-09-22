@@ -103,7 +103,8 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   // browser's Origin, set only when it passes the CORS trust policy (utils/corsOrigins.ts), with
   // any client-sent copy stripped first. Absent for native app requests (no Origin).
   delete req.headers["x-trusted-web-origin"];
-  const trustedOrigin = emailLinkOrigin(req.get("origin") || undefined);
+  // Host GỐC (không phải X-Forwarded-Host) — chỉ dùng cho dự phòng IP LAN của app Android.
+  const trustedOrigin = emailLinkOrigin(req.get("origin") || undefined, req.headers.host);
   if (trustedOrigin) req.headers["x-trusted-web-origin"] = trustedOrigin;
   next();
 });
