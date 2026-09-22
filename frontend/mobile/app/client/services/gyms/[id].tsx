@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,8 +9,12 @@ import {
   Check,
   ChevronLeft,
   Dumbbell,
+  ExternalLink,
+  Mail,
   MapPin,
+  Navigation,
   Phone,
+  Signpost,
   Ticket,
   TriangleAlert,
 } from "lucide-react-native";
@@ -24,11 +29,18 @@ import {
   Tappable,
   useToast,
 } from "../../../../src/components/ui";
-import { gymService } from "../../../../src/services/api";
+import { gymService, locationService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { formatVND } from "../../../../src/utils/currency";
+import { BranchMap } from "../../../../src/features/services/BranchMap";
+import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import {
+  aboutText,
   daysRemaining,
+  directionsUrl,
+  facilityLabels,
+  fullAddress,
+  socialLinks,
   gymBlockedReason,
   membershipStatusLabel,
   multiGymWarningText,
@@ -94,6 +106,35 @@ export default function GymDetailScreen() {
   });
 
   const gym = useMemo(() => (gymQuery.data ? normalizeGym(gymQuery.data) : null), [gymQuery.data]);
+  // Tên phường/tỉnh tra từ mã (gym chỉ lưu mã) — cùng nguồn /locations/* với web; lỗi thì chỉ thiếu tên.
+  const provincesQuery = useQuery({
+    queryKey: ["locations", "provinces"],
+    queryFn: () => locationService.getProvinces(),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: gym?.provinceCode != null,
+  });
+  const wardsQuery = useQuery({
+    queryKey: ["locations", "wards", gym?.provinceCode],
+    queryFn: () => locationService.getWards(gym!.provinceCode!),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: gym?.provinceCode != null,
+  });
+  const address = gym
+    ? fullAddress(gym, {
+        province: provincesQuery.data?.find((p) => p.code === gym.provinceCode)?.name ?? null,
+        ward: wardsQuery.data?.find((w) => w.code === gym.wardCode)?.name ?? null,
+      })
+    : "";
+  const about = gym ? aboutText(gym) : null;
+  const socials = gym ? socialLinks(gym) : [];
+  const directions = gym ? directionsUrl(gym) : null;
+  const otherBranches = gym ? gym.brandBranches.filter((b) => b.id !== gym.id) : [];
+  // Bản đồ: mọi chi nhánh cùng thương hiệu; API cũ chưa có brandBranches thì ít nhất là chính chi nhánh này.
+  const mapBranches = gym
+    ? gym.brandBranches.length > 0
+      ? gym.brandBranches
+      : [{ id: gym.id, name: gym.name, address: gym.address ?? "", latitude: gym.latitude, longitude: gym.longitude }]
+    : [];
   const plans = useMemo(() => normalizePlans(plansQuery.data), [plansQuery.data]);
   const onSale = useMemo(() => plans.filter((plan) => planOnSale(plan)), [plans]);
   const warnings = useMemo(() => normalizeWarnings(warningsQuery.data), [warningsQuery.data]);
@@ -178,6 +219,14 @@ export default function GymDetailScreen() {
           <View className="gap-4 px-5 pt-4">
             <Card className="gap-2.5 p-4">
               <View className="flex-row items-start justify-between gap-3">
+                {gym.brandLogoUrl ? (
+                  <Image
+                    source={{ uri: gym.brandLogoUrl }}
+                    contentFit="contain"
+                    style={{ width: 44, height: 44, borderRadius: 12 }}
+                    accessibilityLabel={`Logo ${gym.brandName}`}
+                  />
+                ) : null}
                 <View className="flex-1">
                   <Text className="font-display text-lg text-foreground">{gym.name}</Text>
                   <View className="mt-0.5 flex-row items-center gap-1.5">
@@ -194,27 +243,70 @@ export default function GymDetailScreen() {
                 )}
               </View>
 
-              {gym.address || gym.city ? (
-                <View className="flex-row items-start gap-1.5">
-                  <MapPin size={13} color="#8b9299" />
-                  <Text className="flex-1 font-body text-xs text-muted-foreground">
-                    {[gym.address, gym.city].filter(Boolean).join(", ")}
-                  </Text>
+              {/* CL-09 vá 21/9 theo web: "Thông tin giới thiệu" (≤300, chưa có thì của thương hiệu) đứng ĐẦU, trước ảnh. */}
+              {about ? (
+                <View className="gap-1 pt-1">
+                  <Text className="font-body-medium text-sm text-foreground">Thông tin giới thiệu</Text>
+                  <Text className="font-body text-sm leading-6 text-muted-foreground">{about}</Text>
+                </View>
+              ) : null}
+            </Card>
+
+            <GymPhotoGallery photos={gym.photos} title={gym.name} />
+
+            <Card className="gap-2.5 p-4">
+              {address ? (
+                <View className="flex-row items-start gap-2">
+                  <MapPin size={15} color="#8b9299" />
+                  <Text className="flex-1 font-body text-sm text-foreground">{address}</Text>
+                </View>
+              ) : null}
+              {gym.locationNote ? (
+                <View className="flex-row items-start gap-2">
+                  <Signpost size={15} color="#8b9299" />
+                  <Text className="flex-1 font-body text-sm text-muted-foreground">{gym.locationNote}</Text>
                 </View>
               ) : null}
               {gym.phone ? (
-                <View className="flex-row items-center gap-1.5">
-                  <Phone size={13} color="#8b9299" />
-                  <Text className="font-body text-xs text-muted-foreground">{gym.phone}</Text>
-                </View>
+                <Tappable
+                  className="flex-row items-center gap-2"
+                  onPress={() => void Linking.openURL(`tel:${gym.phone!.replace(/\s+/g, "")}`)}
+                  accessibilityLabel={`Gọi ${gym.phone}`}
+                >
+                  <Phone size={15} color="#8b9299" />
+                  <Text className="font-body text-sm text-foreground">{gym.phone}</Text>
+                </Tappable>
               ) : null}
-              {gym.description ? (
-                <Text className="font-body text-sm leading-6 text-foreground">{gym.description}</Text>
+              {gym.email ? (
+                <Tappable
+                  className="flex-row items-center gap-2"
+                  onPress={() => void Linking.openURL(`mailto:${gym.email}`)}
+                  accessibilityLabel={`Gửi email ${gym.email}`}
+                >
+                  <Mail size={15} color="#8b9299" />
+                  <Text className="font-body text-sm text-foreground">{gym.email}</Text>
+                </Tappable>
               ) : null}
 
-              {gym.facilities.length > 0 ? (
+              {socials.length > 0 ? (
+                <View className="flex-row flex-wrap gap-2 pt-1">
+                  {socials.map((so) => (
+                    <Tappable
+                      key={so.key}
+                      onPress={() => void Linking.openURL(so.url)}
+                      accessibilityLabel={so.label}
+                      className="flex-row items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5"
+                    >
+                      <ExternalLink size={13} color="#8b9299" />
+                      <Text className="font-body-medium text-xs text-foreground">{so.label}</Text>
+                    </Tappable>
+                  ))}
+                </View>
+              ) : null}
+
+              {facilityLabels(gym.facilities).length > 0 ? (
                 <View className="flex-row flex-wrap gap-1.5 pt-1">
-                  {gym.facilities.map((facility) => (
+                  {facilityLabels(gym.facilities).map((facility) => (
                     <Badge key={facility} tone="neutral">
                       {facility}
                     </Badge>
@@ -222,6 +314,43 @@ export default function GymDetailScreen() {
                 </View>
               ) : null}
             </Card>
+
+            {directions || otherBranches.length > 0 || mapBranches.some((b) => b.latitude != null) ? (
+              <Card className="gap-2.5 p-4">
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 font-body-medium text-sm text-foreground">
+                    {otherBranches.length > 0
+                      ? `${gym.brandBranches.length} chi nhánh ${gym.brandName}`
+                      : "Vị trí chi nhánh"}
+                  </Text>
+                  {directions ? (
+                    <Button size="sm" variant="secondary" onPress={() => void Linking.openURL(directions)}>
+                      <View className="flex-row items-center gap-1.5">
+                        <Navigation size={13} color={accent.primary} />
+                        <Text className="font-body-medium text-xs text-foreground">Chỉ đường</Text>
+                      </View>
+                    </Button>
+                  ) : null}
+                </View>
+                <BranchMap branches={mapBranches} currentId={gym.id} />
+                {otherBranches.map((b) => (
+                  <Tappable
+                    key={b.id}
+                    className="flex-row items-start gap-2 rounded-lg bg-muted/40 px-3 py-2"
+                    onPress={() => router.push(`/client/services/gyms/${b.id}`)}
+                    accessibilityLabel={`Xem ${b.name}`}
+                  >
+                    <MapPin size={13} color="#8b9299" />
+                    <View className="flex-1">
+                      <Text className="font-body-medium text-xs text-foreground">{b.name}</Text>
+                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                        {b.address}
+                      </Text>
+                    </View>
+                  </Tappable>
+                ))}
+              </Card>
+            ) : null}
 
             {gymClosed ? (
               <Card className="flex-row items-start gap-2 p-4">

@@ -26,6 +26,12 @@ import {
   normalizeWarnings,
   type GymRow,
   type PlanRow,
+  ABOUT_MAX,
+  aboutText,
+  directionsUrl,
+  facilityLabels,
+  fullAddress,
+  socialLinks,
 } from "../services/gymDirectory";
 
 const RAW_GYM = {
@@ -261,5 +267,92 @@ describe("the multi-gym warning", () => {
     assert.match(text, /California Quận 1/);
     // It warns, it does not forbid — the wording must not read like a refusal.
     assert.match(text, /vẫn được/);
+  });
+});
+
+// ── CL-09 vá 21/9 theo web: chi tiết phòng gym đầy đủ ────────────────────────────────────────────
+// Hình dạng thật của GET /gyms/:id sau commit `304438a`/`e1986e2` (ảnh ký tạm, thương hiệu có logo +
+// mạng xã hội + giới thiệu, danh sách chi nhánh cùng thương hiệu).
+describe("gym detail (CL-09, 21/9)", () => {
+  const DETAIL = {
+    id: "g1",
+    name: "Gymini Phú Nhuận",
+    address: "48, Nguyễn Tuân",
+    provinceCode: 79,
+    wardCode: 26890,
+    latitude: 10.8176,
+    longitude: 106.6822,
+    locationNote: "đối diện trường THCS",
+    email: "hi@gymini.vn",
+    description: null,
+    status: "APPROVED",
+    operationalStatus: "OPEN",
+    brand: {
+      id: "b1",
+      name: "Gymini",
+      description: "Giới thiệu thương hiệu",
+      logoUrl: "https://tunnel.example/gymini-partner-private/logo.png?X-Amz-Signature=x",
+      facebookUrl: "https://www.facebook.com/gymini",
+      instagramUrl: null,
+      tiktokUrl: "http://tiktok.com/@not-https",
+    },
+    photos: [
+      { id: "p1", url: "https://tunnel.example/a.png", category: "EXTERIOR", isCover: true },
+      { id: "p2", url: null, category: "OTHER" },
+    ],
+    brandBranches: [
+      { id: "g1", name: "Gymini Phú Nhuận", address: "48, Nguyễn Tuân", latitude: 10.8176, longitude: 106.6822 },
+      { id: "g2", name: "Gymini Q1", address: "1 Lê Lợi", latitude: null, longitude: null },
+    ],
+  };
+
+  it("reads photos (skipping unsigned ones), logo, socials, location and sibling branches", () => {
+    const gym = normalizeGym(DETAIL);
+    assert.deepEqual(gym.photos, [{ id: "p1", url: "https://tunnel.example/a.png", category: "EXTERIOR" }]);
+    assert.equal(gym.brandLogoUrl, DETAIL.brand.logoUrl);
+    assert.equal(gym.locationNote, "đối diện trường THCS");
+    assert.equal(gym.brandBranches.length, 2);
+    assert.equal(gym.brandBranches[1].latitude, null);
+  });
+
+  it("falls back to the brand's description and caps it at 300 chars on a word boundary", () => {
+    assert.equal(aboutText(normalizeGym(DETAIL)), "Giới thiệu thương hiệu");
+    const long = normalizeGym({ ...DETAIL, description: "chữ ".repeat(200) });
+    const about = aboutText(long)!;
+    assert.ok(about.length <= ABOUT_MAX + 1, `${about.length}`);
+    assert.ok(about.endsWith("…"));
+    assert.ok(!about.slice(0, -1).endsWith("ch"), "never cut mid-word");
+    assert.equal(aboutText(normalizeGym({ ...DETAIL, brand: { ...DETAIL.brand, description: null } })), null);
+  });
+
+  it("builds the full address from ward/province names, falling back to the old city field", () => {
+    const gym = normalizeGym(DETAIL);
+    assert.equal(
+      fullAddress(gym, { ward: "Phường Hạnh Thông", province: "Thành phố Hồ Chí Minh" }),
+      "48, Nguyễn Tuân, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+    );
+    assert.equal(fullAddress({ address: "12 Hai Bà Trưng", city: "Hà Nội" }, {}), "12 Hai Bà Trưng, Hà Nội");
+  });
+
+  it("directions only when the branch has coordinates", () => {
+    assert.equal(
+      directionsUrl(normalizeGym(DETAIL)),
+      "https://www.google.com/maps/dir/?api=1&destination=10.8176,106.6822",
+    );
+    assert.equal(directionsUrl({ latitude: null, longitude: 1 }), null);
+  });
+
+  it("only opens https social links", () => {
+    assert.deepEqual(
+      socialLinks(normalizeGym(DETAIL)).map((s) => s.label),
+      ["Facebook"],
+      "the http TikTok link and the null Instagram are dropped",
+    );
+  });
+});
+
+describe("facility labels", () => {
+  it("shows Vietnamese names, never internal codes; unknown codes are dropped", () => {
+    assert.deepEqual(facilityLabels(["DRINKING_WATER", "AIR_CONDITIONING", "SOMETHING_NEW"]), ["Nước uống miễn phí", "Máy lạnh"]);
   });
 });

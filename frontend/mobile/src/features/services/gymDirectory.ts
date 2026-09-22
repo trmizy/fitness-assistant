@@ -33,7 +33,25 @@ export type GymRow = {
   closureReason: string | null;
   expectedReopenAt: string | null;
   phone: string | null;
+  // ── Chi tiết (GET /gyms/:id) — thêm 21/9, CL-09 vá theo web (xem MOBILE_MIGRATION_MANIFEST.md) ──
+  email: string | null;
+  locationNote: string | null;
+  provinceCode: number | null;
+  wardCode: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  brandDescription: string | null;
+  brandLogoUrl: string | null;
+  socials: Partial<Record<SocialKey, string>>;
+  /** Ảnh cơ sở đã duyệt (link ký tạm, bìa trước) — chỉ có ở chi tiết. */
+  photos: GymPhoto[];
+  /** Mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ/danh sách chi nhánh. */
+  brandBranches: BranchPin[];
 };
+
+export type SocialKey = "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl";
+export type GymPhoto = { id: string; url: string; category: string | null };
+export type BranchPin = { id: string; name: string; address: string; latitude: number | null; longitude: number | null };
 
 function text(value: any): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -58,8 +76,93 @@ export function normalizeGym(raw: any): GymRow {
     closureReason: text(raw?.closureReason),
     expectedReopenAt: raw?.expectedReopenAt ?? null,
     phone: text(raw?.phone),
+    email: text(raw?.email),
+    locationNote: text(raw?.locationNote),
+    provinceCode: num(raw?.provinceCode),
+    wardCode: num(raw?.wardCode),
+    latitude: num(raw?.latitude),
+    longitude: num(raw?.longitude),
+    brandDescription: text(raw?.brand?.description),
+    brandLogoUrl: text(raw?.brand?.logoUrl),
+    socials: Object.fromEntries(
+      SOCIALS.map((s) => [s.key, text(raw?.brand?.[s.key])]).filter(([, v]) => v),
+    ) as Partial<Record<SocialKey, string>>,
+    photos: Array.isArray(raw?.photos)
+      ? raw.photos
+          .filter((p: any) => text(p?.url))
+          .map((p: any) => ({ id: String(p.id), url: String(p.url), category: text(p.category) }))
+      : [],
+    brandBranches: Array.isArray(raw?.brandBranches)
+      ? raw.brandBranches.map((b: any) => ({
+          id: String(b.id),
+          name: String(b.name ?? ""),
+          address: String(b.address ?? ""),
+          latitude: num(b.latitude),
+          longitude: num(b.longitude),
+        }))
+      : [],
   };
 }
+
+function num(value: any): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Giới hạn "Thông tin giới thiệu" — trùng ABOUT_MAX của web và giới hạn ở gym-service. */
+export const ABOUT_MAX = 300;
+
+/**
+ * "Thông tin giới thiệu": của chi nhánh, chưa có thì của thương hiệu. Dữ liệu cũ dài hơn giới hạn
+ * (trước khi có giới hạn) được cắt ở khoảng trắng gần nhất + "…" — cùng quy tắc với web.
+ */
+export function aboutText(gym: Pick<GymRow, "description" | "brandDescription">): string | null {
+  const raw = (gym.description || gym.brandDescription || "").trim();
+  if (!raw) return null;
+  if (raw.length <= ABOUT_MAX) return raw;
+  const cut = raw.slice(0, ABOUT_MAX);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > ABOUT_MAX - 40 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** Số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã; thiếu tên tỉnh thì dùng `city` cũ). */
+export function fullAddress(
+  gym: Pick<GymRow, "address" | "city">,
+  names: { ward?: string | null; province?: string | null },
+): string {
+  return [gym.address, names.ward, names.province ?? gym.city].filter(Boolean).join(", ");
+}
+
+/** Mở Google Maps chỉ đường tới toạ độ chi nhánh (app Maps nếu có, không thì trình duyệt). */
+export function directionsUrl(gym: Pick<GymRow, "latitude" | "longitude">): string | null {
+  return gym.latitude != null && gym.longitude != null
+    ? `https://www.google.com/maps/dir/?api=1&destination=${gym.latitude},${gym.longitude}`
+    : null;
+}
+
+export const SOCIALS: { key: SocialKey; label: string }[] = [
+  { key: "facebookUrl", label: "Facebook" },
+  { key: "instagramUrl", label: "Instagram" },
+  { key: "tiktokUrl", label: "TikTok" },
+  { key: "youtubeUrl", label: "YouTube" },
+];
+
+/** Chỉ link https — server đã kiểm tên miền từng mạng, đây là chốt cuối trước khi mở link ngoài. */
+export function socialLinks(gym: Pick<GymRow, "socials">): { key: SocialKey; label: string; url: string }[] {
+  return SOCIALS.filter((s) => gym.socials[s.key]?.startsWith("https://")).map((s) => ({
+    ...s,
+    url: gym.socials[s.key]!,
+  }));
+}
+
+export const PHOTO_CATEGORY_LABEL: Record<string, string> = {
+  EXTERIOR: "Mặt tiền",
+  MAIN_TRAINING_AREA: "Khu tập chính",
+  EQUIPMENT: "Trang thiết bị",
+  CARDIO: "Khu cardio",
+  CHANGING_ROOM: "Phòng thay đồ",
+  AMENITIES: "Tiện ích",
+  OTHER: "Khác",
+};
 
 export function normalizeGyms(raw: any): GymRow[] {
   const list = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
@@ -266,4 +369,33 @@ export function purchaseBlockedReason(
   if (!plan) return "Chọn một gói hội viên để tiếp tục.";
   if (!planOnSale(plan)) return "Gói này hiện không mở bán.";
   return null;
+}
+
+/**
+ * Tên tiện ích cho người dùng — cùng bảng với web (`AddBranchWizard/StepFacilities.tsx` FACILITY_LABEL).
+ * Không bao giờ hiện mã nội bộ (DRINKING_WATER…): mã lạ chưa có tên thì bỏ qua thay vì lộ enum.
+ */
+export const FACILITY_LABEL: Record<string, string> = {
+  FREE_WEIGHTS: "Tạ tự do",
+  CARDIO_MACHINES: "Máy cardio",
+  FUNCTIONAL_TRAINING_AREA: "Khu tập functional",
+  GROUP_CLASSES: "Lớp tập nhóm",
+  YOGA_STUDIO: "Phòng Yoga",
+  SWIMMING_POOL: "Hồ bơi",
+  PERSONAL_TRAINER: "Huấn luyện viên cá nhân",
+  INBODY_SCAN: "Máy đo InBody",
+  LOCKER_ROOM: "Phòng thay đồ / tủ khoá",
+  SHOWER: "Phòng tắm",
+  SAUNA: "Xông hơi",
+  TOWEL_SERVICE: "Dịch vụ khăn tắm",
+  PARKING: "Bãi đỗ xe",
+  WIFI: "Wifi miễn phí",
+  AIR_CONDITIONING: "Máy lạnh",
+  DRINKING_WATER: "Nước uống miễn phí",
+  KIDS_AREA: "Khu vui chơi trẻ em",
+  VENDING_MACHINE: "Máy bán hàng tự động",
+};
+
+export function facilityLabels(codes: string[]): string[] {
+  return codes.map((c) => FACILITY_LABEL[c]).filter((l): l is string => !!l);
 }
