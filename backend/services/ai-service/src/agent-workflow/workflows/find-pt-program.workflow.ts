@@ -1,5 +1,5 @@
 import type { SlotDefinition, WorkflowContext, WorkflowDefinition } from "../types";
-import { parseBudgetVnd, parseGoal, parseMinutes, parseTrainingDays } from "../slot-values";
+import { parseBudgetVnd, parseExperienceLevel, parseGoal, parseMinutes, parseTrainingDays } from "../slot-values";
 import { normalizeAgentText } from "../../services/fitness-agent-intent";
 
 /**
@@ -48,7 +48,8 @@ const goalSlot: SlotDefinition<string> = {
   readFromContext: (ctx) => profileString(ctx, "goal"),
   parse: parseGoal,
   question: () => "Mục tiêu tập luyện của bạn là gì (giảm mỡ/tăng cơ/duy trì/hiệu suất)?",
-  format: (v) => v,
+  // Shown to the user in the known/missing summary — was the raw enum ("MUSCLE_GAIN").
+  format: (v) => ({ WEIGHT_LOSS: "Giảm mỡ", MUSCLE_GAIN: "Tăng cơ", MAINTENANCE: "Duy trì", ATHLETIC_PERFORMANCE: "Hiệu suất thể thao" }[v] ?? v),
 };
 const daysSlot: SlotDefinition<number[]> = {
   key: "days", label: "các ngày tập được", source: "USER_PROFILE", persistence: "WORKFLOW_ONLY", required: true,
@@ -127,7 +128,28 @@ const budgetSlot: SlotDefinition<BudgetPreference> = {
   format: (v) => (v === NO_BUDGET_CAP ? "Không giới hạn" : new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)),
 };
 
-export const findProgramSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot];
+// Program search only (fitness-service agent-program.service.ts refuses without
+// UserProfile.experienceLevel — 422 "Provide goal, training days and experience level").
+// Without this slot a client with no level on file answered goal + days and then hit a
+// dead end (MOBILE_BACKEND_GAPS.md GAP-17). PROFILE_FACT, because fitness-service reads the
+// real profile, not AgentPreferences — a WORKFLOW_ONLY value would never reach it. The
+// write goes through the existing PROFILE_UPDATE_CONFIRMATION step like goal/age/height.
+// The context field is `experience` (agentic-fitness.service.ts::context); the
+// `experienceLevel` alias is added in fitness-agent-tools.ts::getUserFitnessContext so the
+// orchestrator's propose/confirm stale-check compares the same field it writes.
+const experienceSlot: SlotDefinition<"BEGINNER" | "INTERMEDIATE" | "ADVANCED"> = {
+  key: "experienceLevel", label: "trình độ tập", source: "USER_PROFILE", persistence: "PROFILE_FACT",
+  profileField: "experienceLevel", required: true,
+  readFromContext: (ctx) => {
+    const v = profileString(ctx, "experienceLevel") ?? profileString(ctx, "experience");
+    return v === "BEGINNER" || v === "INTERMEDIATE" || v === "ADVANCED" ? v : undefined;
+  },
+  parse: parseExperienceLevel,
+  question: () => "Bạn đang ở mức nào: mới tập, trung bình hay nâng cao?",
+  format: (v) => ({ BEGINNER: "Mới tập", INTERMEDIATE: "Trung bình", ADVANCED: "Nâng cao" }[v] ?? v),
+};
+
+export const findProgramSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot, experienceSlot];
 export const findPtSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot, budgetSlot];
 
 export const findTrainingProgramWorkflow: WorkflowDefinition = {

@@ -12,7 +12,11 @@ import { llmService } from "./services/llm.service";
 
 const app = express();
 
+// Both photo endpoints take the image as base64 JSON (≤4 MB raw → ~5.4 MB encoded). image-chat was
+// missing here and fell to express.json()'s 100 KB default, so any real photo was refused before
+// reaching the handler (MOBILE_BACKEND_GAPS.md GAP-18).
 app.use("/ai/agent/goal-image", express.json({ limit: "6mb" }));
+app.use("/ai/agent/image-chat", express.json({ limit: "6mb" }));
 app.use(express.json());
 app.use(metricsMiddleware());
 
@@ -62,6 +66,11 @@ app.use("/internal", internalRoutes);
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof ApiError) {
     res.status(err.statusCode).json(err.toJSON());
+    return;
+  }
+  // body-parser's own error for an over-limit body — a client error, not a server fault.
+  if ((err as { type?: string })?.type === "entity.too.large") {
+    res.status(413).json(formatErrorResponse("VALIDATION_ERROR", "Ảnh quá lớn. Hãy chọn ảnh JPEG/PNG dưới 4 MB."));
     return;
   }
   logger.error({ err }, "Unhandled error");

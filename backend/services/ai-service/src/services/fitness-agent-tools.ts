@@ -71,6 +71,8 @@ export const agentUpdatableProfileFieldsSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   heightCm: z.number().positive().max(300).optional(),
   currentWeight: z.number().positive().max(400).optional(),
+  // FIND_TRAINING_PROGRAM's experience slot (GAP-17) — same enum as profile.models.ts.
+  experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
 }).strict();
 export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
 
@@ -98,7 +100,10 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
 
 export const fitnessAgentTools = {
   async getUserFitnessContext(identity: AgentIdentity) {
-    const profile = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
+    const raw = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
+    // user-service names it `experience`; the workflow's PROFILE_FACT slot reads/compares/writes
+    // `experienceLevel` (the real profile field), so both names are exposed.
+    const profile = { ...raw, experienceLevel: raw.experience ?? null };
     const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
     return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
   },

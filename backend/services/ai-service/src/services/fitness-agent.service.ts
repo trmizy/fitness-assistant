@@ -335,9 +335,13 @@ export const fitnessAgent = {
     // "still missing" (which is what a bare falsy budgetVnd already means).
     const resumeBudget = (workflowResult?.resumeKnownSlots as { budgetVnd?: unknown } | undefined)?.budgetVnd;
     const noBudgetCap = resumeBudget === "NO_CAP";
+    // `experienceLevel` (FIND_TRAINING_PROGRAM, GAP-17) is a PROFILE_FACT: by the time the
+    // workflow resumes it is already written to the real profile, which is where
+    // fitness-service reads it. It is not an AgentPreferences field (strict schema) — drop it.
+    const { experienceLevel: _profileFactOnly, ...resumeSlots } = (workflowResult?.resumeKnownSlots ?? {}) as Record<string, unknown>;
     const resumeKnownSlotsForPreferences = noBudgetCap
-      ? { ...workflowResult?.resumeKnownSlots, budgetVnd: resolveBudgetPreference(resumeBudget as never) }
-      : workflowResult?.resumeKnownSlots;
+      ? { ...resumeSlots, budgetVnd: resolveBudgetPreference(resumeBudget as never) }
+      : resumeSlots;
     const preferences = AgentPreferencesSchema.parse({
       goal: context.profile.goal ?? undefined, days: context.profile.days.length ? context.profile.days : undefined,
       sessionMinutes: context.profile.sessionMinutes, budgetVnd: context.profile.budgetVnd ?? undefined,

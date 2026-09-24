@@ -103,6 +103,21 @@ export function parseGoal(raw: string): SlotParseResult<"WEIGHT_LOSS" | "MUSCLE_
   return { ok: false, reason: "unrecognized", clarifyingQuestion: "Mục tiêu của bạn là giảm mỡ, tăng cơ, duy trì hay hiệu suất thể thao?" };
 }
 
+const EXPERIENCE_MAP: Array<[RegExp, "BEGINNER" | "INTERMEDIATE" | "ADVANCED"]> = [
+  // No bare "moi": after diacritics are stripped it is also "mỗi" (mỗi buổi) and "mời".
+  [/\b(moi tap|moi bat dau|nguoi moi|chua tap|it kinh nghiem|co ban|beginner|newbie)\b/, "BEGINNER"],
+  [/\b(trung binh|kha|da tap mot thoi gian|intermediate)\b/, "INTERMEDIATE"],
+  [/\b(nang cao|lau nam|kinh nghiem lau|chuyen nghiep|advanced)\b/, "ADVANCED"],
+];
+/** "mới tập", "trung bình", "nâng cao" → UserProfile.experienceLevel (BEGINNER/INTERMEDIATE/ADVANCED). */
+export function parseExperienceLevel(raw: string): SlotParseResult<"BEGINNER" | "INTERMEDIATE" | "ADVANCED"> {
+  const s = normalizeAgentText(raw);
+  for (const [re, value] of EXPERIENCE_MAP) {
+    if (re.test(s)) return { ok: true, value };
+  }
+  return { ok: false, reason: "unrecognized", clarifyingQuestion: "Bạn đang ở mức nào: mới tập, trung bình hay nâng cao?" };
+}
+
 /** "T2-T4-T6", "thứ 2, thứ 4", "3 buổi" (a bare count, not specific days —
  * returned as a count-derived spread starting Monday, matching the existing
  * fallback fitness-agent.service.ts::proposePlanBundle already uses for
