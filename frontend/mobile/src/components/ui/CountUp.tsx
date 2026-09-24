@@ -21,6 +21,7 @@ export function CountUp({
   decimals = 0,
   prefix = "",
   suffix = "",
+  locale = "en-US",
   className,
   ...textProps
 }: {
@@ -28,16 +29,18 @@ export function CountUp({
   decimals?: number;
   prefix?: string;
   suffix?: string;
+  /** Digit grouping. Money in VND uses "vi-VN" (26.353.275) to match formatVND elsewhere. */
+  locale?: string;
   className?: string;
 } & TextProps) {
-  const format = (value: number) =>
-    value.toLocaleString("en-US", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-
   const progress = useSharedValue(0);
-  const [display, setDisplay] = useState(() => format(0));
+  // The raw number crosses to JS and is formatted there — Intl locales other than en-US are not
+  // guaranteed on the UI-thread runtime.
+  const [value, setValue] = useState(0);
+  const display = value.toLocaleString(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
   useEffect(() => {
     progress.value = 0;
@@ -46,16 +49,11 @@ export function CountUp({
 
   useAnimatedReaction(
     () => progress.value,
-    (value, previous) => {
-      if (value === previous) return;
-      runOnJS(setDisplay)(
-        value.toLocaleString("en-US", {
-          minimumFractionDigits: decimals,
-          maximumFractionDigits: decimals,
-        }),
-      );
+    (v, previous) => {
+      if (v === previous) return;
+      runOnJS(setValue)(v);
     },
-    [decimals],
+    [],
   );
 
   return (

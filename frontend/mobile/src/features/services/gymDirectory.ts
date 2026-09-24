@@ -323,6 +323,18 @@ export function daysRemaining(membership: MembershipRow, now: Date = new Date())
   return Math.max(0, Math.ceil((end - now.getTime()) / 86_400_000));
 }
 
+/**
+ * SH-07 — a member may report a problem while the membership is ACTIVE, or within 30 days after it
+ * EXPIRED (the same window gym-service's complaintService.submitAsMember enforces; web's
+ * GymMembershipsPage shows the button under the same rule).
+ */
+export function canReportMembership(membership: MembershipRow, now: Date = new Date()): boolean {
+  if (membership.status === "ACTIVE") return true;
+  if (membership.status !== "EXPIRED" || !membership.endDate) return false;
+  const end = Date.parse(membership.endDate);
+  return Number.isFinite(end) && (now.getTime() - end) / 86_400_000 <= 30;
+}
+
 export type MultiGymWarning = { gymId: string; gymName: string; endDate: string };
 
 export function normalizeWarnings(raw: any): MultiGymWarning[] {

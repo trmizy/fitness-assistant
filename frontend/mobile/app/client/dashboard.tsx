@@ -41,6 +41,7 @@ import {
   workoutService,
 } from "../../src/services/api";
 import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
+import { useUnreadNotifications } from "../../src/features/notifications/useNotifications";
 import {
   addDays,
   formatScheduleDate,
@@ -109,6 +110,8 @@ export default function ClientDashboardScreen() {
     },
     enabled: !!user?.id,
   });
+
+  const unreadNotifications = useUnreadNotifications();
 
   const inbodyQuery = useQuery({
     queryKey: ["inbody-history"],
@@ -247,7 +250,7 @@ export default function ClientDashboardScreen() {
         </View>
         <View className="flex-row items-center gap-3">
           <RoundButton icon={Search} onPress={() => router.push("/client/library/search")} />
-          <RoundButton icon={Bell} dot onPress={() => router.push("/client/notifications")} />
+          <RoundButton icon={Bell} dot={unreadNotifications > 0} onPress={() => router.push("/client/notifications")} />
           <Avatar name={user?.firstName || "Bạn"} size={44} />
         </View>
       </View>

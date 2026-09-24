@@ -1,4 +1,11 @@
-import { Dumbbell, HandHeart, Home, MessageCircle, User } from "lucide-react-native";
+import { View } from "react-native";
+import {
+  Dumbbell,
+  HandHeart,
+  Home,
+  MessageCircle,
+  User,
+} from "lucide-react-native";
 
 import { RequireRole } from "../../src/components/guards/RequireRole";
 import { RequireOnboarding } from "../../src/components/guards/RequireOnboarding";
@@ -6,6 +13,7 @@ import {
   WorkspaceTabs,
   type WorkspaceTab,
 } from "../../src/components/navigation/WorkspaceTabs";
+import { AiCoachFab } from "../../src/features/coach/AiCoachFab";
 
 /**
  * Client workspace — the app's largest actor.
@@ -14,7 +22,11 @@ import {
  * design prototype disagreed with the brief: the prototype kept **Dinh dưỡng** as a tab and pushed
  * AI Coach onto a floating button, while the brief asks for **Trò chuyện** as a tab with nutrition
  * folded into a larger tab's sub-navigation. The brief won. Nutrition therefore lives under
- * Tập luyện (Phase 6), and there is no floating AI Coach button.
+ * Tập luyện (Phase 6).
+ *
+ * AI Coach (WB-12): on 2026-09-22 Ngài chose to follow web's later reversal — AI Coach is the
+ * design's floating button (over the five tab roots) opening `client/ai-coach`, and "Trò chuyện"
+ * holds only person-to-person threads.
  *
  * Both guards sit outside the tabs so neither the tab bar nor any screen renders for the wrong
  * account: role first (is this even a client?), then onboarding (has this client finished setup?).
@@ -31,15 +43,27 @@ export default function ClientLayout() {
   return (
     <RequireRole allow={["client", "pt"]}>
       <RequireOnboarding>
-        <WorkspaceTabs
-          workspace="client"
-          tabs={clientTabs}
-          // Reachable but never a tab: onboarding (RequireOnboarding redirects here), and the
-          // screens the five tabs push to — every file under app/client/ becomes a Tabs.Screen,
-          // so anything not listed here would silently grow a sixth tab.
-          hiddenRoutes={["onboarding", "notifications", "inbody", "stats", "library", "plans", "roadmap"]}
-          fullScreenRoutes={["onboarding"]}
-        />
+        <View className="flex-1">
+          <WorkspaceTabs
+            workspace="client"
+            tabs={clientTabs}
+            // Reachable but never a tab: onboarding (RequireOnboarding redirects here), and the
+            // screens the five tabs push to — every file under app/client/ becomes a Tabs.Screen,
+            // so anything not listed here would silently grow a sixth tab.
+            hiddenRoutes={[
+              "onboarding",
+              "notifications",
+              "inbody",
+              "stats",
+              "library",
+              "plans",
+              "roadmap",
+              "ai-coach",
+            ]}
+            fullScreenRoutes={["onboarding", "ai-coach"]}
+          />
+          <AiCoachFab />
+        </View>
       </RequireOnboarding>
     </RequireRole>
   );

@@ -36,6 +36,7 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
 import { QUICK_FILTERS } from "../../../src/constants/specialties";
 import {
+  canReportMembership,
   daysRemaining,
   groupByBrand,
   gymBlockedReason,
@@ -634,6 +635,16 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
 
                   {membership.status === "ACTIVE" && left != null ? (
                     <Text className="font-body text-xs text-muted-foreground">{`Còn ${left} ngày`}</Text>
+                  ) : null}
+
+                  {canReportMembership(membership) ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => router.push({ pathname: "/client/services/report-issue", params: { gymId: membership.gymId, gymName: gym?.name ?? "" } })}
+                    >
+                      Báo cáo vấn đề
+                    </Button>
                   ) : null}
 
                   {membership.status === "PENDING_PAYMENT" ? (

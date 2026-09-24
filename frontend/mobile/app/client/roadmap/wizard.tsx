@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
+import { detectImageMediaType } from "../../../src/features/coach/coach";
 import { AlertTriangle, ArrowLeft, Camera, Check, ChevronDown, ChevronRight, ImageIcon, PencilRuler, Sparkles } from "lucide-react-native";
 
 import { Button, Card, Input, ScreenHeader, Tappable, useToast } from "../../../src/components/ui";
@@ -205,7 +206,9 @@ export default function RoadmapWizardScreen() {
     }
     setGoalImageStatus("analyzing");
     try {
-      const reply = await fitnessAgentService.image({ mediaType: asset.mimeType === "image/png" ? "image/png" : "image/jpeg", base64: asset.base64 });
+      const mediaType = detectImageMediaType(asset.base64);
+      if (!mediaType) throw new Error("unsupported image");
+      const reply = await fitnessAgentService.image({ mediaType, base64: asset.base64 });
       const attrs = reply?.block?.attributes;
       setGoalNote(reply?.block?.note ?? null);
       if (!attrs || attrs.usable === false) {
@@ -213,7 +216,13 @@ export default function RoadmapWizardScreen() {
         setGoalImageStatus("unusable");
         return;
       }
-      setGoalAttrs(attrs);
+      setGoalAttrs({
+        muscularity: attrs.muscularity ?? null,
+        relativeLeanness: attrs.relativeLeanness ?? null,
+        focusMuscles: attrs.focusMuscles ?? [],
+        confidence: attrs.confidence ?? 0,
+        usable: true,
+      });
       setGoalImageStatus("idle");
     } catch {
       setGoalAttrs(null);

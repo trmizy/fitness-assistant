@@ -1749,3 +1749,109 @@ Luồng khiếu nại đơn 1-1 ở backend chưa hoàn chỉnh (không chặn t
 mutation trong `app/client/plans/orders/[id].tsx` được **comment lại, không xoá** (tìm "TẠM TẮT 22/9"); đã
 kiểm trên máy ảo: đơn INTAKE_PENDING chỉ còn "Điền phiếu Intake / Nhắn PT / Huỷ đơn". Chờ Ngài bàn với
 partner rồi mới bật lại.
+
+## 25. Client E (Trò chuyện + AI Coach …) — Phase 9 (đang làm, 22/9)
+
+### 25.1 — Trò chuyện người–người (SH-04 / CL-21)
+
+- `app/client/messages/` (danh sách + `[conversationId]`), `src/features/chat/` (hàm thuần + `useRealtimeChat`).
+  Gửi qua socket gateway (`chat:message:send`), rơi về REST khi mất kết nối; vào lại phòng mỗi lần
+  (re)connect; nạp lại hội thoại đang mở sau khi kết nối lại.
+- Token socket: `ensureFreshSocket()` kết nối lại socket khi token lúc bắt tay sắp hết hạn (GAP-14).
+- Bằng chứng (REAL emulator + socket gateway thật): PT→khách đẩy tức thì + "Đang soạn tin…"; khách→PT
+  (PT thấy typing true/false, nhận tin, DB lưu); app ở nền → mở lại → thấy tin gửi lúc ở nền, đẩy tiếp tục.
+
+### 25.2 — AI Coach (WB-12) — nút nổi theo quyết định Ngài 22/9
+
+- Nút nổi `src/features/coach/AiCoachFab.tsx`: đúng `AICoachFab` của thiết kế (56px, Sparkles, vòng sáng
+  nhấp nháy 1,8s, chấm cam, bật vào sau 400ms), chỉ hiện trên 5 màn gốc tab client (màn con có thanh dưới
+  riêng — ô chat, nút Tiếp — nên không đè lên).
+- Màn `app/client/ai-coach.tsx` (toàn màn hình, ẩn tab): vào thẳng khung chat như thiết kế; "Lịch sử" một
+  chạm (danh sách phiên, đổi tên bằng BottomSheet, xoá bằng hộp xác nhận hệ thống). Web dạng panel compact
+  một cột — cùng hành vi.
+- **Stream**: `coachService.chatStream` đọc SSE qua `expo/fetch` (RN fetch thường không đọc được body theo
+  luồng). Luồng chạy trong `src/features/coach/coachStore.ts` (bộ nhớ module, khoá theo userId + phiên) nên
+  đóng màn giữa chừng câu trả lời vẫn chạy tiếp và hiện đủ khi mở lại. Phiên nháp `draft:` chuyển sang ID
+  thật khi server tạo phiên (như `adoptSessionIfNeeded` của web). Không ghi đĩa (web dùng localStorage để
+  khôi phục tab — app không cần).
+- Văn bản trả lời: cùng phương ngữ markdown web tự dựng (##, ###, >, -, 1., **đậm**, bảng `|`) —
+  `parseCoachText` thuần + unit test, bảng cuộn ngang.
+- Khối hành động (`AgentBlocks.tsx`) = `FitnessAgentBlocks.tsx` của web: ứng viên PT/chương trình (chọn gói
+  bằng Chip thay `<select>`), xác nhận hành động (huy hiệu rủi ro, 9 loại tóm tắt, hết hạn thì khoá nút),
+  mục tiêu từ ảnh, kết quả ảnh, đánh giá chu kỳ, dữ liệu còn thiếu, xác nhận đổi hồ sơ. Link `nextUrl` chỉ
+  theo 4 route web cho phép, ánh xạ sang màn mobile tương ứng.
+- Ảnh: `pickImage.ts` (camera hoặc thư viện, base64, ≤4 MB như web); "Gửi ảnh & hỏi AI" giữ ảnh chờ câu hỏi,
+  "Ảnh hình thể tham khảo" gửi ngay.
+- Lời chào: số liệu InBody thật (lần mới nhất so với lần trước) như web, lời tiếng Việt theo thiết kế.
+- Lỗi 5xx của `/ai/agent/*` hiện câu tiếng Việt, không hiện câu tiếng Anh thô của server.
+
+### 25.3 — Bằng chứng AI Coach (22/9)
+
+- REAL emulator + REAL HTTP/API (john.doe): nút nổi hiện ở Trang chủ → mở AI Coach; lời chào đúng số InBody
+  của tài khoản (71.3 kg, ↓17.4; 35.2 kg; 16.4%); bấm gợi ý "Tôi nên ăn gì?" → câu trả lời stream từng phần,
+  bảng + danh sách đánh số hiển thị đúng; DB `chat_sessions` có phiên mới `447de68f…`, màn Lịch sử tô sáng
+  đúng phiên đó (nháp → ID thật). Đóng màn giữa chừng stream → mở lại → câu trả lời đã chạy xong đầy đủ.
+  Đổi tên → DB `title` = "Tôi nên ăn gì? P9"; xoá → DB `archived_at` có giá trị. Mở phiên cũ 31/08 → nạp đúng
+  lịch sử từ server.
+- Tự động: `coach.test.ts` 11/11; tsc 0 lỗi; lint 0 lỗi (19 cảnh báo cũ, không thêm).
+- Một lần bấm nút nổi không mở (lần thứ 2 trong chuỗi); lặp lại 3 lần sau đó đều mở — ghi nhận, chưa tái hiện.
+
+### 25.4 — Chưa kiểm được (nói thẳng)
+
+- Máy dev không có Ollama → câu trả lời tự do là mẫu dự phòng của server (có đoạn tiếng Anh do backend sinh).
+- **Sửa 22/9:** khối hành động KHÔNG cần LLM — ý định do luật so khớp chữ (`fitness-agent-intent.ts`) nhận ra và chạy
+  trước bước gọi AI; chỉ đoạn diễn giải dùng AI local (Ollama) có dự phòng. Không dùng API key trả phí.
+- Đã kiểm trên máy (REAL emulator + REAL HTTP/API): hỏi "Tìm PT" → khối "còn thiếu thông tin" hỏi lần lượt mục
+  tiêu / ngày / ngân sách (phát hiện + sửa: `known` là `{label, value}` làm app sập; enum mục tiêu → "Tăng cơ") →
+  tìm PT trả kết quả thật "chưa có lựa chọn phù hợp" + "Nguồn khoa học (4)". Trước đó lỗi 500 do image dev cũ
+  (GAP-16, đã build lại user/fitness-service theo lệnh Ngài).
+- Chưa kiểm: thẻ ứng viên PT/chương trình + "Chọn" + khối xác nhận (john không có PT nào khớp; nhánh chương trình
+  kẹt ở GAP-17). Không bấm xác nhận nào tạo hợp đồng thật.
+- Luồng ảnh (Ngài cho phép khoá, GAP-15 (c)): **"Ảnh hình thể tham khảo" ĐẠT** — ảnh thật → khối phân tích mục tiêu
+  hiện đủ (cảnh báo ảnh chưa rõ, chọn mục tiêu/mức cơ/diện mạo/nhóm cơ); không bấm "lưu mục tiêu" (ghi hồ sơ thật).
+  Sửa mobile: loại ảnh lấy từ byte đầu (picker nén PNG thành JPEG nhưng vẫn báo image/png → server 400) — áp cho
+  cả roadmap wizard Phase 8. **"Gửi ảnh & hỏi AI" HỎNG ở backend** (giới hạn body 100 KB — GAP-18).
+- Bảng BottomSheet tự đóng khi rời màn AI Coach (màn tab vẫn được giữ, Modal là cửa sổ riêng).
+- Nút nổi: 2 lần bấm hụt ngay sau khi app vừa khởi động/chuyển màn; 9 lần bấm khác đều mở — chưa rõ nguyên nhân.
+
+### 25.5 — Cá nhân, Ví, Cài đặt, Thông báo, Xuất dữ liệu, Báo cáo vấn đề (CL-05/13/20, SH-07/08/09)
+
+- Tab "Cá nhân" thành thư mục `app/client/profile/` (Stack): hub theo thiết kế + `edit`, `wallet`, `settings`,
+  `equipment`, `notification-prefs`, `export`, `pt-application`. Hub chỉ hiện điều có thật: 3 số liệu tính từ
+  heatmap hoạt động + InBody (thay "PR" không có API), thẻ "Vào không gian HLV" chỉ khi là PT (thẻ Chủ gym/Admin
+  của thiết kế không áp dụng — 2 vai trò đó không vào được workspace client).
+- Ảnh đại diện + tài liệu ứng tuyển PT: **presign → PUT → confirm** như web (bắt buộc trên AWS/Lambda, nơi route
+  multipart bị tắt), **rơi về multipart** khi backend báo "USER_UPLOAD_BUCKET is not configured" (stack dev không
+  có bucket — web trên dev vì vậy upload hỏng). `uploadViaPresignOrLegacy` trong `services/api.ts`.
+- Ví: nhãn giao dịch dịch từ mô tả nội bộ tiếng Anh ("Contract <uuid> … refund (CLIENT_CANCELLED)") sang tiếng Việt,
+  không lộ id/enum; không vẽ "số rút được" (server tự chặn, không trả con số). `CountUp` thêm prop `locale` (tiền
+  dùng `vi-VN`, định dạng số ở luồng JS).
+- Thông báo: link web (`/client/booking`…) ánh xạ sang màn mobile, link lạ → chỉ đánh dấu đã đọc; chuông dashboard
+  dùng `unread-count` thật + làm mới khi socket `notification:new`.
+- Cài đặt: chỉ các mục có hành vi thật trên mobile; WB-14 (ngân sách/vùng miền dinh dưỡng) về đây qua
+  `NutritionPrefsForm` dùng chung với thẻ dinh dưỡng. Không làm (ghi rõ): giao diện/ngôn ngữ, đơn vị, công tắc buổi tập.
+- `SelectSheet` (chọn tỉnh/phường có tìm kiếm bỏ dấu) — component mới dùng chung.
+- Bằng chứng (REAL emulator + REAL HTTP/API, john.doe): hub/ví/sửa hồ sơ/cài đặt/thiết bị/tuỳ chọn thông báo/xuất
+  dữ liệu/thông báo/báo cáo vấn đề đều hiển thị dữ liệu thật; số dư khớp API; bấm thông báo → DB `unread=f` + mở tab
+  Tập luyện. Tự động: unit 379 (có `phase9-account.test.ts` 11/11), jest 61/61, tsc 0, lint 0 lỗi / 19 cảnh báo cũ.
+- Chưa bấm (thao tác ghi dữ liệu thật trên tài khoản dùng chung): gửi yêu cầu rút tiền, lưu hồ sơ, đổi mật khẩu,
+  xoá dữ liệu hồ sơ, gửi báo cáo vấn đề, tải file xuất.
+
+### 25.6 — Ứng tuyển PT (CL-22)
+
+- Wizard 8 bước theo thiết kế, trường + quy tắc theo web PTApplicationPage và `submit()` của server (kiểm từng bước,
+  lưu nháp mỗi lần "Tiếp tục", hydrate một lần — không để phản hồi lưu nháp ghi đè thứ đang gõ). Lịch rảnh theo
+  ngày có nhiều khung (giờ nghỉ giữa ca), kiểm trùng/ngắn hơn một buổi như web; nơi tập có tỉnh/phường.
+- Màn trạng thái: Đang xét / Cần bổ sung (ghi chú admin + "Chỉnh sửa & nộp lại") / Từ chối (lý do; KHÔNG có "Nộp đơn
+  mới" vì server không cho lưu nháp khi REJECTED) / Được duyệt (vào không gian HLV).
+- Đã kiểm (REAL BROWSER/thiết bị + BACKEND INTEGRATION, 24/9, emulator + backend dev, tài khoản john.doe — Ngài cho
+  phép nộp): đi hết 8 bước trên máy, tải 3 ảnh định danh qua thư viện ảnh, nhập giá 400.000 ₫/buổi, thêm 3 khung giờ
+  (T2/T4/T6 08:00–09:00), tick 4 cam kết, bấm "Nộp đơn" → màn trạng thái "Đã nộp / Đang xét duyệt". Đối chiếu DB
+  `gymcoach_user`: `pt_applications` `9239a313-…` `status = SUBMITTED`, `submitted_at = 2026-09-24 07:05:30`,
+  `service_mode = ONLINE`, `online_price_per_session = 400000`, `years_of_experience = 3-5`,
+  `main_specialties = {Tăng cơ, Giảm mỡ}`, 3 ảnh định danh đều có URL, `available_days = {Mon,Wed,Fri}`.
+- Ghi chú dữ liệu: khung giờ KHÔNG nằm ở cột `pt_applications.availability_blocks` (luôn null) — `saveDraft` đẩy
+  chúng sang bảng `pt_availability` theo `pt_user_id` (`pt_application.service.ts:203-206`), và đọc lại bằng
+  `availabilityService`. Kiểm bằng cột jsonb sẽ tưởng nhầm là mất dữ liệu.
+- Đơn này **không được duyệt** ở đây: duyệt đơn là việc của admin (Phase 13). john.doe từ nay có một đơn PT ở trạng
+  thái SUBMITTED — bài test nào cần "client chưa có đơn" phải dùng tài khoản khác.

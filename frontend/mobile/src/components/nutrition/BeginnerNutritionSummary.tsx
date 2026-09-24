@@ -5,13 +5,12 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { Check, ChevronDown, ChevronUp, Plus, Repeat, SlidersHorizontal, Sparkles } from "lucide-react-native";
 
 import { BottomSheet, Card, Tappable, useToast } from "../ui";
+import { NutritionPrefsForm } from "./NutritionPrefsForm";
 import {
   nutritionService,
   profileService,
   type FoodSuggestionItem,
-  type NutritionBudgetLevel,
   type NutritionDailySummary,
-  type NutritionRegion,
   type SubstituteMode,
 } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -29,7 +28,6 @@ import {
   itemLine,
   normalizeBudgetLevel,
   normalizeRegion,
-  regionToSend,
   remainingSentence,
   summaryProgress,
 } from "../../features/nutrition/foodSuggestions";
@@ -42,8 +40,8 @@ const WARN = "#f59e0b";
  * mount — the suggestion engine runs catalog queries) a few concrete combos for what is left,
  * each item swappable, each combo loggable in one tap.
  *
- * The budget/region preference lives in web's Settings › Dinh dưỡng. Mobile has no settings
- * screen until Phase 9, so it is reachable from here for now; both write the same profile fields.
+ * The budget/region preference lives in web's Settings › Dinh dưỡng; on mobile it is in Settings
+ * too (Phase 9) and still one tap away from this card — both render NutritionPrefsForm.
  */
 export function BeginnerNutritionSummary({
   dailySummary,
@@ -113,17 +111,6 @@ export function BeginnerNutritionSummary({
   const budgetLevel = normalizeBudgetLevel(profileQuery.data?.nutritionBudgetLevel);
   const region = normalizeRegion(profileQuery.data?.region);
 
-  const prefMutation = useMutation({
-    mutationFn: (patch: { nutritionBudgetLevel?: NutritionBudgetLevel; region?: NutritionRegion }) =>
-      profileService.updateProfile(patch),
-    onSuccess: (res, patch) => {
-      if (res?.profile) queryClient.setQueryData(["profile", user?.id], res.profile);
-      else void queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-      void queryClient.invalidateQueries({ queryKey: ["food-suggestions", dateStr] });
-      toast.show(patch.region ? "Đã cập nhật vùng miền" : "Đã cập nhật ngân sách thực phẩm", "success");
-    },
-    onError: () => toast.show("Không thể cập nhật — thử lại sau", "danger"),
-  });
 
   if (!dailySummary) return null;
 
@@ -318,50 +305,8 @@ export function BeginnerNutritionSummary({
       ) : null}
 
       <BottomSheet open={prefsOpen} onClose={() => setPrefsOpen(false)} title="Gợi ý món ăn theo">
-        <View className="gap-4 pb-1">
-          <View>
-            <Text className="mb-2 font-body text-[11px] text-muted-foreground">Ngân sách thực phẩm</Text>
-            <View className="gap-2">
-              {BUDGET_OPTIONS.map((opt) => (
-                <PrefOption
-                  key={opt.value}
-                  label={opt.label}
-                  hint={opt.hint}
-                  selected={budgetLevel === opt.value}
-                  disabled={prefMutation.isPending}
-                  onPress={() => {
-                    if (budgetLevel !== opt.value) prefMutation.mutate({ nutritionBudgetLevel: opt.value });
-                  }}
-                />
-              ))}
-            </View>
-            <Text className="mt-2 font-body text-xs text-muted-foreground">
-              Gymini ưu tiên gợi ý món ăn và tạo kế hoạch dinh dưỡng phù hợp với ngân sách này.
-            </Text>
-          </View>
-
-          <View>
-            <Text className="mb-2 font-body text-[11px] text-muted-foreground">Vùng miền (tuỳ chọn)</Text>
-            <View className="gap-2">
-              {REGION_OPTIONS.map((opt) => (
-                <PrefOption
-                  key={opt.value}
-                  label={opt.label}
-                  hint={opt.hint}
-                  selected={region === opt.value}
-                  disabled={prefMutation.isPending}
-                  onPress={() => {
-                    const next = regionToSend(region, opt.value);
-                    if (next) prefMutation.mutate({ region: next });
-                  }}
-                />
-              ))}
-            </View>
-            <Text className="mt-2 font-body text-xs text-muted-foreground">
-              Gymini sẽ ưu tiên gợi ý và đề xuất đổi món theo phong cách nấu ăn vùng miền này — không bắt
-              buộc, để trống thì dùng gợi ý chung toàn quốc.
-            </Text>
-          </View>
+        <View className="pb-1">
+          <NutritionPrefsForm />
         </View>
       </BottomSheet>
     </Card>
@@ -399,32 +344,5 @@ function SummaryBar({
         <Animated.View className="h-full rounded-full" style={[{ backgroundColor: color }, style]} />
       </View>
     </View>
-  );
-}
-
-function PrefOption({
-  label,
-  hint,
-  selected,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  hint: string;
-  selected: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Tappable
-      disabled={disabled}
-      onPress={onPress}
-      className={`rounded-xl border px-3 py-2.5 ${
-        selected ? "border-primary/50 bg-primary/10" : "border-border bg-panel"
-      } ${disabled ? "opacity-50" : ""}`}
-    >
-      <Text className={`font-body-semibold text-xs ${selected ? "text-primary" : "text-foreground"}`}>{label}</Text>
-      <Text className="mt-0.5 font-body text-[10px] text-muted-foreground">{hint}</Text>
-    </Tappable>
   );
 }

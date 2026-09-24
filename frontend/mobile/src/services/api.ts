@@ -91,6 +91,7 @@ export interface CoachEvidenceItem {
 }
 
 export interface CoachStreamDonePayload {
+  structuredBlocks?: AgentChatBlock[];
   conversationId?: string;
   sessionId?: string;
   evidenceUsed?: CoachEvidenceItem[];
@@ -111,6 +112,7 @@ export interface AiChatSessionSummary {
 }
 
 export interface AiSessionMessage {
+  structuredBlocks?: AgentChatBlock[] | null;
   id: string;
   question: string;
   answer: string;
@@ -394,14 +396,15 @@ export const profileService = {
     return data;
   },
 
-  uploadPhoto: async (file: UploadFile) => {
-    const formData = new FormData();
-    appendUpload(formData, "photo", file);
-    const { data } = await api.post("/profile/me/photo", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data as { photoUrl: string };
-  },
+  // Same presign → confirm flow as web (required on AWS, where the multipart route is disabled),
+  // falling back to multipart on a backend without an upload bucket (local dev).
+  uploadPhoto: async (file: UploadFile) =>
+    (await uploadViaPresignOrLegacy(file, {
+      presign: "/profile/me/photo/presign",
+      confirm: "/profile/me/photo/confirm",
+      legacy: "/profile/me/photo",
+      legacyField: "photo",
+    })) as { photoUrl: string },
 
   becomePT: async () => {
     const { data } = await api.patch("/profile/me/become-pt");
@@ -2083,25 +2086,88 @@ export const fitnessRoadmapService = {
   },
 };
 
-// Only the goal-image call the roadmap wizard needs (WB-11 step 3). Same request as web's
-// fitnessAgentService.image — a JPEG/PNG sent as base64 JSON to ai-service, max 4 MB. Phase 9 (AI
-// Coach, WB-12) extends this object with the rest of the agent API.
+// Web's services/fitnessAgent.ts — the AI Coach's action API (`ai-service: /ai/agent/*`). Every call
+// answers `{ data: AgentReply }`: the session it landed in plus one structured block to render.
+// Images go as base64 JSON (JPEG/PNG, max 4 MB — the same cap web checks before upload).
+export type ImageChatResult =
+  | { type: "EQUIPMENT"; equipmentName: string; targetMuscles: string[]; howToUse: string; safetyNote: string; answer: string }
+  | { type: "WORKOUT_SCHEDULE"; summary: string; days: Array<{ label: string; exercises: string[] }>; answer: string }
+  | { type: "GENERAL"; answer: string };
+
+export interface AgentChatBlock {
+  type:
+    | "PT_RECOMMENDATIONS"
+    | "PROGRAM_RECOMMENDATIONS"
+    | "ACTION_CONFIRMATION"
+    | "ACTION_RESULT"
+    | "GOAL_ANALYSIS"
+    | "IMAGE_CHAT"
+    | "SUBSTITUTE_RESULT"
+    | "CYCLE_EVALUATION_RESULT"
+    | "WORKFLOW_MISSING_DATA"
+    | "PROFILE_UPDATE_CONFIRMATION";
+  recommendationId?: string;
+  actionId?: string;
+  kind?: string;
+  title?: string;
+  note?: string | null;
+  expiresAt?: string;
+  risk?: "LOW" | "MEDIUM" | "HIGH";
+  candidates?: any[];
+  evidence?: Array<{ id: string; title: string; sourceUrl: string; finding: string; evidenceLevel: string }>;
+  warnings?: string[];
+  summary?: Record<string, any>;
+  attributes?: {
+    muscularity?: string | null;
+    relativeLeanness?: string | null;
+    focusMuscles?: string[];
+    confidence?: number;
+    usable?: boolean;
+    [key: string]: any;
+  };
+  result?: ImageChatResult;
+  message?: string;
+  steps?: string[];
+  nextUrl?: string;
+  goalConfirmed?: boolean;
+  status?: string;
+  decision?: string | null;
+  aiSummary?: string | null;
+  userDecision?: string;
+  nutritionDecision?: string | null;
+  nutritionAiHeadline?: string | null;
+  nutritionAiExplanation?: string | null;
+  nutritionUserDecision?: string;
+  workflowId?: string;
+  workflowType?: string;
+  // Seen live: known items are { label, value } objects, not strings (see workflowItemText).
+  known?: Array<string | { label?: string; value?: unknown }>;
+  missing?: Array<string | { label?: string; value?: unknown }>;
+  changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+  allowUseOnce?: boolean;
+}
+
+export interface AgentReply {
+  sessionId: string;
+  conversationId: string;
+  block: AgentChatBlock;
+}
+
+export type AgentImage = { mediaType: "image/jpeg" | "image/png"; base64: string };
+
+async function agentPost(url: string, body: unknown): Promise<AgentReply> {
+  const { data } = await api.post(url, body, { timeout: 60000 });
+  return data?.data as AgentReply;
+}
+
 export const fitnessAgentService = {
-  image: async (image: { mediaType: "image/jpeg" | "image/png"; base64: string }, sessionId?: string) => {
-    const { data } = await api.post("/ai/agent/goal-image", { image, sessionId }, { timeout: 60000 });
-    return data?.data as {
-      block?: {
-        note?: string | null;
-        attributes?: {
-          muscularity: string | null;
-          relativeLeanness: string | null;
-          focusMuscles: string[];
-          confidence: number;
-          usable: boolean;
-        };
-      };
-    };
-  },
+  choose: (id: string, candidateId: string, packageId?: string) =>
+    agentPost(`/ai/agent/recommendations/${id}/choose`, { candidateId, packageId }),
+  confirm: (id: string) => agentPost(`/ai/agent/actions/${id}/confirm`, { confirmed: true }),
+  confirmGoal: (sessionId: string, goal: unknown) => agentPost("/ai/agent/goal/confirm", { sessionId, goal }),
+  image: (image: AgentImage, sessionId?: string) => agentPost("/ai/agent/goal-image", { image, sessionId }),
+  imageChat: (image: AgentImage, question: string, sessionId?: string) =>
+    agentPost("/ai/agent/image-chat", { image, question: question.trim() || undefined, sessionId }),
 };
 
 // ── Phase 2/3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md ────────────────
@@ -5229,6 +5295,144 @@ export const paymentService = {
     const { data } = await api.post(`/me/payments/${transactionId}/sync`);
     return data?.data ?? data;
   },
+};
+
+// ── CL-22 PT application (web's services/ptApplicationService.ts) ─────────────────────────
+// Statuses: DRAFT → SUBMITTED → UNDER_REVIEW → NEEDS_MORE_INFO ⇄ … → APPROVED | REJECTED.
+// A draft can be saved only in DRAFT / NEEDS_MORE_INFO; REJECTED is final (server refuses).
+export type PTApplicationStatus = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_MORE_INFO" | "APPROVED" | "REJECTED";
+
+export interface PTApplicationCertificate {
+  id?: string;
+  certificateName: string;
+  issuingOrganization: string;
+  isCurrentlyValid: boolean;
+  certificationStatus?: string;
+  issueDate?: string;
+  expirationDate?: string;
+  certificateFileUrl?: string;
+}
+
+export interface PTAvailabilityBlock {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface PTApplicationTrainingLocation {
+  provinceCode: number;
+  wardCode?: number;
+  gymName?: string;
+  addressLine?: string;
+  legacyDistrictName?: string;
+  isPrimary?: boolean;
+  note?: string;
+}
+
+export interface PTApplication {
+  id?: string;
+  status?: PTApplicationStatus;
+  phoneNumber?: string;
+  nationalIdNumber?: string;
+  currentAddress?: string;
+  idCardFrontUrl?: string;
+  idCardBackUrl?: string;
+  portraitPhotoUrl?: string;
+  yearsOfExperience?: string;
+  educationBackground?: string;
+  previousWorkExperience?: string;
+  professionalBio?: string;
+  mainSpecialties: string[];
+  targetClientGroups: string[];
+  primaryTrainingGoals: string[];
+  trainingMethodsApproach?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+  socialLinks?: { instagram?: string; facebook?: string; youtube?: string; tiktok?: string } | null;
+  serviceMode?: "ONLINE" | "OFFLINE" | "HYBRID";
+  sessionDurationMinutes?: number;
+  availabilityBlocks?: PTAvailabilityBlock[];
+  availableDays?: string[];
+  gymAffiliation?: string;
+  desiredSessionPrice?: number | null;
+  onlinePricePerSession?: number | null;
+  offlinePricePerSession?: number | null;
+  onlinePackagePrice?: number | null;
+  offlinePackagePrice?: number | null;
+  sessionsPerPackage?: number | null;
+  additionalPricingNotes?: string;
+  residenceProvinceCode?: number | null;
+  residenceWardCode?: number | null;
+  residenceAddressLine?: string;
+  applicationTrainingLocations?: PTApplicationTrainingLocation[];
+  otherReferences?: string;
+  adminNote?: string | null;
+  rejectionReason?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  certificates: PTApplicationCertificate[];
+  media: Array<{ groupType: string; fileUrl: string; label?: string }>;
+}
+
+/** Presigned PUT target (web's PresignedUploadTarget). */
+type PresignTarget = { uploadUrl: string; key: string; maxBytes?: number };
+
+/**
+ * Upload a picked file through the presign → PUT → confirm flow (what AWS/Lambda requires), or —
+ * when this backend has no upload bucket configured (the local dev stack answers
+ * "USER_UPLOAD_BUCKET is not configured") — through the legacy multipart route, which is the
+ * only one that works there. Web only does the first, so on the dev stack its uploads fail.
+ */
+async function uploadViaPresignOrLegacy(
+  file: UploadFile,
+  routes: { presign: string; confirm: string; legacy: string; legacyField: string },
+): Promise<any> {
+  let target: PresignTarget | null = null;
+  try {
+    const { data } = await api.post<PresignTarget>(routes.presign, { contentType: file.type });
+    target = data;
+  } catch (e: any) {
+    const msg = String(e?.response?.data?.error ?? "");
+    if (!/not configured/i.test(msg)) throw e;
+  }
+  if (target?.uploadUrl) {
+    const blob = await (await fetch(file.uri)).blob();
+    if (typeof target.maxBytes === "number" && blob.size > target.maxBytes) {
+      throw new Error(`File quá lớn. Giới hạn tối đa ${(target.maxBytes / 1024 / 1024).toFixed(0)} MB.`);
+    }
+    const put = await fetch(target.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: blob });
+    if (!put.ok) throw new Error("Không thể tải file lên kho lưu trữ. Vui lòng thử lại.");
+    const { data } = await api.post(routes.confirm, { key: target.key });
+    return data;
+  }
+  const form = new FormData();
+  appendUpload(form, routes.legacyField, file);
+  const { data } = await api.post(routes.legacy, form, { headers: { "Content-Type": "multipart/form-data" } });
+  return data;
+}
+
+export const ptApplicationService = {
+  /** null = never applied (the server answers `null`). */
+  getMe: async (): Promise<PTApplication | null> => {
+    const { data } = await api.get("/pt-applications/me");
+    return data ?? null;
+  },
+  saveDraft: async (body: Partial<PTApplication>): Promise<PTApplication> => {
+    const { data } = await api.post("/pt-applications/me/draft", body);
+    return data;
+  },
+  submit: async (): Promise<PTApplication> => {
+    const { data } = await api.post("/pt-applications/me/submit");
+    return data;
+  },
+  /** `url` is the stable reference to store in the form; `previewUrl` a short-lived signed link. */
+  uploadDocument: async (file: UploadFile): Promise<{ url: string; previewUrl?: string }> =>
+    uploadViaPresignOrLegacy(file, {
+      presign: "/pt-applications/me/upload/presign",
+      confirm: "/pt-applications/me/upload/confirm",
+      legacy: "/pt-applications/me/upload",
+      legacyField: "document",
+    }),
 };
 
 export const walletService = {
