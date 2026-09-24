@@ -11,8 +11,10 @@ import {
   availabilityService,
   profileService,
   gymService,
+  contractService,
   type PTServicePackage,
 } from "../../services/api";
+import { ptApplicationService } from "../../services/ptApplicationService";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 import type { Gym } from "../../types";
 
@@ -63,8 +65,13 @@ const DAY_ORDER = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATU
 export function PTProfilePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
-  const [verificationStatus] = useState<"pending" | "approved">("approved");
+  // The public-profile card used to be four hardcoded literals behind an `editing` toggle whose
+  // "Save" button called nothing, and `verificationStatus` was a useState frozen to "approved".
+  // Every one of those values has a real home — the PT's own application (professionalBio,
+  // yearsOfExperience, certificates, status) and their profile row (name, specialties) — so
+  // they are read from there now. There is no PATCH for them on /profile/me (profileSchema has
+  // no bio/specialties/experience keys at all), which is exactly why the old Save saved nothing;
+  // editing therefore links to the PT application, which is where these fields really live.
 
   // Training location management
   const [locFormOpen, setLocFormOpen] = useState(false);
@@ -197,6 +204,39 @@ export function PTProfilePage() {
     queryFn: profileService.getProfile,
   });
   const referralCode: string | undefined = myProfile?.profile?.referralCode;
+  const myUserId: string | undefined = myProfile?.profile?.userId;
+
+  // The real sources for what the public-profile card shows.
+  const { data: myApplication } = useQuery({
+    queryKey: ["pt-application-me"],
+    queryFn: ptApplicationService.getMe,
+  });
+  // Same aggregate the rating on the client-facing PT card is built from, so a trainer sees
+  // exactly the number their clients see instead of a decorative one.
+  const { data: publicProfile } = useQuery({
+    queryKey: ["pt-public-profile", myUserId],
+    queryFn: () => profileService.getPTDetail(myUserId!),
+    enabled: !!myUserId,
+  });
+  const { data: earnings } = useQuery({
+    queryKey: ["pt-earnings"],
+    queryFn: () => contractService.getEarnings(),
+  });
+
+  const displayName =
+    `${myProfile?.profile?.firstName ?? ""} ${myProfile?.profile?.lastName ?? ""}`.trim();
+  // The application owns this list; `UserProfile.specialties` is a denormalized copy written by
+  // pt_application.repository's "Sync search fields to UserProfile" step so discovery can filter
+  // on it, and it goes stale whenever the application changed without a draft save (live example
+  // 25/9: profile row held {Powerlifting, Tăng cơ} while the application held {Tăng cơ, Giảm mỡ,
+  // Phục hồi chấn thương}). A trainer looking at their own profile should see what they entered.
+  const specialties: string[] =
+    (myApplication?.mainSpecialties?.length ? myApplication.mainSpecialties : myProfile?.profile?.specialties) ?? [];
+  const certificates = (myApplication?.certificates ?? []).filter((c) => c.certificateName?.trim());
+  const ratingCount = Number(publicProfile?.ratingCount ?? 0);
+  const avgRating = Number(publicProfile?.avgRating ?? 0);
+  // Mirrors the application's own lifecycle rather than asserting "approved" unconditionally.
+  const applicationStatus = myApplication?.status ?? (myProfile?.profile?.isPT ? "APPROVED" : null);
 
   // For starting a NEW collaboration proposal — CollaborationPanel needs a gymId to propose
   // against, but always shows/responds to existing ones regardless of this selection.
@@ -318,24 +358,21 @@ export function PTProfilePage() {
     else createPkgMutation.mutate(payload);
   };
 
-  const verificationConfig = {
-    not_pt: {
-      label: "Not PT",
-      color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",
-    },
-    pending: {
-      label: "Pending Review",
-      color: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    },
-    approved: {
-      label: "Approved PT",
-      color: "bg-green-500/10 text-green-400 border-green-500/20",
-    },
-    rejected: {
-      label: "Rejected",
-      color: "bg-red-500/10 text-red-400 border-red-500/20",
-    },
+  // Keyed by the real PTApplicationStatus values, not by a frozen local flag.
+  const verificationConfig: Record<string, { label: string; color: string; approved?: boolean }> = {
+    DRAFT: { label: "Hồ sơ nháp", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700" },
+    SUBMITTED: { label: "Đã nộp — chờ duyệt", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    UNDER_REVIEW: { label: "Đang xét duyệt", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    NEEDS_MORE_INFO: { label: "Cần bổ sung", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    APPROVED: { label: "Đã duyệt", color: "bg-green-500/10 text-green-400 border-green-500/20", approved: true },
+    REJECTED: { label: "Đã từ chối", color: "bg-red-500/10 text-red-400 border-red-500/20" },
   };
+  const verification = applicationStatus
+    ? (verificationConfig[applicationStatus] ?? {
+        label: applicationStatus,
+        color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",
+      })
+    : { label: "Chưa có hồ sơ", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700" };
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">
@@ -347,41 +384,33 @@ export function PTProfilePage() {
           </p>
         </div>
         <button
-          onClick={() => setEditing(!editing)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${editing ? "bg-green-500 hover:bg-green-400 text-black shadow-green-500/20" : "bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"}`}
+          onClick={() => navigate("/client/pt-application")}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"
         >
-          {editing ? (
-            <>
-              <Check className="w-4 h-4" /> Save
-            </>
-          ) : (
-            <>
-              <Edit3 className="w-4 h-4" /> Edit Profile
-            </>
-          )}
+          <Edit3 className="w-4 h-4" /> Sửa hồ sơ chuyên môn
         </button>
       </div>
 
       {/* Verification status */}
       <div
-        className={`flex items-center gap-3 p-4 rounded-xl border ${verificationStatus === "approved" ? "bg-green-500/8 border-green-500/20" : "bg-amber-500/8 border-amber-500/20"}`}
+        className={`flex items-center gap-3 p-4 rounded-xl border ${verification.approved ? "bg-green-500/8 border-green-500/20" : "bg-amber-500/8 border-amber-500/20"}`}
       >
         <Award
-          className={`w-5 h-5 ${verificationStatus === "approved" ? "text-green-400" : "text-amber-400"}`}
+          className={`w-5 h-5 ${verification.approved ? "text-green-400" : "text-amber-400"}`}
         />
         <div>
           <div className="text-sm font-bold text-zinc-200">
-            PT Verification Status
+            Trạng thái hồ sơ huấn luyện viên
           </div>
           <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${verificationConfig[verificationStatus].color}`}
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${verification.color}`}
           >
-            {verificationConfig[verificationStatus].label}
+            {verification.label}
           </span>
         </div>
-        {verificationStatus === "approved" && (
+        {verification.approved && (
           <div className="ml-auto flex items-center gap-1 text-green-400 text-sm font-bold">
-            <Check className="w-4 h-4" /> Verified Coach
+            <Check className="w-4 h-4" /> Đã xác minh
           </div>
         )}
       </div>
@@ -390,96 +419,91 @@ export function PTProfilePage() {
         {/* Public profile */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-            <h4 className="text-sm font-bold text-zinc-200 mb-3">
-              Public Profile
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-bold text-zinc-200">
+                Hồ sơ công khai
+              </h4>
+              <span className="text-xs text-zinc-600">
+                Lấy từ hồ sơ ứng tuyển của bạn
+              </span>
+            </div>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
-                  Display Name
+                  Tên hiển thị
                 </label>
-                {editing ? (
-                  <input
-                    defaultValue="Sarah Mitchell"
-                    className="w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200"
-                  />
-                ) : (
-                  <p className="text-sm font-semibold text-zinc-200 py-2">
-                    Sarah Mitchell
-                  </p>
-                )}
+                <p className="text-sm font-semibold text-zinc-200 py-2">
+                  {displayName || <span className="text-zinc-600">Chưa có tên</span>}
+                </p>
+                {/* The profile row's name is what clients see — auth's account name is only used
+                    as a fallback when this is empty (profile.service.ts enrichProfilesWithAuthNames),
+                    so the two can legitimately differ and it is worth saying which one this is. */}
+                <p className="text-xs text-zinc-600">Tên học viên nhìn thấy khi tìm huấn luyện viên</p>
               </div>
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
-                  Bio
+                  Giới thiệu
                 </label>
-                {editing ? (
-                  <textarea
-                    rows={3}
-                    defaultValue="Certified NASM personal trainer specializing in evidence-based fat loss and strength development. 6+ years experience coaching online clients worldwide."
-                    className="w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200 resize-none"
-                  />
+                {myApplication?.professionalBio?.trim() ? (
+                  <p className="text-sm text-zinc-400 py-2 leading-relaxed whitespace-pre-line">
+                    {myApplication.professionalBio}
+                  </p>
                 ) : (
-                  <p className="text-sm text-zinc-400 py-2 leading-relaxed">
-                    Certified NASM personal trainer specializing in
-                    evidence-based fat loss and strength development. 6+ years
-                    experience coaching online clients worldwide.
+                  <p className="text-sm text-zinc-600 py-2">
+                    Chưa viết phần giới thiệu.
                   </p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
-                    Specialties
+                    Chuyên môn
                   </label>
                   <div className="flex flex-wrap gap-1.5 py-1">
-                    {["Fat Loss", "Strength Training", "HIIT", "Nutrition"].map(
-                      (s) => (
+                    {specialties.length > 0 ? (
+                      specialties.map((s) => (
                         <span
                           key={s}
                           className="px-2 py-0.5 bg-zinc-800 border border-zinc-700/40 text-zinc-400 text-xs rounded-full"
                         >
                           {s}
                         </span>
-                      ),
-                    )}
-                    {editing && (
-                      <button className="px-2 py-0.5 border border-dashed border-green-500/40 text-green-400 text-xs rounded-full">
-                        <Plus className="w-3 h-3" />
-                      </button>
+                      ))
+                    ) : (
+                      <span className="text-sm text-zinc-600 py-1">Chưa chọn</span>
                     )}
                   </div>
                 </div>
                 <div>
                   <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
-                    Experience
+                    Kinh nghiệm
                   </label>
-                  {editing ? (
-                    <input
-                      defaultValue="6 years"
-                      className="w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200"
-                    />
-                  ) : (
-                    <p className="text-sm font-semibold text-zinc-200 py-2">
-                      6 years
-                    </p>
-                  )}
+                  <p className="text-sm font-semibold text-zinc-200 py-2">
+                    {myApplication?.yearsOfExperience ? (
+                      `${myApplication.yearsOfExperience} năm`
+                    ) : (
+                      <span className="text-zinc-600 font-normal">Chưa khai</span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
-                  Certifications
+                  Chứng chỉ
                 </label>
                 <div className="flex flex-wrap gap-2 py-1">
-                  {["NASM CPT", "Precision Nutrition L1", "TRX Certified"].map(
-                    (c) => (
+                  {certificates.length > 0 ? (
+                    certificates.map((c, i) => (
                       <span
-                        key={c}
+                        key={c.id ?? `${c.certificateName}-${i}`}
+                        title={c.issuingOrganization || undefined}
                         className="flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs rounded-full"
                       >
-                        <Award className="w-3 h-3" /> {c}
+                        <Award className="w-3 h-3" /> {c.certificateName}
                       </span>
-                    ),
+                    ))
+                  ) : (
+                    <span className="text-sm text-zinc-600">Chưa có chứng chỉ nào</span>
                   )}
                 </div>
               </div>
@@ -748,28 +772,30 @@ export function PTProfilePage() {
           )}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <h4 className="text-sm font-bold text-zinc-200 mb-3">
-              Profile Stats
+              Số liệu hồ sơ
             </h4>
             <div className="space-y-3">
               {[
                 {
-                  label: "Rating",
-                  value: "4.9",
-                  sub: "48 reviews",
-                  icon: Star,
+                  label: "Đánh giá",
+                  value: ratingCount > 0 ? avgRating.toFixed(1) : "—",
+                  sub: ratingCount > 0 ? `${ratingCount} lượt đánh giá` : "chưa có đánh giá",
+                  icon: ratingCount > 0 ? Star : null,
                   color: "text-amber-400",
                 },
                 {
-                  label: "Active Clients",
-                  value: "14",
-                  sub: "this month",
+                  label: "Hợp đồng đang chạy",
+                  value: String(earnings?.activeContracts ?? 0),
+                  sub: "đang hoạt động",
                   icon: null,
                   color: "text-green-400",
                 },
                 {
-                  label: "Sessions Done",
-                  value: "342",
-                  sub: "total",
+                  // "Sessions Done" had no endpoint behind it — completed CONTRACTS do, and
+                  // that is what is shown rather than a session count nothing can produce.
+                  label: "Hợp đồng đã hoàn thành",
+                  value: String(earnings?.completedContracts ?? 0),
+                  sub: "tổng cộng",
                   icon: null,
                   color: "text-blue-400",
                 },
