@@ -1855,3 +1855,150 @@ partner rồi mới bật lại.
   `availabilityService`. Kiểm bằng cột jsonb sẽ tưởng nhầm là mất dữ liệu.
 - Đơn này **không được duyệt** ở đây: duyệt đơn là việc của admin (Phase 13). john.doe từ nay có một đơn PT ở trạng
   thái SUBMITTED — bài test nào cần "client chưa có đơn" phải dùng tài khoản khác.
+
+## 26. Không gian Huấn luyện viên (Tổng quan, Học viên, Lịch dạy, Ví, Hồ sơ) — Phase 10 (24–25/9)
+
+PT-01/02/03/04/05/06. Khung tab PT đã dựng từ Phase 4; phase này thay 5 màn giữ chỗ bằng màn thật.
+Lớp thuần: `src/features/pt/pt.ts` (+ `src/features/__tests__/pt.test.ts`, 22 ca).
+
+### 26.1 — Nhãn trạng thái đọc từ ghế huấn luyện viên
+
+`ContractStatus` và `SessionStatus` vẫn chỉ được diễn giải ở `features/services/{contracts,sessions}.ts` —
+không nhân bản enum. Nhưng nhãn phụ thuộc phía nhìn: "Chờ PT xác nhận" là câu KHÁCH đọc; PT phải đọc
+"Bạn cần xác nhận". Nên `ptContractStatus`/`ptSessionStatus` chỉ ghi đè các mục phụ thuộc phía, còn lại rơi
+về bản dùng chung (giữ nguyên tone). Thêm giá trị enum mới thì vẫn chạy, chỉ đọc trung tính cho tới khi được
+đặt nhãn PT. Có test khẳng định cả hai chiều: mục bị lật phải KHÁC bản client, mục trung tính phải GIỐNG.
+
+### 26.2 — "Học viên" = hợp đồng, không phải người
+
+Gymini không có model roster riêng: `GET /contracts/pt` là nguồn duy nhất. Một khách có hai gói xuất hiện
+hai dòng — đúng nghiệp vụ, nên route chi tiết mang **contractId** (web mang clientUserId rồi phải đoán
+"hợp đồng ACTIVE mới nhất"). Web có 5 chip tiếng Anh; mobile gộp còn 4 chip tiếng Việt — Completed và
+Expired với PT đều nghĩa là "quan hệ đã kết thúc". Có test: mọi giá trị `ContractStatus` thuộc đúng MỘT chip,
+nên không ai biến mất khỏi danh sách.
+
+### 26.3 — Nút hành động buổi tập bám đúng guard của backend
+
+`sessionActions()` chỉ hiện nút mà server chắc chắn nhận: **Đã dạy xong** chỉ khi CONFIRMED và đã qua
+`scheduledEndAt` (booking.service.ts P0 cluster B3); **Báo vắng** chỉ khi CONFIRMED và đã qua
+`scheduledStartAt` + 15 phút (`NO_SHOW_GRACE_MINUTES`, P0 cluster B4 + Vòng 4/E1). Web hiện cả hai rồi để
+lỗi 400 giải thích. Grace window là mặc định của backend (cấu hình được), nên lỗi trả về vẫn được hiển thị
+chứ không coi là không thể xảy ra.
+
+### 26.4 — Khung giờ rảnh: dải giờ thật, không phải lưới ô của bản thiết kế
+
+Bản thiết kế vẽ lưới ngày × khung giờ cố định. Backend không có model đó: `pt_availability` lưu dải
+start/end tự do, nhiều dải mỗi ngày. Vẽ lưới sẽ bịa model và âm thầm xoá dải thật của PT, nên màn này dùng
+lại đúng bộ soạn dải + kiểm trùng/độ dài của thuật sĩ ứng tuyển PT (`features/ptApplication/ptApplication.ts`).
+
+**Hai phương ngữ thứ trong tuần:** `GET /availability/:id` trả enum Prisma (`MONDAY`), còn `PUT
+/availability/me` chuẩn hoá mọi dạng (`DAY_NAME_NORMALIZE`, vốn sinh ra cho dạng viết tắt `Mon` của thuật sĩ).
+Mobile giữ MỘT dạng nội bộ (`Mon`..`Sun`) và đổi lúc đọc — `normalizeDay`/`availabilityFromServer`.
+
+`PUT` **thay cả tuần**, nên bỏ một ngày rồi lưu là xoá thật — vì vậy có nút Lưu tường minh, không autosave.
+
+### 26.5 — Hai chỗ KHÔNG chép từ web vì là dữ liệu bịa
+
+- **PTProfilePage "Public Profile"**: tên "Sarah Mitchell", tiểu sử, "6 years", 4 chip chuyên môn tiếng Anh —
+  toàn bộ là literal cứng với input `defaultValue`; nút Edit chỉ bật/tắt ô nhập và **không lưu đi đâu**.
+- **PTProfilePage "Profile Stats"**: rating "4.9", "48 reviews" — cũng là literal cứng.
+
+Chép sang mobile là đặt số bịa trước mặt một huấn luyện viên thật. Mobile dùng nguồn thật thay thế:
+`specialties` trên `user_profiles`, và `avgRating`/`ratingCount` thật từ `GET /profile/pts/:userId` (chính là
+thứ khách nhìn thấy). Chưa có đánh giá thì ghi "Chưa có đánh giá", không bịa số.
+
+Tương tự ở Tổng quan: web gọi `/contracts/pt/earnings` là "Tổng thu nhập", nhưng `getEarnings` cộng **giá hợp
+đồng** (`contract.price`) của các hợp đồng COMPLETED — tức doanh thu **gộp**, chưa trừ phí nền tảng.
+Đã kiểm bằng dữ liệu thật: `platform_commissions` với `partner_type='PT'` có `commission_rate = 0.1000`,
+ví dụ gross 4.000.000 → phí 400.000 → PT thực nhận 3.600.000 (`wallet.service.ts` `transferWithCommission`:
+`netToReceiver = amount − amount × commissionRate`, mặc định `PLATFORM_COMMISSION_RATE = 0.10`).
+Nên con số đó cao hơn tiền PT thật sự nhận đúng bằng phần hoa hồng. Ví của payment-service mới là thẩm quyền
+tiền, nên ví chiếm vị trí chính, còn con số hợp đồng giữ đúng tên của nó.
+
+**Đính chính bản nháp trước của mục này (25/9):** câu "và trước khi buổi nào được tất toán" chỉ đúng với
+`activeRevenue` (hợp đồng đang chạy), KHÔNG đúng với `totalEarned` — hợp đồng đã COMPLETED thì tiền phần lớn
+đã về ví rồi, chỉ là đã bị trừ 10%. Giữ lại đính chính này để không ai trích dẫn lại câu sai.
+Bản thiết kế có "Thu nhập tháng 9" — không dựng, vì không endpoint nào trả số theo tháng.
+
+### 26.6 — Bằng chứng (REAL emulator + BACKEND INTEGRATION, 24–25/9, tài khoản pt@example.com)
+
+- Chuyển không gian Cá nhân ⇄ Huấn luyện viên: cả hai chiều, đổi accent tím, không trắng màn hình.
+- Tổng quan: ví **28.775.000 ₫** khớp `wallets.available_balance`; 4 học viên; "đang chạy 2.000.000 ₫".
+- Học viên: **35 hợp đồng · Đang tập 4 · Chờ xử lý 1 · Đã xong 30** — khớp SELECT theo `status`
+  (ACTIVE 4, PENDING_PAYMENT 1, CANCELLED 29 + REJECTED 1).
+- Lịch dạy: lịch Tháng 9/2026 bắt đầu từ T2, ngày 1 rơi vào T3 (đúng), hôm nay được tô.
+  Khung giờ rảnh đọc đúng **T4 08:00–12:00, T6 14:00–18:00** = `pt_availability`.
+- **Đường ghi khung giờ kiểm khứ hồi**: thêm T2 08:00–09:00 → Lưu → DB có 3 dòng (MONDAY xuất hiện) →
+  xoá → Lưu → DB trở lại đúng 2 dòng ban đầu. Không để lại dấu vết trên tài khoản dùng chung.
+- Chi tiết học viên (PT-03): hợp đồng John Doe `3ad55e9a…` — gói, **Đang hiệu lực**, 0 buổi, bắt đầu
+  **22/09/2026** (DB `2026-09-21 17:42 UTC` = 22/9 giờ VN), hết hạn **—** (null), giá trị **500.000 ₫**.
+- Ví PT: số dư, danh sách yêu cầu rút (Đã chi trả / Từ chối + lý do), lịch sử có
+  "Giải phóng tiền tạm giữ" — `ptTransactionLabel` dịch đúng chuỗi nội bộ của payment-service.
+- **Yêu cầu rút tiền thật** (tiêu chí tiền của Phase 10): nhập 20.000 ₫ + tài khoản nhận, gửi →
+  `withdrawal_requests` có dòng mới **`status = PENDING`**, `payout_info = 0123456789-Vietcombank-PT`,
+  `created_at = 2026-09-24 17:23:09`. Màn hình hiện "20.000 ₫ · Chờ duyệt · Đang chờ xử lý — sẽ chuyển khoản
+  thủ công". Không có tiền nào dịch chuyển: số dư vẫn 28.775.000 ₫ (đúng thiết kế — admin mới chi trả).
+  Yêu cầu này **để nguyên** cho admin xử lý ở Phase 13; nó là dấu vết duy nhất phase này để lại trên
+  tài khoản dùng chung.
+- Khôi phục phiên: force-stop rồi mở lại app → vào thẳng không gian PT, đúng tài khoản, không trắng màn hình.
+
+### 26.7 — Quan sát dữ liệu (không sửa)
+
+- Ba hợp đồng ACTIVE của pt@example.com trỏ tới `client_user_id` **không còn tồn tại** ở cả `users` lẫn
+  `user_profiles` (dữ liệu E2E mồ côi) → hiện "Học viên". Đây là fallback đúng, không phải lỗi hiển thị.
+- Một `withdrawal_requests.rejection_reason` chứa ký tự U+FFFD trong CHÍNH DB
+  (`hex = 536169207468efbfbd...`), nên hiện "Sai th?ng tin ng?n h?ng". Dữ liệu hỏng sẵn từ trước, web cũng
+  hiện y hệt — không sửa dữ liệu để làm đẹp màn hình.
+
+### 26.8 — Chưa làm ở phase này (theo manifest)
+
+PT-07 hợp đồng, PT-08/09/11 chợ & đơn dịch vụ, PT-10 gói dịch vụ, PT-12 duyệt giáo án, PT-13 hợp tác gym,
+WB-13 lộ trình học viên — tất cả thuộc **Phase 11**. Các luồng phản hồi đổi lịch và báo cáo vắng mặt của
+web cũng để Phase 11 cùng cụm tranh chấp.
+
+### 26.9 — Hai lỗi của bản WEB tìm ra từ phase này, Ngài cho phép sửa luôn (25/9)
+
+Ban đầu mobile chỉ **né** hai chỗ này. Ngài hỏi lại "có phải lỗi không", tại hạ kiểm bằng code + dữ liệu
+thật, xác nhận **là lỗi thật của web**, và Ngài chọn phương án **sửa ở web**. Đây là ngoại lệ có phép cho
+luật "không đụng `frontend/web`" — chỉ đúng hai tệp dưới đây.
+
+**(1) `pages/pt/PTProfilePage.tsx` — dữ liệu bịa hiện cho huấn luyện viên thật.**
+Trước khi sửa, trang này hiển thị: tên `"Sarah Mitchell"`, tiểu sử tiếng Anh, `"6 years"`, 4 chip chuyên môn
+`["Fat Loss","Strength Training","HIIT","Nutrition"]`, 3 chứng chỉ `["NASM CPT","Precision Nutrition L1",
+"TRX Certified"]`, và "Profile Stats" `4.9 / 48 reviews`, `14 active clients`, `342 sessions done`. Tất cả là
+literal cứng. Nút "Edit Profile / Save" chỉ chạy `setEditing(!editing)` — **không có mutation nào**, bấm Save
+không gửi gì. `verificationStatus` cũng là `useState` ghim cứng `"approved"`.
+
+Nguyên nhân gốc vì sao nút Save không thể lưu: `profileSchema` (user-service `models/profile.models.ts`)
+**không có** khoá `bio`/`specialties`/`yearsOfExperience`/`displayName` — `PATCH /profile/me` không nhận
+những trường đó. Nơi thật sự chứa chúng là **hồ sơ ứng tuyển PT** (`pt_applications.professional_bio`,
+`years_of_experience`, `main_specialties`, bảng `pt_application_certificates`).
+
+Đã sửa: đọc thật từ `GET /pt-applications/me` + `GET /profile/me` + `GET /profile/pts/:userId` +
+`GET /contracts/pt/earnings`; bỏ nút Save chết, đổi thành liên kết sang `/client/pt-application` (nơi các
+trường này thật sự sửa được); trạng thái xác minh đọc từ `PTApplicationStatus` thật; "Sessions Done" bỏ hẳn
+vì **không endpoint nào** trả số đó — thay bằng "Hợp đồng đã hoàn thành" (`completedContracts`, có thật).
+
+Chênh lệch nguồn phát hiện khi sửa: `UserProfile.specialties` chỉ là **bản sao phục vụ tìm kiếm**, ghi bởi
+`pt_application.repository` bước "Sync search fields", và đi lạc khi hồ sơ đổi mà không lưu nháp — số liệu
+sống 25/9: hồ sơ giữ `{Powerlifting, Tăng cơ}` còn đơn giữ `{Tăng cơ, Giảm mỡ, Phục hồi chấn thương}`. Trang
+này ưu tiên bản của **đơn** (thứ chính HLV nhập). Tên hiển thị thì ngược lại — lấy từ hàng hồ sơ, vì đó đúng
+là tên khách nhìn thấy (`enrichProfilesWithAuthNames` chỉ mượn tên tài khoản khi hàng hồ sơ trống).
+
+**(2) `pages/pt/PTDashboard.tsx` — nhãn "Tổng thu nhập" khai khống.**
+`getEarnings()` cộng `contract.price` của hợp đồng COMPLETED = doanh thu **gộp**. Nền tảng thu hoa hồng trên
+mọi hợp đồng PT — `wallet.service.ts` `transferWithCommission` (`netToReceiver = amount − amount × rate`,
+`PLATFORM_COMMISSION_RATE` mặc định `0.10`), kiểm bằng dữ liệu thật: `platform_commissions` `partner_type='PT'`
+có `commission_rate = 0.1000`, gross 4.000.000 → phí 400.000 → PT nhận 3.600.000. Gọi đó là "thu nhập" làm
+con số cao hơn tiền HLV thật nhận đúng bằng phần phí. Đã đổi nhãn thành **"Doanh thu hợp đồng"** + dòng phụ
+**"Trước phí nền tảng"**. Không đổi số, không đổi endpoint — chỉ đổi chữ cho đúng.
+
+**Kiểm chứng (REAL BROWSER + REAL HTTP/API, 25/9, pt@example.com, web dev `localhost:5173`):**
+Playwright tải `/pt/dashboard` và `/pt/profile`, quét toàn bộ text: **0/8 chuỗi bịa còn sót**
+(`Sarah Mitchell`, `NASM CPT`, `Precision Nutrition`, `TRX Certified`, `48 reviews`, `342`, `Tổng thu nhập`,
+`6 years`); **9/9 giá trị thật hiện đúng**; **0 lỗi runtime**. Đối chiếu API: đơn `APPROVED`, kinh nghiệm
+`5-10`, 3 chuyên môn, 2 chứng chỉ (`NASM-CPT`, `Sơ cấp cứu`), đánh giá `5.0/1 lượt`, `activeContracts 4`,
+`completedContracts 0`. `vite build` xanh.
+
+**Chưa làm:** không thêm cột backend nào, không mở đường sửa tiểu sử/chuyên môn ngay trên trang hồ sơ PT —
+muốn vậy phải thêm trường vào `profileSchema`, vượt phạm vi "sửa lỗi".
