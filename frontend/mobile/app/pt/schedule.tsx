@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CalendarClock,
   CalendarOff,
   CalendarX2,
   Check,
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   Plus,
+  ShieldAlert,
   Trash2,
   UserX,
 } from "lucide-react-native";
@@ -33,13 +35,19 @@ import { designTokens } from "../../src/theme/colors";
 import {
   DAY_LABELS,
   MONTH_LABEL,
+  RESCHEDULE_MIN_NOTICE_HOURS,
   type AvailabilityBlock,
   availabilityFromServer,
   blockedDateSet,
+  canProposeReschedule,
   clientName,
   isoDate,
   monthCells,
+  noShowReports,
+  ptIncomingReschedule,
+  ptOutgoingReschedule,
   ptSessionStatus,
+  relativeDayLabel,
   sessionActions,
   sessionDaysIn,
   sessionTimeLabel,
@@ -81,16 +89,27 @@ export default function PtScheduleScreen() {
   const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming() });
   const availQuery = useQuery({ queryKey: ["pt-availability", uid], queryFn: () => availabilityService.getAvailability("me") });
   const exceptionsQuery = useQuery({ queryKey: ["pt-exceptions", uid], queryFn: () => availabilityService.getExceptions() });
+  // Money-flow 4.3: already-past sessions a client reported the trainer absent for. A separate,
+  // time-unfiltered read - they never appear in the upcoming list.
+  const noShowQuery = useQuery({ queryKey: ["pt-no-show-reports", uid], queryFn: () => sessionService.listNoShowReports() });
 
   const sessions = sessionsOf(sessionsQuery.data);
   const marked = sessionDaysIn(sessions, year, month);
   const daySessions = sessionsOnDay(sessions, year, month, day);
   const blocked = blockedDateSet(exceptionsQuery.data);
+  const reports = noShowReports(noShowQuery.data);
+  const [denyFor, setDenyFor] = useState<any>(null);
+  const [denyNote, setDenyNote] = useState("");
+  const [proposeFor, setProposeFor] = useState<any>(null);
+  const [proposeDate, setProposeDate] = useState("");
+  const [proposeTime, setProposeTime] = useState("");
+  const [proposeReason, setProposeReason] = useState("");
   const exceptions: any[] = Array.isArray(exceptionsQuery.data) ? exceptionsQuery.data : [];
 
   const invalidateSessions = () => {
     void queryClient.invalidateQueries({ queryKey: ["pt-sessions-upcoming", uid] });
     void queryClient.invalidateQueries({ queryKey: ["pt-contracts", uid] });
+    void queryClient.invalidateQueries({ queryKey: ["pt-no-show-reports", uid] });
   };
   const fail = (e: any, fallback: string) =>
     toast.show(e?.response?.data?.error?.message || e?.response?.data?.error || fallback, "danger");
@@ -127,6 +146,62 @@ export default function PtScheduleScreen() {
     },
     onError: (e) => fail(e, "Không huỷ được buổi tập"),
   });
+
+  const respondReschedule = useMutation({
+    mutationFn: ({ requestId, action }: { requestId: string; action: "ACCEPT" | "REJECT" }) =>
+      sessionService.respondToReschedule(requestId, action),
+    onSuccess: (_d, v) => {
+      // Accepting moves the session to the proposed time and it stays CONFIRMED; rejecting only
+      // closes the proposal - it does NOT cancel the session. Say which is which.
+      toast.show(
+        v.action === "ACCEPT" ? "Đã đổi sang giờ học viên đề nghị" : "Đã từ chối đổi lịch — buổi tập giữ nguyên giờ cũ",
+        "success",
+      );
+      invalidateSessions();
+    },
+    onError: (e) => fail(e, "Không trả lời được đề nghị"),
+  });
+
+  const proposeReschedule = useMutation({
+    mutationFn: () => {
+      const start = new Date(`${proposeDate}T${proposeTime}:00`);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      return sessionService.requestReschedule(
+        proposeFor.id,
+        start.toISOString(),
+        end.toISOString(),
+        proposeReason.trim(),
+      );
+    },
+    onSuccess: () => {
+      toast.show("Đã gửi đề nghị dời lịch — chờ học viên xác nhận", "success");
+      setProposeFor(null);
+      invalidateSessions();
+    },
+    onError: (e) => fail(e, "Không gửi được đề nghị dời lịch"),
+  });
+
+  const respondNoShow = useMutation({
+    mutationFn: ({ id, response, note }: { id: string; response: "AGREE" | "DENY"; note?: string }) =>
+      sessionService.respondToNoShowReport(id, response, note),
+    onSuccess: (_d, v) => {
+      toast.show(v.response === "AGREE" ? "Đã xác nhận bạn vắng buổi đó" : "Đã gửi giải trình — quản trị viên sẽ xem xét", "success");
+      setDenyFor(null);
+      setDenyNote("");
+      invalidateSessions();
+    },
+    onError: (e) => fail(e, "Không gửi được phản hồi"),
+  });
+
+  const askAgreeNoShow = (s2: any) =>
+    Alert.alert(
+      "Xác nhận bạn vắng buổi này?",
+      "Hệ thống sẽ bồi thường cho học viên theo chính sách. Không thể hoàn tác.",
+      [
+        { text: "Để sau", style: "cancel" },
+        { text: "Xác nhận", style: "destructive", onPress: () => respondNoShow.mutate({ id: s2.id, response: "AGREE" }) },
+      ],
+    );
 
   const askCancel = (id: string, name: string) =>
     Alert.alert("Huỷ buổi tập?", `Buổi với ${name} sẽ bị huỷ. Học viên sẽ nhận được thông báo.`, [
@@ -172,6 +247,48 @@ export default function PtScheduleScreen() {
 
         {tab === TABS[0] ? (
           <View className="gap-4 p-5">
+            {reports.length > 0 ? (
+              <View className="gap-3">
+                {reports.map((r: any) => (
+                  <Card key={r.id} className="gap-2 border-destructive/40 bg-destructive/5 p-4">
+                    <View className="flex-row items-start gap-2">
+                      <ShieldAlert size={17} color={designTokens.destructive} />
+                      <View className="min-w-0 flex-1">
+                        <Text className="font-body-semibold text-sm text-destructive">
+                          Học viên báo bạn vắng mặt
+                        </Text>
+                        <Text className="font-body text-xs text-muted-foreground">
+                          {clientName(r)} · {relativeDayLabel(r.scheduledStartAt)} {sessionTimeLabel(r.scheduledStartAt)}
+                        </Text>
+                        {r.disputeReason ? (
+                          <Text className="mt-1 font-body text-xs text-muted-foreground">
+                            Lý do khách nêu: {r.disputeReason}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <Text className="font-body text-xs text-muted-foreground">
+                      Im lặng được tính là đồng ý — hãy trả lời.
+                    </Text>
+                    <View className="flex-row gap-2">
+                      <Button size="sm" variant="secondary" disabled={respondNoShow.isPending} onPress={() => askAgreeNoShow(r)}>
+                        Tôi có vắng
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={respondNoShow.isPending}
+                        onPress={() => {
+                          setDenyNote("");
+                          setDenyFor(r);
+                        }}
+                      >
+                        Phản đối
+                      </Button>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            ) : null}
             <Card className="p-4">
               <View className="flex-row items-center justify-between">
                 <Tappable accessibilityLabel="Tháng trước" onPress={() => step(-1)} className="h-9 w-9 items-center justify-center rounded-xl bg-panel">
@@ -264,7 +381,51 @@ export default function PtScheduleScreen() {
                       <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>
                     </View>
                     {st.note ? <Text className="font-body text-xs text-muted-foreground">{st.note}</Text> : null}
-                    {actions.length > 0 ? (
+
+                    {ptIncomingReschedule(s) ? (
+                      <View className="gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3">
+                        <Text className="font-body-semibold text-xs text-foreground">
+                          Học viên xin dời sang {relativeDayLabel(ptIncomingReschedule(s)!.proposedStartAt)}{" "}
+                          {sessionTimeLabel(ptIncomingReschedule(s)!.proposedStartAt)}
+                        </Text>
+                        {ptIncomingReschedule(s)!.reason ? (
+                          <Text className="font-body text-xs text-muted-foreground">
+                            Lý do: {ptIncomingReschedule(s)!.reason}
+                          </Text>
+                        ) : null}
+                        <Text className="font-body text-xs text-muted-foreground">
+                          Đồng ý thì buổi chuyển sang giờ mới; từ chối thì buổi giữ nguyên giờ cũ (không phải huỷ).
+                        </Text>
+                        <View className="flex-row gap-2">
+                          <Button
+                            size="sm"
+                            disabled={respondReschedule.isPending}
+                            onPress={() =>
+                              respondReschedule.mutate({ requestId: ptIncomingReschedule(s)!.id, action: "ACCEPT" })
+                            }
+                          >
+                            Đồng ý
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={respondReschedule.isPending}
+                            onPress={() =>
+                              respondReschedule.mutate({ requestId: ptIncomingReschedule(s)!.id, action: "REJECT" })
+                            }
+                          >
+                            Từ chối
+                          </Button>
+                        </View>
+                      </View>
+                    ) : ptOutgoingReschedule(s) ? (
+                      <Text className="font-body text-xs text-muted-foreground">
+                        Bạn đã xin dời sang {relativeDayLabel(ptOutgoingReschedule(s)!.proposedStartAt)}{" "}
+                        {sessionTimeLabel(ptOutgoingReschedule(s)!.proposedStartAt)} — chờ học viên trả lời.
+                      </Text>
+                    ) : null}
+
+                    {actions.length > 0 || canProposeReschedule(s) ? (
                       <View className="flex-row flex-wrap gap-2">
                         {actions.includes("confirm") ? (
                           <Button size="sm" icon={Check} disabled={busy} onPress={() => confirm.mutate(s.id)}>
@@ -279,6 +440,23 @@ export default function PtScheduleScreen() {
                         {actions.includes("noShow") ? (
                           <Button size="sm" variant="secondary" icon={UserX} disabled={busy} onPress={() => askNoShow(s.id, name)}>
                             Báo vắng
+                          </Button>
+                        ) : null}
+                        {canProposeReschedule(s) ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={CalendarClock}
+                            disabled={busy}
+                            onPress={() => {
+                              const d = new Date(s.scheduledStartAt);
+                              setProposeDate(isoDate(d.getFullYear(), d.getMonth(), d.getDate()));
+                              setProposeTime(sessionTimeLabel(s.scheduledStartAt));
+                              setProposeReason("");
+                              setProposeFor(s);
+                            }}
+                          >
+                            Xin dời lịch
                           </Button>
                         ) : null}
                         {actions.includes("cancel") ? (
@@ -302,6 +480,45 @@ export default function PtScheduleScreen() {
           />
         )}
       </ScrollView>
+
+      <BottomSheet open={!!denyFor} onClose={() => setDenyFor(null)} title="Phản đối báo cáo vắng mặt">
+        <View className="gap-3 pb-2">
+          <Text className="font-body text-sm text-muted-foreground">
+            Viết rõ bạn có mặt thế nào. Quản trị viên sẽ đọc giải trình này và phân xử.
+          </Text>
+          <Input label="Giải trình *" value={denyNote} onChangeText={setDenyNote} placeholder="Tôi đến đúng giờ, có tin nhắn trên ứng dụng lúc…" multiline />
+          <Button
+            full
+            disabled={!denyNote.trim() || respondNoShow.isPending}
+            onPress={() => respondNoShow.mutate({ id: denyFor.id, response: "DENY", note: denyNote.trim() })}
+          >
+            {respondNoShow.isPending ? "Đang gửi…" : "Gửi giải trình"}
+          </Button>
+        </View>
+      </BottomSheet>
+
+      <BottomSheet open={!!proposeFor} onClose={() => setProposeFor(null)} title="Xin dời lịch">
+        <View className="gap-3 pb-2">
+          <Text className="font-body text-sm text-muted-foreground">
+            Học viên phải đồng ý thì buổi mới chuyển. Chỉ xin dời được khi còn ít nhất{" "}
+            {RESCHEDULE_MIN_NOTICE_HOURS} giờ trước buổi tập.
+          </Text>
+          <Input label="Ngày mới (YYYY-MM-DD)" value={proposeDate} onChangeText={setProposeDate} />
+          <Input label="Giờ mới (HH:MM)" value={proposeTime} onChangeText={setProposeTime} />
+          <Input label="Lý do" value={proposeReason} onChangeText={setProposeReason} placeholder="Tôi bận đột xuất giờ đó…" multiline />
+          <Button
+            full
+            disabled={
+              !/^\d{4}-\d{2}-\d{2}$/.test(proposeDate) ||
+              !/^([01]\d|2[0-3]):[0-5]\d$/.test(proposeTime) ||
+              proposeReschedule.isPending
+            }
+            onPress={() => proposeReschedule.mutate()}
+          >
+            {proposeReschedule.isPending ? "Đang gửi…" : "Gửi đề nghị"}
+          </Button>
+        </View>
+      </BottomSheet>
     </View>
   );
 }

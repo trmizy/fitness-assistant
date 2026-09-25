@@ -15,6 +15,7 @@ import {
   contractTabCounts,
   contractsInTab,
   clientInitials,
+  canProposeReschedule,
   canRespondToCollab,
   clientName,
   collabStatus,
@@ -22,6 +23,7 @@ import {
   goalLabel,
   liveSessionCount,
   mondayOf,
+  noShowReports,
   packageFormError,
   packageFormFrom,
   packagePayload,
@@ -32,6 +34,9 @@ import {
   planTitle,
   ptAlerts,
   ptContractStatus,
+  ptIncomingReschedule,
+  ptOutgoingReschedule,
+  ptPendingReschedule,
   ptSessionStatus,
   ptTransactionLabel,
   ratePercent,
@@ -385,6 +390,49 @@ describe("alerts", () => {
   it("nothing pending means no alerts at all", () => {
     assert.deepEqual(ptAlerts([], [], now), []);
     assert.deepEqual(ptAlerts(null, [], now), []);
+  });
+});
+
+describe("reschedule proposals & no-show reports, trainer side", () => {
+  const base = { id: "s1", status: "CONFIRMED", scheduledStartAt: "2026-10-01T08:00:00" };
+  const now = new Date("2026-09-25T08:00:00");
+
+  it("incoming/outgoing are the mirror of the client-side pair", () => {
+    const fromClient = { ...base, rescheduleRequests: [{ id: "r", requestedBy: "CLIENT", status: "PENDING" }] };
+    const fromPt = { ...base, rescheduleRequests: [{ id: "r", requestedBy: "PT", status: "PENDING" }] };
+    assert.equal(ptIncomingReschedule(fromClient)?.id, "r");
+    assert.equal(ptOutgoingReschedule(fromClient), null);
+    assert.equal(ptOutgoingReschedule(fromPt)?.id, "r");
+    assert.equal(ptIncomingReschedule(fromPt), null);
+  });
+
+  it("a closed proposal is not pending", () => {
+    const answered = { ...base, rescheduleRequests: [{ id: "r", requestedBy: "CLIENT", status: "ACCEPTED" }] };
+    assert.equal(ptPendingReschedule(answered), null);
+    assert.equal(ptPendingReschedule({ ...base }), null);
+  });
+
+  it("proposing is offered only when the server would accept it", () => {
+    assert.equal(canProposeReschedule(base, now), true);
+    assert.equal(
+      canProposeReschedule({ ...base, rescheduleRequests: [{ id: "r", requestedBy: "CLIENT", status: "PENDING" }] }, now),
+      false,
+      "server tr\u1ea3 409 khi \u0111\u00e3 c\u00f3 m\u1ed9t \u0111\u1ec1 ngh\u1ecb m\u1edf",
+    );
+    assert.equal(
+      canProposeReschedule({ ...base, scheduledStartAt: "2026-09-25T14:00:00" }, now),
+      false,
+      "trong v\u00f2ng 12 gi\u1edd th\u00ec server t\u1eeb ch\u1ed1i",
+    );
+    assert.equal(canProposeReschedule({ ...base, status: "COMPLETED" }, now), false);
+    assert.equal(canProposeReschedule({ ...base, scheduledStartAt: "r\u00e1c" }, now), false);
+  });
+
+  it("no-show reports tolerate every envelope shape and drop rows without an id", () => {
+    assert.equal(noShowReports([{ id: "a" }, { nope: 1 }]).length, 1);
+    assert.equal(noShowReports({ sessions: [{ id: "a" }] }).length, 1);
+    assert.equal(noShowReports({ data: [{ id: "a" }] }).length, 1);
+    assert.equal(noShowReports(null).length, 0);
   });
 });
 

@@ -261,14 +261,14 @@ function ClientRoadmapCard({ clientUserId, clientName }: { clientUserId: string;
         plannedStartAt: new Date().toISOString(),
       }),
     onSuccess: () => {
-      toast.show("\u0110\u00e3 g\u1eedi l\u1ed9 tr\u00ecnh \u0111\u1ec1 xu\u1ea5t \u2014 ch\u1edd h\u1ecdc vi\u00ean duy\u1ec7t", "success");
+      toast.show("Đã gửi lộ trình đề xuất — chờ học viên duyệt", "success");
       setOpen(false);
       setName("");
       void queryClient.invalidateQueries({ queryKey: ["pt-client-roadmap", clientUserId] });
     },
     onError: (e: any) =>
       toast.show(
-        e?.response?.data?.error?.message || e?.response?.data?.error || "Kh\u00f4ng g\u1eedi \u0111\u01b0\u1ee3c l\u1ed9 tr\u00ecnh \u0111\u1ec1 xu\u1ea5t",
+        e?.response?.data?.error?.message || e?.response?.data?.error || "Không gửi được lộ trình đề xuất",
         "danger",
       ),
   });
@@ -277,56 +277,56 @@ function ClientRoadmapCard({ clientUserId, clientName }: { clientUserId: string;
     <View>
       <View className="mb-3 flex-row items-center gap-2 px-1">
         <Route size={16} color={accent.primary} />
-        <Text className="font-display text-lg text-foreground">L\u1ed9 tr\u00ecnh</Text>
+        <Text className="font-display text-lg text-foreground">Lộ trình</Text>
       </View>
       <Card className="gap-2.5 p-4">
         {query.isLoading ? (
           <ActivityIndicator className="self-start" color={accent.primary} />
         ) : query.isError ? (
           <Text className="font-body text-sm text-muted-foreground">
-            Ch\u01b0a xem \u0111\u01b0\u1ee3c l\u1ed9 tr\u00ecnh c\u1ee7a h\u1ecdc vi\u00ean n\u00e0y.
+            Chưa xem được lộ trình của học viên này.
           </Text>
         ) : active ? (
           <>
-            <Text className="font-body-semibold text-sm text-foreground">{(active as any).name ?? "L\u1ed9 tr\u00ecnh \u0111ang ch\u1ea1y"}</Text>
+            <Text className="font-body-semibold text-sm text-foreground">{(active as any).name ?? "Lộ trình đang chạy"}</Text>
             <Text className="font-body text-xs text-muted-foreground">
-              H\u1ecdc vi\u00ean \u0111ang theo m\u1ed9t l\u1ed9 tr\u00ecnh. Ch\u1ec9 h\u1ecdc vi\u00ean m\u1edbi \u0111\u1ed5i \u0111\u01b0\u1ee3c giai \u0111o\u1ea1n.
+              Học viên đang theo một lộ trình. Chỉ học viên mới đổi được giai đoạn.
             </Text>
           </>
         ) : pending ? (
           <>
-            <Badge tone="warning">Ch\u1edd h\u1ecdc vi\u00ean duy\u1ec7t</Badge>
+            <Badge tone="warning">Chờ học viên duyệt</Badge>
             <Text className="font-body text-xs text-muted-foreground">
-              \u0110\u00e3 c\u00f3 m\u1ed9t l\u1ed9 tr\u00ecnh \u0111\u1ec1 xu\u1ea5t \u0111ang ch\u1edd {clientName} xem. Kh\u00f4ng c\u1ea7n g\u1eedi th\u00eam.
+              Đã có một lộ trình đề xuất đang chờ {clientName} xem. Không cần gửi thêm.
             </Text>
           </>
         ) : (
           <>
             <Text className="font-body text-sm text-muted-foreground">
-              H\u1ecdc vi\u00ean ch\u01b0a c\u00f3 l\u1ed9 tr\u00ecnh n\u00e0o. B\u1ea1n c\u00f3 th\u1ec3 \u0111\u1ec1 xu\u1ea5t m\u1ed9t b\u1ea3n nh\u00e1p \u2014 h\u1ecdc vi\u00ean quy\u1ebft \u0111\u1ecbnh c\u00f3 k\u00edch ho\u1ea1t hay kh\u00f4ng.
+              Học viên chưa có lộ trình nào. Bạn có thể đề xuất một bản nháp — học viên quyết định có kích hoạt hay không.
             </Text>
             <Button size="sm" icon={Sparkles} onPress={() => setOpen(true)}>
-              \u0110\u1ec1 xu\u1ea5t l\u1ed9 tr\u00ecnh
+              Đề xuất lộ trình
             </Button>
           </>
         )}
       </Card>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="\u0110\u1ec1 xu\u1ea5t l\u1ed9 tr\u00ecnh">
+      <BottomSheet open={open} onClose={() => setOpen(false)} title="Đề xuất lộ trình">
         <View className="gap-3 pb-2">
           <Text className="font-body text-sm text-muted-foreground">
-            B\u1ea3n nh\u00e1p n\u00e0y g\u1eedi t\u1edbi {clientName} \u0111\u1ec3 xem x\u00e9t. B\u1ea1n kh\u00f4ng k\u00edch ho\u1ea1t thay h\u1ecd \u0111\u01b0\u1ee3c.
+            Bản nháp này gửi tới {clientName} để xem xét. Bạn không kích hoạt thay họ được.
           </Text>
-          <Input label="T\u00ean l\u1ed9 tr\u00ecnh *" value={name} onChangeText={setName} placeholder="12 tu\u1ea7n t\u0103ng c\u01a1" />
+          <Input label="Tên lộ trình *" value={name} onChangeText={setName} placeholder="12 tuần tăng cơ" />
           <Segmented
-            options={["T\u0103ng c\u01a1", "Gi\u1ea3m m\u1ee1", "Duy tr\u00ec"]}
-            value={goalType === "MUSCLE_GAIN" ? "T\u0103ng c\u01a1" : goalType === "WEIGHT_LOSS" ? "Gi\u1ea3m m\u1ee1" : "Duy tr\u00ec"}
+            options={["Tăng cơ", "Giảm mỡ", "Duy trì"]}
+            value={goalType === "MUSCLE_GAIN" ? "Tăng cơ" : goalType === "WEIGHT_LOSS" ? "Giảm mỡ" : "Duy trì"}
             onChange={(v) =>
-              setGoalType(v === "T\u0103ng c\u01a1" ? "MUSCLE_GAIN" : v === "Gi\u1ea3m m\u1ee1" ? "WEIGHT_LOSS" : "MAINTENANCE")
+              setGoalType(v === "Tăng cơ" ? "MUSCLE_GAIN" : v === "Giảm mỡ" ? "WEIGHT_LOSS" : "MAINTENANCE")
             }
           />
           <Button full disabled={!name.trim() || draft.isPending} onPress={() => draft.mutate()}>
-            {draft.isPending ? "\u0110ang g\u1eedi\u2026" : "G\u1eedi \u0111\u1ec1 xu\u1ea5t"}
+            {draft.isPending ? "Đang gửi…" : "Gửi đề xuất"}
           </Button>
         </View>
       </BottomSheet>

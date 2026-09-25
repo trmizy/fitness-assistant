@@ -691,6 +691,58 @@ export function sessionActions(session: PtSession, now: Date = new Date()): Sess
   }
 }
 
+// ── Reschedule proposals & no-show reports, trainer side (PT-04) ──────────────────
+
+/**
+ * features/services/sessions.ts already normalizes reschedule proposals and names the two
+ * directions from the CLIENT's chair (`incomingReschedule` = raised by the PT). The trainer's
+ * chair is the mirror image, so the two helpers below flip which side "incoming" means rather
+ * than re-parsing the payload: the normalizer, the status enum and `proposalSummary` stay shared.
+ */
+export type PtReschedule = { id: string; requestedBy: string; status: string; proposedStartAt?: string | null; proposedEndAt?: string | null; reason?: string | null };
+
+export function ptPendingReschedule(session: any): PtReschedule | null {
+  const list: PtReschedule[] = Array.isArray(session?.rescheduleRequests) ? session.rescheduleRequests : [];
+  return list.find((r) => r?.status === "PENDING") ?? null;
+}
+
+/** A proposal the TRAINER must answer: raised by the client and still open. */
+export function ptIncomingReschedule(session: any): PtReschedule | null {
+  const r = ptPendingReschedule(session);
+  return r && r.requestedBy === "CLIENT" ? r : null;
+}
+
+/** A proposal the trainer raised; the client has not answered yet. */
+export function ptOutgoingReschedule(session: any): PtReschedule | null {
+  const r = ptPendingReschedule(session);
+  return r && r.requestedBy === "PT" ? r : null;
+}
+
+/**
+ * Two rules web encodes in the same place, both of them the server's:
+ *  - only one open proposal per session (a second gets a 409), and
+ *  - `requestReschedule` refuses inside 12 hours of the start.
+ * Offering the button anyway would just produce an error the trainer cannot act on.
+ */
+export const RESCHEDULE_MIN_NOTICE_HOURS = 12;
+
+export function canProposeReschedule(session: any, now: Date = new Date()): boolean {
+  if (session?.status !== "CONFIRMED" && session?.status !== "REQUESTED") return false;
+  if (ptPendingReschedule(session)) return false;
+  const start = new Date(session?.scheduledStartAt ?? "").getTime();
+  if (!Number.isFinite(start)) return false;
+  return start - now.getTime() >= RESCHEDULE_MIN_NOTICE_HOURS * 3_600_000;
+}
+
+/**
+ * Sessions where the CLIENT reported this trainer absent (`GET /sessions/no-show-reports`).
+ * Money-flow 4.3: staying silent counts as agreeing, so these lead the schedule screen rather
+ * than sitting somewhere the trainer has to go looking.
+ */
+export function noShowReports(raw: unknown): any[] {
+  return (Array.isArray(raw) ? raw : (raw as any)?.sessions ?? (raw as any)?.data ?? []).filter((s: any) => s?.id);
+}
+
 // ── Wallet (PT-05) ─────────────────────────────────────────────────────────────────────────
 
 /**

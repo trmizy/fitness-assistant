@@ -2111,7 +2111,39 @@ gian khách và Phase 8 đã dựng — không làm lại.
   lộ trình. Đều là thao tác ghi làm dịch chuyển máy trạng thái thật trên tài khoản dùng chung; phần đọc và
   phần kiểm hợp lệ của biểu mẫu đã xác nhận, phần ghi chờ Ngài cho phép nếu muốn chạy thật.
 
-### 27.10 — Còn lại của Phase 11 (chưa làm)
+### 27.10 — Đổi lịch và báo PT vắng mặt (xong) — đính chính một sai sót của báo cáo trước
 
-Luồng phản hồi **đề nghị đổi lịch** và **báo cáo PT vắng mặt** (web có ở `PTSchedulePage`) vẫn chưa dựng —
-chúng thuộc cụm tranh chấp, đi cùng GAP-13 đang chờ Ngài bàn với partner.
+Bản trước của mục này ghi hai luồng đó "đi cùng GAP-13 đang chờ". **Sai.** GAP-13 là khiếu nại
+**đơn dịch vụ 1-1** bên ai-service; còn đổi lịch / báo vắng là **buổi tập** bên user-service, không có
+gì chặn. Web có đủ cả hai ở `PTSchedulePage`. Đã dựng vào `app/pt/schedule.tsx`:
+
+- **Báo PT vắng mặt**: dải cảnh báo đầu màn đọc `GET /sessions/no-show-reports` (đã quá khứ nên không
+  nằm trong danh sách sắp tới), kèm lý do khách nêu; hai lựa chọn **Tôi có vắng** (hộp xác nhận nói rõ
+  sẽ bồi thường, không hoàn tác) và **Phản đối** (bắt buộc viết giải trình). Màn hình nói thẳng
+  **im lặng được tính là đồng ý** (money-flow 4.3).
+- **Đổi lịch hai chiều**: khách xin dời → khối trong thẻ buổi tập với Đồng ý / Từ chối, kèm câu
+  "từ chối thì buổi giữ nguyên giờ cũ, không phải huỷ"; HLV xin dời → nút chỉ hiện khi server sẽ nhận
+  (chưa có đề nghị nào đang mở — cái thứ hai bị 409 — và còn ≥ 12 giờ trước buổi).
+
+Cả hai dùng lại bộ chuẩn hoá của Phase 7 (`features/services/sessions.ts`); chỉ lật chiều
+"incoming/outgoing" cho đúng ghế HLV. Thêm 6 ca kiểm (tổng module PT: 44).
+
+### 27.11 — Các thao tác GHI đã chạy thật (Ngài cho phép, 25/9)
+
+- **Tạo gói dịch vụ**: `Goi-thu-nghiem` 10 buổi / 1.200.000 đ / OFFLINE, hạn dùng để trống → DB
+  `validity_days = NULL` (đúng: ô trống gửi `null` chứ không bỏ qua khoá). Sau đó **ngừng bán** →
+  `is_active = f`, `archived_at` có giá trị. Khứ hồi trọn vẹn, không để lại gói sống nào.
+- **Đề nghị hợp tác**: gửi tới "Chi nhanh W3" với 60/30/10 → DB `gym_pt_collaborations`
+  `b4032299…` **PENDING**, `proposed_by = PT`, `0.6000 / 0.3000 / 0.1000`, vòng 1,
+  hết hạn 02/10/2026. **Dư lại**: PT không rút lại được — `terminate` chỉ nhận trạng thái ACCEPTED
+  (collaboration.service.ts:294) — nên dòng này tự hết hạn sau 7 ngày.
+- **Giao bản nháp giáo án**: thêm bài "3/4 Sit-Up" 3×10 nghỉ 90s vào Buổi 1 rồi gửi → đơn
+  `66759dbd…` chuyển **PT_REVIEWING → DRAFT_DELIVERED**. Đây là thay đổi trạng thái thật, không hoàn tác.
+- **Đề xuất lộ trình — KHÔNG chạy được** (không phải bỏ qua): John Doe đã có lộ trình đang chạy nên
+  guard ẩn nút đề xuất (đúng thiết kế — không mời tạo bản nháp thứ hai), ba hợp đồng ACTIVE còn lại
+  thuộc về tài khoản khách **đã bị xoá**. Cần một khách có hợp đồng ACTIVE và chưa có lộ trình.
+
+**Lỗi bắt được khi chạy**: thẻ Lộ trình và toàn bộ chữ mới ở màn Lịch dạy hiện **chuỗi escape thô**
+(ví dụ `L` + `\u1ed9` thay vì `Lộ`) vì script vá ghi escape nguyên văn vào TSX. Đã giải mã 154 + 268
+chuỗi, kiểm lại trên máy ra đúng tiếng Việt. Bài học: vá tệp bằng script thì viết thẳng ký tự Unicode,
+đừng dùng escape trong chuỗi thay thế.
