@@ -337,6 +337,19 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
   đưa về rỗng được qua API vì chính lỗi này; sửa DB trực tiếp cần Ngài cho phép.
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
 
+## GAP-19 — `requestContract` còn một thông báo lỗi tiếng Anh sót lại
+
+- Phát hiện: Phase 11 (PT-07), 2026-09-25, khi khách gửi yêu cầu hợp đồng cho PT đã có hợp đồng.
+- `contract.service.ts` viết gần như toàn bộ lỗi của `requestContract` bằng tiếng Việt (dòng 308–326:
+  "Gói dịch vụ này đã ngừng bán", "PT hiện đang tạm ngưng nhận khách mới", …) nhưng **dòng 392** vẫn là
+  `throw err("You already have an active or pending contract with this PT", 409)`.
+- Hậu quả: người dùng Việt thấy nguyên câu tiếng Anh. Web cũng hiện y hệt (cùng endpoint).
+- Mobile (đã vá, không đụng backend): `contractRequestError()` trong
+  `src/features/services/contracts.ts` ánh xạ các chuỗi tiếng Anh đã biết sang tiếng Việt và cho qua
+  nguyên văn những câu vốn đã tiếng Việt. Đã kiểm trên máy: toast nay là "Bạn đang có hợp đồng với huấn
+  luyện viên này rồi…".
+- Sửa tận gốc chỉ là đổi một chuỗi ở user-service — nhỏ, nhưng thuộc backend nên chờ Ngài cho phép.
+- Trạng thái: ĐÃ VÁ PHÍA MOBILE — backend chờ quyết định.
 ## GAP-13 — Khiếu nại / hoàn tiền đơn dịch vụ 1-1: luồng chưa hoàn chỉnh — ⏸ TẠM TẮT TRÊN MOBILE, CHỜ BÀN VỚI PARTNER
 
 - Phát hiện: Phase 8 (CL-12), 2026-09-22, đọc `ai-service/src/services/personalized-service.service.ts`

@@ -2002,3 +2002,47 @@ Playwright tải `/pt/dashboard` và `/pt/profile`, quét toàn bộ text: **0/8
 
 **Chưa làm:** không thêm cột backend nào, không mở đường sửa tiểu sử/chuyên môn ngay trên trang hồ sơ PT —
 muốn vậy phải thêm trường vào `profileSchema`, vượt phạm vi "sửa lỗi".
+
+## 27. Hợp đồng PT và các cụm còn lại của không gian HLV — Phase 11 (25/9, ĐANG LÀM)
+
+### 27.1 — PT-07 "Hợp đồng" (xong)
+
+`app/pt/contracts.tsx`. Bốn nhóm theo thứ tự HLV xử lý (Yêu cầu / Đang chờ / Đang dạy / Kết thúc), nhận —
+từ chối kèm lý do, gửi phản hồi, chấm dứt, và danh sách buổi tập bung ra dùng lại đúng `sessionActions`
+của màn Lịch dạy. Mở từ Tổng quan chứ **không** thêm tab thứ 6 (IA: năm tab là mức của bản thiết kế).
+
+**Bước "ký hợp đồng" của bản thiết kế KHÔNG dựng.** `REQUIRE_CONTRACT_ESIGN=false` là quyết định đã chốt
+(container `gymcoach-user-dev` xác nhận), nên `acceptContract` đi thẳng PENDING_REVIEW → PENDING_PAYMENT.
+PENDING_SIGNATURE vẫn được **xếp nhóm** (tab "Đang chờ") để nơi nào bật lại e-sign thì hợp đồng không biến
+mất, nhưng không bịa ra giao diện ký cho một bước hiện không xảy ra.
+
+### 27.2 — E2E chéo vai trò đầu tiên (tiêu chí chính của Phase 11) — ĐẠT
+
+REAL emulator + BACKEND INTEGRATION, 25/9, chạy trọn trên máy qua ba lần đổi tài khoản:
+
+1. Khách `testuser001@example.com` → Dịch vụ → tìm PT → chọn "Gói 8 buổi online" → **Gửi yêu cầu**.
+   DB: hợp đồng `8deea743-…` **PENDING_REVIEW**, 1.600.000 ₫, 8 buổi.
+2. Đăng nhập `pt@example.com` → Tổng quan hiện ô "Hợp đồng · 1 chờ duyệt" → màn Hợp đồng, tab
+   "Yêu cầu · 1" hiện thẻ *Minh Nguyễn* với nhãn phía PT **"Bạn cần duyệt"** → bấm **Nhận**.
+3. DB: cùng hợp đồng chuyển **PENDING_PAYMENT**. Màn tự nhảy sang "Đang chờ · 2", nhãn đổi thành
+   **"Chờ học viên trả — Bạn đã nhận, học viên chưa thanh toán"**; tab Yêu cầu về 0.
+4. REAL HTTP/API với tư cách khách: `GET /contracts/client` trả đúng `PENDING_PAYMENT` cho hợp đồng đó —
+   tức khách thấy trạng thái mới (màn Hợp đồng của khách đọc chính endpoint này).
+
+Việc lật nhãn theo phía nhìn (§26.1) được chứng minh trên dữ liệu thật: cùng một `ContractStatus`, khách
+đọc "Chờ PT duyệt" còn HLV đọc "Bạn cần duyệt".
+
+### 27.3 — Lỗi tìm thấy khi chạy E2E và đã vá
+
+Khách gửi yêu cầu tới PT mình **đã** có hợp đồng → server trả 409 với câu **tiếng Anh** nguyên văn
+"You already have an active or pending contract with this PT", và app hiện thẳng câu đó. Toast vẫn chạy
+(ảnh chụp sau 3 giây bị trượt nên ban đầu tưởng là lỗi im lặng — đã kiểm lại ở mốc 1 giây).
+Đã thêm `contractRequestError()` (`src/features/services/contracts.ts`) ánh xạ sang tiếng Việt và cho qua
+nguyên văn những câu vốn đã tiếng Việt — vì hầu hết lỗi của endpoint này đã được dịch, chỉ dòng 392 sót.
+Nguồn gốc ghi ở `MOBILE_BACKEND_GAPS.md` GAP-19 (sửa tận gốc là đổi một chuỗi ở user-service).
+
+### 27.4 — Còn lại của Phase 11 (chưa làm)
+
+PT-08/PT-11 (chợ kế hoạch, nằm dưới `client/plans`), PT-09 đơn dịch vụ 1-1, PT-10 gói dịch vụ,
+PT-12 duyệt giáo án AI, PT-13 hợp tác phòng gym, WB-13 lộ trình học viên trong màn chi tiết học viên.
+Các luồng phản hồi đổi lịch / báo cáo vắng mặt cũng thuộc cụm này.

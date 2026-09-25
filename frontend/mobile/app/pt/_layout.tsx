@@ -27,7 +27,14 @@ const ptTabs: WorkspaceTab[] = [
 export default function PtLayout() {
   return (
     <RequireRole allow={["pt"]}>
-      <WorkspaceTabs workspace="pt" tabs={ptTabs} />
+      <WorkspaceTabs
+        workspace="pt"
+        tabs={ptTabs}
+        // Reachable but never a tab: every file under app/pt/ becomes a Tabs.Screen, so anything
+        // not listed here would silently grow a sixth tab. Contracts is a drill-down from the
+        // dashboard (five tabs is the design's bar — see CLAUDE.md on avoiding page explosion).
+        hiddenRoutes={["contracts"]}
+      />
     </RequireRole>
   );
 }

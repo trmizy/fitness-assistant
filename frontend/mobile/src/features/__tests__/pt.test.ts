@@ -8,8 +8,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CONTRACT_TABS,
   DAY_LABELS,
   STUDENT_FILTERS,
+  contractTabCounts,
+  contractsInTab,
   clientInitials,
   clientName,
   filterStudents,
@@ -126,6 +129,40 @@ describe("roster", () => {
   it("counts per chip", () => {
     const c = studentCounts(studentsFromContracts(contracts));
     assert.deepEqual(c, { active: 1, pending: 1, done: 1, all: 3 });
+  });
+});
+
+describe("contract tabs (PT-07)", () => {
+  const contracts = [
+    { id: "r1", clientUserId: "u1", status: "PENDING_REVIEW", createdAt: "2026-09-20" },
+    { id: "r2", clientUserId: "u2", status: "PENDING_REVIEW", createdAt: "2026-09-22" },
+    { id: "w1", clientUserId: "u3", status: "PENDING_PAYMENT", createdAt: "2026-09-10" },
+    { id: "w2", clientUserId: "u4", status: "PENDING_SIGNATURE", createdAt: "2026-09-11" },
+    { id: "a1", clientUserId: "u5", status: "ACTIVE", createdAt: "2026-09-01" },
+    { id: "e1", clientUserId: "u6", status: "REJECTED", createdAt: "2026-08-01" },
+  ];
+
+  it("groups by the trainer's working order, newest first", () => {
+    assert.deepEqual(contractsInTab(contracts, "requests").map((c) => c.id), ["r2", "r1"]);
+    assert.deepEqual(contractsInTab(contracts, "active").map((c) => c.id), ["a1"]);
+    assert.deepEqual(contractsInTab(contracts, "ended").map((c) => c.id), ["e1"]);
+  });
+
+  it("PENDING_SIGNATURE is grouped, not hidden, in case e-sign is switched back on", () => {
+    assert.deepEqual(contractsInTab(contracts, "waiting").map((c) => c.id).sort(), ["w1", "w2"]);
+  });
+
+  it("every contract status lands in exactly one tab", () => {
+    const all = ["PENDING_REVIEW", "PENDING_SIGNATURE", "PENDING_PAYMENT", "ACTIVE", "COMPLETED", "EXPIRED", "CANCELLED", "REJECTED"];
+    for (const s of all) {
+      const hits = CONTRACT_TABS.filter((t) => (t.statuses as readonly string[]).includes(s));
+      assert.equal(hits.length, 1, `${s} phải thuộc đúng một tab`);
+    }
+  });
+
+  it("counts per tab; bad input is empty, not a crash", () => {
+    assert.deepEqual(contractTabCounts(contracts), { requests: 2, waiting: 2, active: 1, ended: 1 });
+    assert.deepEqual(contractsInTab(null, "active"), []);
   });
 });
 

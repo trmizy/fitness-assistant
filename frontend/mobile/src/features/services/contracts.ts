@@ -192,3 +192,35 @@ export function normalizeMoneyBreakdown(raw: any): MoneyBreakdown | null {
     paid: Boolean(raw?.paid),
   };
 }
+
+/**
+ * user-service wrote `requestContract`'s refusals in Vietnamese (contract.service.ts:308-326 —
+ * "Gói dịch vụ này đã ngừng bán", "PT hiện đang tạm ngưng nhận khách mới", …) with one straggler
+ * the translation pass missed: line 392 still answers in English. A Vietnamese user should never
+ * be shown that sentence, so known English messages are mapped here and everything else is passed
+ * through untouched (it is already Vietnamese, and the server says it better than a generic
+ * fallback would). Reported upstream in MOBILE_BACKEND_GAPS.md so the source can be fixed too.
+ *
+ * Found live 25/9: requesting a second contract from a PT the client already trains with showed
+ * "You already have an active or pending contract with this PT" verbatim.
+ */
+const CONTRACT_REQUEST_ERROR_VI: { match: RegExp; text: string }[] = [
+  {
+    match: /already have an active or pending contract/i,
+    text: "Bạn đang có hợp đồng với huấn luyện viên này rồi. Hãy kết thúc hợp đồng cũ trước khi gửi yêu cầu mới.",
+  },
+  { match: /pt not found|not found or not approved/i, text: "Không tìm thấy huấn luyện viên này." },
+  { match: /not authorized/i, text: "Bạn không có quyền thực hiện việc này." },
+];
+
+export function contractRequestError(error: any): string {
+  const raw = String(
+    error?.response?.data?.error?.message ?? error?.response?.data?.error ?? error?.response?.data?.message ?? "",
+  ).trim();
+  if (!raw) return "Không gửi được yêu cầu";
+  const hit = CONTRACT_REQUEST_ERROR_VI.find((m) => m.match.test(raw));
+  if (hit) return hit.text;
+  // Already Vietnamese (has a Vietnamese-only letter) — the server's own wording is the clearest.
+  if (/[ăâđêôơưÀ-ỹ]/.test(raw)) return raw;
+  return "Không gửi được yêu cầu";
+}

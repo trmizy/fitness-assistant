@@ -75,6 +75,7 @@ export default function PtDashboardScreen() {
   const students = studentsFromContracts(contractsQuery.data);
   const activeStudents = students.filter((s) => s.status === "ACTIVE");
   const newStudents = activeStudents.filter((s) => s.used === 0);
+  const pendingContracts = students.filter((s) => s.status === "PENDING_REVIEW").length;
   const pendingPlans = Array.isArray(plansQuery.data) ? plansQuery.data.length : 0;
   const alerts = ptAlerts(contractsQuery.data, sessions);
 
@@ -158,6 +159,13 @@ export default function PtDashboardScreen() {
           <StaggerItem>
             <View className="flex-row gap-3">
               <ActionTile
+                icon={FileSignature}
+                label="Hợp đồng"
+                hint={pendingContracts > 0 ? `${pendingContracts} chờ duyệt` : "Không có yêu cầu"}
+                badge={pendingContracts}
+                onPress={() => router.push("/pt/contracts")}
+              />
+              <ActionTile
                 icon={Users}
                 label="Học viên"
                 hint={`${activeStudents.length} đang tập`}
@@ -166,7 +174,7 @@ export default function PtDashboardScreen() {
               <ActionTile
                 icon={CalendarDays}
                 label="Lịch dạy"
-                hint={`${liveSessionCount(sessions)} buổi sắp tới`}
+                hint={`${liveSessionCount(sessions)} buổi tới`}
                 onPress={() => router.push("/pt/schedule")}
               />
             </View>
@@ -301,21 +309,32 @@ function ActionTile({
   icon: Icon,
   label,
   hint,
+  badge,
   onPress,
 }: {
   icon: typeof Users;
   label: string;
   hint: string;
+  badge?: number;
   onPress: () => void;
 }) {
   const accent = useWorkspaceAccent();
   return (
-    <Card className="flex-1 p-4" onPress={onPress}>
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-        <Icon size={20} color={accent.primary} />
+    <Card className="flex-1 p-3.5" onPress={onPress}>
+      {badge ? (
+        <View className="absolute right-2.5 top-2.5 h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5">
+          <Text className="font-body-semibold text-[11px] text-on-primary">{badge}</Text>
+        </View>
+      ) : null}
+      <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
+        <Icon size={18} color={accent.primary} />
       </View>
-      <Text className="mt-3 font-body-semibold text-sm text-foreground">{label}</Text>
-      <Text className="font-body text-xs text-muted-foreground">{hint}</Text>
+      <Text className="mt-2.5 font-body-semibold text-sm text-foreground" numberOfLines={1}>
+        {label}
+      </Text>
+      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+        {hint}
+      </Text>
     </Card>
   );
 }

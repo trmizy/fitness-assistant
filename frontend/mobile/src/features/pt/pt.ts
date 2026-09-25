@@ -183,6 +183,49 @@ export function studentCounts(rows: StudentRow[]): Record<StudentFilterKey, numb
   return out;
 }
 
+// ── Contracts (PT-07) ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Four groups, in the order a trainer works through them. Note what is NOT here: the design's
+ * "ký hợp đồng" step. Accepting goes PENDING_REVIEW → PENDING_PAYMENT directly because e-signing
+ * is off (`REQUIRE_CONTRACT_ESIGN=false`, a settled decision — contract.service.ts picks the
+ * claim target from that flag). PENDING_SIGNATURE is still grouped under "Đang chờ" so a
+ * deployment that turns e-sign back on shows those contracts instead of hiding them, but no
+ * signing UI is invented for a step that does not currently happen.
+ */
+export const CONTRACT_TABS = [
+  { key: "requests", label: "Yêu cầu", statuses: ["PENDING_REVIEW"] },
+  { key: "waiting", label: "Đang chờ", statuses: ["PENDING_SIGNATURE", "PENDING_PAYMENT"] },
+  { key: "active", label: "Đang dạy", statuses: ["ACTIVE"] },
+  { key: "ended", label: "Kết thúc", statuses: ["COMPLETED", "EXPIRED", "CANCELLED", "REJECTED"] },
+] as const;
+
+export type ContractTabKey = (typeof CONTRACT_TABS)[number]["key"];
+
+export function contractsInTab(contracts: unknown, tab: ContractTabKey): PtContract[] {
+  const allowed = CONTRACT_TABS.find((t) => t.key === tab)?.statuses ?? [];
+  return (Array.isArray(contracts) ? (contracts as PtContract[]) : [])
+    .filter((c) => c?.id && (allowed as readonly string[]).includes(c.status))
+    .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+}
+
+export function contractTabCounts(contracts: unknown): Record<ContractTabKey, number> {
+  const list = Array.isArray(contracts) ? (contracts as PtContract[]) : [];
+  const out = {} as Record<ContractTabKey, number>;
+  for (const t of CONTRACT_TABS) {
+    out[t.key] = list.filter((c) => (t.statuses as readonly string[]).includes(c.status)).length;
+  }
+  return out;
+}
+
+/** The design's four canned reasons; a trainer can still type their own. */
+export const REJECT_REASONS = [
+  "Lịch dạy đã kín",
+  "Mục tiêu ngoài chuyên môn",
+  "Địa điểm không phù hợp",
+  "Mức giá chưa phù hợp",
+];
+
 // ── Dashboard (PT-01) ──────────────────────────────────────────────────────────────────────
 
 export type PtSession = ClientRef & {
@@ -259,7 +302,7 @@ export function ptAlerts(
       key: "contracts-pending",
       tone: "info",
       text: `${pending} yêu cầu hợp đồng đang chờ bạn duyệt`,
-      route: "/pt/students",
+      route: "/pt/contracts",
     });
   }
 
