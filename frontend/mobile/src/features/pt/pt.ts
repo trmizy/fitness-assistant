@@ -183,6 +183,256 @@ export function studentCounts(rows: StudentRow[]): Record<StudentFilterKey, numb
   return out;
 }
 
+// ── Marketplace orders, seller side (PT-09) ────────────────────────────────────────────────
+
+/**
+ * The same 16-status `PersonalizedServiceOrderStatus` the buyer screen reads
+ * (features/plans/personalizedOrder.ts owns that list and the buyer's wording) — but again read
+ * from the other chair: the buyer's "PT đang soạn giáo án" is the seller's "Bạn đang soạn".
+ * Only the side-dependent entries are overridden; the rest fall through to the shared labels so
+ * the two screens cannot drift apart on a status neither has thought about.
+ */
+const SELLER_ORDER_OVERRIDE: Record<string, string> = {
+  INTAKE_PENDING: "Chờ khách điền phiếu",
+  INTAKE_SUBMITTED: "Khách đã gửi phiếu — bạn cần xem",
+  PT_REVIEWING: "Bạn đang phân tích",
+  IN_PROGRESS: "Bạn đang soạn giáo án",
+  DRAFT_DELIVERED: "Đã gửi bản nháp — chờ khách phản hồi",
+  REVISION_REQUESTED: "Khách yêu cầu chỉnh sửa",
+  REVISION_IN_PROGRESS: "Bạn đang chỉnh sửa",
+  ACCEPTED: "Khách đã chấp nhận",
+  ACTIVE: "Đang đồng hành cùng khách",
+  PENDING_PAYMENT: "Khách chưa thanh toán — chưa cần xử lý",
+};
+
+export function sellerOrderLabel(status: string, sharedLabel: string): string {
+  return SELLER_ORDER_OVERRIDE[status] ?? sharedLabel;
+}
+
+/**
+ * The one action each status offers the seller, mirroring web's PTServiceOrderPage. A status not
+ * listed here is one where the ball is not in the trainer's court — the screen then says so
+ * instead of offering a button the server would refuse.
+ */
+export type SellerOrderAction = "startReview" | "startRevision" | "deliver";
+
+export function sellerOrderAction(status: string): SellerOrderAction | null {
+  switch (status) {
+    case "INTAKE_SUBMITTED":
+      return "startReview";
+    case "PT_REVIEWING":
+    case "IN_PROGRESS":
+    case "REVISION_IN_PROGRESS":
+      return "deliver";
+    case "REVISION_REQUESTED":
+      return "startRevision";
+    default:
+      return null;
+  }
+}
+
+/** Orders the trainer still owes work on, so the list can lead with them. */
+export function sellerNeedsAction(orders: unknown): any[] {
+  return (Array.isArray(orders) ? orders : []).filter((o: any) => o?.id && sellerOrderAction(o.status));
+}
+
+// ── Service packages (PT-10) ───────────────────────────────────────────────────────────────
+
+export type PackageForm = {
+  id: string | null;
+  name: string;
+  description: string;
+  sessionCount: string;
+  price: string;
+  sessionMode: "ONLINE" | "OFFLINE";
+  sessionDurationMinutes: string;
+  validityDays: string;
+};
+
+export const EMPTY_PACKAGE: PackageForm = {
+  id: null,
+  name: "",
+  description: "",
+  sessionCount: "10",
+  price: "",
+  sessionMode: "OFFLINE",
+  sessionDurationMinutes: "60",
+  validityDays: "",
+};
+
+export function packageFormFrom(p: any): PackageForm {
+  return {
+    id: p?.id ?? null,
+    name: p?.name ?? "",
+    description: p?.description ?? "",
+    sessionCount: String(p?.sessionCount ?? ""),
+    price: String(Math.trunc(Number(p?.price ?? 0)) || ""),
+    sessionMode: p?.sessionMode === "ONLINE" ? "ONLINE" : "OFFLINE",
+    sessionDurationMinutes: String(p?.sessionDurationMinutes ?? 60),
+    validityDays: p?.validityDays != null ? String(p.validityDays) : "",
+  };
+}
+
+/** Client-side mirror of what user-service accepts, so a typo is caught before the round trip. */
+export function packageFormError(f: PackageForm): string | null {
+  if (!f.name.trim()) return "Đặt tên cho gói.";
+  const sessions = Number(f.sessionCount);
+  if (!Number.isInteger(sessions) || sessions <= 0) return "Số buổi phải là số nguyên lớn hơn 0.";
+  const price = Number(f.price);
+  if (!Number.isFinite(price) || price <= 0) return "Nhập giá gói (> 0).";
+  const minutes = Number(f.sessionDurationMinutes);
+  if (!Number.isFinite(minutes) || minutes <= 0) return "Thời lượng mỗi buổi phải lớn hơn 0.";
+  if (f.validityDays.trim()) {
+    const days = Number(f.validityDays);
+    if (!Number.isInteger(days) || days <= 0) return "Hạn dùng phải là số ngày nguyên lớn hơn 0.";
+  }
+  return null;
+}
+
+export function packagePayload(f: PackageForm) {
+  return {
+    name: f.name.trim(),
+    description: f.description.trim() || undefined,
+    sessionCount: Number(f.sessionCount),
+    price: Number(f.price),
+    sessionMode: f.sessionMode,
+    sessionDurationMinutes: Number(f.sessionDurationMinutes),
+    // Blank means "no expiry"; `null` is the only value that clears one already set, so an edit
+    // sends null rather than omitting the key (same partial-update reasoning as the profile repo).
+    validityDays: f.validityDays.trim() ? Number(f.validityDays) : null,
+  };
+}
+
+/** Per-session price, the number a client actually compares between trainers. */
+export function perSessionPrice(p: any): number {
+  const price = Number(p?.price ?? 0);
+  const count = Number(p?.sessionCount ?? 0);
+  return count > 0 ? Math.round(price / count) : 0;
+}
+
+// ── Gym collaboration (PT-13) ──────────────────────────────────────────────────────────────
+
+/**
+ * gym-service's `validateRates`: the three shares must sum to EXACTLY 1 and the platform's share
+ * cannot go below `MIN_PLATFORM_RATE` (0.10 by default). Checked here too because these numbers
+ * land on every contract signed under the partnership and are split to the đồng — a table summing
+ * to 0.9999 is a typo to catch in the form, not a rounding error to absorb.
+ */
+export const MIN_PLATFORM_RATE = 0.1;
+
+export function ratesError(ptPct: string, gymPct: string, platformPct: string): string | null {
+  const nums = [ptPct, gymPct, platformPct].map((v) => Number(v));
+  if (nums.some((n) => !Number.isFinite(n))) return "Nhập đủ ba tỷ lệ theo phần trăm.";
+  if (nums.some((n) => n < 0)) return "Tỷ lệ không được âm.";
+  const [pt, gym, platform] = nums;
+  if (platform < MIN_PLATFORM_RATE * 100) return `Tỷ lệ nền tảng không được nhỏ hơn ${MIN_PLATFORM_RATE * 100}%.`;
+  const sum = pt + gym + platform;
+  // Percent inputs are whole numbers, so the sum is exact — no epsilon needed.
+  if (sum !== 100) return `Tổng ba tỷ lệ phải bằng đúng 100%, hiện là ${sum}%.`;
+  return null;
+}
+
+/** The API takes fractions ("0.60"), the form shows percentages — convert at the boundary. */
+export function ratesPayload(ptPct: string, gymPct: string, platformPct: string) {
+  const f = (v: string) => (Number(v) / 100).toFixed(4);
+  return { ptRate: f(ptPct), gymRate: f(gymPct), platformRate: f(platformPct) };
+}
+
+export function ratePercent(rate: unknown): string {
+  // `Number(null)` is 0, so a missing rate would render as "0%" — i.e. claim the trainer gets
+  // nothing — unless absence is rejected before the conversion.
+  if (rate == null || rate === "") return "—";
+  const n = Number(rate);
+  if (!Number.isFinite(n)) return "—";
+  return `${Math.round(n * 1000) / 10}%`;
+}
+
+/**
+ * The real `CollaborationStatus` enum (gym-service schema.prisma:1133). PENDING and COUNTERED are
+ * both "someone owes an answer" — WHOSE turn it is comes from `proposedBy`, which the schema
+ * documents as "who made the offer currently on the table, i.e. whose turn it is NOT". So the
+ * label is resolved from the pair, not from the status alone; guessing from status would tell a
+ * trainer to wait when the ball is actually in their court.
+ */
+export const COLLAB_STATUS: Record<string, { label: string; tone: StatusTone }> = {
+  PENDING: { label: "Đang chờ trả lời", tone: "warning" },
+  COUNTERED: { label: "Đã trả giá lại", tone: "warning" },
+  ACCEPTED: { label: "Đang hợp tác", tone: "success" },
+  REJECTED: { label: "Đã từ chối", tone: "danger" },
+  EXPIRED: { label: "Đã hết hạn", tone: "neutral" },
+  TERMINATED: { label: "Đã chấm dứt", tone: "neutral" },
+};
+
+export function collabStatus(row: { status?: string; proposedBy?: string } | null | undefined) {
+  const status = row?.status ?? "";
+  const base = COLLAB_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as StatusTone };
+  if ((status === "PENDING" || status === "COUNTERED") && row?.proposedBy) {
+    return row.proposedBy === "GYM"
+      ? { label: "Bạn cần trả lời", tone: "warning" as StatusTone }
+      : { label: "Chờ phòng gym trả lời", tone: "info" as StatusTone };
+  }
+  return base;
+}
+
+/** A trainer can act only when the gym made the offer currently on the table. */
+export function canRespondToCollab(row: { status?: string; proposedBy?: string } | null | undefined): boolean {
+  return (row?.status === "PENDING" || row?.status === "COUNTERED") && row?.proposedBy === "GYM";
+}
+
+// ── AI plan review (PT-12) ─────────────────────────────────────────────────────────────────
+
+export type PendingPlan = {
+  id: string;
+  clientName?: string | null;
+  name?: string | null;
+  goal?: string | null;
+  duration?: number | null;
+  daysPerWeek?: number | null;
+  createdAt?: string | null;
+  plan?: { weeklySchedule?: unknown } | null;
+};
+
+export function pendingPlans(raw: unknown): PendingPlan[] {
+  return (Array.isArray(raw) ? (raw as PendingPlan[]) : []).filter((p) => p?.id);
+}
+
+/** A plan's title line: its own name, else the goal, else a neutral label — never an id. */
+export function planTitle(p: PendingPlan | null | undefined): string {
+  return p?.name?.trim() || p?.goal?.trim() || "Giáo án AI";
+}
+
+export function planMeta(p: PendingPlan | null | undefined): string {
+  const bits: string[] = [];
+  if (p?.duration) bits.push(`${p.duration} tuần`);
+  if (p?.daysPerWeek) bits.push(`${p.daysPerWeek} buổi/tuần`);
+  return bits.join(" · ");
+}
+
+export type PlanDay = { day: string; goal: string; exercises: string[] };
+
+/**
+ * `plan.weeklySchedule` is AI-generated JSON, so every field is treated as optional and each
+ * exercise line is flattened to text here rather than in the screen. `4×8 @60kg (nghỉ 90s)` is
+ * web's own format; the parts that are missing are simply left out instead of printing "undefined".
+ */
+export function planSchedule(p: PendingPlan | null | undefined): PlanDay[] {
+  const raw = (p?.plan as any)?.weeklySchedule;
+  return (Array.isArray(raw) ? raw : []).map((d: any, i: number) => ({
+    day: String(d?.day ?? `Ngày ${i + 1}`),
+    goal: String(d?.goal ?? "").trim(),
+    exercises: (Array.isArray(d?.exercises) ? d.exercises : []).map((ex: any) => {
+      const name = String(ex?.name ?? "Bài tập").trim();
+      const setsReps = ex?.sets && ex?.reps ? ` ${ex.sets}×${ex.reps}` : "";
+      const weight = ex?.weight ? ` @${ex.weight}kg` : "";
+      const rest = ex?.restSeconds ? ` (nghỉ ${ex.restSeconds}s)` : "";
+      return `${name}${setsReps}${weight}${rest}`;
+    }),
+  }));
+}
+
+/** Server caps the PT note at 1000 characters. */
+export const PT_NOTE_MAX = 1000;
+
 // ── Contracts (PT-07) ──────────────────────────────────────────────────────────────────────
 
 /**

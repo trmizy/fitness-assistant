@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   FileSignature,
+  Package,
   Sparkles,
   TrendingUp,
   Users,
@@ -26,7 +27,7 @@ import {
   StaggerItem,
   Tappable,
 } from "../../src/components/ui";
-import { contractService, ptPlanReviewService, sessionService, walletService } from "../../src/services/api";
+import { contractService, personalizedServiceApi, ptPlanReviewService, sessionService, walletService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
@@ -35,6 +36,7 @@ import { money } from "../../src/features/wallet/wallet";
 import {
   clientName,
   liveSessionCount,
+  sellerNeedsAction,
   ptAlerts,
   ptSessionStatus,
   relativeDayLabel,
@@ -68,6 +70,7 @@ export default function PtDashboardScreen() {
   const contractsQuery = useQuery({ queryKey: ["pt-contracts", uid], queryFn: () => contractService.getByPT() });
   const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming() });
   const plansQuery = useQuery({ queryKey: ["pt-pending-plans", uid], queryFn: () => ptPlanReviewService.getPendingReviews() });
+  const sellingQuery = useQuery({ queryKey: ["pt-selling-orders", uid], queryFn: () => personalizedServiceApi.listOrdersForSeller() });
 
   const available = money((walletQuery.data as any)?.availableBalance);
   const earnings: any = earningsQuery.data ?? {};
@@ -76,6 +79,7 @@ export default function PtDashboardScreen() {
   const activeStudents = students.filter((s) => s.status === "ACTIVE");
   const newStudents = activeStudents.filter((s) => s.used === 0);
   const pendingContracts = students.filter((s) => s.status === "PENDING_REVIEW").length;
+  const sellingNeedsAction = sellerNeedsAction(sellingQuery.data).length;
   const pendingPlans = Array.isArray(plansQuery.data) ? plansQuery.data.length : 0;
   const alerts = ptAlerts(contractsQuery.data, sessions);
 
@@ -178,6 +182,22 @@ export default function PtDashboardScreen() {
                 onPress={() => router.push("/pt/schedule")}
               />
             </View>
+            <View className="mt-3 flex-row gap-3">
+              <ActionTile
+                icon={Package}
+                label="Đơn dịch vụ"
+                hint={sellingNeedsAction > 0 ? `${sellingNeedsAction} cần xử lý` : "Đơn 1-1 của bạn"}
+                badge={sellingNeedsAction}
+                onPress={() => router.push("/pt/service-orders")}
+              />
+              <ActionTile
+                icon={Brain}
+                label="Duyệt giáo án"
+                hint={pendingPlans > 0 ? `${pendingPlans} chờ duyệt` : "Không có giáo án chờ"}
+                badge={pendingPlans}
+                onPress={() => router.push("/pt/plan-review")}
+              />
+            </View>
           </StaggerItem>
 
           {/* Alerts */}
@@ -189,13 +209,17 @@ export default function PtDashboardScreen() {
               </View>
               <Card className="overflow-hidden">
                 {pendingPlans > 0 ? (
-                  <View className="flex-row items-center gap-2.5 p-4">
+                  <Tappable
+                    accessibilityLabel={`${pendingPlans} giáo án AI đang chờ bạn duyệt`}
+                    onPress={() => router.push("/pt/plan-review")}
+                    className="flex-row items-center gap-2.5 p-4"
+                  >
                     <Brain size={16} color={accent.primary} />
                     <Text className="flex-1 font-body text-sm text-muted-foreground">
                       {pendingPlans} giáo án AI đang chờ bạn duyệt
                     </Text>
-                    <Text className="font-body text-xs text-muted-foreground">Phase 11</Text>
-                  </View>
+                    <ChevronRight size={16} color={designTokens.mutedForeground} />
+                  </Tappable>
                 ) : null}
                 {alerts.map((a, i) => (
                   <Tappable

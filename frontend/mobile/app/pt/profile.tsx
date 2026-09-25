@@ -6,13 +6,14 @@ import * as Clipboard from "expo-clipboard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
-  Award,
   CalendarClock,
   ChevronRight,
   Copy,
   Gift,
+  Handshake,
   LogOut,
   MapPin,
+  Package,
   Pencil,
   Plus,
   Star,
@@ -325,12 +326,34 @@ export default function PtProfileScreen() {
           </StaggerItem>
 
           <StaggerItem>
-            <View className="flex-row items-center gap-2 px-1">
-              <Award size={14} color={designTokens.mutedForeground} />
-              <Text className="flex-1 font-body text-xs text-muted-foreground">
-                Gói dịch vụ và hợp tác phòng gym sẽ có ở bản cập nhật tiếp theo.
-              </Text>
-            </View>
+            <Card className="overflow-hidden">
+              <Card
+                className="flex-row items-center gap-3 rounded-none border-0 p-4"
+                onPress={() => router.push("/pt/packages")}
+              >
+                <View className="h-11 w-11 items-center justify-center rounded-xl bg-panel">
+                  <Package size={20} color={accent.primary} />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-body-semibold text-sm text-foreground">Gói dịch vụ</Text>
+                  <Text className="font-body text-xs text-muted-foreground">Khách chọn gói ở đây khi gửi yêu cầu</Text>
+                </View>
+                <ChevronRight size={16} color={designTokens.mutedForeground} />
+              </Card>
+              <Card
+                className="flex-row items-center gap-3 rounded-none border-0 border-t border-border p-4"
+                onPress={() => router.push("/pt/collaborations")}
+              >
+                <View className="h-11 w-11 items-center justify-center rounded-xl bg-panel">
+                  <Handshake size={20} color={accent.primary} />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-body-semibold text-sm text-foreground">Hợp tác phòng gym</Text>
+                  <Text className="font-body text-xs text-muted-foreground">Thoả thuận chia doanh thu với phòng gym</Text>
+                </View>
+                <ChevronRight size={16} color={designTokens.mutedForeground} />
+              </Card>
+            </Card>
           </StaggerItem>
         </Stagger>
       </ScrollView>

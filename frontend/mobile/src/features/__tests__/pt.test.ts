@@ -10,19 +10,36 @@ import assert from "node:assert/strict";
 import {
   CONTRACT_TABS,
   DAY_LABELS,
+  EMPTY_PACKAGE,
   STUDENT_FILTERS,
   contractTabCounts,
   contractsInTab,
   clientInitials,
+  canRespondToCollab,
   clientName,
+  collabStatus,
   filterStudents,
   goalLabel,
   liveSessionCount,
   mondayOf,
+  packageFormError,
+  packageFormFrom,
+  packagePayload,
+  perSessionPrice,
+  pendingPlans,
+  planMeta,
+  planSchedule,
+  planTitle,
   ptAlerts,
   ptContractStatus,
   ptSessionStatus,
   ptTransactionLabel,
+  ratePercent,
+  ratesError,
+  ratesPayload,
+  sellerNeedsAction,
+  sellerOrderAction,
+  sellerOrderLabel,
   relativeDayLabel,
   sessionTimeLabel,
   sessionsOf,
@@ -32,6 +49,7 @@ import {
 } from "../pt/pt";
 import { CONTRACT_STATUS } from "../services/contracts";
 import { SESSION_STATUS } from "../services/sessions";
+import { ORDER_STATUS_LABEL } from "../plans/personalizedOrder";
 
 describe("naming a client", () => {
   it("prefers the joined profile, falls back to the flat name, never shows an id", () => {
@@ -129,6 +147,145 @@ describe("roster", () => {
   it("counts per chip", () => {
     const c = studentCounts(studentsFromContracts(contracts));
     assert.deepEqual(c, { active: 1, pending: 1, done: 1, all: 3 });
+  });
+});
+
+describe("marketplace orders, seller side (PT-09)", () => {
+  it("side-dependent wording is flipped; the rest falls through to the shared label", () => {
+    assert.equal(sellerOrderLabel("IN_PROGRESS", ORDER_STATUS_LABEL.IN_PROGRESS), "Bạn đang soạn giáo án");
+    assert.notEqual(sellerOrderLabel("IN_PROGRESS", ORDER_STATUS_LABEL.IN_PROGRESS), ORDER_STATUS_LABEL.IN_PROGRESS);
+    assert.equal(sellerOrderLabel("COMPLETED", ORDER_STATUS_LABEL.COMPLETED), ORDER_STATUS_LABEL.COMPLETED);
+    assert.equal(sellerOrderLabel("BRAND_NEW", "dự phòng"), "dự phòng");
+  });
+
+  it("each status offers at most the one action the server accepts", () => {
+    assert.equal(sellerOrderAction("INTAKE_SUBMITTED"), "startReview");
+    assert.equal(sellerOrderAction("PT_REVIEWING"), "deliver");
+    assert.equal(sellerOrderAction("REVISION_REQUESTED"), "startRevision");
+    assert.equal(sellerOrderAction("REVISION_IN_PROGRESS"), "deliver");
+    assert.equal(sellerOrderAction("DRAFT_DELIVERED"), null, "chờ khách thì PT không có nút nào");
+    assert.equal(sellerOrderAction("ACTIVE"), null);
+    assert.equal(sellerOrderAction("CANCELLED"), null);
+  });
+
+  it("the queue leads with orders that owe the trainer work", () => {
+    const rows = [
+      { id: "a", status: "DRAFT_DELIVERED" },
+      { id: "b", status: "INTAKE_SUBMITTED" },
+      { id: "c", status: "REVISION_REQUESTED" },
+      { status: "PT_REVIEWING" },
+    ];
+    assert.deepEqual(sellerNeedsAction(rows).map((o) => o.id), ["b", "c"]);
+    assert.deepEqual(sellerNeedsAction(null), []);
+  });
+});
+
+describe("service packages (PT-10)", () => {
+  it("round-trips a package and keeps the per-session price a client can compare", () => {
+    const f = packageFormFrom({ id: "p", name: "Gói 10", sessionCount: 10, price: "3000000.00", sessionMode: "OFFLINE", sessionDurationMinutes: 60, validityDays: null });
+    assert.equal(f.price, "3000000");
+    assert.equal(f.validityDays, "");
+    assert.equal(perSessionPrice({ price: "3000000.00", sessionCount: 10 }), 300000);
+    assert.equal(perSessionPrice({ price: "100", sessionCount: 0 }), 0, "không chia cho 0");
+  });
+
+  it("catches the mistakes the server would reject", () => {
+    const ok = { ...EMPTY_PACKAGE, name: "Gói", price: "1000000" };
+    assert.equal(packageFormError(ok), null);
+    assert.ok(packageFormError({ ...ok, name: "  " }));
+    assert.ok(packageFormError({ ...ok, sessionCount: "0" }));
+    assert.ok(packageFormError({ ...ok, sessionCount: "2.5" }));
+    assert.ok(packageFormError({ ...ok, price: "0" }));
+    assert.ok(packageFormError({ ...ok, sessionDurationMinutes: "0" }));
+    assert.ok(packageFormError({ ...ok, validityDays: "-3" }));
+    assert.equal(packageFormError({ ...ok, validityDays: "" }), null, "để trống = không hết hạn");
+  });
+
+  it("a cleared expiry is sent as null, not omitted, so it can actually be cleared", () => {
+    assert.equal(packagePayload({ ...EMPTY_PACKAGE, name: "G", price: "1", validityDays: "" }).validityDays, null);
+    assert.equal(packagePayload({ ...EMPTY_PACKAGE, name: "G", price: "1", validityDays: "90" }).validityDays, 90);
+  });
+});
+
+describe("gym collaboration (PT-13)", () => {
+  it("the three shares must sum to exactly 100% and the platform keeps its floor", () => {
+    assert.equal(ratesError("60", "30", "10"), null);
+    assert.match(ratesError("60", "30", "5")!, /nền tảng/);
+    assert.match(ratesError("60", "20", "10")!, /90%/);
+    assert.match(ratesError("60", "-20", "60")!, /âm/);
+    assert.ok(ratesError("", "30", "10"));
+  });
+
+  it("percent in the form, fraction on the wire", () => {
+    assert.deepEqual(ratesPayload("60", "30", "10"), { ptRate: "0.6000", gymRate: "0.3000", platformRate: "0.1000" });
+    assert.equal(ratePercent("0.6000"), "60%");
+    assert.equal(ratePercent("0.125"), "12.5%");
+    assert.equal(ratePercent(null), "—");
+  });
+
+  it("whose turn it is comes from proposedBy, not from the status alone", () => {
+    assert.equal(collabStatus({ status: "PENDING", proposedBy: "GYM" }).label, "Bạn cần trả lời");
+    assert.equal(collabStatus({ status: "PENDING", proposedBy: "PT" }).label, "Chờ phòng gym trả lời");
+    assert.equal(collabStatus({ status: "COUNTERED", proposedBy: "GYM" }).label, "Bạn cần trả lời");
+    assert.equal(collabStatus({ status: "ACCEPTED", proposedBy: "PT" }).label, "Đang hợp tác");
+    assert.equal(canRespondToCollab({ status: "PENDING", proposedBy: "GYM" }), true);
+    assert.equal(canRespondToCollab({ status: "PENDING", proposedBy: "PT" }), false);
+    assert.equal(canRespondToCollab({ status: "ACCEPTED", proposedBy: "GYM" }), false);
+  });
+
+  it("every real CollaborationStatus value has a Vietnamese label", () => {
+    for (const s of ["PENDING", "COUNTERED", "ACCEPTED", "REJECTED", "EXPIRED", "TERMINATED"]) {
+      assert.notEqual(collabStatus({ status: s }).label, s, `${s} chưa có nhãn`);
+    }
+    assert.equal(collabStatus(null).label, "Không rõ");
+  });
+});
+
+describe("AI plan review (PT-12)", () => {
+  const plan = {
+    id: "p1",
+    clientName: "Mai Anh",
+    name: "PPL 6 tuần",
+    goal: "MUSCLE_GAIN",
+    duration: 6,
+    daysPerWeek: 3,
+    plan: {
+      weeklySchedule: [
+        { day: "Ngày 1 · Push", goal: "Ngực/vai", exercises: [{ name: "Bench", sets: 4, reps: 8, weight: 60, restSeconds: 90 }] },
+        { day: "Ngày 2", exercises: [{ name: "Deadlift", sets: 4, reps: 5 }, { name: "Plank" }] },
+        { goal: "Chân" },
+      ],
+    },
+  };
+
+  it("title falls back goal → neutral, and never shows an id", () => {
+    assert.equal(planTitle(plan), "PPL 6 tuần");
+    assert.equal(planTitle({ id: "x", goal: "Giảm mỡ" }), "Giảm mỡ");
+    assert.equal(planTitle({ id: "x" }), "Giáo án AI");
+    assert.equal(planTitle(null), "Giáo án AI");
+  });
+
+  it("meta only prints the parts that exist", () => {
+    assert.equal(planMeta(plan), "6 tuần · 3 buổi/tuần");
+    assert.equal(planMeta({ id: "x", duration: 4 }), "4 tuần");
+    assert.equal(planMeta({ id: "x" }), "");
+  });
+
+  it("AI JSON is flattened defensively — missing parts are omitted, not printed as undefined", () => {
+    const days = planSchedule(plan);
+    assert.equal(days.length, 3);
+    assert.equal(days[0].exercises[0], "Bench 4×8 @60kg (nghỉ 90s)");
+    assert.equal(days[1].exercises[0], "Deadlift 4×5");
+    assert.equal(days[1].exercises[1], "Plank", "bài không có set/rep vẫn hiện tên");
+    assert.equal(days[1].goal, "");
+    assert.equal(days[2].day, "Ngày 3", "thiếu tên ngày thì đánh số theo thứ tự");
+    assert.deepEqual(planSchedule(null), []);
+    assert.deepEqual(planSchedule({ id: "x", plan: { weeklySchedule: "rác" as never } }), []);
+  });
+
+  it("only rows with an id are reviewable", () => {
+    assert.equal(pendingPlans([plan, { clientName: "không id" }]).length, 1);
+    assert.deepEqual(pendingPlans(undefined), []);
   });
 });
 

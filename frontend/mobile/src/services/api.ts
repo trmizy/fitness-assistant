@@ -4996,6 +4996,26 @@ export const ptCoachService = {
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
     return data;
   },
+
+  // WB-13 — a coach's read-only view of their client's roadmap, plus the one thing a coach may
+  // write: a DRAFT the CLIENT then reviews. Returns the active roadmap and any pending draft
+  // separately so the UI can tell "no roadmap at all" apart from "a draft is already waiting on
+  // the client", and never offers to create a second redundant draft.
+  getClientRoadmap: async (
+    clientId: string,
+  ): Promise<{ activeRoadmap: FitnessRoadmapProjection | null; pendingDraft: FitnessRoadmapProjection | null }> => {
+    const { data } = await api.get(`/coach/clients/${clientId}/roadmap`);
+    return data;
+  },
+  // Only the CLIENT can activate, advance, rebuild or archive a roadmap (Phase 0.3's boundary) —
+  // a coach proposes, nothing more.
+  createRoadmapDraft: async (
+    clientId: string,
+    input: { name: string; goalType: string; plannedStartAt: string; plannedEndAt?: string },
+  ): Promise<FitnessRoadmapProjection> => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/coach/clients/${clientId}/roadmap/draft`, input);
+    return data;
+  },
 };
 
 export const sessionService = {

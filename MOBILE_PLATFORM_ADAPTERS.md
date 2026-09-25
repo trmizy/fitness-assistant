@@ -2041,8 +2041,77 @@ Khách gửi yêu cầu tới PT mình **đã** có hợp đồng → server tr�
 nguyên văn những câu vốn đã tiếng Việt — vì hầu hết lỗi của endpoint này đã được dịch, chỉ dòng 392 sót.
 Nguồn gốc ghi ở `MOBILE_BACKEND_GAPS.md` GAP-19 (sửa tận gốc là đổi một chuỗi ở user-service).
 
-### 27.4 — Còn lại của Phase 11 (chưa làm)
+### 27.4 — PT-12 "Duyệt giáo án" (xong)
 
-PT-08/PT-11 (chợ kế hoạch, nằm dưới `client/plans`), PT-09 đơn dịch vụ 1-1, PT-10 gói dịch vụ,
-PT-12 duyệt giáo án AI, PT-13 hợp tác phòng gym, WB-13 lộ trình học viên trong màn chi tiết học viên.
-Các luồng phản hồi đổi lịch / báo cáo vắng mặt cũng thuộc cụm này.
+`app/pt/plan-review.tsx`. Web bày danh sách cạnh giáo án theo bố cục hai cột; trên điện thoại gộp thành
+một màn: hàng chờ ở trên, lịch tập của giáo án đang xem ở dưới, hai quyết định ghim đáy màn hình để
+lịch dài bao nhiêu vẫn bấm tới. `weeklySchedule` là JSON do AI sinh nên được làm phẳng ở `planSchedule`,
+thiếu tên ngày thì đánh số, thiếu set/rep thì vẫn hiện tên bài — không in "undefined".
+
+### 27.5 — PT-10 "Gói dịch vụ" và PT-13 "Hợp tác phòng gym" (xong)
+
+Web nhét cả hai vào trong `PTProfilePage`; trên điện thoại mỗi thứ là một màn mở từ trang Hồ sơ, đúng
+kiểu hub của "Cá nhân" bên khách — nhét hết vào một trang thì trang nào cũng thành cuộn dài vô tận.
+
+**Gói dịch vụ** là thứ khách chọn khi gửi yêu cầu hợp đồng (đầu kia của PT-07), nên hiện giá mỗi buổi
+cạnh giá cả gói. Xoá là **lưu trữ mềm** phía server (hợp đồng đã ký còn tham chiếu tới gói), nên hộp xác
+nhận nói "ngừng bán", không hứa hẹn xoá hẳn.
+
+**Hợp tác** — ba tỷ lệ phải cộng **đúng 100%** và phần nền tảng không dưới `MIN_PLATFORM_RATE` (0.10);
+gym-service từ chối bảng lệch dù chỉ 0,01 (`validateRates`), nên biểu mẫu kiểm cùng luật trước khi gửi.
+Tỷ lệ chỉ là **bản mẫu**: schema ghi rõ hợp đồng khi ký sẽ sao chép tỷ lệ lên chính nó, nên thương lượng
+lại sau đó không đụng tới hợp đồng đang chạy — màn hình nói thẳng điều đó.
+Việc **ai đang tới lượt** lấy từ `proposedBy` chứ không từ `status`: schema định nghĩa `proposedBy` là
+"người đang giữ đề nghị trên bàn, tức người KHÔNG phải tới lượt". Đoán theo status sẽ bảo HLV ngồi chờ
+trong khi bóng đang ở chân họ.
+
+### 27.6 — PT-09 đơn dịch vụ 1-1 + PT-08 dịch vụ của chính PT (xong)
+
+`app/pt/service-orders/` — hai mục trên một màn. Web tách đôi: đơn ở `/pt/service-orders/:id` (không có
+danh sách) còn danh mục dịch vụ của PT lại nằm trong trang **khách** `/client/plans` chặn theo `isPT`.
+Trên điện thoại cách chia đó vô lý: một dịch vụ và các đơn nó sinh ra là cùng một việc, mà bắt HLV đổi
+không gian để sửa danh mục của chính mình thì càng vô lý.
+
+Mỗi trạng thái chỉ mở đúng **một** hành động server chấp nhận (`sellerOrderAction`); trạng thái đang chờ
+khách thì nói thẳng là chưa có việc, thay vì bày nút chắc chắn bị từ chối. Bản nháp AI là **tham khảo**:
+`generatePlanDraft` điền danh sách ngày, HLV sửa, và chỉ hành động của HLV mới giao bản nháp — người chịu
+trách nhiệm trước khách là HLV chứ không phải mô hình.
+
+**Lỗi bắt được khi kiểm trên máy:** bộ chọn bài tập hiện một danh sách **trắng trơn**. Danh mục bài tập
+dùng trường `exerciseName` (kèm `typeOfEquipment`, `muscleGroupsActivated[]`), không phải `name` như tại hạ
+giả định. Đã sửa; kiểm lại thì ra đúng tên thật (3/4 Sit-Up · abdominals · BODYWEIGHT…).
+
+### 27.7 — WB-13 lộ trình học viên (xong)
+
+Thẻ "Lộ trình" trong màn chi tiết học viên, chỉ hiện khi hợp đồng ACTIVE. Ranh giới đúng như Phase 0.3 đã
+chốt và fitness-service ép: **chỉ khách** kích hoạt / advance / rebuild / archive; HLV chỉ xem và **đề xuất
+bản nháp** để khách duyệt. Nên thẻ này có đúng một thao tác ghi, và nói rõ người quyết là khách.
+`getClientRoadmap` cố ý trả lộ trình đang chạy và bản nháp đang chờ **tách riêng**, nhờ vậy một bản nháp
+đang chờ khách không bị nhầm thành "chưa có lộ trình" rồi mời tạo thêm bản thứ hai.
+Hai hàm `getClientRoadmap`/`createRoadmapDraft` được port từ web vào `ptCoachService` (mobile trước đó thiếu).
+
+### 27.8 — PT-11 đã có sẵn từ Phase 8
+
+Đăng kế hoạch lên chợ (`MineSection` trong `features/plans/MarketTab.tsx`): đăng, đăng lại phiên bản mới,
+gỡ khỏi chợ, gợi ý cải thiện. Manifest ghi PT-11 "hiện cho MỌI user, không riêng PT" nên nó nằm ở không
+gian khách và Phase 8 đã dựng — không làm lại.
+
+### 27.9 — Bằng chứng Phase 11 phần sau (REAL emulator + BACKEND INTEGRATION, 25/9, pt@example.com)
+
+- Tổng quan: 5 ô hành động, ô **Đơn dịch vụ** hiện huy hiệu **3 cần xử lý** — khớp số đơn ở trạng thái
+  PT_REVIEWING; ô **Duyệt giáo án** báo "Không có giáo án chờ" (hàng chờ rỗng thật).
+- PT-09: danh sách xếp đơn cần xử lý lên đầu với nhãn phía người bán **"Bạn đang phân tích"**, đơn đã huỷ
+  ở dưới. Mở chi tiết: phiếu khách (goal MUSCLE_GAIN thật), bộ soạn giáo án, khối AI, bộ chọn bài tập đọc
+  đúng danh mục thật sau khi sửa lỗi tên trường.
+- PT-10: hai gói đang bán (1.600.000 đ / 8 buổi = 200.000 đ/buổi; 3.000.000 đ / 10 buổi = 300.000 đ/buổi),
+  một gói tạm ẩn, các gói đã ngừng bán mờ đi và không còn nút — khớp dữ liệu thật của tài khoản.
+- PT-13: danh sách hợp tác thật với tỷ lệ **55% / 35% / 10%** (cộng đúng 100%, nền tảng ở mức sàn),
+  trạng thái "Đã chấm dứt", vòng và hạn trả lời.
+- **Không thực hiện**: giao bản nháp giáo án, tạo/ngừng bán gói, gửi hay trả lời đề nghị hợp tác, đề xuất
+  lộ trình. Đều là thao tác ghi làm dịch chuyển máy trạng thái thật trên tài khoản dùng chung; phần đọc và
+  phần kiểm hợp lệ của biểu mẫu đã xác nhận, phần ghi chờ Ngài cho phép nếu muốn chạy thật.
+
+### 27.10 — Còn lại của Phase 11 (chưa làm)
+
+Luồng phản hồi **đề nghị đổi lịch** và **báo cáo PT vắng mặt** (web có ở `PTSchedulePage`) vẫn chưa dựng —
+chúng thuộc cụm tranh chấp, đi cùng GAP-13 đang chờ Ngài bàn với partner.
