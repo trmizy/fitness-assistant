@@ -21,7 +21,7 @@ const adminTabs: WorkspaceTab[] = [
 export default function AdminLayout() {
   return (
     <RequireRole allow={["admin"]}>
-      <WorkspaceTabs workspace="admin" tabs={adminTabs} />
+      <WorkspaceTabs workspace="admin" tabs={adminTabs} hiddenRoutes={["applications"]} />
     </RequireRole>
   );
 }

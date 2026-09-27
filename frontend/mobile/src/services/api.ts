@@ -5352,6 +5352,58 @@ async function fileSizeBytes(uri: string): Promise<number> {
   throw new Error("Không đọc được kích thước tệp. Hãy chọn lại tệp.");
 }
 
+/**
+ * WB-17 — "Duyệt hồ sơ đối tác" (admin). Thay hẳn WB-03: đường admin tự tạo tài khoản chủ gym đã bị
+ * gỡ (`POST /admin/partners` trả 410), nên đây giờ là **đường duy nhất** để một chủ gym tồn tại.
+ *
+ * Máy chủ tự tính `approve.canApprove` và `approve.blockers` kèm câu tiếng Việt — ứng dụng hiển thị
+ * đúng những gì máy chủ nói, không dựng lại luật duyệt lần thứ hai.
+ */
+export type AdminApplicationRow = {
+  id: string;
+  contactEmail: string | null;
+  applicantName: string | null;
+  legalName: string | null;
+  brandName: string | null;
+  firstBranchName: string | null;
+  businessScale: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  status: string;
+  verificationStatus: "NOT_VERIFIED" | "IN_REVIEW" | "NEEDS_INFO" | "REJECTED" | "VERIFIED";
+};
+
+export const adminPartnerApplications = {
+  list: async (verificationStatus?: string) =>
+    unwrapPartner<{ items: AdminApplicationRow[]; counts: Record<string, number> }>(
+      await api.get("/admin/partners/applications", {
+        params: verificationStatus ? { verificationStatus } : undefined,
+      }),
+    ),
+  get: async (id: string) => unwrapPartner<any>(await api.get(`/admin/partners/${id}/application`)),
+  /** Mỗi lần admin mở một giấy tờ đều được ghi nhật ký ở máy chủ — đó là chủ ý, không phải phụ phẩm. */
+  documentFile: async (id: string, docType: PartnerDocType, fileId?: string) =>
+    unwrapPartner<{ url: string; expiresInSec: number | null; mimeType: string | null }>(
+      await api.get(`/admin/partners/${id}/application/documents/${docType}/file`, {
+        params: fileId ? { fileId } : undefined,
+      }),
+    ),
+  acceptDocument: async (id: string, docType: PartnerDocType) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/documents/${docType}/accept`)),
+  requestChanges: async (
+    id: string,
+    v: { issues: { category: string; message: string }[]; documents: { docType: PartnerDocType; note: string }[] },
+  ) => unwrapPartner(await api.post(`/admin/partners/${id}/application/request-changes`, v)),
+  resolveIssue: async (id: string, issueId: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/issues/${issueId}/resolve`)),
+  reopenIssue: async (id: string, issueId: string, message: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/issues/${issueId}/reopen`, { message })),
+  approve: async (id: string) => unwrapPartner(await api.post(`/admin/partners/${id}/application/approve`)),
+  reject: async (id: string, reason: string, adminNote?: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/reject`, { reason, adminNote })),
+  reopen: async (id: string) => unwrapPartner(await api.post(`/admin/partners/${id}/application/reopen`)),
+};
+
 export async function uploadApplicationFile(file: UploadFile, target: ApplicationUploadTarget): Promise<void> {
   // `sizeBytes` phải là số byte THẬT: máy chủ nhét nó vào điều kiện `content-length-range` của biểu
   // mẫu presigned, nên khai sai thì kho lưu trữ từ chối chính tệp vừa ký. Đọc từ hệ tệp, không đoán.

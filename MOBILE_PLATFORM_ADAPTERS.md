@@ -2655,3 +2655,57 @@ và đã tắt lại sau khi kiểm (xác nhận `devVerifyLink` không còn tro
   bước rồi cần một quản trị viên thao tác; chỉ phủ bằng test thuần.
 - **WB-01** — không có tài khoản nào đang mang cờ `mustChangePassword` trong DB, và không đặt cờ đó
   lên tài khoản người khác để tạo ca thử.
+
+## 32. Không gian Quản trị viên — Phase 13 mở màn: WB-17 duyệt hồ sơ đối tác (27/9)
+
+**Phạm vi Phase 13 đã chốt (Ngài quyết 27/9):** AD-01..AD-06 + **WB-17**. Sáu route admin chỉ có
+trên web (WB-05..WB-10) **hoãn có ghi nhận** — lý do và hai ứng viên gần nhất nếu mở lại nằm trong
+`MOBILE_MIGRATION_MANIFEST.md` ngay dưới bảng WB-05..WB-10.
+
+Làm WB-17 trước phần còn lại của Phase 13 vì hai lẽ: nó là **đường duy nhất** để một chủ phòng gym
+tồn tại (luồng admin tự tạo tài khoản đã bị gỡ, `POST /admin/partners` trả 410), và nó là thứ mở
+khoá phần kiểm còn thiếu của Phase 12 (duyệt hồ sơ → GY-08 → không gian vận hành).
+
+### 32.1 Máy chủ quyết định có duyệt được hay không
+
+`GET /admin/partners/:id/application` trả `approve.canApprove` và `approve.blockers`, do
+`computeApproveBlockers` (gym-service `partner-application.state.ts`) tính và **đã kèm sẵn câu tiếng
+Việt**. Màn hình hiển thị đúng những câu đó, không dựng lại luật duyệt lần thứ hai — cùng nguyên tắc
+với `missing[]` ở phía ứng viên (§31.1). Dựng luật thứ hai là hứa một nút mà máy chủ sẽ từ chối.
+
+Duyệt là **một transaction** ở máy chủ: bấm đúp hoặc hai quản trị viên cùng bấm thì người sau nhận
+409, không có trạng thái nửa vời. Ứng dụng không cần (và không nên) tự chống.
+
+Xem một giấy tờ là mở liên kết ký tạm do máy chủ cấp; **mỗi lần xem đều được ghi nhật ký** — đó là
+chủ ý của thiết kế chứ không phải phụ phẩm, nên màn này không cache liên kết lại để xem lại "cho
+nhanh".
+
+### 32.2 Chỗ lệch web, có chủ ý
+
+Web gộp mọi thứ vào `AdminPartnersPage` (1163 dòng) với bố cục hai cột và panel duyệt dính. Trên điện
+thoại tách thành hàng chờ → chi tiết. Hàng chờ **xếp hồ sơ nộp lâu nhất lên đầu** chứ không theo thứ
+tự máy chủ trả: một hàng chờ mà không thấy cái nào để lâu nhất thì không phải hàng chờ.
+
+Màn "Duyệt" (AD-04) thành một hub các hàng chờ. Hàng chờ đơn ứng tuyển huấn luyện viên hiện ở đó
+dưới dạng mục mờ kèm câu "sẽ nối vào đây ở phần còn lại của Phase 13" — nói thẳng là chưa có, thay vì
+im lặng để người dùng tưởng mình bấm hỏng.
+
+### 32.3 Đã kiểm gì (emulator + backend Docker thật, `admin@example.com`)
+
+- Hub "Duyệt" → hàng chờ; bốn tab theo `PartnerVerificationStatus` kèm bộ đếm thật của máy chủ
+  (**30 đã duyệt**, 5 chưa nộp).
+- Danh sách thật: tên thương hiệu, email liên hệ, nhãn trạng thái, "5 ngày trước".
+- Chi tiết một hồ sơ thật: người đại diện, điện thoại, email, tên pháp lý, thương hiệu, chi nhánh
+  đầu, địa chỉ, số ảnh; **sáu loại giấy tờ** với trạng thái đúng (ba loại bắt buộc "Đã xác minh",
+  hai loại tuỳ chọn "Chưa nộp") và hàng "Xem tệp" kèm kiểu MIME; mục góp ý cũ với nhãn "Đã đóng".
+- **Khối "Chưa duyệt được vì:" hiện nguyên văn ba câu của máy chủ** ("Hồ sơ không ở trạng thái đang
+  xét duyệt", "Hồ sơ chưa có chi nhánh đầu tiên", "Ứng viên đã có chi nhánh ngoài hồ sơ ứng tuyển"),
+  nút "Duyệt hồ sơ" tắt đúng theo `canApprove`.
+
+**CHƯA kiểm được:**
+- **Ba thao tác ghi của quản trị viên** (duyệt / yêu cầu chỉnh sửa / từ chối). Chúng tác động lên
+  đối tác thật trong DB dùng chung, và hàng chờ `IN_REVIEW` hiện đang **rỗng** — hồ sơ
+  `p12-mobile@example.com` tại hạ tạo ở cụm D mới ở bước 2/9, chưa nộp. Muốn chạy chuỗi
+  "nộp → duyệt → GY-08 → vận hành" thì phải khai nốt bảy bước, trong đó có tải ảnh và giấy tờ —
+  đúng phần chưa kiểm được ở §31.7.
+- **Mở tệp giấy tờ** (liên kết ký tạm trỏ tới MinIO): cùng câu hỏi host với §31.4.
