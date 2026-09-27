@@ -52,6 +52,24 @@ export function parseAmountInput(raw: string): string {
   return raw.replace(/[^\d]/g, "");
 }
 
+/**
+ * Trần rút THẬT, theo đúng `payment-service/withdrawal.service.ts`: số dư khả dụng **trừ** tổng các
+ * yêu cầu còn PENDING. Yêu cầu đã APPROVED thì tiền đã rời `availableBalance` sang `lockedBalance`,
+ * trừ lần nữa là trừ hai lần.
+ *
+ * Không có bước trừ này thì biểu mẫu mời người dùng rút một số tiền mà máy chủ chắc chắn từ chối
+ * bằng 400 `EXCEEDS_WITHDRAWABLE_BALANCE`. Ví khách còn một luật chặt hơn nữa (chỉ rút được phần
+ * tiền hoàn), nên đây là trần TRÊN chứ không phải toàn bộ luật.
+ */
+export function withdrawableCeiling(wallet: unknown, withdrawals: unknown): number {
+  const available = money((wallet as any)?.availableBalance);
+  const rows: any[] = Array.isArray(withdrawals) ? withdrawals : ((withdrawals as any)?.data ?? []);
+  const pendingReserved = (Array.isArray(rows) ? rows : [])
+    .filter((w) => w?.status === "PENDING")
+    .reduce((sum, w) => sum + money(w?.amount), 0);
+  return Math.max(0, available - pendingReserved);
+}
+
 export function withdrawFormError(amount: string, payoutInfo: string, available: number): string | null {
   const n = Number(amount);
   if (!amount || !Number.isFinite(n) || n <= 0) return "Nhập số tiền muốn rút.";

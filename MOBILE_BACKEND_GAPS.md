@@ -482,3 +482,22 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
   `/ai/agent/image-chat`; lỗi body quá lớn nay trả 413 "Ảnh quá lớn. Hãy chọn ảnh JPEG/PNG dưới 4 MB." thay vì 500.
   REAL emulator: gửi ảnh phòng gym + "Phòng tập này có gì?" → AI trả lời đúng nội dung ảnh (qua khoá theo GAP-15 (c)).
 - Trạng thái: ĐÃ SỬA.
+
+## GAP-20 — Liên kết xác minh đối tác không mở được thẳng ứng dụng (Phase 12, WB-15)
+
+**Hiện trạng.** Thư "Xác minh email để trở thành đối tác" trỏ tới trang WEB:
+`{x-public-base-url}/partner/apply/verify#token=…`. Trên điện thoại, một liên kết https chỉ mở thẳng
+ứng dụng khi có **App Links đã xác minh tên miền** (Android cần `assetlinks.json` trên chính tên miền
+đó). Môi trường phát triển chưa có tên miền nào để xác minh.
+
+**Ảnh hưởng.** Người dùng bấm liên kết trong thư trên điện thoại sẽ mở trình duyệt, không mở app.
+
+**Ứng dụng đang xử lý thế nào.** Màn `partner/verify` nhận mã theo ba đường: deep link
+`fitnessassistant://partner/verify#token=…`, dán cả liên kết, hoặc dán riêng mã. Đủ dùng, nhưng
+không phải trải nghiệm đúng.
+
+**Cần ở phía backend/hạ tầng (khi có tên miền thật).** Phục vụ `/.well-known/assetlinks.json` với
+`applicationId` và dấu vân tay chứng chỉ ký của ứng dụng; giữ nguyên dạng liên kết hiện tại (mã ở
+fragment) — không cần đổi gì trong thư.
+
+**Không chặn Phase 12.**

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
-import { ArrowRight, Dumbbell, Lock, Mail, ServerCog } from "lucide-react-native";
+import { ArrowRight, Building2, Dumbbell, Lock, Mail, ServerCog } from "lucide-react-native";
 
-import { Button, Input } from "../../src/components/ui";
+import { Button, Input, Tappable } from "../../src/components/ui";
 import { useApp } from "../../src/context/AppContext";
 import { Preferences } from "../../src/services/storage";
 import {
@@ -184,12 +184,29 @@ export default function LoginScreen() {
             on a real device: the emulator's default (10.0.2.2) is meaningless on a phone, which
             needs the host's LAN address or a tunnel.
           */}
-          <Link href="/server-config" asChild>
-            <View className="mt-6 flex-row items-center justify-center gap-1.5">
-              <ServerCog size={14} color="#52525b" />
-              <Text className="text-xs font-body text-muted-foreground">Cấu hình máy chủ</Text>
-            </View>
-          </Link>
+          {/* `<Link asChild>` bọc một `View` KHÔNG nhận được chạm — `asChild` chỉ chuyền props
+              nhấn xuống con nào biết nhận, mà `View` thì không. Link này im lặng từ Phase 4, tức là
+              màn "Cấu hình máy chủ" chưa từng bấm vào được từ đây; trên điện thoại thật, nơi mặc
+              định 10.0.2.2 vô nghĩa, đó là đường duy nhất để sửa địa chỉ máy chủ. Dùng `Tappable`. */}
+          <Tappable
+            accessibilityLabel="Cấu hình máy chủ"
+            onPress={() => router.push("/server-config")}
+            className="mt-6 flex-row items-center justify-center gap-1.5 py-1"
+          >
+            <ServerCog size={14} color="#52525b" />
+            <Text className="text-xs font-body text-muted-foreground">Cấu hình máy chủ</Text>
+          </Tappable>
+
+          {/* WB-15 — lối vào của chủ phòng gym. Đặt DƯỚI "Cấu hình máy chủ" theo đúng quyết định
+              sản phẩm đã duyệt ở bản web: luôn là lựa chọn thứ yếu so với nút Đăng nhập. */}
+          <Tappable
+            accessibilityLabel="Trở thành đối tác phòng gym"
+            onPress={() => router.push("/partner/apply")}
+            className="mt-4 flex-row items-center justify-center gap-1.5 rounded-xl border border-border py-2.5"
+          >
+            <Building2 size={14} color="#60a5fa" />
+            <Text className="text-xs font-body-semibold text-primary">Trở thành đối tác phòng gym</Text>
+          </Tappable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

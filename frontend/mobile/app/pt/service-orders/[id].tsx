@@ -21,7 +21,7 @@ import {
 } from "../../../src/components/ui";
 import { personalizedServiceApi, ptCoachService, workoutService } from "../../../src/services/api";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
-import { designTokens } from "../../../src/theme/colors";
+import { darkColors, designTokens } from "../../../src/theme/colors";
 import { formatVND } from "../../../src/utils/currency";
 import { ORDER_STATUS_LABEL, orderStatusTone } from "../../../src/features/plans/personalizedOrder";
 import { sellerOrderAction, sellerOrderLabel } from "../../../src/features/pt/pt";
@@ -365,7 +365,7 @@ function DraftBuilder({ order, onDelivered }: { order: any; onDelivered: () => v
             <Text className="font-body text-xs text-muted-foreground">{WEEKDAYS[d.weekday]}</Text>
             {days.length > 1 ? (
               <Tappable accessibilityLabel={`Xoá buổi ${d.dayNumber}`} onPress={() => removeDay(dayIdx)} className="h-8 w-8 items-center justify-center rounded-xl bg-panel">
-                <Trash2 size={14} color={designTokens.destructive} />
+                <Trash2 size={14} color={darkColors.destructive} />
               </Tappable>
             ) : null}
           </View>
@@ -379,7 +379,7 @@ function DraftBuilder({ order, onDelivered }: { order: any; onDelivered: () => v
                     {ex.name}
                   </Text>
                   <Tappable accessibilityLabel={`Bỏ ${ex.name}`} onPress={() => removeExercise(dayIdx, exIdx)}>
-                    <Trash2 size={14} color={designTokens.destructive} />
+                    <Trash2 size={14} color={darkColors.destructive} />
                   </Tappable>
                 </View>
                 <View className="flex-row gap-2">

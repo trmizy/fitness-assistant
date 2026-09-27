@@ -14,6 +14,7 @@ import { useFonts as useInterFonts, Inter_300Light, Inter_400Regular, Inter_500M
 import { darkColors } from "../src/theme/colors";
 import { queryClient } from "../src/lib/queryClient";
 import { AppProvider } from "../src/context/AppContext";
+import { RequirePasswordChange } from "../src/components/guards/RequirePasswordChange";
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
 
@@ -75,7 +76,12 @@ export default function RootLayout() {
               {/* SocketProvider reads the session from AppProvider, so it must sit inside it. */}
               <SocketProvider>
                 <ToastProvider>
-                  <Slot />
+                  {/* WB-01 — mật khẩu tạm phải đổi trước khi dùng bất cứ thứ gì. Đặt TRONG
+                      ToastProvider để chính màn chặn cũng hiện được thông báo, và bọc ngoài
+                      `Slot` để không một route nào lọt qua. */}
+                  <RequirePasswordChange>
+                    <Slot />
+                  </RequirePasswordChange>
                 </ToastProvider>
               </SocketProvider>
             </AppProvider>

@@ -21,7 +21,7 @@ import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
-import { money, parseAmountInput, shortDate, withdrawFormError, withdrawalStatus } from "../../src/features/wallet/wallet";
+import { money, parseAmountInput, shortDate, withdrawFormError, withdrawableCeiling, withdrawalStatus } from "../../src/features/wallet/wallet";
 import { ptTransactionLabel } from "../../src/features/pt/pt";
 
 /**
@@ -46,7 +46,9 @@ export default function PtWalletScreen() {
   const wdQuery = useQuery({ queryKey: ["pt-withdrawals", uid], queryFn: () => walletService.getMyWithdrawals() });
 
   const wallet: any = walletQuery.data;
-  const available = money(wallet?.availableBalance);
+  // Trần rút = số dư khả dụng trừ các yêu cầu còn PENDING, đúng như payment-service tính.
+  // Thiếu bước trừ này thì biểu mẫu mời rút một số tiền máy chủ chắc chắn từ chối bằng 400.
+  const available = withdrawableCeiling(wallet, wdQuery.data);
   const held = money(wallet?.lockedBalance) + money(wallet?.pendingBalance);
   const transactions: any[] = Array.isArray(txQuery.data) ? txQuery.data : [];
   const withdrawals: any[] = Array.isArray(wdQuery.data) ? wdQuery.data : [];

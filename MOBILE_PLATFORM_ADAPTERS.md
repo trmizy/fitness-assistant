@@ -2147,3 +2147,511 @@ Cả hai dùng lại bộ chuẩn hoá của Phase 7 (`features/services/session
 (ví dụ `L` + `\u1ed9` thay vì `Lộ`) vì script vá ghi escape nguyên văn vào TSX. Đã giải mã 154 + 268
 chuỗi, kiểm lại trên máy ra đúng tiếng Việt. Bài học: vá tệp bằng script thì viết thẳng ký tự Unicode,
 đừng dùng escape trong chuỗi thay thế.
+
+## 28. Không gian Chủ phòng gym — Phase 12, cụm A (25–26/9)
+
+Cụm A gồm cổng vào không gian, **GY-01** Tổng quan và **GY-02** Phòng gym. Các cụm còn lại
+(WB-04 gói hội viên, GY-04 ví, GY-05 quản lý chi nhánh, GY-06 hợp tác PT, WB-18 hồ sơ chủ gym,
+GY-08 nhận tiền, WB-15/16 tự đăng ký + hồ sơ 9 bước, GY-09 giấy tờ, WB-01 đổi mật khẩu bắt buộc)
+chưa làm.
+
+### 28.1 Bất biến một-chủ-một-thương-hiệu: đã kiểm ở hai tầng trước khi dựng
+
+Không suy từ tài liệu. Đọc thẳng code:
+
+- `GymBrand` mang `@@unique([ownerId])` (`gym-service/prisma/schema.prisma:888`) — ràng buộc ở
+  **tầng CSDL**, không phải quy ước.
+- `gym.service.ts createGym` **suy thương hiệu từ quyền sở hữu và bỏ qua `brandId` client gửi**
+  (trường này chỉ còn nhận cho tương thích ngược). Không có brand thì ném lỗi
+  "Hãy đặt tên thương hiệu của bạn trước khi tạo phòng gym".
+
+Hệ quả bắt buộc cho giao diện, đã tuân: **không có bộ chọn thương hiệu ở bất kỳ đâu**, không có nút
+tạo thương hiệu thứ hai, và biểu mẫu thêm chi nhánh **không có trường `brandId`** — chỉ một dòng
+chỉ-đọc "Chi nhánh này sẽ thuộc thương hiệu &lt;tên&gt;". Chuyển đổi ở đầu màn Tổng quan là chuyển
+**chi nhánh**, không phải chuyển thương hiệu.
+
+### 28.2 Cổng vào: `RequirePartnerAccess`, và vì sao nó đóng khi lỗi
+
+`deriveAccessState` (`gym-service/src/services/partner-application.state.ts:37`) là thẩm quyền điều
+hướng, 11 giá trị. `ownerLanding()` ánh xạ vét cạn: ACTIVE/LEGACY → vận hành ·
+APPROVED_PAYOUT_PENDING → bước nhận tiền · 5 trạng thái ứng viên → hồ sơ ·
+RESTRICTED/SUSPENDED/TERMINATED → chặn. `switch` vét cạn kèm `const never: never` nên **thêm một
+giá trị enum mới là lỗi biên dịch**, không phải âm thầm rơi vào "vận hành".
+
+Khác `RequireOnboarding` (Phase 4, **fail-open**): cổng này **fail-closed**. Lý do ghi thẳng trong
+tệp: onboarding là tiện ích trải nghiệm, còn đây là ranh giới phân quyền — không đọc được trạng thái
+thì không mở. Truy vấn dùng `staleTime: 0` + `refetchOnMount: "always"` để một hồ sơ vừa được duyệt
+không bắt chủ gym cài lại app mới thấy.
+
+### 28.3 GY-01 — Tổng quan: bảy lần đọc, và cái bẫy brandId
+
+Cùng bảy lần đọc như web: `listOwnedGyms`, `getOwnedWallet(gymId)`, **`listOwnedPlans(brandId)`**,
+`listOwnedMemberships(gymId)`, `listCheckins(gymId)`, `getGymReviews(gymId)`,
+`collaborationService.listForOwner()`.
+
+**Gói hội viên thuộc THƯƠNG HIỆU, không thuộc chi nhánh.** Web mang sẵn một chú thích về chính chỗ
+này: truyền nhầm `gymId` vào `listOwnedPlans` thì mỗi lần mở Tổng quan là một 404 và ô "Gói hội viên
+đang bán" đứng yên ở 0. Bản di động suy `brandId` từ chính chi nhánh đang chọn — không thêm request.
+Đã kiểm trên máy: ô này ra **20**, đúng số gói ACTIVE của thương hiệu.
+
+"Cần chú ý" đặt **trên** hàng số liệu (GYM_MANAGEMENT master spec §61/§66), suy từ chính danh sách
+chi nhánh đã tải: chi nhánh `PENDING_REVIEW`, và chi nhánh có `changesRequestedAt` (kèm
+`pendingNameNote`/`pendingAddressNote` nếu admin có ghi chú).
+
+Khác web một chỗ, có chủ ý: web đặt một danh sách chi nhánh ở cuối Tổng quan. Tài khoản kiểm thử có
+54 chi nhánh, và 54 dòng đó chôn mọi thứ phía trên trong khi tab "Phòng gym" đã là nơi của chúng —
+nên bản di động bỏ danh sách này, giữ chuyển-chi-nhánh bằng dãy chip ở đầu màn.
+
+Hai biểu đồ của web (tròn + cột, Recharts) vẽ bằng `View` thuần như phần còn lại của dự án
+(`react-native-gifted-charts` có trong `package.json` nhưng chưa màn nào dùng): cột check-in 7 ngày
+và các thanh tỉ lệ phân bổ hội viên.
+
+`membershipMix` giữ **mọi** trạng thái máy chủ trả về. Web dùng `Record` bốn khoá cứng
+(ACTIVE/PENDING_PAYMENT/EXPIRED/CANCELLED) nên `PENDING_ISSUE` — có thật trong enum — sẽ cộng vào
+`undefined`. Nhãn dùng lại `membershipStatusLabel` của Phase 7, không chép bảng nhãn thứ hai.
+
+### 28.4 GY-02 — Phòng gym: dialog, không phải wizard
+
+Web có hai đường tạo chi nhánh: wizard 7 bước (`AddBranchWizardPage`, còn nằm sau nút "thử wizard
+mới") và dialog trong `MyGymsPage`. **Dialog mới là đường đang chạy thật** nên đó là cái được port:
+tên + số nhà/tên đường (hai trường bắt buộc, đúng hai trường `createGym` đòi), tỉnh/phường, thành phố
+hiển thị, giới thiệu ≤300, và bản đồ ghim.
+
+Bản nháp (`DRAFT`) của wizard vẫn được liệt kê, nhưng **nói thẳng** là phải hoàn tất trên web —
+không dẫn tới một màn app chưa có. Phòng gym độc-lập-không-thương-hiệu (dữ liệu cũ) hiện ở mục riêng,
+chỉ đọc.
+
+Đổi tên thương hiệu chỉ ghi `pendingName`; màn nói rõ tên mới chỉ công khai sau khi Gymini duyệt, và
+hiện tên đang chờ nếu có. MANAGER không thấy nút đổi tên lẫn nút thêm chi nhánh (ẩn, không phải hiện
+rồi 403 — spec §61); phân biệt bằng `getOnboardingStatus().role`, và **mặc định khi chưa tải xong là
+OWNER**, giống web, để chủ gym thật không bị giấu mất nút của chính mình.
+
+### 28.5 Adapter mới của phase: bản đồ ghim kéo-thả
+
+`MapPinPicker` là bản kéo-thả của `BranchMap` (Phase 7): WebView + Leaflet + tile OpenStreetMap, giữ
+đúng quyết định 21/9 (miễn phí, không khoá API, không thư viện bản đồ native). Hai chế độ vì WebView
+nuốt cử chỉ vuốt: ô trong trang chỉ để xem, chạm mới mở toàn màn hình để kéo. Toạ độ chỉ ra ngoài khi
+bấm "Dùng vị trí này" — kéo thử rồi đóng bằng X thì ghim cũ còn nguyên. Chưa có ghim thì mở khung
+nhìn cả nước và **không** đặt toạ độ mặc định: một ghim giữa nước là toạ độ bịa.
+
+Tự ghim theo địa chỉ: `geocode.ts` port nguyên hợp đồng của web (Nominatim, ba lần thử
+địa-chỉ → tên-đường → phường, cách nhau >1 giây, luôn kèm tên phường). Khác web đúng một chỗ:
+`DOMException` không có trong Hermes nên huỷ giữa đường ném `Error` mang `name = "AbortError"`.
+
+**Hai lỗi bắt được khi chạy thật, đã sửa:**
+
+1. Ô bản đồ xem trước **trắng trơn** sau khi đóng màn ghim — Android thu hồi bề mặt WebView nằm dưới
+   một `Modal`. Sửa: chỉ vẽ ô xem trước khi màn ghim đang đóng, và khoá `key` theo toạ độ.
+2. Cùng khoá `key` đó sửa một lỗi thứ hai chưa kịp lộ: `useMemo` của nguồn HTML chỉ phụ thuộc
+   `interactive`, nên ghim **tự động** sẽ không bao giờ hiện ở ô xem trước.
+
+### 28.6 Lỗi của Phase 10/11 phát hiện khi làm phase này
+
+`designTokens` chỉ có 5 khoá (`mutedForeground`, `primaryDeep`, `onPrimary`, `warning`, `glass`) và
+kiểu của nó là `Record<string, string>` — nên `designTokens.destructive` **qua được typecheck nhưng
+là `undefined` lúc chạy**. Bảy icon đỏ ở `pt/profile`, `pt/schedule`, `pt/service-orders/[id]` đang
+vẽ bằng màu mặc định. Đã đổi sang `darkColors.destructive`. Bài học: màu ngoài 5 khoá kia lấy từ
+`darkColors`, và kiểu `Record<string, string>` không bắt lỗi khoá sai giúp mình.
+
+### 28.7 Đã kiểm gì, và chưa kiểm gì
+
+Tài khoản: `jane.smith@example.com` (GYM_OWNER thật, 1 thương hiệu, 54 chi nhánh — 50 APPROVED,
+4 SUSPENDED, 0 PENDING_REVIEW), backend Docker thật, emulator Pixel_10_Pro_XL.
+
+`REAL BROWSER`-tương-đương (**máy thật/emulator + backend thật**):
+- Cổng vào mở đúng cho chủ gym ACTIVE; ba tab hiện.
+- GY-01: ví 0 đ, 0 hội viên ACTIVE, 0 check-in hôm nay, **20 gói** (chứng minh đường `brandId` đúng,
+  không 404), 0.0 đánh giá, cột 7 ngày, phân bổ "Đã huỷ 17 · 100%", 6 dòng hội viên gần đây,
+  "Thông tin nhanh" 20 gói / 0 PT hợp tác.
+- GY-02: thẻ thương hiệu (1 thương hiệu, 54 chi nhánh), danh sách chi nhánh có trạng thái + trạng
+  thái mở cửa, **không có bộ chọn thương hiệu ở bất kỳ đâu**.
+- Hộp "Thêm chi nhánh": dòng thương hiệu chỉ-đọc, chọn tỉnh (63 mục, có tìm kiếm), chọn phường
+  (tìm không dấu "Cau Kieu" → "Phường Cầu Kiệu"), ghim tay trên bản đồ toàn màn hình
+  (15.12203, 108.19336) → ô xem trước hiện đúng ghim + "Đã ghim tay", nút "Tạo chi nhánh" bật/tắt
+  đúng theo hai trường bắt buộc.
+- Tự ghim theo địa chỉ **có chạy** đúng thời điểm và báo "Không tìm thấy địa chỉ trên bản đồ — hãy
+  ghim tay" cho "123 Phan Xich Long, Phường Cầu Kiệu, Thành phố Hồ Chí Minh".
+
+`CODE AUDIT` + `TEST FIXTURE`: 29 test thuần cho cổng trạng thái, chi nhánh, "cần chú ý", số liệu
+bảng điều khiển, thương hiệu và cách dựng câu tra Nominatim.
+
+**Chưa chứng minh được:**
+- **Nhánh tự-ghim THÀNH CÔNG.** Chỉ thấy nhánh không-tìm-thấy chạy đúng. Chưa rõ OSM có thiếu tên
+  phường mới sau sáp nhập 2025 hay không — kiểm bằng `curl` từ Git Bash không kết luận được vì dấu
+  tiếng Việt bị hỏng khi qua shell. Web dùng **đúng cùng một tệp** nên hành vi sẽ giống nhau.
+- **Mục "Cần chú ý"** không hiện ở dữ liệu sống vì tài khoản không có chi nhánh `PENDING_REVIEW` nào
+  và không có `changesRequestedAt` (đã kiểm bằng SELECT) — đúng là phải trống. Nhánh có dữ liệu chỉ
+  được phủ bằng test thuần.
+- **Chưa chạy thao tác ghi nào** trên tài khoản dùng chung: chưa tạo chi nhánh, chưa đổi tên thương
+  hiệu. Tạo chi nhánh để lại một gym `PENDING_REVIEW` **không xoá được**; đổi tên để lại
+  `pendingName` chờ admin. Xin lệnh Ngài trước khi chạy.
+- **"Dùng vị trí hiện tại"** của web (`GymLocationFields`) chưa port: cần `expo-location`, tức thêm
+  native module và dựng lại dev client — với rủi ro junction `D:/.rn*` đã ghi ở phase trước. Tự ghim
+  theo địa chỉ + kéo ghim đã phủ phần lớn nhu cầu. Chờ Ngài quyết.
+
+### 28.8 Thao tác ghi thật (26/9, Ngài cho phép) và những gì lộ ra khi chạy
+
+Chạy trên tài khoản dùng chung `jane.smith@example.com`, backend Docker thật, đối chiếu DB sau mỗi
+bước.
+
+**Ghi #1 — tạo chi nhánh.** Nhập "Mobile Phase12 Test 26-09" / "88 Nguyen Hue", bấm Tạo.
+`SELECT` ngay sau đó:
+
+```
+773bba49-… | Mobile Phase12 Test 26-09 | pending_name = Mobile Phase12 Test 26-09
+           | 88 Nguyen Hue | PENDING_REVIEW | brand_id = dad58a17-…
+```
+
+`brand_id` khớp đúng thương hiệu duy nhất của chủ tài khoản **dù ứng dụng không hề gửi `brandId`** —
+`createGym` suy từ quyền sở hữu, đúng như bất biến. Giao diện: danh sách nhảy từ 54 lên 55, thẻ mới
+đứng đầu với nhãn "Chờ duyệt" và dòng "Đang chờ Gymini duyệt…", không có hàng số liệu (đúng
+`showsBranchStats`).
+
+**Nhờ chi nhánh này mà "Cần chú ý" lần đầu có dữ liệu thật**: màn Tổng quan hiện đúng một thẻ
+"Mobile Phase12 Test 26-09 — Đang chờ Gymini xét duyệt lần đầu", nằm **trên** hàng KPI. Trước đó
+nhánh này chỉ được phủ bằng test thuần vì tài khoản không có chi nhánh `PENDING_REVIEW` nào.
+
+Một xác nhận ngoài dự tính: chi nhánh mới toanh, 0 hội viên, mà ô "Gói hội viên đang bán" vẫn là
+**20** — bằng chứng sống rằng gói thuộc thương hiệu chứ không thuộc chi nhánh.
+
+**Ghi #2 — đổi tên thương hiệu**, rồi hoàn tác. Đổi thành `…_Chain_X_Premium_M12`:
+
+```
+name = …_Premium_M12 | approved_name = …_Premium | pending_name = …_Premium_M12
+```
+
+Đúng hợp đồng `brand.service.ts`: đổi tên **không bao giờ** chạm `approvedName`. Giao diện cũng
+đúng: tiêu đề thẻ vẫn là tên đã duyệt, còn tên mới nằm ở dòng vàng "Tên mới đang chờ Gymini duyệt".
+Sau đó lưu lại tên gốc (ô nhập mồi sẵn bằng tên đã duyệt nên chỉ cần bấm Lưu).
+
+**Vết còn lại, nói thẳng:**
+- Một chi nhánh `PENDING_REVIEW` tên "Mobile Phase12 Test 26-09" trong hàng chờ duyệt của admin.
+  **Không xoá được** — không có API xoá chi nhánh.
+- `pending_name` của thương hiệu giờ bằng đúng `approved_name`. `updateBrand` ghi `pendingName` ở
+  **mọi** lần lưu, kể cả lưu lại chính tên đang dùng, nên không có cách nào trả nó về `null` từ phía
+  ứng dụng. Admin có duyệt thì cũng không đổi gì.
+
+**Sửa theo cái vừa thấy:** dòng "Tên mới đang chờ duyệt" giờ **ẩn khi tên chờ duyệt trùng tên đang
+hiển thị** — báo một thay đổi không phải thay đổi là nhiễu. Web không có xử lý này.
+
+**Một điều chỉnh khả năng tiếp cận, KHÔNG phải sửa lỗi:** nút bút chì đổi tên có vùng chạm ~23dp,
+dưới chuẩn 44dp, nên đã thêm `hitSlop` (prop mới, tuỳ chọn, của `Tappable`) và nới đệm. Tại hạ từng
+tưởng nó là nguyên nhân các cú chạm không ăn, nhưng `uiautomator dump` cho thấy sheet **có** mở —
+chỉ là render chậm hơn 3 giây chờ chụp màn hình. Vùng chạm nhỏ vẫn đáng sửa, nhưng nó không phải
+thủ phạm.
+
+### 28.9 `expo-location` — "Dùng vị trí hiện tại" (26/9, Ngài cho phép thử)
+
+Cài `expo-location ~57.0.20` bằng `npx expo install`, thêm plugin vào `app.json` kèm câu xin quyền
+tiếng Việt, dựng lại dev client.
+
+**Bài học phase trước tái diễn đúng như đã ghi:** `expo install` trả **toàn bộ** junction
+(`react-native`, reanimated, worklets, gesture-handler, safe-area-context, screens, svg) về đường
+`.pnpm` dài. Phải chạy lại `node scripts/shorten-package-paths.js` trước khi build, và xoá
+`android/build/generated/autolinking`. `nativewind` vẫn ở 4.2.6, không bị nâng.
+
+Nút đặt trong `MapPinPicker` chứ không trong cụm tỉnh/phường như web: trên điện thoại, ghim là việc
+của bản đồ. Lấy vị trí xong tính là **ghim tay**, nên tra địa chỉ sau đó không ghi đè — chủ gym đang
+đứng trong phòng gym thì toạ độ của họ đúng hơn Nominatim.
+
+**Ba thứ lộ ra khi chạy thật, đã sửa:**
+
+1. **Không có hạn chờ.** `Location.getCurrentPositionAsync` không nhận tuỳ chọn timeout và chờ mãi
+   khi máy không bắt được định vị — trên emulator nút kẹt ở "Đang lấy vị trí…" không bao giờ thoát.
+   Đã cho chạy đua với hạn chờ **10 giây**, đúng bằng `timeout: 10_000` của bản web.
+2. **Không có đường lui khi không có định vị mới.** Đúng lúc chủ gym đứng trong phòng gym kín mà bấm
+   nút này là lúc máy khó bắt định vị nhất. Thêm `getLastKnownPositionAsync({ maxAge: 10 phút })`,
+   nhưng **nói rõ là gần đúng** ("Chỉ lấy được vị trí gần đúng — hãy kiểm lại ghim trên bản đồ")
+   thay vì lặng lẽ ghim như thể vừa đo. Bản định vị cũ mà ghim im lặng thì tệ hơn là không ghim.
+3. Đặt tên hàm thường là `useCurrentLocation` khiến ESLint coi nó là hook (`rules-of-hooks`, **lỗi**
+   chứ không phải cảnh báo). Đổi thành `pickCurrentLocation`.
+
+**Kiểm được tới đâu (emulator Pixel_10_Pro_XL):**
+- Hộp xin quyền hệ thống hiện đúng, kèm câu tiếng Việt đã khai trong `app.json`; cấp quyền
+  "While using the app" chạy đúng; Android hỏi bật Location Accuracy và nhận.
+- Hết 10 giây không có định vị → nút trở lại bình thường, hiện thông báo đỏ "Chưa bắt được định vị —
+  ra chỗ thoáng rồi thử lại, hoặc ghim tay". Ghim cũ không bị đụng tới.
+
+**CHƯA kiểm được — nhánh lấy vị trí THÀNH CÔNG.** `adb emu geo fix` trả `OK` nhưng emulator **không**
+cập nhật vị trí: `dumpsys location` vẫn đứng ở toạ độ mặc định 37.421998,-122.084000 với `et` không
+đổi. GPS của máy ảo này đóng băng từ lúc khởi động, nên không có cách nào tạo ra một định vị mới để
+thử. **Cần một máy thật.** Tại hạ không dựng dữ liệu giả để cho nhánh này xanh.
+
+## 29. Không gian Chủ phòng gym — Phase 12, cụm B (26/9)
+
+Cụm B: **WB-04** gói hội viên của thương hiệu, **GY-04** ví chi nhánh, **GY-06** hợp tác huấn luyện
+viên nhìn từ ghế chủ gym. Còn lại của Phase 12 (GY-05 quản lý chi nhánh, WB-18 hồ sơ chủ gym, GY-08
+nhận tiền, WB-15/16 tự đăng ký + hồ sơ 9 bước, GY-09 giấy tờ, WB-01 đổi mật khẩu) chưa làm.
+
+### 29.1 Hợp tác: tách module dùng chung thay vì chép bảng thứ hai
+
+Phase 11 để bảng trạng thái hợp tác và phép kiểm tỷ lệ trong `features/pt/pt.ts` vì chỉ ghế huấn
+luyện viên dùng. Cụm này dựng ghế chủ gym trên **đúng một dữ liệu đó**, nên khối chung chuyển sang
+`features/collaboration/collaboration.ts`; `pt.ts` xuất lại nên các màn Phase 11 không phải sửa dòng
+nào (44 test của Phase 11 vẫn xanh).
+
+Điểm cốt lõi: nhãn phụ thuộc phía trở thành **tham số**, không phải hằng số nhúng trong hàm —
+`collabStatusFor(row, viewer)`. Cùng một dòng, PT thấy "Bạn cần trả lời" thì chủ gym **bắt buộc**
+thấy "Chờ huấn luyện viên trả lời". Có test khẳng định hai phía không bao giờ cùng nói "bạn cần trả
+lời".
+
+Khác web một chỗ có chủ ý: web bắt chủ gym **gõ tay UUID của huấn luyện viên** để mời. Trên điện
+thoại đó là việc không làm nổi, nên ở đây chọn từ danh bạ công khai `GET /profile/pts` — cùng nguồn
+màn tìm PT của khách đang dùng.
+
+### 29.2 Ví: trần rút tính đúng như máy chủ, và một lỗi cũ của Phase 9/10
+
+`withdrawal.service.ts` cho rút tối đa `availableBalance − tổng các yêu cầu còn PENDING`. Yêu cầu đã
+**APPROVED** thì tiền đã rời `availableBalance` sang `lockedBalance`, trừ nữa là trừ hai lần.
+
+Web không tính con số này: biểu mẫu của web gửi đi rồi mới nhận 400 `EXCEEDS_WITHDRAWABLE_BALANCE`.
+Bản di động tính trước nên nút phản ánh đúng thứ máy chủ sẽ chấp nhận.
+
+**Lỗi cũ phát hiện khi làm việc này:** ví huấn luyện viên (Phase 10) và ví khách (Phase 9) — cả hai
+đều của tại hạ — truyền thẳng `availableBalance` làm trần, thiếu bước trừ PENDING, dù cả hai màn
+**đã tải sẵn** danh sách yêu cầu. Đã đưa `withdrawableCeiling` vào `features/wallet/wallet.ts` và
+vá cả ba màn.
+
+Cũng suýt tạo bản trùng: `withdrawFormError` và `withdrawalStatus` đã có sẵn trong module ví từ
+Phase 9. Đã bỏ bản thứ hai vừa viết và dùng lại bản gốc — ví khách, ví HLV và ví chi nhánh đọc cùng
+một bảng nhãn.
+
+### 29.3 Gói hội viên thuộc THƯƠNG HIỆU
+
+Không có bộ chọn chi nhánh trên màn này, vì không còn gì thuộc riêng một chi nhánh để chọn: mua một
+lần, check-in ở chi nhánh nào cũng trừ chung một hạn mức lượt. Nhãn cửa sổ mở bán bám theo
+`isPlanOnSale` của gym-service để nhãn khớp với việc khách có thực sự nhìn thấy gói hay không.
+
+Biểu mẫu chặn trước những gì máy chủ sẽ từ chối: giá > 0, thời hạn là số ngày nguyên dương, giới hạn
+lượt nguyên dương nếu có, ngày đúng dạng và ngày kết thúc không trước ngày bắt đầu.
+
+### 29.4 Bộ chọn chi nhánh: 55 chip là không dùng được
+
+Tổng quan và Ví ban đầu dùng dải chip ngang như thiết kế. Tài khoản kiểm thử có **55 chi nhánh** —
+dải chip thành băng chuyền vô tận, không có cách nào tìm theo tên. `BranchSwitcher` giữ chip khi ≤ 4
+chi nhánh và chuyển sang bộ chọn có ô tìm kiếm (`SelectField`, tìm không dấu) khi nhiều hơn. Kiểm
+thật: gõ "Titan" ra đúng "Titan Gym" trong 55 chi nhánh.
+
+### 29.5 Ba lỗi bắt được khi chạy trên máy
+
+1. **Tỷ lệ nền tảng hiện "—" trên mọi dòng hợp tác.** Tên trường là `platformRate`, KHÔNG phải
+   `proposedPlatformRate` như hai trường kia. Tại hạ đoán theo quy luật đặt tên thay vì đọc phản hồi
+   thật. Đã đối chiếu `GET /owner/collaborations` và sửa; ghi chú lý do ngay trên kiểu dữ liệu.
+2. **Mọi dòng hợp tác hiện chung một chữ "Huấn luyện viên".** Dòng dữ liệu chỉ có `ptUserId`, không
+   có tên, mà tại hạ lại chỉ tải danh bạ khi mở hộp mời. Giờ tải luôn; ai không có trong danh bạ thì
+   hiện mã rút gọn chứ không phải một nhãn chung cho tất cả.
+3. **`useCurrentLocation`-kiểu đặt tên lặp lại**: một `useMemo` thừa trong màn Ví làm lint vượt
+   baseline. Đã bỏ.
+
+### 29.6 Đã kiểm gì (emulator + backend Docker thật, `jane.smith@example.com`)
+
+- **WB-04**: danh sách gói theo thương hiệu; **tạo gói thật** "Mobile P12 Test Plan" 250.000 ₫/30
+  ngày → DB `brand_id` đúng thương hiệu duy nhất, `status=ACTIVE`; **ngừng bán** → DB `INACTIVE`,
+  nhãn đổi thành "Đã ngừng", nút đổi thành "Mở bán lại". Vết để lại: một gói INACTIVE.
+- **GY-04**: chi nhánh 0 đồng → nút rút tắt kèm "Chưa có số dư nào rút được"; đổi sang "Titan Gym"
+  (460.353 ₫ thật) → nút bật, hộp rút ghi "Rút được tối đa 460.353 ₫", nhập 900.000 → nút tắt kèm
+  "Số tiền vượt quá số dư khả dụng". Lịch sử hiện yêu cầu 200.000 ₫ "Đã chi trả" ngày 24/8.
+  **Không gửi yêu cầu rút thật** — nó tạo một dòng tiền mà quản trị viên phải xử lý tay, vết nặng
+  hơn hẳn một gói ngừng bán.
+- **GY-06**: danh sách gộp mọi chi nhánh, tên huấn luyện viên tra từ danh bạ, tỷ lệ 50/40/10 hiện
+  đủ ba phần, "Chấm dứt hợp tác" chỉ hiện ở dòng ACCEPTED. Hộp mời: chọn chi nhánh, chọn huấn luyện
+  viên, ba ô tỷ lệ, nút tắt kèm "Chọn huấn luyện viên."
+  **Không gửi lời mời thật** — một đề nghị PENDING không rút lại được (đã ghi ở Phase 11).
+
+**Chưa chứng minh được:** nhánh trả lời một đề nghị (đồng ý / từ chối / trả giá lại) — tài khoản
+không có đề nghị nào đang chờ chủ gym trả lời, và tạo ra một cái để thử thì phải gửi lời mời thật từ
+phía huấn luyện viên. Nhánh này chỉ được phủ bằng test thuần.
+
+**Gotcha môi trường (mới):** bật lại container bằng `docker start` từng cái sau khi Docker Desktop
+khởi động lại làm **mất alias DNS** của mạng compose — gateway báo `getaddrinfo ENOTFOUND
+auth-service` dù auth-service `healthy`. Phải dùng `docker compose -f infra/compose/docker-compose.dev.yml up -d`.
+Lúc đó cổng `RequirePartnerAccess` đóng đúng như thiết kế và nói "Không đọc được trạng thái hồ sơ" —
+fail-closed hoạt động thật, chỉ là nguyên nhân nằm ở hạ tầng.
+
+## 30. Không gian Chủ phòng gym — Phase 12, cụm C (27/9)
+
+Cụm C: **GY-08** thiết lập/nhận tiền, **WB-18** hồ sơ chủ gym, **GY-05** người quản lý chi nhánh.
+Còn lại của Phase 12: WB-15/16 tự đăng ký + hồ sơ 9 bước, GY-09 giấy tờ, WB-01 đổi mật khẩu bắt buộc.
+
+### 30.1 GY-08 là COMPONENT, không phải route
+
+Trình thiết lập nằm ở `features/gymOwner/PartnerOnboardingWizard.tsx` chứ không phải
+`app/gym-owner/onboarding.tsx`, vì hai lý do bắt buộc:
+
+1. Một route dưới `app/gym-owner/` nằm **bên trong** đúng vùng mà `RequirePartnerAccess` đang chặn —
+   cổng không cho trẻ con render thì route đó không bao giờ tới được.
+2. Nó phải là màn chặn toàn màn hình **không có thanh tab**: rời khỏi thiết lập không phải là hoàn
+   tất nó. Chỉ có "Đăng xuất", đúng như web.
+
+Nên `RequirePartnerAccess` giờ **dẫn thẳng** trạng thái `APPROVED_PAYOUT_PENDING` vào trình thiết
+lập, thay vì giải thích rồi bảo người dùng sang web như bản cụm A.
+
+Bước đang dở lấy từ `currentStep` của máy chủ, **không giữ bản sao ở client** — đóng app giữa chừng
+mở lại rơi đúng chỗ cũ, và điều đó tự đúng khi không có trạng thái nào ở máy để lệch. Quản lý chi
+nhánh chỉ thấy bước liên hệ, đúng như `getProgress` chỉ đòi bước đó ở họ.
+
+### 30.2 WB-18: chỉ sửa bốn thứ, và tên thương hiệu là một YÊU CẦU
+
+Sửa được: thương hiệu (tên + giới thiệu + 4 mạng xã hội), số điện thoại, tài khoản nhận tiền, mật
+khẩu. **Không** sửa được tên pháp lý / mã số thuế / giấy phép — đã qua Gymini xác minh, cho sửa tự
+do thì lần xác minh đó thành vô nghĩa; màn nói thẳng câu đó thay vì im lặng giấu đi.
+
+`brandProfilePayload` chỉ gửi `name` khi tên **thật sự** đổi. Không có bước này thì lưu mỗi một link
+Facebook cũng đẻ ra một `pendingName` chờ admin duyệt — đúng cái bẫy đã gặp ở §28.8, lần này chặn
+từ đầu và có test riêng.
+
+Link mạng xã hội kiểm cùng luật `socialUrl` của gym-service: bắt buộc `https`, đúng tên miền của
+từng mạng (bỏ tiền tố `www/m/vm/vt`, `youtu.be` hợp lệ). Kiểm thật trên máy: `http://facebook.com/…`
+ra viền đỏ + câu giải thích ngay dưới ô, và nút Lưu tắt — không phải gửi lên rồi mới nhận 400.
+
+Quản lý chi nhánh không thấy khối tài khoản nhận tiền: **máy chủ thậm chí không trả `payout` cho
+họ**, nên vẽ ô rỗng ra là vẽ một thứ không tồn tại.
+
+### 30.3 Tab thứ tư, lệch bản thiết kế có chủ ý
+
+`gymTabs` của Figma có ba tab. WB-18 là màn web mọc thêm **sau** khi Figma vẽ xong, và nó chứa mật
+khẩu + tài khoản nhận tiền — không thể chôn sau hai lần bấm. Mọi không gian khác đều có tab hồ sơ,
+nên đó là chỗ người dùng sẽ đi tìm. Người quản lý (GY-05) thì nằm sau một dòng trong Hồ sơ: việc
+không thường xuyên, và chỉ chủ sở hữu mới thấy.
+
+### 30.4 Bỏ `useEffect` mồi state — dùng đúng mẫu của React
+
+Sáu ô nhập "mồi bằng dữ liệu máy chủ nhưng người dùng sửa được" ban đầu viết bằng
+`useEffect` + `setState`, và lint gọi đúng tên: render tầng. `useServerSeededState` (mới, ở
+`src/hooks`) dùng mẫu "điều chỉnh state khi prop đổi" của chính React — so sánh khoá ngay trong lúc
+render và `setState` tại chỗ, React dựng lại trước khi vẽ nên không nhấp nháy, không vòng render
+thừa. Khoá quyết định KHI NÀO mồi lại; giữa hai lần đổi thì chữ người dùng đang gõ là bất khả xâm
+phạm.
+
+### 30.5 Một lỗi dùng-được-thật bắt trên máy
+
+Hộp mời người quản lý vẽ **toàn bộ 55 chi nhánh** thành 55 ô tích, đẩy nút "Gửi lời mời" xuống dưới
+cùng và không có cách nào tìm theo tên. Đã thêm ô tìm (không dấu) và, khi chưa gõ gì, chỉ bày 8 chi
+nhánh kèm dòng "Còn 47 chi nhánh nữa — gõ tên để tìm"; những chi nhánh **đã chọn** luôn hiện để
+không ai mất dấu lựa chọn của chính mình. Web không gặp lỗi này vì màn hình rộng, nhưng cùng dữ liệu
+đó trên web cũng là một cột 55 dòng.
+
+Cùng họ với lỗi "55 chip" ở §29.4: dữ liệu thật của tài khoản kiểm thử lớn hơn nhiều so với thứ
+thiết kế giả định, và chỉ chạy thật mới lộ ra.
+
+### 30.6 Đã kiểm gì (emulator + backend Docker thật, `jane.smith@example.com`)
+
+- **WB-18**: bốn khối hiện đúng, nhãn vai trò "Chủ phòng gym", tên thương hiệu mồi đúng giá trị
+  khách đang thấy, ô giới thiệu đếm ký tự, bốn ô mạng xã hội; **kiểm luật link thật** (`http://` →
+  viền đỏ + nút Lưu tắt); ô tài khoản nhận tiền, dòng dẫn sang Người quản lý, đổi mật khẩu (tắt khi
+  chưa đủ), ghi chú pháp lý, Đăng xuất.
+- **GY-05**: trạng thái rỗng; **mời thật** `p12-manager@example.com` gán vào chi nhánh kiểm thử →
+  DB `partner_invitations` PENDING/MANAGER với đúng `scoped_gym_ids`; hộp "Đã tạo lời mời" hiện liên
+  kết mời thật kèm nút sao chép; **thu hồi** → DB `REVOKED`, danh sách về rỗng.
+  **Không để lại vết** — lời mời đã bị thu hồi.
+
+**CHƯA kiểm được trên máy — GY-08.** Trình thiết lập chỉ hiện với chủ gym chưa có
+`onboardingCompletedAt`; tài khoản đang dùng đã hoàn tất từ lâu. DB có bốn chủ gym đang dở thiết lập
+(`e2e-…@partner-e2e.test`) nhưng không có mật khẩu của họ, và tại hạ **không đổi mật khẩu tài khoản
+người khác trong DB để cho một bài kiểm xanh**. Phần này hiện chỉ có: 17 test thuần (gồm cả việc
+`currentStep` bị kẹp đúng khoảng và quản lý chi nhánh chỉ có một bước) và `CODE AUDIT` đường dẫn từ
+`RequirePartnerAccess`. Muốn kiểm thật thì cần một tài khoản đối tác mới — đúng là thứ WB-15/16 ở
+cụm D sẽ dựng.
+
+## 31. Không gian Chủ phòng gym — Phase 12, cụm D (27/9)
+
+Cụm D: **WB-15** tự đăng ký + liên kết xác minh, **WB-16** hồ sơ 9 bước + màn trạng thái,
+**GY-09** giấy tờ, **WB-01** đổi mật khẩu bắt buộc. Đây là cụm mở khoá được việc tạo một chủ gym
+mới hoàn toàn từ ứng dụng.
+
+### 31.1 Máy chủ quyết định còn thiếu gì — không có bộ kiểm thứ hai
+
+`GET /owner/application` trả `missing[]` theo từng `section`. Mọi câu hỏi của wizard — mở ra đứng ở
+bước nào, tiến độ mấy phần trăm, bước nào đã xong, còn gì chặn nộp — đều suy từ đúng mảng đó. Không
+có bộ kiểm hợp lệ song song ở máy, vì hai bộ luật song song là hai bộ luật sẽ lệch nhau. Mỗi bước tự
+lưu khi bấm "Lưu bước này"; đóng app giữa chừng mở lại là tiếp đúng chỗ, và điều đó tự đúng khi
+không có bản sao tiến độ nào ở client.
+
+Kiểm thật: lưu bước Người đại diện → khối cảnh báo biến mất, chip "Người đại diện" mọc dấu tích,
+tiến độ 25% → 38%. Không chỗ nào trong ứng dụng tự quyết định điều đó.
+
+### 31.2 Hai component chặn màn, không phải route
+
+`ApplicantHome` (và `ApplicationWizard` bên trong nó) do `RequirePartnerAccess` dựng, cùng lý do với
+`PartnerOnboardingWizard` ở §30.1: một route dưới `app/gym-owner/` nằm trong đúng vùng bị chặn.
+`ApplicantHome` chia tiếp năm trạng thái ứng viên vì chúng cần năm thứ khác nhau:
+`SETUP_INCOMPLETE` → nút `bootstrap` (idempotent, dựng nốt phần saga đăng ký còn dở);
+`ONBOARDING`/`CHANGES_REQUESTED` → wizard; `UNDER_REVIEW` → tiến trình từ `PartnerAuditLog`;
+`REJECTED` → lý do, **không** có nút "sửa và nộp lại" (chỉ Gymini mở lại được, và máy chủ cũng khoá).
+
+### 31.3 Mã xác minh nằm ở FRAGMENT — và giới hạn App Links
+
+Thư trỏ tới `…/partner/apply/verify#token=…`. Fragment là cố ý: nó không đi lên máy chủ, không vào
+log truy cập, không vào Referer. Vì `expo-router` chỉ bóc query, mã phải lấy từ URL thô
+(`Linking.getInitialURL()`), xem `extractApplyToken` — hàm này nhận cả `#token=`, `?token=` (một số
+ứng dụng thư viết lại liên kết) và cả khi người dùng chỉ dán mỗi mã.
+
+**Giới hạn đã biết:** liên kết trong thư là https trỏ tới trang WEB; để nó mở thẳng ứng dụng cần App
+Links đã xác minh tên miền — chưa có ở môi trường phát triển. Nên màn xác minh nhận mã theo ba
+đường: deep link `fitnessassistant://partner/verify#token=…`, dán cả liên kết, hoặc dán riêng mã.
+Ghi vào `MOBILE_BACKEND_GAPS.md`.
+
+### 31.4 Tải tệp: presign → POST tới đích máy chủ cấp → confirm
+
+`uploadApplicationFile` không biết (và không được biết) đích là S3 hay kho tương thích nào. Hai điều
+kiện của biểu mẫu presigned POST, sai là hỏng: mọi `fields` đi TRƯỚC, phần `file` là phần tử CUỐI.
+Dùng `fetch` chứ không dùng axios của Gymini — đích là bên thứ ba, gửi kèm JWT sang đó là rò rỉ vô cớ.
+
+`sizeBytes` đọc bằng `expo-file-system` chứ không đoán: máy chủ nhét số đó vào điều kiện
+`content-length-range` của biểu mẫu, khai sai thì kho lưu trữ từ chối chính tệp vừa ký.
+
+### 31.5 WB-01 — cờ `mustChangePassword` trước đây KHÔNG có gì đọc
+
+`mustChangePassword` nằm trong kiểu `User` từ Phase 2 mà không một dòng nào đọc nó: một tài khoản
+mang mật khẩu tạm dùng được cả ứng dụng như thường. `RequirePasswordChange` bọc ngoài `Slot` ở
+`app/_layout.tsx` nên không route nào lọt qua.
+
+Tối thiểu **8** ký tự, đúng `changePasswordSchema` của auth-service. **Web ghi 6** ở màn tương đương,
+nên người dùng web gõ 7 ký tự sẽ bị máy chủ trả 400 — đó là chỗ web lệch, không phải chỗ để chép theo.
+
+`changePassword` **xoá mọi refresh token** và không cấp lại, nên phiên hiện tại chết ở lần làm mới kế
+tiếp. Màn này vì thế đăng xuất luôn và nói rõ phải đăng nhập lại, thay vì để người dùng bị văng ra
+giữa chừng mà không hiểu vì sao.
+
+### 31.6 Ba lỗi thật bắt được khi chạy
+
+1. **`<Link asChild>` bọc `View` không nhận chạm** — `asChild` chỉ chuyền props nhấn xuống con nào
+   biết nhận, mà `View` thì không. Nghĩa là link **"Cấu hình máy chủ" ở màn đăng nhập chưa bao giờ
+   bấm được, từ Phase 4**; trên điện thoại thật, nơi mặc định `10.0.2.2` vô nghĩa, đó là đường duy
+   nhất để sửa địa chỉ máy chủ. Link "Quên mật khẩu?" bọc `Text` nên vẫn chạy (Text nhận `onPress`).
+   Đã đổi hai link hỏng sang `Tappable`.
+2. **Cổng hất người dùng ra khỏi màn đang làm dở.** `RequirePartnerAccess` coi `isError` là "chặn".
+   Fail-closed đúng cho lần hỏi ĐẦU TIÊN, nhưng sau khi đã biết trạng thái thì một lần làm mới chớp
+   nhoáng làm cả wizard biến mất — đã xảy ra thật ngay sau khi lưu một bước (dữ liệu đã vào DB, màn
+   hình thì mất). Giờ chỉ chặn khi lỗi mà **chưa từng** có câu trả lời nào.
+3. **Đọc hồ sơ ngay sau `bootstrap` bị đua** và kẹt ở màn lỗi tới khi người dùng tự bấm "Thử lại",
+   vì chính sách chung không thử lại 4xx. Riêng truy vấn này, "chưa có" là tạm thời, nên thử lại vài
+   nhịp ngắn với 404/409.
+
+### 31.7 Đã kiểm gì (emulator + backend Docker thật)
+
+**Tạo hẳn một chủ gym mới, từ ứng dụng, đầu đến cuối** — điều mà bốn cụm trước không làm được:
+
+- CTA "Trở thành đối tác phòng gym" ở màn đăng nhập, **dưới** "Cấu hình máy chủ" đúng quyết định sản
+  phẩm đã duyệt.
+- Nhập email → máy chủ gửi thư → màn đổi sang trạng thái "Đã gửi liên kết" kèm liên kết dev thật.
+- Dán liên kết → xác minh → đặt mật khẩu → **DB `users` có `p12-mobile@example.com` với role
+  `GYM_OWNER`**; phiên tự vào bằng chính đường đăng nhập sẵn có.
+- Cổng đưa thẳng vào `ApplicantHome` ở `SETUP_INCOMPLETE` → bấm "Mở hồ sơ" (`bootstrap`) → wizard.
+- Wizard: 9 chip, dấu tích ở bước không bắt buộc, ba mục "còn thiếu" của máy chủ hiện đúng bằng tiếng
+  Việt tại bước sửa được chúng; lưu bước Người đại diện → **DB `gym_partners` ghi
+  `Tran Van Chu | GYM_OWNER`** → cảnh báo biến mất, tiến độ 25% → 38%.
+
+Cờ `PARTNER_APPLICATION_DEV_ECHO` bật **theo từng lần chạy** đúng như chính tệp compose chỉ dẫn
+(`PARTNER_APPLICATION_DEV_ECHO=true docker compose up -d auth-service`) — **không sửa tệp compose**,
+và đã tắt lại sau khi kiểm (xác nhận `devVerifyLink` không còn trong phản hồi).
+
+**CHƯA kiểm được:**
+- **Tải ảnh/giấy tờ thật (presign → POST → confirm).** Máy chủ từ chối presign ảnh khi chưa có chi
+  nhánh (`BRANCH_REQUIRED` — đúng thứ tự wizard đã xếp), nên muốn thử phải khai xong tới bước chi
+  nhánh. Còn một câu chưa trả lời: `url` presign trỏ tới MinIO ở host nào, và emulator có với tới
+  được không (có thể cần `adb reverse tcp:9000`).
+- **Nộp hồ sơ, luồng "Gymini yêu cầu chỉnh sửa", màn `UNDER_REVIEW`/`REJECTED`** — cần khai đủ chín
+  bước rồi cần một quản trị viên thao tác; chỉ phủ bằng test thuần.
+- **WB-01** — không có tài khoản nào đang mang cờ `mustChangePassword` trong DB, và không đặt cờ đó
+  lên tài khoản người khác để tạo ca thử.

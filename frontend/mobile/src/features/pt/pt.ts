@@ -12,6 +12,7 @@
  * PT wording here.
  */
 import { CONTRACT_STATUS, type StatusTone } from "../services/contracts";
+import { canRespondAs, collabStatusFor } from "../collaboration/collaboration";
 import { SESSION_STATUS, type SessionTone } from "../services/sessions";
 import { GOAL_OPTIONS } from "../profile/profile";
 
@@ -313,70 +314,28 @@ export function perSessionPrice(p: any): number {
 // ── Gym collaboration (PT-13) ──────────────────────────────────────────────────────────────
 
 /**
- * gym-service's `validateRates`: the three shares must sum to EXACTLY 1 and the platform's share
- * cannot go below `MIN_PLATFORM_RATE` (0.10 by default). Checked here too because these numbers
- * land on every contract signed under the partnership and are split to the đồng — a table summing
- * to 0.9999 is a typo to catch in the form, not a rounding error to absorb.
+ * Phần dùng chung của hợp tác PT↔gym đã chuyển sang `features/collaboration/collaboration.ts` khi
+ * Phase 12 dựng ghế chủ gym trên cùng một dữ liệu. Xuất lại ở đây để các màn Phase 11 giữ nguyên
+ * đường nhập, nhưng bảng trạng thái và phép kiểm tỷ lệ chỉ còn MỘT bản.
  */
-export const MIN_PLATFORM_RATE = 0.1;
+export {
+  COLLAB_STATUS,
+  MIN_PLATFORM_RATE,
+  ratePercent,
+  ratesError,
+  ratesPayload,
+  type CollabParty,
+  type CollabRow,
+} from "../collaboration/collaboration";
 
-export function ratesError(ptPct: string, gymPct: string, platformPct: string): string | null {
-  const nums = [ptPct, gymPct, platformPct].map((v) => Number(v));
-  if (nums.some((n) => !Number.isFinite(n))) return "Nhập đủ ba tỷ lệ theo phần trăm.";
-  if (nums.some((n) => n < 0)) return "Tỷ lệ không được âm.";
-  const [pt, gym, platform] = nums;
-  if (platform < MIN_PLATFORM_RATE * 100) return `Tỷ lệ nền tảng không được nhỏ hơn ${MIN_PLATFORM_RATE * 100}%.`;
-  const sum = pt + gym + platform;
-  // Percent inputs are whole numbers, so the sum is exact — no epsilon needed.
-  if (sum !== 100) return `Tổng ba tỷ lệ phải bằng đúng 100%, hiện là ${sum}%.`;
-  return null;
-}
-
-/** The API takes fractions ("0.60"), the form shows percentages — convert at the boundary. */
-export function ratesPayload(ptPct: string, gymPct: string, platformPct: string) {
-  const f = (v: string) => (Number(v) / 100).toFixed(4);
-  return { ptRate: f(ptPct), gymRate: f(gymPct), platformRate: f(platformPct) };
-}
-
-export function ratePercent(rate: unknown): string {
-  // `Number(null)` is 0, so a missing rate would render as "0%" — i.e. claim the trainer gets
-  // nothing — unless absence is rejected before the conversion.
-  if (rate == null || rate === "") return "—";
-  const n = Number(rate);
-  if (!Number.isFinite(n)) return "—";
-  return `${Math.round(n * 1000) / 10}%`;
-}
-
-/**
- * The real `CollaborationStatus` enum (gym-service schema.prisma:1133). PENDING and COUNTERED are
- * both "someone owes an answer" — WHOSE turn it is comes from `proposedBy`, which the schema
- * documents as "who made the offer currently on the table, i.e. whose turn it is NOT". So the
- * label is resolved from the pair, not from the status alone; guessing from status would tell a
- * trainer to wait when the ball is actually in their court.
- */
-export const COLLAB_STATUS: Record<string, { label: string; tone: StatusTone }> = {
-  PENDING: { label: "Đang chờ trả lời", tone: "warning" },
-  COUNTERED: { label: "Đã trả giá lại", tone: "warning" },
-  ACCEPTED: { label: "Đang hợp tác", tone: "success" },
-  REJECTED: { label: "Đã từ chối", tone: "danger" },
-  EXPIRED: { label: "Đã hết hạn", tone: "neutral" },
-  TERMINATED: { label: "Đã chấm dứt", tone: "neutral" },
-};
-
+/** Nhìn từ ghế huấn luyện viên. */
 export function collabStatus(row: { status?: string; proposedBy?: string } | null | undefined) {
-  const status = row?.status ?? "";
-  const base = COLLAB_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as StatusTone };
-  if ((status === "PENDING" || status === "COUNTERED") && row?.proposedBy) {
-    return row.proposedBy === "GYM"
-      ? { label: "Bạn cần trả lời", tone: "warning" as StatusTone }
-      : { label: "Chờ phòng gym trả lời", tone: "info" as StatusTone };
-  }
-  return base;
+  return collabStatusFor(row, "PT");
 }
 
 /** A trainer can act only when the gym made the offer currently on the table. */
 export function canRespondToCollab(row: { status?: string; proposedBy?: string } | null | undefined): boolean {
-  return (row?.status === "PENDING" || row?.status === "COUNTERED") && row?.proposedBy === "GYM";
+  return canRespondAs(row, "PT");
 }
 
 // ── AI plan review (PT-12) ─────────────────────────────────────────────────────────────────

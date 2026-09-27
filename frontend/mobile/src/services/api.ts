@@ -4,6 +4,7 @@ import axios from "axios";
 // native-backed implementation whose Response DOES expose a real ReadableStream — the AI Coach
 // stream below is the one caller that needs it (everything else goes through axios).
 import { fetch as streamingFetch } from "expo/fetch";
+import { File as FSFile } from "expo-file-system";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -5183,6 +5184,197 @@ export const availabilityService = {
     return data;
   },
 };
+
+/**
+ * WB-15/16 — the gym-partner self-onboarding flow, ported from web's `services/partnerApplication.ts`.
+ *
+ * `accessState` is the routing authority for the whole gym-owner space: gym-service derives it
+ * from partner status + verification + account status + onboardingCompletedAt
+ * (partner-application.state.ts `deriveAccessState`), and the operational routes are gated on the
+ * same value server-side. The app must never decide for itself that someone is "approved enough".
+ */
+export type PartnerAccessState =
+  | "LEGACY"
+  | "SETUP_INCOMPLETE"
+  | "RESTRICTED"
+  | "ONBOARDING"
+  | "UNDER_REVIEW"
+  | "CHANGES_REQUESTED"
+  | "REJECTED"
+  | "APPROVED_PAYOUT_PENDING"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "TERMINATED";
+
+export interface PartnerAccessStatus {
+  accessState: PartnerAccessState;
+  editable: boolean;
+  partnerId: string | null;
+  role: string | null;
+}
+
+export type PartnerRepresentativeRole =
+  | "GYM_OWNER"
+  | "CO_FOUNDER"
+  | "LEGAL_REPRESENTATIVE"
+  | "AUTHORIZED_MANAGER";
+export type PartnerBusinessScale = "ONE_BRANCH" | "MULTIPLE_BRANCHES";
+export type PartnerDocType =
+  | "BUSINESS_LICENSE"
+  | "REPRESENTATIVE_ID"
+  | "PREMISES_PROOF"
+  | "TAX_CODE_CERTIFICATE"
+  | "SITE_PHOTOS"
+  | "FIRE_SAFETY_CERTIFICATE";
+export type PartnerPhotoCategory =
+  | "EXTERIOR"
+  | "MAIN_TRAINING_AREA"
+  | "EQUIPMENT"
+  | "CARDIO"
+  | "CHANGING_ROOM"
+  | "AMENITIES"
+  | "OTHER";
+
+const unwrapPartner = <T,>(res: any): T => (res?.data?.data ?? res?.data) as T;
+
+export const partnerApplicationService = {
+  status: async () => unwrapPartner<PartnerAccessStatus>(await api.get("/owner/application/status")),
+  // Idempotent — finishes creating the partner row for a user the sign-up saga left half-made.
+  bootstrap: async () =>
+    unwrapPartner<{ created: boolean; partnerId: string }>(await api.post("/owner/application/bootstrap")),
+  get: async () => unwrapPartner<any>(await api.get("/owner/application")),
+  timeline: async () => unwrapPartner<any>(await api.get("/owner/application/timeline")),
+
+  saveRepresentative: async (v: { name: string; phone: string; role: PartnerRepresentativeRole }) =>
+    unwrapPartner(await api.put("/owner/application/representative", v)),
+  saveBusinessScale: async (scale: PartnerBusinessScale) =>
+    unwrapPartner(await api.put("/owner/application/business-scale", { scale })),
+  saveBrand: async (v: { name: string; description?: string }) =>
+    unwrapPartner(await api.put("/owner/application/brand", v)),
+  saveBranch: async (v: Record<string, unknown>) => unwrapPartner(await api.put("/owner/application/branch", v)),
+  saveSocial: async (v: { facebookUrl: string; instagramUrl: string; tiktokUrl: string; youtubeUrl: string }) =>
+    unwrapPartner(await api.put("/owner/application/social", v)),
+  saveLegal: async (v: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null }) =>
+    unwrapPartner(await api.put("/owner/application/legal", v)),
+
+  presign: async (v: {
+    kind: "PHOTO" | "DOCUMENT" | "LOGO";
+    contentType: string;
+    sizeBytes: number;
+    docType?: PartnerDocType;
+    photoCategory?: PartnerPhotoCategory;
+  }) => unwrapPartner<PartnerPresignResult>(await api.post("/owner/application/uploads/presign", v)),
+  confirm: async (uploadId: string) =>
+    unwrapPartner<{ kind: string }>(await api.post("/owner/application/uploads/confirm", { uploadId })),
+  reorderPhotos: async (ids: string[]) => unwrapPartner(await api.put("/owner/application/photos/reorder", { ids })),
+  setCoverPhoto: async (photoId: string) => unwrapPartner(await api.patch(`/owner/application/photos/${photoId}/cover`)),
+  deletePhoto: async (photoId: string) => unwrapPartner(await api.delete(`/owner/application/photos/${photoId}`)),
+  documentFile: async (docType: PartnerDocType, fileId: string) =>
+    unwrapPartner<{ url: string; mimeType: string; expiresInSec: number }>(
+      await api.get(`/owner/application/documents/${docType}/files/${fileId}`),
+    ),
+  removeDocumentFile: async (docType: PartnerDocType, fileId: string) =>
+    unwrapPartner(await api.delete(`/owner/application/documents/${docType}/files/${fileId}`)),
+
+  submit: async (acceptTerms: boolean) =>
+    unwrapPartner(await api.post("/owner/application/submit", { acceptTerms })),
+  resubmit: async () => unwrapPartner(await api.post("/owner/application/resubmit")),
+  markIssueUpdated: async (issueId: string, note?: string) =>
+    unwrapPartner(await api.post(`/owner/application/issues/${issueId}/mark-updated`, note ? { note } : {})),
+};
+
+/**
+ * WB-15 — đăng ký đối tác công khai (auth-service). Ba bước: xin liên kết → xác minh liên kết →
+ * đặt mật khẩu. **Không** đi qua interceptor JWT của Gymini vì lúc này chưa có tài khoản nào.
+ *
+ * `devVerifyLink` chỉ có khi máy chủ bật cờ dev (`PARTNER_APPLICATION_DEV_ECHO`) — token gốc không
+ * được lưu ở đâu cả, nên không có nó thì chỉ còn đường mở thư thật.
+ */
+export type PartnerApplyStartResult = {
+  status: "SENT" | "DELIVERY_FAILED";
+  email: string;
+  expiresInHours: number;
+  devVerifyLink?: string;
+};
+
+export type PartnerApplyVerifyResult =
+  | { status: "VALID"; email: string; setupToken: string; setupExpiresAt: string }
+  | { status: "INVALID" | "EXPIRED" | "USED" };
+
+export const partnerApplyPublic = {
+  start: async (email: string) => {
+    const { data } = await api.post("/auth/partner-applications/start", { email });
+    return data as PartnerApplyStartResult;
+  },
+  verify: async (token: string) => {
+    const { data } = await api.post("/auth/partner-applications/verify", { token });
+    return data as PartnerApplyVerifyResult;
+  },
+  setPassword: async (setupToken: string, password: string) => {
+    const { data } = await api.post("/auth/partner-applications/set-password", { setupToken, password });
+    return data as { accessToken?: string; refreshToken?: string; user?: unknown };
+  },
+};
+
+export type PartnerPresignResult = {
+  uploadId: string;
+  url: string;
+  fields: Record<string, string>;
+  expiresAt: string;
+  maxBytes: number;
+};
+
+/** Tệp người dùng chọn từ máy — cùng hình dạng `UploadFile` mà các multipart khác trong tệp này dùng. */
+export type ApplicationUploadTarget =
+  | { kind: "PHOTO"; photoCategory?: PartnerPhotoCategory }
+  | { kind: "DOCUMENT"; docType: PartnerDocType }
+  | { kind: "LOGO" };
+
+/**
+ * Tải một tệp của hồ sơ lên: **xin uỷ quyền → POST multipart tới đúng đích máy chủ trả về → xác
+ * nhận**. Ứng dụng không biết (và không được biết) đích là S3 hay kho tương thích nào — nó chỉ đẩy
+ * tới `url` với đúng `fields` được cấp.
+ *
+ * Hai điều kiện của biểu mẫu presigned POST, sai là hỏng: mọi `fields` phải đi TRƯỚC, và phần `file`
+ * phải là phần tử CUỐI.
+ *
+ * Dùng `fetch` chứ không dùng `api` (axios của Gymini): đích tải lên là bên thứ ba, gửi kèm JWT của
+ * mình sang đó là rò rỉ vô cớ.
+ */
+/** Số byte thật của một tệp cục bộ; ném lỗi nói được nếu không đọc nổi, chứ không gửi bừa số 0. */
+async function fileSizeBytes(uri: string): Promise<number> {
+  try {
+    const size = new FSFile(uri).size;
+    if (typeof size === "number" && Number.isFinite(size) && size > 0) return size;
+  } catch {
+    // rơi xuống lỗi bên dưới
+  }
+  throw new Error("Không đọc được kích thước tệp. Hãy chọn lại tệp.");
+}
+
+export async function uploadApplicationFile(file: UploadFile, target: ApplicationUploadTarget): Promise<void> {
+  // `sizeBytes` phải là số byte THẬT: máy chủ nhét nó vào điều kiện `content-length-range` của biểu
+  // mẫu presigned, nên khai sai thì kho lưu trữ từ chối chính tệp vừa ký. Đọc từ hệ tệp, không đoán.
+  const sizeBytes = await fileSizeBytes(file.uri);
+  const auth = await partnerApplicationService.presign({
+    kind: target.kind,
+    contentType: file.type || "application/octet-stream",
+    sizeBytes,
+    ...(target.kind === "PHOTO" ? { photoCategory: target.photoCategory } : {}),
+    ...(target.kind === "DOCUMENT" ? { docType: target.docType } : {}),
+  });
+
+  const form = new FormData();
+  for (const [k, v] of Object.entries(auth.fields)) form.append(k, v);
+  appendUpload(form, "file", file);
+
+  const res = await fetch(auth.url, { method: "POST", body: form as any });
+  if (!res.ok) {
+    throw new Error(`Tải tệp lên thất bại (${res.status}).`);
+  }
+
+  await partnerApplicationService.confirm(auth.uploadId);
+}
 
 export const notificationService = {
   list: async (page = 1, limit = 20) => {

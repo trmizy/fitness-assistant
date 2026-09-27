@@ -37,7 +37,7 @@ import { SelectField } from "../../src/components/SelectSheet";
 import { availabilityService, locationService, profileService, trainingLocationService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
-import { designTokens } from "../../src/theme/colors";
+import { darkColors, designTokens } from "../../src/theme/colors";
 import { availabilityFromServer } from "../../src/features/pt/pt";
 import { DAYS } from "../../src/features/ptApplication/ptApplication";
 
@@ -308,7 +308,7 @@ export default function PtProfileScreen() {
                       <Pencil size={15} color={designTokens.mutedForeground} />
                     </Tappable>
                     <Tappable accessibilityLabel="Xoá nơi tập" onPress={() => askDelete(l)} className="h-9 w-9 items-center justify-center rounded-xl bg-panel">
-                      <Trash2 size={15} color={designTokens.destructive} />
+                      <Trash2 size={15} color={darkColors.destructive} />
                     </Tappable>
                   </View>
                 ))}
@@ -319,7 +319,7 @@ export default function PtProfileScreen() {
           <StaggerItem>
             <Card className="flex-row items-center gap-3 p-4" onPress={askLogout}>
               <View className="h-11 w-11 items-center justify-center rounded-xl bg-panel">
-                <LogOut size={20} color={designTokens.destructive} />
+                <LogOut size={20} color={darkColors.destructive} />
               </View>
               <Text className="flex-1 font-body-semibold text-sm text-destructive">Đăng xuất</Text>
             </Card>

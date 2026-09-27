@@ -31,7 +31,7 @@ import {
 import { availabilityService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
-import { designTokens } from "../../src/theme/colors";
+import { darkColors, designTokens } from "../../src/theme/colors";
 import {
   DAY_LABELS,
   MONTH_LABEL,
@@ -252,7 +252,7 @@ export default function PtScheduleScreen() {
                 {reports.map((r: any) => (
                   <Card key={r.id} className="gap-2 border-destructive/40 bg-destructive/5 p-4">
                     <View className="flex-row items-start gap-2">
-                      <ShieldAlert size={17} color={designTokens.destructive} />
+                      <ShieldAlert size={17} color={darkColors.destructive} />
                       <View className="min-w-0 flex-1">
                         <Text className="font-body-semibold text-sm text-destructive">
                           Học viên báo bạn vắng mặt
@@ -640,7 +640,7 @@ function AvailabilityTab({
                       onPress={() => setDraft(removeBlock(current, d.value, i))}
                       className="h-9 w-9 items-center justify-center rounded-xl bg-panel"
                     >
-                      <Trash2 size={16} color={designTokens.destructive} />
+                      <Trash2 size={16} color={darkColors.destructive} />
                     </Tappable>
                   </View>
                 ))
@@ -689,7 +689,7 @@ function AvailabilityTab({
                 onPress={() => removeException.mutate(e.id)}
                 className="h-9 w-9 items-center justify-center rounded-xl bg-panel"
               >
-                <Trash2 size={16} color={designTokens.destructive} />
+                <Trash2 size={16} color={darkColors.destructive} />
               </Tappable>
             </View>
           ))}
