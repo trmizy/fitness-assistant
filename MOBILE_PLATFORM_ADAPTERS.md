@@ -2961,3 +2961,35 @@ Mobile 504/504 test thuần (+ `adminUsers`, `adminGyms`, `adminModeration`, `ad
 - Chưa bấm thật: duyệt đơn PT, duyệt kế hoạch, duyệt hoàn tiền 1-1, hoàn gói hội viên, phân xử tranh chấp
   (không có dữ liệu), "Đã chi trả" rút tiền — đều là thao tác chuyển tiền hoặc đổi vai trò trên dữ liệu dùng
   chung; phủ bằng test thuần + `CODE AUDIT`.
+
+## 36. Phase 13 — đóng ba điều kiện "Xong khi" của kế hoạch (28/9)
+
+Kế hoạch: *"1 tranh chấp từ Phase 7/11 giải quyết đúng và phản ánh đúng cả 2 phía; 1 đơn ứng tuyển PT duyệt
+đúng theo backend; 1 yêu cầu rút tiền duyệt đúng theo backend — luôn xác nhận trạng thái thật qua API sau hành
+động admin."* Ngài cho làm 28/9.
+
+**Cách chuẩn bị dữ liệu (nói thẳng):** phần *của người dùng* (PT báo xong, khách phản đối, ứng viên gửi lại,
+chủ gym tạo yêu cầu rút) gọi **đúng API mà app gọi**, bằng tài khoản thử — `REAL HTTP/API`, không phải thao
+tác trên màn hình. Phần *của quản trị viên* làm **trên app** (`REAL BROWSER` = app RN trên emulator). Không
+ghi DB tay ở bất kỳ bước nào; DB chỉ để đọc đối chiếu.
+
+| # | Điều kiện | Chuẩn bị (`REAL HTTP/API`) | Admin trên app | Đối chiếu sau |
+|---|---|---|---|---|
+| 1 | Tranh chấp | Buổi `542ac40f…` (hợp đồng ACTIVE `testpt002` ↔ `testuser017`, tài khoản seed `Test@123456`): PT `PATCH /sessions/:id/complete` → `PENDING_CLIENT_CONFIRMATION`; khách `POST /sessions/:id/dispute` → `DISPUTED / DELIVERY_DISPUTE` | Tab Xử lý hiện đúng buổi, gói, lý do của khách; chọn **"Buổi tập không diễn ra"**, hộp nói hệ quả, ghi căn cứ → xác nhận | `GET /sessions/:id` bằng token **PT** và token **khách**: cả hai `CANCELLED` + cùng căn cứ; hợp đồng `used_sessions` giữ nguyên **15/20** (không trừ buổi); hàng chờ về rỗng |
+| 2 | Duyệt đơn PT | `john.doe` (tài khoản thử từ Phase 9, đang `NEEDS_MORE_INFO` từ §35.3) `POST /pt-applications/me/submit` → `SUBMITTED` | Đơn lên đầu hàng "Mới nộp"; **Duyệt — trở thành huấn luyện viên**, hộp nói rõ đổi vai trò | Đơn `APPROVED` + `approved_at`; hồ sơ `isPT = true`; auth `role = PT`; đăng nhập lại trả `user.role = PT` |
+| 3 | Rút tiền | `jane.smith` `POST /owner/gyms/:id/withdrawals` 10.000 đ cho chi nhánh E2E `Gym_A` (ví 400.243) | Hiện tên chi nhánh; **Giữ chỗ** → **Đã chi trả** kèm mã `E2E-P13-VCB-20260928`, hỏi lại trước khi trừ tiền | Giữ chỗ: ví 400.243 → **390.243 / khoá 10.000**; chi trả: `PAID` + mã + `paid_at`, ví **390.243 / khoá 0**; chủ gym gọi `GET /owner/gyms/:id/withdrawals` thấy `PAID` + mã; hàng chờ về rỗng |
+
+**Sự cố nhỏ, đã xử lý:** vòng lặp tạo yêu cầu rút lỡ tạo thêm một yêu cầu 10.000 đ cho chi nhánh seed "Titan
+Gym". Dùng luôn để kiểm nhánh **Từ chối từ PENDING** trên app → `REJECTED` + lý do, ví Titan không đổi (tiền
+chưa từng bị giữ). Không để lại yêu cầu treo.
+
+**Dữ liệu dùng chung bị thay đổi (có chủ ý, đều là tài khoản/chi nhánh thử):** buổi `542ac40f…` CANCELLED;
+`john.doe` nay là **PT**; ví chi nhánh `E2E_…_Gym_A` giảm 10.000 đ (một yêu cầu PAID); một yêu cầu Titan Gym
+REJECTED.
+
+**Kết luận:** ba điều kiện "Xong khi" của Phase 13 **ĐẠT**. Còn mở (ghi nhận, không chặn): AD-03 roster PT
+(GAP-1), WB-05..10 (Ngài hoãn), các mục chưa kiểm của §33.5, GAP-2/13/14/19/20.
+
+**Ghi chú:** phía PT hiện "(không có ghi chú)" vì lệnh chuẩn bị của tại hạ gửi `notes`, còn backend đọc
+`ptNotes` — lỗi của bước chuẩn bị, **không phải lỗi app**: `pt.completeSession` trong `api.ts` đã gửi đúng
+`ptNotes`.

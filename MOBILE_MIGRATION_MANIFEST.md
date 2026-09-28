@@ -351,3 +351,36 @@ thực thi Phase 11 (port đúng như mock gắn mác "PT-only", hay đúng như
    **ĐÃ QUYẾT (Ngài, 2026-09-15): SH-03 thuộc Phase 5.** Nguồn gốc: kế hoạch không giao
    `SetupWizard.tsx` cho phase nào (Phase 4 chỉ yêu cầu guard onboarding) — không phải mâu thuẫn trong
    kế hoạch, mà là khoảng trống. Phase 5 chưa đóng cho tới khi màn này được dựng thật.
+
+## Sổ việc còn mở — ghi lại khi đóng Phase 13 (28/9)
+
+Không việc nào dưới đây chặn việc qua Phase 14 (Ngài xác nhận 28/9). Ghi ở đây để khỏi rơi mất: mỗi dòng nói
+**còn thiếu gì · vì sao chưa làm · cần gì để gỡ**. Khi một dòng xong, sửa cột "Trạng thái" và dẫn tới nơi ghi bằng
+chứng — không xoá dòng.
+
+### A. Chức năng chưa làm
+
+| # | Việc | Vì sao còn mở | Cần gì để gỡ | Trạng thái |
+|---|---|---|---|---|
+| A1 | **AD-03** — danh sách PT đang hoạt động kèm đánh giá / số học viên | Backend không có endpoint roster PT tổng hợp (GAP-1). Riêng *tạm ngưng / khôi phục* một PT đã làm được ở AD-05 (khoá tài khoản → relay huỷ + hoàn tiền hợp đồng) | Ngài quyết có làm endpoint `GET /admin/pts` (+ rating, số học viên) ở user-service không | OPEN — chờ Ngài |
+| A2 | **WB-05..WB-10** — 6 route admin chỉ có trên web: `gym-management`, `exercise-review`, `catalog-quality`, `system`, `workflows`, `ai-observability` | Ngài chọn hoãn 27/9: công cụ bàn làm việc, không hợp điện thoại | Ngài mở lại nếu cần; hai ứng viên gần nhất ghi ngay dưới bảng WB-05..10 | HOÃN (Ngài quyết) |
+
+### B. Đã làm nhưng chưa kiểm được trên máy
+
+| # | Việc | Vì sao chưa kiểm | Cần gì để kiểm | Trạng thái |
+|---|---|---|---|---|
+| B1 | **WB-01** — màn đổi mật khẩu bắt buộc (`mustChangePassword`) | Không tài khoản nào đang mang cờ; không đặt cờ lên tài khoản người khác để tạo ca thử | Một tài khoản thử mới có cờ (tạo qua đúng luồng đang đặt cờ, hoặc Ngài cho phép dùng DB test) | Chỉ có test thuần + `CODE AUDIT` |
+| B2 | **WB-17** — *từ chối* rồi *mở lại* hồ sơ đối tác | Phải từ chối một đối tác thật; hồ sơ thử duy nhất (`p12-mobile`) đã được duyệt | Tạo thêm một hồ sơ thử qua WB-15 (magic link dev echo) rồi từ chối → mở lại → ứng viên sửa, nộp lại | Chỉ có `CODE AUDIT` + đối chiếu web |
+| B3 | Nút **"Dùng vị trí hiện tại"** (GY-02 / bước Vị trí của hồ sơ) — nhánh thành công | GPS emulator đứng yên, `adb emu geo fix` không cập nhật | Kiểm trên điện thoại thật (Phase 14 có dùng máy thật) | Nhánh hết giờ / lấy vị trí gần nhất đã kiểm |
+
+### C. Việc backend chờ Ngài quyết (mobile đã có cách đi tạm)
+
+| GAP | Nội dung ngắn | Mobile đang làm gì | Cần Ngài quyết |
+|---|---|---|---|
+| GAP-2 | Hoàn tiền gói hội viên ngoại lệ không có danh sách gói bất thường — admin phải nhập mã gói | Làm đúng như web: ô nhập mã (kiểm dạng UUID) + lý do + hỏi lại | Có làm endpoint liệt kê gói bất thường (thanh toán treo, gym đóng cửa mà gói còn chạy…) không |
+| GAP-13 | Khiếu nại / hoàn tiền đơn dịch vụ 1-1 phía khách chưa hoàn chỉnh | **Tạm tắt** giao diện phía khách từ 22/9; phía admin (AD-04) đã chạy được | Chính sách với partner — rồi mới bật lại phía khách |
+| GAP-14 | Socket giữ JWT lúc bắt tay suốt đời kết nối → chat chết sau 15 phút | Đã vá phía mobile (kết nối lại khi token làm mới) | Có sửa gateway để nhận token mới giữa chừng (`auth:refresh`) không |
+| GAP-19 | `requestContract` còn một câu lỗi tiếng Anh (`contract.service.ts` dòng 392) | Đã vá: ánh xạ sang tiếng Việt ở `contractRequestError()` | Cho phép đổi đúng một chuỗi ở user-service |
+| GAP-20 | Liên kết xác minh đối tác không mở thẳng app (chưa có App Links) | Màn `partner/verify` nhận deep link, dán cả liên kết, hoặc dán riêng mã | Cần tên miền thật + `/.well-known/assetlinks.json` — việc hạ tầng khi có tên miền |
+
+Chi tiết từng GAP: `MOBILE_BACKEND_GAPS.md`. Bằng chứng Phase 12–13: `MOBILE_PLATFORM_ADAPTERS.md` §30–§36.
