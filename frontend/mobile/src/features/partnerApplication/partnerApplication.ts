@@ -62,7 +62,21 @@ export type ApplicationView = {
 
 export function missingItems(view: ApplicationView | null | undefined): MissingItem[] {
   const list = view?.missing;
-  return Array.isArray(list) ? list.filter((m) => m?.section) : [];
+  return Array.isArray(list)
+    ? list.filter((m) => m?.section).map((m) => ({ ...m, message: readableServerMessage(m.message) }))
+    : [];
+}
+
+/**
+ * Câu của máy chủ đôi khi kèm mã loại giấy tờ ("Còn thiếu giấy tờ bắt buộc: BUSINESS_LICENSE") — người
+ * dùng không đọc được mã enum. Chỉ thay đúng mã bằng tên đã có ở `DOC_TYPES`; phần câu còn lại giữ
+ * nguyên, vì máy chủ vẫn là người quyết định nói gì.
+ */
+export function readableServerMessage(message: string | null | undefined): string {
+  let out = String(message ?? "");
+  // Mã giấy tờ là chuỗi riêng biệt, không mã nào là phần của mã khác — thay chuỗi là đủ, khỏi regex.
+  for (const d of DOC_TYPES) out = out.split(d.value).join(d.label);
+  return out;
 }
 
 /** Một bước xong khi máy chủ không còn kể mục nào thuộc phần của nó. */
@@ -225,9 +239,28 @@ export function openIssues(view: ApplicationView | null | undefined): Applicatio
  * Nộp lại chỉ mở khi ứng viên đã đánh dấu "đã cập nhật" cho MỌI góp ý đang mở. Nộp lại **không**
  * đóng góp ý nào — chỉ quản trị viên đóng được; máy chủ cũng từ chối nếu còn `OPEN`.
  */
+/**
+ * Giấy tờ Gymini đã yêu cầu nộp lại (REJECTED, nhãn "Cần cập nhật") mà ứng viên chưa thay tệp. Thay tệp
+ * thì máy chủ đưa nó về RECEIVED, nên còn REJECTED nghĩa là vẫn chưa làm.
+ */
+export function documentsToReplace(view: ApplicationView | null | undefined) {
+  return documentsOf(view).filter((d) => d.status === "REJECTED");
+}
+
+/**
+ * Gửi lại được khi: mọi mục đã được đánh dấu "đã cập nhật" VÀ mọi giấy tờ bị yêu cầu đã được thay tệp —
+ * đúng hai điều kiện `resubmit` của máy chủ kiểm (ISSUES_NOT_ADDRESSED / DOCUMENTS_NOT_REPLACED).
+ */
 export function canResubmit(view: ApplicationView | null | undefined): boolean {
-  const issues = issuesOf(view);
-  return issues.length > 0 && openIssues(view).length === 0;
+  // Vòng sửa nhận ra bằng trạng thái hồ sơ, không chỉ bằng dấu vết: yêu cầu CHỈ nộp lại giấy tờ thì sau
+  // khi thay tệp không còn mục nào đang mở hay giấy tờ REJECTED nào — nhưng vẫn phải gửi lại được.
+  const asked = isChangesRequested(view) || issuesOf(view).length > 0 || documentsToReplace(view).length > 0;
+  return asked && openIssues(view).length === 0 && documentsToReplace(view).length === 0;
+}
+
+/** Hồ sơ đang ở vòng "Gymini yêu cầu chỉnh sửa" — đường gửi là `resubmit`, không phải `submit`. */
+export function isChangesRequested(view: ApplicationView | null | undefined): boolean {
+  return view?.accessState === "CHANGES_REQUESTED" || view?.partner?.verificationStatus === "NEEDS_INFO";
 }
 
 // ── Đăng ký công khai (WB-15) ──────────────────────────────────────────────────────────────

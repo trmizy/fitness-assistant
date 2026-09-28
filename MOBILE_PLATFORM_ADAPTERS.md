@@ -2709,3 +2709,255 @@ im lặng để người dùng tưởng mình bấm hỏng.
   "nộp → duyệt → GY-08 → vận hành" thì phải khai nốt bảy bước, trong đó có tải ảnh và giấy tờ —
   đúng phần chưa kiểm được ở §31.7.
 - **Mở tệp giấy tờ** (liên kết ký tạm trỏ tới MinIO): cùng câu hỏi host với §31.4.
+
+## 33. Chạy trọn chuỗi E2E Phase 12 trên máy thật — đóng các mục "CHƯA kiểm được" của §30–§32 (27–28/9)
+
+**Nhãn bằng chứng:** `REAL BROWSER` nghĩa ở đây là **app RN thật trên emulator** (dev client, Pixel 10
+Pro XL), nối **backend Docker thật**; mọi bước quan trọng đối chiếu bằng `SELECT` trên
+`gymcoach_gym`. Không đặt cờ, không sửa mật khẩu, không ghi DB tay — mọi thay đổi đi qua đúng API mà
+app gọi. Tài khoản thử: `p12-mobile@example.com` (do chính app tạo ở §31, WB-15).
+
+### 33.1 Chuỗi đã chạy — khớp khối E2E 21/9 của kế hoạch Phase 12
+
+| # | Bước | Ai | Bằng chứng |
+|---|---|---|---|
+| 1 | Khai 9 bước: đại diện → thương hiệu → quy mô (nhiều chi nhánh) → chi nhánh đầu → vị trí (TP.HCM / P. Sài Gòn + ghim) → 1 ảnh → tên pháp lý + 3 giấy tờ bắt buộc (2 PNG + 1 PDF) → đồng ý điều khoản | ứng viên | DB: `province_code 79`, `ward_code 26740`, toạ độ có; 3 giấy tờ `RECEIVED` |
+| 2 | Gửi hồ sơ | ứng viên | DB `PROSPECT / IN_REVIEW`, `submitted_at`, `terms_accepted_at` có; màn "Hồ sơ đang được xét duyệt" + tiến trình từ `PartnerAuditLog` |
+| 3 | Đang xét → gọi thẳng route vận hành | API | `403 PARTNER_APPLICATION_PENDING` |
+| 4 | Admin xem tệp | admin | mở link ký tạm (qua gateway → MinIO); audit `DOCUMENT_VIEWED` |
+| 5 | Chấp nhận 2 giấy tờ, **yêu cầu cập nhật** giấy thứ 3 kèm lý do + 1 mục góp ý chung | admin | DB `NEEDS_INFO`; `PREMISES_PROOF REJECTED` + `review_note`; issue `OTHER / OPEN` |
+| 6 | Ứng viên thấy đúng mục + đúng giấy tờ "Cần nộp lại"; "Gửi lại hồ sơ" **tắt** | ứng viên | UI |
+| 7 | Đánh dấu "Đã cập nhật" → vẫn **tắt** (giấy tờ chưa thay) | ứng viên | issue `RESUBMITTED` |
+| 8 | "Thay tệp" → nhảy bước giấy tờ → thêm PDF | ứng viên | DB `PREMISES_PROOF RECEIVED`, `version 2` |
+| 9 | Gửi lại hồ sơ | ứng viên | DB `IN_REVIEW`; issue vẫn `RESUBMITTED` (nộp lại **không** tự đóng mục) |
+| 10 | Chấp nhận giấy tờ bản 2, đóng mục → nút Duyệt mở theo `canApprove` của máy chủ | admin | khối "Chưa duyệt được vì" rút dần từng dòng theo máy chủ |
+| 11 | **Duyệt** (xác nhận) | admin | DB `ACTIVE / VERIFIED`; chi nhánh đầu `APPROVED`; audit `APPLICATION_APPROVED` |
+| 12 | Đăng nhập lại → **GY-08** mở thẳng bước 3/4 (nhận tiền) vì liên hệ + thương hiệu đã có từ hồ sơ | chủ gym mới | nhập tài khoản thử → dashboard |
+| 13 | Quyền vận hành | API | `accessState ACTIVE`; route vận hành trước 403 nay `200`; account `OWNER / ACTIVE`, `onboarding_completed_at` có |
+| 14 | **Chi nhánh #2**: hộp chỉ ghi "Chi nhánh này sẽ thuộc thương hiệu P12 Mobile Fitness", không có bộ chọn; tự ghim bản đồ theo địa chỉ | chủ gym | DB: cả hai chi nhánh cùng `brand_id`; #2 `PENDING_REVIEW` (đi vòng duyệt chi nhánh thường) |
+
+**Dữ liệu để lại trong DB dev dùng chung** (đối tác thử do app tạo, không đụng tài khoản ai khác):
+đối tác `9a5f974f…` ACTIVE với thương hiệu "P12 Mobile Fitness", chi nhánh `P12 Mobile Quan 1`
+(APPROVED) và `P12 Mobile Quan 3` (PENDING_REVIEW, nằm trong hàng duyệt chi nhánh của admin), tài
+khoản nhận tiền giả `9704000012345678 / TRAN VAN CHU`.
+
+### 33.2 Lỗi thật lộ ra khi chạy — đều đã sửa ở mobile, backend không đổi
+
+1. **Tải tệp hỏng hoàn toàn trên Android, ba tầng chồng nhau.**
+   - `fetch` của Expo không nhận phần tệp kiểu RN `{uri,name,type}` ("Unsupported FormDataPart").
+   - Đổi sang axios/XHR: gửi tệp từ URI với độ dài **không biết trước** → `Transfer-Encoding:
+     chunked`, không `Content-Length` → MinIO (qua proxy gateway) trả `EmptyRequestBody`. Biểu mẫu
+     POST presigned của S3 bắt buộc có độ dài.
+   - Bộ chọn ảnh hệ thống trả **nguyên tệp PNG**, còn app khai `image/jpeg` → máy chủ kiểm magic bytes
+     và từ chối ("Nội dung tệp không phải định dạng đã khai báo").
+   - **Sửa:** `new File(uri).upload(url, { uploadType: MULTIPART, parameters: fields })` của
+     `expo-file-system` (độ dài biết trước, trường ký trước, tệp sau cùng, không gửi JWT);
+     `pickFile.ts` khai đúng `mimeType` picker trả, chỉ coi là JPEG khi picker không nói gì.
+2. **Nút "Gửi hồ sơ" không bao giờ mở được.** Điều khoản được chấp nhận **bằng chính lệnh gửi**
+   (`submit(true)`), nên trước khi gửi máy chủ luôn còn kể mục `TERMS`. Ô "Tôi đồng ý" giờ là câu trả
+   lời cho mục đó; mọi mục khác vẫn chặn đúng như máy chủ nói.
+3. **Vòng "yêu cầu chỉnh sửa" thiếu nửa.** `canResubmit` chỉ nhìn mục góp ý, bỏ qua giấy tờ bị yêu
+   cầu nộp lại → nút "Gửi lại" sẽ mở và máy chủ trả `DOCUMENTS_NOT_REPLACED`. Nay khớp **đúng hai điều
+   kiện** của `resubmit` (không mục `OPEN` + không giấy tờ `REJECTED`), hiện thẻ "Cần nộp lại" + lý do
+   + "Thay tệp" (nhảy tới bước giấy tờ), và ẩn thẻ "Gửi hồ sơ" lần đầu trong vòng này (máy chủ sẽ từ
+   chối `submit` khi `NEEDS_INFO`). Yêu cầu *chỉ* nộp lại giấy tờ (không mục chung) nhận ra bằng
+   `accessState CHANGES_REQUESTED`, không bằng dấu vết.
+4. **Admin chấp nhận lại tệp vừa bị yêu cầu thay.** Nút "Chấp nhận giấy tờ" hiện với mọi trạng thái
+   ≠ VERIFIED, kể cả `REJECTED`. Máy chủ chỉ chấp nhận dòng `RECEIVED` trong hồ sơ `IN_REVIEW` (web cũng
+   vậy) → `canReviewDocument` theo đúng luật đó.
+5. **Admin không yêu cầu cập nhật được từng giấy tờ.** Hộp "Yêu cầu chỉnh sửa" chỉ có mục chung, dù
+   API nhận `documents:[{docType,note}]` và web có. Thêm danh sách giấy tờ đang chờ xét, mỗi cái có ô
+   lý do; chọn mà không ghi lý do thì chặn (không lặng lẽ bỏ giấy tờ khỏi yêu cầu).
+6. **Màn chi tiết sau khi duyệt vẫn liệt kê "Chưa duyệt được vì…"** kèm nút Duyệt/Yêu cầu/Từ chối.
+   Khối quyết định giờ theo trạng thái như web: `IN_REVIEW` mới có hành động; `VERIFIED` báo đã duyệt;
+   `REJECTED` hiện lý do + **"Mở lại hồ sơ"** (trước đây mobile không có); `NEEDS_INFO` / `NOT_VERIFIED`
+   nói đang chờ ứng viên.
+7. **Tự ghim bản đồ không bao giờ chạy trên điện thoại.** Nominatim trả **403** cho User-Agent mặc
+   định `okhttp/…` của Android. Thêm UA riêng; và lỗi HTTP giờ ném lỗi ("không tra được") thay vì trả
+   `null` ("không có địa chỉ này") — hai câu khác nhau với người dùng. Bước Vị trí của hồ sơ cũng được
+   gắn tự ghim (trước chỉ hộp thêm chi nhánh có), không bao giờ đè ghim tay hoặc ghim đã lưu.
+8. **Nhãn nút tiếng Việt bị cắt** ("Đã cập nhật" → "Đã cập"): chiến lược ngắt dòng mặc định của
+   Android đo hụt chữ có dấu với font tuỳ biến, chữ cuối rơi xuống dòng hai và bị chiều cao cố định
+   che. `Button` đặt `textBreakStrategy="simple"` — sửa cho mọi nút, không riêng chỗ này.
+9. Nhỏ: một lần tải lại hỏng không còn xoá cả hồ sơ khỏi màn hình (chỉ chặn khi chưa từng có dữ
+   liệu); câu của máy chủ không lộ mã enum (`BUSINESS_LICENSE` → "Giấy phép kinh doanh", cả ứng viên
+   lẫn admin); ảnh đang là bìa không còn nút "đặt làm bìa".
+
+### 33.3 Bẫy môi trường (không phải lỗi app, ghi để lần sau khỏi mất công)
+
+- **`10.0.2.2` của emulator làm rớt đúng 1 byte** cuối phản hồi (~2,7 KB): tái hiện 3/3 bằng `nc` ngay
+  trong emulator, còn `localhost` qua `adb reverse tcp:3000` thì đủ. okhttp báo "unexpected end of
+  stream" → axios "Network Error" không có response — trông y như lỗi app ngẫu nhiên. Cách chạy: đặt
+  máy chủ trong app là `http://localhost:3000` + `adb reverse`. Có lẽ cùng gốc với
+  `ERR_CONTENT_LENGTH_MISMATCH` từng gặp ở bản Capacitor.
+- **Hết RAM máy chủ** (Docker + Metro + emulator + ứng dụng khác) làm emulator treo vòng "System UI /
+  Settings isn't responding"; khởi động lại emulator không đỡ, phải giải phóng RAM.
+- Sau khi máy tắt đột ngột, Postgres chạy khôi phục (fsync ~1 phút) trước khi healthy — `compose up`
+  lần đầu báo `dependency failed … unhealthy`, chờ xong chạy lại là được.
+
+### 33.4 Kiểm tự động
+
+465/465 test thuần (`npx tsx --test "src/features/__tests__/*.test.ts"`), thêm test cho:
+`readableServerMessage`, `toggleDocumentRequest`/`setDocumentNote` + chặn giấy tờ thiếu lý do,
+`canReviewDocument`, `documentsToReplace`/`canResubmit` (cả ca chỉ-giấy-tờ), `isChangesRequested`.
+Typecheck + ESLint sạch trên các tệp đã sửa.
+
+### 33.5 Vẫn CHƯA kiểm được
+
+- **Từ chối hồ sơ + Mở lại** (WB-17): làm thì phải từ chối một đối tác thật; hồ sơ thử đã được duyệt.
+  Chỉ có `CODE AUDIT` + đối chiếu với web.
+- **WB-01** đổi mật khẩu bắt buộc: vẫn không có tài khoản nào mang cờ, và không đặt cờ lên tài khoản
+  người khác.
+- **Nút "Dùng vị trí hiện tại" thành công**: GPS emulator đứng yên (đã ghi ở §28).
+- **Liên kết email thật bằng App Link** (GAP-20): vẫn dùng ô dán liên kết.
+
+## 34. Không gian Quản trị viên — Phase 13 cụm A: AD-01 Tổng quan, AD-06 Rút tiền (28/9)
+
+### 34.1 Chia cụm cho phần còn lại của Phase 13
+
+Manifest (không phải ghi nhớ của tại hạ) là nguồn: AD-01 tổng quan · **AD-02 hub Duyệt** (hồ sơ đối
+tác đã xong ở WB-17; còn chi nhánh gym, đơn ứng tuyển PT, chợ giáo án) · **AD-03 roster PT** (BLOCKED,
+GAP-1) · **AD-04 Xử lý** (tranh chấp buổi tập, hoàn tiền, khiếu nại, hoàn tiền gói gym ngoại lệ) ·
+**AD-05 Người dùng** (PARTIAL, GAP-3/GAP-21) · AD-06 rút tiền.
+
+| Cụm | Nội dung | Trạng thái |
+|---|---|---|
+| A | AD-01 + AD-06 | **xong, đã kiểm trên máy 28/9** |
+| B | AD-02: chi nhánh gym + đơn ứng tuyển PT + chợ giáo án vào hub Duyệt | chưa làm |
+| C | AD-04: tranh chấp + hoàn tiền + khiếu nại (+ form hoàn tiền gói gym như web, GAP-2) | chưa làm |
+| D | AD-05 danh sách người dùng (đọc) ; AD-03 | chờ Ngài quyết khoá/mở khoá (GAP-3/21) |
+
+### 34.2 AD-06 Rút tiền — luật từ `withdrawal.service.ts`, không từ giao diện
+
+- `approve` chỉ từ PENDING, là **giữ chỗ tuỳ chọn** (tiền chuyển `available` → `locked`); app gọi nó
+  là "Giữ chỗ" chứ không phải "Duyệt", vì web đã phải viết cả đoạn giải thích rằng "duyệt" ở đây không
+  phải duyệt cho rút.
+- `mark-paid` từ PENDING **hoặc** APPROVED, bắt buộc mã tham chiếu; bước DUY NHẤT trừ tiền → app hỏi
+  xác nhận lần hai.
+- `reject` từ PENDING hoặc APPROVED (nhả khoản giữ chỗ), bắt buộc lý do; câu trong hộp nói đúng hệ quả
+  theo trạng thái hiện tại.
+- **Khác web:** hiện TÊN người rút (tra `/admin/users` cho PT/khách, tên chi nhánh cho gym), thay cho
+  8 ký tự đầu của id; hàng chờ xếp cũ nhất lên đầu; tiêu đề có tổng số tiền đang chờ.
+
+### 34.3 AD-01 Tổng quan
+
+Đủ mọi khối của web (tiền giữ hộ + doanh thu + sổ cân/lệch, 4 KPI, tăng trưởng người dùng, phân bổ vai
+trò, quét InBody, cảnh báo hệ thống, đăng ký gần đây) và thêm hàng **"việc đang chờ"** dẫn thẳng vào hồ
+sơ đối tác / rút tiền. Hai chỗ lệch có chủ ý:
+- **Sức khoẻ hệ thống bằng số đếm** ("6/7 dịch vụ hoạt động", màu cảnh báo) — dữ liệu thật hôm nay có
+  `healthScore 100` cùng lúc với `6/7` và một lỗi n8n; web in "All Systems Operational".
+- **"Chưa phân loại"** cho phần người dùng gateway không tách vai trò (54/205), kèm một câu giải thích —
+  gốc ở gateway, ghi GAP-21. Sổ không có cờ `balanced` thì nói "Chưa có số đối soát", không hiện dấu tích.
+
+Form "Hoàn tiền gói hội viên (ngoại lệ)" của web **không** nằm ở đây: manifest xếp nó vào AD-04 (cụm C).
+
+### 34.4 Đã kiểm gì (`REAL BROWSER` = app RN trên emulator, backend Docker thật, `admin@example.com`)
+
+- AD-01 hiện đúng số thật: 205 người dùng, 8 PT đã duyệt, 292 hợp đồng, 1 buổi hôm nay; 104.857.000 ₫
+  giữ hộ, doanh thu 8.882.165 ₫, "Sổ sách cân bằng"; "6/7 dịch vụ hoạt động"; cảnh báo n8n; biểu đồ T4–T9;
+  143 / 8 / 54 chưa phân loại; InBody 101/39/62/0; hàng việc chờ "1 yêu cầu rút tiền · 20.000 ₫".
+- AD-06 trên yêu cầu rút **do chính tại hạ tạo ở Phase 10** (`pt@example.com`, 20.000 ₫):
+  hiện "Professional Trainer · Huấn luyện viên · pt@example.com"; **Giữ chỗ** → DB `APPROVED`, ví PT
+  `available 28.775.000 → 28.755.000`, `locked 0 → 20.000`, nút Giữ chỗ biến mất; mở hộp "Đã chi trả" →
+  nút tắt khi chưa có mã (không bấm thật); **Từ chối** kèm lý do → DB `REJECTED` + `rejection_reason`,
+  ví về đúng `28.775.000 / 0`; màn về trạng thái rỗng.
+- **Không bấm "Đã chi trả" thật**: bước đó trừ tiền khỏi ví của tài khoản PT dùng chung cho mọi bộ E2E
+  (xem ghi nhớ "E2E wallet pollution"). Nhánh này chỉ có `CODE AUDIT` + test thuần.
+- 9 test thuần mới (`adminCluster13A.test.ts`); toàn bộ 474/474.
+
+## 35. Phase 13 — sửa GAP-21 ở gateway, AD-05 khoá/mở khoá, cụm B (AD-02) và cụm C (AD-04) (28/9)
+
+**Ngài quyết 28/9:** "Cho phép sửa gateway (GAP-21) rồi mới làm nút khoá / mở khoá. Sau đó làm tiếp cụm B
+và cụm C." — đây là lần thứ hai mobile chạm backend, có lệnh rõ; phạm vi đúng GAP-21, không gì khác.
+
+### 35.1 GAP-21 — sửa ở gateway (`BACKEND INTEGRATION` + `REAL HTTP/API`)
+
+- Hàm thuần mới `backend/gateway/src/utils/adminUserView.ts` (`adminRoleLabel`, `adminUserStatus`,
+  `adminRoleBreakdown`) + 3 test; `proxy.routes.ts` dùng nó ở cả `/admin/dashboard` lẫn `/admin/users`
+  (30 dòng đổi) — một chỗ duy nhất để hai route không lệch nhau lần nữa.
+- `GYM_OWNER` → nhãn **"Gym Owner"** (trước: "Client"); `roleData` thêm lát **"Gym owners"**; trạng thái
+  lấy từ `isActive` mà auth-service vốn đã trả (trước: gán cứng "Active"); bỏ "Pending" gán cho mọi PT.
+- Web (`UserManagement.tsx`) không vỡ: lọc theo chuỗi, giá trị mới chỉ là thêm lựa chọn; `Inactive` web đã
+  khai sẵn trong type.
+- Kiểm: gateway `tsx --test` 41/41; gọi thật sau khi khởi động lại container (mount `src` trên Windows
+  không kích hoạt hot-reload — phải `docker compose restart api-gateway`): 143 / 8 / **54** chủ gym = 205;
+  danh sách **43 Gym Owner Active + 11 Gym Owner Inactive + 1 Client Inactive** — đúng 12 tài khoản
+  `zzz-test` đã khoá từ trước giờ mới hiện ra.
+
+### 35.2 AD-05 Người dùng — khoá / mở khoá thật (`REAL BROWSER` + DB)
+
+`app/admin/users.tsx` (vào từ ô "Người dùng" hoặc "Xem tất cả" trên Tổng quan): tìm không dấu, lọc vai
+trò/trạng thái, FlatList 205 dòng. Nút web "Suspend account" **không gắn hành động nào**; ở đây gọi thật
+`PATCH /admin/users/:id/disable|enable`.
+
+Hệ quả đọc từ code trước khi làm, và hộp xác nhận nói đúng theo vai trò (`lockConsequences`):
+- mọi tài khoản: chặn đăng nhập, chặn làm mới phiên → phiên đang mở chết ở lần làm mới kế tiếp;
+- **PT:** auth-service relay DEACTIVATE → user-service **huỷ + hoàn tiền mọi hợp đồng đang mở**, huỷ lịch,
+  ẩn PT; mở khoá **không khôi phục hợp đồng** (`internal.routes.ts`). Màn hình cảnh báo trước cả khi bấm.
+
+Đã chạy: khoá `p12-mobile` → DB `isActive=f`, đăng nhập trả **403 "Tài khoản đã bị vô hiệu hóa"**, danh
+sách "Đã khoá", đếm 12→13; mở khoá → `isActive=t`, đăng nhập 200, đếm về 12. Với PT chỉ mở hộp xác nhận để
+kiểm câu chữ rồi bấm **Không** (tài khoản của Ngài) — DB xác nhận không đổi.
+
+### 35.3 Cụm B — AD-02 hub "Duyệt" với bốn hàng chờ
+
+Hub hiện số việc thật từng hàng: Hồ sơ đối tác · **Chi nhánh phòng gym** · **Đơn ứng tuyển PT** ·
+**Kế hoạch trên chợ**.
+
+**Chi nhánh** (`app/admin/gyms/`) — năm hàng việc như web + màn chi tiết đủ ảnh/giờ/tiện ích/giấy tờ.
+Lệch web có chủ ý:
+- "Đổi tên/địa chỉ" chỉ gồm chi nhánh **đã từng được duyệt** và tên/địa chỉ chờ **khác** bản đang hiện
+  (`isRenameRequest`). Web gộp cả bản nháp — thấy thật: một bản nháp hiện "đổi tên X → X"; duyệt "đổi tên" ở
+  đó là công khai tên một chi nhánh chưa bao giờ được duyệt.
+- "Tên thương hiệu" bỏ dòng tên chờ trùng tên đã duyệt (không có gì để duyệt).
+- Giờ hoạt động chưa khai thì nói "chưa khai", không nói "đóng cả tuần" (máy chủ trả 7 ngày CLOSED).
+- Từ chối: máy chủ không nhận lý do → hộp xác nhận nói thẳng và gợi ý "Yêu cầu chỉnh sửa" thay thế.
+- Sửa trực tiếp chỉ gửi trường đã đổi.
+
+Đã chạy trên chi nhánh do chính tại hạ tạo: **sửa SĐT** `P12 Mobile Quan 3` (DB có) → **duyệt** (DB
+`APPROVED / OPEN`, hàng chờ 5→4); **yêu cầu sửa mục "Hình ảnh"** trên `Mobile Phase12 Test 26-09` (DB
+`DRAFT` + issue `PHOTOS`).
+
+**Đơn ứng tuyển PT** (`app/admin/pt-applications/`) — mobile trước đây chưa có phía admin. Phát hiện:
+**máy chủ không kiểm trạng thái hiện tại trước khi xét** (duyệt được cả bản nháp; web hiện đủ 4 nút ở mọi
+trạng thái) → app tự chặn theo `ptActions(status)`. Web còn gửi ghi chú **nội bộ** vào `adminNote` — trường
+người nộp đọc được; app chỉ có một ô "lời nhắn cho người nộp". Đã chạy trên đơn `john.doe` (tài khoản thử
+Phase 9): **Bắt đầu xem xét** → DB `UNDER_REVIEW` + người xét; **Yêu cầu bổ sung** → `NEEDS_MORE_INFO` +
+lời nhắn, nút biến mất, màn nói đang chờ người nộp. **Không duyệt** (duyệt đổi vai trò tài khoản thật).
+
+**Kế hoạch trên chợ** (`app/admin/marketplace.tsx`) — bản phân tích tự động (cờ luật, gợi ý AI, kế hoạch
+có thể trùng) hiện để tham khảo; lịch tập mở rộng; mục tiêu dịch sang tiếng Việt. Đã **từ chối** "No-rest
+plan" (7/7 ngày, gợi ý "nguy cơ cao") kèm lý do → REJECTED 0→1. Không bấm duyệt kế hoạch nào.
+
+### 35.4 Cụm C — AD-04 "Xử lý"
+
+Một tab, bốn mục có đếm: **Tranh chấp buổi tập** (3 kết luận, mỗi cái nói hệ quả tiền, căn cứ bắt buộc) ·
+**Hoàn tiền dịch vụ 1-1** (số của máy chủ: đã trả / đã hoàn / trần; mốc giao hàng; số tiền trong trần;
+ghi chú bắt buộc; hỏi lại trước khi chuyển tiền) · **Khiếu nại phòng gym** (OPEN → IN_PROGRESS → RESOLVED,
+đóng phải có phản hồi, ảnh qua link có xác thực) · **Hoàn tiền gói hội viên ngoại lệ** (nhập mã gói như web —
+GAP-2 vẫn mở; mã phải đúng dạng UUID).
+
+Đã chạy: **từ chối** một yêu cầu hoàn tiền 1-1 (dữ liệu E2E) → đơn về `DRAFT_DELIVERED`, đếm 12→11 — không
+có tiền nào chuyển; **nhận xử lý** rồi **đóng** một khiếu nại E2E kèm phản hồi → DB `RESOLVED`. Tranh chấp
+buổi tập: hàng chờ **rỗng** (chỉ kiểm màn rỗng). **Không** bấm duyệt hoàn tiền hay hoàn gói hội viên nào.
+
+### 35.5 Lỗi/bẫy gặp khi chạy
+
+- Ô KPI dashboard bọc `Tappable` + `flex-1` trong Card → ô cao bất thường, mất 2 ô. Bỏ `flex-1` ở Card.
+- Sau `--clear`, dev client xin quyền "Display over other apps"; màn hệ thống đó nuốt thao tác gõ — kiểm DB
+  sau đó: không ghi gì.
+- Route mới trong thư mục mới lại cần khởi động lại Metro + xoá `router.d.ts` (ghi nhớ cũ vẫn đúng).
+- `foldVi` chuyển sang `src/lib/text.ts` (thuần, test được), `SelectSheet` export lại — không có bản thứ hai.
+
+### 35.6 Kiểm tự động
+
+Mobile 504/504 test thuần (+ `adminUsers`, `adminGyms`, `adminModeration`, `adminResolve`); gateway 41/41
+(+ `adminUserView`). Typecheck sạch; ESLint không lỗi mới (6 cảnh báo cũ ở `BottomSheet`/`SwipeRow`/
+`Tappable`, không đụng).
+
+### 35.7 Còn lại của Phase 13
+
+- **AD-03 roster PT**: vẫn BLOCKED (GAP-1) — nhưng *tạm ngưng/khôi phục* một PT nay làm được ở AD-05.
+- Chưa bấm thật: duyệt đơn PT, duyệt kế hoạch, duyệt hoàn tiền 1-1, hoàn gói hội viên, phân xử tranh chấp
+  (không có dữ liệu), "Đã chi trả" rút tiền — đều là thao tác chuyển tiền hoặc đổi vai trò trên dữ liệu dùng
+  chung; phủ bằng test thuần + `CODE AUDIT`.

@@ -19,12 +19,15 @@ import {
   applicationRows,
   applicationSubtitle,
   applicationTitle,
+  canReviewDocument,
   approveBlockers,
   canApprove,
   changeRequestError,
   changeRequestPayload,
   documentsAwaitingReview,
   rejectError,
+  setDocumentNote,
+  toggleDocumentRequest,
   sortByWaiting,
   verificationStatus,
   waitingDays,
@@ -87,9 +90,10 @@ describe("máy chủ quyết định có duyệt được không", () => {
         ],
       },
     };
+    // Giữ nguyên câu; chỉ mã giấy tờ được đổi sang tên người đọc hiểu.
     assert.deepEqual(approveBlockers(d), [
       "Còn 2 vấn đề chưa được đóng",
-      "Giấy tờ BUSINESS_LICENSE chưa được chấp nhận",
+      "Giấy tờ Giấy phép kinh doanh chưa được chấp nhận",
     ]);
     assert.equal(canApprove(d), false);
   });
@@ -166,5 +170,39 @@ describe("yêu cầu chỉnh sửa và từ chối", () => {
     assert.ok(rejectError(""));
     assert.ok(rejectError("không đạt"));
     assert.equal(rejectError("Giấy phép kinh doanh không khớp địa chỉ cơ sở"), null);
+  });
+});
+
+describe("yêu cầu cập nhật từng giấy tờ", () => {
+  it("bật, ghi chú, tắt — tắt thì ghi chú mất theo", () => {
+    let d = toggleDocumentRequest(EMPTY_CHANGE_REQUEST, "PREMISES_PROOF");
+    assert.deepEqual(d.documents, [{ docType: "PREMISES_PROOF", note: "" }]);
+    // Chọn giấy tờ mà chưa ghi gì thì vẫn chưa gửi được — ứng viên phải biết sửa gì.
+    assert.ok(changeRequestError(d));
+    d = setDocumentNote(d, "PREMISES_PROOF", "Hợp đồng thuê hết hạn");
+    assert.equal(changeRequestError(d), null);
+    assert.deepEqual(changeRequestPayload(d).documents, [{ docType: "PREMISES_PROOF", note: "Hợp đồng thuê hết hạn" }]);
+    // Có câu mô tả chung nhưng giấy tờ đã chọn chưa có lý do → vẫn chặn, không lặng lẽ bỏ giấy tờ.
+    const noNote = toggleDocumentRequest({ ...EMPTY_CHANGE_REQUEST, message: "Ảnh mặt tiền bị thiếu biển hiệu" }, "BUSINESS_LICENSE");
+    assert.ok(changeRequestError(noNote));
+    d = toggleDocumentRequest(d, "PREMISES_PROOF");
+    assert.deepEqual(d.documents, []);
+  });
+});
+
+describe("chỉ xét giấy tờ khi máy chủ cho xét", () => {
+  it("RECEIVED + hồ sơ IN_REVIEW mới có nút chấp nhận", () => {
+    const inReview = { partner: { verificationStatus: "IN_REVIEW" } };
+    assert.equal(canReviewDocument(inReview, { hasFile: true, status: "RECEIVED" }), true);
+    // Đã yêu cầu cập nhật → đang chờ ứng viên thay tệp, không chấp nhận lại tệp cũ.
+    assert.equal(canReviewDocument(inReview, { hasFile: true, status: "REJECTED" }), false);
+    assert.equal(canReviewDocument(inReview, { hasFile: true, status: "VERIFIED" }), false);
+    assert.equal(canReviewDocument(inReview, { hasFile: false, status: "RECEIVED" }), false);
+    // Hồ sơ đã trả về cho ứng viên sửa → chưa xét được gì.
+    assert.equal(canReviewDocument({ partner: { verificationStatus: "NEEDS_INFO" } }, { hasFile: true, status: "RECEIVED" }), false);
+    assert.deepEqual(
+      documentsAwaitingReview({ documents: [{ docType: "A", hasFile: true, status: "REJECTED" }, { docType: "B", hasFile: true, status: "RECEIVED" }] }).map((x: any) => x.docType),
+      ["B"],
+    );
   });
 });

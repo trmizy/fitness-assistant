@@ -57,6 +57,12 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
 - Trạng thái: OPEN — chờ Ngài quyết định có làm mới backend cho việc này hay bỏ tính năng khỏi
   Phase 13.
 
+- **Đối chiếu lại 28/9 (Phase 13, `CODE AUDIT`):** backend nay CÓ đường "tạm ngưng PT" gián tiếp:
+  `PATCH /admin/users/:id/disable|enable` (gateway → auth-service `setUserActive`) khoá tài khoản, và
+  nếu tài khoản là PT thì **relay `DEACTIVATE`/`REACTIVATE` sang user-service** (có hàng thử lại). Vẫn
+  **không có** danh sách roster PT kèm rating/số học viên. Nghĩa là: tạm ngưng/khôi phục một PT làm
+  được từ màn Người dùng (AD-05) nếu Ngài cho mở hành động đó; màn roster riêng như mock vẫn BLOCKED.
+
 ### GAP-2 — "Gói lỗi" (hoàn tiền hội viên gym bất thường) không có hàng đợi, chỉ có form nhập ID thủ công
 
 - Phát hiện ở phase: Phase 0 (đối chiếu manifest)
@@ -90,6 +96,13 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
 - Đề xuất: xác nhận lại đúng semantics của endpoint disable/enable ở auth-service trước khi quyết
   định port thẳng vào AD-05 hay cần endpoint riêng.
 - Trạng thái: OPEN — cần xác nhận kỹ hơn khi bắt đầu Phase 13 (không blocking Phase 0).
+
+- **Đối chiếu lại 28/9 (Phase 13, `CODE AUDIT`):** endpoint KHÔNG còn là "chưa rõ ngữ nghĩa":
+  `PATCH /admin/users/:userId/disable|enable` là khoá/mở **mọi** tài khoản (chỉ ADMIN), kèm relay PT ở
+  GAP-1. Web vẫn chỉ dùng nó ở màn chủ gym. **Chỗ hỏng thật nằm ở danh sách:** gateway `GET /admin/users`
+  gán cứng `status = "Active"` và bỏ `isActive` mà auth-service đã trả → một tài khoản vừa bị khoá vẫn
+  hiện "Active". Xem GAP-21. Còn lại là quyết định sản phẩm của Ngài: mobile có mở nút khoá/mở khoá
+  cho người dùng thường không (web chưa có).
 
 ### GAP-4 — Không có luồng "quên mật khẩu" tự phục vụ cho người dùng thường
 
@@ -501,3 +514,34 @@ không phải trải nghiệm đúng.
 fragment) — không cần đổi gì trong thư.
 
 **Không chặn Phase 12.**
+
+## GAP-21 — Danh bạ người dùng của admin gán sai vai trò và trạng thái (Phase 13, AD-01/AD-05)
+
+**Phát hiện 28/9** khi dựng AD-01 trên dữ liệu thật. Nằm ở gateway (`backend/gateway/src/routes/
+proxy.routes.ts`), hai route tổng hợp `GET /admin/dashboard` và `GET /admin/users`:
+
+1. **Vai trò:** `role: u.role === "PT" ? "PT" : "Client"` (và biến thể có "Admin") → mọi tài khoản
+   **GYM_OWNER hiện là "Client"**. Thấy thật: `p12-mobile@example.com` (chủ gym vừa được duyệt) nằm
+   trong "Đăng ký gần đây" với nhãn khách hàng.
+2. **Phân bổ vai trò của dashboard** chỉ có `Clients` + `Trainers` → 143 + 8 = 151 trên tổng 205;
+   54 tài khoản (chủ gym, quản trị viên…) không thuộc cột nào.
+3. **Trạng thái:** `/admin/users` gán cứng `status = "Active"` (chú thích trong code: "We don't have a
+   suspended/inactive field yet") — nhưng auth-service **đã** trả `isActive`. Hệ quả: khoá một tài
+   khoản xong, danh sách vẫn nói "Active".
+4. `recentUsers` của dashboard gán `status = "Pending"` cho mọi PT — nhãn không có nghĩa gì với PT đã duyệt.
+
+**Mobile đang xử lý thế nào.** AD-01 hiện phần chênh là **"Chưa phân loại"** kèm một câu giải thích,
+thay vì để 151 và 205 mâu thuẫn cạnh nhau. Nhãn vai trò từng dòng vẫn là của máy chủ (app không có cách
+biết đúng hơn). AD-05 **chưa** làm hành động khoá/mở — làm rồi mà danh sách không phản ánh thì người
+duyệt không biết mình vừa làm gì.
+
+**Cần ở gateway (nhỏ):** ánh xạ `GYM_OWNER` → một nhãn riêng; thêm cột chủ gym (và admin nếu muốn) vào
+`roleData`; lấy `status` từ `isActive` của auth-service; bỏ "Pending" cho PT. Không đổi hình dạng
+câu trả lời.
+
+**Không chặn AD-01 / AD-06. Chặn phần "khoá/mở khoá" của AD-05.**
+
+**ĐÃ SỬA 28/9 (Ngài cho phép):** `backend/gateway/src/utils/adminUserView.ts` + `proxy.routes.ts` —
+nhãn "Gym Owner", lát "Gym owners" trong `roleData`, `status` từ `isActive`, bỏ "Pending" cho PT. Test 3 ca
+mới, gateway 41/41; `REAL HTTP/API` sau `docker compose restart api-gateway`. Chi tiết:
+`MOBILE_PLATFORM_ADAPTERS.md` §35.1. Trạng thái: **ĐÃ SỬA**.

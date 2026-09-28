@@ -4,7 +4,7 @@ import axios from "axios";
 // native-backed implementation whose Response DOES expose a real ReadableStream — the AI Coach
 // stream below is the one caller that needs it (everything else goes through axios).
 import { fetch as streamingFetch } from "expo/fetch";
-import { File as FSFile } from "expo-file-system";
+import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -3839,6 +3839,20 @@ export const adminService = {
     return data;
   },
 
+  // Gateway aggregate (auth + user-service): name/email/role/status per account — the admin
+  // "Người dùng" list, and the name lookup for withdrawal/dispute rows that only carry an id.
+  listUserDirectory: async () => {
+    const { data } = await api.get("/admin/users");
+    return data;
+  },
+  // AD-05 — lock/unlock ANY account (auth-service setUserActive). For a PT this also relays a
+  // DEACTIVATE to user-service, which cancels + refunds every open contract; re-enabling does
+  // NOT restore them. The screen spells that out before calling this.
+  setUserActive: async (userId: string, isActive: boolean) => {
+    const { data } = await api.patch(`/admin/users/${userId}/${isActive ? "enable" : "disable"}`);
+    return data?.data ?? data;
+  },
+
   getSystemMonitoring: async () => {
     const { data } = await api.get("/admin/system-monitor");
     return data;
@@ -5404,6 +5418,24 @@ export const adminPartnerApplications = {
   reopen: async (id: string) => unwrapPartner(await api.post(`/admin/partners/${id}/application/reopen`)),
 };
 
+// AD-02 — admin side of PT applications (user-service /pt-applications/admin). The server does NOT
+// check the current status before a review action; the screen gates actions by status itself
+// (features/admin/adminModeration.ts#ptActions).
+export const adminPtApplications = {
+  list: async (status?: string) => {
+    const { data } = await api.get("/pt-applications/admin", { params: status ? { status } : undefined });
+    return data;
+  },
+  get: async (id: string) => {
+    const { data } = await api.get(`/pt-applications/admin/${id}`);
+    return data;
+  },
+  review: async (id: string, action: "UNDER_REVIEW" | "APPROVE" | "REQUEST_INFO" | "REJECT", payload: Record<string, string> = {}) => {
+    const { data } = await api.post(`/pt-applications/admin/${id}/review/${action}`, payload);
+    return data;
+  },
+};
+
 export async function uploadApplicationFile(file: UploadFile, target: ApplicationUploadTarget): Promise<void> {
   // `sizeBytes` phải là số byte THẬT: máy chủ nhét nó vào điều kiện `content-length-range` của biểu
   // mẫu presigned, nên khai sai thì kho lưu trữ từ chối chính tệp vừa ký. Đọc từ hệ tệp, không đoán.
@@ -5416,12 +5448,25 @@ export async function uploadApplicationFile(file: UploadFile, target: Applicatio
     ...(target.kind === "DOCUMENT" ? { docType: target.docType } : {}),
   });
 
-  const form = new FormData();
-  for (const [k, v] of Object.entries(auth.fields)) form.append(k, v);
-  appendUpload(form, "file", file);
-
-  const res = await fetch(auth.url, { method: "POST", body: form as any });
-  if (!res.ok) {
+  // Tải bằng API gốc của expo-file-system, KHÔNG bằng fetch/axios + FormData. Đã thử cả hai trên máy
+  // thật 27/9: `fetch` của Expo không nhận phần tệp kiểu RN ("Unsupported FormDataPart
+  // implementation"); còn XHR/axios gửi tệp từ URI với độ dài KHÔNG biết trước → `Transfer-Encoding:
+  // chunked`, không có Content-Length — biểu mẫu POST presigned của S3/MinIO bắt buộc Content-Length
+  // (MinIO qua proxy trả "EmptyRequestBody"). `File.upload` MULTIPART dựng thân với độ dài biết trước,
+  // các trường ký trước rồi tệp SAU CÙNG — đúng thứ tự S3 yêu cầu. Không có JWT: biểu mẫu tự mang chữ ký.
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(auth.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: file.type || "application/octet-stream",
+      parameters: auth.fields,
+    });
+  } catch {
+    throw new Error("Không gửi được tệp lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
     throw new Error(`Tải tệp lên thất bại (${res.status}).`);
   }
 

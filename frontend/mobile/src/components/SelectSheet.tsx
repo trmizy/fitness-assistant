@@ -5,13 +5,12 @@ import { Check, ChevronDown } from "lucide-react-native";
 import { BottomSheet, Input } from "./ui";
 import { designTokens } from "../theme/colors";
 import { useWorkspaceAccent } from "../theme/workspace";
+import { foldVi } from "../lib/text";
+
+// Re-exported so existing imports keep working.
+export { foldVi };
 
 export type SelectOption = { value: string; label: string };
-
-/** Accent-insensitive match, so "ha noi" finds "Hà Nội". */
-export function foldVi(s: string): string {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
-}
 
 /**
  * A select field that opens a searchable list in a BottomSheet — the phone's stand-in for web's

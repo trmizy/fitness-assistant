@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import { designTokens } from "../../theme/colors";
 import { pickApplicationFile } from "../../lib/pickFile";
 import { useServerSeededState } from "../../hooks/useServerSeededState";
 import { MapPinPicker } from "../gymOwner/MapPinPicker";
+import { geocodeAddress, PRECISION_TEXT } from "../gymOwner/geocode";
 import { ABOUT_MAX, socialUrlError, SOCIAL_FIELDS } from "../gymOwner/gymOwner";
 import {
   BUSINESS_SCALES,
@@ -30,6 +31,8 @@ import {
   STEPS,
   canAddDocumentFile,
   canResubmit,
+  documentsToReplace,
+  isChangesRequested,
   docStatus,
   documentFiles,
   findDocument,
@@ -105,7 +108,9 @@ export function ApplicationWizard() {
     );
   }
 
-  if (query.isError || !view) {
+  // Chỉ chặn toàn màn khi CHƯA từng có dữ liệu. Một lần làm mới hỏng sau khi lưu (đã gặp thật ở bước
+  // Quy mô) không được xoá cả hồ sơ khỏi màn hình — dữ liệu cũ vẫn đúng tới lần tải kế tiếp.
+  if (!view) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-background p-8">
         <Text className="text-center font-body text-sm text-destructive">Không tải được hồ sơ của bạn.</Text>
@@ -117,7 +122,8 @@ export function ApplicationWizard() {
   }
 
   const percent = progressPercent(view);
-  const missingHere = missingForStep(view, step);
+  // Bước cuối tự kể mục còn thiếu (và ô đồng ý trả lời mục điều khoản) — không nhắc lại lần hai ở trên.
+  const missingHere = step.id === "review" ? [] : missingForStep(view, step);
   const editable = view.editable !== false;
 
   return (
@@ -461,6 +467,45 @@ function LocationStep({ view, onSaved, fail, editable }: StepProps) {
   });
   const provinces = (provincesQuery.data ?? []) as { code: number; name: string }[];
   const wards = (wardsQuery.data ?? []) as { code: number; name: string }[];
+  const provinceName = provinces.find((p) => String(p.code) === form.provinceCode)?.name ?? null;
+  const wardName = wards.find((w) => String(w.code) === form.wardCode)?.name ?? null;
+
+  /**
+   * Tự ghim theo địa chỉ — cùng hợp đồng với hộp thêm chi nhánh (GY-02) và `useAutoPin` của web: chỉ
+   * khi đủ số nhà/đường (lấy từ bước Chi nhánh đã lưu) + phường + tỉnh, chỉ sau khi ngừng chọn, mỗi
+   * địa chỉ một lần, và KHÔNG BAO GIỜ đè lên ghim người dùng tự đặt. Ghim đã lưu trên máy chủ cũng
+   * tính là ghim tay: mở lại bước này không được làm dịch chỗ đã xác nhận.
+   */
+  const [pinHint, setPinHint] = useState<string | null>(null);
+  const lastGeocodeKey = useRef<string | null>(null);
+  const pinnedByHand = useRef(seed.latitude != null && seed.longitude != null);
+  const street = String(br.address ?? "").trim();
+  const geoKey = editable && street.length >= 5 && wardName && provinceName ? `${street}|${wardName}|${provinceName}` : null;
+
+  useEffect(() => {
+    if (!geoKey || pinnedByHand.current || geoKey === lastGeocodeKey.current) return;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      lastGeocodeKey.current = geoKey;
+      setPinHint("Đang tìm vị trí theo địa chỉ…");
+      geocodeAddress({ street, ward: wardName!, province: provinceName! }, ctrl.signal)
+        .then((hit) => {
+          if (!hit) return setPinHint("Không tìm thấy địa chỉ trên bản đồ — hãy ghim tay.");
+          if (pinnedByHand.current) return;
+          setForm((f) => ({ ...f, latitude: hit.latitude, longitude: hit.longitude }));
+          setPinHint(PRECISION_TEXT[hit.precision]);
+        })
+        .catch((e: Error) => {
+          if (e.name !== "AbortError") setPinHint("Không tra được bản đồ lúc này — bạn vẫn ghim tay được.");
+        });
+    }, 1200);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+    // street/ward/province đều nằm trong geoKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geoKey]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -501,7 +546,12 @@ function LocationStep({ view, onSaved, fail, editable }: StepProps) {
       <MapPinPicker
         latitude={form.latitude}
         longitude={form.longitude}
-        onChange={(p) => setForm({ ...form, ...p })}
+        hint={pinHint}
+        onChange={(p) => {
+          pinnedByHand.current = true;
+          setPinHint(null);
+          setForm((f) => ({ ...f, ...p }));
+        }}
       />
       <Input
         label="Ghi chú đường đi (tuỳ chọn)"
@@ -581,9 +631,14 @@ function PhotosStep({ view, onSaved, fail, editable }: StepProps) {
             {p.isCover ? <Badge tone="success">Ảnh bìa</Badge> : null}
             {editable ? (
               <View className="flex-row justify-between">
-                <Tappable accessibilityLabel="Đặt làm ảnh bìa" hitSlop={8} onPress={() => cover.mutate(p.id)}>
-                  <Text className="font-body text-[10px] text-primary">Bìa</Text>
-                </Tappable>
+                {/* Ảnh đang là bìa thì không có gì để "đặt làm bìa" — giữ chỗ để nút xoá không nhảy vị trí. */}
+                {p.isCover ? (
+                  <View />
+                ) : (
+                  <Tappable accessibilityLabel="Đặt làm ảnh bìa" hitSlop={8} onPress={() => cover.mutate(p.id)}>
+                    <Text className="font-body text-[10px] text-primary">Đặt làm bìa</Text>
+                  </Tappable>
+                )}
                 <Tappable accessibilityLabel="Xoá ảnh" hitSlop={8} onPress={() => remove.mutate(p.id)}>
                   <Trash2 size={13} color={accent.primary} />
                 </Tappable>
@@ -751,9 +806,18 @@ function ReviewStep({
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const [agreed, setAgreed] = useState(false);
-  const missing = missingItems(view);
+  /**
+   * Điều khoản được chấp nhận BẰNG chính lệnh gửi (`submit(true)`), nên trước khi gửi máy chủ luôn còn
+   * kể mục TERMS. Ô đồng ý bên dưới là câu trả lời cho mục đó — tính nó là "còn thiếu" thì nút gửi
+   * không bao giờ mở được (đã gặp thật 27/9). Mọi mục khác vẫn chặn như máy chủ nói.
+   */
+  const missing = missingItems(view).filter((m) => m.section !== "TERMS");
   const issues = issuesOf(view);
-  const hasIssues = issues.length > 0;
+  const toReplace = documentsToReplace(view);
+  const changesRound = isChangesRequested(view);
+  const hasIssues = issues.length > 0 || toReplace.length > 0;
+  const legalStep = STEPS.findIndex((st) => st.id === "legal");
+  const docLabel = (t: string) => DOC_TYPES.find((x) => x.value === t)?.label ?? t;
 
   const submit = useMutation({
     mutationFn: () => partnerApplicationService.submit(true),
@@ -803,60 +867,89 @@ function ReviewStep({
                   <Text className="font-body text-[11px] text-warning">Gymini nhắc thêm: {i.adminFollowUp}</Text>
                 ) : null}
                 {i.status === "OPEN" ? (
-                  <Button size="sm" variant="secondary" disabled={markUpdated.isPending} onPress={() => markUpdated.mutate(i.id)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="self-start"
+                    disabled={markUpdated.isPending}
+                    onPress={() => markUpdated.mutate(i.id)}
+                  >
                     Đã cập nhật
                   </Button>
                 ) : null}
               </View>
             );
           })}
+          {/* Giấy tờ bị yêu cầu nộp lại: không có nút "đã cập nhật" — thay tệp mới là cập nhật, và máy chủ
+              tự đưa giấy tờ về "Chờ duyệt" khi nhận tệp mới. */}
+          {toReplace.map((doc) => (
+            <Tappable
+              key={doc.docType}
+              accessibilityLabel={`Thay tệp ${docLabel(doc.docType)}`}
+              onPress={() => legalStep >= 0 && onGoTo(legalStep)}
+              className="gap-1.5 rounded-xl border border-border bg-panel p-3.5"
+            >
+              <View className="flex-row items-center justify-between gap-2">
+                <Text className="min-w-0 flex-1 font-body-semibold text-xs text-foreground">{docLabel(doc.docType)}</Text>
+                <Badge tone="danger">Cần nộp lại</Badge>
+              </View>
+              {doc.reviewNote ? <Text className="font-body text-xs text-muted-foreground">{doc.reviewNote}</Text> : null}
+              <View className="flex-row items-center gap-1">
+                <Text className="font-body-semibold text-xs text-primary">Thay tệp</Text>
+                <ChevronRight size={12} color={accent.primary} />
+              </View>
+            </Tappable>
+          ))}
           <Button disabled={!canResubmit(view) || resubmit.isPending} onPress={() => resubmit.mutate()}>
             {resubmit.isPending ? "Đang gửi…" : "Gửi lại hồ sơ"}
           </Button>
         </Card>
       ) : null}
 
-      <Card className="gap-3 p-5">
-        <Text className="font-display text-base text-foreground">Xem lại &amp; gửi</Text>
-        {missing.length === 0 ? (
-          <Text className="font-body text-xs text-muted-foreground">Mọi mục bắt buộc đã đủ.</Text>
-        ) : (
-          <>
-            <Text className="font-body text-xs text-muted-foreground">Còn {missing.length} mục cần hoàn thiện:</Text>
-            {missing.map((m, i) => {
-              const target = STEPS.findIndex((s) => s.sections.includes(m.section));
-              return (
-                <Tappable
-                  key={i}
-                  accessibilityLabel={m.message}
-                  onPress={() => target >= 0 && onGoTo(target)}
-                  className="flex-row items-center gap-2 rounded-xl border border-border bg-panel p-3"
-                >
-                  <TriangleAlert size={13} color={designTokens.warning} />
-                  <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground">{m.message}</Text>
-                  <ChevronRight size={14} color={designTokens.mutedForeground} />
-                </Tappable>
-              );
-            })}
-          </>
-        )}
+      {/* Vòng "yêu cầu chỉnh sửa" gửi bằng nút "Gửi lại hồ sơ" ở trên; gửi lần đầu thì máy chủ từ chối. */}
+      {changesRound ? null : (
+        <Card className="gap-3 p-5">
+          <Text className="font-display text-base text-foreground">Xem lại &amp; gửi</Text>
+          {missing.length === 0 ? (
+            <Text className="font-body text-xs text-muted-foreground">Mọi mục bắt buộc đã đủ.</Text>
+          ) : (
+            <>
+              <Text className="font-body text-xs text-muted-foreground">Còn {missing.length} mục cần hoàn thiện:</Text>
+              {missing.map((m, i) => {
+                const target = STEPS.findIndex((s) => s.sections.includes(m.section));
+                return (
+                  <Tappable
+                    key={i}
+                    accessibilityLabel={m.message}
+                    onPress={() => target >= 0 && onGoTo(target)}
+                    className="flex-row items-center gap-2 rounded-xl border border-border bg-panel p-3"
+                  >
+                    <TriangleAlert size={13} color={designTokens.warning} />
+                    <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground">{m.message}</Text>
+                    <ChevronRight size={14} color={designTokens.mutedForeground} />
+                  </Tappable>
+                );
+              })}
+            </>
+          )}
 
-        <Tappable
-          accessibilityLabel="Đồng ý điều khoản đối tác"
-          onPress={() => setAgreed((v) => !v)}
-          hitSlop={8}
-          className="flex-row items-center gap-3 rounded-xl border border-border bg-panel p-3.5"
-        >
-          <View className={`h-5 w-5 items-center justify-center rounded-md border ${agreed ? "border-primary bg-primary" : "border-border"}`}>
-            {agreed ? <Check size={13} color={accent.onPrimary} /> : null}
-          </View>
-          <Text className="flex-1 font-body text-sm text-foreground">Tôi đồng ý với điều khoản đối tác</Text>
-        </Tappable>
+          <Tappable
+            accessibilityLabel="Đồng ý điều khoản đối tác"
+            onPress={() => setAgreed((v) => !v)}
+            hitSlop={8}
+            className="flex-row items-center gap-3 rounded-xl border border-border bg-panel p-3.5"
+          >
+            <View className={`h-5 w-5 items-center justify-center rounded-md border ${agreed ? "border-primary bg-primary" : "border-border"}`}>
+              {agreed ? <Check size={13} color={accent.onPrimary} /> : null}
+            </View>
+            <Text className="flex-1 font-body text-sm text-foreground">Tôi đồng ý với điều khoản đối tác</Text>
+          </Tappable>
 
-        <Button disabled={!agreed || missing.length > 0 || submit.isPending} onPress={() => submit.mutate()}>
-          {submit.isPending ? "Đang gửi…" : "Gửi hồ sơ"}
-        </Button>
-      </Card>
+          <Button disabled={!agreed || missing.length > 0 || submit.isPending} onPress={() => submit.mutate()}>
+            {submit.isPending ? "Đang gửi…" : "Gửi hồ sơ"}
+          </Button>
+        </Card>
+      )}
     </View>
   );
 }

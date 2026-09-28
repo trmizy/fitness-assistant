@@ -6,6 +6,7 @@
  * dựng lại luật duyệt — nếu dựng, hai bộ luật sẽ lệch và màn hình sẽ hứa một nút mà máy chủ từ chối.
  */
 import type { PartnerDocType } from "../../services/api";
+import { readableServerMessage } from "../partnerApplication/partnerApplication";
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral" | "info";
 
@@ -113,7 +114,7 @@ export type AdminApplicationDetail = {
 export function approveBlockers(d: AdminApplicationDetail | null | undefined): string[] {
   const list = d?.approve?.blockers;
   if (!Array.isArray(list) || list.length === 0) return [];
-  return list.map((b) => (b?.message ?? "").trim() || "Còn một điều kiện chưa đạt").filter(Boolean);
+  return list.map((b) => readableServerMessage((b?.message ?? "").trim()) || "Còn một điều kiện chưa đạt").filter(Boolean);
 }
 
 export function canApprove(d: AdminApplicationDetail | null | undefined): boolean {
@@ -130,9 +131,18 @@ export function adminIssues(d: AdminApplicationDetail | null | undefined) {
   return Array.isArray(list) ? list.filter((x) => x?.id) : [];
 }
 
-/** Giấy tờ đã có tệp nhưng chưa được chấp nhận — đúng việc admin phải làm trước khi duyệt. */
+/**
+ * Giấy tờ đang chờ admin xem: đã nộp tệp và ở trạng thái RECEIVED. Đúng điều kiện máy chủ chấp nhận
+ * (`acceptDocument` chỉ cập nhật dòng RECEIVED). Giấy tờ đã bị yêu cầu cập nhật (REJECTED) KHÔNG còn ở
+ * đây: nó đang chờ ỨNG VIÊN thay tệp, và chấp nhận lại tệp cũ đi ngược đúng yêu cầu vừa gửi.
+ */
 export function documentsAwaitingReview(d: AdminApplicationDetail | null | undefined) {
-  return adminDocuments(d).filter((x) => x.hasFile && x.status !== "VERIFIED");
+  return adminDocuments(d).filter((x) => x.hasFile && x.status === "RECEIVED");
+}
+
+/** Chỉ xét được khi hồ sơ đang IN_REVIEW — giống web (`underReview`) và máy chủ. */
+export function canReviewDocument(d: AdminApplicationDetail | null | undefined, doc: { hasFile?: boolean; status?: string }) {
+  return d?.partner?.verificationStatus === "IN_REVIEW" && !!doc.hasFile && doc.status === "RECEIVED";
 }
 
 export const REVIEW_CATEGORIES: { value: string; label: string }[] = [
@@ -161,8 +171,23 @@ export function changeRequestError(d: ChangeRequestDraft): string | null {
   const hasIssue = d.message.trim().length > 0;
   const hasDocNote = d.documents.some((x) => x.note.trim().length > 0);
   if (!hasIssue && !hasDocNote) return "Nêu rõ cần sửa gì — ít nhất một mục hoặc một giấy tờ.";
+  // Đã chọn một giấy tờ thì phải nói vì sao — không thì máy sẽ lặng lẽ bỏ nó khỏi yêu cầu.
+  if (d.documents.some((x) => !x.note.trim())) return "Ghi lý do cho từng giấy tờ đã chọn.";
   if (hasIssue && d.message.trim().length < 10) return "Mô tả quá ngắn để ứng viên hiểu phải sửa gì.";
   return null;
+}
+
+/** Bật/tắt yêu cầu cập nhật MỘT giấy tờ trong bản nháp; tắt thì bỏ luôn ghi chú của nó. */
+export function toggleDocumentRequest(d: ChangeRequestDraft, docType: PartnerDocType): ChangeRequestDraft {
+  const has = d.documents.some((x) => x.docType === docType);
+  return {
+    ...d,
+    documents: has ? d.documents.filter((x) => x.docType !== docType) : [...d.documents, { docType, note: "" }],
+  };
+}
+
+export function setDocumentNote(d: ChangeRequestDraft, docType: PartnerDocType, note: string): ChangeRequestDraft {
+  return { ...d, documents: d.documents.map((x) => (x.docType === docType ? { ...x, note } : x)) };
 }
 
 export function changeRequestPayload(d: ChangeRequestDraft) {

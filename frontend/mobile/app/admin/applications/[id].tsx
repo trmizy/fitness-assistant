@@ -37,6 +37,9 @@ import {
   rejectError,
   verificationStatus,
   type AdminApplicationDetail,
+  canReviewDocument,
+  setDocumentNote,
+  toggleDocumentRequest,
   type ChangeRequestDraft,
 } from "../../../src/features/adminApplications/adminApplications";
 
@@ -139,6 +142,15 @@ export default function AdminApplicationDetailScreen() {
     onError: (e) => fail(e, "Không từ chối được hồ sơ"),
   });
 
+  const reopen = useMutation({
+    mutationFn: () => adminPartnerApplications.reopen(partnerId),
+    onSuccess: async () => {
+      toast.show("Đã mở lại hồ sơ cho ứng viên", "success");
+      await refresh();
+    },
+    onError: (e) => fail(e, "Không mở lại được hồ sơ"),
+  });
+
   const back = () => (router.canGoBack() ? router.back() : router.replace("/admin/applications"));
 
   if (query.isLoading) {
@@ -166,6 +178,7 @@ export default function AdminApplicationDetailScreen() {
 
   const p: any = d.partner ?? {};
   const st = verificationStatus(p.verificationStatus);
+  const v = String(p.verificationStatus ?? "");
   const blockers = approveBlockers(d);
   const docs = adminDocuments(d);
   const issues = adminIssues(d);
@@ -253,7 +266,7 @@ export default function AdminApplicationDetailScreen() {
                         </Tappable>
                       ))}
 
-                      {doc.hasFile && doc.status !== "VERIFIED" ? (
+                      {canReviewDocument(d, doc) ? (
                         <Button
                           size="sm"
                           icon={Check}
@@ -302,66 +315,121 @@ export default function AdminApplicationDetailScreen() {
             </StaggerItem>
           ) : null}
 
-          {/* Vì sao chưa duyệt được — nguyên văn của máy chủ, không diễn giải lại. */}
-          {blockers.length > 0 ? (
+          {/*
+            Khối quyết định theo trạng thái hồ sơ — giống web (AdminApplicationsPanel). Chỉ IN_REVIEW mới có
+            việc cho admin; hiện nút và "chưa duyệt được vì" ở trạng thái khác làm người duyệt tưởng vừa bấm
+            hỏng (gặp thật 28/9: duyệt xong, màn hình vẫn liệt kê lý do chưa duyệt được).
+          */}
+          {v === "VERIFIED" ? (
             <StaggerItem>
-              <Card className="gap-1.5 border-warning/30 bg-warning/5 p-4">
-                <Text className="font-body-semibold text-xs text-foreground">Chưa duyệt được vì:</Text>
-                {blockers.map((b, i) => (
-                  <View key={i} className="flex-row items-start gap-2">
-                    <TriangleAlert size={13} color={designTokens.warning} />
-                    <Text className="flex-1 font-body text-xs text-muted-foreground">{b}</Text>
-                  </View>
-                ))}
-                {awaiting.length > 0 ? (
-                  <Text className="mt-1 font-body text-[11px] text-muted-foreground">
-                    Còn {awaiting.length} giấy tờ đã nộp nhưng chưa được chấp nhận.
-                  </Text>
-                ) : null}
+              <Card className="gap-1.5 border-primary/30 bg-primary/5 p-4">
+                <Text className="font-body-semibold text-sm text-foreground">Hồ sơ đã được phê duyệt</Text>
+                <Text className="font-body text-xs text-muted-foreground">
+                  Đối tác đang hoạt động và chi nhánh đầu tiên đã được duyệt cùng lúc.
+                </Text>
               </Card>
             </StaggerItem>
           ) : null}
 
-          <StaggerItem>
-            <View className="gap-2">
-              <Button
-                icon={ShieldCheck}
-                disabled={!canApprove(d) || approve.isPending}
-                onPress={() =>
-                  Alert.alert(
-                    "Duyệt hồ sơ?",
-                    "Đối tác sẽ được kích hoạt và chi nhánh đầu tiên được duyệt cùng lúc. Không hoàn tác được.",
-                    [
+          {v === "REJECTED" ? (
+            <StaggerItem>
+              <Card className="gap-3 border-destructive/30 bg-destructive/5 p-4">
+                <Text className="font-body-semibold text-sm text-foreground">Hồ sơ đã bị từ chối</Text>
+                {p.rejectionReason ? (
+                  <Text className="font-body text-xs text-muted-foreground">Lý do: {p.rejectionReason}</Text>
+                ) : null}
+                <Button
+                  variant="secondary"
+                  disabled={reopen.isPending}
+                  onPress={() =>
+                    Alert.alert("Mở lại hồ sơ?", "Ứng viên sẽ chỉnh sửa và nộp lại được.", [
                       { text: "Không", style: "cancel" },
-                      { text: "Duyệt", onPress: () => approve.mutate() },
-                    ],
-                  )
-                }
-              >
-                {approve.isPending ? "Đang duyệt…" : "Duyệt hồ sơ"}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={requestChanges.isPending}
-                onPress={() => {
-                  setDraft(EMPTY_CHANGE_REQUEST);
-                  setSheet("changes");
-                }}
-              >
-                Yêu cầu chỉnh sửa
-              </Button>
-              <Button variant="destructive" icon={X} onPress={() => setSheet("reject")}>
-                Từ chối hồ sơ
-              </Button>
-            </View>
-          </StaggerItem>
+                      { text: "Mở lại", onPress: () => reopen.mutate() },
+                    ])
+                  }
+                >
+                  Mở lại hồ sơ
+                </Button>
+              </Card>
+            </StaggerItem>
+          ) : null}
+
+          {v === "NEEDS_INFO" || v === "NOT_VERIFIED" ? (
+            <StaggerItem>
+              <Card className="p-4">
+                <Text className="font-body text-xs leading-5 text-muted-foreground">
+                  {v === "NEEDS_INFO"
+                    ? "Đang chờ ứng viên chỉnh sửa và gửi lại. Hồ sơ quay về hàng “Chờ duyệt” khi họ gửi."
+                    : "Ứng viên chưa gửi hồ sơ."}
+                </Text>
+              </Card>
+            </StaggerItem>
+          ) : null}
+
+          {v === "IN_REVIEW" ? (
+            <>
+            {/* Vì sao chưa duyệt được — nguyên văn của máy chủ, không diễn giải lại. */}
+            {blockers.length > 0 ? (
+              <StaggerItem>
+                <Card className="gap-1.5 border-warning/30 bg-warning/5 p-4">
+                  <Text className="font-body-semibold text-xs text-foreground">Chưa duyệt được vì:</Text>
+                  {blockers.map((b, i) => (
+                    <View key={i} className="flex-row items-start gap-2">
+                      <TriangleAlert size={13} color={designTokens.warning} />
+                      <Text className="flex-1 font-body text-xs text-muted-foreground">{b}</Text>
+                    </View>
+                  ))}
+                  {awaiting.length > 0 ? (
+                    <Text className="mt-1 font-body text-[11px] text-muted-foreground">
+                      Còn {awaiting.length} giấy tờ đã nộp nhưng chưa được chấp nhận.
+                    </Text>
+                  ) : null}
+                </Card>
+              </StaggerItem>
+            ) : null}
+
+            <StaggerItem>
+              <View className="gap-2">
+                <Button
+                  icon={ShieldCheck}
+                  disabled={!canApprove(d) || approve.isPending}
+                  onPress={() =>
+                    Alert.alert(
+                      "Duyệt hồ sơ?",
+                      "Đối tác sẽ được kích hoạt và chi nhánh đầu tiên được duyệt cùng lúc. Không hoàn tác được.",
+                      [
+                        { text: "Không", style: "cancel" },
+                        { text: "Duyệt", onPress: () => approve.mutate() },
+                      ],
+                    )
+                  }
+                >
+                  {approve.isPending ? "Đang duyệt…" : "Duyệt hồ sơ"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={requestChanges.isPending}
+                  onPress={() => {
+                    setDraft(EMPTY_CHANGE_REQUEST);
+                    setSheet("changes");
+                  }}
+                >
+                  Yêu cầu chỉnh sửa
+                </Button>
+                <Button variant="destructive" icon={X} onPress={() => setSheet("reject")}>
+                  Từ chối hồ sơ
+                </Button>
+              </View>
+            </StaggerItem>
+            </>
+          ) : null}
         </Stagger>
       </ScrollView>
 
       <BottomSheet open={sheet === "changes"} onClose={() => setSheet(null)} title="Yêu cầu chỉnh sửa">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
           <Text className="font-body text-xs leading-5 text-muted-foreground">
-            Ứng viên đọc đúng câu bạn viết. Nộp lại **không** tự đóng mục nào — chỉ bạn đóng được.
+            Ứng viên đọc đúng câu bạn viết. Nộp lại không tự đóng mục nào — chỉ bạn đóng được.
           </Text>
           <SelectField
             label="Thuộc mục nào"
@@ -378,6 +446,39 @@ export default function AdminApplicationDetailScreen() {
             placeholder="Ví dụ: ảnh giấy phép bị mờ ở phần số đăng ký, cần chụp lại rõ hơn"
             placeholderTextColor={inputPlaceholderColor}
           />
+          {/* Giấy tờ đã nộp mà chưa chấp nhận: đánh dấu "Cần cập nhật" kèm lý do — ứng viên thấy đúng
+              giấy tờ đó và phải thay tệp. Không có chỗ này thì một giấy tờ sai chỉ còn đường chấp nhận. */}
+          {awaiting.length > 0 ? (
+            <View className="gap-2">
+              <Text className="px-1 font-body text-sm text-muted-foreground">Giấy tờ cần nộp lại (tuỳ chọn)</Text>
+              {awaiting.map((doc: any) => {
+                const picked = draft.documents.find((x) => x.docType === doc.docType);
+                return (
+                  <View key={doc.docType} className="gap-2 rounded-xl border border-border bg-panel p-3">
+                    <Tappable
+                      accessibilityLabel={`Yêu cầu cập nhật ${docLabel(doc.docType)}`}
+                      hitSlop={6}
+                      onPress={() => setDraft(toggleDocumentRequest(draft, doc.docType))}
+                      className="flex-row items-center gap-3"
+                    >
+                      <View className={`h-5 w-5 items-center justify-center rounded-md border ${picked ? "border-primary bg-primary" : "border-border"}`}>
+                        {picked ? <Check size={13} color={accent.onPrimary} /> : null}
+                      </View>
+                      <Text className="flex-1 font-body text-sm text-foreground">{docLabel(doc.docType)}</Text>
+                    </Tappable>
+                    {picked ? (
+                      <Input
+                        value={picked.note}
+                        onChangeText={(v) => setDraft(setDocumentNote(draft, doc.docType, v))}
+                        placeholder="Vì sao cần nộp lại?"
+                        placeholderTextColor={inputPlaceholderColor}
+                      />
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
           <Button disabled={!!changeRequestError(draft) || requestChanges.isPending} onPress={() => requestChanges.mutate()}>
             {requestChanges.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
           </Button>

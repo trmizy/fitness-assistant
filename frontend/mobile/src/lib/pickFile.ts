@@ -24,9 +24,15 @@ async function fromCameraOrLibrary(source: "camera" | "library"): Promise<Picked
   const a = res.canceled ? null : res.assets?.[0];
   if (!a) return null;
   if (a.fileSize && a.fileSize > MAX_BYTES) throw new Error("Ảnh quá lớn (tối đa 10 MB).");
-  // Re-encoded by the picker (quality < 1): always JPEG bytes, whatever the source file was.
-  const name = (a.fileName ?? `anh-${Date.now()}`).replace(/\.(png|heic|webp)$/i, ".jpg");
-  return { uri: a.uri, name: /\.jpe?g$/i.test(name) ? name : `${name}.jpg`, type: "image/jpeg", isImage: true };
+  // Khai đúng loại byte THẬT của tệp. Trước đây giả định picker luôn nén lại thành JPEG (quality < 1) —
+  // sai trên Android: bộ chọn ảnh hệ thống trả nguyên tệp PNG, và máy chủ kiểm magic bytes nên từ chối
+  // ("Nội dung tệp không phải định dạng đã khai báo", gặp thật 27/9). Chỉ khi picker không cho biết
+  // loại mới coi là JPEG (trường hợp nó thực sự nén lại, vd ảnh chụp từ camera).
+  const mime = (a.mimeType ?? "").toLowerCase();
+  const type = mime === "image/png" || mime === "image/webp" || mime === "image/jpeg" ? mime : "image/jpeg";
+  const ext = type === "image/png" ? ".png" : type === "image/webp" ? ".webp" : ".jpg";
+  const base = (a.fileName ?? `anh-${Date.now()}`).replace(/\.(png|jpe?g|heic|heif|webp)$/i, "");
+  return { uri: a.uri, name: `${base}${ext}`, type, isImage: true };
 }
 
 async function fromDocuments(): Promise<PickedFile | null> {

@@ -18,6 +18,8 @@ import {
   applyEmailError,
   canAddDocumentFile,
   canResubmit,
+  documentsToReplace,
+  isChangesRequested,
   docStatus,
   documentFiles,
   extractApplyToken,
@@ -33,6 +35,7 @@ import {
   stepDone,
   verifyResultText,
   type ApplicationView,
+  readableServerMessage,
 } from "../partnerApplication/partnerApplication";
 
 const view = (missing: { section: any; message: string }[]): ApplicationView => ({ missing });
@@ -145,6 +148,27 @@ describe("góp ý và gửi lại", () => {
     assert.equal(canResubmit(null), false);
   });
 
+  it("giấy tờ bị yêu cầu nộp lại cũng chặn gửi lại, tới khi thay tệp (máy chủ: DOCUMENTS_NOT_REPLACED)", () => {
+    const marked = [{ id: "i1", status: "RESUBMITTED" }];
+    const stale: ApplicationView = {
+      issues: marked,
+      documents: [{ docType: "PREMISES_PROOF", status: "REJECTED", reviewNote: "Mờ" }, { docType: "BUSINESS_LICENSE", status: "VERIFIED" }],
+    };
+    assert.deepEqual(documentsToReplace(stale).map((d) => d.docType), ["PREMISES_PROOF"]);
+    assert.equal(canResubmit(stale), false);
+
+    // Thay tệp → máy chủ đưa về RECEIVED → mở.
+    const replaced: ApplicationView = { issues: marked, documents: [{ docType: "PREMISES_PROOF", status: "RECEIVED" }] };
+    assert.equal(canResubmit(replaced), true);
+
+    // Chỉ yêu cầu nộp lại giấy tờ, không có góp ý chung: vẫn là vòng gửi lại.
+    assert.equal(canResubmit({ issues: [], documents: [{ docType: "PREMISES_PROOF", status: "REJECTED" }] }), false);
+    // ...và sau khi thay tệp xong thì phải gửi lại được, dù không còn dấu vết nào khác của vòng sửa.
+    assert.equal(canResubmit({ accessState: "CHANGES_REQUESTED", issues: [], documents: [{ docType: "PREMISES_PROOF", status: "RECEIVED" }] }), true);
+    assert.equal(isChangesRequested({ accessState: "CHANGES_REQUESTED" }), true);
+    assert.equal(isChangesRequested({ accessState: "ONBOARDING" }), false);
+  });
+
   it("nhãn trạng thái góp ý", () => {
     assert.equal(issueStatus("OPEN").label, "Đang mở");
     assert.equal(issueStatus("RESUBMITTED").label, "Đã gửi lại");
@@ -208,5 +232,18 @@ describe("thông báo lỗi", () => {
     );
     // mất mạng
     assert.match(friendlyError(new Error("Network Error")), /Không kết nối được máy chủ/);
+  });
+});
+
+describe("câu của máy chủ không lộ mã enum", () => {
+  it("chỉ thay mã loại giấy tờ, giữ nguyên phần còn lại", () => {
+    assert.equal(
+      readableServerMessage("Còn thiếu giấy tờ bắt buộc: BUSINESS_LICENSE"),
+      "Còn thiếu giấy tờ bắt buộc: Giấy phép kinh doanh",
+    );
+    assert.equal(readableServerMessage("Chưa chọn phường / xã"), "Chưa chọn phường / xã");
+    assert.equal(readableServerMessage(null), "");
+    const view = { missing: [{ section: "LEGAL", message: "Còn thiếu giấy tờ bắt buộc: PREMISES_PROOF" }] };
+    assert.equal(missingItems(view as any)[0].message, "Còn thiếu giấy tờ bắt buộc: Chứng minh mặt bằng");
   });
 });

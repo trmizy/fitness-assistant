@@ -22,6 +22,7 @@ export interface GeocodeResult {
 
 const ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const GAP_MS = 1100;
+const USER_AGENT = "Gymini/1.0 (+vn.fitnessassistant.app)";
 
 export function abortError(): Error {
   const e = new Error("Aborted");
@@ -51,8 +52,15 @@ async function search(q: string, signal: AbortSignal): Promise<{ lat: number; lo
     countrycodes: "vn",
     "accept-language": "vi",
   });
-  const res = await fetch(`${ENDPOINT}?${params}`, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
+  // Nominatim chặn (403) User-Agent chung chung — mặc định của Android là `okhttp/x.y`, nên không
+  // khai báo thì MỌI lần tra trên điện thoại đều hỏng (đã gặp thật 27/9). Chính sách của họ yêu cầu
+  // UA nêu rõ ứng dụng; trình duyệt tự gửi UA đầy đủ nên web không cần dòng này.
+  const res = await fetch(`${ENDPOINT}?${params}`, {
+    signal,
+    headers: { Accept: "application/json", "User-Agent": USER_AGENT },
+  });
+  // Lỗi HTTP là "không tra được", KHÔNG phải "không có địa chỉ này" — ném để nơi gọi nói đúng.
+  if (!res.ok) throw new Error(`Nominatim ${res.status}`);
   const rows = (await res.json()) as { lat: string; lon: string; addresstype?: string }[];
   if (!rows.length) return null;
   const lat = Number(rows[0].lat);
