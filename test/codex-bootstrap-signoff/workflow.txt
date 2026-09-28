@@ -1,0 +1,165 @@
+✔ CREATE_NUTRITION_PLAN golden flow (real DB): asks only for mealsPerDay, queues real generation, polls to a real preview, revises with a genuine restriction, confirms exactly once (691.8466ms)
+✔ CREATE_NUTRITION_PLAN async job-failure (real DB): a FAILED job is reported honestly, never silently retried into a fake preview (146.4502ms)
+✔ CREATE_NUTRITION_PLAN no-repeat E2E (real DB): a mealsPerDay stated up front is never re-asked (70.553ms)
+✔ CREATE_WORKOUT_PLAN golden flow (real DB): asks only for sessionMinutes, resumes into a real draft, revises twice draft-only, confirms exactly once (729.3764ms)
+✔ CREATE_WORKOUT_PLAN no-repeat E2E (real DB): when daysPerWeek and sessionMinutes are already known, the AI never asks and no workflow row is ever created (43.7295ms)
+✔ CREATE_WORKOUT_PLAN session-length revision (real DB): 'Buổi tập ngắn xuống 20 phút.' retrims exercises and is never misread as a day-count change (77.2937ms)
+✔ CREATE_WORKOUT_PLAN unsupported revision (real DB): 'Thêm superset.' is answered honestly, never silently accepted or misread as an exercise edit (64.4961ms)
+✔ CREATE_WORKOUT_PLAN save-collision guard (real DB): a free-text 'lưu lịch tập này' while a draft is pending is redirected to the real pending draft, never a competing SAVE_GENERATED_PLAN action (72.3462ms)
+✔ Cross-workflow context reuse (real DB): CREATE_WORKOUT_PLAN then CREATE_NUTRITION_PLAN both reuse the SAME already-known goal/days/sessionMinutes, no redundant re-asking (662.1507ms)
+{"level":30,"time":1789885444006,"pid":17924,"hostname":"DESKTOP-UIQSF8T","userId":"agent-workflow-switch-22e8dfe8-3e18-476c-b3e5-e9ddedcf933e","candidateCount":0,"narratedCount":0,"narrationFallbackCount":0,"usedNarrationFallback":false,"historicalCohortsAvailable":0,"evidenceCount":4,"msg":"[fitness-agent] PT recommendation narration summary"}
+✔ Workflow switch (real DB): a pending CREATE_WORKOUT_PLAN is cleanly cancelled by 'Khoan, tìm PT cho tôi trước', with no slot leakage into FIND_PT (354.7915ms)
+✔ WORKOUT race, CONFIRM wins: dismiss arriving mid-write must NOT report a successful cancellation; exactly one write; final COMPLETED (648.6509ms)
+✔ WORKOUT race, DISMISS wins: confirm arriving afterwards is rejected; zero writes; final CANCELLED (60.3921ms)
+✔ WORKOUT race, truly concurrent confirm||dismiss x25: exactly ONE winner, and both responses agree with it (1290.2678ms)
+✔ WORKOUT: double confirm -> one business write; the second request is honestly rejected while the first is executing (40.4613ms)
+✔ WORKOUT: concurrent double dismiss -> one cancellation, coherent responses (45.9336ms)
+✔ WORKOUT: business FAILURE after the claim hands the action back to PENDING (retryable), records no fake COMPLETED, retry then succeeds once (71.8092ms)
+✔ NUTRITION race, CONFIRM wins: dismiss arriving mid-write must NOT report a successful cancellation; exactly one write; final COMPLETED (112.177ms)
+✔ NUTRITION race, DISMISS wins: confirm arriving afterwards is rejected; zero writes; final CANCELLED (83.9021ms)
+✔ NUTRITION race, truly concurrent confirm||dismiss x25: exactly ONE winner, and both responses agree with it (1583.9388ms)
+✔ NUTRITION: double confirm -> one business write; the second request is honestly rejected while the first is executing (75.6037ms)
+✔ NUTRITION: concurrent double dismiss -> one cancellation, coherent responses (272.4247ms)
+✔ NUTRITION: business FAILURE after the claim hands the action back to PENDING (retryable), records no fake COMPLETED, retry then succeeds once (107.1342ms)
+✔ crash recovery: a STALE executing claim is reclaimable (retry safe via downstream idempotency); a FRESH one is not, and cannot be dismissed (68.2319ms)
+✔ an execution-owned (EXECUTING) draft is not an editable pending draft: it receives no revision turns (42.5643ms)
+✔ ownership: another user can neither confirm nor dismiss (404), and the action is untouched (31.0612ms)
+✔ M2 parser: supported + unsupported in one clause list, in EVERY order, and 3-item lists (43.8473ms)
+✔ M2 parser: non-food clauses / soft hints are NOT mistaken for unsupported hard exclusions; repeated restatement dedupes (1.3547ms)
+✔ M1 three-turn golden: fish (turn 1) + beef (turn 2, while still asking meals) + 4 bữa (turn 3) -> queued with BOTH (370.1921ms)
+✔ M1 same-turn: '4 bữa, và tôi cũng không ăn thịt bò' with fish already known -> mealsPerDay 4 AND fish+beef (78.0265ms)
+✔ M1: restating a known exclusion mid-collection dedupes to ONE canonical fish (97.3277ms)
+✔ M1 x M2: an UNSUPPORTED exclusion in a middle turn is surfaced immediately (never dropped), nothing is queued, and the workflow is cancelled (83.4161ms)
+✔ M2 golden: compound unsupported (both orders, and a 3-item list) -> refused, NO job queued (104.4123ms)
+✔ M2 (revision): an unsupported clause hidden in a compound revision is refused and the current preview is kept (129.0097ms)
+✔ M3 workout: dismiss -> stale confirm is REJECTED, zero imports, status stays CANCELLED (104.7049ms)
+✔ M3 nutrition: dismiss a PREVIEW -> stale confirm is REJECTED, zero saves, status stays CANCELLED (99.8882ms)
+✔ M3: a FAILED-job (auto-CANCELLED) nutrition action cannot be confirmed either (69.7334ms)
+✔ M3: double dismiss is idempotent; dismiss AFTER completion never turns a saved action into CANCELLED (156.8641ms)
+✔ M3 regressions: COMPLETED confirm stays idempotent (one write); EXPIRED still cannot execute; CANCELLED stays out of routing (137.195ms)
+✔ M1: opening-message dietary restriction survives slot collection and reaches the queued generation (merge, not replace) (479.2934ms)
+✔ M2 chat: a restriction that cannot be ENFORCED is refused (nothing queued), never silently downgraded to a prompt hint (83.1134ms)
+✔ M2 chat: a plan that violates a declared exclusion is never previewed (defense in depth over the processor) (105.6428ms)
+✔ M3: generation receives the AUTHORITATIVE target (active goal / deterministic prescription), never the processor's generic default (49.2726ms)
+✔ M3: an ACTIVE NutritionGoal is the target; every revision re-resolves it fresh and re-sends it (139.3536ms)
+✔ M3: insufficient profile data -> ask, never fall back to a generic prescription (40.2731ms)
+✔ M3: confirm fails closed when the authoritative target changed after the preview; nothing is saved (147.0611ms)
+✔ Nutrition preview == saved content (hash-checked) and revised restriction reaches persistence; double confirm = one write (132.4505ms)
+{"level":30,"time":1789885444376,"pid":22616,"hostname":"DESKTOP-UIQSF8T","userId":"product-remediation-a680e939-a32e-4baa-a0ec-afe89434bb8d","candidateCount":0,"narratedCount":0,"narrationFallbackCount":0,"usedNarrationFallback":false,"historicalCohortsAvailable":0,"evidenceCount":4,"msg":"[fitness-agent] PT recommendation narration summary"}
+✔ M4-A: nutrition GENERATING -> PT search -> unrelated follow-up is NOT swallowed; deliberate return to the menu still works (181.4176ms)
+✔ M4: rapid 'xong chưa' while GENERATING only polls — never a duplicate job (72.4714ms)
+✔ M4-B: old Workout preview + newer Nutrition preview -> a meal edit updates the NUTRITION draft, the workout draft is untouched (117.2359ms)
+✔ M4-C: Nutrition preview + newer Workout preview -> a workout edit updates the WORKOUT draft only (97.3369ms)
+✔ M4-D: both drafts pending + an ambiguous bare 'đổi lại' -> ask which plan, change nothing (104.6432ms)
+{"level":30,"time":1789885444886,"pid":22616,"hostname":"DESKTOP-UIQSF8T","userId":"product-remediation-2ad6bf39-d873-4953-8c5d-bf0d0f14a7ca","candidateCount":0,"narratedCount":0,"narrationFallbackCount":0,"usedNarrationFallback":false,"historicalCohortsAvailable":0,"evidenceCount":4,"msg":"[fitness-agent] PT recommendation narration summary"}
+✔ M4: a roadmap-bundle draft no longer swallows a generic turn once another task (PT search) happened after it (105.2129ms)
+✔ L1: dismissing a draft cancels it server-side (truthful 'bỏ qua'), later turns no longer route to it, and other users/kinds are refused (64.3533ms)
+✔ M5: real extracted training.injuries produces the promised warning (initial preview AND after a revision); beginner honesty note is shown; no medical gate is invented (31.8044ms)
+✔ M6: 'Tôi không có máy cable.' removes/substitutes EVERY cable exercise with canonical ids, never re-introduces cable, draft only (59.7635ms)
+✔ M6: 'Tôi không muốn deadlift.' matches BOTH Deadlift and Romanian Deadlift (token match), unrelated exercises untouched (33.7632ms)
+✔ M6: 'tránh squat' / 'đổi squat' both work; a phrase naming nothing in the draft falls through (null), never a fake edit (46.4618ms)
+✔ M7: Mon/Wed/Fri preview labels == the selectedWeekdays sent to import == the first dates shown; real import payload carries them (42.0501ms)
+✔ M7: 'Tôi tập được thứ 3, 5, 7' relabels the same draft, updates selectedWeekdays, and the save uses exactly those weekdays (59.987ms)
+✔ M7: changing the weekday COUNT regenerates with the chosen weekdays (Chủ nhật = 0), never a count-only save (44.5233ms)
+✔ Workout: double confirm = one logical import (idempotent) with unchanged reviewed content (37.7943ms)
+{"level":40,"time":1789885443441,"pid":4792,"hostname":"DESKTOP-UIQSF8T","err":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"array\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selections\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"goal\",\n      \"durationWeeks\",\n      \"daysPerWeek\",\n      \"weeklySchedule\",\n      \"progressionNotes\",\n      \"recoveryNotes\",\n      \"nutritionSummary\"\n    ],\n    \"path\": [],\n    \"message\": \"Unrecognized key(s) in object: 'goal', 'durationWeeks', 'daysPerWeek', 'weeklySchedule', 'progressionNotes', 'recoveryNotes', 'nutritionSummary'\"\n  }\n]","attempt":1,"userId":"agent-workflow-program-2b815635-205a-4d0e-8a2f-362cea4a164e","phase":"program_recommendation_claim_selection","msg":"[program-recommendation-narrator] LLM output validation failed, retrying"}
+{"level":40,"time":1789885443442,"pid":4792,"hostname":"DESKTOP-UIQSF8T","err":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"array\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selections\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"goal\",\n      \"durationWeeks\",\n      \"daysPerWeek\",\n      \"weeklySchedule\",\n      \"progressionNotes\",\n      \"recoveryNotes\",\n      \"nutritionSummary\"\n    ],\n    \"path\": [],\n    \"message\": \"Unrecognized key(s) in object: 'goal', 'durationWeeks', 'daysPerWeek', 'weeklySchedule', 'progressionNotes', 'recoveryNotes', 'nutritionSummary'\"\n  }\n]","attempt":2,"userId":"agent-workflow-program-2b815635-205a-4d0e-8a2f-362cea4a164e","phase":"program_recommendation_claim_selection","msg":"[program-recommendation-narrator] LLM output validation failed, retrying"}
+{"level":50,"time":1789885443443,"pid":4792,"hostname":"DESKTOP-UIQSF8T","err":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"array\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selections\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"goal\",\n      \"durationWeeks\",\n      \"daysPerWeek\",\n      \"weeklySchedule\",\n      \"progressionNotes\",\n      \"recoveryNotes\",\n      \"nutritionSummary\"\n    ],\n    \"path\": [],\n    \"message\": \"Unrecognized key(s) in object: 'goal', 'durationWeeks', 'daysPerWeek', 'weeklySchedule', 'progressionNotes', 'recoveryNotes', 'nutritionSummary'\"\n  }\n]","userId":"agent-workflow-program-2b815635-205a-4d0e-8a2f-362cea4a164e","phase":"program_recommendation_claim_selection","msg":"[program-recommendation-narrator] phase failed after retries, using fallback for this phase"}
+{"level":30,"time":1789885443444,"pid":4792,"hostname":"DESKTOP-UIQSF8T","userId":"agent-workflow-program-2b815635-205a-4d0e-8a2f-362cea4a164e","candidateCount":1,"narratedCount":1,"narrationFallbackCount":0,"usedNarrationFallback":true,"evidenceCount":0,"msg":"[fitness-agent] program recommendation narration summary"}
+✔ FIND_TRAINING_PROGRAM E2E (real DB): collects goal+days over chat (never persisted to profile), then auto-resumes the REAL program search with exactly those values — never re-asks (484.9792ms)
+{"level":30,"time":1789885443357,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-unsafe-de84f182-7100-46f1-9722-14cd87d5dddb","workflowType":"CREATE_ROADMAP","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation Fix B (real DB): the exact Codex reproduction (180cm/80kg -> 30kg target) is rejected — zero write, workflow stays pending (443.7364ms)
+{"level":30,"time":1789885443587,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-unsafe-fresh-57bf86a3-901f-4c8d-88c6-3930e45796f0","sessionId":"d3b25629-ec83-424c-ad64-f81e6d9d52bd","stage":"pre_write","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation Fix B (real DB): safety re-runs immediately before write using fresh context, not just at propose time (159.797ms)
+✔ Remediation Fix B (real DB): ordinary weight-loss/gain targets are NOT over-rejected (163.1974ms)
+✔ Remediation Fix C (real DB): a rich initial message resolves multiple slots at once, asks only what's genuinely missing (80.252ms)
+✔ Remediation Fix C (real DB): ambiguous unlabeled numbers in the initial message are never guessed (47.1135ms)
+✔ Remediation Fix C (real DB): follow-up multi-slot — a reply to ONE expected slot also resolves other still-missing slots mentioned in the same message (71.4388ms)
+{"level":30,"time":1789885444076,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-correction-6d647505-1fba-4cb6-a034-532600669331","sessionId":"a84e77e3-ce3a-4596-bb9b-8329be92fab2","slotKey":"targetWeight","msg":"workflow_profile_correction_received"}
+✔ Remediation Fix D (real DB): 'Không, 70 kg.' after a 72kg proposal replaces the pending value, never treated as decline (163.8516ms)
+{"level":30,"time":1789885444213,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-bare-decline-9ceea4be-da9a-4ee5-b773-5f89f9748a13","sessionId":"8ed2a868-1146-4c2e-b974-0607e2a1c7ef","fields":["targetWeight"],"msg":"workflow_profile_fact_rejected"}
+✔ Remediation Fix D (real DB): a genuine bare decline (no replacement value) is still refused for PROFILE_FACT, not silently treated as a correction (69.2273ms)
+{"level":30,"time":1789885444323,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-concurrent-d9befc5f-aea7-447e-b4a5-59e3ab36950f","sessionId":"330ba95e-938a-402a-b915-4b3c4aa89bd7","workflowType":"CREATE_ROADMAP","msg":"workflow_duplicate_active_prevented"}
+{"level":30,"time":1789885444326,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-concurrent-d9befc5f-aea7-447e-b4a5-59e3ab36950f","sessionId":"330ba95e-938a-402a-b915-4b3c4aa89bd7","workflowType":"CREATE_ROADMAP","msg":"workflow_duplicate_active_prevented"}
+{"level":30,"time":1789885444328,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-concurrent-d9befc5f-aea7-447e-b4a5-59e3ab36950f","sessionId":"330ba95e-938a-402a-b915-4b3c4aa89bd7","workflowType":"CREATE_ROADMAP","msg":"workflow_duplicate_active_prevented"}
+✔ Remediation Fix E (real DB, real concurrency): 20 concurrent workflow-start requests for the same user/session produce exactly one active row (149.9841ms)
+✔ Remediation Fix E (real DB): workflowStateRepository.create() returns null (never throws) when it loses the DB-level race (28.5197ms)
+{"level":40,"time":1789885444458,"pid":20496,"hostname":"DESKTOP-UIQSF8T","err":"Cannot read properties of undefined (reading 'filter')","userId":"remediation-budget-404dd6a2-834b-4717-838a-bfc6095f8f60","msg":"[fitness-agent] recommendation narration failed; using static why[] fallback"}
+{"level":30,"time":1789885444458,"pid":20496,"hostname":"DESKTOP-UIQSF8T","userId":"remediation-budget-404dd6a2-834b-4717-838a-bfc6095f8f60","candidateCount":1,"narratedCount":0,"narrationFallbackCount":1,"usedNarrationFallback":true,"historicalCohortsAvailable":0,"evidenceCount":0,"msg":"[fitness-agent] PT recommendation narration summary"}
+✔ Remediation Fix F (real DB): a Vietnamese dot-thousands budget reply ('1.500.000') reaches the real PT search as 1,500,000 VND (76.7183ms)
+{"level":30,"time":1789885443369,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-golden-abfe8ebf-e54f-4868-8fcf-8cbbe1598f27","workflowType":"CREATE_ROADMAP","stage":"finalize_revalidation","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation #2 golden case (real DB): targetWeight=30 extracted before currentWeight is known must NEVER become confirmable once currentWeight arrives (389.5633ms)
+{"level":30,"time":1789885443486,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-recovery-2ac9ee9e-b20e-409c-9230-28e5eee50ce2","workflowType":"CREATE_ROADMAP","stage":"finalize_revalidation","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation #2 recovery (real DB): after the deferred-context rejection, a valid corrected target weight resumes the SAME workflow normally (181.3202ms)
+{"level":30,"time":1789885443666,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-reverse-e8909c90-b410-48fa-ab40-d6c166dbe827","workflowType":"CREATE_ROADMAP","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation #2 reverse-order regression (real DB): currentWeight known BEFORE targetWeight still rejects an unsafe target at candidate time (no dead-end path skipped) (106.505ms)
+✔ Remediation #2 batch multi-slot unsafe (real DB): an unsafe target arriving in the SAME message as everything else must still never become confirmable (66.7474ms)
+✔ Remediation #2 batch multi-slot safe regression (real DB): a safe target arriving in one rich message still produces exactly one batch confirmation (64.9982ms)
+{"level":30,"time":1789885443924,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-prewrite-e3a34967-d777-4b80-a1b7-ad91346f4eba","sessionId":"8fb63249-4c8b-469a-aad5-9d3e03b080e6","stage":"pre_write","msg":"workflow_target_weight_safety_rejected"}
+✔ Remediation #2 pre-write safety regression (real DB): a value safe at propose time, made unsafe by fresh context at confirm time, is still rejected at write (111.7696ms)
+{"level":30,"time":1789885444022,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-useonce-c7cd2eaf-183e-4df1-bdd6-b0b49a741c32","sessionId":"b8cca552-6a44-4308-9901-cc0fcd70242e","fields":["targetWeight"],"msg":"workflow_profile_fact_rejected"}
+✔ Remediation #2 use-once regression (real DB): still refused for every PROFILE_FACT field after the revalidation change (82.0728ms)
+{"level":30,"time":1789885444106,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-unsafe-correction-79e51ba3-e050-4811-abad-e664a7c912d6","sessionId":"fbf0d8a3-9329-4a23-a2b0-01c3c38fcc7a","fields":["targetWeight"],"msg":"workflow_profile_fact_rejected"}
+✔ Remediation #2 correction regression (real DB): a correction to an UNSAFE value is not accepted as a valid correction (85.0118ms)
+✔ Remediation #2 training-days parser variants (2.3763ms)
+✔ Remediation #2 duration parser variants (1.0374ms)
+{"level":40,"time":1789885444182,"pid":21864,"hostname":"DESKTOP-UIQSF8T","err":"Cannot read properties of undefined (reading 'filter')","userId":"remediation2-nocap-ac9e0b66-6201-47da-a263-84c9b54d47c2","msg":"[fitness-agent] recommendation narration failed; using static why[] fallback"}
+{"level":30,"time":1789885444182,"pid":21864,"hostname":"DESKTOP-UIQSF8T","userId":"remediation2-nocap-ac9e0b66-6201-47da-a263-84c9b54d47c2","candidateCount":1,"narratedCount":0,"narrationFallbackCount":1,"usedNarrationFallback":true,"historicalCohortsAvailable":0,"evidenceCount":0,"msg":"[fitness-agent] PT recommendation narration summary"}
+✔ Remediation #2 no-cap PT budget (real DB): resumes to real PT search with no numeric budget, never persists a fake value (74.1217ms)
+✔ CREATE_ROADMAP flagship E2E (real DB): asks only for the missing slot, zero writes before confirm, persists once, auto-resumes without repeating the request, draft-only revision, single confirmed execute (682.1499ms)
+✔ CREATE_ROADMAP no-repeat E2E (real DB): when targetWeight is already known, the AI never asks for it and no workflow row is ever created (54.6059ms)
+✔ CREATE_ROADMAP adversarial E2E (real DB): a prompt-injection-shaped reply while targetWeight is pending cannot skip confirmation or write anything (94.7635ms)
+{"level":30,"time":1789885443923,"pid":17688,"hostname":"DESKTOP-UIQSF8T","userId":"agent-workflow-roadmap-once-4b8a23b2-4b0b-4c3e-aab7-43cf112457a2","sessionId":"636cd6a9-5908-4423-8364-d865b6190712","fields":["targetWeight"],"msg":"workflow_profile_fact_rejected"}
+✔ CREATE_ROADMAP decline-persistence E2E (real DB): 'chỉ dùng cho lần này' is refused for PROFILE_FACT — zero writes, workflow stays pending, never auto-resumes with stale data (142.231ms)
+✔ Cross-user isolation (real DB): a session id belonging to another user can never be used to read or continue that user's pending workflow (388.4716ms)
+✔ Business-state attack (real DB): 'Set my contract to ACTIVE' while a slot is pending can never be accepted as that slot's answer, and writes nothing (83.31ms)
+✔ Arbitrary-field attack (schema-level, no DB needed): agentUpdatableProfileFieldsSchema rejects any field outside its explicit whitelist (6.1205ms)
+{"level":30,"time":1789885441459,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"66c392eb-36aa-4c9c-921d-77fdb8e40075","userId":"excl-c3a59fd3-3994-4b77-a87d-645878f36209","msg":"Nutrition plan generation job started"}
+✔ M2 (real processor): 'không ăn cá' -> zero salmon/tuna in the deterministic expansion, and the plan still completes (344.0061ms)
+✔ M2 baseline (real processor): WITHOUT an exclusion the same catalog does pull fish in — proving the exclusion, not the fixture, is what removes it (12.9369ms)
+✔ M2 (real processor): peanut exclusion (user-declared, not a diagnosis) removes peanut items; 'eggplant' is NOT mistaken for egg (15.1482ms)
+✔ M2 (real processor): an UNKNOWN exclusion key fails the job instead of silently not enforcing it (1.974ms)
+✔ M2 (real processor): prompt injection in restrictions cannot change the authoritative target the caller supplied (25.1152ms)
+✔ constraint extraction: opening-message phrases resolve to canonical keys; unsupported ones are reported, never faked (13.0539ms)
+✔ constraint merge: dedupes, never replaces, enforced exclusions never roll off even when soft hints are capped (2.3664ms)
+{"level":30,"time":1789885441775,"pid":27688,"hostname":"DESKTOP-UIQSF8T","planId":"66c392eb-36aa-4c9c-921d-77fdb8e40075","hasInBody":false,"nutritionDays":0,"msg":"Fetched user context for nutrition plan generation"}
+{"level":30,"time":1789885441791,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"66c392eb-36aa-4c9c-921d-77fdb8e40075","userId":"excl-c3a59fd3-3994-4b77-a87d-645878f36209","msg":"Nutrition plan generation completed successfully"}
+{"level":30,"time":1789885441797,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"39a03271-5d5d-4cf6-bebf-4340eb23479f","userId":"excl-87ce738f-2cb4-4dcf-8fcf-8e5c66989414","msg":"Nutrition plan generation job started"}
+{"level":30,"time":1789885441806,"pid":27688,"hostname":"DESKTOP-UIQSF8T","planId":"39a03271-5d5d-4cf6-bebf-4340eb23479f","hasInBody":false,"nutritionDays":0,"msg":"Fetched user context for nutrition plan generation"}
+{"level":30,"time":1789885441808,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"39a03271-5d5d-4cf6-bebf-4340eb23479f","userId":"excl-87ce738f-2cb4-4dcf-8fcf-8e5c66989414","msg":"Nutrition plan generation completed successfully"}
+{"level":30,"time":1789885441810,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"82b962b9-670a-4503-87d0-7f65a40e2524","userId":"excl-2a5c12db-6f6a-4d1e-8e44-59dd6d7a1ec0","msg":"Nutrition plan generation job started"}
+{"level":30,"time":1789885441818,"pid":27688,"hostname":"DESKTOP-UIQSF8T","planId":"82b962b9-670a-4503-87d0-7f65a40e2524","hasInBody":false,"nutritionDays":0,"msg":"Fetched user context for nutrition plan generation"}
+{"level":30,"time":1789885441823,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"82b962b9-670a-4503-87d0-7f65a40e2524","userId":"excl-2a5c12db-6f6a-4d1e-8e44-59dd6d7a1ec0","msg":"Nutrition plan generation completed successfully"}
+{"level":30,"time":1789885441825,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"173dff4e-51eb-4a15-9a65-593bcb0c7533","userId":"excl-3a8b50b6-81f5-4626-8371-07fe55113f18","msg":"Nutrition plan generation job started"}
+{"level":30,"time":1789885441828,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"7553e5be-174c-4989-a11c-ec4cd3a232a0","userId":"excl-eff5b34e-50e2-4cc9-9bb2-5aae5f779139","msg":"Nutrition plan generation job started"}
+{"level":30,"time":1789885441848,"pid":27688,"hostname":"DESKTOP-UIQSF8T","planId":"7553e5be-174c-4989-a11c-ec4cd3a232a0","hasInBody":false,"nutritionDays":0,"msg":"Fetched user context for nutrition plan generation"}
+{"level":30,"time":1789885441851,"pid":27688,"hostname":"DESKTOP-UIQSF8T","jobId":"fixture","planId":"7553e5be-174c-4989-a11c-ec4cd3a232a0","userId":"excl-eff5b34e-50e2-4cc9-9bb2-5aae5f779139","msg":"Nutrition plan generation completed successfully"}
+✔ parseTrainingDays: T-prefixed forms (pre-existing, must not regress) (7.7959ms)
+✔ parseTrainingDays: single 'thu' cue, multiple digits (pre-existing, must not regress) (1.949ms)
+✔ parseTrainingDays: single 'thu' cue, hyphen-separated digits (Codex #2 P0) (1.014ms)
+✔ parseTrainingDays: 'thu' repeated before every day, hyphen-separated (Codex #2 P0 — the exact failing case) (0.742ms)
+✔ parseTrainingDays: 'thu' repeated before every day, comma-separated (0.8469ms)
+✔ parseTrainingDays: spelled-out weekday names, each with its own 'thu' cue (0.7357ms)
+✔ parseTrainingDays: Sunday ('chủ nhật'/'CN') still maps to hardcoded 7, combined with other days (0.7302ms)
+✔ parseTrainingDays: never extracts an unrelated number from the same sentence (0.7103ms)
+✔ parseTrainingDays: a bare count with no specific days falls back to a Monday-start spread (0.8977ms)
+✔ parseTrainingDays: unrecognized input asks a clarifying question rather than guessing (0.803ms)
+✔ parseMinutes: plain minutes (pre-existing, must not regress) (1.464ms)
+✔ parseMinutes: whole-hour phrasing (pre-existing, must not regress) (0.5847ms)
+✔ parseMinutes: decimal-hour phrasing, dot separator (Codex #2 P0 — the exact failing case) (0.5757ms)
+✔ parseMinutes: decimal-hour phrasing, comma separator (never confused with money's thousands-grouping comma) (0.5525ms)
+✔ parseMinutes: sub-hour decimal (0.6761ms)
+✔ parseMinutes: malformed multi-decimal input is rejected, never sliced into a plausible partial number (0.6831ms)
+✔ parseMinutes: a unary minus is never silently dropped (0.5627ms)
+✔ parseMinutes: non-numeric input is a clarifying failure, not a guess (0.3954ms)
+✔ parseMinutes: below the domain's minimum session length is a clarifying out_of_range failure, not clamped (0.5321ms)
+✔ parseMinutes: above the domain's maximum session length is a clarifying out_of_range failure, not clamped (0.6349ms)
+ℹ tests 118
+ℹ suites 0
+ℹ pass 118
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10409.5109
+

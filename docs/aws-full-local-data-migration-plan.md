@@ -216,9 +216,14 @@ Roadmap/cycle tables are present and non-trivial: `fitness_roadmaps` (21),
 **Circular FK found (real, affects import strategy, §17):** `pg_dump`
 itself warned during export: `muscles` participates in a circular
 foreign-key relationship (self-referential or mutual-reference muscle
-metadata). A `--data-only` restore needs `--disable-triggers` (already
-built into `scripts/data-migration-import-aws.mjs`) to load it without
-manually dropping/recreating constraints.
+metadata). A `--data-only` restore needs trigger enforcement suppressed to
+load it without manually dropping/recreating constraints — done via
+`SET session_replication_role = 'replica'` for the restore session (see
+§16's updated Aurora-permission analysis for why this, not
+`pg_restore --disable-triggers`, is what's actually built into
+`scripts/data-migration-import-aws.mjs`), and proven end-to-end against
+this exact table in
+`docs/aws-full-local-data-migration-final-reconciliation.md` §12/§15.
 
 IDs, `userId`, version fields, source IDs, cycle/roadmap relationships,
 timestamps and status fields are all preserved as-is by the chosen
@@ -556,17 +561,24 @@ embedded in any object.
 
 ## 16. Postgres import tooling
 
-`pg_restore` (matching the `pg_dump 15.18` used to create the dumps —
-confirmed via `pg_dump --version` against the actual export tool used).
-Flags for the real restore (already encoded in
-`scripts/data-migration-import-aws.mjs`, not yet run):
-`--data-only --disable-triggers --no-owner --no-privileges
---single-transaction --dbname <target> <dump-file>`.
-`--disable-triggers` specifically addresses fitness's confirmed circular
-FK on `muscles` (§6); `--single-transaction` means any failure rolls the
-entire per-service restore back to zero rows rather than leaving a
-half-populated database, which matters most for the ~1.5M-row fitness
-restore.
+`pg_restore`/`psql` (matching the `pg_dump 15.18` used to create the
+dumps — confirmed via `pg_dump --version` against the actual export tool
+used; the importer image pins the same version, see the final-
+reconciliation report §21). Actual mechanism (`scripts/data-migration-
+import-aws.mjs`, proven end-to-end this pass — see final-reconciliation
+report §12): `pg_restore --data-only --no-owner --no-privileges` extracts
+a plain-SQL restore script (never restores directly into the target
+archive-to-database), which is then run through `psql
+--single-transaction` wrapped in `SET session_replication_role =
+'replica'` / `RESET session_replication_role` — this replaces the
+`--disable-triggers` flag this doc originally proposed (see §16's Aurora-
+permission analysis for why) while still correctly loading fitness's
+confirmed circular FK on `muscles`. `--single-transaction` means any
+failure rolls the entire per-service restore — main data, seeded-table
+reconciliation, everything — back to zero net change rather than leaving
+a half-populated database, proven directly during this pass (an induced
+failure mid-restore left the fitness temp database at exactly its pre-
+restore migration-baseline state, confirmed by row count).
 
 ## 17. Filesystem / S3 data
 
@@ -817,73 +829,80 @@ touched local data.
    restore session — requires only `rds_superuser` membership, which
    Aurora's master role does have — proven to still correctly load the
    fitness DB's circular-FK `muscles`/`exercise_muscles` relationship.
-7. **NEW — found during this reconciliation pass while checking every
-   service's migration history for the same class of problem, NOT yet
-   resolved, out of this pass's assigned scope (User+AI only).** Two more
-   services have the same seed-vs-restore collision risk as §26.5:
-   - **gym-service**: `20260908030000_phase3_4_5_partner_lifecycle`
-     unconditionally inserts one `platform_commission_rates` row
-     (`rate = 0.05`, random `id`, **no `ON CONFLICT` guard at all**) on
-     every fresh migration run. Unlike `muscles`/`knowledge_sources`,
-     this table has no stable business-key column to upsert on — a plain
-     data-only restore would not even fail, it would silently leave
-     **two rows** where local has one. This pass's importer's own
-     preflight guard (§15 policy: abort if the target has ANY existing
-     rows) would at least catch this before any duplication happens (gym
-     import would abort with "already has 1 application row"), but the
-     real fix — most likely deleting the migration's placeholder row by
-     identity before restoring, since there's no natural upsert key —
-     needs its own reconciliation pass.
-   - **payment-service**: `20260811000001_two_bucket_wallet_and_escrow`
-     inserts one `wallets` row (`owner_type = 'PLATFORM', owner_id =
-     'ESCROW'`, balance computed from other wallets — `0` on a fresh,
-     empty target) protected by the real
-     `wallets_owner_type_owner_id_key` unique constraint. A plain
-     data-only restore of the local ESCROW wallet row would fail outright
-     (unique violation), the same failure mode as `muscles`. The
-     `MIGRATION_SEEDED_TABLES` mechanism built this pass could extend to
-     cover it (`conflictColumn` doesn't yet support a composite key like
-     `(owner_type, owner_id)` — a small, real extension needed, not done
-     this pass).
-   Two other gym-service migrations
-   (`20260907000000_scope_membership_plans_to_brand`,
-   `20260908000000_gym_partner_identity`) also contain `INSERT`
-   statements, but both are backfills driven by a loop over
-   already-existing rows — on a fresh, empty target they insert nothing,
-   confirmed by reading the migration SQL directly (no separate test
-   needed, same reasoning already proven safe for fitness-service's
-   `workout_program_exercise_set_prescriptions` backfill in §12). Neither
-   is a hazard.
+7. **RESOLVED (2026-09-18).** gym-service (`platform_commission_rates`)
+   and payment-service (`wallets` PLATFORM/ESCROW) both had the same
+   seed-vs-restore collision class as §26.5 — full audit, fix, and a real
+   end-to-end restore test (not simulated) for both are in
+   `docs/aws-full-local-data-migration-final-reconciliation.md`. Summary:
+   `platform_commission_rates` has no stable key at all (not even a
+   random-but-consistent one) — handled with a new "clear-baseline"
+   strategy (verify the sole existing row matches the migration's exact
+   known placeholder shape, delete it, let the dump's own row load
+   normally). `wallets` uses its real composite
+   `UNIQUE(owner_type, owner_id)` constraint as the upsert key — the
+   importer's conflict-column support is now a list, not a single column,
+   so this needed no bespoke logic. Both proven end-to-end on isolated
+   temp databases: final `platform_commission_rates.id` and
+   `wallets.id` (for the ESCROW row) match local exactly; the 406
+   `wallet_ledger_entries` rows that reference the wallet all resolve with
+   zero orphans.
+8. **NEW — found and resolved this pass.** `_prisma_migrations` was
+   present in every one of the 7 dumps (plain `pg_dump --data-only` never
+   filtered it) — restoring it would have overwritten each AWS target's
+   own canonical migration history with local's noisier one (rolled-back
+   attempts, the two now-adopted orphaned identities). The importer now
+   unconditionally excludes this table from every restore, for every
+   service — application data is exact local state, migration history is
+   whatever the target's own `prisma migrate deploy` produced.
+9. **NEW — found and resolved this pass.** Every app service's
+   `DATABASE_URL` carries a `?schema=public` query parameter Prisma
+   understands but real `psql`/`pg_restore` do not — the importer would
+   have failed immediately on ANY Secrets-Manager-sourced URL built the
+   same way the local `.env` files are. The importer now strips the query
+   string from `DATABASE_URL` before using it.
+10. **NEW — found this pass, operational note, not a data blocker.**
+    chat-service's Prisma schema reads `CHAT_DATABASE_URL`, not
+    `DATABASE_URL` like the other 6 services (confirmed by actually
+    running `prisma migrate deploy` against it — it fails immediately
+    without that exact variable name). Whoever runs schema migrations
+    against AWS Aurora for chat-service must set `CHAT_DATABASE_URL`, not
+    `DATABASE_URL`. The importer script itself is unaffected (it only
+    ever reads `DATABASE_URL`, regardless of service, since it never goes
+    through any service's own Prisma schema).
+11. **NEW — found this pass, operational note.** `gymcoach_ai` has live
+    write traffic during normal local development (confirmed: its total
+    row count changed twice during this pass, purely from ordinary
+    background activity, not from anything this pass did) — any dump of
+    it is a best-effort snapshot, not a frozen state, unlike the other 6
+    databases which were observed to be quiescent throughout. Recommend a
+    brief write-freeze (or a final re-export immediately before) right
+    before the real AWS cutover for ai-service specifically.
 
 ## 27. Exact next manual AWS step
 
-The two ORIGINALLY assigned blockers (user-service, ai-service) are fully
-resolved (§26.1, §26.5-6), proven end-to-end on fresh local test
-databases. Auditing every service's migration history for this pass's own
-Aurora-permission test (§26.6) surfaced two MORE, previously-unknown
-instances of the same problem class in gym-service and payment-service
-(§26.7) — genuinely out of this pass's assigned scope, reported rather
-than fixed. Before any AWS action: run a follow-up reconciliation pass
-scoped to gym-service and payment-service (mirroring this one), covering
-§26.7's two findings. Once that's done, from inside the AWS Console (per
-the stated manual-operation preference): create or confirm the private S3
-prefix for this migration, upload the 7 files in
-`artifacts/data-migration/` (plus `manifest.json`) to it, and provision
-the one-time Fargate task described in §13 scoped to read that prefix and
-write to Aurora via Secrets Manager — at which point
-`scripts/data-migration-import-aws.mjs` (rewritten, reviewed, and
-re-verified against a fresh local schema this pass) can execute for real,
-one service at a time, in the order given in §14. Before that: confirm
-AWS Aurora's `fitness_assistant_user`/`fitness_assistant_ai`/
-`fitness_assistant_fitness` schemas are actually migrated to include the
-new forward migrations from §26.1/§26.5 — this plan cannot verify AWS's
-own migration state (no AWS connection was made).
+All known blockers across all 7 services are now resolved and proven —
+see `docs/aws-full-local-data-migration-final-reconciliation.md` §12 for
+the full 7-service dress rehearsal (every service imported into an
+isolated fresh-migrated temp database via the real importer image, not a
+simulation). Remaining before any real AWS action: build and push the
+importer image (§21 of that report) to ECR, confirm AWS Aurora's 7
+logical databases are migrated to current repo history (including the
+three new forward/adopted migrations from §26.1/§26.5/§26.7 — this plan
+cannot verify AWS's own migration state, no AWS connection was made), set
+up the 7 Secrets Manager entries (§22 of that report), create or confirm
+the private S3 prefix, upload the 7 dump files plus both manifests, and
+provision the one-time Fargate task. Then
+`scripts/data-migration-import-aws.mjs` runs for real, one service at a
+time, in the order given in §14.
 
 ## 28. Final verdict
 
-**NOT READY — DATA MIGRATION BLOCKERS REMAIN**
+**FULL LOCAL DATA MIGRATION READY FOR AWS**
 
-(user-service and ai-service — this pass's actual assignment — are fully
-resolved and individually ready; the remaining blocker is the newly
-found, out-of-scope gym-service/payment-service seed-collision risk in
-§26.7, which blocks a full-confidence "all 7 services" verdict.)
+(All 7 services individually resolved, proven end-to-end on isolated
+fresh-schema temp databases via the actual importer mechanism. See the
+final-reconciliation report's own verdict section for the complete
+condition-by-condition check — nothing there required AWS access to
+verify locally, and no unresolved blocker remains that isn't itself a
+first real AWS Console/IAM/Secrets Manager provisioning step outside this
+audit's own reach.)

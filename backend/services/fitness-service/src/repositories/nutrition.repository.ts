@@ -200,4 +200,60 @@ export const nutritionRepository = {
     `;
     return rows[0];
   },
+
+  /**
+   * Atomic get-or-create of a user's FIRST active goal (onboarding bootstrap).
+   * A per-user transaction-scoped advisory lock serialises concurrent creators
+   * FOR THE SAME USER ONLY (different users never block each other); the
+   * winner inserts, every other caller re-reads inside the lock, sees the
+   * winner's ACTIVE row and gets `created: false`. The partial unique index
+   * `nutrition_goals_user_id_active_unique` stays the last line of defence —
+   * this method just stops expected races from surfacing as 23505/P2010.
+   * Never supersedes an existing ACTIVE goal (bootstrap must not churn one).
+   */
+  createFirstActiveGoalIfAbsent: async (
+    userId: string,
+    data: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number | null },
+    options: { reason?: string; trainingCycleId?: string | null },
+  ): Promise<{ goal: NutritionGoalRow; created: boolean }> => {
+    const newId = randomUUID();
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"nutrition-bootstrap:" + userId}, 0))`;
+      const existing = await tx.$queryRaw<NutritionGoalRow[]>`
+        SELECT
+          id, user_id AS "userId", calories, protein, carbs, fat,
+          water_ml AS "waterMl", status, valid_from AS "validFrom",
+          triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode",
+          training_cycle_id AS "trainingCycleId",
+          created_by_user_id AS "createdByUserId",
+          previous_goal_id AS "previousGoalId",
+          source_assessment_id AS "sourceAssessmentId"
+        FROM nutrition_goals
+        WHERE user_id = ${userId} AND status = 'ACTIVE'
+        LIMIT 1
+      `;
+      if (existing[0]) return { goal: existing[0], created: false };
+      const rows = await tx.$queryRaw<NutritionGoalRow[]>`
+        INSERT INTO nutrition_goals (
+          id, user_id, calories, protein, carbs, fat, water_ml,
+          status, valid_from, reason, triggered_by, goal_mode, training_cycle_id,
+          created_at, updated_at
+        )
+        VALUES (
+          ${newId}, ${userId}, ${data.calories}, ${data.protein}, ${data.carbs}, ${data.fat},
+          ${data.waterMl ?? null}, 'ACTIVE', NOW(), ${options.reason ?? null},
+          'ONBOARDING', 'RECOMMENDED', ${options.trainingCycleId ?? null}, NOW(), NOW()
+        )
+        RETURNING
+          id, user_id AS "userId", calories, protein, carbs, fat,
+          water_ml AS "waterMl", status, valid_from AS "validFrom",
+          triggered_by AS "triggeredBy", reason, goal_mode AS "goalMode",
+          training_cycle_id AS "trainingCycleId",
+          created_by_user_id AS "createdByUserId",
+          previous_goal_id AS "previousGoalId",
+          source_assessment_id AS "sourceAssessmentId"
+      `;
+      return { goal: rows[0], created: true };
+    });
+  },
 };

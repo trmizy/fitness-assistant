@@ -248,6 +248,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     dietPreference?: string;
     budgetLevel?: string;
     restrictions?: string[];
+    excludedFoodKeys?: string[];
     notes?: string;
     // Extended
     weightKg?: number;
@@ -291,6 +292,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       dietPreference: params.dietPreference,
       budgetLevel: params.budgetLevel,
       restrictions: params.restrictions ?? [],
+      excludedFoodKeys: params.excludedFoodKeys ?? [],
       // Extended fields passed through to the prompt
       weightKg: params.weightKg,
       heightCm: params.heightCm,

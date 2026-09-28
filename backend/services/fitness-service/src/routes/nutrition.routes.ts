@@ -105,6 +105,7 @@ router.get("/goals", authMiddleware, nutritionController.getGoal as any);
 // Must be registered before /goals/:something-else would ever exist, but
 // since there's no such param route, ordering relative to GET/PUT /goals
 // above doesn't matter here — kept adjacent for readability.
+router.get("/target-preview", authMiddleware, nutritionController.getTargetPreview as any);
 router.get("/goals/history", authMiddleware, nutritionController.getGoalHistory as any);
 router.put("/goals", authMiddleware, nutritionController.upsertGoal as any);
 // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,

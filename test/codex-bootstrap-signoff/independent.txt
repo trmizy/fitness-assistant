@@ -1,0 +1,53 @@
+{"level":40,"time":1789885433475,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433479,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433481,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433485,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433500,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433501,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433512,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433513,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433514,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433515,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433520,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433521,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433522,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433522,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433525,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433526,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433527,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433528,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433532,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433535,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433562,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433570,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433574,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433575,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433576,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433577,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433584,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433585,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433586,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"1ae9155f-df24-4fa8-8d81-f1c0e23c2c94","msg":"[training-cycle] inbody history fetch failed"}
+{"case":"http-first","statuses":[200,200,200,200,200,200,200,200,200,200],"created":1,"existing":9,"goalId":"c44f75f8-48b0-4a9b-b007-b2e105e8254b","cycleId":"ed919dfd-f3e1-4625-92e5-f4b90e3a37a6","audits":1,"queued":1,"notified":1}
+{"case":"http-existing","responses":10,"noChurn":true,"noNewSideEffects":true}
+{"level":40,"time":1789885433718,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433719,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433795,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433796,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433797,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433798,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433799,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433802,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433803,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433803,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433804,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"level":40,"time":1789885433805,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"d19b8473-748e-4938-a80d-8d3a70b8c1fb","msg":"[training-cycle] inbody history fetch failed"}
+{"case":"partial","callers":10,"sameExistingCycle":true,"audits":1,"queued":1,"notified":1}
+{"level":40,"time":1789885433880,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"caa05f97-01fc-473e-95a2-706a5540b761","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433881,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"caa05f97-01fc-473e-95a2-706a5540b761","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"case":"rollback-and-retry","error":{"prisma":"P2010","postgres":"23502"},"noPartialGoal":true,"retry":"created"}
+{"level":40,"time":1789885433916,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"db209af4-a552-4321-8e87-67f5ebe6f993","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433916,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"db209af4-a552-4321-8e87-67f5ebe6f993","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"level":40,"time":1789885433917,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"eea9615f-f9b7-4c7e-a892-13a935bf46b8","msg":"[training-cycle] user profile fetch failed"}
+{"level":40,"time":1789885433917,"pid":27032,"hostname":"DESKTOP-UIQSF8T","err":"Error","userId":"eea9615f-f9b7-4c7e-a892-13a935bf46b8","msg":"[training-cycle] latest-on-or-before inbody fetch failed"}
+{"case":"cross-user-barrier","lockAcquired":true,"bCompletedWhileAHeld":true}
+

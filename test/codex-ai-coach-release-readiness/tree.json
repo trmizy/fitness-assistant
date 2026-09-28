@@ -1,0 +1,510 @@
+{
+  "head": "96c1040f8420cc121fb10b8900b7da4c509133b0",
+  "tree": "6c40f6409329c485ad549ea9a09b7f104452678d",
+  "contentSha256": "b662aab39978b4f8af67e29d2d0dadc2a48090b4e7c05244342052e2462e5f97",
+  "algorithm": "SHA256(sorted path + NUL + raw bytes + NUL)",
+  "productFileCount": 35,
+  "product": [
+    "backend/services/ai-service/src/__tests__/agent-workflow-create-nutrition-plan.test.ts",
+    "backend/services/ai-service/src/__tests__/agent-workflow-create-workout-plan.test.ts",
+    "backend/services/ai-service/src/__tests__/agent-workflow-cross-domain.test.ts",
+    "backend/services/ai-service/src/__tests__/agent-workflow-finalization-race.test.ts",
+    "backend/services/ai-service/src/__tests__/agent-workflow-product-final-remediation.test.ts",
+    "backend/services/ai-service/src/__tests__/agent-workflow-product-remediation-1.test.ts",
+    "backend/services/ai-service/src/__tests__/nutrition-food-exclusion.test.ts",
+    "backend/services/ai-service/src/agent-workflow/slot-values.ts",
+    "backend/services/ai-service/src/agent-workflow/workflows/create-nutrition-plan.workflow.ts",
+    "backend/services/ai-service/src/routes/fitness-agent.routes.ts",
+    "backend/services/ai-service/src/schemas/nutrition-plan.schemas.ts",
+    "backend/services/ai-service/src/services/conversation.service.ts",
+    "backend/services/ai-service/src/services/fitness-agent-tools.ts",
+    "backend/services/ai-service/src/services/fitness-agent.service.ts",
+    "backend/services/ai-service/src/services/nutrition-food-constraints.ts",
+    "backend/services/ai-service/src/services/nutrition.processor.ts",
+    "backend/services/fitness-service/src/__tests__/nutrition-target-resolution.integration.test.ts",
+    "backend/services/fitness-service/src/controllers/nutrition.controller.ts",
+    "backend/services/fitness-service/src/routes/nutrition.routes.ts",
+    "backend/services/fitness-service/src/services/nutrition-onboarding-bootstrap.service.ts",
+    "docs/ai-agent-system-meeting-summary.md",
+    "docs/ai-agent-system-target-architecture.md",
+    "docs/ai-coach-finalization-race-closure.md",
+    "docs/ai-coach-product-capability-completion.md",
+    "docs/ai-coach-product-final-remediation.md",
+    "docs/ai-coach-product-remediation-1.md",
+    "docs/standalone-nutrition-workflow-audit.md",
+    "docs/standalone-nutrition-workflow-design.md",
+    "docs/standalone-nutrition-workflow-evaluation.md",
+    "docs/standalone-workout-workflow-audit.md",
+    "docs/standalone-workout-workflow-design.md",
+    "docs/standalone-workout-workflow-evaluation.md",
+    "frontend/web/src/app/components/agent/FitnessAgentBlocks.tsx",
+    "frontend/web/src/app/services/fitnessAgent.ts",
+    "test/ai-coach-product-remediation-1/domain-verify.ts"
+  ],
+  "classification": [
+    {
+      "file": ".github/workflows/docker-test.yml",
+      "class": "CI"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-create-nutrition-plan.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-create-workout-plan.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-cross-domain.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-finalization-race.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-product-final-remediation.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-workflow-product-remediation-1.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/nutrition-food-exclusion.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/ai-service/src/agent-workflow/slot-values.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/agent-workflow/workflows/create-nutrition-plan.workflow.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/evaluation/conversational-workflow-v2/results/conversational-workflow-evaluation-2.json",
+      "class": "generated"
+    },
+    {
+      "file": "backend/services/ai-service/src/routes/fitness-agent.routes.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/schemas/nutrition-plan.schemas.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/services/conversation.service.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/services/fitness-agent-tools.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/services/fitness-agent.service.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/services/nutrition-food-constraints.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/ai-service/src/services/nutrition.processor.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/fitness-service/src/__tests__/nutrition-target-resolution.integration.test.ts",
+      "class": "tests"
+    },
+    {
+      "file": "backend/services/fitness-service/src/controllers/nutrition.controller.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/fitness-service/src/routes/nutrition.routes.ts",
+      "class": "production"
+    },
+    {
+      "file": "backend/services/fitness-service/src/services/nutrition-onboarding-bootstrap.service.ts",
+      "class": "production"
+    },
+    {
+      "file": "docs/ai-agent-system-meeting-summary.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-agent-system-target-architecture.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-coach-finalization-race-closure.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-coach-product-capability-completion.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-coach-product-final-remediation.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-coach-product-remediation-1.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/ai-coach-production-demo-readiness.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/aws-full-local-data-migration-final-reconciliation.md",
+      "class": "unrelated"
+    },
+    {
+      "file": "docs/aws-full-local-data-migration-plan.md",
+      "class": "unrelated"
+    },
+    {
+      "file": "docs/codex-ai-coach-core-final-signoff.md",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "docs/codex-ai-coach-core-production-signoff.md",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "docs/codex-ai-coach-product-e2e-evaluation-1.md",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "docs/codex-ai-coach-product-final-recheck.md",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "docs/standalone-nutrition-workflow-audit.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/standalone-nutrition-workflow-design.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/standalone-nutrition-workflow-evaluation.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/standalone-workout-workflow-audit.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/standalone-workout-workflow-design.md",
+      "class": "docs"
+    },
+    {
+      "file": "docs/standalone-workout-workflow-evaluation.md",
+      "class": "docs"
+    },
+    {
+      "file": "frontend/web/src/app/components/agent/FitnessAgentBlocks.tsx",
+      "class": "production"
+    },
+    {
+      "file": "frontend/web/src/app/services/fitnessAgent.ts",
+      "class": "production"
+    },
+    {
+      "file": "infra/data-migration-importer/Dockerfile",
+      "class": "unrelated"
+    },
+    {
+      "file": "scripts/ci-check-foundation-evaluator.mjs",
+      "class": "CI"
+    },
+    {
+      "file": "scripts/data-migration-import-aws.mjs",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/ai-coach-product-remediation-1/domain-verify.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/ai-coach-production-readiness/bullmq-recovery.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/ai-coach-production-readiness/live-nutrition.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/ai-coach-production-readiness/multiproc-child.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/ai-coach-production-readiness/multiproc.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/ai-coach-production-readiness/processor-targets.ts",
+      "class": "tests"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/foundation.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/race-results.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/race.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/regressions.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/targets.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/weekdays.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-final-signoff/workflows.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/foundation.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/offline-regressions.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/reclaim.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/reclaim.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/regressions.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/targets.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-core-production-signoff/workflows.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/README.md",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/browser-probe.js",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/browser-results.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/domain-probes.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/domain-results.jsonl",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/product-probes.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-e2e-1/product-results.jsonl",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/fitness-target.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/focused-regressions.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/foundation.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/nutrition-domain.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/nutrition-domain.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/probe-results.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/probes.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/regressions.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/weekdays.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-product-final-recheck/workflow-processor.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/bootstrap-race.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/bootstrap-race.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/dead-provider.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/equipment-debug.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/equipment.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/fitness.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/focused.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/foundation.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/live-nutrition-retry.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/live-nutrition.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/live-probe.ts",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/multiproc.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/processor-lean.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/processor.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/recovery.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/tree.json",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/unsupported-complete.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/unsupported.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/user.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/verify.mjs",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/codex-ai-coach-release-readiness/workflow.txt",
+      "class": "Codex evidence"
+    },
+    {
+      "file": "test/inbody_duy/1789443307526_2152619350518113594_1993589842126296655_af140dbe4a3fea3a4fc950216477a500.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443307988_2152619350518113594_1993589842126296655_2ce159087a80c1e6f5a85550ef42823d.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443308517_2152619350518113594_1993589842126296655_be18fc995b6d6a3f3f5f29efdf6a10ac.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443309172_2152619350518113594_1993589842126296655_3d0d17fb1150752d65ef1f10a2522e7a.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443309784_2152619350518113594_1993589842126296655_7f7f19df8b2694bd32f1ba01d42a9040.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443310308_2152619350518113594_1993589842126296655_2b160d70454667351798ea93926b0828.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443310803_2152619350518113594_1993589842126296655_d6794f721342e846e49e357c1ce69e80.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443311328_2152619350518113594_1993589842126296655_ddbe803870c929bb1af43705fa0beb34.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443311858_2152619350518113594_1993589842126296655_87e34189b348e9f9fddc6291508d7775.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443312387_2152619350518113594_1993589842126296655_2445a5052d98a83f10c21504ee858d6d.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443312912_2152619350518113594_1993589842126296655_2759612c6fda55b26080aef421179f3e.jpg",
+      "class": "unrelated"
+    },
+    {
+      "file": "test/inbody_duy/1789443313442_2152619350518113594_1993589842126296655_09b7a6feb6fc434a9e9d41601f8ea8bd.jpg",
+      "class": "unrelated"
+    }
+  ]
+}

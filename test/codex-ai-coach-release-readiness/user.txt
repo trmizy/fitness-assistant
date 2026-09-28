@@ -1,0 +1,15 @@
+✔ agenticFitnessService: confirming the same draft twice creates exactly one Contract, never two (418.7721ms)
+✔ agenticFitnessService: two DIFFERENT actionIds for the same PT/package create two real, independent drafts (not falsely deduped) (176.3319ms)
+✔ agenticFitnessService: PT stops accepting clients between draft and confirm -> confirm is rejected, no Contract row (170.2239ms)
+✔ agenticFitnessService: package is archived between draft and confirm -> confirm is rejected, no Contract row (154.6573ms)
+✔ deriveForCompletedContract: deriving the same completed contract twice SEQUENTIALLY creates exactly one ClientJourney (292.8942ms)
+✔ deriveForCompletedContract: deriving the same completed contract CONCURRENTLY (10 parallel calls) still results in exactly one real ClientJourney row (159.4927ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11350.5177
+

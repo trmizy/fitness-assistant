@@ -6,6 +6,7 @@ import {
   createNutritionSchema,
   upsertNutritionGoalSchema,
 } from "../models/fitness.models";
+import { resolveNutritionTargetForUser } from "../services/nutrition-onboarding-bootstrap.service";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
 const foodSubstituteSchema = z.object({
@@ -96,6 +97,18 @@ export const nutritionController = {
     } catch (error) {
       logger.error("Error fetching nutrition goal:", error);
       res.status(500).json({ error: "Failed to fetch nutrition goal" });
+    }
+  },
+
+  // Read-only authoritative target for AI-Coach standalone nutrition generation
+  // (ai-service fitness-agent.service.ts::proposeNutritionPlan) — see
+  // resolveNutritionTargetForUser. Never writes.
+  async getTargetPreview(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      res.json(await resolveNutritionTargetForUser(req.user!.id));
+    } catch (error) {
+      logger.error("Error resolving nutrition target preview:", error);
+      res.status(500).json({ error: "Failed to resolve nutrition target" });
     }
   },
 

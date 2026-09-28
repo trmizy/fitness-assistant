@@ -62,6 +62,12 @@ router.post("/actions/:id/confirm", handle(async req => {
   const action = await prisma.fitnessAgentAction.findFirstOrThrow({ where: { id, userId: req.context.userId } });
   return persist(req, action.sessionId, block, "Xác nhận thao tác");
 }));
+router.post("/actions/:id/dismiss", handle(async req => {
+  const id = uuid.parse(req.params.id);
+  const block = await fitnessAgent.dismissDraft(req.context, id);
+  const action = await prisma.fitnessAgentAction.findFirstOrThrow({ where: { id, userId: req.context.userId } });
+  return persist(req, action.sessionId, block, "Bỏ qua bản nháp");
+}));
 router.post("/goal-image", expensiveRateLimiter, handle(async req => {
   const body = z.object({ image: GoalImageSchema, sessionId: uuid.optional() }).strict().parse(req.body);
   const session = await sessionFor(req, body.sessionId);
