@@ -872,6 +872,14 @@ model FitnessAgentAction {
   result           Json?
   expiresAt        DateTime @map("expires_at")
   createdAt        DateTime @default(now()) @map("created_at")
+  // X4 event-ordering fix (docs/conversational-intelligence-x4-event-ordering-fix.md): createdAt never changes once
+  // a row is written, so it cannot represent WHEN a PENDING action was later confirmed/cancelled/executed — only
+  // when it was first created. The confirmation boundary's cross-source recency comparison (vs.
+  // AgentWorkflowSession.updatedAt, which already tracked this) needs a real last-transition timestamp. Mirrors
+  // AgentWorkflowSession's own updatedAt; migration 20260927150000_fitness_agent_action_updated_at backfills
+  // existing rows to createdAt (the best available signal) and every future update/updateMany sets it going
+  // forward via Prisma's own @updatedAt handling — no call site needs to change.
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@index([userId, sessionId, createdAt])
   @@map("fitness_agent_actions")
@@ -917,6 +925,9 @@ model AgentWorkflowSession {
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@index([userId, sessionId, status])
+  // X4 event-ordering fix — supports findLatestProfileConfirmation's single, DB-level ORDER BY updatedAt DESC
+  // query (status IN terminal, pendingProfileUpdate NOT NULL) without an application-level take/filter workaround.
+  @@index([userId, sessionId, status, updatedAt])
   // Codex Conversational AI Coach Evaluation #1 — "one active workflow per
   // (userId, sessionId)" is additionally enforced at the DATABASE level by
   // a partial unique index Prisma's schema DSL cannot express declaratively

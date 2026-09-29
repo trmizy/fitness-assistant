@@ -28886,6 +28886,7 @@ export namespace Prisma {
     status: string | null
     expiresAt: Date | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type FitnessAgentActionMaxAggregateOutputType = {
@@ -28898,6 +28899,7 @@ export namespace Prisma {
     status: string | null
     expiresAt: Date | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type FitnessAgentActionCountAggregateOutputType = {
@@ -28912,6 +28914,7 @@ export namespace Prisma {
     result: number
     expiresAt: number
     createdAt: number
+    updatedAt: number
     _all: number
   }
 
@@ -28926,6 +28929,7 @@ export namespace Prisma {
     status?: true
     expiresAt?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type FitnessAgentActionMaxAggregateInputType = {
@@ -28938,6 +28942,7 @@ export namespace Prisma {
     status?: true
     expiresAt?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type FitnessAgentActionCountAggregateInputType = {
@@ -28952,6 +28957,7 @@ export namespace Prisma {
     result?: true
     expiresAt?: true
     createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -29039,6 +29045,7 @@ export namespace Prisma {
     result: JsonValue | null
     expiresAt: Date
     createdAt: Date
+    updatedAt: Date
     _count: FitnessAgentActionCountAggregateOutputType | null
     _min: FitnessAgentActionMinAggregateOutputType | null
     _max: FitnessAgentActionMaxAggregateOutputType | null
@@ -29070,6 +29077,7 @@ export namespace Prisma {
     result?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["fitnessAgentAction"]>
 
   export type FitnessAgentActionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -29084,6 +29092,7 @@ export namespace Prisma {
     result?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["fitnessAgentAction"]>
 
   export type FitnessAgentActionSelectScalar = {
@@ -29098,6 +29107,7 @@ export namespace Prisma {
     result?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }
 
 
@@ -29116,6 +29126,7 @@ export namespace Prisma {
       result: Prisma.JsonValue | null
       expiresAt: Date
       createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["fitnessAgentAction"]>
     composites: {}
   }
@@ -29520,6 +29531,7 @@ export namespace Prisma {
     readonly result: FieldRef<"FitnessAgentAction", 'Json'>
     readonly expiresAt: FieldRef<"FitnessAgentAction", 'DateTime'>
     readonly createdAt: FieldRef<"FitnessAgentAction", 'DateTime'>
+    readonly updatedAt: FieldRef<"FitnessAgentAction", 'DateTime'>
   }
     
 
@@ -31287,7 +31299,8 @@ export namespace Prisma {
     status: 'status',
     result: 'result',
     expiresAt: 'expiresAt',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type FitnessAgentActionScalarFieldEnum = (typeof FitnessAgentActionScalarFieldEnum)[keyof typeof FitnessAgentActionScalarFieldEnum]
@@ -34019,6 +34032,7 @@ export namespace Prisma {
     result?: JsonNullableFilter<"FitnessAgentAction">
     expiresAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
     createdAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+    updatedAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
   }
 
   export type FitnessAgentActionOrderByWithRelationInput = {
@@ -34033,6 +34047,7 @@ export namespace Prisma {
     result?: SortOrderInput | SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type FitnessAgentActionWhereUniqueInput = Prisma.AtLeast<{
@@ -34050,6 +34065,7 @@ export namespace Prisma {
     result?: JsonNullableFilter<"FitnessAgentAction">
     expiresAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
     createdAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
+    updatedAt?: DateTimeFilter<"FitnessAgentAction"> | Date | string
   }, "id">
 
   export type FitnessAgentActionOrderByWithAggregationInput = {
@@ -34064,6 +34080,7 @@ export namespace Prisma {
     result?: SortOrderInput | SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: FitnessAgentActionCountOrderByAggregateInput
     _max?: FitnessAgentActionMaxOrderByAggregateInput
     _min?: FitnessAgentActionMinOrderByAggregateInput
@@ -34084,6 +34101,7 @@ export namespace Prisma {
     result?: JsonNullableWithAggregatesFilter<"FitnessAgentAction">
     expiresAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"FitnessAgentAction"> | Date | string
   }
 
   export type AgentWorkflowSessionWhereInput = {
@@ -36936,6 +36954,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type FitnessAgentActionUncheckedCreateInput = {
@@ -36950,6 +36969,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type FitnessAgentActionUpdateInput = {
@@ -36964,6 +36984,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type FitnessAgentActionUncheckedUpdateInput = {
@@ -36978,6 +36999,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type FitnessAgentActionCreateManyInput = {
@@ -36992,6 +37014,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type FitnessAgentActionUpdateManyMutationInput = {
@@ -37006,6 +37029,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type FitnessAgentActionUncheckedUpdateManyInput = {
@@ -37020,6 +37044,7 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AgentWorkflowSessionCreateInput = {
@@ -39327,6 +39352,7 @@ export namespace Prisma {
     result?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type FitnessAgentActionMaxOrderByAggregateInput = {
@@ -39339,6 +39365,7 @@ export namespace Prisma {
     status?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type FitnessAgentActionMinOrderByAggregateInput = {
@@ -39351,6 +39378,7 @@ export namespace Prisma {
     status?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type AgentWorkflowSessionCountOrderByAggregateInput = {

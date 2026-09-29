@@ -26,12 +26,20 @@ import { createRoadmapWorkflow } from "../agent-workflow/workflows/roadmap.workf
 import { findPtWorkflow, findTrainingProgramWorkflow, resolveBudgetPreference } from "../agent-workflow/workflows/find-pt-program.workflow";
 import { createWorkoutPlanWorkflow } from "../agent-workflow/workflows/create-workout-plan.workflow";
 import { createNutritionPlanWorkflow } from "../agent-workflow/workflows/create-nutrition-plan.workflow";
+import { updateGoalWorkflow, UPDATE_GOAL_INTENT_KIND } from "../agent-workflow/workflows/update-goal.workflow";
+import { ciMode } from "../conversational-intelligence";
+import { runGlobalTurn } from "../conversational-intelligence/global/global-turn";
+import { profileFailureAnswer } from "../conversational-intelligence/global/profile-errors";
+import { classifyConfirmationUtterance, confirmationBoundaryAnswer, deriveConfirmationState, mergeConfirmationState } from "./confirmation-boundary";
+import { GOAL_LABEL } from "../conversational-intelligence/responses";
+import type { Goal } from "../conversational-intelligence";
 
 registerWorkflow(createRoadmapWorkflow);
 registerWorkflow(findPtWorkflow);
 registerWorkflow(findTrainingProgramWorkflow);
 registerWorkflow(createWorkoutPlanWorkflow);
 registerWorkflow(createNutritionPlanWorkflow);
+registerWorkflow(updateGoalWorkflow);
 
 const fail = (message: string, status = 400) => Object.assign(new Error(message), { status });
 export type AgentBlock = { type: "PT_RECOMMENDATIONS" | "PROGRAM_RECOMMENDATIONS" | "ACTION_CONFIRMATION" | "GOAL_ANALYSIS" | "ACTION_RESULT" | "SUBSTITUTE_RESULT" | "CYCLE_EVALUATION_RESULT" | "IMAGE_CHAT" | "WORKFLOW_MISSING_DATA" | "PROFILE_UPDATE_CONFIRMATION" | "WORKOUT_PLAN_PREVIEW" | "NUTRITION_PLAN_PREVIEW"; [key: string]: unknown };
@@ -438,7 +446,21 @@ function classifyDraftDomains(text: string): DraftDomain[] {
 }
 
 export const fitnessAgent = {
-  async tryTurn(question: string, identity: AgentIdentity, sessionId: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+  /**
+   * The agent-turn boundary. A user with no profile row makes the profile read fail with a well-formed 422 ("Complete your profile first") —
+   * a KNOWN condition that must become guidance in the chat, not an HTTP 500. Only classified profile conditions are converted (and only into
+   * text: no write, no profile creation, no workflow); authorization and unexpected failures are rethrown so they stay real errors.
+   */
+  async tryTurn(question: string, identity: AgentIdentity, sessionId: string, correlationId?: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+    try {
+      return await this.tryTurnUnguarded(question, identity, sessionId, correlationId);
+    } catch (err) {
+      const answer = profileFailureAnswer(err, { correlationId, userId: identity.userId, sessionId });
+      if (answer === null) throw err;
+      return { answer, blocks: [] };
+    }
+  },
+  async tryTurnUnguarded(question: string, identity: AgentIdentity, sessionId: string, correlationId?: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
     const intent = parseFitnessAgentIntent(question);
     // Conversational AI Coach workflow orchestration — checked BEFORE the
     // existing intent dispatch below (docs/conversational-ai-coach-
@@ -449,6 +471,13 @@ export const fitnessAgent = {
     // recognized intents) so a workflow-continuation turn is never
     // processed against a session id the caller doesn't actually own.
     await ownSession(identity, sessionId);
+    // Confirmation-intent boundary (deterministic, before ANY intent-kind dispatch): a bare "Xác nhận cập nhật", "Ok lưu đi", "Tôi đồng ý",
+    // "Đã lưu thành công chưa?" is answered from the real action state of this session — never by the model (which used to claim a save that
+    // never happened) and never by an unrelated legacy classifier (the intent parser can match "lưu"/"xác nhận" into an unconnected kind,
+    // e.g. a cycle handler, well before the null-intent dispatch). Phrases naming a specific artifact ("lưu lịch tập này", "lưu thực đơn
+    // này") are deliberately NOT matched by the classifier — those keep their own existing, collision-aware redirect unshadowed.
+    const confirmationBoundary = await this.tryConfirmationBoundary(question, identity, sessionId, correlationId);
+    if (confirmationBoundary) return confirmationBoundary;
     // Final remediation M1: nutritionConstraints is an ACCUMULATING set, but the
     // (signed-off) orchestrator never overwrites an already-known slot — so a
     // constraint stated in a middle turn would be lost. Merge it into the
@@ -456,7 +485,23 @@ export const fitnessAgent = {
     // slot handling, which then continues untouched.
     const accumulated = await this.accumulateNutritionWorkflowConstraints(question, identity, sessionId, intent.kind);
     if (accumulated) return accumulated;
-    const workflowResult = await runWorkflowTurn(question, identity, sessionId, intent.kind, {
+    // "Vì sao PT thứ nhất phù hợp?" is a question ABOUT the recommendation already shown, not a new search: without this it
+    // matched the PT intent and restarted the FIND_PT workflow (asking for days/budget again). Answered from the stored
+    // recommendation only (deterministic why-strings + score), never by the LLM.
+    const explained = await this.tryExplainRecommendation(question, identity, sessionId);
+    if (explained) return explained;
+    // CI-V2 GLOBAL coverage (flag CONVERSATIONAL_INTELLIGENCE_V2=on): understand what the turn WANTS before any workflow/RAG routing —
+    // authoritative READs, standalone recommendations, goal-change PROPOSALS, and side questions that must not destroy a waiting workflow.
+    let intentKindOverride: string | null = null;
+    if (ciMode() === "on") {
+      const g = await runGlobalTurn(question, identity, sessionId, intent.kind, {
+        getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext, updateProfileFields: fitnessAgentDeps.tools.updateProfileFields,
+      }, correlationId, isLikelyFoodSubstitutionMessage(question) || isLikelyMealLogMessage(question));
+      if (g?.result) return g.result as { answer: string; blocks: AgentBlock[] };
+      if (g?.skipAgent) return null;
+      if (g?.overrideIntentKind) intentKindOverride = g.overrideIntentKind;
+    }
+    const workflowResult = await runWorkflowTurn(question, identity, sessionId, intentKindOverride ?? intent.kind, {
       getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext,
       updateProfileFields: fitnessAgentDeps.tools.updateProfileFields,
     });
@@ -474,7 +519,12 @@ export const fitnessAgent = {
     // completed workflow's own gatesIntentKind instead whenever this is a
     // resume; otherwise behave exactly as before.
     const isResuming = workflowResult?.answer === RESUME_SENTINEL;
-    const effectiveKind = isResuming ? (workflowResult!.resumeIntentKind ?? null) : intent.kind;
+    const effectiveKind = isResuming ? (workflowResult!.resumeIntentKind ?? null) : (intentKindOverride ?? intent.kind);
+    if (effectiveKind === UPDATE_GOAL_INTENT_KIND) {
+      const done = workflowResult?.resumeKnownSlots as { goal?: string; targetWeight?: number } | undefined;
+      const goalTxt = done?.goal ? ` Mục tiêu: ${GOAL_LABEL[done.goal as Goal] ?? done.goal}${done.targetWeight ? `, cân nặng mục tiêu ${done.targetWeight}kg` : ""}.` : "";
+      return { answer: `Đã cập nhật hồ sơ của bạn.${goalTxt}`, blocks: [{ type: "ACTION_RESULT", message: `Đã cập nhật hồ sơ của bạn.${goalTxt}` } as AgentBlock] };
+    }
     if (!effectiveKind) {
       if (!isResuming) {
         // ROADMAP_REVISION (docs/conversational-ai-coach-workflow-design.md
@@ -842,7 +892,14 @@ export const fitnessAgent = {
       }
       try {
         const nutritionResult = await fitnessAgentDeps.tools.bootstrapNutrition(identity);
-        steps.push({ step: "nutrition", ok: true, detail: (nutritionResult as any).data?.status });
+        const nutritionOutcome = (nutritionResult as any).data;
+        if (nutritionOutcome?.status === "insufficient_data") {
+          // bootstrapNutrition wrote NO NutritionGoal (e.g. activityLevel missing) — never present that as a success.
+          const missing = Array.isArray(nutritionOutcome.missingFields) ? nutritionOutcome.missingFields.join(", ") : "";
+          steps.push({ step: "nutrition", ok: false, detail: `Chưa tạo được mục tiêu dinh dưỡng vì thiếu dữ liệu hồ sơ${missing ? ` (${missing})` : ""}. Bổ sung rồi tạo lại.` });
+        } else {
+          steps.push({ step: "nutrition", ok: true, detail: nutritionOutcome?.status });
+        }
       } catch (err: any) {
         steps.push({ step: "nutrition", ok: false, detail: err?.message ?? "Không tạo được mục tiêu dinh dưỡng" });
       }
@@ -1512,6 +1569,22 @@ export const fitnessAgent = {
     // (M7) — never reduced to a bare count.
     if (/\b(?:thu\s*[2-7]|t[2-7]|chu nhat|cn)\b/.test(s) && !mentionsMinutesUnit) {
       const daysParsed = parseTrainingDays(trimmed);
+      // UNAVAILABILITY ("Thứ 4 tôi bận", "không tập được thứ 3", "trừ thứ 5", "nghỉ chủ nhật") names the days to AVOID,
+      // it is NOT a selection of those days. Found by the full chat verification: "Thứ 4 tôi bận." used to shrink a
+      // 4-day plan into a single Wednesday session. Keep the same number of sessions, moved off the busy day(s).
+      const unavailable = /\b(ban|khong (?:the |duoc )?(?:tap|ranh|di|den)|khong tap duoc|nghi|tru|off|busy|except)\b/.test(s);
+      if (unavailable && daysParsed.ok) {
+        const busy = new Set(agentDaysToWeekdays(daysParsed.value) ?? []);
+        const need = payload.weeklySchedule.length;
+        const keep = (payload.selectedWeekdays ?? []).filter((w) => !busy.has(w));
+        const pool = [1, 2, 3, 4, 5, 6, 0].filter((w) => !busy.has(w) && !keep.includes(w));
+        const weekdays = [...keep, ...pool.slice(0, Math.max(0, need - keep.length))].sort((a, b) => weekOrder(a) - weekOrder(b));
+        if (weekdays.length === need && need >= 1) {
+          const relabeled = applyWeekdayLabels(payload.weeklySchedule, weekdays);
+          return respond(relabeled, payload.sessionMinutes, `Mình đã tránh ${[...busy].sort((a, b) => weekOrder(a) - weekOrder(b)).map(weekdayLabel).join(", ")} và chuyển lịch sang: ${weekdays.map(weekdayLabel).join(", ")} (vẫn ${need} buổi/tuần).`, { selectedWeekdays: weekdays });
+        }
+        return { answer: "Mình chưa xếp lại được lịch để tránh các ngày bạn bận. Bạn cho mình biết các ngày bạn tập được (ví dụ \"Tôi tập được thứ 2, 4, 6\") nhé.", blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)] };
+      }
       if (daysParsed.ok) {
         const weekdays = [...new Set(agentDaysToWeekdays(daysParsed.value) ?? [])].sort((a, b) => weekOrder(a) - weekOrder(b));
         if (weekdays.length >= 1 && weekdays.length <= 7) {
@@ -1611,6 +1684,14 @@ export const fitnessAgent = {
         const keptIdx = revised.weeklySchedule.map((d: any) => payload.weeklySchedule.findIndex((o: any) => o.day === d.day));
         const weekdays = payload.selectedWeekdays && keptIdx.every((i: number) => i >= 0) ? keptIdx.map((i: number) => payload.selectedWeekdays![i]) : undefined;
         return respond(revised.weeklySchedule, payload.sessionMinutes, `Mình đã ${parts.join(" và ")} liên quan đến "${keyword}" và sẽ tránh ${keyword} trong lịch này.`, { exclusions: nextExclusions, ...(weekdays ? { selectedWeekdays: weekdays } : {}) });
+      }
+      // The keyword matches NOTHING in this draft. Answer truthfully here (and remember the exclusion for later
+      // regenerations) instead of returning null: falling through to the generic chat made the LLM claim "mình sẽ thay thế
+      // các bài tập liên quan" although the draft was not changed (found by the full chat verification).
+      // Only for an EXPLICIT exclusion phrase ("không có máy cable", "tránh deadlift", "bỏ squat"): any other free text
+      // (questions, small talk) must keep falling through to normal chat while a draft is pending.
+      if (/\b(khong (?:co|muon|dung|the|thich|can)|tranh|kieng|loai bo|bo)\b/.test(s) && !/\?/.test(trimmed)) {
+        return respond(payload.weeklySchedule, payload.sessionMinutes, `Lịch hiện tại không có bài nào liên quan đến "${keyword}" nên mình chưa cần đổi gì. Mình sẽ tránh ${keyword} nếu bạn yêu cầu tạo lại hoặc chỉnh lịch này.`, { exclusions: nextExclusions });
       }
     }
 
@@ -1804,6 +1885,47 @@ export const fitnessAgent = {
     if (displacedAt > touched(current)) return null;
     if (pendingDomains.length > 1 && AMBIGUOUS_REVISION_RE.test(normalizeAgentText(question))) return askWhich(pendingDomains);
     return dispatch(current);
+  },
+  /** Explains ONE candidate of the latest PT/program recommendation shown in this session from its stored, already-validated
+   * why-strings and compatibility score. Returns null (normal routing) when the message is not a "why" question about a
+   * PT/program, or no recommendation with that candidate exists. */
+  async tryExplainRecommendation(question: string, identity: AgentIdentity, sessionId: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+    const s = normalizeAgentText(question);
+    if (!/\b(vi sao|tai sao|giai thich|why)\b/.test(s) || !/\b(pt|huan luyen vien|chuong trinh)\b/.test(s)) return null;
+    const rec = await prisma.fitnessRecommendation.findFirst({ where: { userId: identity.userId, sessionId }, orderBy: { createdAt: "desc" } });
+    const candidates = ((rec?.result as { candidates?: any[] } | null)?.candidates ?? []) as any[];
+    if (!candidates.length) return null;
+    const ordinal = s.match(/(?:thu|so|#)\s*(\d+)/)?.[1];
+    const words: Record<string, number> = { nhat: 1, hai: 2, ba: 3, bon: 4, nam: 5 };
+    const wordN = s.match(/\bthu\s+(nhat|hai|ba|bon|nam)\b/)?.[1];
+    const n = ordinal ? Number(ordinal) : wordN ? words[wordN] : 1;
+    const c = candidates[n - 1];
+    if (!c) return null;
+    const reasons = [...new Set<string>(((c.why ?? []) as string[]).filter((x) => typeof x === "string" && x.trim()))];
+    const total = c.compatibility?.total;
+    const answer = `${c.name ?? "Lựa chọn này"} (lựa chọn số ${n}) được gợi ý vì: ${reasons.length ? reasons.join(" ") : "khớp các điều kiện bạn đã đưa ra."}`
+      + `${typeof total === "number" ? ` Điểm phù hợp ${total}/100 — đây là mức độ khớp với điều kiện của bạn, không phải cam kết kết quả.` : ""}`;
+    return { answer, blocks: [] };
+  },
+  async tryConfirmationBoundary(question: string, identity: AgentIdentity, sessionId: string, correlationId?: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+    const intent = classifyConfirmationUtterance(question);
+    if (!intent) return null;
+    if (await workflowStateRepository.findActive(identity.userId, sessionId)) return null;
+    const actions = await prisma.fitnessAgentAction.findMany({ where: { userId: identity.userId, sessionId }, orderBy: { createdAt: "desc" }, take: 10, select: { status: true, expiresAt: true, updatedAt: true } });
+    const actionState = deriveConfirmationState(actions);
+    // X4 follow-up (docs/conversational-intelligence-x4-followup-fix.md): FitnessAgentAction and
+    // AgentWorkflowSession (e.g. a completed UPDATE_GOAL profile confirmation) are two independent,
+    // separately-scoped state sources — merge them by recency so a real, already-saved profile
+    // change is never falsely denied just because no action row happens to represent it.
+    // X4 event-ordering fix, Defect B (docs/conversational-intelligence-x4-event-ordering-fix.md):
+    // `actions[0]` (newest by createdAt) is the SAME row whose status determines `actionState` in
+    // every non-PENDING/EXECUTING branch of deriveConfirmationState — its `updatedAt` (real last
+    // transition time: confirm/cancel/execute), not its immutable `createdAt` (creation time),
+    // is what must be compared against the profile workflow's own `updatedAt`.
+    const profileWorkflow = await workflowStateRepository.findLatestProfileConfirmation(identity.userId, sessionId);
+    const state = mergeConfirmationState(actionState, actions[0]?.updatedAt ?? null, profileWorkflow);
+    logger.info({ correlationId, userId: identity.userId, sessionId, intent, state, actionState, hasProfileWorkflow: !!profileWorkflow }, "ci_confirmation_boundary");
+    return { answer: confirmationBoundaryAnswer(intent, state), blocks: [] };
   },
   /** L1 — "Bỏ qua" on a workout/nutrition preview really cancels the draft
    * (so the UI label is truthful and the draft stops receiving later turns). */
