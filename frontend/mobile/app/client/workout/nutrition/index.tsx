@@ -7,7 +7,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import {
   ChevronLeft,
   Coffee,
-  Compass,
   Flame,
   Moon,
   Plus,
@@ -180,12 +179,6 @@ export default function NutritionScreen() {
           <ChevronLeft size={20} color="#8b9299" />
         </Tappable>
         <Text className="flex-1 font-display text-2xl text-foreground">Dinh dưỡng</Text>
-        <Tappable
-          className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-          onPress={() => router.push("/client/library")}
-        >
-          <Compass size={19} color="#8b9299" />
-        </Tappable>
         <Tappable
           className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
           onPress={() => router.push("/client/workout/nutrition/goals")}

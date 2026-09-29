@@ -10,7 +10,6 @@ import {
   Check,
   ChevronRight,
   ClipboardList,
-  Compass,
   Dumbbell,
   LayoutTemplate,
   Play,
@@ -127,7 +126,6 @@ export default function WorkoutScreen() {
             {/* Nutrition lives under this tab (doc 08 §4.2), so its door is here rather than a
                 sixth tab. */}
             <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
-            <ToolButton icon={Compass} onPress={() => router.push("/client/library")} />
             <ToolButton icon={ClipboardList} onPress={() => router.push("/client/plans")} />
             <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
             <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />

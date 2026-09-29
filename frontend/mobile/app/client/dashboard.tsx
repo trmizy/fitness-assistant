@@ -12,7 +12,7 @@ import {
   ClipboardList,
   Dumbbell,
   Flame,
-  MessageCircle,
+  Compass,
   ScanLine,
   Search,
   TrendingUp,
@@ -294,7 +294,8 @@ export default function ClientDashboardScreen() {
             <QuickAction icon={ClipboardList} label="Kế hoạch" onPress={() => router.push("/client/plans")} />
             <QuickAction icon={BarChart3} label="Thống kê" onPress={() => router.push("/client/stats/activity")} />
             <QuickAction icon={ScanLine} label="InBody" onPress={() => router.push("/client/inbody")} />
-            <QuickAction icon={MessageCircle} label="Tin nhắn" onPress={() => router.push("/client/messages")} />
+            {/* Was "Tin nhắn", a duplicate of the Trò chuyện tab — replaced by the Discover hub (29/9). */}
+            <QuickAction icon={Compass} label="Khám phá" onPress={() => router.push("/client/library")} />
           </View>
         </StaggerItem>
 
@@ -560,8 +561,12 @@ function StatTile({
   loading?: boolean;
   onPress?: () => void;
 }) {
+  // `flex-1` only when the Card itself is the row child. Inside the Tappable it must be `grow`:
+  // flex-1 there means flex-basis 0 in a column whose height comes from its children, so the
+  // Card collapsed to its padding and the value text was clipped (same bug as the Phase 13
+  // admin KPI tiles).
   const body = (
-    <Card className="flex-1 p-4">
+    <Card className={onPress ? "grow p-4" : "flex-1 p-4"}>
       <View
         className="mb-3 h-9 w-9 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${tint}26` }}
