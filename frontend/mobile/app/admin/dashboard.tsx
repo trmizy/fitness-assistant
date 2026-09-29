@@ -1,4 +1,4 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import {
   CircleCheck,
   CircleX,
   FileText,
+  LogOut,
   ScanLine,
   TriangleAlert,
   UserCheck,
@@ -20,6 +21,7 @@ import {
 import { Badge, Button, Card, CountUp, Stagger, StaggerItem, Tappable } from "../../src/components/ui";
 import { adminPartnerApplications, adminService } from "../../src/services/api";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { useApp } from "../../src/context/AppContext";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import {
@@ -81,6 +83,15 @@ function Metric({
 export default function AdminDashboardScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
+  const { logout, user } = useApp();
+
+  // Không gian quản trị không có tab Hồ sơ (4 tab theo bản thiết kế), nên đây là lối đăng xuất duy
+  // nhất — trước Phase 13 nó nằm trên màn giữ chỗ, dựng màn Tổng quan thật đã làm mất nó.
+  const confirmLogout = () =>
+    Alert.alert("Đăng xuất?", user?.email ? `Bạn đang đăng nhập bằng ${user.email}.` : undefined, [
+      { text: "Không", style: "cancel" },
+      { text: "Đăng xuất", style: "destructive", onPress: () => void logout() },
+    ]);
 
   const query = useQuery({ queryKey: ["admin-dashboard"], queryFn: () => adminService.getDashboard() });
   const withdrawalsQuery = useQuery({
@@ -133,7 +144,17 @@ export default function AdminDashboardScreen() {
             <Text className="font-display text-xl text-foreground">Tổng quan</Text>
             <Text className="mt-0.5 font-body text-xs capitalize text-muted-foreground">{today}</Text>
           </View>
-          {health ? <Badge tone={health.tone}>{health.label}</Badge> : null}
+          <View className="items-end gap-2">
+            <Tappable
+              accessibilityLabel="Đăng xuất"
+              hitSlop={8}
+              onPress={confirmLogout}
+              className="h-9 w-9 items-center justify-center rounded-full border border-border bg-panel"
+            >
+              <LogOut size={16} color={designTokens.mutedForeground} />
+            </Tappable>
+            {health ? <Badge tone={health.tone}>{health.label}</Badge> : null}
+          </View>
         </View>
 
         {query.isLoading ? (
