@@ -12,6 +12,8 @@ import { formatVND } from "../../../../src/utils/currency";
 import { apiErrorMessage } from "../../../../src/features/plans/aiPlans";
 import { SERVICE_TYPE_LABELS } from "../../../../src/features/plans/marketplace";
 import { StarRow } from "../../../../src/features/plans/PlanWidgets";
+import { openPaymentGateway } from "../../../../src/features/payments/openGateway";
+import { readCheckout } from "../../../../src/features/payments/payments";
 
 type PaymentMethod = { provider: string; label?: string; name?: string; description?: string; configured: boolean };
 
@@ -22,10 +24,10 @@ type PaymentMethod = { provider: string; label?: string; name?: string; descript
  * policy, buyer protection.
  *
  * Buying creates the order (PENDING_PAYMENT) plus a gateway checkout for the chosen provider — the
- * list of providers is the server's (`/me/payments/methods`, configured ones only). Opening the
- * gateway and coming back is Phase 14's work, exactly like Phase 7's membership and contract
- * payments: here the client lands on the order, which says it is waiting for payment and can be
- * cancelled. The order only moves on when the gateway webhook confirms payment — never on this.
+ * list of providers is the server's (`/me/payments/methods`, configured ones only). Phase 14.1:
+ * the screen is replaced by the new order, then the gateway opens in a browser tab on top of it;
+ * coming back lands on the payment result screen, whose back step is that order. The order only
+ * moves on when the gateway confirms payment — never on this response.
  */
 export default function PersonalizedServiceScreen() {
   const accent = useWorkspaceAccent();
@@ -62,11 +64,27 @@ export default function PersonalizedServiceScreen() {
 
   const purchase = useMutation({
     mutationFn: (p: string) => personalizedServiceApi.purchase(serviceId, p),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       setPayOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["personalized-service-orders"] });
-      toast.show("Đã tạo đơn — đơn đang chờ thanh toán.", "success");
       router.replace(`/client/plans/orders/${res.order.id}`);
+      const checkout = readCheckout(res);
+      if (!checkout.redirectUrl) {
+        toast.show(
+          checkout.failureReason ?? "Đã tạo đơn nhưng cổng thanh toán không trả về liên kết — thử thanh toán lại từ đơn.",
+          "danger",
+        );
+        return;
+      }
+      try {
+        await openPaymentGateway({
+          url: checkout.redirectUrl,
+          transactionId: checkout.transactionId,
+          userId: user?.id,
+        });
+      } catch {
+        toast.show("Không mở được trang thanh toán — thử lại từ đơn.", "danger");
+      }
     },
     onError: (e) => {
       submitted.current = false;
@@ -204,7 +222,7 @@ export default function PersonalizedServiceScreen() {
           </View>
         )}
         <Text className="mt-3 font-body text-[11px] text-muted-foreground">
-          Đơn được tạo ở trạng thái chờ thanh toán. Mở cổng thanh toán ngay trong ứng dụng sẽ có ở bản cập nhật tới.
+          Bạn sẽ được chuyển sang trang của cổng thanh toán. Đơn chỉ bắt đầu sau khi cổng xác nhận giao dịch thành công.
         </Text>
         <View className="mt-4">
           <Button
@@ -217,7 +235,7 @@ export default function PersonalizedServiceScreen() {
               purchase.mutate(chosen);
             }}
           >
-            {purchase.isPending ? "Đang tạo đơn…" : "Tạo đơn thanh toán"}
+            {purchase.isPending ? "Đang tạo giao dịch…" : "Thanh toán"}
           </Button>
         </View>
       </BottomSheet>

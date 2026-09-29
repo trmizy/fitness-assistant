@@ -276,7 +276,7 @@ export default function PersonalizedOrderScreen() {
             <CreditCard size={28} color={designTokens.warning} />
             <Text className="text-center font-body-semibold text-sm text-foreground">Đơn đang chờ thanh toán</Text>
             <Text className="text-center font-body text-xs text-muted-foreground">
-              Đơn chỉ chuyển sang bước tiếp theo khi cổng thanh toán xác nhận. Mở cổng thanh toán ngay trong ứng dụng sẽ có ở bản cập nhật tới — nếu bạn không muốn tiếp tục, hãy huỷ đơn bên dưới.
+              Nếu bạn đã thanh toán xong, đơn sẽ tự cập nhật trong ít giây. Nếu bạn đã đóng trang thanh toán mà chưa trả tiền, hãy huỷ đơn bên dưới rồi mua lại.
             </Text>
           </Card>
         ) : null}

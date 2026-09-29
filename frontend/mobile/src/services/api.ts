@@ -34,6 +34,18 @@ export let API_URL = apiBaseUrl();
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery, no auth. Web could return
 // a bare relative path because the browser resolves it against its own origin; an <Image source>
 // here needs a fully-qualified URL, so the gateway address is prefixed explicitly.
+/**
+ * Checkout requests only (Phase 14.1). Where the gateway sends the payer afterwards is decided by
+ * payment-service from the `platform` stored on the transaction — the app's own deep link
+ * `fitnessassistant://client/payments/result` for mobile, the web result page otherwise — and every
+ * calling service (gym, user, ai) reads that platform off `Origin: http://localhost`, the fixed
+ * origin of the old Capacitor app (`detectPlatform` in each controller). This app keeps the same
+ * scheme, so it identifies itself the same way instead of the backend growing a second convention.
+ * Never set globally: the gateway also builds emailed links from a trusted Origin, and those must
+ * stay web links.
+ */
+export const MOBILE_CHECKOUT = { headers: { Origin: "http://localhost" } } as const;
+
 export function gymPhotoUrl(fileName: string): string {
   return `${API_URL}/uploads/gym-photos/${fileName}`;
 }
@@ -2876,7 +2888,7 @@ export const personalizedServiceApi = {
     const { data } = await api.post<{
       success: boolean;
       data: { order: PersonalizedServiceOrder; payment: PersonalizedServicePayment };
-    }>(`/marketplace/services/${id}/purchase`, provider ? { provider } : {});
+    }>(`/marketplace/services/${id}/purchase`, provider ? { provider } : {}, MOBILE_CHECKOUT);
     return data.data;
   },
   listMyOrders: async () => {
@@ -4942,7 +4954,11 @@ export const contractService = {
   // Phase 4 — pay a PENDING_PAYMENT contract via wallet
   // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
   pay: async (contractId: string, provider?: string) => {
-    const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
+    const { data } = await api.post(
+      `/contracts/${contractId}/pay`,
+      provider ? { provider } : {},
+      MOBILE_CHECKOUT,
+    );
     return data;
   },
   // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
@@ -5872,7 +5888,7 @@ export const gymService = {
       ...(provider ? { provider } : {}),
       ...(referralCode ? { referralCode } : {}),
       ...(acknowledgedMultiGymWarning ? { acknowledgedMultiGymWarning: true } : {}),
-    });
+    }, MOBILE_CHECKOUT);
     return data;
   },
   // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
@@ -5880,6 +5896,7 @@ export const gymService = {
     const { data } = await api.post(
       `/me/gym-memberships/${membershipId}/pay`,
       provider ? { provider } : {},
+      MOBILE_CHECKOUT,
     );
     return data?.data ?? data;
   },

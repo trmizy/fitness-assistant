@@ -2993,3 +2993,55 @@ REJECTED.
 **Ghi chú:** phía PT hiện "(không có ghi chú)" vì lệnh chuẩn bị của tại hạ gửi `notes`, còn backend đọc
 `ptNotes` — lỗi của bước chuẩn bị, **không phải lỗi app**: `pt.completeSession` trong `api.ts` đã gửi đúng
 `ptNotes`.
+
+## 37. Phase 14.1 — thanh toán qua cổng thật (SH-06 + 4 lối vào) (28/9)
+
+**Quyết định của Ngài (28/9):** thông báo đẩy được phép sửa backend; chỉ có **1** điện thoại thật cho gọi
+video. Thứ tự làm: 14.1 → 14.3 → 14.2 → 14.4.
+
+### 37.1 Đã dựng
+
+| Phần | File | Ghi chú |
+|---|---|---|
+| Header nhận diện app | `src/services/api.ts` → `MOBILE_CHECKOUT` | Chỉ gắn vào **4 lời gọi tạo giao dịch**. Backend (gym/user/ai) suy `platform = mobile` từ `Origin: http://localhost` — quy ước sẵn có của app Capacitor cũ, app RN dùng chung scheme nên nhận diện y hệt, **không đổi backend**. Không gắn toàn cục vì gateway dựng link email từ Origin tin cậy. |
+| Chọn cổng | `src/components/payment/PaymentMethodSheet.tsx` | Danh sách của server (`/me/payments/methods`); cổng chưa cấu hình vẫn hiện, mờ, kèm lý do; chọn sẵn gợi ý của server; nút xác nhận chặn bấm đúp bằng ref (web từng bắt được 2 POST cho 1 lần chạm). |
+| Mở cổng | `src/features/payments/openGateway.ts` | `expo-web-browser` `openAuthSessionAsync` → Custom Tab, app vẫn sống phía dưới. Tab đóng (cổng trả deep link hoặc người dùng tự đóng) → luôn sang màn kết quả; không bao giờ tin `status` trên link. |
+| Luồng chung | `src/features/payments/useGatewayCheckout.ts` | 1 hook cho mọi nút "Thanh toán": chọn cổng → tạo giao dịch → mở cổng → kết quả. |
+| Màn kết quả | `app/client/payments/result.tsx` (+ `_layout.tsx`, ẩn khỏi tab bar) | Chỉ nhận `txnId`; phán quyết luôn là `POST /me/payments/:id/sync`; PAID → làm mới danh sách liên quan + nút tới đúng chỗ (`?tab=memberships` / `?tab=contracts` / đơn 1-1). |
+| Deep link | `app/+native-intent.tsx` | Viết lại `fitnessassistant://client/payments/result?txnId&status` → bỏ `status`, để link và app trỏ cùng một route. |
+| App bị tắt giữa chừng | `pendingCheckout.ts` + `ResumePendingCheckout.tsx` (gắn trong `app/client/_layout.tsx`) | Ghi `txnId` + `userId` trước khi mở tab; lần mở app sau (đúng người đó, trong 30 phút) tự vào màn kết quả; đọc là xoá. Xem 37.3 vì sao cần. |
+| 4 lối vào | Hội viên (trả gói đang chờ) · Hợp đồng (trả hợp đồng PENDING_PAYMENT) · Chi tiết phòng gym (mua gói: cảnh báo đa-gym **trước**, chọn cổng **sau**, như web) · Dịch vụ 1-1 (mua → thay màn bằng đơn → mở cổng) | Đơn 1-1 đang chờ **không** có nút trả lại — web cũng vậy (huỷ rồi mua lại); chỉ sửa câu chữ cho khớp web. |
+
+### 37.2 Kiểm chứng
+
+- **Tự động:** `payments.test.ts` 19/19; toàn bộ unit **573/573**, component **61/61**; `tsc` sạch; lint 0 lỗi, không cảnh báo mới (19 cảnh báo có sẵn).
+- **REAL HTTP/API + emulator (tài khoản `hytrongbeou@gmail.com`, VNPay sandbox thật, thẻ test công khai NCB):**
+
+| Ca | Kết quả | Bằng chứng DB |
+|---|---|---|
+| Mua gói Titan Gym 500.000 đ → chọn VNPay (chọn sẵn) → trả thẻ test + OTP | Giao dịch `33c11e1a…` ghi `platform = mobile`; VNPay trả về → **PAID** | `payment_transactions` PAID; `gym_membership_contracts 63268734…` **ACTIVE** 28/9 → 28/10 |
+| Mua gói Gymini Phú Nhuận khi đang có gói Titan | Cảnh báo "đang có gói ở gym khác" hiện trước, rồi mới tới bảng chọn cổng (320.000 đ) | — |
+| App **bị Android tắt** khi đang ở VNPay → bấm **Huỷ thanh toán** | App khởi động lại từ đầu, **tự vào màn kết quả** đúng `53f0cf45…` | Giao dịch vẫn PENDING — xem 37.4 |
+| Chọn **ZaloPay** | Tab đóng ngay (sandbox cố mở app ZaloPay, máy ảo không có); app **không bị tắt**, promise trả về → màn kết quả đúng `5241c15c…` | PENDING, `platform = mobile` |
+| App bị tắt → người dùng **tự bấm ✕** đóng tab (lối "Thanh toán" ở tab Hội viên) | App mở lại vào màn kết quả đúng `30f52af2…` | PENDING |
+| `?tab=memberships` | Tab Dịch vụ mở đúng tab Hội viên; gói Titan "Đang hiệu lực – còn 30 ngày" | — |
+
+Dọn dữ liệu thử: 2 gói chờ ở Phú Nhuận đã **huỷ qua giao diện** (CANCELLED). Còn lại có chủ ý: 1 gói Titan ACTIVE (trả thật bằng sandbox).
+
+### 37.3 Phát hiện: máy ảo 4 GB luôn tắt app khi mở trang cổng
+
+`lowmemorykiller` tắt `vn.fitnessassistant.app` (≈960 MB ở chế độ dev) ngay khi Chrome tải VNPay —
+thấy trong logcat ở **mọi** lần mở VNPay. Khi cổng trả về, app khởi động lại và **bản dev client làm rơi
+deep link** (nó tự mở lại bằng `fitnessassistant://expo-development-client/...`), nên lần đầu người dùng
+rơi về Trang chủ dù đã PAID. Đó là lý do có `pendingCheckout` — sửa đúng yêu cầu "quay lại khi app đã bị
+kill" của kế hoạch mà không phụ thuộc deep link. Lỗi Fast Refresh `ResumePendingCheckout doesn't exist`
+lúc sửa code là nhất thời (tải lại là hết), không phải lỗi code.
+
+### 37.4 Còn mở của 14.1
+
+- **Chưa kiểm được nhánh app còn sống lúc cổng trả deep link** (foreground/background) trên máy ảo — app
+  luôn bị tắt. Cần điện thoại thật hoặc bản release (nhẹ hơn nhiều) → làm cùng lúc cài lên máy thật.
+- **Hợp đồng PT và dịch vụ 1-1**: dùng chung hook đã kiểm, nhưng chưa bấm thật trên máy (hytrongbeou không có hợp đồng chờ) — `CODE AUDIT` + typecheck.
+- **Callback trùng (idempotency)**: do backend (`handleEvent` idempotent, chống cộng hai lần) — `CODE AUDIT`, không kiểm thêm.
+- **MoMo** chưa bấm thử.
+- Hai quan sát phía backend (không sửa) → `MOBILE_BACKEND_GAPS.md` GAP-22.

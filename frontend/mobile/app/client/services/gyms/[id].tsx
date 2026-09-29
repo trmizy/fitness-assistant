@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, ScrollView, Text, View } from "react-native
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
   Check,
@@ -27,12 +27,13 @@ import {
   EmptyState,
   Input,
   Tappable,
-  useToast,
 } from "../../../../src/components/ui";
 import { gymService, locationService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { formatVND } from "../../../../src/utils/currency";
 import { BranchMap } from "../../../../src/features/services/BranchMap";
+import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
+import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import {
   aboutText,
@@ -66,15 +67,14 @@ import {
  * only has to be shown and acknowledged, and that acknowledgement rides along as `multiGymWarned` —
  * evidence that the client was told, not a permission gate.
  *
- * Phase 7 stops at "chờ thanh toán" by design: the purchase creates the membership (the row exists
- * before payment is ever attempted) and the gateway itself is Phase 14's work, so this screen
- * deliberately does not open a checkout page.
+ * Phase 14.1: buying is one call with the chosen gateway (web: GymDetailModal) — the server creates
+ * the membership (PENDING_PAYMENT) and the checkout together, the gateway opens in a browser tab,
+ * and the membership activates only once the gateway confirms. Warning first, then the gateway
+ * picker, same order as web.
  */
 export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
-  const toast = useToast();
-  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const gymId = String(id ?? "");
 
@@ -149,42 +149,27 @@ export default function GymDetailScreen() {
   const blocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
   const gymClosed = gym ? gymBlockedReason(gym) : null;
 
-  const buyMutation = useMutation({
-    mutationFn: (acknowledged: boolean) =>
+  // `acknowledged` rides along as evidence the multi-gym warning was shown, never as a permission.
+  const checkout = useGatewayCheckout<{ planId: string; price: number; acknowledged: boolean }>({
+    start: (target, provider) =>
       gymService.buyMembership(
         gymId,
-        selected!.id,
-        // No provider on purpose: Phase 7 creates the membership and stops. Opening a real gateway
-        // is Phase 14, and passing a provider here would start a checkout nobody can finish yet.
-        undefined,
+        target.planId,
+        provider,
         referral.trim() || undefined,
-        acknowledged,
+        target.acknowledged,
       ),
-    onSuccess: () => {
-      setWarningOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
-      toast.show("Đã giữ gói cho bạn — gói đang ở trạng thái chờ thanh toán.", "success");
-    },
-    onError: (error: any) => {
-      setWarningOpen(false);
-      const code = error?.response?.data?.error ?? error?.response?.data?.message;
-      toast.show(
-        code === "ALREADY_HAS_PENDING_MEMBERSHIP"
-          ? "Bạn đã có một gói chờ thanh toán tại phòng gym này."
-          : code === "ALREADY_HAS_OPEN_MEMBERSHIP"
-            ? "Bạn đang có gói còn hiệu lực tại phòng gym này."
-            : (code ?? "Không mua được gói"),
-        "danger",
-      );
-    },
+    invalidate: [["my-memberships"]],
   });
 
-  const startPurchase = () => {
-    if (warnings.length > 0) {
+  const startPurchase = (acknowledged: boolean) => {
+    if (!selected) return;
+    if (!acknowledged && warnings.length > 0) {
       setWarningOpen(true);
       return;
     }
-    buyMutation.mutate(false);
+    setWarningOpen(false);
+    checkout.choose({ planId: selected.id, price: selected.price, acknowledged });
   };
 
   return (
@@ -426,8 +411,8 @@ export default function GymDetailScreen() {
                   />
                 </Card>
 
-                <Button full disabled={!!blocked || buyMutation.isPending} onPress={startPurchase}>
-                  {buyMutation.isPending ? "Đang xử lý..." : "Mua gói hội viên"}
+                <Button full disabled={!!blocked || checkout.submitting} onPress={() => startPurchase(false)}>
+                  {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
                 </Button>
                 <Text className="text-center font-body text-xs text-muted-foreground">
                   {blocked ??
@@ -452,16 +437,22 @@ export default function GymDetailScreen() {
             <Button variant="secondary" className="flex-1" onPress={() => setWarningOpen(false)}>
               Để sau
             </Button>
-            <Button
-              className="flex-1"
-              disabled={buyMutation.isPending}
-              onPress={() => buyMutation.mutate(true)}
-            >
+            <Button className="flex-1" onPress={() => startPurchase(true)}>
               Tôi vẫn mua
             </Button>
           </View>
         </View>
       </BottomSheet>
+
+      <PaymentMethodSheet
+        open={checkout.target != null}
+        amount={checkout.target?.price ?? 0}
+        title="Thanh toán gói hội viên"
+        note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
+        submitting={checkout.submitting}
+        onConfirm={checkout.pay}
+        onClose={checkout.close}
+      />
     </View>
   );
 }

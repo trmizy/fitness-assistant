@@ -545,3 +545,20 @@ câu trả lời.
 nhãn "Gym Owner", lát "Gym owners" trong `roleData`, `status` từ `isActive`, bỏ "Pending" cho PT. Test 3 ca
 mới, gateway 41/41; `REAL HTTP/API` sau `docker compose restart api-gateway`. Chi tiết:
 `MOBILE_PLATFORM_ADAPTERS.md` §35.1. Trạng thái: **ĐÃ SỬA**.
+
+## GAP-22 — Giao dịch cổng đã huỷ vẫn nằm PENDING (Phase 14.1) — chỉ ghi nhận, chưa sửa
+
+**Thấy 28/9 khi kiểm thanh toán trên mobile** (không phải lỗi app — app hiện đúng lời server):
+
+1. Bấm **Huỷ thanh toán** trên VNPay sandbox → cổng trả về app với mã huỷ, nhưng `/payments/vnpay/return`
+   chỉ xử lý nhánh PAID; `POST /me/payments/:id/sync` hỏi VNPay thì cổng vẫn trả `PENDING`. Người dùng thấy
+   "Đang chờ xác nhận" thay vì "chưa thành công". Ví dụ: `53f0cf45…`, `30f52af2…`.
+2. **Huỷ gói hội viên đang chờ** (`/me/gym-memberships/:id/cancel`) → gói CANCELLED nhưng giao dịch cổng đi
+   kèm vẫn PENDING.
+
+**Mobile đang làm gì:** màn kết quả nói "Đang chờ xác nhận … nếu bạn đã trả tiền, kiểm tra lại sau" và có
+nút "Kiểm tra lại" — đúng như web. Không tự suy ra "thất bại" từ `status` trên deep link.
+
+**Cần Ngài quyết (backend, không gấp):** có cho `vnpay/return` ghi FAILED khi chữ ký hợp lệ và mã là huỷ
+(như nó đã ghi PAID), và cho việc huỷ gói/hợp đồng huỷ luôn giao dịch PENDING đi kèm không. Nếu không, các
+giao dịch này chỉ đóng khi quét đối soát làm hết hạn.
